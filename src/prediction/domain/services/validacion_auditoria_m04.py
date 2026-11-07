@@ -3,6 +3,8 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: validar catalogo, actor, referencia y payload antes de persistir. |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02/H-03 RF-73: NOTAS_REGISTRADAS e id_version_deprecada |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72/RF-73: VENTANA_RETROALIMENTACION_AMPLIADA |
+# | 2026-10-31 | Arekkazu | RF-71/RF-73: REENTRENAMIENTO_SOLICITADO |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 """RF-73 E1 y CA-13/15: contrato del evento sin dependencias de persistencia."""
 from __future__ import annotations
 
@@ -37,6 +39,7 @@ class TipoEventoM04(StrEnum):
     VERSION_RECHAZADA = "VERSION_RECHAZADA"
     VERSION_ACTIVADA = "VERSION_ACTIVADA"
     VERSION_DEPRECADA = "VERSION_DEPRECADA"
+    VERSION_EN_SOMBRA = "VERSION_EN_SOMBRA"
     NOTAS_REGISTRADAS = "NOTAS_REGISTRADAS"
     HASH_INVALIDO_DETECTADO = "HASH_INVALIDO_DETECTADO"
     INTENTO_CARGA_MODELO_EXTERNO = "INTENTO_CARGA_MODELO_EXTERNO"
@@ -44,6 +47,7 @@ class TipoEventoM04(StrEnum):
     MODELO_ACTIVADO_EDGE = "MODELO_ACTIVADO_EDGE"
     DISTRIBUCION_FALLIDA = "DISTRIBUCION_FALLIDA"
     DISTRIBUCION_POSPUESTA = "DISTRIBUCION_POSPUESTA"
+    REENTRENAMIENTO_SOLICITADO = "REENTRENAMIENTO_SOLICITADO"
     REENTRENAMIENTO_INICIADO = "REENTRENAMIENTO_INICIADO"
     REENTRENAMIENTO_COMPLETADO = "REENTRENAMIENTO_COMPLETADO"
     REENTRENAMIENTO_FALLIDO = "REENTRENAMIENTO_FALLIDO"
@@ -81,9 +85,11 @@ _PAYLOAD_REQUERIDO: dict[str, tuple[str, ...]] = {
     "VERSION_RECHAZADA": ("tipo_modelo", "id_version"),
     "VERSION_ACTIVADA": ("tipo_modelo", "id_version_nueva", "id_version_deprecada"),
     "VERSION_DEPRECADA": ("tipo_modelo", "id_version"),
+    "VERSION_EN_SOMBRA": ("tipo_modelo", "id_version"),
     "NOTAS_REGISTRADAS": ("tipo_modelo", "id_version", "notas_validacion"),
     "MODELO_DISTRIBUIDO_EDGE": ("device_id", "tipo_modelo", "id_version", "hash_verificado"),
     "HASH_INVALIDO_DETECTADO": ("device_id", "tipo_modelo", "id_version", "hash_esperado", "hash_recibido"),
+    "REENTRENAMIENTO_SOLICITADO": ("tipo_modelo", "registros_nuevos", "minimo_solicitud", "id_usuario_solicitante"),
     "REENTRENAMIENTO_INICIADO": ("tipo_modelo", "trigger_reentrenamiento", "version_modelo_base"),
     "REENTRENAMIENTO_COMPLETADO": ("tipo_modelo", "id_version_generada", "roc_auc_score", "estado_resultado"),
     "DEGRADACION_DETECTADA": ("tipo_modelo", "version_modelo_activa", "umbral_minimo", "periodo_evaluado_dias"),

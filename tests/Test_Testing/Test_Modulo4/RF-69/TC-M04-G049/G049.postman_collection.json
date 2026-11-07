@@ -20,7 +20,7 @@
       ] }, "url": "{{base_url}}/prediccion/modelos" },
       "event": [
         { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G049');}"] } },
-        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_1',String(id??''));if(pm.response.code===200||pm.response.code===201)pm.test('ID_UUID',()=>pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));"] } }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_1',String(id??''));const valido=v=>(typeof v==='number'&&Number.isInteger(v)&&v>0)||(typeof v==='string'&&/^[1-9][0-9]*$/.test(v));if(pm.response.code===200||pm.response.code===201)pm.test('ID_ENTERO_UNICO',()=>pm.expect(valido(id)).to.eql(true));"] } }
       ]
     },
     {
@@ -31,7 +31,8 @@
         { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
         { "key": "X-Zona-Horaria", "value": "UTC" }
       ], "url": "{{base_url}}/prediccion/modelos/{{version_1}}" },
-      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_1'))pm.execution.skipRequest();"] } }]
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_1'))pm.execution.skipRequest();"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;const valido=v=>(typeof v==='number'&&Number.isInteger(v)&&v>0)||(typeof v==='string'&&/^[1-9][0-9]*$/.test(v));if(pm.response.code===200)pm.test('ID_ENTERO_UNICO',()=>pm.expect(valido(id)&&String(id)===pm.environment.get('version_1')).to.eql(true));"] } }]
     },
     {
       "name": "API-G049-AUDITORIA-V1",
@@ -62,7 +63,7 @@
       ] }, "url": "{{base_url}}/prediccion/modelos" },
       "event": [
         { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_1'))pm.execution.skipRequest();"] } },
-        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_2',String(id??''));if(pm.response.code===200||pm.response.code===201)pm.test('ID_UUID',()=>pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));"] } }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_2',String(id??''));const valido=v=>(typeof v==='number'&&Number.isInteger(v)&&v>0)||(typeof v==='string'&&/^[1-9][0-9]*$/.test(v));if(pm.response.code===200||pm.response.code===201)pm.test('ID_ENTERO_UNICO',()=>pm.expect(valido(id)&&String(id)!==pm.environment.get('version_1')).to.eql(true));"] } }
       ]
     },
     {
@@ -95,7 +96,7 @@
       ] }, "url": "{{base_url}}/prediccion/modelos" },
       "event": [
         { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_2'))pm.execution.skipRequest();"] } },
-        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_3',String(id??''));if(pm.response.code===200||pm.response.code===201)pm.test('ID_UUID',()=>pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));"] } }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_3',String(id??''));const valido=v=>(typeof v==='number'&&Number.isInteger(v)&&v>0)||(typeof v==='string'&&/^[1-9][0-9]*$/.test(v));if(pm.response.code===200||pm.response.code===201)pm.test('ID_ENTERO_UNICO',()=>pm.expect(valido(id)&&String(id)!==pm.environment.get('version_1')&&String(id)!==pm.environment.get('version_2')).to.eql(true));"] } }
       ]
     },
     {

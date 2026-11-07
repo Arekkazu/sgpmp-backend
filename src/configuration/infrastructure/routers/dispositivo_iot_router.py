@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-11-01 | Arekkazu | RF-22: documenta el 409 por nombre de sensor repetido              |
+# | 2026-11-03 | Arekkazu | QA-M09 RF-23: intervalo de transmisión mínimo de 10 minutos |
 """Router FastAPI para dispositivos IoT (`/configuracion/dispositivos-iot`).
 
 RF-21 — CU05 Flujos A, E:
@@ -246,6 +250,7 @@ def desactivar_dispositivo_iot(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse, "description": "RECURSO_DUPLICADO: el dispositivo ya tiene un sensor con ese nombre"},
     },
     summary="Registrar sensor en dispositivo IoT",
 )
@@ -260,6 +265,10 @@ def registrar_sensor(
     **Acceso:** `dispositivos_iot` · Crear.
 
     Las cámaras no admiten sensores.
+
+    El `nombre` es el identificador que el firmware envía en el campo `sensor` de cada
+    lectura: debe ser único dentro del dispositivo (409 si se repite) y se guarda sin
+    espacios de borde.
     """
     use_case = RegistrarSensorUseCase(
         db=db,
@@ -343,7 +352,7 @@ def configurar_remotamente(
 
     **Acceso:** `dispositivos_iot` · Actualizar.
 
-    **SENSOR:** `frecuencia_captura` e `intervalo_transmision` (minutos), en el rango de su tipo (400 `PARAMETRO_FUERA_DE_RANGO`). **CAMARA:** solo `fps` (1–60). Mezclar los juegos responde 400 (`PARAMETRO_NO_APLICA_A_CAMARA` / `PARAMETRO_NO_APLICA_A_SENSOR`) y omitir el de la categoría 400 `PARAMETRO_REQUERIDO`.
+    **SENSOR:** `frecuencia_captura` e `intervalo_transmision` (minutos; el intervalo, mínimo 10), en el rango de su tipo (400 `PARAMETRO_FUERA_DE_RANGO`). **CAMARA:** solo `fps` (1–60). Mezclar los juegos responde 400 (`PARAMETRO_NO_APLICA_A_CAMARA` / `PARAMETRO_NO_APLICA_A_SENSOR`) y omitir el de la categoría 400 `PARAMETRO_REQUERIDO`.
 
     La petición espera el ACK (hasta ~35 s): **200** aplicada, **202** pendiente (dispositivo offline), **504** sin confirmación (queda NO_CONF). No aplica a gateways Edge y no admite otra configuración pendiente (409).
     """

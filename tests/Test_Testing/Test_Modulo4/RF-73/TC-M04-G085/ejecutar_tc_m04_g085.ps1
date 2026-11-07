@@ -12,7 +12,8 @@ param (
     [string]$Vet1Password,
     [string]$Vet2Email,
     [string]$Vet2Password,
-    [string]$SandboxSecret
+        [string]$SandboxSecret,
+    [string]$Sufijo = "reintento2"
 )
 
 $ErrorActionPreference = "Stop"
@@ -100,10 +101,10 @@ if (-not (Test-Path $resultadosDir)) {
     New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
 }
 
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M04-G085_reintento1.html"
-$reportXml  = Join-Path $resultadosDir "resultado_TC-M04-G085_reintento1.xml"
-$reportJson = Join-Path $resultadosDir "resultado_TC-M04-G085_reintento1.json"
-$reportRawJson = Join-Path $resultadosDir "_raw_newman_reintento1.json"
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M04-G085_${Sufijo}.html"
+$reportXml  = Join-Path $resultadosDir "resultado_TC-M04-G085_${Sufijo}.xml"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M04-G085_${Sufijo}.json"
+$reportRawJson = Join-Path $resultadosDir "_raw_newman_${Sufijo}.json"
 
 $newmanArgs = @(
     "run", $collectionPath,
@@ -118,7 +119,7 @@ $newmanArgs = @(
     "--env-var", "sandbox_secret=$SandboxSecret",
     "-r", "cli,htmlextra,json,junit",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "Reporte TC-M04-G085 - Retroalimentacion Clinica y Conflictos (RF-73) - Reintento 1",
+    "--reporter-htmlextra-title", "Reporte TC-M04-G085 - Retroalimentacion Clinica y Conflictos (RF-73) - Reintento 2",
     "--reporter-htmlextra-hideRequestBody", "01-Login-Admin,02-Login-Vet1,03-Login-Vet2",
     "--reporter-json-export", $reportRawJson,
     "--reporter-junit-export", $reportXml
@@ -141,7 +142,7 @@ if (Test-Path $consolidarScript) {
 }
 
 # Post-proceso: asegurar schema oficial {tc, summary: {total, ok, falla, veredicto}, checkpoints}
-$jsonReportPath = Join-Path $resultadosDir "resultado_TC-M04-G085_reintento1.json"
+$jsonReportPath = $reportJson
 if (Test-Path $jsonReportPath) {
     try {
         $rep = Get-Content $jsonReportPath -Raw | ConvertFrom-Json

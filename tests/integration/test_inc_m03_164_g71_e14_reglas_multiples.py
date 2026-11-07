@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta con dos sensores del área y consolidación por HTTP |
 # | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: el área de la prueba tiene umbrales RF-17 |
+# | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: sin compañera la lectura genera REGLA_SIMPLE, no la compuesta |
 """INC-M03-164-G71 (RF-57 E14, TC-M03-G71): varias reglas simples activas a la vez.
 
 Router real, adaptadores reales y PostgreSQL real. Un dispositivo con dos sensores (temperatura y
@@ -132,21 +133,27 @@ def test_lectura_companera_fuera_de_la_ventana_no_cuenta(db_session, http, area)
     hw = area()
     _lectura(db_session, hw, "HUMEDAD_RELATIVA", "75", hace_min=15)  # ventana de ESTRES_TERMICO: 10 min
     r = _evento(http, hw, "TEMPERATURA_AMBIENTAL", "31.0")
-    assert r.status_code == 422 and r.json()["error_code"] == "REGLA_COMPUESTA_NO_ACTIVADA", r.text
+    # G69 (#881): sin compañera válida no hay ESTRES_TERMICO, pero la temperatura en LEVE alerta sola.
+    assert r.status_code == 201 and r.json()["tipo_alerta"] == "REGLA_SIMPLE", r.text
+    assert [a["tipo_alerta"] for a in _alertas(db_session, hw)] == ["REGLA_SIMPLE"]
 
 
 def test_lectura_companera_de_otra_area_no_cuenta(db_session, http, area):
     otra, hw = area(), area()
     _lectura(db_session, otra, "HUMEDAD_RELATIVA", "75")
     r = _evento(http, hw, "TEMPERATURA_AMBIENTAL", "31.0")
-    assert r.status_code == 422 and r.json()["error_code"] == "REGLA_COMPUESTA_NO_ACTIVADA", r.text
+    # G69 (#881): sin compañera válida no hay ESTRES_TERMICO, pero la temperatura en LEVE alerta sola.
+    assert r.status_code == 201 and r.json()["tipo_alerta"] == "REGLA_SIMPLE", r.text
+    assert [a["tipo_alerta"] for a in _alertas(db_session, hw)] == ["REGLA_SIMPLE"]
 
 
-def test_escenario_sin_compuesta_aplicable_queda_bloqueado(db_session, http, area):
-    """Escenario 2 de QA: HR 45 % y 19 °C (THI bajo 72). Sin tipo para alertas simples (G70) → 422."""
+def test_escenario_sin_compuesta_aplicable_genera_alertas_simples(db_session, http, area):
+    """Escenario 2 de QA: HR 45 % y 19 °C (THI bajo 72). Sin compuesta aplicable, E14: "se genera
+    una alerta independiente por cada variable" → una REGLA_SIMPLE por variable (G69, #881)."""
     hw = area()
     humedad = _evento(http, hw, "HUMEDAD_RELATIVA", "45")
     temperatura = _evento(http, hw, "TEMPERATURA_AMBIENTAL", "19.0")
-    assert [humedad.status_code, temperatura.status_code] == [422, 422]
-    assert {humedad.json()["error_code"], temperatura.json()["error_code"]} == {"REGLA_COMPUESTA_NO_ACTIVADA"}
-    assert _alertas(db_session, hw) == []
+    assert [humedad.status_code, temperatura.status_code] == [201, 201], (humedad.text, temperatura.text)
+    alertas = _alertas(db_session, hw)
+    assert sorted((a["tipo_alerta"], a["tipo_variable"]) for a in alertas) == [
+        ("REGLA_SIMPLE", "HUMEDAD_RELATIVA"), ("REGLA_SIMPLE", "TEMPERATURA_AMBIENTAL")]

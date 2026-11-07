@@ -3,12 +3,15 @@
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la edición toma la siguiente versión del catálogo |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: solo las 11 variables del RF-64 |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.prediction.application.use_cases.catalogo_patologias.auditoria_rechazo import auditar_rechazo
 from src.prediction.domain.entities.patologia_variable import PatologiaVariable
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.historial_catalogo_repository import HistorialCatalogoRepository
@@ -17,6 +20,7 @@ from src.prediction.domain.repositories.patologia_m04_repository import Patologi
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.infrastructure.dto.editar_patologia_dto import EditarPatologiaDTO
 from src.shared.errors import (
+    AppError,
     BusinessRuleError,
     ConflictError,
     MethodNotAllowedError,
@@ -44,6 +48,15 @@ class EditarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
+        try:
+            return self._ejecutar(id_patologia, dto, id_usuario)
+        except AppError as error:
+            auditar_rechazo(self._db, self._auditoria_repo, tipo_evento="CATALOGO_PATOLOGIA_MODIFICADA",
+                            id_usuario=id_usuario, referencia=str(id_patologia),
+                            payload={"id_patologia": id_patologia, "nombre": dto.nombre_patologia}, error=error)
+            raise
+
+    def _ejecutar(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
         entidad = self._repo.obtener_por_id(id_patologia, bloquear=True)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")
@@ -83,12 +96,13 @@ class EditarPatologiaUseCase:
                 message="La descripcion_clinica debe tener al menos 50 caracteres.",
                 field="descripcion_clinica",
             )
-        ids_validos = self._variable_port.obtener_ids_activos(ids_solicitados)
+        # M4-02: activas en I3P-1 y entre las 11 del RF-64.
+        ids_validos = self._variable_port.obtener_ids_para_patologia(ids_solicitados)
         ids_invalidos = [i for i in ids_solicitados if i not in ids_validos]
         if ids_invalidos:
             raise BusinessRuleError(
                 code="VARIABLE_NO_EN_I3P1",
-                message=f"Las siguientes variables no están en el catálogo I3P-1: {ids_invalidos}.",
+                message=f"Las variables {ids_invalidos} no están entre las que admite una patología (RF-64).",
                 field="variables_sensoricas_asociadas",
             )
 

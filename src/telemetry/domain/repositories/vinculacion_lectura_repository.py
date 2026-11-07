@@ -47,4 +47,5 @@ class VinculacionLecturaRepository(ABC):
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        modelo_manejo: Optional[str] = None,
     ) -> tuple[List[VinculacionLectura], int]: ...

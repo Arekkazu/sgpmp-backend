@@ -3,6 +3,8 @@
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-26 | Arekkazu     | INC-M04-203-G42 RF-65/68: cada peso de contagio en [0, 1], no solo la suma |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: validar perfil exclusivo de contagio y guardar pesos fijos en MVP. |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +15,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.configuracion_motor_ia import ConfiguracionMotorIA
+from src.prediction.domain.entities.riesgo_contagio import PESOS_POR_DEFECTO
 from src.prediction.domain.entities.sincronizacion_nodo_edge import (
     ESTADO_APLICADA,
     ESTADO_DESINCRONIZADO,
@@ -75,6 +78,8 @@ class ConfigurarMotorUseCase:
         """Guarda la configuración (es_nueva=True si fue INSERT) y la sincroniza con sus nodos Edge."""
         nodos = self._nodo_edge_port.listar_nodos_activos(dto.tipo_modelo) if dto.tipo_modelo in TIPOS_MODELO else []
         por_paradigma = self._validar(dto, nodos)
+        pesos = (PESOS_POR_DEFECTO if dto.perfil_calculo_contagio == "MVP" else
+                 {"fs": dto.w_factor_sanitario, "fa": dto.w_factor_ambiental, "fd": dto.w_factor_densidad})
 
         existente = self._repo.obtener_por_tipo(dto.tipo_modelo, bloquear=True)
         try:
@@ -89,9 +94,10 @@ class ConfigurarMotorUseCase:
                 tipo_modelo=dto.tipo_modelo,
                 ventana_temporal_min=dto.ventana_temporal_min,
                 modo_ejecucion=dto.modo_ejecucion,
-                w_factor_sanitario=dto.w_factor_sanitario,
-                w_factor_ambiental=dto.w_factor_ambiental,
-                w_factor_densidad=dto.w_factor_densidad,
+                perfil_calculo_contagio=dto.perfil_calculo_contagio,
+                w_factor_sanitario=pesos["fs"],
+                w_factor_ambiental=pesos["fa"],
+                w_factor_densidad=pesos["fd"],
                 id_usuario_responsable=id_usuario,
                 temp_min_config=dto.temp_min_config,
                 temp_max_config=dto.temp_max_config,
@@ -105,9 +111,10 @@ class ConfigurarMotorUseCase:
             existente.actualizar(
                 ventana_temporal_min=dto.ventana_temporal_min,
                 modo_ejecucion=dto.modo_ejecucion,
-                w_factor_sanitario=dto.w_factor_sanitario,
-                w_factor_ambiental=dto.w_factor_ambiental,
-                w_factor_densidad=dto.w_factor_densidad,
+                perfil_calculo_contagio=dto.perfil_calculo_contagio,
+                w_factor_sanitario=pesos["fs"],
+                w_factor_ambiental=pesos["fa"],
+                w_factor_densidad=pesos["fd"],
                 id_usuario_responsable=id_usuario,
                 temp_min_config=dto.temp_min_config,
                 temp_max_config=dto.temp_max_config,
@@ -234,6 +241,13 @@ class ConfigurarMotorUseCase:
                 field="modo_ejecucion",
             )
 
+        if dto.perfil_calculo_contagio not in {"ESTANDAR", "MVP"}:
+            raise BusinessRuleError(code="PERFIL_CALCULO_CONTAGIO_INVALIDO",
+                message="perfil_calculo_contagio debe ser ESTANDAR o MVP.", field="perfil_calculo_contagio")
+        if dto.perfil_calculo_contagio == "MVP" and dto.tipo_modelo != "MODELO_RIESGO_CONTAGIO":
+            raise BusinessRuleError(code="PERFIL_MVP_NO_APLICA",
+                message="El perfil MVP solo aplica a MODELO_RIESGO_CONTAGIO.", field="perfil_calculo_contagio")
+
         self._validar_comunes(dto, nodos)
         if es_poblacional(dto.tipo_modelo):
             return self._validar_poblacional(dto)
@@ -311,7 +325,7 @@ class ConfigurarMotorUseCase:
                 message=f"No existe la versión de modelo con id {id_version}.",
                 field=campo,
             )
-        estado, tipo_version, componente_version = llave
+        estado, tipo_version, componente_version, _id_activo = llave
         if estado != _ESTADO_ACTIVO:
             raise ConflictError(
                 code="MODELO_NO_ACTIVO",

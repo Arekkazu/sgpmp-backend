@@ -1,3 +1,7 @@
+# | Fecha      | Nombre                   | Que se hizo                                                          |
+# |------------|--------------------------|----------------------------------------------------------------------|
+# | 2026-10-25 | HulkyZeus                | RF-73 TC-M04-G089: consolidador inicial JUnit XML -> schema canónico |
+# | 2026-10-30 | Juan Sebastian Gutierrez | RF-73 TC-M04-G089: D5 actualiza esperado a HTTP 422 ErrorResponse    |
 """Convierte JUnit XML de pytest al schema canónico del brief M4."""
 import json
 import sys
@@ -35,7 +39,7 @@ def main(junit_path: str, out_json: str) -> None:
         elif "tc_m04_274" in name:
             esperado = "RF-73: por_pagina=200, len(items)=min(200,total)"
         elif "tc_m04_275" in name:
-            esperado = "RF-73: por_pagina=201 debe rechazar (422 o 400 según OpenAPI)"
+            esperado = "RF-73: por_pagina fuera de 1-200 (201 y 0) responde HTTP 422 ErrorResponse"
 
         checkpoints.append({
             "paso": name,

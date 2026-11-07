@@ -2,6 +2,10 @@
 
 Estado: borrador del 2026-10-27. Clasificacion sujeta a confirmacion donde diga *por confirmar*.
 
+Datos detallados de la prueba (modelo y métricas, población por área, sensores, umbrales, lecturas, estados e inventario): [datos_E5_tortuga.md](datos_E5_tortuga.md).
+
+Ejecución en DEV (2026-11-03): ver [datos_E5_tortuga.md](datos_E5_tortuga.md) sección 8 y `../Flujo/Tortuga/`.
+
 ## 1. Ficha
 
 | Campo | Valor |

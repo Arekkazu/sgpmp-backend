@@ -6,6 +6,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: recupera resultados por lectura y transicion sin duplicarlos |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: pendientes de la etapa de calidad de vision |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: reintentos con espera creciente, no un FALLIDO por minuto |
+# | 2026-10-31 | Claude | INC-M03-235-G16 RF-62: pendientes sin anti-join cuadrático bajo RLS |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -14,7 +15,7 @@ Los locks se conservan hasta ese commit externo, también entre casos de uso.
 """
 from contextlib import contextmanager, nullcontext
 
-from sqlalchemy import String, cast, func, literal_column, select, text
+from sqlalchemy import String, cast, func, literal, literal_column, select, text
 from sqlalchemy.orm import Session
 from sqlalchemy.engine import Connection
 
@@ -63,6 +64,23 @@ def _registro(etapa, identificador, fallo=False):
     return select(1).where(*_de_la_etapa(etapa, identificador, fallo)).exists()
 
 
+def _con_registro(etapa, identificador, fallo=False):
+    """G16 (#875): igual que ``_registro`` pero como subconsulta escalar por fila.
+
+    Con RLS (rc.11–rc.15) las políticas de la bitácora impiden empujar la condición
+    de unión dentro del escaneo protegido y PostgreSQL convertía el NOT EXISTS de
+    ``pendientes`` en un anti-join por bucle anidado contra todos los COMPLETADO:
+    cuadrático en el historial. Con ~100 k lecturas pasaba de 60 s, el worker lo
+    cortaba a los 10 s (``statement_timeout``) y la etapa RF-62 no volvía a correr.
+    La subconsulta escalar no se aplana a anti-join: es una búsqueda por índice
+    (``idx_bitacora_iot_tipo_evento_entidad_afectada_id``) por lectura.
+    """
+    return func.coalesce(
+        select(literal(True)).where(*_de_la_etapa(etapa, identificador, fallo)).limit(1).scalar_subquery(),
+        False,
+    )
+
+
 def _listo_para_reintento(etapa, identificador, base_seg, tope_seg):
     """M3-12: la espera se duplica con cada fallo (base, 2·base, 4·base…) hasta `tope_seg`.
 
@@ -94,7 +112,7 @@ class SqlAlchemyPostcommitRepository:
         tabla, columna, _ = _fuente(etapa)
         identificador = cast(tabla.c[columna], String)
         consulta = select(tabla.c[columna]).where(
-            ~_registro(etapa, identificador),
+            ~_con_registro(etapa, identificador),
             _listo_para_reintento(etapa, identificador, reintento_seg, reintento_max_seg or reintento_seg),
         )
         campo = {
@@ -118,7 +136,7 @@ class SqlAlchemyPostcommitRepository:
                 v.c.fecha_fin_vinculacion.is_(None),
                 (v.c.causa=='CONFIGURACION_INCOMPLETA')|v.c.estado_vinculacion.in_(['AMBIGUA','PENDIENTE_REVISION'])).exists())
         for requisito in etapa.requisitos:
-            consulta = consulta.where(_registro(requisito, identificador))
+            consulta = consulta.where(_con_registro(requisito, identificador))
         return list(self.db.execute(consulta.order_by(tabla.c[columna]).limit(limite)).scalars())
 
     def reclamar(self, etapa, identificador):

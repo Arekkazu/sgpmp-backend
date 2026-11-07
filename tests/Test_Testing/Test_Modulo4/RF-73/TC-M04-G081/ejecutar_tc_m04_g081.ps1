@@ -6,14 +6,17 @@
     Genera el reporte oficial en resultados/resultado_TC-M04-G081.html y .json.
 #>
 param (
-    [string]$BaseUrl = "https://api.inmero.co/back-sigab-test"
+    [string]$BaseUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Cargar variables de entorno desde .env.test si existen
-$envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+$envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.test"
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+}
 if (Test-Path $envTestPath) {
     Get-Content $envTestPath | ForEach-Object {
         $line = $_.Trim()
@@ -26,6 +29,14 @@ if (Test-Path $envTestPath) {
             }
         }
     }
+}
+
+$envBaseUrl = [System.Environment]::GetEnvironmentVariable("TEST_BASE_URL")
+if (-not $BaseUrl -and $envBaseUrl) {
+    $BaseUrl = $envBaseUrl
+}
+if (-not $BaseUrl) {
+    $BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
 }
 
 $sandboxSecret = [System.Environment]::GetEnvironmentVariable("TEST_SANDBOX_SECRET")
@@ -59,6 +70,7 @@ if (-not (Test-Path $resultadosDir)) {
 
 $reportHtml = Join-Path $resultadosDir "resultado_TC-M04-G081.html"
 $reportRawJson = Join-Path $resultadosDir "_raw_newman.json"
+$consoleLog = Join-Path $resultadosDir "console_execution.log"
 
 $newmanArgs = @(
     "run", $collectionPath,
@@ -75,9 +87,9 @@ $newmanArgs = @(
 
 Write-Host "Ejecutando Newman..." -ForegroundColor Yellow
 try {
-    & npx -y newman @newmanArgs
+    & npx -y newman @newmanArgs 2>&1 | Tee-Object -FilePath $consoleLog
 } catch {
-    Write-Warning "Newman completó con advertencias/fallos."
+    Write-Warning "Newman completó con advertencias/fallos: $_"
 }
 
 # Consolidar resultados en JSON

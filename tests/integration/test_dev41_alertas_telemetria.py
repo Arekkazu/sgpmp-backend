@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: integra SQL broker, worker y concurrencia |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-44: el activo del fixture tiene historial de ubicacion |
+# | 2026-10-31 | Arekkazu | PR-891 RF-23: config global de respaldo respeta el piso de 5 min |
 """Frontera SQL real del broker B+; no hay broker MQTT externo en estas pruebas."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -72,7 +73,7 @@ def preparar(db, *, calibrado=True, variable=9, unidad='°C', categoria='AMBIENT
     if db.execute(text('SELECT count(*) FROM modulo9.configuraciones_globales WHERE es_activo')).scalar_one()==0:
         db.execute(text('''INSERT INTO modulo9.configuraciones_globales
             (frecuencia_muestreo,heartbeat,fecha_actualizacion,id_usuario,es_activo)
-            VALUES(1,14,now(),:uid,true)'''), {'uid':usuario})
+            VALUES(5,14,now(),:uid,true)'''), {'uid':usuario})
     db.commit()
     if calibrado:
         h.calibrar(db,equipo)

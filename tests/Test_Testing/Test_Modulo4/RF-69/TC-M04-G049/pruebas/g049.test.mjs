@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { onnxMinimo, sha256, esUuid, metadatosIguales, auditoriaValida, METRICAS } from '../lib/g049_escenario.mjs';
+import path from 'node:path';
+import { onnxMinimo, sha256, esIdEntero, idsValidosUnicos, referenciaValida,
+  metadatosIguales, auditoriaValida, METRICAS } from '../lib/g049_escenario.mjs';
+import { rutaResultados, alcanceReevaluacionValido } from '../lib/contrato_ejecutor.mjs';
 import { sanearArtefacto, contieneMojibake } from '../lib/seguridad.mjs';
 
 test('ONNX mínimo determinista con hash real y cabecera ModelProto', () => {
@@ -12,9 +15,27 @@ test('ONNX mínimo determinista con hash real y cabecera ModelProto', () => {
   assert.ok(a.includes(Buffer.from('Identity')));
 });
 
-test('oráculo UUID y metadatos evalúa equivalencias sin aceptar enteros', () => {
-  assert.equal(esUuid('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'), true);
-  assert.equal(esUuid(1), false);
+test('oráculo de id entero positivo, único y referencia V3', () => {
+  assert.equal(idsValidosUnicos([58, 59, 60]), true);
+  assert.equal(idsValidosUnicos([58, 58, 60]), false);
+  assert.equal(idsValidosUnicos(['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 59, 60]), false);
+  for (const x of [null, 0, -1, 1.5, '0', '058', '1.5']) assert.equal(esIdEntero(x), false);
+  assert.equal(idsValidosUnicos(['58', 59, 60]), true);
+  assert.equal(referenciaValida(59, 59, null), true);
+  assert.equal(referenciaValida(59, '59', undefined), true);
+  assert.equal(referenciaValida(59, 60, null), false);
+  assert.equal(referenciaValida(59, 59, 58), false);
+});
+
+test('contexto REEVALUAR V2 exige versión anterior 1 y ruta EvaluacionV2', () => {
+  const run = 'RUN-G049-V2-20261031-120000';
+  assert.equal(rutaResultados('grupo', 'G049', 2, run),
+    path.join('grupo', 'EvaluacionV2', 'Resultados', run));
+  assert.equal(alcanceReevaluacionValido({ alcance_reevaluacion: 'TC-M04-115', version_anterior: 1 }, 2), true);
+  assert.equal(alcanceReevaluacionValido({ alcance_reevaluacion: 'TC-M04-115', version_anterior: 2 }, 2), false);
+});
+
+test('metadatos evalúa equivalencias de respuesta', () => {
   const enviado = { tipo_modelo: 'MODELO_ESPECIES_GRANDES', metricas_validacion: METRICAS,
     dataset_entrenamiento_hash: 'a'.repeat(64), hash_artefacto_sha256: 'b'.repeat(64),
     fecha_entrenamiento: '2026-10-25T00:00:00Z', id_proceso_rf71: 'p' };

@@ -1,0 +1,209 @@
+{
+  "connect_rc": 0,
+  "events": [
+    {
+      "ts": "2026-10-31T02:37:05.629969+00:00",
+      "kind": "connect",
+      "rc": 0
+    },
+    {
+      "ts": "2026-10-31T02:37:05.638735+00:00",
+      "kind": "suback",
+      "mid": 1
+    },
+    {
+      "ts": "2026-10-31T02:37:05.647129+00:00",
+      "kind": "suback",
+      "mid": 2
+    },
+    {
+      "ts": "2026-10-31T02:38:41.725484+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/evento",
+      "tipo": "DESVIACION_SIMPLE",
+      "payload": "{\"clasificacion_rf55\": \"DESVIACION_SIMPLE\", \"variables_involucradas\": [{\"tipo_variable\": \"Humedad Relativa\", \"valor\": 71.4, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:38:41.383Z\", \"serial\": \"RASPBERRY3B-TEST\"}], \"timestamp_captura\": \"2026-10-31T02:38:41.383Z\", \"timestamp_procesamiento_edge\": \"2026-10-31T02:38:41.383Z\", \"origen\": \"TIEMPO_REAL\", \"estado_conectividad\": true, \"metadata_edge\": {\"id_evento\": \"edge-evt-8d4d9e20-a261-4d5a-8553-c3939820ca4c\", \"regla_aplicada\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version_umbral\": \"2026-10-08T21:11:56.393005+00:00\", \"nivel_umbral\": \"precaucion\", \"tiempo_procesamiento_ms\": 0.285, \"version_firmware\": \"v0.4.0-rc.2\"}, \"severidad\": \"MODERADO\"}"
+    },
+    {
+      "ts": "2026-10-31T02:38:41.762620+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/evento",
+      "tipo": "DESVIACION_SIMPLE",
+      "payload": "{\"clasificacion_rf55\": \"DESVIACION_SIMPLE\", \"variables_involucradas\": [{\"tipo_variable\": \"Humedad Relativa\", \"valor\": 72.29, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:38:41.383Z\", \"serial\": \"QA-M03-272-A-088894\"}], \"timestamp_captura\": \"2026-10-31T02:38:41.383Z\", \"timestamp_procesamiento_edge\": \"2026-10-31T02:38:41.383Z\", \"origen\": \"TIEMPO_REAL\", \"estado_conectividad\": true, \"metadata_edge\": {\"id_evento\": \"edge-evt-772d9da2-9a6d-4be7-8e47-0a486bbeb69a\", \"regla_aplicada\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version_umbral\": \"2026-10-08T21:11:56.393005+00:00\", \"nivel_umbral\": \"precaucion\", \"tiempo_procesamiento_ms\": 0.284, \"version_firmware\": \"v0.4.0-rc.2\"}, \"severidad\": \"MODERADO\"}"
+    },
+    {
+      "ts": "2026-10-31T02:38:43.056519+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 2, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:38:42.483411+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:38:43.069711+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 2, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:38:42.483411+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:38:55.335825+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/command",
+      "tipo": "UMBRAL_AMBIENTAL",
+      "payload": "{\"id_comando\": \"0834870e2b9443bcb2ccf09902705b86\", \"emitido_en\": \"2026-10-31T02:38:55.088246+00:00\", \"tipo_comando\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version\": \"2026-10-31T02:38:52.789672+00:00\", \"variable\": \"Humedad Relativa\", \"unidad\": \"%\", \"valor_min\": 40.0, \"valor_max\": 98.0, \"niveles\": [{\"nivel\": \"normal\", \"limite_inferior\": 40.0, \"limite_superior\": 65.0}, {\"nivel\": \"precaucion\", \"limite_inferior\": 65.0, \"limite_superior\": 70.0}, {\"nivel\": \"critico\", \"limite_inferior\": 70.0, \"limite_superior\": 98.0}]}"
+    },
+    {
+      "ts": "2026-10-31T02:38:55.367102+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/status",
+      "tipo": "ACK_UMBRAL",
+      "payload": "{\"tipo_mensaje\": \"ACK_UMBRAL\", \"resultado\": \"OK\", \"id_comando\": \"0834870e2b9443bcb2ccf09902705b86\", \"event_id\": \"819c2eec-0cd9-47b9-ab75-ef3b290606a9\"}"
+    },
+    {
+      "ts": "2026-10-31T02:41:13.483688+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 2, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:41:12.848089+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:43:41.643058+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/evento",
+      "tipo": "DESVIACION_SIMPLE",
+      "payload": "{\"clasificacion_rf55\": \"DESVIACION_SIMPLE\", \"variables_involucradas\": [{\"tipo_variable\": \"Humedad Relativa\", \"valor\": 71.33, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:43:41.396Z\", \"serial\": \"QA-M03-272-A-088894\"}], \"timestamp_captura\": \"2026-10-31T02:43:41.396Z\", \"timestamp_procesamiento_edge\": \"2026-10-31T02:43:41.396Z\", \"origen\": \"TIEMPO_REAL\", \"estado_conectividad\": true, \"metadata_edge\": {\"id_evento\": \"edge-evt-dc12a521-5616-4293-bbaa-84b737247fa4\", \"regla_aplicada\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version_umbral\": \"2026-10-31T02:38:52.789672+00:00\", \"nivel_umbral\": \"critico\", \"tiempo_procesamiento_ms\": 0.269, \"version_firmware\": \"v0.4.0-rc.2\"}, \"severidad\": \"CRITICO\"}"
+    },
+    {
+      "ts": "2026-10-31T02:43:43.603443+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 3, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:43:42.959789+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:43:43.673280+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 3, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:43:42.959789+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:43:54.144616+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/command",
+      "tipo": "UMBRAL_AMBIENTAL",
+      "payload": "{\"id_comando\": \"3e43d61a1a664f29988f5e98e371be7d\", \"emitido_en\": \"2026-10-31T02:43:53.905199+00:00\", \"tipo_comando\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version\": \"2026-10-31T02:43:52.556363+00:00\", \"variable\": \"Humedad Relativa\", \"unidad\": \"%\", \"valor_min\": 40.0, \"valor_max\": 98.0, \"niveles\": [{\"nivel\": \"normal\", \"limite_inferior\": 40.0, \"limite_superior\": 70.0}, {\"nivel\": \"precaucion\", \"limite_inferior\": 70.0, \"limite_superior\": 85.0}, {\"nivel\": \"critico\", \"limite_inferior\": 85.0, \"limite_superior\": 98.0}]}"
+    },
+    {
+      "ts": "2026-10-31T02:43:54.191738+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/status",
+      "tipo": "ACK_UMBRAL",
+      "payload": "{\"tipo_mensaje\": \"ACK_UMBRAL\", \"resultado\": \"OK\", \"id_comando\": \"3e43d61a1a664f29988f5e98e371be7d\", \"event_id\": \"ee85f1e4-ede9-4f58-8158-150a72a9adad\"}"
+    },
+    {
+      "ts": "2026-10-31T02:46:13.733974+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 3, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:46:13.160919+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.489673+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/telemetry",
+      "tipo": "",
+      "payload": "{\"variable\": \"Humedad Relativa\", \"valor_crudo\": 71.4, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:38:41.383608+00:00\", \"metadatos\": {\"event_id\": \"fa2cd528-7129-4c34-8cb8-24b0f5736ea7\"}, \"timestamp_envio\": \"2026-10-31T02:48:41.193915+00:00\", \"origen\": \"TIEMPO_REAL\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.491074+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/telemetry",
+      "tipo": "",
+      "payload": "{\"variable\": \"Humedad Relativa\", \"valor_crudo\": 72.29, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:38:41.383608+00:00\", \"metadatos\": {\"event_id\": \"05401394-8e23-4507-aea9-9b63028e52ae\"}, \"timestamp_envio\": \"2026-10-31T02:48:41.193915+00:00\", \"origen\": \"TIEMPO_REAL\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.492136+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/telemetry",
+      "tipo": "",
+      "payload": "{\"variable\": \"Humedad Relativa\", \"valor_crudo\": 71.33, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:43:41.396843+00:00\", \"metadatos\": {\"event_id\": \"021a06de-2d0a-47c1-adfe-32be763fe29a\"}, \"timestamp_envio\": \"2026-10-31T02:48:41.193915+00:00\", \"origen\": \"TIEMPO_REAL\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.493260+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/telemetry",
+      "tipo": "",
+      "payload": "{\"variable\": \"Humedad Relativa\", \"valor_crudo\": 71.41, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:48:41.193915+00:00\", \"metadatos\": {\"event_id\": \"2c7cf450-555c-4a7e-8723-62c73df99879\"}, \"timestamp_envio\": \"2026-10-31T02:48:41.193915+00:00\", \"origen\": \"TIEMPO_REAL\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.494221+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/telemetry",
+      "tipo": "",
+      "payload": "{\"variable\": \"Humedad Relativa\", \"valor_crudo\": 71.44, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:48:41.193915+00:00\", \"metadatos\": {\"event_id\": \"f2557c15-bc7b-4abb-b22f-51b59df467aa\"}, \"timestamp_envio\": \"2026-10-31T02:48:41.193915+00:00\", \"origen\": \"TIEMPO_REAL\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.508604+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/evento",
+      "tipo": "DESVIACION_SIMPLE",
+      "payload": "{\"clasificacion_rf55\": \"DESVIACION_SIMPLE\", \"variables_involucradas\": [{\"tipo_variable\": \"Humedad Relativa\", \"valor\": 71.41, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:48:41.193Z\", \"serial\": \"RASPBERRY3B-TEST\"}], \"timestamp_captura\": \"2026-10-31T02:48:41.193Z\", \"timestamp_procesamiento_edge\": \"2026-10-31T02:48:41.193Z\", \"origen\": \"TIEMPO_REAL\", \"estado_conectividad\": true, \"metadata_edge\": {\"id_evento\": \"edge-evt-920fb7c0-ecf8-450d-9183-7a3c141c7a5a\", \"regla_aplicada\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version_umbral\": \"2026-10-31T02:43:52.556363+00:00\", \"nivel_umbral\": \"precaucion\", \"tiempo_procesamiento_ms\": 0.282, \"version_firmware\": \"v0.4.0-rc.2\"}, \"severidad\": \"MODERADO\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:41.510271+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/evento",
+      "tipo": "DESVIACION_SIMPLE",
+      "payload": "{\"clasificacion_rf55\": \"DESVIACION_SIMPLE\", \"variables_involucradas\": [{\"tipo_variable\": \"Humedad Relativa\", \"valor\": 71.44, \"unidad\": \"%\", \"timestamp_captura\": \"2026-10-31T02:48:41.193Z\", \"serial\": \"QA-M03-272-A-088894\"}], \"timestamp_captura\": \"2026-10-31T02:48:41.193Z\", \"timestamp_procesamiento_edge\": \"2026-10-31T02:48:41.193Z\", \"origen\": \"TIEMPO_REAL\", \"estado_conectividad\": true, \"metadata_edge\": {\"id_evento\": \"edge-evt-ca191980-957d-4791-a0e5-1d1dba9b840f\", \"regla_aplicada\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version_umbral\": \"2026-10-31T02:43:52.556363+00:00\", \"nivel_umbral\": \"precaucion\", \"tiempo_procesamiento_ms\": 0.266, \"version_firmware\": \"v0.4.0-rc.2\"}, \"severidad\": \"MODERADO\"}"
+    },
+    {
+      "ts": "2026-10-31T02:48:42.370616+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/resultado",
+      "tipo": "RESULTADO_INGESTA",
+      "payload": "{\"tipo_mensaje\": \"RESULTADO_INGESTA\", \"id_mensaje\": null, \"sensor\": null, \"variable\": \"Humedad Relativa\", \"timestamp_captura\": \"2026-10-31T02:38:41.383608+00:00\", \"resultado\": \"FALLIDO\", \"accion_buffer\": \"LIBERAR\", \"codigo\": \"ERROR_AUTENTICACION\", \"mensaje\": \"ERROR_AUTENTICACION: Sensor no resuelto: None.\", \"id_telemetria\": null}"
+    },
+    {
+      "ts": "2026-10-31T02:48:42.444045+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/resultado",
+      "tipo": "RESULTADO_INGESTA",
+      "payload": "{\"tipo_mensaje\": \"RESULTADO_INGESTA\", \"id_mensaje\": null, \"sensor\": null, \"variable\": \"Humedad Relativa\", \"timestamp_captura\": \"2026-10-31T02:48:41.193915+00:00\", \"resultado\": \"FALLIDO\", \"accion_buffer\": \"LIBERAR\", \"codigo\": \"ERROR_AUTENTICACION\", \"mensaje\": \"ERROR_AUTENTICACION: Sensor no resuelto: None.\", \"id_telemetria\": null}"
+    },
+    {
+      "ts": "2026-10-31T02:48:42.464041+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/resultado",
+      "tipo": "RESULTADO_INGESTA",
+      "payload": "{\"tipo_mensaje\": \"RESULTADO_INGESTA\", \"id_mensaje\": null, \"sensor\": null, \"variable\": \"Humedad Relativa\", \"timestamp_captura\": \"2026-10-31T02:43:41.396843+00:00\", \"resultado\": \"FALLIDO\", \"accion_buffer\": \"LIBERAR\", \"codigo\": \"ERROR_AUTENTICACION\", \"mensaje\": \"ERROR_AUTENTICACION: Sensor no asociado a una unidad productiva.\", \"id_telemetria\": null}"
+    },
+    {
+      "ts": "2026-10-31T02:48:42.540194+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/resultado",
+      "tipo": "RESULTADO_INGESTA",
+      "payload": "{\"tipo_mensaje\": \"RESULTADO_INGESTA\", \"id_mensaje\": null, \"sensor\": null, \"variable\": \"Humedad Relativa\", \"timestamp_captura\": \"2026-10-31T02:38:41.383608+00:00\", \"resultado\": \"FALLIDO\", \"accion_buffer\": \"LIBERAR\", \"codigo\": \"ERROR_AUTENTICACION\", \"mensaje\": \"ERROR_AUTENTICACION: Sensor no asociado a una unidad productiva.\", \"id_telemetria\": null}"
+    },
+    {
+      "ts": "2026-10-31T02:48:43.359377+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/resultado",
+      "tipo": "RESULTADO_INGESTA",
+      "payload": "{\"tipo_mensaje\": \"RESULTADO_INGESTA\", \"id_mensaje\": null, \"sensor\": null, \"variable\": \"Humedad Relativa\", \"timestamp_captura\": \"2026-10-31T02:48:41.193915+00:00\", \"resultado\": \"FALLIDO\", \"accion_buffer\": \"LIBERAR\", \"codigo\": \"ERROR_AUTENTICACION\", \"mensaje\": \"ERROR_AUTENTICACION: Sensor no asociado a una unidad productiva.\", \"id_telemetria\": null}"
+    },
+    {
+      "ts": "2026-10-31T02:48:43.945438+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:48:43.389712+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-31T02:48:43.983436+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-31T02:48:43.389712+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    }
+  ]
+}

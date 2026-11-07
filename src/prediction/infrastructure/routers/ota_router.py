@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: DISTRIBUCION_POSPUESTA al crear fuera de ventana |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04/CU06 H-02 RF-70/73: consultar la OTA no deja evento; nombre de versión |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-70: nombre del dispositivo en los despliegues |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-05 RF-70: equipos objetivo compatibles (ACTIVO y tipo de modelo del área) |
 """Router FastAPI para distribución OTA de modelos Edge (`/prediccion`).
 
 RF-70 CU-06: Consulta del estado OTA y listado de despliegues por dispositivo.
@@ -13,6 +15,7 @@ DEV-15 (D6 de AIOT-DEV-03): orquestador OTA por componente.
   GET  /prediccion/ota/distribuciones/{id}    — Estado del rollout (RBAC 44, R)
   POST /prediccion/ota/reportes               — Interno: reportes del nodo (token de servicio del broker)
   GET  /prediccion/ota/artefactos/{id}        — Descarga con URL firmada y temporal (Range)
+  GET  /prediccion/ota/dispositivos-objetivo  — Equipos compatibles con un tipo de modelo (RBAC 44, E)
 
 Autorización RBAC:
   recurso ota_status = id_recurso 44
@@ -23,10 +26,12 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from src.configuration.infrastructure.models.dispositivo_iot_model import DispositivoIotModel
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.ota.consultar_distribucion_ota_use_case import ConsultarDistribucionOtaUseCase
 from src.prediction.application.use_cases.ota.consultar_ota_status_use_case import ConsultarOtaStatusUseCase
@@ -76,6 +81,17 @@ def _con_nombre_version(db: Session, despliegues: list[DespliegueOtaResponse]) -
         for d in despliegues:
             d.nombre_version = nombres.get(d.id_version_modelo)
             d.nombre_version_anterior = nombres.get(d.id_version_modelo_anterior)
+    # T-18: el dispositivo se mostraba como "#347".
+    ids_disp = {d.id_dispositivo_iot for d in despliegues}
+    if ids_disp:
+        equipos = {
+            i: (desc or serial) for i, desc, serial in db.execute(
+                select(DispositivoIotModel.id_dispositivo_iot, DispositivoIotModel.descripcion, DispositivoIotModel.serial)
+                .where(DispositivoIotModel.id_dispositivo_iot.in_(ids_disp))
+            ).all()
+        }
+        for d in despliegues:
+            d.nombre_dispositivo = equipos.get(d.id_dispositivo_iot)
     return despliegues
 
 
@@ -157,6 +173,47 @@ def _ota_edge(db: Session) -> dict:
         "aviso_port": AvisoOtaBrokerAdapter(),
         "url_port": UrlDescargaHmacAdapter(),
     }
+
+
+class DispositivoObjetivoOtaResponse(BaseModel):
+    id_dispositivo_iot: int
+    serial: str
+    descripcion: str
+    categoria: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
+
+
+# M4-05 (RF-70 entrada lista_dispositivos_objetivo + E6): solo equipos registrados activos, en
+# estado operativo ACTIVO (RF-21) y cuya área tiene asignado el tipo de modelo (RF-20). Corre
+# con el usuario, así que RLS ya lo limita a sus fincas.
+_SQL_OBJETIVOS = text(
+    "SELECT d.id_dispositivo_iot, d.serial, d.descripcion, t.categoria, i.nombre "
+    "FROM modulo9.dispositivos_iot d "
+    "JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura "
+    "JOIN modulo3.estados_dispositivos_iot e ON e.id_dispositivo_iot = d.id_dispositivo_iot "
+    "LEFT JOIN modulo9.tipos_dispositivo_iot t ON t.id_tipo_dispositivo = d.id_tipo_dispositivo "
+    "WHERE d.es_activo AND e.estado_actual = 'ACTIVO' AND i.tipo_modelo_asignado = :tipo "
+    "ORDER BY i.nombre, d.descripcion"
+)
+
+
+@router.get(
+    "/ota/dispositivos-objetivo",
+    response_model=list[DispositivoObjetivoOtaResponse],
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Equipos que pueden recibir una versión de este tipo de modelo (RF-70, M4-05)",
+)
+def listar_dispositivos_objetivo(
+    tipo_modelo: str = Query(..., description="tipo_modelo de la versión a distribuir (RFC-009)."),
+    db: Session = Depends(get_db),
+) -> list[DispositivoObjetivoOtaResponse]:
+    return [
+        DispositivoObjetivoOtaResponse(
+            id_dispositivo_iot=i, serial=serial, descripcion=desc, categoria=cat, nombre_infraestructura=infra,
+        )
+        for i, serial, desc, cat, infra in db.execute(_SQL_OBJETIVOS, {"tipo": tipo_modelo}).all()
+    ]
 
 
 @router.post(

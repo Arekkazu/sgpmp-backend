@@ -1,10 +1,13 @@
 /**
  * TC-M03-G169 — Estados de calidad heredados de RF-53 (RF-62 / RF-53 / RF-63)
- * Suite Newman autosuficiente (autosiembra en sandbox).
+ * Suite Newman con sensores preexistentes (Reintento 1).
+ * Reporte objetivo: resultado_TC-M03-G169_reintento1.json / .html
  *
  * Subcasos:
  * - TC-M03-321: Lectura FUERA_DE_RANGO heredada (índice 0, NO_APTO, fuera_de_rango_rf53=true)
+ *   Sensor 552 (serial QA-G87-S1-20261023063513-c84150, calibrado, fecha_asociacion=2026-04-28)
  * - TC-M03-322: Lectura ERROR_CALIBRACION heredada + anomalías múltiples (índice 70 CSV / 80 real)
+ *   Sensor 15 (serial IOT-CAM02-COR-002, no calibrado, fecha_asociacion=2026-04-28)
  */
 
 const fs = require('fs');
@@ -13,6 +16,10 @@ const path = require('path');
 function h(key, value) { return { key, value }; }
 function authAdmin() { return [h("Authorization", "Bearer {{token_admin}}")]; }
 function authBroker() { return [h("Authorization", "Bearer {{broker_token}}")]; }
+
+function wrapRlsQuery(innerSql) {
+    return `SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u, set_config('app.usuario_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS uid) _rls CROSS JOIN LATERAL (${innerSql}) _q WHERE _rls.r != '' AND _rls.u != '' AND _rls.uid != ''`;
+}
 
 function makeItem(name, method, url, headers, bodyObj, preScripts, postTests) {
     const item = {
@@ -52,15 +59,8 @@ function makeItem(name, method, url, headers, bodyObj, preScripts, postTests) {
     return item;
 }
 
-function letrasAleatorias(n) {
-    const abc = "abcdefghijklmnopqrstuvwxyz";
-    let s = "";
-    for (let i = 0; i < n; i++) s += abc[Math.floor(Math.random() * abc.length)];
-    return s;
-}
-
 // =====================================================================
-// CARPETA 00 — PREFLIGHT (autosiembra en sandbox)
+// CARPETA 00 — PREFLIGHT (login único)
 // =====================================================================
 const preflight = [
     // 00.01 — Login admin + extracción de sub (id_usuario_admin)
@@ -87,193 +87,23 @@ const preflight = [
         '} catch (e) {',
         '    pm.test("Decodificar JWT", function () { pm.expect.fail("Error: " + e.message); });',
         '}'
-    ]),
-
-    // 00.02 — Tipo dispositivo SENSOR
-    makeItem("00.02-Descubrir-Tipo-Dispositivo", "GET",
-        "{{baseUrl}}/configuracion/tipos-dispositivo-iot", authAdmin(), null, [], [
-        'pm.test("Tipo SENSOR disponible", function () {',
-        '    pm.response.to.have.status(200);',
-        '    const items = pm.response.json().items || [];',
-        '    const sensor = items.find(x => x.categoria === "SENSOR");',
-        '    pm.expect(sensor, "No hay tipo_dispositivo SENSOR").to.exist;',
-        '    pm.collectionVariables.set("id_tipo_dispositivo", sensor.id_tipo_dispositivo);',
-        '});'
-    ]),
-
-    // 00.03 — Tipo área "Galpón"
-    makeItem("00.03-Descubrir-Tipo-Area", "GET",
-        "{{baseUrl}}/configuracion/tipos-area?solo_activos=true", authAdmin(), null, [], [
-        'pm.test("Tipo área Galpón disponible", function () {',
-        '    pm.response.to.have.status(200);',
-        '    const items = pm.response.json().items || [];',
-        '    const galpon = items.find(x => /galp[oó]n/i.test(x.nombre));',
-        '    pm.expect(galpon, "No hay tipo_area Galpón").to.exist;',
-        '    pm.collectionVariables.set("tipo_area_nombre", galpon.nombre);',
-        '});'
-    ]),
-
-    // 00.04 — Finca (nombre alfabético)
-    makeItem("00.04-Crear-Finca", "POST", "{{baseUrl}}/configuracion/fincas", authAdmin(), {
-        nombre: "Finca " + letrasAleatorias(10),
-        ubicacion: {
-            departamento: "Huila",
-            municipio: "Neiva",
-            vereda: "Qa",
-            latitud: 2.9273,
-            longitud: -75.2819
-        },
-        tamano_h: 10.5,
-        id_usuario: "{{id_usuario_admin}}"
-    }, [], [
-        'pm.test("Finca 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_finca).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("id_finca", r.id_finca);',
-        '    pm.collectionVariables.set("finca_nombre", r.nombre);',
-        '});'
-    ]),
-
-    // 00.05 — Área (especie_id: 2 Trucha Arcoíris -> umbrales 10 a 40 °C activos en DB)
-    makeItem("00.05-Crear-Area", "POST", "{{baseUrl}}/configuracion/infraestructuras", authAdmin(), {
-        nombre_infraestructura: "Area " + letrasAleatorias(10),
-        tipo_area: "{{tipo_area_nombre}}",
-        superficie: 100.0,
-        finca_id: "{{id_finca}}",
-        descripcion_infraestructura: "Area de pruebas estados RF-53",
-        especie_id: 2,
-        tipo_modelo_asignado: null
-    }, [], [
-        'pm.test("Área 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_infraestructura).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("id_infraestructura", r.id_infraestructura);',
-        '    pm.collectionVariables.set("area_nombre", r.nombre_infraestructura);',
-        '});'
-    ]),
-
-    // 00.06 — Dispositivo base
-    makeItem("00.06-Crear-Dispositivo", "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot", authAdmin(), {
-        serial: "GDEV" + letrasAleatorias(8).toUpperCase(),
-        descripcion: "Dispositivo base pruebas",
-        id_infraestructura: "{{id_infraestructura}}",
-        id_tipo_dispositivo: "{{id_tipo_dispositivo}}",
-        es_activo: true
-    }, [], [
-        'pm.test("Dispositivo 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_dispositivo_iot).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("device_id", r.id_dispositivo_iot);',
-        '    pm.collectionVariables.set("device_serial", r.serial);',
-        '});'
-    ]),
-
-    // 00.07 — Sensor base (categoria TEMPERATURA)
-    makeItem("00.07-Crear-Sensor", "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot/{{device_id}}/sensores", authAdmin(), {
-        nombre: "Sensor " + letrasAleatorias(10),
-        categoria: "TEMPERATURA"
-    }, [], [
-        'pm.test("Sensor 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_sensores).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("sensor_id", r.id_sensores);',
-        '});'
-    ]),
-
-    // 00.08 — Asociar sensor al área
-    makeItem("00.08-Asociar-Sensor-Area", "POST",
-        "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/asociar", authAdmin(), {
-        id_dispositivo_iot: "{{device_id}}",
-        id_infraestructura: "{{id_infraestructura}}",
-        punto_instalacion: "Centro del estanque",
-        confirmar: false
-    }, [], [
-        'pm.test("Asociación 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '});'
     ])
 ];
-
-// Helper para crear dispositivo + sensor dedicados
-function buildProvisionItems(prefix, devIdVar, devSerialVar, sensorIdVar) {
-    return [
-        makeItem(`${prefix}.01-Crear-Dispositivo`, "POST",
-            "{{baseUrl}}/configuracion/dispositivos-iot", authAdmin(), {
-            serial: "GDEV" + letrasAleatorias(8).toUpperCase(),
-            descripcion: `Dispositivo ${prefix}`,
-            id_infraestructura: "{{id_infraestructura}}",
-            id_tipo_dispositivo: "{{id_tipo_dispositivo}}",
-            es_activo: true
-        }, [], [
-            `pm.test("${prefix}: Dispositivo 201", function () {`,
-            '    pm.response.to.have.status(201);',
-            '    const r = pm.response.json();',
-            `    pm.collectionVariables.set("${devIdVar}", r.id_dispositivo_iot);`,
-            `    pm.collectionVariables.set("${devSerialVar}", r.serial);`,
-            '});'
-        ]),
-        makeItem(`${prefix}.02-Crear-Sensor`, "POST",
-            `{{baseUrl}}/configuracion/dispositivos-iot/{{${devIdVar}}}/sensores`, authAdmin(), {
-            nombre: "Sensor " + letrasAleatorias(10),
-            categoria: "TEMPERATURA"
-        }, [], [
-            `pm.test("${prefix}: Sensor 201", function () {`,
-            '    pm.response.to.have.status(201);',
-            '    const r = pm.response.json();',
-            `    pm.collectionVariables.set("${sensorIdVar}", r.id_sensores);`,
-            '});'
-        ]),
-        makeItem(`${prefix}.03-Asociar-Sensor-Area`, "POST",
-            `{{baseUrl}}/configuracion/sensores/{{${sensorIdVar}}}/asociar`, authAdmin(), {
-            id_dispositivo_iot: `{{${devIdVar}}}`,
-            id_infraestructura: "{{id_infraestructura}}",
-            punto_instalacion: "Punto monitoreo",
-            confirmar: false
-        }, [], [
-            `pm.test("${prefix}: Asociación 201", function () {`,
-            '    pm.response.to.have.status(201);',
-            '});'
-        ])
-    ];
-}
 
 // =====================================================================
 // CARPETA TC-321 — FUERA_DE_RANGO (Heredado de RF-53)
 // =====================================================================
 function buildTC321Folder() {
     const sub = "321";
-    const devIdVar = `dev_id_${sub}`;
-    const devSerialVar = `dev_serial_${sub}`;
+    const devIdVar = `device_id_${sub}`;
+    const devSerialVar = `serial_${sub}`;
     const sensorIdVar = `sensor_id_${sub}`;
     const telIdVar = `tel_id_${sub}`;
-    const ts = "2026-10-22T10:00:00Z";
 
-    const items = buildProvisionItems(sub, devIdVar, devSerialVar, sensorIdVar);
-
-    // 321.03b — Calibrar sensor para que no marque ERROR_CALIBRACION
-    items.push(makeItem(`${sub}.03b-Calibrar-Sensor`, "POST",
-        `{{baseUrl}}/configuracion/sensores/{{${sensorIdVar}}}/calibrar`, authAdmin(), {
-        id_dispositivo_iot: `{{${devIdVar}}}`,
-        id_infraestructura: "{{id_infraestructura}}",
-        valor_referencia: 20.0,
-        ganancia: 1.0,
-        offset: 0.0,
-        fecha_calibracion: ts,
-        observaciones: "Calibración base TC-321",
-        modo_calibracion: "SENSOR"
-    }, [], [
-        'pm.test("321: Calibración 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '});'
-    ]));
+    const items = [];
 
     // 321.04 — Ingestar valor 50.00 °C (> umbral max 40 °C de especie 2, dentro de rango físico 100 °C)
+    // Se usa timestamp dinámico relativo a NOW() (hace 60 segundos)
     items.push(makeItem(`${sub}.04-Ingestar-Lectura-Fuera-Rango`, "POST",
         "{{baseUrl}}/iot/telemetria", authBroker(), {
         device_id: `{{${devIdVar}}}`,
@@ -281,15 +111,20 @@ function buildTC321Folder() {
         tipo_variable: "TEMPERATURA_AMBIENTAL",
         valor: 50.00,
         unidad: "°C",
-        timestamp_captura: ts,
+        timestamp_captura: "{{ts_321}}",
         serial: `{{${devSerialVar}}}`
-    }, [], [
+    }, [
+        'const nowMs = Date.now();',
+        'const ts321 = new Date(nowMs - 60 * 1000).toISOString().slice(0, 19) + "Z";',
+        'pm.collectionVariables.set("ts_321", ts321);'
+    ], [
         'pm.test("321: Ingesta 201 con FUERA_DE_RANGO", function () {',
         '    pm.response.to.have.status(201);',
         '    const r = pm.response.json();',
         '    pm.expect(r.id_telemetria).to.be.a("number").and.above(0);',
         '    pm.expect(r.estado_calidad).to.equal("FUERA_DE_RANGO");',
         `    pm.collectionVariables.set("${telIdVar}", r.id_telemetria);`,
+        '    pm.collectionVariables.set("id_telemetria_321", r.id_telemetria);',
         '});'
     ]));
 
@@ -310,6 +145,16 @@ function buildTC321Folder() {
         '    pm.expect(flags.outlier_estadistico).to.be.undefined;',
         '    pm.expect(flags.posible_drift).to.be.undefined;',
         '    pm.expect(flags.gap_temporal_anomalo).to.be.undefined;',
+        '});',
+        'pm.test("version_limites_fisicos_aplicada presente", () => {',
+        '    const v = pm.response.json().version_limites_fisicos_aplicada;',
+        '    pm.expect(v).to.not.be.undefined;',
+        '    pm.expect(v).to.not.be.null;',
+        '});',
+        'pm.test("parametros_aplicados presente", () => {',
+        '    const p = pm.response.json().parametros_aplicados;',
+        '    pm.expect(p).to.not.be.undefined;',
+        '    pm.expect(p).to.not.be.null;',
         '});'
     ]));
 
@@ -331,7 +176,7 @@ function buildTC321Folder() {
         "{{baseUrl}}/test-control/query",
         [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
         {
-            query: `SELECT valor, unidad, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{${telIdVar}}}`
+            query: wrapRlsQuery(`SELECT valor_crudo, unidad_medida, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{${telIdVar}}}`)
         },
         [],
         [
@@ -340,9 +185,27 @@ function buildTC321Folder() {
             '    const rows = pm.response.json().data || pm.response.json().rows || [];',
             '    pm.expect(rows.length).to.be.above(0);',
             '    const row = rows[0];',
-            '    pm.expect(parseFloat(row.valor)).to.equal(50.00);',
-            '    pm.expect(row.unidad).to.equal("°C");',
+            '    pm.expect(parseFloat(row.valor_crudo !== undefined ? row.valor_crudo : row.valor)).to.equal(50.00);',
+            '    pm.expect(row.unidad_medida || row.unidad).to.equal("°C");',
             '    pm.expect(row.estado_calidad).to.equal("FUERA_DE_RANGO");',
+            '});'
+        ]
+    ));
+
+    // 321.09 — Verificar que NO se disparó alerta técnica en RF-57 para FUERA_DE_RANGO
+    items.push(makeItem(`${sub}.09-Verificar-Sin-Alerta-Tecnica`, "POST",
+        "{{baseUrl}}/test-control/query",
+        [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
+        {
+            query: wrapRlsQuery(`SELECT COUNT(*) AS n FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_telemetria_321}}' AND tipo_evento = 'ALERTA_TECNICA_EMITIDA'`)
+        },
+        [],
+        [
+            'pm.test("NO se disparó alerta técnica en RF-57 para FUERA_DE_RANGO", () => {',
+            '    const resp = pm.response.json();',
+            '    const rows = resp.data || resp.rows || resp;',
+            '    const n = Array.isArray(rows) ? (rows[0] ? rows[0].n : 0) : (rows.n !== undefined ? rows.n : rows);',
+            '    pm.expect(parseInt(n)).to.eql(0);',
             '});'
         ]
     ));
@@ -355,20 +218,37 @@ function buildTC321Folder() {
 // =====================================================================
 function buildTC322Folder() {
     const sub = "322";
-    const devIdVar = `dev_id_${sub}`;
-    const devSerialVar = `dev_serial_${sub}`;
+    const devIdVar = `device_id_${sub}`;
+    const devSerialVar = `serial_${sub}`;
     const sensorIdVar = `sensor_id_${sub}`;
     const telIdVar = `tel_id_${sub}`;
-    const prefix = "2026-10-22T11";
-    const evalTs = `${prefix}:50:00Z`;
 
-    // Dispositivo y sensor SIN calibrar
-    const items = buildProvisionItems(sub, devIdVar, devSerialVar, sensorIdVar);
+    const items = [];
 
-    // 322.04 — Ingestar lote de 20 lecturas con gap de 25 min previo a la lectura 21
+    // Pre-request script de la serie para calcular timestamps una sola vez (cadencia 45 min, gap 95 min)
+    const seriesInitScript = [
+        'if (!pm.collectionVariables.get("t_series_322_initialized")) {',
+        '    const nowMs = Date.now();',
+        '    const MS_MIN = 60 * 1000;',
+        '',
+        '    // Lectura evaluada: NOW() - 5 min (lectura reciente para no disparar RF-60)',
+        '    const tEvalMs = nowMs - 5 * MS_MIN;',
+        '    pm.collectionVariables.set("t_eval_ts_322", new Date(tEvalMs).toISOString().slice(0, 19) + "Z");',
+        '',
+        '    // 20 lecturas previas: #20 en NOW() - 100 min, #1 en NOW() - 955 min',
+        '    // Cadencia 45 min entre consecutivas; gap #20 -> eval = 95 min',
+        '    for (let i = 0; i < 20; i++) {',
+        '        const minutesBack = 955 - i * 45; // 955, 910, 865, ..., 100',
+        '        const ts = new Date(nowMs - minutesBack * MS_MIN).toISOString().slice(0, 19) + "Z";',
+        '        pm.collectionVariables.set("ts_prev_322_" + (i + 1), ts);',
+        '    }',
+        '    pm.collectionVariables.set("t_series_322_initialized", "true");',
+        '}'
+    ];
+
+    // 322.04 — Ingestar lote de 20 lecturas con gap de 95 min previo a la lectura 21
     const registros = [];
     for (let i = 0; i < 20; i++) {
-        const mm = String(i).padStart(2, "0");
         const val = (i % 2 === 0) ? 21.50 : 22.50;
         registros.push({
             device_id: `{{${devIdVar}}}`,
@@ -376,20 +256,20 @@ function buildTC322Folder() {
             tipo_variable: "TEMPERATURA_AMBIENTAL",
             valor: val,
             unidad: "°C",
-            timestamp_captura: `${prefix}:${mm}:00Z`,
+            timestamp_captura: `{{ts_prev_322_${i + 1}}}`,
             serial: `{{${devSerialVar}}}`
         });
     }
 
     items.push(makeItem(`${sub}.04-Ingestar-Serie-20-Con-Gap`, "POST",
-        "{{baseUrl}}/iot/telemetria/batch", authBroker(), { registros }, [], [
+        "{{baseUrl}}/iot/telemetria/batch", authBroker(), { registros }, seriesInitScript, [
         'pm.test("322: Batch 20 lecturas 200", function () {',
         '    pm.response.to.have.status(200);',
         '    pm.expect(pm.response.json().aceptados).to.equal(20);',
         '});'
     ]));
 
-    // 322.05 — Ingestar lectura 21 evaluada (25.50 °C, salto de 25 min respecto a minuto 20)
+    // 322.05 — Ingestar lectura 21 evaluada (25.50 °C, salto de 95 min respecto a lectura 20)
     items.push(makeItem(`${sub}.05-Ingestar-Lectura-Evaluada`, "POST",
         "{{baseUrl}}/iot/telemetria", authBroker(), {
         device_id: `{{${devIdVar}}}`,
@@ -397,7 +277,7 @@ function buildTC322Folder() {
         tipo_variable: "TEMPERATURA_AMBIENTAL",
         valor: 25.50,
         unidad: "°C",
-        timestamp_captura: evalTs,
+        timestamp_captura: "{{t_eval_ts_322}}",
         serial: `{{${devSerialVar}}}`
     }, [], [
         'pm.test("322: Lectura 21 ingerida 201 con ERROR_CALIBRACION", function () {',
@@ -406,6 +286,7 @@ function buildTC322Folder() {
         '    pm.expect(r.id_telemetria).to.be.a("number").and.above(0);',
         '    pm.expect(r.estado_calidad).to.equal("ERROR_CALIBRACION");',
         `    pm.collectionVariables.set("${telIdVar}", r.id_telemetria);`,
+        '    pm.collectionVariables.set("id_telemetria_322", r.id_telemetria);',
         '});'
     ]));
 
@@ -414,7 +295,7 @@ function buildTC322Folder() {
         "{{baseUrl}}/test-control/query",
         [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
         {
-            query: `SELECT COUNT(*) AS total FROM modulo9.calibraciones WHERE id_sensor = {{${sensorIdVar}}}`
+            query: wrapRlsQuery(`SELECT COUNT(*) AS total FROM modulo9.calibraciones WHERE id_sensor = {{${sensorIdVar}}}`)
         },
         [],
         [
@@ -428,8 +309,6 @@ function buildTC322Folder() {
     ));
 
     // 322.06 — Evaluar calidad
-    // El oráculo del CSV (70) asume gap implementado. En código actual gap no se detecta -> índice real 80.
-    // Se deja 70 para que V2 falle honestamente (documenta INC-M03-G168-GAP-NOT-IMPLEMENTED).
     items.push(makeItem(`${sub}.06-Evaluar-Calidad`, "POST",
         `{{baseUrl}}/iot/calidad/{{${telIdVar}}}/evaluar`, authAdmin(), null, [], [
         'pm.test("322: Evaluar 201 -> APTO_CON_RESERVA, índice 70 (oráculo CSV)", function () {',
@@ -450,6 +329,16 @@ function buildTC322Folder() {
         'pm.test("TC-322: gap_temporal_anomalo.activo === true (aporta −10)", function () {',
         '    const body = pm.response.json();',
         '    pm.expect(body.flags_detectados && body.flags_detectados.gap_temporal_anomalo && body.flags_detectados.gap_temporal_anomalo.activo === true).to.equal(true);',
+        '});',
+        'pm.test("apto_para_ia es true", () => {',
+        '    pm.expect(pm.response.json().apto_para_ia).to.eql(true);',
+        '});',
+        'pm.test("apto_para_nic41 es false", () => {',
+        '    pm.expect(pm.response.json().apto_para_nic41).to.eql(false);',
+        '});',
+        'pm.test("sensor_congelado NO activo (serie alterna no dispara congelado)", () => {',
+        '    const sc = pm.response.json().flags_detectados?.sensor_congelado;',
+        '    pm.expect(sc?.activo ?? false).to.eql(false);',
         '});'
     ]));
 
@@ -458,7 +347,7 @@ function buildTC322Folder() {
         "{{baseUrl}}/test-control/query",
         [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
         {
-            query: `SELECT valor, unidad, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{${telIdVar}}}`
+            query: wrapRlsQuery(`SELECT valor_crudo, unidad_medida, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{${telIdVar}}}`)
         },
         [],
         [
@@ -467,8 +356,8 @@ function buildTC322Folder() {
             '    const rows = pm.response.json().data || pm.response.json().rows || [];',
             '    pm.expect(rows.length).to.be.above(0);',
             '    const row = rows[0];',
-            '    pm.expect(parseFloat(row.valor)).to.equal(25.50);',
-            '    pm.expect(row.unidad).to.equal("°C");',
+            '    pm.expect(parseFloat(row.valor_crudo !== undefined ? row.valor_crudo : row.valor)).to.equal(25.50);',
+            '    pm.expect(row.unidad_medida || row.unidad).to.equal("°C");',
             '    pm.expect(row.estado_calidad).to.equal("ERROR_CALIBRACION");',
             '});'
         ]
@@ -497,7 +386,7 @@ const teardown = [
 ];
 
 const folders = [
-    { name: "00-Preflight-Autosiembra", item: preflight },
+    { name: "00-Preflight", item: preflight },
     buildTC321Folder(),
     buildTC322Folder(),
     { name: "99-Teardown", item: teardown }
@@ -507,7 +396,7 @@ const collection = {
     info: {
         _postman_id: "tc-m03-g169-estados-heredados",
         name: "TC-M03-G169 - Estados heredados de RF-53 (RF-62)",
-        description: "Suite autosuficiente para TC-321 (FUERA_DE_RANGO) y TC-322 (ERROR_CALIBRACION). Siembra en sandbox y rollback al final.",
+        description: "Suite autosuficiente para TC-321 (FUERA_DE_RANGO) y TC-322 (ERROR_CALIBRACION) usando sensores preexistentes. Genera resultado_TC-M03-G169_reintento1.json.",
         schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     event: [
@@ -542,23 +431,23 @@ const collection = {
         { key: "id_usuario_admin", value: "" },
         { key: "broker_token", value: "" },
         { key: "token_admin", value: "" },
-        { key: "id_tipo_dispositivo", value: "" },
-        { key: "tipo_area_nombre", value: "" },
-        { key: "id_finca", value: "" },
-        { key: "id_infraestructura", value: "" },
-        { key: "device_id", value: "" },
-        { key: "device_serial", value: "" },
-        { key: "sensor_id", value: "" },
-        { key: "finca_nombre", value: "" },
-        { key: "area_nombre", value: "" },
-        { key: "dev_id_321", value: "" },
-        { key: "dev_serial_321", value: "" },
-        { key: "sensor_id_321", value: "" },
+        { key: "sensor_id_321", value: "552" },
+        { key: "device_id_321", value: "357" },
+        { key: "serial_321", value: "QA-G87-S1-20261023063513-c84150" },
+        { key: "dev_id_321", value: "357" },
+        { key: "dev_serial_321", value: "QA-G87-S1-20261023063513-c84150" },
         { key: "tel_id_321", value: "" },
-        { key: "dev_id_322", value: "" },
-        { key: "dev_serial_322", value: "" },
-        { key: "sensor_id_322", value: "" },
-        { key: "tel_id_322", value: "" }
+        { key: "id_telemetria_321", value: "" },
+        { key: "ts_321", value: "" },
+        { key: "sensor_id_322", value: "15" },
+        { key: "device_id_322", value: "7" },
+        { key: "serial_322", value: "IOT-CAM02-COR-002" },
+        { key: "dev_id_322", value: "7" },
+        { key: "dev_serial_322", value: "IOT-CAM02-COR-002" },
+        { key: "tel_id_322", value: "" },
+        { key: "id_telemetria_322", value: "" },
+        { key: "t_eval_ts_322", value: "" },
+        { key: "t_series_322_initialized", value: "" }
     ],
     item: folders
 };

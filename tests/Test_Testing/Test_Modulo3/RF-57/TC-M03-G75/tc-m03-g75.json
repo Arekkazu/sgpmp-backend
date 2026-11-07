@@ -408,7 +408,7 @@
           ]
         },
         {
-          "name": "1.3 Bitacora: registro tecnico para monitoreo (se registra lo observado)",
+          "name": "1.3 Bitacora: registro tecnico para monitoreo de la alerta sin motor de IA (E3)",
           "request": {
             "method": "GET",
             "header": [
@@ -417,26 +417,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/auditoria?pagina=1&por_pagina=10",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "auditoria"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "10"
-                }
-              ]
-            }
+            "url": "{{base_url}}/iot/auditoria?entidad_afectada_id={{alerta_g75_sia}}&pagina=1&por_pagina=20"
           },
           "event": [
             {
@@ -446,8 +427,14 @@
                 "exec": [
                   "console.log('[TC-M03-G75 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G75-1.3][OBSERVADO] ultimos eventos de bitacora = ' + JSON.stringify((J.items || J.eventos || J.data || []).slice(0, 5)));"
+                  "const _it = (J.items || J.eventos || J.data || []);",
+                  "console.log('[G75-1.3][OBSERVADO] tipos de evento de la alerta en bitacora = ' + JSON.stringify(_it.map(function (x) { return x.tipo_evento; })));",
+                  "if (pm.collectionVariables.get('alerta_g75_sia') === undefined || pm.collectionVariables.get('alerta_g75_sia') === '') {",
+                  "  pm.test.skip('BLOQUEADO: 1.1 no creo la alerta, no hay registro tecnico que verificar (no se da por aprobado)', function () {});",
+                  "} else {",
+                  "  pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test('Registro tecnico para monitoreo: la bitacora tiene al menos una entrada de la alerta sin motor de IA (el RF no define el tipo_evento)', function () { pm.expect(_it.length, 'entradas de bitacora de la alerta ' + pm.collectionVariables.get('alerta_g75_sia')).to.be.above(0); });",
+                  "}"
                 ]
               }
             }

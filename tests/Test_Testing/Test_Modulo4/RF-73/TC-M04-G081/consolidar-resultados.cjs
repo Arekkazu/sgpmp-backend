@@ -11,31 +11,47 @@ if (!fs.existsSync(RESULTADOS_DIR)) {
     fs.mkdirSync(RESULTADOS_DIR, { recursive: true });
 }
 
-let stats = { tests: 3, passes: 3, failures: 0 };
-let checkpoints = [
-    { paso: 'NW-01: Autenticación Admin', esperado: 'Status 200 con token JWT', obtenido: 'OK', estado: 'OK' },
-    { paso: 'NW-02: Preflight Auditoría M04', esperado: 'Status 200 con items de auditoría', obtenido: 'OK', estado: 'OK' },
-    { paso: 'NW-Teardown: Rollback transaccional', esperado: 'Status 200 con Rollback exitoso', obtenido: 'OK', estado: 'OK' }
-];
+const checkpoints = [];
 
 if (fs.existsSync(RAW_NEWMAN)) {
     try {
         const raw = JSON.parse(fs.readFileSync(RAW_NEWMAN, 'utf8'));
-        if (raw.run && raw.run.stats) {
-            stats.tests = raw.run.stats.assertions.total;
-            stats.passes = raw.run.stats.assertions.total - raw.run.stats.assertions.failed;
-            stats.failures = raw.run.stats.assertions.failed;
+        if (raw.run && Array.isArray(raw.run.executions)) {
+            raw.run.executions.forEach(exec => {
+                const itemName = (exec.item && exec.item.name) ? exec.item.name : 'Paso';
+                if (Array.isArray(exec.assertions)) {
+                    exec.assertions.forEach(a => {
+                        const fallido = !!a.error;
+                        checkpoints.push({
+                            paso: `${itemName} - ${a.assertion}`,
+                            esperado: 'Aserción exitosa conforme a contrato RF-73',
+                            obtenido: fallido ? (a.error.message || 'Fallo en aserción') : 'OK',
+                            estado: fallido ? 'FALLA' : 'OK'
+                        });
+                    });
+                }
+            });
         }
     } catch (e) {
         console.warn('No se pudo parsear _raw_newman.json:', e.message);
     }
 }
 
+const total = checkpoints.length;
+const failures = checkpoints.filter(c => c.estado === 'FALLA').length;
+const passes = total - failures;
+const stats = { tests: total, passes: passes, failures: failures };
+
+let estado_general = 'sin_datos';
+if (total > 0) {
+    estado_general = failures > 0 ? 'Rechazado' : 'Aprobado';
+}
+
 const resultado = {
     tc: TC_ID,
     rf: 'RF-73',
     titulo: 'TC-M04-G081: Registro de eventos de inferencia',
-    estado_general: stats.failures === 0 ? 'Aprobado' : 'Rechazado',
+    estado_general: estado_general,
     stats: stats,
     checkpoints: checkpoints,
     bloqueados: [
@@ -46,4 +62,4 @@ const resultado = {
 };
 
 fs.writeFileSync(JSON_OUT, JSON.stringify(resultado, null, 2), 'utf8');
-console.log(`[CONSOLIDAR] Reporte JSON generado en ${JSON_OUT}`);
+console.log(`[CONSOLIDAR] Reporte JSON generado en ${JSON_OUT} (Estado: ${estado_general}, Total: ${total}, Falla: ${failures})`);

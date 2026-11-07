@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica de SLA vencido → VENCIDA, incumplimiento y escalamiento (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: envía la notificación de escalamiento al vencer (E10) |
+# | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
 """Caso de uso: vencer alertas sin atender por SLA (RF-57 E10, CA-12, Restricción 12).
 
 Una alerta operativa ACTIVA que supera su ``fecha_vencimiento`` (5 min CRITICO,
@@ -18,6 +19,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.telemetry.application.use_cases.alertas import texto_alerta as texto
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
     RegistrarEventoAuditoriaIotUseCase,
 )
@@ -67,9 +69,14 @@ class VencerAlertasSlaUseCase:
         return len(vencidas)
 
     def _escalar(self, alerta: Alerta) -> None:
-        titulo = f"Escalamiento: alerta {alerta.severidad} #{alerta.id_alerta} sin atender"
-        cuerpo = (f"La alerta #{alerta.id_alerta} ({alerta.tipo_alerta}, {alerta.tipo_variable}) no se atendió dentro "
-                  f"del SLA y pasó a VENCIDA. Revísela en el panel de alertas.")
+        ctx = self.notificacion.contexto(id_infraestructura=alerta.id_infraestructura,
+                                         id_activo_biologico=alerta.id_activo_biologico, id_sensor=alerta.id_sensor)
+        tipo = texto.etiqueta(alerta.tipo_alerta)
+        donde = ctx.activo or ctx.area
+        titulo = f"Alerta {texto.severidad(alerta.severidad)} sin atender: {tipo.lower()}" + (f" en {donde}" if donde else "")
+        cuerpo = (f"La alerta de {tipo.lower()} ({texto.severidad(alerta.severidad)}) en {texto.lugar(ctx)} "
+                  f"no se atendió a tiempo y quedó vencida.{texto.cuando(alerta.fecha_evento)} "
+                  "Revísela en el panel de alertas.")
         for id_usuario in self.notificacion.destinatarios(alerta.id_infraestructura, escalamiento=True):
             self.notificacion.enviar(id_usuario, titulo, cuerpo, agrupable=False)
 

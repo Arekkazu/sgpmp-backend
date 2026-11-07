@@ -27,7 +27,7 @@ export function leerEnv(proceso=process.env,archivo=path.join(RAIZ,'.env.qa')){
   Object.assign(e,proceso);e.QA_AUTORIZADO=proceso.QA_AUTORIZADO;return e;
 }
 export function preflight(c,env=leerEnv(),newman=versionNewman()){
-  const barreras=['SIGAB_API_TEST_BASE','QA_SANDBOX_SECRET','QA_VETERINARIO_EMAIL','QA_VETERINARIO_B_EMAIL','QA_VETERINARIO_C_EMAIL','QA_COMMON_PASSWORD']
+  const barreras=['SIGAB_API_TEST_BASE','QA_SANDBOX_SECRET','QA_VETERINARIO_EMAIL','QA_VETERINARIO_B_EMAIL','QA_VETERINARIO_C_EMAIL','QA_ADMIN_EMAIL','QA_COMMON_PASSWORD']
     .filter(k=>!String(env[k]??'').trim());
   if(env.QA_AUTORIZADO!=='SI')barreras.push('QA_AUTORIZADO');if(!newman.ok)barreras.push('NEWMAN_NO_DISPONIBLE');
   const base=String(env.SIGAB_API_TEST_BASE??'').replace(/\/+$/,'');
@@ -35,28 +35,34 @@ export function preflight(c,env=leerEnv(),newman=versionNewman()){
   if(COL.item.length!==14||new Set(NOMBRES).size!==14||COL.item.filter(x=>x.request.method==='POST').length!==9||
     COL.item.filter(x=>x.request.method==='GET').length!==5)barreras.push('COLECCION_INVALIDA');
   return {grupo:'G072',run_id:c.runId,ok:!barreras.length,barreras,presupuesto:PRESUPUESTO,herramientas:{newman},
-    efectos:['Tres logins Veterinario A, B y C; último acceso y auditoría de autenticación',
-      'Lecturas de historial, patologías, modelo y auditoría RF-73',
-      'Nueve retroalimentaciones y eventos de auditoría, revertidos mediante DELETE',
+    efectos:['Cuatro logins: Veterinarios A, B, C y Administrador QA; último acceso y auditoría de autenticación',
+      'Lecturas de historial, fincas, infraestructuras, activos, patologías, modelo y auditoría RF-73',
+      'Nueve retroalimentaciones y eventos de auditoría; intento de rollback mediante DELETE',
       'Lecturas poscierre pueden crear HISTORIAL_CONSULTADO fuera del sandbox; sin correos ni archivos externos']};
 }
 export function comprobar(){const archivos=['g072.mjs','G072.postman_collection.json','lib/g072_core.mjs','pruebas/g072_ensayo.mjs','pruebas/g072_env.test.mjs','pruebas/registro_qa.mjs','README.md'];
   const faltantes=archivos.filter(x=>!fs.existsSync(path.join(DIR,x)));
   const superior=fs.existsSync(path.join(DIR,'Resultados'))&&fs.readdirSync(path.join(DIR,'Resultados')).some(x=>x.endsWith('.md'));
-  const n=versionNewman(),ok=!faltantes.length&&!superior&&n.ok&&COL.item.length===14;
+  const n=versionNewman(),ok=!faltantes.length&&!superior&&n.ok&&COL.item.length===14&&PRESUPUESTO.timeout_post_ms===120000;
   console.log(JSON.stringify({grupo:'G072',ok,faltantes,markdown_superior:superior,newman:n,presupuesto:PRESUPUESTO}));return ok?0:2;}
+export function contextoVersionValido(c,operacion,version){
+  if(operacion==='reevaluar'&&version<2)return false;
+  return !(['reevaluar','reintentar'].includes(operacion)&&version>=2&&
+    (c.version_anterior!==version-1||!c.alcance_reevaluacion));
+}
 function contexto(args){const v=k=>args.includes(k)?args[args.indexOf(k)+1]:undefined;
   const operacion=v('--operacion'),version=Number(v('--version')),intento=Number(v('--intento')),runId=v('--run-id'),referencia=v('--autorizacion'),archivo=v('--contexto');
-  if(!CAPACIDADES.operaciones.includes(operacion)||!Number.isInteger(version)||version<1||!Number.isInteger(intento)||intento<1||!referencia||!archivo||
+  if(!CAPACIDADES.operaciones.includes(operacion)||!Number.isInteger(version)||version<1||version>99||!Number.isInteger(intento)||intento<1||!referencia||!archivo||
     !new RegExp(`^RUN-G072-V${version}-\\d{8}-\\d{6}$`).test(runId??''))throw Error('Contexto incompleto');
   const destino=path.join(DIR,...(version===1?['Resultados',runId]:[`EvaluacionV${version}`,'Resultados',runId]));
   const ruta=path.resolve(archivo);
   if(path.dirname(ruta)!==destino||!(operacion==='recuperar'?/^recuperacion-\d{14}\.contexto\.json$/.test(path.basename(ruta)):path.basename(ruta)==='contexto_operacion.json'))throw Error('Contexto fuera del RUN canónico');
   const c=JSON.parse(fs.readFileSync(ruta,'utf8'));
   if(c.grupo!=='G072'||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()||c.referencia!==referencia||
-    JSON.stringify(c.casos)!==JSON.stringify(CASOS)||operacion==='reevaluar'&&(version<2||c.version_anterior!==version-1||!c.alcance_reevaluacion)||
+    JSON.stringify(c.casos)!==JSON.stringify(CASOS)||!contextoVersionValido(c,operacion,version)||
     operacion==='recuperar'&&v('--run-objetivo')!==runId)throw Error('Contexto incoherente');
-  return {operacion,version,intento,runId,referencia,directorio:destino,ensayo:false};}
+  return {operacion,version,intento,runId,referencia,directorio:destino,ensayo:false,
+    version_anterior:c.version_anterior??null,alcance_reevaluacion:c.alcance_reevaluacion??null};}
 async function pedir(r,api,metodo,ruta,{token,secreto,runId,cuerpo,timeout=PRESUPUESTO.timeout_ms,caso}={}){
   if(r.solicitudes.length>=PRESUPUESTO.solicitudes_totales&&metodo!=='DELETE')throw Error('PRESUPUESTO_AGOTADO');
   const fila={caso:caso??null,metodo,ruta:ruta.split('?')[0],http:null};r.solicitudes.push(fila);
@@ -64,7 +70,8 @@ async function pedir(r,api,metodo,ruta,{token,secreto,runId,cuerpo,timeout=PRESU
     const res=await fetch(api+ruta,{method:metodo,redirect:'manual',headers:{...(cuerpo?{'Content-Type':'application/json'}:{}),
       ...(token?{Authorization:`Bearer ${token}`}:{}) ,...(secreto?{'X-Sandbox-Secret':secreto}:{}),
       ...(runId?{'X-Test-Run-Id':runId,'X-Zona-Horaria':'America/Bogota'}:{})},body:cuerpo?JSON.stringify(cuerpo):undefined,
-      signal:AbortSignal.timeout(Math.max(1,Math.min(timeout,metodo==='DELETE'?timeout:r._limite-inicio)))});
+      signal:AbortSignal.timeout(Math.max(1,Math.min(metodo==='POST'&&ruta!=='/sesiones/'?PRESUPUESTO.timeout_post_ms:timeout,
+        metodo==='DELETE'?timeout:r._limite-inicio)))});
     const b=await res.json().catch(()=>null);Object.assign(fila,{http:res.status,eco:runId?res.headers.get('x-test-run-id')===runId:null,
       duracion_ms:Date.now()-inicio,respuesta:ruta==='/sesiones/'?{token_recibido:!!b?.token}:
         {error_code:b?.error_code??null,message:limpio(b?.message??''),total:b?.total??null}});
@@ -78,6 +85,42 @@ async function historial(r,api,token,secreto,runId,inicio,fin){const eventos=[];
     if(x.http!==200||x.eco!==true||!Array.isArray(x.cuerpo?.eventos))return {eventos,completo:false,http:x.http};
     eventos.push(...x.cuerpo.eventos);cursor=x.cuerpo.cursor_siguiente;if(!cursor)return {eventos,completo:true,http:200};}
   return {eventos,completo:false,http:200,cursor_pendiente:true};}
+async function aislamiento(r,api,admin,vet,secreto,runId,inicio,fin){
+  const control={estado:'NO_CONCLUYENTE',activo:null,finca:null,http:null,eventos:null,
+    motivo:'No se encontró un activo verificablemente ajeno a las fincas 84 y 184.'};
+  if(!admin){control.motivo='El login del Administrador QA no permitió descubrir un activo ajeno.';return control;}
+  let usadas=0;
+  const leer=async ruta=>{if(usadas>=PRESUPUESTO.solicitudes_aislamiento)return null;usadas++;
+    return pedir(r,api,'GET',ruta,{token:admin,secreto,runId});};
+  const fincas=await leer('/configuracion/fincas');
+  if(fincas?.http!==200||!Array.isArray(fincas.cuerpo?.items)){
+    control.motivo=`Listado público de fincas no disponible: HTTP ${fincas?.http??'sin respuesta'}.`;return control;}
+  for(const finca of fincas.cuerpo.items.filter(x=>![84,184].includes(Number(x.id_finca)))){
+    const inf=await leer(`/configuracion/infraestructuras?finca_id=${encodeURIComponent(finca.id_finca)}`);
+    if(!inf){control.motivo='Se agotaron las 100 lecturas de descubrimiento antes de hallar un activo ajeno.';break;}
+    if(inf.http!==200||!Array.isArray(inf.cuerpo?.items))continue;
+    for(const area of inf.cuerpo.items){
+      const activos=await leer(`/activos-biologicos?id_infraestructura=${encodeURIComponent(area.id_infraestructura)}&pagina=1&page_size=1`);
+      if(!activos){control.motivo='Se agotaron las 100 lecturas de descubrimiento antes de hallar un activo ajeno.';break;}
+      const elegido=activos.http===200&&activos.cuerpo?.registros?.find(x=>
+        Number(x.id_infraestructura)===Number(area.id_infraestructura)&&Number.isInteger(Number(x.id_activo_biologico)));
+      if(!elegido)continue;
+      control.activo=Number(elegido.id_activo_biologico);control.finca=Number(finca.id_finca);
+      const x=await leer(`/prediccion/historial/${control.activo}?fecha_inicio=${inicio}&fecha_fin=${fin}&incluir_alertas=false`);
+      control.http=x?.http??null;control.eventos=Array.isArray(x?.cuerpo?.eventos)?x.cuerpo.eventos.length:null;
+      control.estado=[403,404].includes(x?.http)?'APROBADO':x?.http===200&&control.eventos>0?'RECHAZADO':'NO_CONCLUYENTE';
+      control.motivo=control.estado==='APROBADO'?'Veterinario A no accedió al historial del activo ajeno.':
+        control.estado==='RECHAZADO'?'Veterinario A recibió eventos de un activo de otra finca.':
+          `Respuesta HTTP ${x?.http??'sin respuesta'} sin prueba concluyente de segregación.`;
+      if(control.estado==='RECHAZADO')r.incidencias.push({id:'INC-M04-G072-RF67-01',caso:'CONTROL-RF67',
+        equipo:'Desarrollo',fundamento_derivacion:`GET /prediccion/historial/${control.activo} por Veterinario A devolvió HTTP 200 con ${control.eventos} eventos de finca ${control.finca}, fuera de 84 y 184.`,
+        causa_raiz:'NO DETERMINADA',certeza:'CONFIRMADA',severidad:'CRÍTICA',
+        justificacion_severidad:'Exposición comprobada de datos clínicos de un activo fuera del alcance del veterinario.'});
+      return control;
+    }
+  }
+  return control;
+}
 function usuarioToken(t){try{return String(JSON.parse(Buffer.from(String(t).split('.')[1],'base64url')).sub);}catch{return null;}}
 const casoDe=n=>n.startsWith('226')?CASOS[0]:n.startsWith('227')?CASOS[1]:CASOS[2];
 const referencia=x=>encodeURIComponent(String(x));
@@ -109,7 +152,7 @@ async function newmanUnico(r,c,api,env,tokens,sel,diag,inicio,fin){
   if(!tokens.C)col.item=col.item.filter(x=>!['227-C','historial_tras_227_final'].includes(x.name));
   const environment={values:Object.entries(valores).map(([key,value])=>({key,value,enabled:true}))};
   let error,summary;try{[error,summary]=await new Promise(ok=>require(newmanDir()).run({collection:col,environment,
-    reporters:['cli'],silent:true,timeoutRequest:30000,timeout:Math.max(1,r._limite-Date.now()),ignoreRedirects:true,color:'off'},(e,s)=>ok([e,s])));}catch(e){error=e;}
+    reporters:['cli'],silent:true,timeoutRequest:PRESUPUESTO.timeout_post_ms,timeout:Math.max(1,r._limite-Date.now()),ignoreRedirects:true,color:'off'},(e,s)=>ok([e,s])));}catch(e){error=e;}
   const ejec={},lecturas={},reporte={herramienta:'Newman',version:r.herramientas.newman.version,error:error?limpio(error.message):null,
     solicitudes:[],fallos:(summary?.run?.failures??[]).map(f=>({tipo:f.error?.name??'Error',mensaje:limpio(f.error?.message)}))};
   let seguidos=r._seguidos5xx??0;
@@ -159,7 +202,6 @@ function evaluarCasos(r,ejec,sel,audAntes,audDespues,audReg,usuarios,diag){
   const orden=['230a','230b','226','227_parcial','227_final'];
   const primera=r.lecturas_historial.find(x=>x.http===500),indice500=primera?orden.indexOf(primera.momento):-1;
   const lecturaCaso=['226','227_final','230b'].map(x=>lecturas[x]);
-  const sinHist=i=>indice500>=0&&orden.indexOf(lecturaCaso[i]?.momento)>=indice500&&lecturaCaso[i]?.completo!==true;
   const historiales=lecturaCaso.map(x=>x?.completo?x.eventos:null);
   const eventos=nombres.map((ns,i)=>ns.map(n=>retro(historiales[i]??[],de(n)?.cuerpo?.id_retroalimentacion)));
   const cuenta=i=>{const h=historiales[i<2?i:2];return h?retrosDe(h,sel[i].id_resultado_inferencia).length:null;};
@@ -182,37 +224,43 @@ function evaluarCasos(r,ejec,sel,audAntes,audDespues,audReg,usuarios,diag){
   const conf226=conf(0),payload226=conf226?.[0]?.payload_evento??conf226?.[0]?.payload??null;
   const c226=decision([...nombres[0].map(ok),...nombres[0].map(envio),de('226-A')?.cuerpo?.es_conflicto_retroalimentacion===false,
     de('226-B')?.cuerpo?.es_conflicto_retroalimentacion===true,
-     historiales[0]?cuenta(0)===2:sinHist(0)?true:null,...eventos[0].map((e,i)=>historiales[0]?identidad(nombres[0][i],e):sinHist(0)?true:null),...nombres[0].map(refOk),
+     historiales[0]?cuenta(0)===2:null,...eventos[0].map((e,i)=>historiales[0]?identidad(nombres[0][i],e):null),...nombres[0].map(refOk),
     conf226?conf226.length===1:null,conf226?.length===1?String(conf226[0].id_referencia)===String(sel[0].id_resultado_inferencia):null,
     payload226?payload226.id_resultado_inferencia===String(sel[0].id_resultado_inferencia)&&
       ['CORRECTO','INCORRECTO'].every(x=>payload226.estados_registrados?.includes(x)):null]);
-  const c227=decision([...nombres[1].map(ok),...nombres[1].map(envio),historiales[1]?cuenta(1)===3:sinHist(1)?true:null,...eventos[1].map((e,i)=>historiales[1]?identidad(nombres[1][i],e):sinHist(1)?true:null),
+  const c227=decision([...nombres[1].map(ok),...nombres[1].map(envio),lecturas['227_parcial']?.completo??null,
+    historiales[1]?cuenta(1)===3:null,...eventos[1].map((e,i)=>historiales[1]?identidad(nombres[1][i],e):null),
     ...nombres[1].map(refOk),auditNew(1)?auditNew(1).every(x=>['CONFLICTO_RETROALIMENTACION'].includes(x.tipo_evento)):null]);
   const c230=decision([...nombres[2].map(ok),...nombres[2].map(envio),...nombres[2].map(n=>de(n)?.cuerpo?.es_conflicto_retroalimentacion===false),
-     historiales[2]?cuenta(2)===2&&cuenta(3)===2:sinHist(2)?true:null,...eventos[2].map((e,i)=>historiales[2]?identidad(nombres[2][i],e):sinHist(2)?true:null),...nombres[2].map(refOk),
+     lecturas['230a']?.completo??null,historiales[2]?cuenta(2)===2&&cuenta(3)===2:null,
+     ...eventos[2].map((e,i)=>historiales[2]?identidad(nombres[2][i],e):null),...nombres[2].map(refOk),
     conf(2)?conf(2).length===0:null,conf(3)?conf(3).length===0:null]);
   const estados=[c226,c227,c230];
-  const bloquea=r.problemas_tecnicos.some(x=>/TRES_5XX|CLAVE_403/.test(x));
+  const bloquea=r.problemas_tecnicos.some(x=>/CLAVE_403/.test(x))||
+    r.problemas_tecnicos.includes('TRES_5XX_CONSECUTIVOS')&&
+      (r.herramientas.newman.posts<9||!r.lecturas_historial.some(x=>x.http===500));
   const referencias=[
-    'Dos HTTP 201; B con conflicto y un evento CONFLICTO_RETROALIMENTACION que referencia R1; A intacto (matriz G072, TC-M04-226; RF-72, líneas 4053-4061 y CA-14, 4393-4394).',
-    'Tres registros independientes, íntegros y sin consolidado ni etiqueta ganadora (matriz G072, TC-M04-227; RF-72, líneas 4043-4051 y 4065).',
-    'Dos evaluaciones iguales por resultado coexisten, sin flag ni evento de conflicto (matriz G072, TC-M04-230; RF-72, líneas 4024 y 4053-4061).'];
+    'Dos HTTP 201; B con conflicto y un evento CONFLICTO_RETROALIMENTACION que referencia R1; A intacto y ambos en historial HTTP 200 (TC-M04-226; RF-72, líneas 4053-4061 y CA-14, 4393-4394).',
+    'Tres registros independientes, íntegros y sin consolidado ni etiqueta ganadora, visibles en historial HTTP 200 (TC-M04-227; RF-72, líneas 4043-4051 y 4065).',
+    'Dos evaluaciones iguales por resultado coexisten tras HTTP 201, sin flag ni evento de conflicto; historial inicial y posterior HTTP 200 (TC-M04-230; RF-72, líneas 4024 y 4053-4061).'];
   const hechos=[
     `Se enviaron CORRECTO por A e INCORRECTO con patología ${diag} por B sobre ${sel[0].id_resultado_inferencia}; se leyeron historial y auditoría.`,
     `Se enviaron CORRECTO, PARCIAL e INCORRECTO por A, B y C sobre ${sel[1].id_resultado_inferencia}; se leyó historial y auditoría.`,
     `A y B enviaron CORRECTO sobre ${sel[2].id_resultado_inferencia} e INCORRECTO con la misma patología ${diag} sobre ${sel[3].id_resultado_inferencia}; se leyeron historial y auditoría.`];
   const observados=nombres.map((ns,i)=>`HTTP ${ns.map(n=>`${n}=${de(n)?.http??'sin respuesta'}`).join(', ')}; registros ${ns.map(n=>{
-    const b=de(n)?.cuerpo;return `${n}: id ${b?.id_retroalimentacion??'ausente'}, usuario ${b?.id_usuario_veterinario??'ausente'}, estado ${b?.estado_retroalimentacion??'ausente'}, diagnósticos ${JSON.stringify(b?.diagnosticos_reales??null)}, conflicto ${b?.es_conflicto_retroalimentacion==null?'sin dato':b.es_conflicto_retroalimentacion?'sí':'no'}`;}).join('; ')}; historial ${i===2?`${cuenta(2)??'sin lectura'}/${cuenta(3)??'sin lectura'}`:cuenta(i)??'sin lectura'} registros; eventos de conflicto ${i===2?`${conf(2)?.length??'sin lectura'}/${conf(3)?.length??'sin lectura'}`:conf(i)?.length??'sin lectura'}; referencias de auditoría ${i===2?[2,3].flatMap(j=>conf(j)?.map(x=>`${x.id_evento}:${x.id_referencia}`)??[]).join(', ')||'ninguna':conf(i)?.map(x=>`${x.id_evento}:${x.id_referencia}`).join(', ')||'ninguna'}.`);
+    const b=de(n)?.cuerpo;return `${n}: id ${b?.id_retroalimentacion??'ausente'}, usuario ${b?.id_usuario_veterinario??'ausente'}, estado ${b?.estado_retroalimentacion??'ausente'}, diagnósticos ${Array.isArray(b?.diagnosticos_reales)?b.diagnosticos_reales.join(', '):'ninguno'}, conflicto ${b?.es_conflicto_retroalimentacion==null?'sin dato':b.es_conflicto_retroalimentacion?'sí':'no'}`;}).join('; ')}; historial ${i===2?`${cuenta(2)??'sin lectura'}/${cuenta(3)??'sin lectura'}`:cuenta(i)??'sin lectura'} registros; eventos de conflicto ${i===2?`${conf(2)?.length??'sin lectura'}/${conf(3)?.length??'sin lectura'}`:conf(i)?.length??'sin lectura'}; referencias de auditoría ${i===2?[2,3].flatMap(j=>conf(j)?.map(x=>`${x.id_evento}:${x.id_referencia}`)??[]).join(', ')||'ninguna':conf(i)?.map(x=>`${x.id_evento}:${x.id_referencia}`).join(', ')||'ninguna'}.`);
   const razones=['El segundo registro contradice al primero; el indicador, el evento y la conservación de A se cotejan en respuestas y lecturas públicas.',
     'Cada respuesta se coteja por identificador, usuario, estado y diagnóstico con un registro de historial; no hay cuarto registro ni evento de consolidación.',
     'Cada par conserva sus dos registros y las respuestas y auditoría no señalan conflicto.'];
   for(let i=0;i<3;i++){
     const ns=nombres[i],cinco=r.solicitudes.some(x=>x.caso===CASOS[i]&&x.herramienta==='Newman'&&x.metodo==='POST'&&x.http>=500);
     const sinRespuesta=ns.some(n=>de(n)?.http==null);
-     const disparador=primera&&(i===2&&primera.momento.startsWith('230')||i===0&&primera.momento==='226'||i===1&&primera.momento.startsWith('227'));
-     const estado=bloquea?'BLOQUEADO':i===1&&!usuarios.C||sinRespuesta?'NO_CONCLUYENTE':disparador||cinco?'RECHAZADO':estados[i];
+     const momentos=i===0?['226']:i===1?['227_parcial','227_final']:['230a','230b'];
+     const falloHist=momentos.map(x=>lecturas[x]).find(x=>x?.http>=500);
+     const disparador=falloHist&&falloHist===primera;
+     const estado=bloquea?'BLOQUEADO':i===1&&!usuarios.C||sinRespuesta?'NO_CONCLUYENTE':falloHist||cinco?'RECHAZADO':estados[i];
     const motivo=bloquea?'Corte técnico por clave 403 o tres respuestas 5xx consecutivas':i===1&&!usuarios.C?'No inició sesión la cuenta C; falta su evaluación independiente':
-       sinRespuesta?'Una solicitud obligatoria no recibió respuesta HTTP':disparador?`Primer HTTP 500 del historial tras ${primera.tras_post}: ${primera.codigo??'sin código'}; ${primera.mensaje||'sin mensaje'}`:cinco?'Una escritura obligatoria respondió 5xx':
+       sinRespuesta?'Una solicitud obligatoria no recibió respuesta HTTP':falloHist?`HTTP ${falloHist.http} del historial tras ${falloHist.tras_post}: ${falloHist.codigo??'sin código'}; ${falloHist.mensaje||'sin mensaje'}`:cinco?'Una escritura obligatoria respondió 5xx':
       estado==='APROBADO'?razones[i]:estado==='RECHAZADO'?
         [`La contradicción de R1 no quedó confirmada con dos registros, indicador y evento íntegros`,
           `La coexistencia de los tres registros de R2 no quedó confirmada sin alteración ni consolidación`,
@@ -221,13 +269,9 @@ function evaluarCasos(r,ejec,sel,audAntes,audDespues,audReg,usuarios,diag){
     r.casos[CASOS[i]]={estado,motivo,que_se_hizo:hechos[i],esperado_referencia:referencias[i],observado_prosa:observados[i],por_que_prosa:razones[i]};
     r.comprobaciones.push({caso:CASOS[i],fuente:'API',id:IDS[i],tipo:'ASSERT',estado,evidencia:'newman/newman-G072.json'});
      if(estado==='RECHAZADO')r.incidencias.push({id:`INC-M04-G072-${CASOS[i].slice(-3)}-01`,caso:CASOS[i],equipo:'Desarrollo',
-       fundamento_derivacion:disparador?`Primera discrepancia comprobada en GET /prediccion/historial/885 tras ${primera.tras_post}, HTTP 500 ${primera.codigo??'sin código'}: ${primera.mensaje||'sin mensaje'}`:'Primera discrepancia comprobada en la API pública de RF-72',
+       fundamento_derivacion:falloHist?`Primera discrepancia comprobada en GET /prediccion/historial/885 tras ${falloHist.tras_post}, HTTP ${falloHist.http} ${falloHist.codigo??'sin código'}: ${falloHist.mensaje||'sin mensaje'}`:'Primera discrepancia comprobada en la API pública de RF-72',
        causa_raiz:'NO DETERMINADA',causa_probable:disparador?'Antecedente documentado por el responsable QA: el log TEST del intento 1 registra un INSERT en historial_diagnostico_eventos rechazado por RLS. Contrastar el log de este RUN antes de atribuirle la misma causa.':null,
-       certeza:'CONFIRMADA',severidad:'ALTA',justificacion_severidad:disparador?'La retroalimentación deja de ser consultable en historial (RF-72 CA-8, línea 4378; Regla 3, líneas 4043-4051).':'El escenario clínico exigido pierde detección, integridad o ausencia de falso conflicto; la funcionalidad relevante queda afectada.'});
-  }
-  for(let i=0;i<3;i++)if(sinHist(i)&&r.casos[CASOS[i]].estado==='APROBADO'){
-    r.casos[CASOS[i]].por_que_prosa='Las respuestas POST y la auditoria RF-73 acreditan flags, conflictos y registros por usuario; la conservacion visible solo en historial no estuvo disponible por la incidencia del primer HTTP 500.';
-    r.casos[CASOS[i]].observado_prosa+=' La parte visible solo en historial no estuvo disponible por la incidencia.';
+       certeza:'CONFIRMADA',severidad:'ALTA',justificacion_severidad:falloHist?'La retroalimentación deja de ser consultable en historial (RF-72 CA-8, línea 4378; Regla 3, líneas 4043-4051).':'El escenario clínico exigido pierde detección, integridad o ausencia de falso conflicto; la funcionalidad relevante queda afectada.'});
   }
   const tercero=de('227-C')?.cuerpo?.es_conflicto_retroalimentacion;
   r.observaciones.push(`OBS-M04-G072-227: la tercera respuesta para ${sel[1].id_resultado_inferencia} indicó conflicto ${tercero==null?'no disponible':tercero?'sí':'no'} al añadirse INCORRECTO tras PARCIAL y CORRECTO. Es una observación; el oráculo de conflicto se decide en TC-M04-226.`);
@@ -236,21 +280,26 @@ function evaluarCasos(r,ejec,sel,audAntes,audDespues,audReg,usuarios,diag){
   else if(r.lecturas_historial.length===indice500+1)r.observaciones.push(`OBS-M04-G072-HIST: HTTP 500 en la última lectura tras ${primera.tras_post}; no hubo otra lectura antes del DELETE para confirmar persistencia.`);
   else if(r.lecturas_historial.slice(indice500).every(x=>x.http===500))r.observaciones.push(`OBS-M04-G072-HIST: HTTP 500 persistente desde ${primera.tras_post} hasta el DELETE en todas las lecturas posteriores.`);
 }
-function informe(r,c){const estados=CASOS.map(x=>r.casos[x].estado),veredicto=r.oficial?(estados.includes('RECHAZADO')?'RECHAZADO':'APROBADO'):'NO OFICIAL';
+function informe(r,c){const estados=CASOS.map(x=>r.casos[x].estado),veredicto=r.oficial?(estados.includes('RECHAZADO')||r.control_aislamiento?.estado==='RECHAZADO'?'RECHAZADO':'APROBADO'):'NO OFICIAL';
   const tabla=CASOS.map(x=>`| ${x} | ${r.casos[x].estado} | ${limpio(r.casos[x].motivo)} |`).join('\n');
   const detalle=CASOS.map((x,i)=>{const z=r.casos[x],e=z.estado;
-    return `### ${x} — ${e}\n\n- **Qué se hizo:** ${limpio(z.que_se_hizo??'La evaluación se interrumpió antes de las peticiones del caso.')}\n- **Qué se esperaba:** ${limpio(z.esperado_referencia??['Matriz G072, caso 226; RF-72, líneas 4053-4061.','Matriz G072, caso 227; RF-72, líneas 4043-4051.','Matriz G072, caso 230; RF-72, líneas 4024 y 4053-4061.'][i])}\n- **Qué se observó:** ${limpio(z.observado_prosa??'No hubo respuestas o lecturas suficientes para confirmar el caso.')}\n- **Por qué ${e}:** ${limpio(e==='APROBADO'?z.por_que_prosa:z.motivo)}\n\nComprobación ${IDS[i]}: ${e}; evidencia ${r.comprobaciones.find(y=>y.caso===x)?.evidencia??'preflight.json'} y resultado.json.\n`;}).join('\n');
+    return `### ${x} — ${e}\n\n- **Qué se hizo:** ${limpio(z.que_se_hizo??'La evaluación se interrumpió antes de las peticiones del caso.')}\n- **Qué se esperaba:** ${limpio(z.esperado_referencia??['TC-M04-226; RF-72, líneas 4053-4061 y CA-14.','TC-M04-227; RF-72, líneas 4043-4051.','TC-M04-230; RF-72, líneas 4024 y 4053-4061.'][i])}\n- **Qué se observó:** ${limpio(z.observado_prosa??'No hubo respuestas o lecturas suficientes para confirmar el caso.')}\n- **Por qué ${e}:** ${limpio(e==='APROBADO'?z.por_que_prosa:z.motivo)}\n- **V1 → V2:** ${c.version>=2?x==='TC-M04-230'?`V1 RECHAZADO por GET 500 tras 230a-B; V2 ${e} según la lectura y los registros de este RUN.`:`V1 APROBADO con coexistencia no comprobable en historial; V2 ${e} ${e==='APROBADO'?'con coexistencia verificada en historial.':'según el historial de este RUN.'}`:'V1 inicial.'}\n\nComprobación ${IDS[i]}: ${e}; evidencia ${r.comprobaciones.find(y=>y.caso===x)?.evidencia??'preflight.json'} y resultado.json.\n`;}).join('\n');
   const incidencias=r.incidencias.map(x=>`- ${x.id}: ${x.caso}; ${x.severidad} (${x.certeza}); atención inicial ${x.equipo}. ${x.justificacion_severidad} Derivación con momento y código observados: ${x.fundamento_derivacion}. ${x.causa_probable??''}`).join('\n')||'Ninguna.';
   const evidencias=[...new Set([...r.evidencias,'resultado.json',nombreInforme(c.version)])];
   const intentos=r.solicitudes.filter(x=>x.herramienta==='Newman'&&x.metodo==='POST').map(x=>`| ${x.nombre} | ${x.http??'—'} | ${x.respuesta?.id_retroalimentacion??'—'} | ${x.respuesta?.es_conflicto_retroalimentacion??'—'} |`).join('\n');
   const lecturasTabla=r.lecturas_historial.map(x=>`| ${x.momento} (tras ${x.tras_post}) | ${x.http??'—'} | ${x.codigo??'—'}: ${limpio(x.mensaje)} | ${x.completo?x.registros_por_resultado.map(y=>`${y.id_resultado_inferencia}: ${y.registros.map(z=>`${z.id_retroalimentacion}/${z.id_usuario_veterinario}/${z.estado}`).join(', ')||'0'}`).join('; '):'no disponibles'} |`).join('\n')||'| Sin lecturas | — | — | — |';
-  const historialIntentos=`## Historial de intentos\n\n- Intento 1, RUN-G072-V1-20261029-161515: TÉCNICO, nueve POST 201 y GET posterior 500 ERROR_INTERNO. Log TEST aportado por responsable QA: inserción en historial_diagnostico_eventos rechazada por RLS; disparador no aislado. DELETE 200 y rollback confirmado en la evidencia del intento 1.\n- Intento ${c.intento}, ${c.runId}: ${r.oficial?'oficial':'técnico'}; clasificación según las lecturas registradas en este RUN.\n\n`;
+  const historialIntentos=`## Historial de intentos\n\n- RUN-G072-V1-20261029-161515: intento técnico conservado, GET posterior 500 ERROR_INTERNO.\n- RUN-G072-V1-20261029-165112: V1 oficial; 226 y 227 APROBADO con limitación del historial, 230 RECHAZADO por GET 500 tras 230a-B.\n- Intento ${c.intento}, ${c.runId}: ${r.oficial?'oficial':'técnico'}; clasificación según las lecturas registradas en este RUN.\n\n`;
   const primera500=r.lecturas_historial.find(x=>x.http===500);
   const posteriores=primera500?r.lecturas_historial.slice(r.lecturas_historial.indexOf(primera500)+1):[];
   const persistencia=posteriores.length===0?'Fue la última lectura antes del DELETE; la persistencia no se confirmó con otra lectura':
     posteriores.every(x=>x.http===500)?'El HTTP 500 persistió en todas las lecturas siguientes hasta el DELETE':'El HTTP 500 no persistió en todas las lecturas siguientes';
-  const tablaLecturas=`## Lecturas del historial\n\n| Momento | HTTP | Código y mensaje | Registros visibles por resultado (id/usuario/estado) |\n|---|---:|---|---|\n${lecturasTabla}\n\n${primera500?`Primera lectura HTTP 500: ${primera500.momento}, tras ${primera500.tras_post}; disparador de ${primera500.momento.startsWith('230')?'TC-M04-230':primera500.momento==='226'?'TC-M04-226':'TC-M04-227'}. ${persistencia}.`:'No hubo lectura HTTP 500.'}\n\n`;
-  return `# TC-M04-G072 — ${veredicto}\n\n## Identificación\n\nGrupo G072; casos ${CASOS.join(', ')}; RF-72; versión ${c.version}; RUN ${c.runId}; ambiente ${r.ambiente}; autorización ${c.referencia}; referencia de codigo origin/test daefc3a5c62771c8952706ae7a7fe128e66b0b02 aportada en la orden, sin verificacion Git local. Node.js y Newman ${r.herramientas.newman.version??'no disponible'}; solo API.\n\n## Decisión del caso\n\n| Caso | Veredicto | Motivo |\n|---|---|---|\n${tabla}\n\nRUN oficial: ${r.oficial?'sí':'no'}. Qué falta: ${r.oficial?'nada':'completar respuestas y lecturas públicas, y verificar el rollback'}.\n\n## Datos y método\n\nActivo 885; resultados ${r.semilla?.resultados?.map(x=>x.id).join(', ')||'no disponibles'}; patología activa ${r.semilla?.patologia??'no disponible'}. Verificación por historial y auditoría RF-73 de API pública; la matriz sugería BD y no se usó SQL.\n\n## Detalle por caso\n\n${detalle}\n## Intentos Newman\n\n| Intento | HTTP | Registro | Conflicto |\n|---|---:|---|---|\n${intentos}\n\n${tablaLecturas}${historialIntentos}## Observaciones\n\n${r.observaciones.map(limpio).join('\n\n')||'Ninguna.'}\n\n## Incidencias de producto\n\n${incidencias}\n\n## Problemas técnicos y análisis de causas\n\n${r.problemas_tecnicos.map(limpio).join('; ')||'Ninguno.'} Un HTTP 500 del producto no demuestra un fallo del ejecutor ni del sandbox. El log TEST del intento 1 y la revisión posterior de la política se documentan en la incidencia del RUN oficial.\n\n## Cierre y rollback\n\nIntento ${c.intento}; solicitudes ${r.solicitudes.length}/${PRESUPUESTO.solicitudes_totales}. DELETE HTTP ${r.cierre.run.cierre_http??'—'}. Rollback ${r.cierre.rollback.verificado?'verificado':'no verificado'}: ${r.cierre.rollback.motivo}. Las lecturas poscierre pueden generar HISTORIAL_CONSULTADO fuera del sandbox.\n\n## Conclusión y acciones\n\n${veredicto==='APROBADO'?'Los tres casos cumplen; archivar evidencia.':veredicto==='RECHAZADO'?'Derivar las incidencias comprobadas a Desarrollo y repetir tras corrección autorizada.':'Resolver los impedimentos técnicos o lecturas pendientes y repetir con autorización particular.'}\n\n## Herramientas y evidencias\n\nNewman: ${r.herramientas.newman.iteraciones} iteración; ${r.herramientas.newman.solicitudes} solicitudes; ${r.herramientas.newman.aserciones} aserciones. Sin UI obligatoria.\n\n${evidencias.map(x=>`- ${x}`).join('\n')}\n`.replace(/\.\./g,'.');
+  const tablaLecturas=`## Lecturas del historial\n\nGET inicial: HTTP ${r.historial_inicial?.http??'sin respuesta'}, lectura ${r.historial_inicial?.completo?'completa':'incompleta'}.\n\n| Momento | HTTP | Código y mensaje | Registros visibles por resultado (id/usuario/estado) |\n|---|---:|---|---|\n${lecturasTabla}\n\n${primera500?`Primera lectura HTTP 500: ${primera500.momento}, tras ${primera500.tras_post}; disparador de ${primera500.momento.startsWith('230')?'TC-M04-230':primera500.momento==='226'?'TC-M04-226':'TC-M04-227'}. ${persistencia}.`:'No hubo lectura HTTP 500.'}\n\n`;
+  const control=r.control_aislamiento??{estado:'NO_CONCLUYENTE',motivo:'El control no se ejecutó.',activo:null,finca:null,http:null,eventos:null};
+  const estado230=r.casos['TC-M04-230'].estado;
+  const controlTexto=`## Control complementario de aislamiento RF-67\n\nEstado ${control.estado}. Activo ${control.activo??'no identificado'} de finca ${control.finca??'no identificada'}; Veterinario A recibió HTTP ${control.http??'sin respuesta'} y ${control.eventos??'sin dato'} eventos. ${control.motivo} Este control no modifica los oráculos de 226, 227 y 230.\n\n`;
+  const correccion=`## Seguimiento de la corrección\n\nIssue #869 / PR #871: política RLS de INSERT del historial diagnóstico informada por Desarrollo y DBA. INC-M04-G072-230-01: ${estado230==='APROBADO'?'CORREGIDA según la evidencia de este RUN':
+    r.lecturas_historial.some(x=>['230a','230b'].includes(x.momento)&&x.http===500)?'PERSISTE el síntoma HTTP 500 según la evidencia de este RUN':'PENDIENTE de verificación concluyente'}. Esta clasificación no atribuye causa raíz al resultado actual.\n\n`;
+  return `# TC-M04-G072 — ${veredicto}\n\n## Identificación\n\nGrupo G072; casos ${CASOS.join(', ')}; RF-72 y control RF-67; versión ${c.version}; RUN ${c.runId}; ambiente ${r.ambiente}; autorización ${c.referencia}; código de TEST c31f8a6d920e y migración 7efe47d6c76a informados por QA, sin verificación Git local. Node.js y Newman ${r.herramientas.newman.version??'no disponible'}; solo API.\n\n## Decisión del caso\n\n| Caso | Veredicto | Motivo |\n|---|---|---|\n${tabla}\n\nRUN oficial: ${r.oficial?'sí':'no'}. Qué falta: ${r.oficial?'nada':'completar respuestas y lecturas públicas, y verificar el rollback'}.\n\n## Datos y método\n\nActivo 885; resultados ${r.semilla?.resultados?.map(x=>x.id).join(', ')||'no disponibles'}; patología activa ${r.semilla?.patologia??'no disponible'}. Verificación por historial y auditoría RF-73 de API pública; sin consulta SQL.\n\n## Detalle por caso\n\n${detalle}\n## Intentos Newman\n\n| Intento | HTTP | Registro | Conflicto |\n|---|---:|---|---|\n${intentos}\n\n${tablaLecturas}${controlTexto}${correccion}${historialIntentos}## Observaciones\n\n${r.observaciones.map(limpio).join('\n\n')||'Ninguna.'}\n\n## Incidencias de producto\n\n${incidencias}\n\n## Problemas técnicos y análisis de causas\n\n${r.problemas_tecnicos.map(limpio).join('; ')||'Ninguno.'} Los fallos técnicos se separan de discrepancias de producto. El antecedente RLS de V1 proviene del informe QA; se contrasta con la evidencia de este RUN.\n\n## Cierre y rollback\n\nIntento ${c.intento}; solicitudes ${r.solicitudes.length}/${PRESUPUESTO.solicitudes_totales}. DELETE HTTP ${r.cierre.run.cierre_http??'—'}. Rollback ${r.cierre.rollback.verificado?'verificado':'no verificado'}: ${r.cierre.rollback.motivo}. Las lecturas poscierre pueden generar HISTORIAL_CONSULTADO fuera del sandbox.\n\n## Conclusión y acciones\n\n${veredicto==='APROBADO'?'Los tres casos cumplen; revisar además el control RF-67 y archivar evidencia.':veredicto==='RECHAZADO'?'Derivar las incidencias comprobadas a Desarrollo y repetir con autorización particular.':'Resolver los impedimentos técnicos o lecturas pendientes y repetir con autorización particular.'}\n\n## Herramientas y evidencias\n\nNewman: ${r.herramientas.newman.iteraciones} iteración; ${r.herramientas.newman.solicitudes} solicitudes; ${r.herramientas.newman.aserciones} aserciones. Sin UI obligatoria.\n\n${evidencias.map(x=>`- ${x}`).join('\n')}\n`.replace(/\.\./g,'.');
 }
 export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}){
   const r={grupo:'G072',run_id:c.runId,version:c.version,intento:c.intento,referencia:c.referencia,ambiente:c.ensayo?'loopback local':'TEST',
@@ -277,7 +326,14 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
       throw Error('LOGIN_INCOMPLETO');
     }
     if(new Set(Object.values(usuarios)).size!==Object.keys(usuarios).length)throw Error('USUARIOS_NO_DISTINTOS');
-    iniciado=true;base=await historial(r,api,tokens.A,env.QA_SANDBOX_SECRET,c.runId,inicio,fin);
+    const admin=await pedir(r,api,'POST','/sesiones/',{cuerpo:{correo_electronico:env.QA_ADMIN_EMAIL,
+      contrasena:env.QA_ADMIN_PASSWORD??env.QA_COMMON_PASSWORD},timeout:PRESUPUESTO.timeout_login_ms});
+    if(admin.http===200&&admin.cuerpo?.token)tokens.ADMIN=admin.cuerpo.token;
+    else r.problemas_tecnicos.push(`LOGIN_ADMIN_${admin.http??'SIN_RED'}`);
+    iniciado=true;r.control_aislamiento=await aislamiento(r,api,tokens.ADMIN,tokens.A,
+      env.QA_SANDBOX_SECRET,c.runId,inicio,fin);
+    base=await historial(r,api,tokens.A,env.QA_SANDBOX_SECRET,c.runId,inicio,fin);
+    r.historial_inicial={http:base.http,completo:base.completo,eventos:base.eventos.length};
     if(!base.completo)throw Error(base.http===403?'CLAVE_403':`HISTORIAL_DESCUBRIMIENTO_${base.http??'SIN_RED'}`);
     sel=seleccionar(base.eventos);r.semilla={id_activo_biologico:885,resultados:sel.map(x=>({id:x.id_resultado_inferencia,fecha:x.fecha_evento,modelo:x.payload?.tipo_modelo,version:x.payload?.id_version_modelo}))};
     if(sel.length<4)throw Error(`DATOS_INSUFICIENTES_${sel.length}_DE_4`);
@@ -288,7 +344,19 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
     const modelo=await pedir(r,api,'GET',`/prediccion/modelos/${sel[0].payload.id_version_modelo}`,{token:tokens.A,secreto:env.QA_SANDBOX_SECRET,runId:c.runId});
     if(modelo.http!==200||modelo.cuerpo?.paradigma!=='INDIVIDUAL')throw Error(`MODELO_INDIVIDUAL_NO_CONFIRMADO_${modelo.http??'SIN_RED'}`);
     const audAntes=[];for(let i=0;i<4;i++)audAntes.push(await auditoria(r,api,tokens.A,env.QA_SANDBOX_SECRET,c.runId,sel[i].id_resultado_inferencia));
-    ejec=await newmanUnico(r,c,api,env,tokens,sel,diag,inicio,fin);
+    ejec=await newmanUnico(r,c,api,env,{A:tokens.A,B:tokens.B,C:tokens.C},sel,diag,inicio,fin);
+    for(const [n,indice,usuario,estado] of [['230a-A',2,'A','CORRECTO'],['230a-B',2,'B','CORRECTO'],
+      ['230b-A',3,'A','INCORRECTO'],['230b-B',3,'B','INCORRECTO'],['226-A',0,'A','CORRECTO'],
+      ['226-B',0,'B','INCORRECTO'],['227-A',1,'A','CORRECTO'],['227-B',1,'B','PARCIAL'],['227-C',1,'C','INCORRECTO']]){
+      if(ejec[n]?.http!=null)continue;
+      const momento=n.startsWith('230a')?'230a':n.startsWith('230b')?'230b':n.startsWith('226')?'226':'227_final';
+      const lectura=r.lecturas_historial.find(x=>x.momento===momento);
+      const coincidencias=lectura?.completo?retrosDe(lectura.eventos,sel[indice].id_resultado_inferencia)
+        .filter(x=>String(x.payload?.id_usuario_veterinario)===String(usuarios[usuario])&&
+          x.payload?.estado_retroalimentacion===estado).length:null;
+      r.observaciones.push(`Conciliación de ${n} sin respuesta: ${coincidencias===null?'historial no disponible':
+        `${coincidencias} registro(s) coincidentes en historial`}. No se reintentó el POST; HTTP 201 no confirmado.`);
+    }
     const audDespues=[];for(let i=0;i<4;i++)audDespues.push(await auditoria(r,api,tokens.A,env.QA_SANDBOX_SECRET,c.runId,sel[i].id_resultado_inferencia));
     const audReg={};for(const n of NOMBRES)if(ejec[n]?.http===201&&ejec[n]?.cuerpo?.id_retroalimentacion)
       audReg[n]=await auditoria(r,api,tokens.A,env.QA_SANDBOX_SECRET,c.runId,ejec[n].cuerpo.id_retroalimentacion);
@@ -312,7 +380,8 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
     for(const lectura of r.lecturas_historial)delete lectura.eventos;
     delete r._limite;delete r._seguidos5xx;
     if(fs.existsSync(c.directorio)){const secretos=[...Object.values(tokens),env.QA_SANDBOX_SECRET,env.QA_COMMON_PASSWORD,
-      env.QA_VETERINARIO_EMAIL,env.QA_VETERINARIO_B_EMAIL,env.QA_VETERINARIO_C_EMAIL];
+      env.QA_VETERINARIO_EMAIL,env.QA_VETERINARIO_B_EMAIL,env.QA_VETERINARIO_C_EMAIL,
+      env.QA_ADMIN_EMAIL,env.QA_ADMIN_PASSWORD];
       r.evidencias.push('resultado.json',nombreInforme(c.version));guardar(path.join(c.directorio,'resultado.json'),JSON.parse(sanear(JSON.stringify(r),secretos)));
       fs.writeFileSync(path.join(c.directorio,nombreInforme(c.version)),sanear(informe(r,c),secretos),'utf8');}
   }return r;

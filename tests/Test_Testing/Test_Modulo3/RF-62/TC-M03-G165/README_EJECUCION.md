@@ -22,19 +22,20 @@ Las variables deben configurarse en el entorno o en el archivo `.env.test` en la
 
 ## 2. 🚀 Comando de Ejecución Oficial
 
-Para ejecutar la suite completa generando el reporte HTML estandarizado para el scanner:
+Para ejecutar la suite completa (5 escenarios: `TestEscenarioBase`, `TestEscenario318a`, `TestEscenario318b`, `TestEscenario318c`, `TestEscenario320`) generando los reportes HTML y JUnit XML para el reintento correspondiente:
 
 ```powershell
 # Desde la raíz del repositorio sgpmp-backend:
 & ".\.venv\Scripts\python.exe" -m pytest --noconftest `
   tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G165/test_tc_m03_g165.py `
-  --html=tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G165/resultados/resultado_TC-M03-G165.html `
+  --html=tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G165/resultados/resultado_TC-M03-G165_reintento1.html `
   --self-contained-html `
+  --junitxml=tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G165/resultados/resultado_TC-M03-G165_reintento1.xml `
   -v
 ```
 
 ### 💡 Recomendación Operativa: Primera Corrida Solo con S_BASE
-Antes de ejecutar los 6 escenarios completos, se recomienda validar la conectividad, descubrimiento dinámico y rollback corriendo únicamente el escenario base:
+Antes de ejecutar los 5 escenarios completos, se recomienda validar la conectividad, descubrimiento dinámico y rollback corriendo únicamente el escenario base:
 
 ```powershell
 & ".\.venv\Scripts\python.exe" -m pytest --noconftest `
@@ -71,12 +72,22 @@ Al iniciar la sesión de Pytest, se imprime en consola la siguiente notificació
 
 ---
 
-## 5. Defectos Probables y Discrepancias Documentadas
+## 5. Correcciones de Diseño Aplicadas (Post Fix `#632` y `#685`)
 
-1. **[INC-M03-<NN>-TC-M03-G165][RF-62] POST /iot/calidad/{id}/evaluar deja mas de una evaluacion VIGENTE por lectura:**  
-   Al evaluar una lectura previamente evaluada (ej. ingesta inicial), el backend no marca la evaluación anterior como `SUPERADA`. Se generan 2 evaluaciones `VIGENTE` para la misma lectura. `test_tc303_invariante_una_sola_vigente` y `test_tc303_transicion_superada` fallarán reportando este defecto reconocido por Desarrollo.
-   - *OBSERVACIÓN:* El plan de pruebas indicaba el literal `ACTIVA`. La Decisión de Análisis (D7 RESUELTO) confirmó que el literal estándar y en uso es `VIGENTE`.
-2. **Fase 5 de Gap Temporal Incompleta (`evaluar_calidad_telemetria_use_case.py:194-198`):**  
-   No descuenta los 10 puntos de gap temporal anómalo en los escenarios 318a y 320.
-3. **Incompatibilidad Outlier Estadístico con $\sigma=0$:**  
-   Con 20 repeticiones idénticas, $\sigma=0$ y el código no activa outlier estadístico salvo que supere el límite físico absoluto.
+1. **Eliminación de `TestEscenario318cBis`:**  
+   `TestEscenario318cBis` fue retirado porque no forma parte de la especificación de `TC-M03-G165` (`TC-M03-303`, `TC-M03-318a/b/c`, `TC-M03-319`, `TC-M03-320`), tras desplegarse el fix `#632` (`INC-M03-104-G165`), `TestEscenario318c` ya cubre la saturación aritmética en `0` con $\sigma=0$, y además en `TEST` el rango físico de `TEMPERATURA_AMBIENTAL` en `modulo9.variables_ambientales` es `[-10.0, 50.0]`, por lo que `65.0 °C` se rechaza en Fase 5 de ingesta (`422 ERROR_SENSOR`) antes de llegar a `POST /iot/calidad/{id_telemetria}/evaluar`.
+2. **Autoridad de `apto_para_ia` y `apto_para_nic41` (`DEV-02`, alembic `9eb3ce1ec3e8`):**  
+   `modulo3.telemetrias` es inmutable tras la ingesta; `test_tc303_actualizacion_flags_telemetria_calidad_vigente` verifica `apto_para_ia` y `apto_para_nic41` en la fila `VIGENTE` de `modulo3.telemetria_calidad`.
+3. **Contexto RLS en `/test-control/query`:**  
+   `SandboxClient.query_sql` envuelve toda consulta en un `CROSS JOIN LATERAL` que invoca `set_config('app.current_role', 'Administrador', true)` y `set_config('app.current_user_id', ...)`.
+4. **Offset positivo de calibración y `frecuencia_muestreo=10` dentro del sandbox:**  
+   `calcular_offset_para_drift` calcula un offset positivo $(d \cdot \mu)/(1 - d) \in [0, 45]$, y cada escenario fija `frecuencia_muestreo=10` min mediante `PATCH /configuracion/parametros/{id}` dentro de su `X-Test-Run-Id`.
+
+---
+
+## ⚠️ Riesgo de latencia (INC-M03-G166-LATENCY)
+
+La suite realiza ~105 POST secuenciales de ingesta (21 lecturas × 5 escenarios).
+En horarios de alta carga de RDS TEST, un escenario puede superar los 20-30 s.
+Mitigación en Fase 3: ejecutar primero por clase (`-k TestEscenarioBase`, etc.)
+o con `--timeout=300` para evitar abortos prematuros.

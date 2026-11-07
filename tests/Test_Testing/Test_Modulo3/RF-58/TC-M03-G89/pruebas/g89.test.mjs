@@ -15,7 +15,7 @@ function clasificarRegistro(r, capacidades) {
     .every(([fuente, ids]) => ids.every((id) => r.comprobaciones.some((c) =>
       c.caso === caso && c.fuente === fuente && c.id === id && c.tipo === 'ASSERT'
       && ['APROBADO', 'RECHAZADO'].includes(c.estado)))));
-  return completas && casos.every((caso) => ['APROBADO', 'RECHAZADO'].includes(r.casos[caso].estado)
+  return r.oficial === true && completas && casos.every((caso) => ['APROBADO', 'RECHAZADO'].includes(r.casos[caso].estado)
     && r.casos[caso].estado_tecnico === 'OK') && r.cierre.run.cierre_http === 200
     && r.cierre.rollback.verificado === true;
 }
@@ -35,10 +35,13 @@ test('catálogo --capacidades: JSON del lanzador sin autorización ni .env', () 
   assert.deepEqual(ids, ['API-173-01', 'API-174-01', 'API-174-02', 'API-174-03', 'API-174-04']);
 });
 
-test('plan temporal: tres marcas anteriores al NOW fijo', () => {
+test('plan temporal: ocho marcas anteriores al NOW fijo', () => {
   const p = planTemporal('2026-10-25T12:00:00.000Z');
   assert.equal(p.ancla, '2026-10-25T11:58:00.000Z');
-  assert.deepEqual(p.marcas, ['2026-10-25T11:57:45.000Z', '2026-10-25T11:57:50.000Z', '2026-10-25T11:57:55.000Z']);
+  assert.deepEqual(p.marcas, ['2026-10-25T11:57:20.000Z', '2026-10-25T11:57:25.000Z',
+    '2026-10-25T11:57:30.000Z', '2026-10-25T11:57:35.000Z',
+    '2026-10-25T11:57:40.000Z', '2026-10-25T11:57:45.000Z',
+    '2026-10-25T11:57:50.000Z', '2026-10-25T11:57:55.000Z']);
 });
 
 test('preflight local no necesita .env real', () => {
@@ -77,15 +80,19 @@ test('lista blanca y límites de escritura', () => {
   assert.throws(() => escrituraPermitida('POST', '/iot/alertas', { ...ingesta, sensor_id: 738 }, {}), /OTRA_SEMILLA/);
   assert.throws(() => escrituraPermitida('PATCH', '/iot/alertas/5/estado', { nuevo_estado: 'VENCIDA' }, {}), /NO_PREVISTA/);
   assert.throws(() => escrituraPermitida('PATCH', '/iot/alertas/5/estado', { nuevo_estado: 'DESCARTADA' }, {}), /NO_PREVISTA/);
-  const permisos = { marcas: ['2026-10-25T11:57:45.000Z'], serial: 'SERIAL_LOCAL',
-    ancla: '2026-10-25T11:58:00.000Z', telemetrias: [11], alertas: [22] };
+  const permisos = { marcas: ['2026-10-25T11:57:45.000Z'], valores: [25],
+    serial: 'SERIAL_LOCAL', eventos: [{ id: 11, valor: 31, marca: '2026-10-25T11:57:45.000Z' }],
+    telemetrias: [11], alertas: [22] };
   assert.throws(() => escrituraPermitida('POST', '/iot/telemetria', { ...ingesta,
     timestamp_captura: '2026-10-25T11:58:00.000Z', serial: 'SERIAL_LOCAL' }, {}, permisos), /FUERA_ESCENARIO/);
   assert.throws(() => escrituraPermitida('POST', '/iot/alertas', { ...ingesta,
     access_key: 'SERIAL_LOCAL', severidad_edge: 'LEVE', id_telemetria: 99 }, {}, permisos), /FUERA_ESCENARIO/);
   const alerta = cuerpoAlerta({ serial: permisos.serial, severidad: 'LEVE',
-    idTelemetria: 11, timestampEvento: permisos.ancla });
+    idTelemetria: 11, timestampEvento: permisos.marcas[0] });
   assert.doesNotThrow(() => escrituraPermitida('POST', '/iot/alertas', alerta, {}, permisos));
+  assert.deepEqual(alerta.correlacion_variables, { HUMEDAD_RELATIVA: 40 });
+  assert.throws(() => escrituraPermitida('POST', '/iot/alertas',
+    { ...alerta, correlacion_variables: { HUMEDAD_RELATIVA: 41 } }, {}, permisos), /FUERA_ESCENARIO/);
   assert.throws(() => escrituraPermitida('POST', '/iot/alertas',
     { ...alerta, access_key: permisos.serial }, {}, permisos), /FUERA_ESCENARIO/);
   assert.throws(() => escrituraPermitida('POST', '/iot/alertas',
@@ -110,7 +117,8 @@ test('POST broker y PATCH administrador: contrato, RUN y bitácora saneada', asy
     const t = crearTransporte({ base: 'http://local.invalid', runId: 'G89-PRUEBA',
       secreto: 'SECRETO_LOCAL', bitacora, secretos: ['SECRETO_LOCAL', 'BROKER_LOCAL', 'JWT_LOCAL'] });
     const ancla = '2026-10-25T11:58:00.000Z';
-    t.configurarEscenario({ marcas: [], ancla, serial: 'SERIAL_LOCAL', telemetrias: [11], alertas: [22] });
+    t.configurarEscenario({ marcas: [], valores: [], serial: 'SERIAL_LOCAL',
+      eventos: [{ id: 11, valor: 31, marca: ancla }], telemetrias: [11], alertas: [22] });
     t.abrir();
     const cuerpo = cuerpoAlerta({ serial: 'SERIAL_LOCAL', severidad: 'LEVE',
       idTelemetria: 11, timestampEvento: ancla });
@@ -140,7 +148,7 @@ test('deduplicación de 30 minutos: cierres permiten 173→174 y duplicado falla
       alerta_existente_id: previa.id } };
     const a = { id: ++siguiente, sensor: 552, variable: 'TEMPERATURA_AMBIENTAL',
       severidad, estado: 'ACTIVA', fecha: ahora }; alertas.push(a);
-    return { status: 201, json: { es_duplicado: false, id_alerta: a.id } };
+    return { status: 201, json: { es_duplicado: false, id_alerta: a.id, severidad } };
   };
   const critica = exigirAlertaNueva(generar('CRITICO'), 'CRITICO');
   assert.equal(alertas[0].estado, 'ACTIVA');
@@ -171,6 +179,7 @@ test('oráculos 173 y 174: crítico, activa, resuelta, descartada y elevación i
   assert.equal(evaluarComprobacion(CASOS[1], 'resuelta', estado('VERDE')).cumple, true);
   assert.equal(evaluarComprobacion(CASOS[1], 'descartada', estado('VERDE')).cumple, true);
   assert.equal(evaluarComprobacion(CASOS[1], 'resuelta', estado('AMARILLO')).cumple, false);
+  assert.equal(evaluarComprobacion(CASOS[1], 'resuelta', estado('VERDE', 42)).cumple, false);
   assert.equal(evaluarComprobacion(CASOS[1], 'descartada', estado('AMARILLO', 42)).cumple, false);
 });
 
@@ -215,20 +224,25 @@ test('registro local: RUN completo e incompleto, sin crear artefactos de grupo',
   const runId = path.basename(dir);
   try {
     fs.mkdirSync(path.join(dir, 'newman'));
+    fs.mkdirSync(path.join(dir, 'api'));
     fs.writeFileSync(path.join(dir, 'resultado.json'), '{}');
+    fs.writeFileSync(path.join(dir, 'newman', 'newman-TC-M03-G89.json'), '{}');
+    fs.writeFileSync(path.join(dir, 'newman', 'newman-TC-M03-G89.html'), '<html></html>');
     const casos = Object.fromEntries(CASOS.map((id) => [id, {
       veredicto: 'APROBADO', estado_tecnico: 'OK', comprobaciones: [], prerequisitos: [] }]));
     const ids = { 'TC-M03-173': ['API-173-01'],
       'TC-M03-174': ['API-174-01', 'API-174-02', 'API-174-03', 'API-174-04'] };
     for (const caso of CASOS) for (const id of ids[caso]) {
-      const evidencia = `newman/${id}.json`;
+      const evidencia = `api/${id}.json`;
       fs.writeFileSync(path.join(dir, evidencia), '{}');
       casos[caso].comprobaciones.push({ id_comprobacion: id, cumple: true,
         http: 200, evidencia, observado: { estado_semaforo: 'VERDE' } });
     }
     const r = { grupo: 'G89', ejecucion: { run_id: runId, version: 1 }, casos,
-      telemetrias_creadas: [101], alertas_creadas: [201], evidencias: ['resultado.json',
-        ...Object.values(ids).flat().map((id) => `newman/${id}.json`)],
+      telemetrias_creadas: [101], alertas_creadas: [201],
+      newman: [{ archivo: 'newman/newman-TC-M03-G89.json' }],
+      evidencias: ['resultado.json', 'newman/newman-TC-M03-G89.json',
+        'newman/newman-TC-M03-G89.html', ...Object.values(ids).flat().map((id) => `api/${id}.json`)],
       cierre: { http: 200, rollback_verificado: true,
         comprobaciones: [
           { tipo: 'dashboard_previo', http: 200, previo_completo: true,
@@ -270,11 +284,11 @@ test('HTML Newman consolidado conserva nombres de solicitudes y aserciones', () 
     const r = { newman: [{ caso: 'TC-M03-173', check_id: 'API-173-01', archivo,
       http: 200, aserciones: 2, fallos: [], ejecuciones: 1 }], evidencias: [] };
     consolidarNewman(r, d);
-    const html = fs.readFileSync(path.join(d, 'newman', 'newman-G89-consolidado.html'), 'utf8');
+    const html = fs.readFileSync(path.join(d, 'newman', 'newman-TC-M03-G89.html'), 'utf8');
     assert.match(html, /Dashboard G89/);
     assert.match(html, /Semáforo esperado/);
     assert.match(html, /Eco RUN/);
-    assert.deepEqual(r.evidencias, ['newman/newman-G89-consolidado.html']);
+    assert.deepEqual(r.evidencias, ['newman/newman-TC-M03-G89.html']);
   } finally { fs.rmSync(d, { recursive: true, force: true }); }
 });
 

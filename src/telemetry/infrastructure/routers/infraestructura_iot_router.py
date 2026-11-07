@@ -9,6 +9,8 @@
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: aplicar el alcance por finca existente a la consulta de estado usada por G27. |
 # | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del buffer de todos los dispositivos del alcance |
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
+# | 2026-10-31 | Arekkazu | CP58 RF-60: nombre del responsable de cada transición de estado |
+# | 2026-11-02 | Arekkazu | AJF-04 RF-60: GET de parámetros de heartbeat por categoría y de ventanas de visión de una cámara |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -17,6 +19,8 @@ RF-60 — CU05 Dev scope:
   GET   /iot/dispositivos/{id}/estado         — Estado actual + historial de transiciones
   GET   /iot/dispositivos/{id}/historial      — Solo historial de transiciones
   GET   /iot/buffer                           — Panel del buffer Edge de todos los dispositivos (RF-54)
+  GET   /iot/dispositivos/parametros-heartbeat — Parámetros de heartbeat por categoría (AJF-04, recurso 36 R)
+  GET   /iot/dispositivos/{id}/ventanas-vision — Últimas ventanas de visión de una cámara (AJF-04, recurso 36 R)
   GET   /iot/alertas-tecnicas                 — Listar alertas técnicas (admin + ing ONLY)
   PATCH /iot/alertas-tecnicas/{id}/estado     — Actualizar estado de alerta técnica
 
@@ -29,6 +33,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
@@ -65,6 +70,9 @@ from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import Di
 from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
 from src.shared.fechas import FechaHoraUtc
 from src.telemetry.infrastructure.workers.postcommit_worker import recalcular_semaforo_sensor
+from src.telemetry.application.use_cases.infraestructura.consultar_parametros_heartbeat_use_case import ConsultarParametrosHeartbeatUseCase
+from src.telemetry.infrastructure.adapters.parametros_heartbeat_categoria_adapter import ParametrosHeartbeatCategoriaAdapter
+from src.telemetry.infrastructure.schema.parametros_heartbeat_schema import ParametrosHeartbeatCategoriaSchema, VentanasVisionSchema
 
 from src.telemetry.application.use_cases.infraestructura.consultar_estado_buffer_use_case import ConsultarEstadoBufferUseCase
 from src.telemetry.infrastructure.repositories.estado_buffer_repository import SqlAlchemyEstadoBufferRepository
@@ -72,6 +80,22 @@ from src.telemetry.infrastructure.schema.estado_buffer_schema import EstadoBuffe
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
+
+
+def _con_responsable(db: Session, historial: list[HistoricoTransicionSchema]) -> list[HistoricoTransicionSchema]:
+    """CP58: nombre de quien hizo cada transición manual (una consulta por respuesta)."""
+    ids = list({h.id_usuario_responsable for h in historial if h.id_usuario_responsable is not None})
+    if not ids:
+        return historial
+    try:
+        nombres = dict(db.execute(text(
+            "SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
+            "WHERE id_usuario = ANY(:ids)"), {'ids': ids}).all())
+    except Exception:
+        return historial  # el nombre es de presentación; la transición sale con su id
+    for h in historial:
+        h.nombre_usuario_responsable = nombres.get(h.id_usuario_responsable)
+    return historial
 
 @router.post(
     "/heartbeat",
@@ -150,6 +174,42 @@ def listar_dispositivos(
 
 
 @router.get(
+    "/dispositivos/parametros-heartbeat",
+    response_model=list[ParametrosHeartbeatCategoriaSchema],
+    dependencies=[Depends(require_permission(36, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Parámetros de heartbeat por categoría de dispositivo, solo lectura (RF-60)",
+)
+def listar_parametros_heartbeat(db: Session = Depends(get_db)) -> list[ParametrosHeartbeatCategoriaSchema]:
+    """AJF-04: por qué un dispositivo pasa a SIN_SEÑAL o INACTIVO. Es información de operación de
+    equipos: mismo permiso que las alertas técnicas. Lo no configurado viaja en ``faltantes``."""
+    return [ParametrosHeartbeatCategoriaSchema.model_validate(p)
+            for p in ConsultarParametrosHeartbeatUseCase(ParametrosHeartbeatCategoriaAdapter(db)).por_categoria()]
+
+
+@router.get(
+    "/dispositivos/{id_dispositivo_iot}/ventanas-vision",
+    response_model=VentanasVisionSchema,
+    dependencies=[Depends(require_permission(36, 2))],
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse},
+               404: {"model": ErrorResponse}},
+    summary="Últimas ventanas de visión de una cámara y si quedaron bajo la cobertura mínima (RF-60)",
+)
+def listar_ventanas_vision(
+    id_dispositivo_iot: int = Path(gt=0),
+    cantidad: int = Query(default=10, description="1 a 50"),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> VentanasVisionSchema:
+    """AJF-04: explica por qué una cámara con heartbeat pero sin detecciones no genera alerta técnica."""
+    fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+    r = ConsultarParametrosHeartbeatUseCase(ParametrosHeartbeatCategoriaAdapter(db)).ventanas_vision(
+        id_dispositivo_iot, fincas, cantidad)
+    return VentanasVisionSchema.model_validate({**r.__dict__, 'id_dispositivo_iot': id_dispositivo_iot,
+                                                'ventanas': [v.__dict__ for v in r.ventanas]})
+
+
+@router.get(
     "/dispositivos/{id_dispositivo_iot}/estado",
     response_model=EstadoDispositivoDetalleSchema,
     status_code=200,
@@ -181,7 +241,7 @@ def obtener_estado_dispositivo(
     )
     return EstadoDispositivoDetalleSchema(
         estado=EstadoDispositivoIoTSchema.model_validate(resultado.estado),
-        historial=[HistoricoTransicionSchema.model_validate(t) for t in resultado.historial],
+        historial=_con_responsable(db, [HistoricoTransicionSchema.model_validate(t) for t in resultado.historial]),
     )
 
 
@@ -204,7 +264,7 @@ def listar_historial_dispositivo(
 ) -> list[HistoricoTransicionSchema]:
     repo = SqlAlchemyHistoricoTransicionDispositivoRepository(db)
     transiciones = repo.listar_por_dispositivo(id_dispositivo_iot, limite=limite)
-    return [HistoricoTransicionSchema.model_validate(t) for t in transiciones]
+    return _con_responsable(db, [HistoricoTransicionSchema.model_validate(t) for t in transiciones])
 
 
 @router.patch(

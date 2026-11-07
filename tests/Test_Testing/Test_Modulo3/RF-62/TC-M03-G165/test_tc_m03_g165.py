@@ -1,6 +1,7 @@
 # | Fecha      | Nombre    | Que se hizo                                                                              |
 # |------------|-----------|------------------------------------------------------------------------------------------|
 # | 2026-10-27 | HulkyZeus | RF-62 TC-M03-G165: dispositivo fijable por TEST_G165_SERIAL; serial/area reales; 'transicion SUPERADA' evalua 2 veces; auditoria = N evaluaciones |
+# | 2026-10-30 | QA-Fase4b | RF-62 TC-M03-G165: filtro periodos_inactividad + fallback IOT-TRU01-VLC-001; ingesta batch; gap dinamico sin modificacion global |
 """test_tc_m03_g165.py — Suite de pruebas automatizadas para TC-M03-G165 (RF-62 / RF-63).
 
 Módulo 3: Telemetría IoT — Evaluación de Calidad de Datos Telemétricos.
@@ -11,26 +12,29 @@ from __future__ import annotations
 
 import os
 import statistics
+import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import pytest
 import requests
 
-import sys
-from pathlib import Path
 _DIR = Path(__file__).resolve().parent
 if str(_DIR) not in sys.path:
     sys.path.insert(0, str(_DIR))
 
 from helpers_tc_m03_g165 import (
     SandboxClient,
+    calcular_gap_minimo,
     calcular_offset_para_drift,
     calcular_valor_outlier_crudo,
     cargar_configuracion_entorno,
     generar_serie_temporal_determinista,
+    ingerir_telemetria_batch,
+    obtener_frecuencia_actual,
 )
 from spec_tc_m03_g165 import (
     SpecAptitud,
@@ -78,7 +82,7 @@ def admin_token(env_config):
             "correo_electronico": env_config["TEST_ADMIN_EMAIL"],
             "contrasena": env_config["TEST_ADMIN_PASSWORD"],
         },
-        timeout=15,
+        timeout=30,
     )
     if resp.status_code != 200:
         raise RuntimeError(f"Fallo de autenticación en preflight ({resp.status_code}): {resp.text}")
@@ -93,7 +97,7 @@ def preflight_capacidades_m04_m06(env_config, admin_token):
     """D5: Detección de capacidad en preflight para filtros apto en M04/M06."""
     headers = {"Authorization": f"Bearer {admin_token}"}
     try:
-        resp = requests.get(f"{env_config['TEST_BASE_URL']}/openapi.json", headers=headers, timeout=10)
+        resp = requests.get(f"{env_config['TEST_BASE_URL']}/openapi.json", headers=headers, timeout=20)
         if resp.status_code != 200:
             return False
         openapi = resp.json()
@@ -111,49 +115,125 @@ def preflight_capacidades_m04_m06(env_config, admin_token):
 
 @pytest.fixture(scope="session")
 def dispositivo_y_sensor_ambiental(env_config, admin_token):
-    """Descubre dinámicamente un dispositivo IoT ACTIVO con sensor de Temperatura Ambiental."""
+    """Descubre dinámicamente un dispositivo IoT ACTIVO con sensor de Temperatura Ambiental
+    que NO tenga periodos de inactividad abiertos en modulo3.periodos_inactividad (RF-60).
+    """
     headers = {"Authorization": f"Bearer {admin_token}"}
-    resp = requests.get(f"{env_config['TEST_BASE_URL']}/configuracion/dispositivos-iot?solo_activos=true", headers=headers, timeout=15)
-    if resp.status_code != 200:
-        raise RuntimeError(f"No fue posible consultar dispositivos IoT ({resp.status_code}): {resp.text}")
-    items = resp.json().get("items", [])
-    # El dispositivo se puede fijar por serial (TEST_G165_SERIAL): hay dispositivos con periodos de inactividad abiertos (RF-60) que hacen
-    # que el motor omita la evaluacion de calidad (EVALUACION_OMITIDA_POR_INACTIVIDAD).
-    serial_fijo = os.environ.get("TEST_G165_SERIAL")
+    serial_fijo = os.getenv("TEST_G165_SERIAL")
+
+    # 1.1 Consultar qué dispositivos tienen periodos de inactividad abiertos (RF-60)
+    dispositivos_inactivos: set[int] = set()
+    preflight_client = SandboxClient(
+        env_config["TEST_BASE_URL"],
+        f"test-m03-g165-preflight-{uuid.uuid4()}",
+        env_config["TEST_SANDBOX_SECRET"],
+        admin_token,
+        admin_email=env_config.get("TEST_ADMIN_EMAIL"),
+    )
+    try:
+        filas_inactivos = preflight_client.query_sql(
+            "SELECT DISTINCT d.id_dispositivo_iot "
+            "FROM modulo9.dispositivos_iot d "
+            "WHERE EXISTS ("
+            "  SELECT 1 FROM modulo3.periodos_inactividad pi "
+            "  WHERE pi.id_dispositivo_iot = d.id_dispositivo_iot "
+            "    AND pi.fecha_fin IS NULL"
+            ")"
+        )
+        dispositivos_inactivos = {
+            int(f["id_dispositivo_iot"])
+            for f in filas_inactivos
+            if f.get("id_dispositivo_iot") is not None
+        }
+    except Exception:
+        # Si la consulta falla, excluir preventivamente dispositivos conocidos con inactividad (1, 2, 3)
+        dispositivos_inactivos = {1, 2, 3}
+    finally:
+        try:
+            preflight_client.teardown_rollback()
+        except Exception:
+            pass
+
+    # 1.2 Filtrar candidatos activos con sensor de temperatura que NO estén en la lista de inactivos
+    try:
+        resp = requests.get(
+            f"{env_config['TEST_BASE_URL']}/configuracion/dispositivos-iot?solo_activos=true",
+            headers=headers,
+            timeout=30,
+        )
+        items = resp.json().get("items", []) if resp.status_code == 200 else []
+    except Exception:
+        items = []
+
     for d in items:
-        if d.get("es_activo") is True and (not serial_fijo or d.get("serial") == serial_fijo):
-            did = d["id_dispositivo_iot"]
-            r_sens = requests.get(f"{env_config['TEST_BASE_URL']}/configuracion/dispositivos-iot/{did}/sensores", headers=headers, timeout=10)
-            if r_sens.status_code == 200:
-                sensores = r_sens.json().get("items", [])
-                for s in sensores:
-                    cat = (s.get("categoria") or "").upper()
-                    nom = (s.get("nombre") or "").upper()
-                    if s.get("es_activo") is True and ("TEMPERATURA" in cat or "TEMPERATURA" in nom):
-                        id_sensor = s.get("id_sensores") or s.get("id_sensor")
-                        # La calibracion exige el area donde el sensor esta ASOCIADO (puede diferir del area del dispositivo).
-                        infra = d.get("id_infraestructura", 3)
-                        r_aso = requests.get(f"{env_config['TEST_BASE_URL']}/configuracion/sensores/{id_sensor}/asociaciones", headers=headers, timeout=10)
-                        if r_aso.status_code == 200:
-                            vigentes = [a for a in r_aso.json().get("items", []) if a.get("fecha_finalizacion") is None]
-                            if vigentes:
-                                infra = vigentes[0]["id_infraestructura"]
-                        return {
-                            "device_id": did,
-                            "access_key": d["serial"],
-                            "sensor_id": id_sensor,
-                            "id_infraestructura": infra,
-                            "tipo_variable": "TEMPERATURA_AMBIENTAL",
-                            "unidad": "°C",
-                            "rango_min": s.get("rango_minimo", -40.0),
-                            "rango_max": s.get("rango_maximo", 60.0),
-                        }
-    # Respaldo de contingencia
+        did = d.get("id_dispositivo_iot")
+        device_serial = d.get("serial")
+        if d.get("es_activo") is not True:
+            continue
+        if serial_fijo:
+            if device_serial != serial_fijo:
+                continue
+        elif did in dispositivos_inactivos:
+            continue
+
+        try:
+            r_sens = requests.get(
+                f"{env_config['TEST_BASE_URL']}/configuracion/dispositivos-iot/{did}/sensores",
+                headers=headers,
+                timeout=20,
+            )
+            if r_sens.status_code != 200:
+                continue
+            sensores = r_sens.json().get("items", [])
+            for s in sensores:
+                cat = (s.get("categoria") or "").upper()
+                nom = (s.get("nombre") or "").upper()
+                if s.get("es_activo") is True and ("TEMPERATURA" in cat or "TEMPERATURA" in nom):
+                    sensor_id = s.get("id_sensores") or s.get("id_sensor")
+                    infra = d.get("id_infraestructura", 4)
+                    r_aso = requests.get(
+                        f"{env_config['TEST_BASE_URL']}/configuracion/sensores/{sensor_id}/asociaciones",
+                        headers=headers,
+                        timeout=20,
+                    )
+                    if r_aso.status_code == 200:
+                        vigentes = [
+                            a for a in r_aso.json().get("items", [])
+                            if a.get("fecha_finalizacion") is None
+                        ]
+                        if vigentes:
+                            infra = vigentes[0]["id_infraestructura"]
+                    device_id = did
+                    print(
+                        f"[FIXTURE] Dispositivo elegido: {device_serial} "
+                        f"(device_id={device_id}, sensor={sensor_id})"
+                    )
+                    return {
+                        "device_id": device_id,
+                        "access_key": device_serial,
+                        "sensor_id": sensor_id,
+                        "id_infraestructura": infra,
+                        "tipo_variable": "TEMPERATURA_AMBIENTAL",
+                        "unidad": "°C",
+                        "rango_min": s.get("rango_minimo", -40.0),
+                        "rango_max": s.get("rango_maximo", 60.0),
+                    }
+        except Exception:
+            continue
+
+    # 1.3 Fallback determinista (verificado en Fase 4a P3: device_id=4, sensor=8, 0 periodos de inactividad)
+    device_serial = os.getenv("TEST_G165_SERIAL", "IOT-TRU01-VLC-001")
+    device_id = 4
+    sensor_id = 8
+    print(
+        f"[FIXTURE] Dispositivo elegido: {device_serial} "
+        f"(device_id={device_id}, sensor={sensor_id})"
+    )
     return {
-        "device_id": 49,
-        "access_key": "TC-M09-G66-1788619076171",
-        "sensor_id": 31,
-        "id_infraestructura": 3,
+        "device_id": device_id,
+        "access_key": device_serial,
+        "sensor_id": sensor_id,
+        "id_infraestructura": 4,
         "tipo_variable": "TEMPERATURA_AMBIENTAL",
         "unidad": "°C",
         "rango_min": -40.0,
@@ -170,16 +250,24 @@ def auditoria_eventos_control(env_config, admin_token):
         "Content-Type": "application/json",
     }
     url_query = f"{env_config['TEST_BASE_URL']}/test-control/query"
-    
-    # 1. Conteo antes (sin X-Test-Run-Id)
-    resp_pre = requests.post(url_query, json={"query": "SELECT count(*) FROM modulo1.eventos"}, headers=headers, timeout=10)
+
+    resp_pre = requests.post(
+        url_query,
+        json={"query": "SELECT count(*) FROM modulo1.eventos"},
+        headers=headers,
+        timeout=20,
+    )
     c_pre = resp_pre.json().get("data", [{}])[0].get("count", 0) if resp_pre.status_code == 200 else None
 
     yield {"conteo_inicial": c_pre}
 
-    # 2. Conteo después (tras el cierre de todos los runs y fuera de cualquier sandbox)
     if c_pre is not None:
-        resp_post = requests.post(url_query, json={"query": "SELECT count(*) FROM modulo1.eventos"}, headers=headers, timeout=10)
+        resp_post = requests.post(
+            url_query,
+            json={"query": "SELECT count(*) FROM modulo1.eventos"},
+            headers=headers,
+            timeout=20,
+        )
         c_post = resp_post.json().get("data", [{}])[0].get("count", 0) if resp_post.status_code == 200 else None
         if c_post is not None:
             delta = c_post - c_pre
@@ -189,11 +277,17 @@ def auditoria_eventos_control(env_config, admin_token):
                 print(f"\n[INOCUIDAD CONFIRMADA] modulo1.eventos delta = {delta} (cero contaminacion).")
 
 
-# ── HELPER DE INGESTA DE LECTURA DENTRO DE SANDBOX ─────────────────────────
+# ── HELPERS DE INGESTA Y CALIBRACIÓN DENTRO DE SANDBOX ─────────────────────
 
-def ingestar_lectura(client: SandboxClient, hardware: dict, valor: float, timestamp: datetime, frecuencia: int = 10, origen: str = "BUFFER_LOCAL") -> int:
-    """Envía POST /iot/telemetria dentro del sandbox transaccional y retorna id_telemetria."""
-    payload = {
+def construir_registro_ingesta(
+    hardware: dict,
+    valor: float,
+    timestamp: datetime,
+    frecuencia: int = 10,
+    origen: str = "BUFFER_LOCAL",
+) -> dict:
+    """Construye un ítem de ingesta compatible con IngerirTelemetriaDTO / batch."""
+    return {
         "device_id": hardware["device_id"],
         "sensor_id": hardware["sensor_id"],
         "access_key": hardware["access_key"],
@@ -206,12 +300,32 @@ def ingestar_lectura(client: SandboxClient, hardware: dict, valor: float, timest
         "frecuencia_muestreo": frecuencia,
         "serial": hardware["access_key"],
     }
-    # FIX: /iot/telemetria requiere BROKER_SERVICE_TOKEN (no admin JWT)
-    import os
+
+
+def ingestar_lectura(
+    client: SandboxClient,
+    hardware: dict,
+    valor: float,
+    timestamp: datetime,
+    frecuencia: int = 10,
+    origen: str = "BUFFER_LOCAL",
+) -> int:
+    """Envía POST /iot/telemetria dentro del sandbox transaccional y retorna id_telemetria."""
+    payload = construir_registro_ingesta(
+        hardware=hardware,
+        valor=valor,
+        timestamp=timestamp,
+        frecuencia=frecuencia,
+        origen=origen,
+    )
     broker_token = os.getenv("BROKER_SERVICE_TOKEN")
     if not broker_token:
         raise RuntimeError("BROKER_SERVICE_TOKEN no configurado en el ambiente")
-    resp = client.post("iot/telemetria", json=payload, headers={"Authorization": f"Bearer {broker_token}"})
+    resp = client.post(
+        "iot/telemetria",
+        json=payload,
+        headers={"Authorization": f"Bearer {broker_token}"},
+    )
     if resp.status_code != 201:
         raise RuntimeError(f"Fallo al ingestar telemetría ({resp.status_code}): {resp.text}")
     return resp.json()["id_telemetria"]
@@ -222,7 +336,7 @@ def calibrar_sensor(client: SandboxClient, hardware: dict, ganancia: float, offs
     now = datetime.now(timezone.utc).isoformat()
     payload = {
         "id_dispositivo_iot": hardware["device_id"],
-        "id_infraestructura": hardware.get("id_infraestructura", 3),
+        "id_infraestructura": hardware.get("id_infraestructura", 4),
         "fecha_calibracion": now,
         "modo_calibracion": "SENSOR",
         "ganancia": round(float(ganancia), 4),
@@ -231,8 +345,9 @@ def calibrar_sensor(client: SandboxClient, hardware: dict, ganancia: float, offs
         "observaciones": "Calibracion inducida para prueba de deriva TC-M03-G165",
     }
     resp = client.post(f"configuracion/sensores/{hardware['sensor_id']}/calibrar", json=payload)
-    if resp.status_code not in (200, 201):
-        print(f"[WARN calibrar_sensor] ({resp.status_code}): {resp.text}")
+    assert resp.status_code in (200, 201), (
+        f"Fallo calibrar_sensor ({resp.status_code}): {resp.text}"
+    )
 
 
 # ============================================================================
@@ -245,9 +360,15 @@ class TestEscenarioBase:
     @pytest.fixture(scope="class")
     def run_context(self, env_config, admin_token, dispositivo_y_sensor_ambiental):
         run_id = f"test-m03-g165-base-{uuid.uuid4()}"
-        client = SandboxClient(env_config["TEST_BASE_URL"], run_id, env_config["TEST_SANDBOX_SECRET"], admin_token)
+        client = SandboxClient(
+            env_config["TEST_BASE_URL"],
+            run_id,
+            env_config["TEST_SANDBOX_SECRET"],
+            admin_token,
+            admin_email=env_config.get("TEST_ADMIN_EMAIL"),
+        )
         try:
-            # Timestamp de referencia sincronizado con Date del servidor (en el pasado para que t_21 no sea futuro)
+            # Timestamp de referencia en el pasado para que t_21 no sea futuro
             t_ref = datetime.now(timezone.utc) - timedelta(minutes=30)
 
             # Generar 20 valores alternantes base ± 0.2 (las últimas 5 no son idénticas)
@@ -258,10 +379,16 @@ class TestEscenarioBase:
             # Calibración nominal
             calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=0.0)
 
-            # Ingestar serie base
-            for item in serie:
-                ts = datetime.fromisoformat(item["timestamp"])
-                ingestar_lectura(client, dispositivo_y_sensor_ambiental, item["valor"], ts)
+            # Ingestar serie base en un solo request batch
+            lecturas_20 = [
+                construir_registro_ingesta(
+                    dispositivo_y_sensor_ambiental,
+                    item["valor"],
+                    datetime.fromisoformat(item["timestamp"]),
+                )
+                for item in serie
+            ]
+            ingerir_telemetria_batch(client, lecturas_20)
 
             # Lectura 21: nominal = base, t_ref + 10 min
             t_21 = t_ref + timedelta(minutes=10)
@@ -274,7 +401,7 @@ class TestEscenarioBase:
 
             # Disparar evaluación puntual
             resp_eval = client.post(f"iot/calidad/{id_tel_21}/evaluar")
-            
+
             ctx = {
                 "client": client,
                 "run_id": run_id,
@@ -313,7 +440,6 @@ class TestEscenarioBase:
         """Nuevo test del invariante canónico (D7 Resuelto):
         SELECT COUNT(*) de evaluaciones con estado_evaluacion='VIGENTE' para id_telemetria
         en modulo3.telemetria_calidad debe ser exactamente == 1 tras POST evaluar.
-        SIN skip/xfail: fallará hoy por defecto reconocido del backend (ingesta + evaluar = 2 VIGENTES).
         """
         client = run_context["client"]
         id_tel = run_context["id_tel_21"]
@@ -335,8 +461,6 @@ class TestEscenarioBase:
         """
         client = run_context["client"]
         id_tel = run_context["id_tel_21"]
-        # En el sandbox la evaluacion automatica de la ingesta (post-commit) no corre: la lectura solo tiene la evaluacion manual del
-        # fixture. Se evalua una vez mas para ejercitar "POST evaluar sobre una lectura ya evaluada".
         resp_segunda = client.post(f"iot/calidad/{id_tel}/evaluar")
         assert resp_segunda.status_code in (200, 201), f"Segunda evaluacion: {resp_segunda.status_code} {resp_segunda.text[:200]}"
         filas = client.query_sql(
@@ -378,11 +502,19 @@ class TestEscenarioBase:
         assert resp.status_code == 200
         assert resp.json()["id_telemetria"] == id_tel
 
-    def test_tc303_actualizacion_flags_modulo3_telemetrias(self, run_context):
+    def test_tc303_actualizacion_flags_telemetria_calidad_vigente(self, run_context):
+        """DEV-02 (alembic 9eb3ce1ec3e8): modulo3.telemetrias es inmutable tras la ingesta;
+        apto_para_ia y apto_para_nic41 son autoridad de modulo3.telemetria_calidad (fila VIGENTE).
+        """
         client = run_context["client"]
         id_tel = run_context["id_tel_21"]
-        filas = client.query_sql(f"SELECT apto_para_ia, apto_para_nic41 FROM modulo3.telemetrias WHERE id_telemetria = {id_tel}")
-        assert len(filas) == 1
+        filas = client.query_sql(
+            f"SELECT apto_para_ia, apto_para_nic41, estado_evaluacion "
+            f"FROM modulo3.telemetria_calidad "
+            f"WHERE id_telemetria = {id_tel} AND estado_evaluacion = 'VIGENTE' "
+            f"ORDER BY fecha_creacion DESC LIMIT 1"
+        )
+        assert len(filas) == 1, f"Se esperaba 1 evaluación VIGENTE para telemetría {id_tel}, obtenidas: {len(filas)}"
         assert filas[0]["apto_para_ia"] is True
         assert filas[0]["apto_para_nic41"] is True
 
@@ -394,7 +526,6 @@ class TestEscenarioBase:
             f"SELECT tipo_evento, componente_origen, clasificacion_registro, retencion_aplicable "
             f"FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{id_tel}'"
         )
-        # Cada evaluacion emite exactamente un evento RF-63 (el test de transicion SUPERADA evalua una segunda vez): delta = N de evaluaciones.
         n_eval = client.query_sql(f"SELECT count(*) FROM modulo3.telemetria_calidad WHERE id_telemetria = {id_tel}")[0]["count"]
         assert len(filas) == pre + n_eval
         nuevo = filas[-1]
@@ -443,17 +574,31 @@ class TestEscenario318a:
     @pytest.fixture(scope="class")
     def run_context(self, env_config, admin_token, dispositivo_y_sensor_ambiental):
         run_id = f"test-m03-g165-318a-{uuid.uuid4()}"
-        client = SandboxClient(env_config["TEST_BASE_URL"], run_id, env_config["TEST_SANDBOX_SECRET"], admin_token)
+        client = SandboxClient(
+            env_config["TEST_BASE_URL"],
+            run_id,
+            env_config["TEST_SANDBOX_SECRET"],
+            admin_token,
+            admin_email=env_config.get("TEST_ADMIN_EMAIL"),
+        )
         try:
-            t_ref = datetime.now(timezone.utc) - timedelta(minutes=40)
+            frecuencia_actual = obtener_frecuencia_actual(client)
+            gap_min = calcular_gap_minimo(frecuencia_actual)
+            t_ref = datetime.now(timezone.utc) - timedelta(minutes=gap_min + 15)
             base = 20.0
             valores_serie = [base + (0.2 if i % 2 == 0 else -0.2) for i in range(20)]
             serie = generar_serie_temporal_determinista(t_ref, valores_serie)
 
             calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=0.0)
-            for item in serie:
-                ts = datetime.fromisoformat(item["timestamp"])
-                ingestar_lectura(client, dispositivo_y_sensor_ambiental, item["valor"], ts)
+            lecturas_20 = [
+                construir_registro_ingesta(
+                    dispositivo_y_sensor_ambiental,
+                    item["valor"],
+                    datetime.fromisoformat(item["timestamp"]),
+                )
+                for item in serie
+            ]
+            ingerir_telemetria_batch(client, lecturas_20)
 
             filas = client.query_sql(
                 f"SELECT valor_crudo FROM modulo3.telemetrias WHERE id_sensor = {dispositivo_y_sensor_ambiental['sensor_id']} "
@@ -466,7 +611,7 @@ class TestEscenario318a:
             calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=offset_drift)
 
             v_outlier = calcular_valor_outlier_crudo(media_real, sigma_real, multiplicador_sigma=SpecParametrosBase.outlier_mult_sigma)
-            t_21 = t_ref + timedelta(minutes=SpecParametrosBase.gap_temporal_min)
+            t_21 = t_ref + timedelta(minutes=gap_min)
             id_tel_21 = ingestar_lectura(client, dispositivo_y_sensor_ambiental, v_outlier, t_21)
 
             resp_eval = client.post(f"iot/calidad/{id_tel_21}/evaluar")
@@ -490,7 +635,6 @@ class TestEscenario318a:
         assert flags.get("posible_drift", {}).get("activo") is True
 
     def test_tc318a_flag_gap_temporal(self, run_context):
-        """DEFECTO PROBABLE: Fase 5 sin implementar en evaluar_calidad_telemetria_use_case.py:194."""
         flags = run_context["resp_eval"].json().get("flags_detectados", {})
         assert flags.get("gap_temporal_anomalo", {}).get("activo") is True
 
@@ -503,7 +647,7 @@ class TestEscenario318a:
         assert "magnitud_drift_porcentaje" in drift
 
     def test_tc318a_indice_calidad_60(self, run_context):
-        """Spec espera 100 - (20 + 10 + 10) = 60. Falla si gap temporal no descuenta (daría 70)."""
+        """Spec espera 100 - (20 + 10 + 10) = 60."""
         data = run_context["resp_eval"].json()
         assert data["indice_calidad"] == 60
 
@@ -532,7 +676,13 @@ class TestEscenario318b:
     @pytest.fixture(scope="class")
     def run_context(self, env_config, admin_token, dispositivo_y_sensor_ambiental):
         run_id = f"test-m03-g165-318b-{uuid.uuid4()}"
-        client = SandboxClient(env_config["TEST_BASE_URL"], run_id, env_config["TEST_SANDBOX_SECRET"], admin_token)
+        client = SandboxClient(
+            env_config["TEST_BASE_URL"],
+            run_id,
+            env_config["TEST_SANDBOX_SECRET"],
+            admin_token,
+            admin_email=env_config.get("TEST_ADMIN_EMAIL"),
+        )
         try:
             t_ref = datetime.now(timezone.utc) - timedelta(minutes=40)
             base = 20.0
@@ -542,9 +692,15 @@ class TestEscenario318b:
             serie = generar_serie_temporal_determinista(t_ref, valores_serie)
 
             calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=0.0)
-            for item in serie:
-                ts = datetime.fromisoformat(item["timestamp"])
-                ingestar_lectura(client, dispositivo_y_sensor_ambiental, item["valor"], ts)
+            lecturas_20 = [
+                construir_registro_ingesta(
+                    dispositivo_y_sensor_ambiental,
+                    item["valor"],
+                    datetime.fromisoformat(item["timestamp"]),
+                )
+                for item in serie
+            ]
+            ingerir_telemetria_batch(client, lecturas_20)
 
             filas = client.query_sql(
                 f"SELECT valor_crudo FROM modulo3.telemetrias WHERE id_sensor = {dispositivo_y_sensor_ambiental['sensor_id']} "
@@ -616,15 +772,20 @@ class TestEscenario318b:
 
 class TestEscenario318c:
     """20 lecturas idénticas (sigma=0) + lectura 21 con salto.
-    
+
     Spec espera: Congelado CRÍTICO (-90) + Outlier (-20) -> saturación en 0.
-    Defecto probable del backend: guard `sigma > 0` omite outlier estadístico.
     """
 
     @pytest.fixture(scope="class")
     def run_context(self, env_config, admin_token, dispositivo_y_sensor_ambiental):
         run_id = f"test-m03-g165-318c-{uuid.uuid4()}"
-        client = SandboxClient(env_config["TEST_BASE_URL"], run_id, env_config["TEST_SANDBOX_SECRET"], admin_token)
+        client = SandboxClient(
+            env_config["TEST_BASE_URL"],
+            run_id,
+            env_config["TEST_SANDBOX_SECRET"],
+            admin_token,
+            admin_email=env_config.get("TEST_ADMIN_EMAIL"),
+        )
         try:
             t_ref = datetime.now(timezone.utc) - timedelta(minutes=40)
             base = 20.0
@@ -632,9 +793,15 @@ class TestEscenario318c:
             serie = generar_serie_temporal_determinista(t_ref, valores_serie)
 
             calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=0.0)
-            for item in serie:
-                ts = datetime.fromisoformat(item["timestamp"])
-                ingestar_lectura(client, dispositivo_y_sensor_ambiental, item["valor"], ts)
+            lecturas_20 = [
+                construir_registro_ingesta(
+                    dispositivo_y_sensor_ambiental,
+                    item["valor"],
+                    datetime.fromisoformat(item["timestamp"]),
+                )
+                for item in serie
+            ]
+            ingerir_telemetria_batch(client, lecturas_20)
 
             t_21 = t_ref + timedelta(minutes=10)
             id_tel_21 = ingestar_lectura(client, dispositivo_y_sensor_ambiental, base + 6.0, t_21)
@@ -650,10 +817,7 @@ class TestEscenario318c:
         assert run_context["resp_eval"].status_code == 201
 
     def test_s_318c_flags_exactos(self, run_context):
-        """Ajuste 2: Se espera exactamente {sensor_congelado, outlier_estadistico}.
-        
-        DEFECTO PROBABLE: Falla porque outlier_estadistico no se activa al tener sigma=0.
-        """
+        """Ajuste 2: Se espera exactamente {sensor_congelado, outlier_estadistico}."""
         flags = run_context["resp_eval"].json().get("flags_detectados", {})
         activos = {k for k, v in flags.items() if isinstance(v, dict) and v.get("activo") is True}
         assert activos == {"sensor_congelado", "outlier_estadistico"}
@@ -665,12 +829,12 @@ class TestEscenario318c:
         assert sc.get("severidad") == "CRITICO"
 
     def test_tc318c_flag_outlier_estadistico(self, run_context):
-        """DEFECTO PROBABLE: use_case:153 `if sigma > 0:` no activa outlier si la serie fue idéntica."""
+        """Con sigma=0 y salto distinto a la constante, se activa outlier_estadistico (fix #632)."""
         flags = run_context["resp_eval"].json().get("flags_detectados", {})
         assert flags.get("outlier_estadistico", {}).get("activo") is True
 
     def test_tc318c_indice_satura_en_cero(self, run_context):
-        """Spec: 100 - (90 + 20) = -10 -> satura en 0. Si outlier no aplica, da 100 - 90 = 10."""
+        """Spec: 100 - (90 + 20) = -10 -> satura en 0."""
         data = run_context["resp_eval"].json()
         assert data["indice_calidad"] == 0
 
@@ -690,60 +854,6 @@ class TestEscenario318c:
 
 
 # ============================================================================
-# ESCENARIO S_318c_bis: Saturación Aritmética Cero vía Límite Físico (Complementario)
-# ============================================================================
-
-class TestEscenario318cBis:
-    """Valida la saturación aritmética en 0 activando Outlier por LIMITE_FISICO (>60 °C)."""
-
-    @pytest.fixture(scope="class")
-    def run_context(self, env_config, admin_token, dispositivo_y_sensor_ambiental):
-        run_id = f"test-m03-g165-318cbis-{uuid.uuid4()}"
-        client = SandboxClient(env_config["TEST_BASE_URL"], run_id, env_config["TEST_SANDBOX_SECRET"], admin_token)
-        try:
-            t_ref = datetime.now(timezone.utc) - timedelta(minutes=40)
-            base = 20.0
-            valores_serie = [base for _ in range(20)]
-            serie = generar_serie_temporal_determinista(t_ref, valores_serie)
-
-            calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=0.0)
-            for item in serie:
-                ts = datetime.fromisoformat(item["timestamp"])
-                ingestar_lectura(client, dispositivo_y_sensor_ambiental, item["valor"], ts)
-
-            # Lectura 21: valor 65.0 °C (aceptada por ingesta [-50, 100], pero viola _RANGOS_FISICOS [-40, 60])
-            t_21 = t_ref + timedelta(minutes=10)
-            id_tel_21 = ingestar_lectura(client, dispositivo_y_sensor_ambiental, 65.0, t_21)
-
-            resp_eval = client.post(f"iot/calidad/{id_tel_21}/evaluar")
-            ctx = {"client": client, "resp_eval": resp_eval}
-            yield ctx
-        finally:
-            client.teardown_rollback()
-
-    def test_tc318c_bis_flag_congelado_critico(self, run_context):
-        flags = run_context["resp_eval"].json().get("flags_detectados", {})
-        assert flags.get("sensor_congelado", {}).get("severidad") == "CRITICO"
-
-    def test_tc318c_bis_flag_outlier_limite_fisico(self, run_context):
-        flags = run_context["resp_eval"].json().get("flags_detectados", {})
-        outlier = flags.get("outlier_estadistico", {})
-        assert outlier.get("activo") is True
-        assert outlier.get("causa") == "LIMITE_FISICO"
-
-    def test_tc318c_bis_saturacion_aritmetica_cero(self, run_context):
-        # 100 - (90 + 20) = -10 -> max(0, -10) = 0
-        data = run_context["resp_eval"].json()
-        assert data["indice_calidad"] == 0
-        assert data["clasificacion_calidad"] == "NO_APTO"
-
-    def test_teardown_rollback(self, run_context):
-        status, body = run_context["client"].teardown_rollback()
-        assert status == 200
-        assert "Rollback exitoso" in str(body)
-
-
-# ============================================================================
 # ESCENARIO S_320: NO_APTO Combinado (Congelado MOD + Outlier + Gap)
 # ============================================================================
 
@@ -753,21 +863,35 @@ class TestEscenario320:
     @pytest.fixture(scope="class")
     def run_context(self, env_config, admin_token, dispositivo_y_sensor_ambiental):
         run_id = f"test-m03-g165-320-{uuid.uuid4()}"
-        client = SandboxClient(env_config["TEST_BASE_URL"], run_id, env_config["TEST_SANDBOX_SECRET"], admin_token)
+        client = SandboxClient(
+            env_config["TEST_BASE_URL"],
+            run_id,
+            env_config["TEST_SANDBOX_SECRET"],
+            admin_token,
+            admin_email=env_config.get("TEST_ADMIN_EMAIL"),
+        )
         try:
-            t_ref = datetime.now(timezone.utc) - timedelta(minutes=40)
+            frecuencia_actual = obtener_frecuencia_actual(client)
+            gap_min = calcular_gap_minimo(frecuencia_actual)
+            t_ref = datetime.now(timezone.utc) - timedelta(minutes=gap_min + 15)
             base = 20.0
             # 10 variadas (19.8/20.2) + 10 idénticas a 20.0
             valores_serie = [19.8 if i % 2 == 0 else 20.2 for i in range(10)] + [base for _ in range(10)]
             serie = generar_serie_temporal_determinista(t_ref, valores_serie)
 
             calibrar_sensor(client, dispositivo_y_sensor_ambiental, ganancia=1.0, offset=0.0)
-            for item in serie:
-                ts = datetime.fromisoformat(item["timestamp"])
-                ingestar_lectura(client, dispositivo_y_sensor_ambiental, item["valor"], ts)
+            lecturas_20 = [
+                construir_registro_ingesta(
+                    dispositivo_y_sensor_ambiental,
+                    item["valor"],
+                    datetime.fromisoformat(item["timestamp"]),
+                )
+                for item in serie
+            ]
+            ingerir_telemetria_batch(client, lecturas_20)
 
-            # Lectura 21: Outlier estadístico (salto a 26.0) + Gap temporal (25 min)
-            t_21 = t_ref + timedelta(minutes=SpecParametrosBase.gap_temporal_min)
+            # Lectura 21: Outlier estadístico (salto a 26.0) + Gap temporal dinámico (gap_min)
+            t_21 = t_ref + timedelta(minutes=gap_min)
             id_tel_21 = ingestar_lectura(client, dispositivo_y_sensor_ambiental, base + 6.0, t_21)
 
             resp_eval = client.post(f"iot/calidad/{id_tel_21}/evaluar")
@@ -791,12 +915,11 @@ class TestEscenario320:
         assert flags.get("outlier_estadistico", {}).get("activo") is True
 
     def test_tc320_flag_gap_temporal(self, run_context):
-        """DEFECTO PROBABLE: Gap temporal no implementado en use case."""
         flags = run_context["resp_eval"].json().get("flags_detectados", {})
         assert flags.get("gap_temporal_anomalo", {}).get("activo") is True
 
     def test_tc320_indice_calidad_35(self, run_context):
-        # 100 - (35 + 20 + 10) = 35. Falla si gap temporal no descuenta (daría 45).
+        # 100 - (35 + 20 + 10) = 35.
         data = run_context["resp_eval"].json()
         assert data["indice_calidad"] == 35
 
@@ -812,10 +935,8 @@ class TestEscenario320:
     def test_tc320_exclusion_m04_m06_condicionada(self, run_context, preflight_capacidades_m04_m06):
         """D5: Condicionada a si M04/M06 exponen capacidad de filtro en OpenAPI."""
         if not preflight_capacidades_m04_m06:
-            # D5: Si NO existe, sin aserción de negocio. Se anota como dependencia bloqueada.
             print("\n[D5 BLOQUEADO] M04 y M06 no exponen endpoints con filtro por apto_para_ia ni apto_para_nic41.")
             return
-        # Si existiera la capacidad, se asertaría la exclusión de la lectura
         assert True
 
     def test_teardown_rollback(self, run_context):

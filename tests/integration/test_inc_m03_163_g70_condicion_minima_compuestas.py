@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: condición mínima de las compuestas por HTTP (G70, G71, G72) |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: la lectura de prueba usa la variable del evento |
+# | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: sin la compuesta, la lectura fuera de NORMAL es REGLA_SIMPLE (no 422) |
 """INC-M03-163-G70 (RF-57 Fase 5, TC-M03-G70/G71/G72): sin condición mínima no hay alerta compuesta.
 
 Router real, adaptadores de M09 y PostgreSQL real. Reutiliza las fixtures de G68.
@@ -42,11 +43,22 @@ def _rechazo(db, respuesta, hw, codigo):
         {"t": codigo, "s": str(hw["sensor"])}).scalar_one() == 1
 
 
+def _simple(db, respuesta, hw, severidad, compuesta):
+    """G69 (#881): sin la compuesta, la lectura fuera de NORMAL genera su alerta simple (E14).
+    No se etiqueta como la compuesta (BUG-G70-01 sigue corregido)."""
+    assert respuesta.status_code == 201, respuesta.text
+    cuerpo = respuesta.json()
+    assert (cuerpo["tipo_alerta"], cuerpo["severidad"]) == ("REGLA_SIMPLE", severidad)
+    filas = db.execute(text("SELECT tipo_alerta::text, metadato_evento->'regla_simple'->>'compuesta_no_activada' "
+                            "FROM modulo3.alertas WHERE id_sensor=:s"), {"s": hw["sensor"]}).all()
+    assert [tuple(f) for f in filas] == [("REGLA_SIMPLE", compuesta)]
+
+
 # ---------------------------------------------------------------- TC-M03-G70: RIESGO_HIDRICO
 
 def test_oxigeno_aislado_no_activa_riesgo_hidrico(db_session, http, nuevo_sensor):
     hw = nuevo_sensor()
-    _rechazo(db_session, _post(http, hw, "OXIGENO_DISUELTO", "4.0", "LEVE"), hw, "REGLA_COMPUESTA_NO_ACTIVADA")
+    _simple(db_session, _post(http, hw, "OXIGENO_DISUELTO", "4.0", "LEVE"), hw, "LEVE", "RIESGO_HIDRICO")
 
 
 @pytest.mark.parametrize("correlacion", [{"PH_AGUA": 6.4}, {"TDS": 1200}])
@@ -87,7 +99,7 @@ def test_temperatura_con_humedad_declara_bien_la_compuesta(db_session, http, nue
 @pytest.mark.parametrize("variable,valor", [("TEMPERATURA_AMBIENTAL", "31.0"), ("HUMEDAD_RELATIVA", "75")])
 def test_variable_de_estres_termico_sin_la_otra_no_activa_la_compuesta(db_session, http, nuevo_sensor, variable, valor):
     hw = nuevo_sensor()
-    _rechazo(db_session, _post(http, hw, variable, valor, "LEVE"), hw, "REGLA_COMPUESTA_NO_ACTIVADA")
+    _simple(db_session, _post(http, hw, variable, valor, "LEVE"), hw, "LEVE", "ESTRES_TERMICO")
 
 
 def test_compuesta_declarada_distinta_de_la_variable_se_valida(db_session, http, nuevo_sensor):
@@ -112,4 +124,4 @@ def test_thi_bajo_72_no_activa_estres_termico_aunque_la_temperatura_este_en_leve
                                                                                  correlacion):
     hw = nuevo_sensor()
     r = _post(http, hw, "TEMPERATURA_AMBIENTAL", "31.0", "LEVE", correlacion=correlacion)
-    _rechazo(db_session, r, hw, "REGLA_COMPUESTA_NO_ACTIVADA")
+    _simple(db_session, r, hw, "LEVE", "ESTRES_TERMICO")

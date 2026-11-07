@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: PostgreSQL temporal, alertas y permisos |
 # | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: conservar calidad y evidencia del drift con severidad pendiente. |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: R7/R9, serie sin calibración evaluada y versión de límites físicos |
 """PostgreSQL aislado, triggers activos y JWT/RBAC reales; sin broker MQTT."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -140,11 +141,16 @@ def test_serie_mixta_excluye_lecturas_inactivas_sin_falso_congelamiento(db_sessi
     assert alertas(db_session,equipo)==[]
 
 
-def test_limites_actuales_no_reciben_version_artificial(db_session,equipo):
+def test_limites_aplicados_llevan_su_huella_como_version(db_session,equipo):
+    """G169 (#885, R7/R9): M09 no versiona los límites físicos; la versión es la huella
+    de variable + mínimo + máximo aplicados, estable mientras M09 no los cambie."""
     ids,ts=serie(db_session,equipo)
     ev=evaluar(caso(db_session),equipo,ids,ts)
-    assert ev.version_limites_fisicos_aplicada is None
-    assert ev.parametros_aplicados['limites_fisicos']['estado']=='PENDIENTE_VERSIONADO_M09'
+    assert ev.version_limites_fisicos_aplicada.startswith('va9:')
+    assert len(ev.version_limites_fisicos_aplicada)<=50
+    assert ev.parametros_aplicados['limites_fisicos_aplicados']['fuente']=='modulo9.variables_ambientales'
+    otra=evaluar(caso(db_session),equipo,ids,ts)
+    assert otra.version_limites_fisicos_aplicada==ev.version_limites_fisicos_aplicada
 
 
 def test_recupera_n_validas_tras_excluir_periodos(db_session,equipo):

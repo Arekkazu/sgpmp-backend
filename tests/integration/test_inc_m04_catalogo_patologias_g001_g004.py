@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-25 | Arekkazu | INC-M04-138/139/140/142 RF-64: catálogo de patologías contra Postgres |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: el fake de variables responde también las admitidas por patología |
 """RF-64 contra PostgreSQL real (INC-M04-138-G001, 139-G001, 140-G003, 142-G004).
 
 - Cada alta, edición o inactivación sube la versión del catálogo completo.
@@ -44,6 +45,7 @@ DESCRIPCION = "Temperatura elevada con frecuencia respiratoria alta, signo compa
 class _Todo:
     def especie_activa(self, especie): return True
     def obtener_ids_activos(self, ids): return list(ids)
+    def obtener_ids_para_patologia(self, ids): return list(ids)  # M4-02
     def tiene_modelos_activos(self, id_patologia): return False
 
 

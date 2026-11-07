@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: persistir e hidratar el perfil en creación y edición RF-65. |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -29,6 +30,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             ventana_temporal_min=orm.ventana_temporal_min,
             id_version_modelo_activa=orm.id_version_modelo_activa,
             modo_ejecucion=orm.modo_ejecucion,
+            perfil_calculo_contagio=orm.perfil_calculo_contagio,
             config_version=orm.config_version,
             w_factor_sanitario=orm.w_factor_sanitario,
             w_factor_ambiental=orm.w_factor_ambiental,
@@ -73,6 +75,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
                 ventana_temporal_min=entidad.ventana_temporal_min,
                 id_version_modelo_activa=entidad.id_version_modelo_activa,
                 modo_ejecucion=entidad.modo_ejecucion,
+                perfil_calculo_contagio=entidad.perfil_calculo_contagio,
                 config_version=entidad.config_version,
                 w_factor_sanitario=entidad.w_factor_sanitario,
                 w_factor_ambiental=entidad.w_factor_ambiental,
@@ -102,6 +105,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             orm.ventana_temporal_min = entidad.ventana_temporal_min
             orm.id_version_modelo_activa = entidad.id_version_modelo_activa
             orm.modo_ejecucion = entidad.modo_ejecucion
+            orm.perfil_calculo_contagio = entidad.perfil_calculo_contagio
             orm.config_version = entidad.config_version
             orm.w_factor_sanitario = entidad.w_factor_sanitario
             orm.w_factor_ambiental = entidad.w_factor_ambiental

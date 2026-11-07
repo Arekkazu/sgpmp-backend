@@ -1,5 +1,5 @@
 {
-  "info": { "name": "TC-M03-G96 — catálogo de conectividad", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "info": { "name": "TC-M03-G96 — catálogo RF-60", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
   "item": [{
     "name": "API-187-01",
     "request": {
@@ -9,27 +9,26 @@
         { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
         { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
       ],
-      "url": "{{base_url}}/iot/monitoreo/dashboard/{{unidad}}?pagina={{pagina}}&por_pagina={{por_pagina}}"
+      "url": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{unidad}}&pagina={{pagina}}&por_pagina={{por_pagina}}"
     },
     "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
-      "if (pm.environment.get('autorizado_run') !== 'SI' || !pm.environment.get('run_id') || !(/^https:\\/\\/www\\.api\\.inmero\\.co\\/api-sgpmp-test$/.test(pm.environment.get('base_url') || '') || (pm.environment.get('ensayo_loopback') === 'SI' && /^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(pm.environment.get('base_url') || '')))) { pm.execution.skipRequest(); throw Error('BLOQUEO_G96'); }"
+      "if (pm.environment.get('autorizado_run') !== 'SI' || !pm.environment.get('run_id') || !(pm.environment.get('ensayo_loopback') === 'SI' ? /^http:\\/\\/127\\.0\\.0\\.1:[0-9]+$/.test(pm.environment.get('base_url') || '') : /^https:\\/\\/www\\.api\\.inmero\\.co\\/api-sgpmp-test$/.test(pm.environment.get('base_url') || ''))) { pm.execution.skipRequest(); throw Error('BLOQUEO_G96'); }"
     ] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": [
       "const ids = JSON.parse(pm.environment.get('unidades'));",
       "const indice = Number(pm.environment.get('indice')); const pagina = Number(pm.environment.get('pagina'));",
       "const eco = pm.response.headers.get('X-Test-Run-Id') === pm.environment.get('run_id');",
       "let cuerpo = null; try { cuerpo = pm.response.json(); } catch {}",
       "let vistos = JSON.parse(pm.environment.get('vistos') || '[]');",
+      "const permitidos = ['ACTIVO','SIN_SEÑAL','BUFFER_ACTIVO','INACTIVO','EN_MANTENIMIENTO'];",
       "if (pm.response.code === 200 && eco && Array.isArray(cuerpo?.sensores)) {",
-      "  pm.test('[TC-M03-187][ASSERT][API-187-01] enum RF-58 por sensor', function () { cuerpo.sensores.forEach(s => { const v = typeof s.estado_conectividad === 'string' ? s.estado_conectividad.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase() : null; pm.expect(['ONLINE','OFFLINE','SIN_SENAL']).to.include(v); }); });",
+      "  pm.test('[TC-M03-187][ASSERT][API-187-01] catálogo RF-60 por sensor', function () { cuerpo.sensores.forEach(s => { if (s.estado_conectividad !== 'DESCONOCIDO') pm.expect(permitidos).to.include(s.estado_conectividad); }); });",
       "  for (const s of cuerpo.sensores) vistos.push(Object.prototype.hasOwnProperty.call(s,'estado_conectividad') ? s.estado_conectividad : '[AUSENTE]');",
       "  pm.environment.set('vistos', JSON.stringify(vistos));",
       "}",
-      "const fuera = vistos.some(v => !['ONLINE','OFFLINE','SIN_SENAL'].includes(typeof v === 'string' ? v.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase() : null));",
       "const limite = Number(pm.environment.get('limite_paginas')); const usadas = Number(pm.environment.get('paginas_usadas')) + 1; pm.environment.set('paginas_usadas', String(usadas));",
-      "if (fuera || pm.response.code >= 500 || (pm.response.code === 200 && (!eco || !Array.isArray(cuerpo?.sensores))) || usadas >= limite) { pm.execution.setNextRequest(null); }",
-      "else if (pm.response.code === 200 && pagina * Number(pm.environment.get('por_pagina')) < Number(cuerpo.total)) { pm.environment.set('pagina', String(pagina + 1)); pm.execution.setNextRequest(pm.info.requestName); }",
-      "else if (['ONLINE','OFFLINE','SIN_SENAL'].every(v => vistos.some(x => typeof x === 'string' && x.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase() === v))) { pm.execution.setNextRequest(null); }",
-      "else if (indice + 1 < ids.length) { pm.environment.set('indice', String(indice + 1)); pm.environment.set('unidad', String(ids[indice + 1])); pm.environment.set('pagina', '1'); pm.execution.setNextRequest(pm.info.requestName); }",
+      "if (pm.response.code !== 200 || !eco || !Array.isArray(cuerpo?.sensores) || usadas >= limite) { pm.execution.setNextRequest(null); }",
+      "else if (pagina * Number(pm.environment.get('por_pagina')) < Number(cuerpo.total)) { pm.environment.set('pagina', String(pagina + 1)); pm.execution.setNextRequest(pm.info.requestName); }",
+      "else if (indice + 1 < ids.length) { const siguiente = ids[indice + 1]; pm.environment.set('indice', String(indice + 1)); pm.environment.set('unidad', String(siguiente.area)); pm.environment.set('token', pm.environment.get(siguiente.rol === 'Administrador' ? 'token_admin' : 'token_prod')); pm.environment.set('pagina', '1'); pm.execution.setNextRequest(pm.info.requestName); }",
       "else pm.execution.setNextRequest(null);"
     ] } }]
   }]

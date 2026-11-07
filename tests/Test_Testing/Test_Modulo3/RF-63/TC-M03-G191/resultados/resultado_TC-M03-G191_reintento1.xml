@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="1" tests="5" time="14.966" timestamp="2026-10-30T08:58:43.059354-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367a_sin_tipo_evento_se_registra_incompleto" time="2.510"><failure message="sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for function fn_es_usuario_servicio&#10;&#10;[SQL: SELECT modulo3.bitacora_auditoria_iot.id_evento AS modulo3_bitacora_auditoria_iot_id_evento, modulo3.bitacora_auditoria_iot.id_usuario AS modulo3_bitacora_auditoria_iot_id_usuario, modulo3.bitacora_auditoria_iot.nombre_usuario AS modulo3_bitacora_auditoria_iot_nombre_usuario, modulo3.bitacora_auditoria_iot.tipo_evento AS modulo3_bitacora_auditoria_iot_tipo_evento, modulo3.bitacora_auditoria_iot.modulo AS modulo3_bitacora_auditoria_iot_modulo, modulo3.bitacora_auditoria_iot.descripcion AS modulo3_bitacora_auditoria_iot_descripcion, modulo3.bitacora_auditoria_iot.resultado AS modulo3_bitacora_auditoria_iot_resultado, modulo3.bitacora_auditoria_iot.direccion_ip AS modulo3_bitacora_auditoria_iot_direccion_ip, modulo3.bitacora_auditoria_iot.user_agent AS modulo3_bitacora_auditoria_iot_user_agent, modulo3.bitacora_auditoria_iot.id_sesion AS modulo3_bitacora_auditoria_iot_id_sesion, modulo3.bitacora_auditoria_iot.fecha_hora AS modulo3_bitacora_auditoria_iot_fecha_hora, modulo3.bitacora_auditoria_iot.accion_detallada AS modulo3_bitacora_auditoria_iot_accion_detallada, modulo3.bitacora_auditoria_iot.entidad_afectada_tipo AS modulo3_bitacora_auditoria_iot_entidad_afectada_tipo, modulo3.bitacora_auditoria_iot.entidad_afectada_id AS modulo3_bitacora_auditoria_iot_entidad_afectada_id, modulo3.bitacora_auditoria_iot.severidad_log AS modulo3_bitacora_auditoria_iot_severidad_log, modulo3.bitacora_auditoria_iot.hash_integridad AS modulo3_bitacora_auditoria_iot_hash_integridad, modulo3.bitacora_auditoria_iot.clasificacion_registro AS modulo3_bitacora_auditoria_iot_clasificacion_registro, modulo3.bitacora_auditoria_iot.retencion_aplicable AS modulo3_bitacora_auditoria_iot_retencion_aplicable, modulo3.bitacora_auditoria_iot.registro_incompleto AS modulo3_bitacora_auditoria_iot_registro_incompleto, modulo3.bitacora_auditoria_iot.componente_origen AS modulo3_bitacora_auditoria_iot_componente_origen, modulo3.bitacora_auditoria_iot.timestamp_registro AS modulo3_bitacora_auditoria_iot_timestamp_registro &#10;FROM modulo3.bitacora_auditoria_iot &#10;WHERE modulo3.bitacora_auditoria_iot.descripcion = %(descripcion_1)s &#10; LIMIT %(param_1)s]&#10;[parameters: {'descripcion_1': 'TEST_367a_sin_tipo_evento', 'param_1': 1}]&#10;(Background on this error at: https://sqlalche.me/e/20/f405)">..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   psycopg2.errors.InsufficientPrivilege: permission denied for function fn_es_usuario_servicio
+
+The above exception was the direct cause of the following exception:
+test_tc_m03_g191.py:49: in test_367a_sin_tipo_evento_se_registra_incompleto
+    registro = buscar_evento_por_descripcion(db_session, "TEST_367a_sin_tipo_evento")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+helpers_tc_m03_g191.py:46: in buscar_evento_por_descripcion
+    ).first()
+      ^^^^^^^
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\query.py:2766: in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\query.py:2864: in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\session.py:2372: in execute
+    return self._execute_internal(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\session.py:2270: in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\context.py:306: in orm_execute_statement
+    result = conn.execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1421: in execute
+    return meth(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\sql\elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for function fn_es_usuario_servicio
+E   
+E   [SQL: SELECT modulo3.bitacora_auditoria_iot.id_evento AS modulo3_bitacora_auditoria_iot_id_evento, modulo3.bitacora_auditoria_iot.id_usuario AS modulo3_bitacora_auditoria_iot_id_usuario, modulo3.bitacora_auditoria_iot.nombre_usuario AS modulo3_bitacora_auditoria_iot_nombre_usuario, modulo3.bitacora_auditoria_iot.tipo_evento AS modulo3_bitacora_auditoria_iot_tipo_evento, modulo3.bitacora_auditoria_iot.modulo AS modulo3_bitacora_auditoria_iot_modulo, modulo3.bitacora_auditoria_iot.descripcion AS modulo3_bitacora_auditoria_iot_descripcion, modulo3.bitacora_auditoria_iot.resultado AS modulo3_bitacora_auditoria_iot_resultado, modulo3.bitacora_auditoria_iot.direccion_ip AS modulo3_bitacora_auditoria_iot_direccion_ip, modulo3.bitacora_auditoria_iot.user_agent AS modulo3_bitacora_auditoria_iot_user_agent, modulo3.bitacora_auditoria_iot.id_sesion AS modulo3_bitacora_auditoria_iot_id_sesion, modulo3.bitacora_auditoria_iot.fecha_hora AS modulo3_bitacora_auditoria_iot_fecha_hora, modulo3.bitacora_auditoria_iot.accion_detallada AS modulo3_bitacora_auditoria_iot_accion_detallada, modulo3.bitacora_auditoria_iot.entidad_afectada_tipo AS modulo3_bitacora_auditoria_iot_entidad_afectada_tipo, modulo3.bitacora_auditoria_iot.entidad_afectada_id AS modulo3_bitacora_auditoria_iot_entidad_afectada_id, modulo3.bitacora_auditoria_iot.severidad_log AS modulo3_bitacora_auditoria_iot_severidad_log, modulo3.bitacora_auditoria_iot.hash_integridad AS modulo3_bitacora_auditoria_iot_hash_integridad, modulo3.bitacora_auditoria_iot.clasificacion_registro AS modulo3_bitacora_auditoria_iot_clasificacion_registro, modulo3.bitacora_auditoria_iot.retencion_aplicable AS modulo3_bitacora_auditoria_iot_retencion_aplicable, modulo3.bitacora_auditoria_iot.registro_incompleto AS modulo3_bitacora_auditoria_iot_registro_incompleto, modulo3.bitacora_auditoria_iot.componente_origen AS modulo3_bitacora_auditoria_iot_componente_origen, modulo3.bitacora_auditoria_iot.timestamp_registro AS modulo3_bitacora_auditoria_iot_timestamp_registro 
+E   FROM modulo3.bitacora_auditoria_iot 
+E   WHERE modulo3.bitacora_auditoria_iot.descripcion = %(descripcion_1)s 
+E    LIMIT %(param_1)s]
+E   [parameters: {'descripcion_1': 'TEST_367a_sin_tipo_evento', 'param_1': 1}]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367b_sin_componente_origen_se_registra_incompleto" time="0.918"><failure message="sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for function fn_es_usuario_servicio&#10;&#10;[SQL: SELECT modulo3.bitacora_auditoria_iot.id_evento AS modulo3_bitacora_auditoria_iot_id_evento, modulo3.bitacora_auditoria_iot.id_usuario AS modulo3_bitacora_auditoria_iot_id_usuario, modulo3.bitacora_auditoria_iot.nombre_usuario AS modulo3_bitacora_auditoria_iot_nombre_usuario, modulo3.bitacora_auditoria_iot.tipo_evento AS modulo3_bitacora_auditoria_iot_tipo_evento, modulo3.bitacora_auditoria_iot.modulo AS modulo3_bitacora_auditoria_iot_modulo, modulo3.bitacora_auditoria_iot.descripcion AS modulo3_bitacora_auditoria_iot_descripcion, modulo3.bitacora_auditoria_iot.resultado AS modulo3_bitacora_auditoria_iot_resultado, modulo3.bitacora_auditoria_iot.direccion_ip AS modulo3_bitacora_auditoria_iot_direccion_ip, modulo3.bitacora_auditoria_iot.user_agent AS modulo3_bitacora_auditoria_iot_user_agent, modulo3.bitacora_auditoria_iot.id_sesion AS modulo3_bitacora_auditoria_iot_id_sesion, modulo3.bitacora_auditoria_iot.fecha_hora AS modulo3_bitacora_auditoria_iot_fecha_hora, modulo3.bitacora_auditoria_iot.accion_detallada AS modulo3_bitacora_auditoria_iot_accion_detallada, modulo3.bitacora_auditoria_iot.entidad_afectada_tipo AS modulo3_bitacora_auditoria_iot_entidad_afectada_tipo, modulo3.bitacora_auditoria_iot.entidad_afectada_id AS modulo3_bitacora_auditoria_iot_entidad_afectada_id, modulo3.bitacora_auditoria_iot.severidad_log AS modulo3_bitacora_auditoria_iot_severidad_log, modulo3.bitacora_auditoria_iot.hash_integridad AS modulo3_bitacora_auditoria_iot_hash_integridad, modulo3.bitacora_auditoria_iot.clasificacion_registro AS modulo3_bitacora_auditoria_iot_clasificacion_registro, modulo3.bitacora_auditoria_iot.retencion_aplicable AS modulo3_bitacora_auditoria_iot_retencion_aplicable, modulo3.bitacora_auditoria_iot.registro_incompleto AS modulo3_bitacora_auditoria_iot_registro_incompleto, modulo3.bitacora_auditoria_iot.componente_origen AS modulo3_bitacora_auditoria_iot_componente_origen, modulo3.bitacora_auditoria_iot.timestamp_registro AS modulo3_bitacora_auditoria_iot_timestamp_registro &#10;FROM modulo3.bitacora_auditoria_iot &#10;WHERE modulo3.bitacora_auditoria_iot.descripcion = %(descripcion_1)s &#10; LIMIT %(param_1)s]&#10;[parameters: {'descripcion_1': 'TEST_367b_sin_componente_origen', 'param_1': 1}]&#10;(Background on this error at: https://sqlalche.me/e/20/f405)">..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   psycopg2.errors.InsufficientPrivilege: permission denied for function fn_es_usuario_servicio
+
+The above exception was the direct cause of the following exception:
+test_tc_m03_g191.py:83: in test_367b_sin_componente_origen_se_registra_incompleto
+    registro = buscar_evento_por_descripcion(db_session, "TEST_367b_sin_componente_origen")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+helpers_tc_m03_g191.py:46: in buscar_evento_por_descripcion
+    ).first()
+      ^^^^^^^
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\query.py:2766: in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\query.py:2864: in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\session.py:2372: in execute
+    return self._execute_internal(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\session.py:2270: in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\context.py:306: in orm_execute_statement
+    result = conn.execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1421: in execute
+    return meth(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\sql\elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for function fn_es_usuario_servicio
+E   
+E   [SQL: SELECT modulo3.bitacora_auditoria_iot.id_evento AS modulo3_bitacora_auditoria_iot_id_evento, modulo3.bitacora_auditoria_iot.id_usuario AS modulo3_bitacora_auditoria_iot_id_usuario, modulo3.bitacora_auditoria_iot.nombre_usuario AS modulo3_bitacora_auditoria_iot_nombre_usuario, modulo3.bitacora_auditoria_iot.tipo_evento AS modulo3_bitacora_auditoria_iot_tipo_evento, modulo3.bitacora_auditoria_iot.modulo AS modulo3_bitacora_auditoria_iot_modulo, modulo3.bitacora_auditoria_iot.descripcion AS modulo3_bitacora_auditoria_iot_descripcion, modulo3.bitacora_auditoria_iot.resultado AS modulo3_bitacora_auditoria_iot_resultado, modulo3.bitacora_auditoria_iot.direccion_ip AS modulo3_bitacora_auditoria_iot_direccion_ip, modulo3.bitacora_auditoria_iot.user_agent AS modulo3_bitacora_auditoria_iot_user_agent, modulo3.bitacora_auditoria_iot.id_sesion AS modulo3_bitacora_auditoria_iot_id_sesion, modulo3.bitacora_auditoria_iot.fecha_hora AS modulo3_bitacora_auditoria_iot_fecha_hora, modulo3.bitacora_auditoria_iot.accion_detallada AS modulo3_bitacora_auditoria_iot_accion_detallada, modulo3.bitacora_auditoria_iot.entidad_afectada_tipo AS modulo3_bitacora_auditoria_iot_entidad_afectada_tipo, modulo3.bitacora_auditoria_iot.entidad_afectada_id AS modulo3_bitacora_auditoria_iot_entidad_afectada_id, modulo3.bitacora_auditoria_iot.severidad_log AS modulo3_bitacora_auditoria_iot_severidad_log, modulo3.bitacora_auditoria_iot.hash_integridad AS modulo3_bitacora_auditoria_iot_hash_integridad, modulo3.bitacora_auditoria_iot.clasificacion_registro AS modulo3_bitacora_auditoria_iot_clasificacion_registro, modulo3.bitacora_auditoria_iot.retencion_aplicable AS modulo3_bitacora_auditoria_iot_retencion_aplicable, modulo3.bitacora_auditoria_iot.registro_incompleto AS modulo3_bitacora_auditoria_iot_registro_incompleto, modulo3.bitacora_auditoria_iot.componente_origen AS modulo3_bitacora_auditoria_iot_componente_origen, modulo3.bitacora_auditoria_iot.timestamp_registro AS modulo3_bitacora_auditoria_iot_timestamp_registro 
+E   FROM modulo3.bitacora_auditoria_iot 
+E   WHERE modulo3.bitacora_auditoria_iot.descripcion = %(descripcion_1)s 
+E    LIMIT %(param_1)s]
+E   [parameters: {'descripcion_1': 'TEST_367b_sin_componente_origen', 'param_1': 1}]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367c_sin_timestamp_se_registra_incompleto" time="0.005"><skipped type="pytest.skip" message="Decisión de diseño de Desarrollo (commit 79075257a4, 2026-10-25): fecha_evento opcional con fallback a now(timezone.utc). No se considera campo faltante ni activa registro_incompleto=True. Caso no evaluable como incompleto.">C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo3\RF-63\TC-M03-G191\test_tc_m03_g191.py:108: Decisión de diseño de Desarrollo (commit 79075257a4, 2026-10-25): fecha_evento opcional con fallback a now(timezone.utc). No se considera campo faltante ni activa registro_incompleto=True. Caso no evaluable como incompleto.</skipped></testcase><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367d_evento_completo_registra_incompleto_false" time="0.904"><failure message="sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for function fn_es_usuario_servicio&#10;&#10;[SQL: SELECT modulo3.bitacora_auditoria_iot.id_evento AS modulo3_bitacora_auditoria_iot_id_evento, modulo3.bitacora_auditoria_iot.id_usuario AS modulo3_bitacora_auditoria_iot_id_usuario, modulo3.bitacora_auditoria_iot.nombre_usuario AS modulo3_bitacora_auditoria_iot_nombre_usuario, modulo3.bitacora_auditoria_iot.tipo_evento AS modulo3_bitacora_auditoria_iot_tipo_evento, modulo3.bitacora_auditoria_iot.modulo AS modulo3_bitacora_auditoria_iot_modulo, modulo3.bitacora_auditoria_iot.descripcion AS modulo3_bitacora_auditoria_iot_descripcion, modulo3.bitacora_auditoria_iot.resultado AS modulo3_bitacora_auditoria_iot_resultado, modulo3.bitacora_auditoria_iot.direccion_ip AS modulo3_bitacora_auditoria_iot_direccion_ip, modulo3.bitacora_auditoria_iot.user_agent AS modulo3_bitacora_auditoria_iot_user_agent, modulo3.bitacora_auditoria_iot.id_sesion AS modulo3_bitacora_auditoria_iot_id_sesion, modulo3.bitacora_auditoria_iot.fecha_hora AS modulo3_bitacora_auditoria_iot_fecha_hora, modulo3.bitacora_auditoria_iot.accion_detallada AS modulo3_bitacora_auditoria_iot_accion_detallada, modulo3.bitacora_auditoria_iot.entidad_afectada_tipo AS modulo3_bitacora_auditoria_iot_entidad_afectada_tipo, modulo3.bitacora_auditoria_iot.entidad_afectada_id AS modulo3_bitacora_auditoria_iot_entidad_afectada_id, modulo3.bitacora_auditoria_iot.severidad_log AS modulo3_bitacora_auditoria_iot_severidad_log, modulo3.bitacora_auditoria_iot.hash_integridad AS modulo3_bitacora_auditoria_iot_hash_integridad, modulo3.bitacora_auditoria_iot.clasificacion_registro AS modulo3_bitacora_auditoria_iot_clasificacion_registro, modulo3.bitacora_auditoria_iot.retencion_aplicable AS modulo3_bitacora_auditoria_iot_retencion_aplicable, modulo3.bitacora_auditoria_iot.registro_incompleto AS modulo3_bitacora_auditoria_iot_registro_incompleto, modulo3.bitacora_auditoria_iot.componente_origen AS modulo3_bitacora_auditoria_iot_componente_origen, modulo3.bitacora_auditoria_iot.timestamp_registro AS modulo3_bitacora_auditoria_iot_timestamp_registro &#10;FROM modulo3.bitacora_auditoria_iot &#10;WHERE modulo3.bitacora_auditoria_iot.descripcion = %(descripcion_1)s &#10; LIMIT %(param_1)s]&#10;[parameters: {'descripcion_1': 'TEST_367d_evento_completo', 'param_1': 1}]&#10;(Background on this error at: https://sqlalche.me/e/20/f405)">..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   psycopg2.errors.InsufficientPrivilege: permission denied for function fn_es_usuario_servicio
+
+The above exception was the direct cause of the following exception:
+test_tc_m03_g191.py:131: in test_367d_evento_completo_registra_incompleto_false
+    registro = buscar_evento_por_descripcion(db_session, "TEST_367d_evento_completo")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+helpers_tc_m03_g191.py:46: in buscar_evento_por_descripcion
+    ).first()
+      ^^^^^^^
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\query.py:2766: in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\query.py:2864: in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\session.py:2372: in execute
+    return self._execute_internal(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\session.py:2270: in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\orm\context.py:306: in orm_execute_statement
+    result = conn.execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1421: in execute
+    return meth(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\sql\elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+..\..\..\..\..\.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for function fn_es_usuario_servicio
+E   
+E   [SQL: SELECT modulo3.bitacora_auditoria_iot.id_evento AS modulo3_bitacora_auditoria_iot_id_evento, modulo3.bitacora_auditoria_iot.id_usuario AS modulo3_bitacora_auditoria_iot_id_usuario, modulo3.bitacora_auditoria_iot.nombre_usuario AS modulo3_bitacora_auditoria_iot_nombre_usuario, modulo3.bitacora_auditoria_iot.tipo_evento AS modulo3_bitacora_auditoria_iot_tipo_evento, modulo3.bitacora_auditoria_iot.modulo AS modulo3_bitacora_auditoria_iot_modulo, modulo3.bitacora_auditoria_iot.descripcion AS modulo3_bitacora_auditoria_iot_descripcion, modulo3.bitacora_auditoria_iot.resultado AS modulo3_bitacora_auditoria_iot_resultado, modulo3.bitacora_auditoria_iot.direccion_ip AS modulo3_bitacora_auditoria_iot_direccion_ip, modulo3.bitacora_auditoria_iot.user_agent AS modulo3_bitacora_auditoria_iot_user_agent, modulo3.bitacora_auditoria_iot.id_sesion AS modulo3_bitacora_auditoria_iot_id_sesion, modulo3.bitacora_auditoria_iot.fecha_hora AS modulo3_bitacora_auditoria_iot_fecha_hora, modulo3.bitacora_auditoria_iot.accion_detallada AS modulo3_bitacora_auditoria_iot_accion_detallada, modulo3.bitacora_auditoria_iot.entidad_afectada_tipo AS modulo3_bitacora_auditoria_iot_entidad_afectada_tipo, modulo3.bitacora_auditoria_iot.entidad_afectada_id AS modulo3_bitacora_auditoria_iot_entidad_afectada_id, modulo3.bitacora_auditoria_iot.severidad_log AS modulo3_bitacora_auditoria_iot_severidad_log, modulo3.bitacora_auditoria_iot.hash_integridad AS modulo3_bitacora_auditoria_iot_hash_integridad, modulo3.bitacora_auditoria_iot.clasificacion_registro AS modulo3_bitacora_auditoria_iot_clasificacion_registro, modulo3.bitacora_auditoria_iot.retencion_aplicable AS modulo3_bitacora_auditoria_iot_retencion_aplicable, modulo3.bitacora_auditoria_iot.registro_incompleto AS modulo3_bitacora_auditoria_iot_registro_incompleto, modulo3.bitacora_auditoria_iot.componente_origen AS modulo3_bitacora_auditoria_iot_componente_origen, modulo3.bitacora_auditoria_iot.timestamp_registro AS modulo3_bitacora_auditoria_iot_timestamp_registro 
+E   FROM modulo3.bitacora_auditoria_iot 
+E   WHERE modulo3.bitacora_auditoria_iot.descripcion = %(descripcion_1)s 
+E    LIMIT %(param_1)s]
+E   [parameters: {'descripcion_1': 'TEST_367d_evento_completo', 'param_1': 1}]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367e_post_manual_rechazado" time="8.230" /></testsuite></testsuites>

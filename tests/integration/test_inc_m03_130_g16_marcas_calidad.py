@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-130-G16 RF-53/62: reproducir frecuencia y validar drift postcommit con ingesta real y PostgreSQL. |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: R7/R9, serie sin calibración evaluada y versión de límites físicos |
 """RF-53/RF-62: los datos entran por HTTP o por la función común del broker."""
 import importlib.util
 from pathlib import Path
@@ -136,7 +137,9 @@ def test_drift_se_calcula_en_rf62_sin_mutar_lecturas(
         assert drift['P_lecturas_consistentes'] >= 5
     if offset is None:
         assert ev['flags_detectados']['calibracion_no_disponible']['activo'] is True
-        assert ev['clasificacion_calidad'] == 'INDETERMINADA'
+        # G169 (R7): sin calibración se omite solo el drift; la serie cruda sí se evalúa.
+        assert ev['clasificacion_calidad'] != 'INDETERMINADA'
+        assert 'serie_insuficiente' not in ev['flags_detectados']
     assert db_session.execute(text('SELECT jsonb_agg(to_jsonb(t) ORDER BY id_telemetria) FROM modulo3.telemetrias t WHERE id_sensor=:s'),
                               {'s': e['sensor']}).scalar_one() == antes
     assert db_session.execute(text("SELECT count(*) FROM modulo3.telemetria_calidad WHERE id_telemetria=:id AND estado_evaluacion='VIGENTE'"),

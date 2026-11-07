@@ -70,11 +70,15 @@ function contexto(args) {
   const ruta=path.resolve(archivo);
   if(path.dirname(ruta)!==destino||!(operacion==='recuperar'?/^recuperacion-\d{14}\.contexto\.json$/.test(path.basename(ruta)):path.basename(ruta)==='contexto_operacion.json')) throw Error('Contexto fuera del RUN canónico');
   const c=JSON.parse(fs.readFileSync(ruta,'utf8'));
-  if(c.grupo!=='G068'||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()
-    ||c.referencia!==referencia||JSON.stringify(c.casos)!==JSON.stringify(CASOS)
-    ||(operacion==='reevaluar'&&(version<2||c.version_anterior!==version-1||!c.alcance_reevaluacion))
+  if(!contextoValido(c,{operacion,version,intento,runId,referencia})
     ||(operacion==='recuperar'&&v('--run-objetivo')!==runId)) throw Error('Contexto incoherente');
   return {operacion,version,intento,runId,referencia,directorio:destino,ensayo:false};
+}
+export function contextoValido(c,{operacion,version,intento,runId,referencia}) {
+  return c.grupo==='G068'&&c.run_id===runId&&c.version===version&&c.intento===intento
+    &&c.operacion===operacion.toUpperCase()&&c.referencia===referencia
+    &&JSON.stringify(c.casos)===JSON.stringify(CASOS)
+    &&(operacion!=='reevaluar'||version>=2&&c.version_anterior===version-1&&!!c.alcance_reevaluacion);
 }
 function preflight(c,env,newman=versionNewman()) {
   const base=String(env.SIGAB_API_TEST_BASE??'').replace(/\/+$/,'');
@@ -94,7 +98,8 @@ function resumenCuerpo(p,b) {
   if(!b||typeof b!=='object') return null;
   if(p.startsWith('/sesiones/')) return {token_recibido:!!b.token};
   if(p===POST) return {id_retroalimentacion:b.id_retroalimentacion??null,id_resultado_inferencia:b.id_resultado_inferencia??null,
-    error_code:b.error_code??null,mensaje:corto(b.message??''),detalle_campo:corto(b.fields?.[0]?.message??'')};
+    error_code:b.error_code??null,mensaje:corto(b.message??''),campo:b.fields?.[0]?.field??null,
+    detalle_campo:corto(b.fields?.[0]?.message??'')};
   if(p.startsWith('/activos-biologicos/')) return {id_activo_biologico:b.id_activo_biologico??null,id_estado:b.id_estado??null,
     fase:b.fase_actual??b.id_fase_actual??null,error_code:b.error_code??null};
   return {total:b.total??b.total_registros??null,registros:b.registros?.length??null,eventos:b.eventos?.length??null,items:b.items?.length??null,error_code:b.error_code??null};
@@ -132,7 +137,7 @@ async function pedirNewmanUnico(r,c,api,env,token,adminToken,cuerpos) {
     'G068-BAJA-VET':`postman.setNextRequest(pm.response.code===201?'G068-ESTADO-BAJA':pm.response.code===403&&pm.environment.get('token_admin')?'G068-BAJA-ADMIN':null);`,
     'G068-BAJA-ADMIN':`postman.setNextRequest(pm.response.code===201?'G068-ESTADO-BAJA':null);`,
     'G068-ESTADO-BAJA':`let b={};try{b=pm.response.json()}catch{};postman.setNextRequest(pm.response.code===200&&String(b.nombre_estado||b.estado_actual||b.id_estado).toUpperCase()==='BAJA'?'G068-BITACORA-BAJA':null);`,
-    'G068-BITACORA-BAJA':`postman.setNextRequest('G068-245');`,
+    'G068-BITACORA-BAJA':`let b={};try{b=pm.response.json()}catch{};const acreditada=pm.response.code===200&&(b.registros||[]).some(x=>x.rf_origen==='RF45'&&x.tipo_evento==='BAJA_REGISTRADA'&&Number(x.id_activo_biologico)===885);postman.setNextRequest(acreditada?'G068-245':null);`,
     'G068-245':`postman.setNextRequest(null);`};
   for(const item of coleccion.item) {
     const baja=item.name.startsWith('G068-BAJA');
@@ -142,7 +147,8 @@ async function pedirNewmanUnico(r,c,api,env,token,adminToken,cuerpos) {
       `const n=pm.response.code>=500?Number(pm.environment.get('consecutivos_5xx')||0)+1:0;pm.environment.set('consecutivos_5xx',String(n));`,
       `if((pm.response.code===403&&/clave|secreto|sandbox/i.test(pm.response.text()))||n>=3)postman.setNextRequest(null);`,
       `pm.test('HTTP recibido',()=>pm.expect(pm.response.code).to.be.above(0));`,
-      `pm.test('Eco de RUN',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));`
+      `pm.test('Eco de RUN',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));`,
+      ...(item.request.method==='GET'?[`pm.test('GET en 30 s',()=>pm.expect(pm.response.responseTime).to.be.at.most(30000));`]:[])
     ]}}];
   }
   const values=Object.entries({base_url:api,token_veterinario:token,token_admin:adminToken??'',run_id:c.runId,
@@ -155,9 +161,20 @@ async function pedirNewmanUnico(r,c,api,env,token,adminToken,cuerpos) {
     .map(([key,value])=>({key,value,enabled:true}));
   const plazo=Math.max(1,r._limite-Date.now());
   let error,summary;
-  try {[error,summary]=await new Promise(resolve=>require(paqueteNewman()).run({collection:coleccion,
-    environment:{values},reporters:['cli'],silent:true,timeoutRequest:PRESUPUESTO.timeout_ms,
-    timeout:plazo,ignoreRedirects:true,color:'off'},(e,s)=>resolve([e,s])));}
+  try {[error,summary]=await new Promise(resolve=>{
+    const ejecucion=require(paqueteNewman()).run({collection:coleccion,
+    environment:{values},reporters:['cli'],silent:true,timeoutRequest:PRESUPUESTO.timeout_post_ms,
+    timeout:plazo,ignoreRedirects:true,color:'off'},(e,s)=>resolve([e,s]));
+    let runtimeRun=null;
+    ejecucion.on('start',(_err,x)=>{runtimeRun=x.run;});
+    ejecucion.on('beforeRequest',(_err,{request})=>{
+      const opciones=runtimeRun?.requester?.options;
+      if(!opciones) { r.problemas_tecnicos.push('Newman: no se pudo aplicar plazo por método');return; }
+      opciones.timeout=request?.method==='POST'?PRESUPUESTO.timeout_post_ms:PRESUPUESTO.timeout_ms;
+      r.herramientas.newman.plazos_por_metodo??={};
+      r.herramientas.newman.plazos_por_metodo[request.method]=opciones.timeout;
+    });
+  });}
   catch(e){error=e;}
   const ejecuciones={};const reporte={herramienta:'Newman',version:r.herramientas.newman.version,
     solicitudes:[],error:error?.message??null,fallos:(summary?.run?.failures??[]).map(f=>({tipo:f.error?.name??'Error',mensaje:f.error?.message??null}))};
@@ -178,6 +195,8 @@ async function pedirNewmanUnico(r,c,api,env,token,adminToken,cuerpos) {
     const fila={caso,metodo,ruta,http,eco:!!eco,duracion_ms:ex.response?.responseTime??null,
       respuesta:resumenCuerpo(ruta,cuerpo),herramienta:'Newman',nombre};
     if(http==null) fila.tipo_fallo='SIN_RED_O_TIMEOUT';
+    if(metodo==='GET'&&fila.duracion_ms>PRESUPUESTO.timeout_ms)
+      r.problemas_tecnicos.push(`${nombre}: GET excedió ${PRESUPUESTO.timeout_ms} ms`);
     r.solicitudes.push(fila);ejecuciones[nombre]={http,cuerpo,eco:!!eco,tiempo_ms:fila.duracion_ms};
     reporte.solicitudes.push({...fila,aserciones:(ex.assertions??[]).map(a=>({nombre:a.assertion,aprobada:!a.error,error:a.error?.message??null}))});
   }
@@ -205,11 +224,12 @@ async function historial(pedirPagina,inicio,fin,buscado=null) {
 }
 const estadoActivo = b => String(b?.nombre_estado??b?.estado?.nombre_estado??b?.estado_actual??b?.id_estado??'').toUpperCase();
 const faseActivo = b => (b?.fases??[]).filter(f=>f.es_activa===true).map(f=>({id:f.id_gestion_fases,fase:f.nombre_fase_actual}));
-const descripcionFase = fases => fases===null?'no comprobada':fases.length?JSON.stringify(fases):'sin fase activa';
+const descripcionFase = fases => fases===null?'no comprobada':fases.length
+  ? fases.map(f=>`${f.fase??'fase sin nombre'} (gestión ${f.id??'sin identificador'})`).join(', '):'sin fase activa';
 const oraculos={
-  'TC-M04-210':'Matriz G068 y RF-72 E1 4234-4239: HTTP 404, "El resultado de inferencia no existe o no está disponible."; se cancela sin registro ni evento.',
-  'TC-M04-211':'Matriz G068 y RF-72 4161: rechazo indicando que el activo no corresponde al resultado, sin persistir. RF-72 no fija HTTP.',
-  'TC-M04-245':'Matriz G068 y RF-72 4112-4113: activo dado de baja o inconsistente, registro rechazado y sin persistencia. RF-72 no fija HTTP; incidente administrativo fuera del oráculo.'};
+  'TC-M04-210':'Resultado esperado del caso y RF-72 E1 4234-4239: HTTP 404, "El resultado de inferencia no existe o no está disponible."; se cancela sin registro ni evento.',
+  'TC-M04-211':'Resultado esperado del caso y RF-72 4161: rechazo indicando que el activo no corresponde al resultado, sin persistir. RF-72 no fija HTTP.',
+  'TC-M04-245':'Resultado esperado del caso y RF-72 restricción 4112-4113: con baja acreditada, rechazo 4xx que identifique el activo, sin retroalimentación ni RETROALIMENTACION_REGISTRADA. La corrección de Desarrollo informa 422 ACTIVO_EN_BAJA y campo id_activo_biologico; RF-72 no fija HTTP.'};
 function incidenciasDe(registros) {
   const numeros=new Map();
   return registros.filter(x=>x.veredicto?.estado==='RECHAZADO').map(x=>{
@@ -239,8 +259,11 @@ export function informe(c,r) {
     const z=r.registros.find(y=>y.caso===x);return `### ${x} — ${r.casos[x].estado}\n\n- Qué se hizo: ${x===CASOS[2]?'Baja temporal del 885, lectura de estado y bitácora, y POST condicional en una ejecución Newman.':`POST Newman con ${x===CASOS[0]?'UUID v4 inexistente':'resultado libre del 885 y otro activo existente'}.`}\n- Qué se esperaba: ${oraculos[x]}\n- Qué se observó: ${z?`HTTP ${z.http??'sin respuesta'}; ${corto(z.codigo??'—')}; ${corto(z.mensaje??'sin mensaje')}; persistió ${z.persistio===null?'no determinado':z.persistio?'sí':'no'}.`:'Sin respuesta de producto para este caso.'}\n- Por qué ${r.casos[x].estado}: ${corto(motivoInforme(x,r))}. Evidencia: ${IDS[CASOS.indexOf(x)]} en resultado.json.`;
   }).join('\n\n');
   const intentos=r.registros.map(z=>`| ${z.caso} | ${String(z.resultado??'—').slice(0,8)} | CORRECTO sin diagnóstico; activo ${z.activo_enviado} | ${z.http??'—'} | ${corto(z.codigo??'—')}; ${corto(z.mensaje??'—')} | ${z.persistio===null?'no determinado':z.persistio?'sí':'no'} |`).join('\n');
-  const inc=r.incidencias.length?r.incidencias.map(x=>`- ${x.id}: ${x.severidad}, certeza ${x.certeza}; atención inicial ${x.equipo_inicial} por ${x.fundamento}. ${x.motivo}. ${x.justificacion}. ${x.casos.includes(CASOS[2])?'Hipótesis probable: el caso de uso no consulta el estado del activo (registrar_retroalimentacion_use_case.py:55-107 y resultado_inferencia_adapter.py:16-23, origin/test daefc3a5). ':''}Causa raíz no confirmada.`).join('\n'):'Sin incidencias de producto.';
-  return `# TC-M04-G068 — ${decision}\n\n## Identificación\n\nGrupo G068; casos ${CASOS.join(', ')}; RF-72; versión ${c.version}; RUN ${c.runId}; ambiente ${c.ensayo?'loopback local':'TEST'}; autorización ${c.referencia}; código revisado origin/test daefc3a5; Node.js y Newman. Solo API.\n\n## Decisión del caso\n\n| Caso | Decisión | Motivo |\n|---|---|---|\n${tabla}\n\nRUN oficial: ${r.oficial?'sí':'no'}. ${r.oficial?'Cada caso tuvo POST y comprobación de historial y auditoría; los veredictos se basan en las respuestas y la persistencia observadas.':faltantes.length?'Hay casos obligatorios sin evaluación conclusiva.':corto(r.problemas_tecnicos.join('; ')||r.cierre.rollback.motivo)} El ensayo local no acredita TEST.\n\nQué falta: ${faltantes.join('; ')||(!r.cierre.rollback.verificado?corto(r.cierre.rollback.motivo):r.oficial?'ninguno':corto(r.problemas_tecnicos.join('; ')||'revisar condición de oficialidad'))}.\n\n## Precondición de datos (semilla y baja temporal)\n\nActivo 885, modelo INDIVIDUAL; otro activo ${r.datos_elegidos.otro_activo?.id??'no encontrado'} (${corto(r.datos_elegidos.otro_activo?.nombre??'sin nombre')}). Resultados libres ${r.datos_elegidos.resultados_libres??0}; eventos examinados ${r.datos_elegidos.descubrimiento_885?.eventos_examinados??0}; páginas ${r.datos_elegidos.descubrimiento_885?.paginas??0}; cursor pendiente ${r.datos_elegidos.descubrimiento_885?.cursor_pendiente?'sí':'no'}. Fase antes: ${descripcionFase(r.datos_elegidos.activo_885_antes?.fase??null)}; ${Array.isArray(r.datos_elegidos.activo_885_antes?.fase)&&r.datos_elegidos.activo_885_antes.fase.length===0?'Activo 885 sin fase activa antes de la baja. ':''}durante: ${descripcionFase(r.datos_elegidos.baja_885?.fase??null)}. Baja HTTP ${r.datos_elegidos.baja_885?.http??'—'}; estado durante baja ${r.datos_elegidos.baja_885?.estado??'no leído'}; BAJA_REGISTRADA en sandbox ${r.datos_elegidos.baja_885?.evento_rf52_en_sandbox?'sí':'no confirmado'}. El buffer local RF-52 puede conservar una copia fuera del sandbox si falla la BD o hay alta carga.\n\n## Detalle por caso\n\n${detalle}\n\n## Tabla de intentos\n\n| Caso | Resultado | Cuerpo resumido | HTTP | Código y mensaje | Persistió |\n|---|---|---|---|---|---|\n${intentos}\n\n## Observaciones\n\n${r.observaciones.map(corto).join('; ')||'Ninguna.'}\n\n## Incidencias de producto\n\n${inc}\n\n## Problemas técnicos y análisis de causas\n\n${r.problemas_tecnicos.map(corto).join('; ')||'Ninguno.'} La derivación inicial se basa en la primera discrepancia pública; causa raíz no determinada.\n\n## Historial, cierre y rollback\n\n${r.solicitudes.length} solicitudes. DELETE HTTP ${r.cierre.run.cierre_http??'sin respuesta'}; rollback ${r.cierre.rollback.verificado?'verificado':'no verificado'}: ${corto(r.cierre.rollback.motivo)}. Activo 885 poscierre ${r.cierre.activo_885?.estado??'no leído'}, fase ${descripcionFase(r.cierre.activo_885?.fase??null)}. Lecturas poscierre pueden crear HISTORIAL_CONSULTADO fuera del sandbox.\n\n## Conclusión y acciones\n\n${decision==='RECHAZADO'?'Desarrollo debe revisar las discrepancias confirmadas en TEST; repetir los casos afectados en un RUN autorizado.':'Conservar evidencias y revisar los casos pendientes o BLOQUEADOS con el responsable QA.'}\n\n## Herramientas\n\n${r.herramientas.newman.iteraciones===0?'Newman no se ejecutó (0 iteraciones).':`Newman ${r.herramientas.newman.version??'no disponible'}: ${r.herramientas.newman.iteraciones} iteración, ${r.herramientas.newman.solicitudes} solicitudes y ${r.herramientas.newman.aserciones} aserciones. ${r.evidencias.some(x=>x.startsWith('newman/'))?'Reportes JSON y HTML generados en newman/.':'Sin reportes Newman.'}`} Login, descubrimiento, lecturas de verificación y cierre por fetch.\n\n## Evidencias\n\n${r.evidencias.map(x=>`- ${x}`).join('\n')}\n`;
+  const inc=r.incidencias.length?r.incidencias.map(x=>`- ${x.id}: ${x.severidad}, certeza ${x.certeza}; atención inicial ${x.equipo_inicial} por ${x.fundamento}. ${x.motivo}. ${x.justificacion}. Causa raíz no confirmada.`).join('\n'):'Sin incidencias de producto.';
+  const v2=c.version>=2;
+  const comparacion=v2?`\n\n## Comparación V1 → V2\n\n| Caso | V1 oficial | V2 |\n|---|---|---|\n${CASOS.map(x=>`| ${x} | ${x===CASOS[2]?'RECHAZADO':'APROBADO'} | ${r.casos[x].estado} |`).join('\n')}\n\nV1: RUN-G068-V1-20261029-121139. INC-M04-G068-245-01: ${r.oficial&&r.casos[CASOS[2]].estado==='APROBADO'?(c.ensayo?'corrección simulada en loopback; no acredita TEST':'CORREGIDA según comprobación pública V2'):'pendiente de corrección comprobada en V2'}. Corrección informada por Desarrollo en issue #863 / PR #871.\n`:'';
+  const identificacion=v2?'Commit de TEST: no verificado por el ejecutor; corrección informada en issue #863 / PR #871.':'Código revisado origin/test daefc3a5.';
+  return `# TC-M04-G068 — ${decision}\n\n## Identificación\n\nGrupo G068; casos ${CASOS.join(', ')}; RF-72; versión ${c.version}; RUN ${c.runId}; ambiente ${c.ensayo?'loopback local':'TEST'}; autorización ${c.referencia}; ${identificacion} Node.js y Newman. Solo API.\n\n## Decisión del caso\n\n| Caso | Decisión | Motivo |\n|---|---|---|\n${tabla}\n\nRUN oficial: ${r.oficial?'sí':'no'}. ${r.oficial?'Cada caso tuvo POST y comprobación de historial y auditoría; los veredictos se basan en las respuestas y la persistencia observadas.':faltantes.length?'Hay casos obligatorios sin evaluación conclusiva.':corto(r.problemas_tecnicos.join('; ')||r.cierre.rollback.motivo)} El ensayo local no acredita TEST.\n\nQué falta: ${faltantes.join('; ')||(!r.cierre.rollback.verificado?corto(r.cierre.rollback.motivo):r.oficial?'ninguno':corto(r.problemas_tecnicos.join('; ')||'revisar condición de oficialidad'))}.\n\n## Precondición de datos (semilla y baja temporal)\n\nActivo 885, modelo INDIVIDUAL; otro activo ${r.datos_elegidos.otro_activo?.id??'no encontrado'} (${corto(r.datos_elegidos.otro_activo?.nombre??'sin nombre')}). Resultados libres ${r.datos_elegidos.resultados_libres??0}; eventos examinados ${r.datos_elegidos.descubrimiento_885?.eventos_examinados??0}; páginas ${r.datos_elegidos.descubrimiento_885?.paginas??0}; cursor pendiente ${r.datos_elegidos.descubrimiento_885?.cursor_pendiente?'sí':'no'}. Fase antes: ${descripcionFase(r.datos_elegidos.activo_885_antes?.fase??null)}; ${Array.isArray(r.datos_elegidos.activo_885_antes?.fase)&&r.datos_elegidos.activo_885_antes.fase.length===0?'Activo 885 sin fase activa antes de la baja. ':''}durante: ${descripcionFase(r.datos_elegidos.baja_885?.fase??null)}. Baja HTTP ${r.datos_elegidos.baja_885?.http??'—'}; estado durante baja ${r.datos_elegidos.baja_885?.estado??'no leído'}; BAJA_REGISTRADA en sandbox ${r.datos_elegidos.baja_885?.evento_rf52_en_sandbox?'sí':'no confirmado'}. El buffer local RF-52 puede conservar una copia fuera del sandbox si falla la BD o hay alta carga.\n\n## Detalle por caso\n\n${detalle}\n\n## Tabla de intentos\n\n| Caso | Resultado | Cuerpo resumido | HTTP | Código y mensaje | Persistió |\n|---|---|---|---|---|---|\n${intentos}\n\n${comparacion}\n## Observaciones\n\n${r.observaciones.map(corto).join('; ')||'Ninguna.'}\n\n## Incidencias de producto\n\n${inc}\n\n## Problemas técnicos y análisis de causas\n\n${r.problemas_tecnicos.map(corto).join('; ')||'Ninguno.'} La derivación inicial se basa en la primera discrepancia pública; causa raíz no determinada.\n\n## Historial, cierre y rollback\n\n${r.solicitudes.length} solicitudes. DELETE HTTP ${r.cierre.run.cierre_http??'sin respuesta'}; rollback ${r.cierre.rollback.verificado?'verificado':'no verificado'}: ${corto(r.cierre.rollback.motivo)}. Activo 885 poscierre ${r.cierre.activo_885?.estado??'no leído'}, fase ${descripcionFase(r.cierre.activo_885?.fase??null)}. Lecturas poscierre pueden crear HISTORIAL_CONSULTADO fuera del sandbox.\n\n## Conclusión y acciones\n\n${decision==='RECHAZADO'?'Desarrollo debe revisar las discrepancias confirmadas en TEST; repetir los casos afectados en un RUN autorizado.':decision==='APROBADO'?'Conservar la evidencia del cierre y comunicar al responsable QA la reevaluación V2.':'Revisar los casos pendientes o BLOQUEADOS con el responsable QA.'}\n\n## Herramientas\n\n${r.herramientas.newman.iteraciones===0?'Newman no se ejecutó (0 iteraciones).':`Newman ${r.herramientas.newman.version??'no disponible'}: ${r.herramientas.newman.iteraciones} iteración, ${r.herramientas.newman.solicitudes} solicitudes y ${r.herramientas.newman.aserciones} aserciones. ${r.evidencias.some(x=>x.startsWith('newman/'))?'Reportes JSON y HTML generados en newman/.':'Sin reportes Newman.'}`} Login, descubrimiento, lecturas de verificación y cierre por fetch.\n\n## Evidencias\n\n${r.evidencias.map(x=>`- ${x}`).join('\n')}\n`;
 }
 export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}) {
   const api=String(env.SIGAB_API_TEST_BASE??'').replace(/\/+$/,'');
@@ -249,7 +272,7 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
     comprobaciones:[],registros:[],datos_elegidos:{},solicitudes:[],observaciones:[],problemas_tecnicos:[],incidencias:[],
     cypress:{total_pruebas:0},herramientas:{newman:{...newmanVersion,iteraciones:0,solicitudes:0,aserciones:0}},
     evidencias:['preflight.json','resultado.json',INFORME(c.version)],cierre:{run:{cierre_http:null},rollback:{verificado:false,motivo:'Sin cierre'},activo_885:null},
-    oficial:false,consume_version:false,_limite:Date.now()+900000,_consecutivos5xx:0};
+     oficial:false,consume_version:false,_limite:Date.now()+PRESUPUESTO.duracion_segundos*1000,_consecutivos5xx:0};
   fs.mkdirSync(c.directorio,{recursive:true});const pre=preflight(c,env,newmanVersion);guardar(path.join(c.directorio,'preflight.json'),pre);
   let token=null,adminToken=null,iniciado=false,usuarioId=null,antes=null;
   const pedirRun=async(m,p,opts={})=>{const x=await pedir(r,api,m,p,{...opts,token:opts.token??token,secreto:env.QA_SANDBOX_SECRET,runId:c.runId});
@@ -329,14 +352,20 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
     const ex=await pedirNewmanUnico(r,c,api,env,token,adminToken,cuerpos);
     const faseDurante=ex['G068-ESTADO-BAJA']?.http===200
       ?await pedir(r,api,'GET','/activos-biologicos/885/fases',{token,secreto:env.QA_SANDBOX_SECRET,runId:c.runId}):null;
-    const baja=ex['G068-BAJA-ADMIN']??ex['G068-BAJA-VET'];
-    const estadoBaja=ex['G068-ESTADO-BAJA'];
-    const bitacora=ex['G068-BITACORA-BAJA'];
-    const bajaValida=baja?.http===201&&baja.eco===true&&estadoBaja?.http===200
-      &&estadoBaja.eco===true&&estadoActivo(estadoBaja.cuerpo)==='BAJA';
+     const baja=ex['G068-BAJA-ADMIN']??ex['G068-BAJA-VET'];
+     let estadoBaja=ex['G068-ESTADO-BAJA'];
+     let bitacora=ex['G068-BITACORA-BAJA'];
+     if(baja&&baja.http==null) {
+       r.problemas_tecnicos.push('POST de baja sin respuesta: conciliación de estado y bitácora, sin reintento');
+       estadoBaja=await pedir(r,api,'GET','/activos-biologicos/885',{token,secreto:env.QA_SANDBOX_SECRET,runId:c.runId,caso:CASOS[2]});
+       bitacora=await pedir(r,api,'GET',`/activos-biologicos/auditoria?rf_origen=RF45&tipo_evento=BAJA_REGISTRADA&id_activo_biologico=885&fecha_inicio=${encodeURIComponent(inicioBaja)}&pagina=1&page_size=100`,
+         {token:adminToken??token,secreto:env.QA_SANDBOX_SECRET,runId:c.runId,caso:CASOS[2]});
+     }
     const eventoBitacora=bitacora?.http===200&&bitacora.eco===true
       &&(bitacora.cuerpo?.registros??[]).some(x=>x.rf_origen==='RF45'&&x.tipo_evento==='BAJA_REGISTRADA'
         &&Number(x.id_activo_biologico)===885);
+     const bajaValida=baja?.http===201&&baja.eco===true&&estadoBaja?.http===200
+       &&estadoBaja.eco===true&&estadoActivo(estadoBaja.cuerpo)==='BAJA'&&eventoBitacora;
     r.datos_elegidos.baja_885={http:baja?.http??null,estado_http:estadoBaja?.http??null,
       estado:estadoActivo(estadoBaja?.cuerpo),bitacora_http:bitacora?.http??null,
        fase:faseDurante?.http===200?faseActivo(faseDurante.cuerpo):null,
@@ -345,17 +374,17 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
       r.problemas_tecnicos.push('Fase durante la baja no comprobada');
     if(bajaValida&&faseDurante?.http===200&&faseActivo(faseDurante.cuerpo).length)
       r.problemas_tecnicos.push('ALERTA PRIORITARIA: fase del activo 885 siguió activa durante la baja');
-    if(bajaValida&&!eventoBitacora)
-      r.observaciones.push('posible evento RF-52 en buffer local fuera del sandbox; revisar con responsable QA');
+     if(baja?.http===201&&!eventoBitacora)
+       r.observaciones.push('BAJA_REGISTRADA no acreditada; posible evento RF-52 en buffer local fuera del sandbox; revisar con responsable QA');
     for(const caso of CASOS) {
       const nombre=caso===CASOS[0]?'G068-210':caso===CASOS[1]?
         (ex['G068-211-REEMPLAZO']?'G068-211-REEMPLAZO':'G068-211'):'G068-245';
-      const post=ex[nombre];
+       const post=ex[nombre]??(r.solicitudes.some(x=>x.nombre===nombre)?{http:null,cuerpo:null,eco:false}:null);
       const enviado=caso===CASOS[0]?cuerpos.c210:caso===CASOS[1]?
         (nombre==='G068-211-REEMPLAZO'?cuerpos.reemplazo:cuerpos.c211):cuerpos.c245;
       if(caso===CASOS[2]&&!bajaValida) {
         r.casos[caso]={estado:'NO_CONCLUYENTE',motivo:!cuerpos.c245?'Sin segundo resultado de inferencia INDIVIDUAL libre':
-          `Precondición no montada: baja HTTP ${baja?.http??'sin respuesta'}, estado 885 ${estadoActivo(estadoBaja?.cuerpo)||'no confirmado'}`};continue;
+           `Precondición no montada: baja HTTP ${baja?.http??'sin respuesta'}, estado 885 ${estadoActivo(estadoBaja?.cuerpo)||'no confirmado'}, BAJA_REGISTRADA ${eventoBitacora?'sí':'no confirmado'}`};continue;
       }
       if(!post||!enviado) {
         r.casos[caso]={estado:r.problemas_tecnicos.includes('CLAVE_403 en Newman')&&caso!==CASOS[2]?'BLOQUEADO':'NO_CONCLUYENTE',motivo:caso===CASOS[1]&&!otro?'No se descubrió otro activo existente':
@@ -376,6 +405,7 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
       const a={http:x.http,eco:x.eco,items:x.cuerpo?.items??[],
         completo:x.http===200&&Number(x.cuerpo?.total??Infinity)<=(x.cuerpo?.items?.length??0)};
       const veredicto=decidir(caso,post,h,a,resultado,usuarioId);
+       if(veredicto.observacion) r.observaciones.push(`${caso}: ${veredicto.observacion}`);
       const registro={caso,resultado,activo_enviado:enviado.id_activo_biologico,
         tipo_modelo:caso===CASOS[0]?null:tipoModelo(caso===CASOS[1]?
           (nombre==='G068-211-REEMPLAZO'?reemplazo:dato211):dato245,versiones),
@@ -433,7 +463,7 @@ export async function evaluar(c,{env=leerEnv(),newmanVersion=versionNewman()}={}
       &&r.herramientas.newman.aserciones>=2*r.herramientas.newman.solicitudes
       &&reportesNewman.length===2
       &&!r.solicitudes.some(x=>x.herramienta==='Newman'&&x.http==null)
-      &&!r.problemas_tecnicos.some(x=>x.startsWith('Newman:'))
+       &&!r.problemas_tecnicos.some(x=>x.startsWith('Newman:')||x.includes('GET excedió'))
       &&!r.problemas_tecnicos.includes('Fase durante la baja no comprobada')
       &&!r.problemas_tecnicos.some(x=>x.startsWith('ALERTA PRIORITARIA'))
       &&!r.problemas_tecnicos.some(x=>x==='CLAVE_403 en Newman'||x==='TRES_5XX_CONSECUTIVOS en Newman')
@@ -451,7 +481,7 @@ export async function recuperar(c,{env=leerEnv()}={}) {
   const previo=JSON.parse(fs.readFileSync(path.join(c.directorio,'resultado.json'),'utf8'));
   if(previo.run_id!==c.runId||previo.version!==c.version) throw Error('RUN previo incoherente');
   const api=String(env.SIGAB_API_TEST_BASE).replace(/\/+$/,'');
-  const r={solicitudes:[],_limite:Date.now()+900000,_consecutivos5xx:0};
+   const r={solicitudes:[],_limite:Date.now()+PRESUPUESTO.duracion_segundos*1000,_consecutivos5xx:0};
   const cierre=await pedir(r,api,'DELETE',`/test-control/runs/${encodeURIComponent(c.runId)}`,{secreto:env.QA_SANDBOX_SECRET});
   const login=await pedir(r,api,'POST','/sesiones/',{cuerpo:{correo_electronico:env.QA_VETERINARIO_EMAIL,contrasena:env.QA_COMMON_PASSWORD},timeout:PRESUPUESTO.timeout_login_ms});
   const token=login.http===200?login.cuerpo?.token:null,usuarioId=usuarioDelToken(token);

@@ -26,7 +26,7 @@ export function contextoEjecucion(argumentos, { grupo, casos, directorio, modoEn
   const ruta = path.resolve(archivo);
   const temp = path.resolve(os.tmpdir());
   const directorioEnsayo = path.dirname(ruta);
-  if (ensayo && (!['evaluar', 'reintentar'].includes(operacion) || !directorioEnsayo.startsWith(temp + path.sep)
+  if (ensayo && (operacion !== 'reevaluar' || version !== 2 || !directorioEnsayo.startsWith(temp + path.sep)
     || path.basename(ruta) !== 'contexto_operacion.json')) throw new Error('Ensayo fuera de temporal.');
   if ((!ensayo && path.dirname(ruta) !== esperado) || !(operacion === 'recuperar'
     ? /^recuperacion-\d{14}\.contexto\.json$/.test(path.basename(ruta))
@@ -37,7 +37,8 @@ export function contextoEjecucion(argumentos, { grupo, casos, directorio, modoEn
     || c.operacion !== operacion.toUpperCase() || c.referencia !== referencia
     || JSON.stringify(c.casos) !== JSON.stringify(casos)
     || (operacion === 'recuperar' && c.run_objetivo !== objetivo)) throw new Error('Contexto incoherente.');
-  if (operacion === 'reevaluar' && (!c.alcance_reevaluacion || c.version_anterior !== version - 1))
+  if (['reevaluar', 'reintentar'].includes(operacion) && version >= 2
+    && (!c.alcance_reevaluacion || c.version_anterior !== version - 1))
     throw new Error('Falta alcance de reevaluaciÃ³n.');
   return { operacion, version, intento, runId, objetivo, referencia, contexto: c,
     directorio: ensayo ? directorioEnsayo : esperado, ensayo };

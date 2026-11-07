@@ -1,14 +1,15 @@
-# | Fecha      | Nombre    | Que se hizo                                                          |
-# |------------|-----------|----------------------------------------------------------------------|
-# | 2026-10-27 | HulkyZeus | RF-73 TC-M04-G089: correo admin configurable; 275 acepta fields |
+# | Fecha      | Nombre                   | Que se hizo                                                          |
+# |------------|--------------------------|----------------------------------------------------------------------|
+# | 2026-10-27 | HulkyZeus                | RF-73 TC-M04-G089: correo admin configurable; 275 acepta fields      |
+# | 2026-10-30 | Juan Sebastian Gutierrez | RF-73 TC-M04-G089: D1 asertos estrictos 422 ErrorResponse; D2 cota 0 |
 """
 TC-M04-G089 — Límites de paginación en GET /prediccion/auditoria (httpx).
-Subcasos: TC-M04-273 (default 50), 274 (max 200), 275 (201 → rechazo).
+Subcasos: TC-M04-273 (default 50), 274 (max 200), 275 (201 y 0 → rechazo 422).
 
 Diseño (P1'=B / P2=A / P3=A / D1=B / D2=A / D3=A / D4=Si):
 - P1'=B: httpx.Client contra $env:BACKEND (backend desplegado).
 - P2=A: 1 login + 1 GET + 1 DELETE por test. DEF-04 respetado.
-- D1=B: test 275 verifica OpenAPI primero.
+- D1=B: Asertos estrictos del contrato ErrorResponse (HTTP 422, VAL_ENTRADA, fields).
 - D2=A: baseline dinámico; no se hardcodea 973.
 - D3=A: cada GET +1 HISTORIAL_CONSULTADO (contaminación conocida).
 - D4=Si: schema de login del desplegado = {"correo_electronico", "contrasena"}.
@@ -69,17 +70,6 @@ def _teardown(client: httpx.Client, run_id: str) -> None:
     )
 
 
-def _openapi_declares_422(client: httpx.Client) -> bool:
-    r = client.get("/openapi.json")
-    if r.status_code != 200:
-        return False
-    schema = r.json()
-    path = schema.get("paths", {}).get("/prediccion/auditoria", {})
-    get_op = path.get("get", {})
-    responses = get_op.get("responses", {})
-    return "422" in responses
-
-
 @pytest.fixture
 def client():
     with httpx.Client(base_url=BASE_URL, timeout=15.0) as c:
@@ -138,34 +128,50 @@ def test_tc_m04_274_max_200(client):
 
 
 def test_tc_m04_275_max_excedido_201(client):
-    declares_422 = _openapi_declares_422(client)
     run_id = _new_run_id()
     try:
         token = _login(client, run_id)
+
+        # Cota superior: por_pagina=201 (le=200) -> HTTP 422 ErrorResponse
         r = client.get(
             "/prediccion/auditoria",
             params={"por_pagina": 201},
             headers=_auth(token, run_id),
         )
-        if declares_422:
-            assert r.status_code == 422, (
-                f"OpenAPI declara 422 para por_pagina>200; backend "
-                f"devolvió {r.status_code}. INC a M04 (HTTP_COM). "
-                f"Body: {r.text[:300]}"
-            )
-            cuerpo = r.json()
-            # formato estandar del backend (error_code/message/fields); "detail" es el crudo de Pydantic/FastAPI
-            detail = cuerpo.get("detail") or cuerpo.get("fields") or []
-            assert len(detail) > 0, f"422 sin detalle de validacion (ni detail ni fields): {r.text[:300]}"
-        else:
-            assert r.status_code == 400, (
-                f"Backend devolvió {r.status_code}; esperado 400 según "
-                f"patrón real (B5). Body: {r.text[:300]}"
-            )
-            body = r.json()
-            assert body.get("error_code") == "VAL_ENTRADA", (
-                f"error_code esperado VAL_ENTRADA; obtenido "
-                f"{body.get('error_code')}"
-            )
+        assert r.status_code == 422, (
+            f"OpenAPI declara 422 para por_pagina=201; backend "
+            f"devolvió {r.status_code}. Body: {r.text[:300]}"
+        )
+        body = r.json()
+        assert body.get("error_code") == "VAL_ENTRADA", (
+            f"error_code esperado 'VAL_ENTRADA', obtenido {body.get('error_code')}"
+        )
+        assert "message" in body, "falta 'message' en ErrorResponse"
+        assert "fields" in body, "falta 'fields' en ErrorResponse"
+        assert isinstance(body["fields"], list), "fields debe ser list"
+        assert any(
+            f.get("field") == "por_pagina" for f in body["fields"]
+        ), f"fields debe contener 'por_pagina': {body['fields']}"
+
+        # Cota inferior: por_pagina=0 (ge=1) -> HTTP 422 ErrorResponse
+        r0 = client.get(
+            "/prediccion/auditoria",
+            params={"por_pagina": 0},
+            headers=_auth(token, run_id),
+        )
+        assert r0.status_code == 422, (
+            f"OpenAPI declara 422 para por_pagina=0; backend "
+            f"devolvió {r0.status_code}. Body: {r0.text[:300]}"
+        )
+        body0 = r0.json()
+        assert body0.get("error_code") == "VAL_ENTRADA", (
+            f"error_code esperado 'VAL_ENTRADA', obtenido {body0.get('error_code')}"
+        )
+        assert "message" in body0, "falta 'message' en ErrorResponse"
+        assert "fields" in body0, "falta 'fields' en ErrorResponse"
+        assert isinstance(body0["fields"], list), "fields debe ser list"
+        assert any(
+            f.get("field") == "por_pagina" for f in body0["fields"]
+        ), f"fields debe contener 'por_pagina' para el caso 0: {body0['fields']}"
     finally:
         _teardown(client, run_id)

@@ -12,7 +12,8 @@ const opciones = JSON.parse(entrada);
 const salida = process.argv[2];
 const escribir = (valor) => fs.writeFileSync(salida, sanearArtefacto(JSON.stringify(valor), [
   opciones.env?.SANDBOX_SECRET, opciones.env?.PROD_PASSWORD, opciones.env?.ENG_PASSWORD,
-  opciones.env?.PROD_EMAIL, opciones.env?.ENG_EMAIL]));
+  opciones.env?.PROD_EMAIL, opciones.env?.ENG_EMAIL,
+  opciones.env?.PROD_LOGIN?.token, opciones.env?.ENG_LOGIN?.token]));
 try {
   const cy = createRequire(path.join(dir, '..', '..', '..', '..', '..', 'package.json'))('cypress');
   const res = await cy.run({ project: dir, configFile: 'g87.cypress.config.cjs', spec: path.join(dir, 'g87.cy.js'),

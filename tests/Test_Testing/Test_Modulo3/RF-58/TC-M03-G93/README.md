@@ -1,44 +1,65 @@
-# TC-M03-G93 — RECHAZADO (API: unidad sin sensores ausente del resumen; UI pendiente de DBA)
+# TC-M03-G93 / TC-M03-184 — automatización y antecedentes V1
 
-**Estado: CERRADO documentalmente.** El caso está RECHAZADO funcionalmente por API: en tres RUN autorizados una unidad recién creada sin sensores no figuró en resumen_unidades. La UI queda BLOQUEADA para el cierre por INC-M03-184-G93-02 (sesión del sandbox). El [informe consolidado del último RUN](Resultados/RUN-G93-V1-20261026-014819/TC-M03-G93_resultado.md) contiene las incidencias INC-M03-184-G93-01 para Desarrollo e INC-M03-184-G93-02 para DBA, su evidencia, las limitaciones y el historial transcrito. El RUN es **no oficial**; su resultado.json permanece intacto.
+Estado: **RUN V1 oficial del intento 8: RECHAZADO**. La API acreditó la presencia del área nueva; la UI no mostró su tarjeta. Esta preparación documental conserva antecedentes de los intentos 6 y 7 sin crear otro RUN ni SOL. Una nueva decisión del caso requiere API y UI públicas en un RUN autorizado por el lanzador externo.
 
-La fuente del oráculo es la fila TC-M03-G93 de Casos_Prueba(Modulo3 Agrupado).csv: «La unidad se muestra con estado GRIS y el mensaje "Sin datos disponibles", junto con la fecha del último dato histórico si existe; la unidad no desaparece del panel y no se devuelven errores 5xx ni valores fabricados». Se exige API y UI. QA considera equivalentes «Sin datos»/«Sin datos disponibles», admite INACTIVO como ausencia de señal para V2 y exige fecha histórica solo si existe.
+## Fuente y alcance
 
-## Estructura vigente
+Fuente primaria: fila TC-M03-G93 de `Casos_Prueba(Modulo3 Agrupado).csv`, RF-58 / CU04 E1. Oráculo literal: «La unidad se muestra con estado GRIS y el mensaje "Sin datos disponibles", junto con la fecha del último dato histórico si existe; la unidad no desaparece del panel y no se devuelven errores 5xx ni valores fabricados.» La precondición exige una unidad autorizada recién creada sin lecturas y otra con todos los sensores sin señal. QA acepta «Sin datos» en UI e INACTIVO en la segunda variante. La decisión QA del 2026-10-31 añade BUFFER_ACTIVO como ausencia de señal, únicamente cuando todos los sensores están en SIN_SEÑAL, INACTIVO o BUFFER_ACTIVO y ninguno ACTIVO. Fundamento consultado en lectura: `src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py:49` y `src/telemetry/application/use_cases/infraestructura/recibir_heartbeat_use_case.py:115`, donde los tres estados se clasifican como `FALLO_CONECTIVIDAD`. La fecha solo se exige si existe.
 
-- g93.mjs: ejecutor canónico y contrato de operaciones.
-- G93.postman_collection.json: colección Newman única.
-- g93.cy.js y g93.cypress.config.cjs: spec y configuración Cypress únicos.
-- lib/: lógica y resguardos compartidos del ejecutor.
-- pruebas/: regresiones y ensayos locales de la automatización; sus datos son sintéticos y sus artefactos se crean en el directorio temporal del sistema.
-- Resultados/RUN-G93-V1-20261026-014819/: único RUN conservado, con un solo Markdown oficial, resultado.json, preflight.json, contexto_operacion.json, reportes Newman y acta/captura Cypress reales.
+En esta continuación se consultaron realmente los dos casos de uso citados arriba del backend, solo en lectura, `anotaciones/modulo_3/api_reference_m03_telemetria_iot.md:625-638` (contrato RF-58 del dashboard) y `RF-58/TC-M03-G88/g88.cy.js:155-245` como referencia de automatización. Las otras rutas backend indicadas en el párrafo previo se consultaron en una preparación anterior. El criterio de aceptación literal procede de la matriz original; no se encontró un documento RF-58 autónomo en las rutas de requisitos revisadas. El checkout frontend no está accesible desde este workspace; la observación sobre `MonitoreoView.tsx` procede del intento previo y queda pendiente de comprobación pública en TEST. La lectura local no prueba lo desplegado en TEST.
 
-La operación diagnostico sigue en el ejecutor para futuros usos expresamente autorizados y escribiría una carpeta diagnostico/ nueva. Ningún diagnóstico histórico ni RUN anterior es dependencia de las pruebas vigentes. No invocar diagnostico durante este cierre.
+**DEFECTO_FUNCIONAL_CANDIDATO:** el intento previo señaló que `MonitoreoView.tsx` podría mostrar un párrafo en vez de la tarjeta cuando `sensores.length === 0 && !error`, aun si `resumen_unidades` contiene la unidad. UI-184-01 comprueba por API/UI pública si eso ocurre en TEST; no se emite veredicto por esa lectura previa.
 
-## Historial resumido
+## Inventario
 
-| Registro | Hecho |
+| Clase | Archivos |
 |---|---|
-| Intento 1, 20261025-150037 | Aborto local por carga de entorno; sin peticiones de negocio. |
-| Intento 2, 20261025-154913 | Área 514 ausente del resumen, API-184-01/02 RECHAZADO; UI ERROR_QA; rollback confirmado. |
-| Diagnóstico 20261025-173337 | Áreas 1/2/3 con sensores INACTIVO; 268/337 ACTIVO; 349/390/389/399 sin resumen. |
-| Intento 3, 20261025-182304 | Área 515 ausente, API-184-01/02 RECHAZADO; área 1 API-184-03 APROBADO; UI ERROR_QA; rollback confirmado. |
-| Intento 4, 20261025-221324 | Preflight Newman agotó plazo de 5 s; sin peticiones de negocio. |
-| Intento 5, 20261025-222242 | Timeout transitorio de login; sin peticiones de negocio. |
-| Diagnóstico 20261026-013518 | Login de Administrador y Productor HTTP 200 fuera del sandbox. |
-| Intento 6, 20261026-014819 | Área 519 ausente, API-184-01/02 RECHAZADO; UI V1 NO_CONCLUYENTE por sesión, V2 no ejecutada; rollback confirmado. |
+| Canónico | `g93.mjs`, `G93.postman_collection.json`, `g93.cy.js`, `g93.cypress.config.cjs` |
+| Auxiliar activo | `lib/contrato_ejecutor.mjs`, `lib/g93_escenario.mjs`, `lib/g93_ui.cjs`, `lib/registro_local.mjs`, `lib/seguridad.mjs` |
+| Test local | `pruebas/g93.test.mjs`, `pruebas/g93_ensayo_spec_real.mjs`, `pruebas/g93_arranque_local.mjs`, `pruebas/g93_ensayo.ps1` |
+| Diagnóstico | operación `diagnostico` en el ejecutor, inactiva para este reintento |
+| Evidencia oficial | `Resultados/RUN-G93-V1-20261031-080847/`; antecedentes saneados en `api/antecedentes/` dentro del mismo RUN |
+| Duplicado o legado activo | ninguno detectado |
 
-## Validación e invocaciones vigentes
+## Historial de intentos V1
 
-Desde esta carpeta, las consultas locales sin TEST son:
+| Intento | Registro documental |
+|---|---|
+| 1 | Previo al material conservado en este grupo; no se infiere veredicto ni resultado técnico. |
+| 2 | Previo al material conservado en este grupo; no se infiere veredicto ni resultado técnico. |
+| 3 | Previo al material conservado en este grupo; no se infiere veredicto ni resultado técnico. |
+| 4 | Previo al material conservado en este grupo; no se infiere veredicto ni resultado técnico. |
+| 5 | Previo al material conservado en este grupo; no se infiere veredicto ni resultado técnico. |
+| 6 | API: área 519 ausente de `resumen_unidades` antes de #785. UI: refresh 200 y luego `/usuarios/me` y `/sesiones/me/permisos` 500 con eco; captura de acceso denegado. Extractos saneados y captura preservados en el RUN oficial. |
+| 7 | API-184-01/02 APROBADO, primera confirmación de #785. Sesión UI concurrente con respuestas 500/401; candidatas V2 descartadas antes de la decisión QA sobre BUFFER_ACTIVO. Extractos saneados y captura preservados en el RUN oficial. |
+| 8 | RUN oficial V1 RECHAZADO: API V1/V2 aprobada; UI-184-01 rechazada por ausencia de tarjeta del área 700. Con cola de peticiones, los errores de sesión 500/401 no se reprodujeron. |
 
-- node g93.mjs --capacidades
-- node g93.mjs --comprobar
-- node pruebas/g93.test.mjs
-- node pruebas/g93_ensayo_spec_real.mjs (ensayo local del spec con servidor loopback y temporales del sistema; requiere Cypress/Chrome operativos).
+Los RUN técnicos de los intentos 6 y 7 se eliminan por el orquestador después de esta preservación. La automatización y los enlaces del informe oficial apuntan solo a archivos conservados en el RUN oficial.
 
-La ejecución sobre TEST corresponde exclusivamente al lanzador externo con autorización humana específica. El contrato del ejecutor usa g93.mjs --operacion reintentar --version 1 --intento N --run-id RUN-G93-V1-AAAAMMDD-HHMMSS --autorizacion REF --contexto RUTA_ABSOLUTA_AL_CONTEXTO. Esta línea documenta el contrato; no autoriza ejecutarla. V2 requiere decisión explícita de reevaluación y su propia estructura EvaluacionV2/Resultados/.
+## Secuencia preparada
 
-## Condiciones para reevaluar
+Preflight, login Administrador/Productor, apertura del RUN por el lanzador, consulta de finca 184 y área de referencia 349, POST de una unidad M09 sin sensores, descubrimiento y revalidación de área 1 o alternativa íntegramente sin señal (SIN_SEÑAL/INACTIVO/BUFFER_ACTIVO), canarios E7 filtrados con `por_pagina=1`, una ejecución Newman con API-184-01/02/03, observación técnica RLS-G93-01, Cypress UI-184-01/02, DELETE del RUN y comprobación pública del rollback. Cypress usa el token del login Productor obtenido por el ejecutor, espera `/usuarios/me` y `/sesiones/me/permisos` con HTTP 200 y eco del RUN y serializa las solicitudes API reales antes de abrir el dashboard. El ejecutor hace un login nuevo después del DELETE para las lecturas de cierre. La variante 2 se prepara aunque falle la semilla de la variante 1. En la unidad nueva, `ultimo_dato_recibido` nulo o una fecha histórica válida no decide por sí solo el rechazo; una fecha inválida sí incumple el oráculo.
 
-Atender INC-M03-184-G93-01 y resolver la dependencia de sesión de DBA-01/INC-M03-184-G93-02. Corregir y validar localmente la secuencia para ejecutar toda la API V1 y V2 antes de Cypress; en el último RUN, el refresh de la UI de V1 dejó inválido el token previo del ejecutor para preparar V2. Tras autorización humana específica, repetir API y UI públicas, conservar evidencias reales bajo el nuevo RUN y verificar cierre y rollback con alcance explícito.
+Newman consulta exclusivamente `GET /iot/monitoreo/dashboard?id_infraestructura=<id>&pagina=1&por_pagina=50`. Cypress también envía al servidor solo consultas filtradas: cuando el frontend intenta su carga inicial sin filtro, el spec añade `id_infraestructura` a esa petición real y lo consigna en el acta como `filtro_aplicado_por_spec`. No simula la respuesta. El selector actual `#monitoreo-area` se ejerce para la segunda vista.
+
+## Peticiones y efectos previstos en TEST
+
+**Trayecto mínimo con área 1 elegible y sin finca ajena identificada: 23 peticiones API directas/Newman, más las peticiones del navegador.** La lista exacta de ese trayecto es: `POST /sesiones/` ×2; `GET /usuarios/me` ×2 para acreditar roles; `GET /configuracion/fincas/184` ×2; `GET /configuracion/infraestructuras/349` ×1; `POST /configuracion/infraestructuras` ×1; `GET /configuracion/infraestructuras/<nueva>` ×2 (alcance y rollback); `GET /configuracion/fincas?solo_activas=true` ×1; `GET /iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=1` ×1; `GET /iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=50` ×3 (búsqueda, revalidación, Newman); `GET /configuracion/infraestructuras/1` ×2 (preparación y control posterior); `GET /iot/monitoreo/dashboard?id_infraestructura=<nueva>&pagina=1&por_pagina=1` ×1; `GET /iot/monitoreo/dashboard?id_infraestructura=<nueva>&pagina=1&por_pagina=50` ×2 (Newman y rollback); `GET /iot/dispositivos?estado=INACTIVO` ×1; `DELETE /test-control/runs/<RUN>` ×1; `POST /sesiones/` ×1 para lectura de cierre tras UI. Los recuentos se confirman en la bitácora real.
+
+Las alternativas 2/3 y la búsqueda acotada pueden añadir peticiones, incluida `GET /iot/dispositivos?estado=BUFFER_ACTIVO`; también puede haber hasta tres lecturas de detalles para RLS y una consulta filtrada de finca ajena. El ejecutor limita las directas a 56 con margen de 5 para cierre; Newman se invoca una vez y hace una o dos GET según las variantes preparadas. Cypress limita a 25 solicitudes API por vista; el número exacto de sus solicitudes depende de la versión desplegada y se contará en el acta real. Habrá una escritura de negocio M09 (`POST /configuracion/infraestructuras`), revertida solo si el DELETE y las lecturas de cierre lo acreditan. Login modifica la sesión; el DELETE modifica el sandbox. El canario corta consultas amplias ante sensor GRIS sin dato desactualizado o sin umbral, porque E7 podría auditar o enviar correo. No se presume reversión de esos efectos.
+
+## Corrección documental del intento 7
+
+El informe técnico del intento 7 asignaba por error INC-M03-184-G93-02 a Desarrollo y citaba #779. La asignación vigente de INC-02 es **DBA** (sandbox de pruebas; relación con DBA-01), sin issue de Desarrollo. **#779 corresponde a INC-M03-184-G93-01** y a la discrepancia UI posterior relacionada en INC-03. El generador del informe oficial consigna INC-02 como «NO REPRODUCIDA con peticiones serializadas»; la concurrencia sobre una conexión/transacción única sigue siendo hipótesis para DBA, sin causa raíz atribuida.
+
+## Comprobaciones locales
+
+```powershell
+node --check g93.mjs
+node --check g93.cy.js
+node g93.mjs --capacidades
+node g93.mjs --comprobar
+node pruebas/g93.test.mjs
+```
+
+El responsable QA puede ejecutar, en un entorno local con Cypress/Chrome y loopback disponibles, `node pruebas/g93_ensayo_spec_real.mjs`. El ensayo usa temporales del sistema y nunca TEST. Este Codex no lanza Cypress porque el proceso hijo queda impedido por `spawn EPERM`. El RUN V1 intento 7 corresponde exclusivamente al lanzador externo y a una autorización humana particular; este README no es una SOL.

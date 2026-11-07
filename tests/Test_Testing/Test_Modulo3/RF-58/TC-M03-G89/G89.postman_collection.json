@@ -16,6 +16,7 @@
       "  const sensor = sensores.find(s => String(s.id_sensor) === pm.environment.get('sensor_id'));",
       "  pm.test('['+caso+'][ASSERT]['+id+'-ESTADO] Semáforo esperado', () => { pm.expect(sensor).to.be.an('object'); pm.expect(sensor.estado_semaforo).to.eql(pm.environment.get('esperado_estado')); });",
       "  if (pm.environment.get('esperado_alerta')) pm.test('['+caso+'][ASSERT]['+id+'-ALERTA] id_alerta asociado', () => pm.expect(String(sensor && sensor.id_alerta)).to.eql(pm.environment.get('esperado_alerta')));",
+      "  if (pm.environment.get('esperado_alerta_nula') === 'SI') pm.test('['+caso+'][ASSERT]['+id+'-ALERTA-NULA] Sin alerta activa asociada', () => pm.expect(sensor && sensor.id_alerta).to.eql(null));",
       "}"
     ]}}] }]
 }

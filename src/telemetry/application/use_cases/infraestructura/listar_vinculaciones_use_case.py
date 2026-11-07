@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
+from src.shared.errors import ValidationError
 from src.telemetry.domain.entities.vinculacion_lectura import VinculacionLectura
 from src.telemetry.domain.repositories.vinculacion_lectura_repository import VinculacionLecturaRepository
 
@@ -27,7 +28,15 @@ class ListarVinculacionesUseCase:
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        modelo_manejo: Optional[str] = None,
     ) -> Tuple[List[VinculacionLectura], int]:
+        # CP84: un rango invertido devolvía 0 vinculaciones sin decir por qué.
+        if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+            raise ValidationError(
+                code='RANGO_FECHAS_INVALIDO',
+                message='fecha_desde no puede ser posterior a fecha_hasta.',
+                field='fecha_desde',
+            )
         return self.vinculacion_repo.listar(
             id_telemetria=id_telemetria,
             estado_vinculacion=estado_vinculacion,
@@ -38,4 +47,5 @@ class ListarVinculacionesUseCase:
             pagina=pagina,
             por_pagina=por_pagina,
             ids_fincas_permitidas=ids_fincas_permitidas,
+            modelo_manejo=modelo_manejo,
         )

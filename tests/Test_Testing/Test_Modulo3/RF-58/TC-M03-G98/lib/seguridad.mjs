@@ -8,7 +8,7 @@ export function sanearArtefacto(texto, secretos) {
     return s.replace(/eyJ[\w-]{5,}\.[\w-]{5,}\.[\w-]{5,}/g, '[JWT_REDACTADO]')
       .replace(/((?:refresh_token|x-sandbox-secret|password|contrasena)\s*[:=]\s*)[^\s;,"']+/gi, '$1[REDACTADO]')
       .replace(/(Authorization\s*:\s*Bearer\s+)\S+/gi, '$1[REDACTADO]')
-      .replace(/(\\?"(?:serial|correo_electronico|email|nombre(?:_[a-z_]+)?|apellidos|telefono|direccion|identificador|numero_identificacion|fecha_nacimiento|contrasena|password|token|usuario|username|id_usuario)\\?"\s*:\s*\\?")[^"\\]*(\\?")/gi, '$1[REDACTADO]$2')
+      .replace(/(\\?"(?:serial|correo_electronico|email|nombre(?:_[a-z_]+)?|apellidos|telefono|direccion|identificador(?:_activo)?|numero_identificacion|fecha_nacimiento|contrasena|password|token|usuario|username|id_usuario)\\?"\s*:\s*\\?")[^"\\]*(\\?")/gi, '$1[REDACTADO]$2')
       .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[CORREO_REDACTADO]');
   };
   let json;
@@ -20,7 +20,7 @@ export function sanearArtefacto(texto, secretos) {
     const cabecera = /^(authorization|x-sandbox-secret|broker_service_token|sandbox_secret|tok_prod|tok_eng)$/i.test(String(valor.key ?? ''));
     const resultado = {};
     for (const [k, v] of Object.entries(valor)) {
-      if (/^(authorization|x-sandbox-secret|broker_service_token|sandbox_secret|tok_prod|tok_eng|serial|correo_electronico|email|nombre(?:_[a-z_]+)?|apellidos|telefono|direccion|identificador|numero_identificacion|fecha_nacimiento|contrasena|password|token|usuario|username|id_usuario)$/i.test(k)
+      if (/^(authorization|x-sandbox-secret|broker_service_token|sandbox_secret|tok_prod|tok_eng|serial|correo_electronico|email|nombre(?:_[a-z_]+)?|apellidos|telefono|direccion|identificador(?:_activo)?|numero_identificacion|fecha_nacimiento|contrasena|password|token|usuario|username|id_usuario)$/i.test(k)
         || (cabecera && k === 'value')) resultado[k] = '[REDACTADO]';
       else if (k === 'data' && Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
         const bytes = Buffer.from(v);

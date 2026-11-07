@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: exponer el perfil histórico real de cada versión RF-65. |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -36,6 +37,7 @@ class SqlAlchemyHistorialConfiguracionMotorRepository(HistorialConfiguracionMoto
             umbral_alerta_critica=orm.umbral_alerta_critica,
             ventana_temporal_min=orm.ventana_temporal_min,
             modo_ejecucion=orm.modo_ejecucion,
+            perfil_calculo_contagio=orm.perfil_calculo_contagio,
             w_factor_sanitario=orm.w_factor_sanitario,
             w_factor_ambiental=orm.w_factor_ambiental,
             w_factor_densidad=orm.w_factor_densidad,

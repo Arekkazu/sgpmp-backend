@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-17/53: expone clasificacion por lectura  |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58: sin activo se clasifica con la especie del área |
 from __future__ import annotations
 
 from typing import Optional
@@ -63,9 +64,6 @@ class ReclasificarSemaforoUseCase:
         RF-57 reutiliza esta operación sin modificar la proyección RF-58. Una
         lectura tardía puede ser crítica aunque el último dato ya sea normal.
         """
-        if id_activo_biologico is None:
-            return None
-
         telemetria = self.telemetria_repo.obtener_por_id(id_telemetria)
         if telemetria is None:
             return None
@@ -74,15 +72,26 @@ class ReclasificarSemaforoUseCase:
         if valor is None:
             return None
 
-        id_especie = self.especie_port.obtener_id_especie(id_activo_biologico)
-        if id_especie is None:
-            return None
-
-        umbral = self.umbral_port.obtener_umbral_vigente(
-            id_variable_ambiental=telemetria.id_variable,
-            id_especie=id_especie,
-            timestamp=telemetria.timestamp_captura,
-        )
+        if id_activo_biologico is not None:
+            id_especie = self.especie_port.obtener_id_especie(id_activo_biologico)
+            if id_especie is None:
+                return None
+            umbral = self.umbral_port.obtener_umbral_vigente(
+                id_variable_ambiental=telemetria.id_variable,
+                id_especie=id_especie,
+                timestamp=telemetria.timestamp_captura,
+            )
+        else:
+            # M3-09 / M3-12: un sensor ambiental de un área no tiene activo vinculado.
+            # Antes se devolvía None: el dashboard se quedaba con el VERDE del trigger
+            # aunque el valor estuviera fuera de rango, y RF-57 reintentaba sin fin.
+            id_especie = None
+            umbral = self.umbral_port.obtener_umbral_vigente_area(
+                id_variable_ambiental=telemetria.id_variable,
+                id_infraestructura=None,
+                timestamp=telemetria.timestamp_captura,
+                id_sensor=telemetria.id_sensor,
+            )
         if umbral is None:
             return None
 

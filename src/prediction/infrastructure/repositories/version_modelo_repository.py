@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import uuid
@@ -62,6 +65,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
             componente=orm.componente,
             metricas_poblacionales=orm.metricas_poblacionales,
             firma_artefacto=orm.firma_artefacto,
+            id_activo_biologico=orm.id_activo_biologico,
+            fuente_datos=orm.fuente_datos,
         )
 
     # ------------------------------------------------------------------
@@ -99,6 +104,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
                 fecha_despliegue=entidad.fecha_despliegue,
                 componente=entidad.componente,
                 metricas_poblacionales=entidad.metricas_poblacionales,
+                id_activo_biologico=entidad.id_activo_biologico,
+                fuente_datos=entidad.fuente_datos,
             )
             self._db.add(orm)
             self._db.flush()
@@ -160,14 +167,20 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_activo_por_tipo(
-        self, tipo_modelo: str, componente: Optional[str] = None
+        self,
+        tipo_modelo: str,
+        componente: Optional[str] = None,
+        id_activo_biologico: Optional[int] = None,
+        estado: str = "ACTIVO",
     ) -> Optional[VersionModelo]:
         orm = self._db.execute(
             select(VersionModeloModel).where(
                 VersionModeloModel.tipo_modelo == tipo_modelo,
                 VersionModeloModel.componente.is_(None) if componente is None
                 else VersionModeloModel.componente == componente,
-                VersionModeloModel.estado_version == "ACTIVO",
+                VersionModeloModel.id_activo_biologico.is_(None) if id_activo_biologico is None
+                else VersionModeloModel.id_activo_biologico == id_activo_biologico,
+                VersionModeloModel.estado_version == estado,
             )
         ).scalar_one_or_none()
         return self._a_entidad(orm) if orm else None

@@ -1,0 +1,22 @@
+{
+  "grupo": "G98",
+  "version": 2,
+  "intento": 5,
+  "run_id": "RUN-G98-V2-20261031-183417",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G98-V2-R4-20261031",
+  "casos": [
+    "TC-M03-191"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M03-191"
+    ],
+    "version_anterior": 1,
+    "motivo": "Cuarto intento de la reevaluación V2. Intentos técnicos anteriores, todos BLOQUEADO con rollback CONFIRMADO y sin escrituras: RUN-G98-V2-20261031-165339, RUN-G98-V2-20261031-172140 y RUN-G98-V2-20261031-182607. En el último, el área semilla 702 se priorizó y se leyeron con 200 el activo 928, el dispositivo 789 y sus sensores, pero las 26 consultas a GET /iot/monitoreo/historial dieron 422: el ejecutor combinaba sensor_id con id_infraestructura, combinación que RF-59 Restricción 12 no admite (monitoreo.py:163-174). Error del ejecutor, no del producto; probable causa también de los intentos anteriores. ORD-G98-013: el historial se consulta solo con fechas + sensor_id, el área se filtra en el ejecutor, un error HTTP del historial se traza como NO_CONCLUYENTE técnico y el simulador del ensayo aplica la Restricción 12. Semilla persistente (estado/SEMILLA-G98.md): área 702, activo 928, dispositivo 789, sensores 1210/1211/1212 con lecturas 118639-118641 vinculadas al activo. Validación: 13/13 pruebas; ensayo real con Newman del responsable QA 7/7. SHA-256 g98.mjs 9184975741bc9666fd7fe5ec228b6e82006d129a74b5b9e2bbcd775dd653d1cd; colección dcf930bc2190b0d186d5b06c954c51f21bfed3bd0e3db468d6496cb9ef7fa066.",
+    "incumplimientos_previos": "V1 oficial RUN-G98-V1-20261026-181259: TC-M03-191 RECHAZADO por INC-M03-191-G98-01 (Desarrollo, ALTA): el dashboard del área 1 devolvía solo alertas_activas_count=1, sin panel con total y lista; observación: severidad_alerta null en una referencia de sensor.",
+    "correcciones_informadas": "Desarrollo, issue #788 / PR #864 (backend) y #456 (frontend): panel integrado de alertas activas con total, orden por severidad (CRITICO primero), información de cada alerta y enlace al activo; corrección de severidad_alerta null por caché obsoleta; restricciones de acceso mantenidas.",
+    "resultado_esperado": "TC-M03-191 APROBADO: HTTP 200 con panel_alertas_activas cuyo total coincide con las alertas ACTIVAS del alcance y cuya lista está ordenada por severidad con CRITICO primero, con tipo de alerta, variable afectada, tiempo transcurrido e identificación del activo biológico. INC-M03-191-G98-01 CORREGIDA si se cumple."
+  },
+  "version_anterior": 1
+}

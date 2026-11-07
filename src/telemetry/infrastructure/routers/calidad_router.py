@@ -8,6 +8,8 @@
 # | 2026-10-26 | Arekkazu | Lote fixes M03/M04 RF-62: 422 por ruta con la clave común x-codigo-validacion |
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: pasar a RF62 el reloj de la lectura original sin consultar estado actual. |
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: restringir lote al administrador e inyectar contexto y alertas reales. |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-62: sensor y lectura por nombre en calidad |
+# | 2026-11-03 | Arekkazu | RF-62: GET /vision, observaciones evaluadas y política vigente (panel sin datos de ejemplo) |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -16,6 +18,7 @@ RF-62 — CU06 Dev scope:
   POST /iot/calidad/{id_telemetria}/evaluar — Disparar evaluación puntual
   POST /iot/calidad/reevaluar               — Re-evaluación explícita admin (FA-08)
   POST /iot/calidad/vision/{id}/evaluar     — Calidad de una observación de visión (AIOT-SPEC-01)
+  GET  /iot/calidad/vision                  — Observaciones de visión evaluadas y política vigente
 
 Auth: JWT Bearer + RBAC recurso 38 (calidad_telemetria).
 """
@@ -25,10 +28,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
+import logging
+
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
-from src.shared.database import get_db
+from src.shared.database import get_db, sesion_sistema
 from src.shared.errors import NotFoundError, AuthorizationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -47,7 +53,6 @@ from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter impo
 from src.telemetry.infrastructure.adapters.contexto_calidad_m09_rf60_adapter import ContextoCalidadM09RF60Adapter
 from src.telemetry.application.use_cases.calidad.generar_alerta_calidad_use_case import GenerarAlertaCalidadUseCase
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
-from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
 from src.telemetry.infrastructure.dto.solicitar_reevaluacion_dto import SolicitarReevaluacionDTO
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -60,8 +65,40 @@ from src.telemetry.infrastructure.schema.telemetria_calidad_schema import (
 )
 from src.shared.fechas import FechaHoraUtc
 
+from src.telemetry.application.use_cases.calidad.consultar_calidad_vision_use_case import ConsultarCalidadVisionUseCase
+from src.telemetry.infrastructure.adapters.politica_vision_mlops_adapter import PoliticaVisionMLOpsAdapter
+from src.telemetry.infrastructure.repositories.calidad_vision_repository import SqlAlchemyCalidadVisionRepository
+from src.telemetry.infrastructure.schema.calidad_vision_schema import (
+    ListaCalidadVisionSchema, ObservacionVisionEvaluadaSchema, PoliticaVisionSchema,
+)
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62"])
 
+
+
+def _con_nombres(db: Session, items: list[TelemetriaCalidadSchema]) -> list[TelemetriaCalidadSchema]:
+    """T-18: sensor y lectura por nombre, una consulta por página (mismo patrón que vinculaciones)."""
+    ids = list({e.id_telemetria for e in items})
+    if not ids:
+        return items
+    try:
+        filas = db.execute(text(
+        'SELECT t.id_telemetria, s.nombre, va.nombre, coalesce(t.valor_ajustado, t.valor_crudo), '
+        'coalesce(va.unidad, t.unidad_medida) FROM modulo3.telemetrias t '
+        'LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable '
+        'LEFT JOIN modulo9.sensores s ON s.id_sensores = t.id_sensor '
+        'WHERE t.id_telemetria = ANY(:ids)'), {'ids': ids}).all()
+        lecturas = {f[0]: tuple(f[1:]) for f in filas}
+    except Exception:
+        # Los nombres son de presentación: si no se resuelven, la evaluación sale con sus IDs.
+        logger.warning('No se resolvieron los nombres de sensor y lectura de calidad.', exc_info=True)
+        return items
+    for e in items:
+        e.nombre_sensor, e.nombre_variable, valor, e.unidad_lectura = lecturas.get(e.id_telemetria, (None,) * 4)
+        e.valor_lectura = float(valor) if valor is not None else None
+    return items
 
 @router.get(
     "",
@@ -102,7 +139,49 @@ def listar_calidad(
         total=total,
         pagina=pagina,
         por_pagina=por_pagina,
-        items=[TelemetriaCalidadSchema.model_validate(e) for e in items],
+        items=_con_nombres(db, [TelemetriaCalidadSchema.model_validate(e) for e in items]),
+    )
+
+
+@router.get(
+    "/vision",
+    response_model=ListaCalidadVisionSchema,
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    dependencies=[Depends(require_permission(38, 2))],
+    summary="Observaciones de visión con su índice de calidad y la política vigente (RF-62)",
+)
+def listar_calidad_vision(
+    id_dispositivo_iot: Optional[int] = Query(default=None, gt=0),
+    clasificacion: Optional[str] = Query(default=None, description="OPTIMA | DEGRADADA | NO_APTA | SIN_EVALUAR"),
+    desde: Optional[FechaHoraUtc] = Query(default=None, description="Por defecto, las últimas 24 h"),
+    hasta: Optional[FechaHoraUtc] = Query(default=None),
+    pagina: int = Query(default=1),
+    por_pagina: int = Query(default=50, description="1 a 200."),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ListaCalidadVisionSchema:
+    """Lee lo que la evaluación asíncrona guardó en ``modulo3.observaciones_vision``; no recalcula.
+    Debe ir antes de ``/{id_telemetria}``: si no, «vision» se toma como un id y responde 422."""
+    # La política se lee con una sesión de sistema: la RLS de parametros_mlops solo deja ver estas
+    # claves con version_modelo · Leer, y quien revisa la calidad (38 · Leer) también las necesita.
+    db_sistema = sesion_sistema()
+    try:
+        r = ConsultarCalidadVisionUseCase(
+            SqlAlchemyCalidadVisionRepository(db),
+            PoliticaVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db_sistema)),
+        ).execute(
+            ids_fincas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+                usuario_actual.id_usuario, usuario_actual.id_rol),
+            id_dispositivo_iot=id_dispositivo_iot, clasificacion=clasificacion, desde=desde, hasta=hasta,
+            pagina=pagina, por_pagina=por_pagina,
+        )
+    finally:
+        db_sistema.close()
+    return ListaCalidadVisionSchema(
+        items=[ObservacionVisionEvaluadaSchema.model_validate(o) for o in r.items], total=r.total,
+        pagina=r.pagina, por_pagina=r.por_pagina, desde=r.desde, hasta=r.hasta,
+        politica=PoliticaVisionSchema.model_validate(r.politica) if r.politica else None,
+        politica_motivo=r.politica_motivo,
     )
 
 
@@ -126,7 +205,7 @@ def obtener_calidad(
     use_case = ConsultarCalidadUseCase(
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
     )
-    return TelemetriaCalidadSchema.model_validate(use_case.get(id_telemetria))
+    return _con_nombres(db, [TelemetriaCalidadSchema.model_validate(use_case.get(id_telemetria))])[0]
 
 
 @router.post(

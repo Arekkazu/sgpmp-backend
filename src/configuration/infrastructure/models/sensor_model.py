@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-11-01 | Arekkazu | RF-22: uq_sensores_nombre (nombre único por dispositivo)           |
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-25 | Arekkazu         | INC-M03-124-G01 RF-22: INSERT sin RETURNING   |
@@ -11,7 +14,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import Boolean, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String
+from sqlalchemy import Boolean, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import Base
@@ -26,6 +29,8 @@ class SensorModel(Base):
             name='sensores_id_dispositivo_iot_fkey',
         ),
         PrimaryKeyConstraint('id_sensores', name='sensores_pkey'),
+        # El broker resuelve la lectura por (dispositivo, nombre): c9a8cc1ef814.
+        UniqueConstraint('id_dispositivo_iot', 'nombre', name='uq_sensores_nombre'),
         # RLS: `pol_sensores_select` filtra con `fn_sensores_del_usuario`, que es
         # STABLE y relee `sensores` con el snapshot de la sentencia, así que no ve
         # la fila que el mismo INSERT crea y un INSERT ... RETURNING falla con

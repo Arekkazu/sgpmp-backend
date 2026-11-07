@@ -2,6 +2,10 @@
 
 Estado: borrador del 2026-10-27. Clasificacion sujeta a confirmacion donde diga *por confirmar*.
 
+Datos detallados de la prueba (modelo y métricas, población por área, sensores, umbrales, lecturas, estados e inventario): [datos_E1_vaca.md](datos_E1_vaca.md).
+
+Ejecución en DEV (2026-11-02): capacidad, lecturas en fronteras y ciclo de vida de alertas; en DEV la especie es Bovino (id 2), densidad 0.1. Resultados en [datos_E1_vaca.md](datos_E1_vaca.md) sección 8 y en `../Flujo/Bovino/`.
+
 ## 1. Ficha
 
 | Campo | Valor |

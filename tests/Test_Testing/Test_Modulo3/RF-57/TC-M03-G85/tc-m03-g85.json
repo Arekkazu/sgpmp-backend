@@ -826,7 +826,7 @@
                   "console.log('[TC-M03-G85 1.6c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "console.log('[G85-1.6c][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, message: J.message}).slice(0, 400));",
-                  "pm.test('El orden invertido de niveles se rechaza (400/409/422) o queda documentado', function () { pm.expect([201, 400, 409, 422]).to.include(pm.response.code); });",
+                  "pm.test('El orden invertido de niveles se rechaza (400/409/422)', function () { pm.expect([400, 409, 422]).to.include(pm.response.code); });",
                   "if (pm.response.code === 201) {",
                   "  const _id = J.id_umbral_ambiental || J.id_umbral || J.id; pm.collectionVariables.set('umbral_invertido', String(_id || ''));",
                   "}"
@@ -981,7 +981,7 @@
                 "exec": [
                   "console.log('[TC-M03-G85 2.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Preparacion: alerta del evento 1.1 descartada (200) o no gestionable por PATCH por ser tecnica (404)', function () { pm.expect([200, 404], pm.response.text().slice(0, 300)).to.include(pm.response.code); });"
+                  "console.log('[G85][OBSERVADO] paso de preparacion (no es prueba): status=' + pm.response.code + ' (404: la alerta tecnica no se gestiona por PATCH /iot/alertas/{id}/estado)');"
                 ]
               }
             }

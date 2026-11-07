@@ -4,7 +4,7 @@ import { asociacionVigente, lecturaVinculada, lecturaVinculadaHistorial,
   rangoHistorial } from './g88_entradas.mjs';
 import { lecturaDelRun } from './g88_respuestas.mjs';
 
-export const PLAN_266 = Object.freeze({ habilitado: false,
+export const PLAN_266 = Object.freeze({ habilitado: true,
   pasos: Object.freeze(['semilla_preexistente', 'precondiciones', 'alta_umbral_10_20',
     'auditoria_propagacion_alta', 'ingesta_unica_15', 'dashboard_e_historial_inicial',
     'edicion_umbral_20_30', 'auditoria_propagacion_edicion',
@@ -18,7 +18,7 @@ const body = (x) => x?.json?.data ?? x?.json;
 
 export function autorizacion266(c) {
   const expreso = c?.habilitar_266 === true || c?.alcance_reevaluacion?.habilitar_266 === true;
-  return !PLAN_266.habilitado && expreso && c.version === 1
+  return PLAN_266.habilitado && expreso && c.version === 1
     && ['EVALUAR', 'REINTENTAR'].includes(c.operacion)
     && c.casos?.includes('TC-M03-266') && !!c.referencia;
 }
@@ -56,7 +56,6 @@ export function autorizarEscritura266({ metodo, ruta, cuerpo, fase, semilla: s, 
       && JSON.stringify(cuerpo?.niveles) === JSON.stringify(niveles(20))
       && Object.hasOwn(cuerpo ?? {}, 'fecha_actualizacion')
       && (cuerpo.fecha_actualizacion === null || typeof cuerpo.fecha_actualizacion === 'string');
-  if (metodo === 'PATCH' && ruta === `/configuracion/umbrales/${umbralId}/desactivar`) return id(umbralId);
   if (metodo === 'POST' && ruta === '/iot/telemetria') return eq(cuerpo?.device_id, s?.dispositivo_id)
     && eq(cuerpo?.sensor_id, s?.sensor_id) && cuerpo?.tipo_variable === 'TEMPERATURA_AMBIENTAL'
     && n(cuerpo?.valor) === 15 && typeof serial === 'string' && serial.length > 0
@@ -65,7 +64,7 @@ export function autorizarEscritura266({ metodo, ruta, cuerpo, fase, semilla: s, 
   return false;
 }
 
-const niveles = (min) => [{ nivel: 'critico', limite_inferior: min, limite_superior: min + 2 },
+export const niveles = (min) => [{ nivel: 'critico', limite_inferior: min, limite_superior: min + 2 },
   { nivel: 'precaucion', limite_inferior: min + 2, limite_superior: min === 10 ? 13 : 24 },
   { nivel: 'normal', limite_inferior: min === 10 ? 13 : 24, limite_superior: min + 10 }];
 
@@ -120,11 +119,9 @@ export async function verificarSemillaPreexistente266({ solicitar: req, token, p
     || (vinculables[0].tipo ?? vinculables[0].tipo_activo) !== 'INDIVIDUAL')
     fail('R3 activo INDIVIDUAL vinculable único no acreditado');
   const dispositivos = await get(req, '/configuracion/dispositivos-iot', token);
-  const delArea = (dispositivos.items ?? []).filter((x) => eq(x.id_infraestructura, s.area_id) && x.es_activo);
   const dispositivo = await get(req, `/configuracion/dispositivos-iot/${s.dispositivo_id}`, token);
-  if (!Array.isArray(dispositivos.items) || (dispositivos.total != null
-    && n(dispositivos.total) !== dispositivos.items.length)
-    || delArea.length !== 1 || !eq(delArea[0].id_dispositivo_iot, s.dispositivo_id)
+  if (!compuertaDispositivos266({ items: dispositivos.items, total: dispositivos.total,
+    areaId: s.area_id, dispositivoId: s.dispositivo_id })
     || !eq(dispositivo.id_dispositivo_iot, s.dispositivo_id) || !dispositivo.es_activo
     || !eq(dispositivo.id_infraestructura, s.area_id)
     || dispositivo.id_dispositivo_gateway != null || dispositivo.serial !== p.serial)
@@ -163,16 +160,16 @@ export async function verificarSemillaPreexistente266({ solicitar: req, token, p
   s.variable_id = variable.id_variable_ambiental;
   s.unidad = variable.unidad;
   const umbrales = await get(req, `/configuracion/umbrales?id_especie=${s.especie_id}`, token);
+  const { inicio, fin } = rangoHistorial();
   const historial = await get(req,
-    `/iot/monitoreo/historial?sensor_id=${s.sensor_id}&fecha_inicio=2000-01-01&fecha_fin=${rangoHistorial().fin}`, token);
+    `/iot/monitoreo/historial?sensor_id=${s.sensor_id}&fecha_inicio=${inicio}&fecha_fin=${fin}`, token);
   const dashboard = await get(req, `/iot/monitoreo/dashboard?id_infraestructura=${s.area_id}&por_pagina=50`, token);
   const alertasSensor = await get(req, `/iot/alertas?id_sensor=${s.sensor_id}`, token);
   const alertasActivo = await get(req, `/iot/alertas?id_activo_biologico=${s.activo_id}`, token);
   const estado = (dashboard.sensores ?? []).find((x) => eq(x.id_sensor, s.sensor_id));
   if (!Array.isArray(umbrales.items) || (umbrales.total != null
     && n(umbrales.total) !== umbrales.items.length)
-    || umbrales.items.some((x) => x.es_activo
-    && eq(x.id_variable_ambiental, s.variable_id)) || historial.total == null
+    || umbrales.items.length !== 0 || historial.total == null
     || n(historial.total) !== 0
     || !Array.isArray(historial.items) || historial.items.length !== 0
     || (estado && (estado.ultimo_valor != null || estado.id_alerta != null
@@ -182,6 +179,29 @@ export async function verificarSemillaPreexistente266({ solicitar: req, token, p
     || alertasActivo.total == null || n(alertasActivo.total) !== 0)
     fail('R5 umbral, lectura, estado o alerta previa');
   return s;
+}
+
+export function barreraPublicacion266({ umbral, eventos, version }) {
+  const propios = Array.isArray(eventos) ? eventos.filter((x) =>
+    x.tipo_evento === 'PROPAGACION_UMBRAL_EDGE'
+    && (version == null ? x.accion_detallada?.version == null
+      : Date.parse(x.accion_detallada?.version) === Date.parse(version))) : [];
+  const detalle = propios.length === 1 ? propios[0].accion_detallada : null;
+  return { segura: umbral?.estado_sincronizacion === 'PENDIENTE'
+    && detalle?.estado === 'PENDIENTE' && Array.isArray(detalle.gateways)
+    && detalle.gateways.length === 0,
+    estado_umbral: umbral?.estado_sincronizacion ?? null,
+    estado_auditoria: detalle?.estado ?? null,
+    gateways: detalle?.gateways?.length ?? null,
+    eventos: propios.length };
+}
+
+export function compuertaDispositivos266({ items, total, areaId, dispositivoId }) {
+  if (!Array.isArray(items) || total != null && Number(total) !== items.length) return false;
+  const delArea = items.filter((x) => eq(x.id_infraestructura, areaId));
+  return delArea.length === 1 && eq(delArea[0].id_dispositivo_iot, dispositivoId)
+    && delArea[0].es_activo === true
+    && delArea.every((x) => x.categoria !== 'GATEWAY_EDGE' && x.id_dispositivo_gateway == null);
 }
 
 async function auditarEscritura266(req, token, umbralId, version, etapa, r, secretos = []) {
@@ -248,7 +268,7 @@ async function estadoLectura(req, token, s, telemetriaId) {
 }
 
 export async function ejecutar266({ solicitar: req, admin, productor, broker, serial, s, control, r, lecturas,
-  conservarSemilla = true, newmanLectura, secretos = [], timestampCaptura, planTemporal }) {
+  conservarSemilla = true, newmanLectura, aplazarDesactivacion, secretos = [], timestampCaptura, planTemporal }) {
   const caso = 'TC-M03-266';
   const prueba = (nombre, estado, observado, naturaleza = null) => r.comprobaciones.push({ caso,
     id: nombre, fuente: 'API', tipo: 'ASSERT', estado, naturaleza, observado });
@@ -431,7 +451,7 @@ export async function ejecutar266({ solicitar: req, admin, productor, broker, se
     if (newmanLectura) await newmanLectura({ s, esperado: 'ROJO/AMARILLO' });
   } finally {
     if (umbralId && !omitirEscriturasPosteriores) {
-      try {
+      const desactivar = async () => { try {
         const x = await write(req, 'PATCH', `/configuracion/umbrales/${umbralId}/desactivar`,
           undefined, admin, control, 200);
         const auditoriaCierre = await auditarEscritura266(req, admin, umbralId,
@@ -447,7 +467,9 @@ export async function ejecutar266({ solicitar: req, admin, productor, broker, se
         r.bitacora.push({ caso, cierre_m09_en_run: x?.es_activo === false && posteriorUmbral?.es_activo === false
           ? 'DESACTIVADO_VERIFICADO_DENTRO_DEL_RUN' : 'NO_VERIFICADO', umbral_id: umbralId,
           rollback_pendiente: true, semilla_preexistente_sin_modificacion: conservarSemilla });
-      } catch (e) { r.problemas_tecnicos.push(`266 cierre M09: ${e.message}`); }
+      } catch (e) { r.problemas_tecnicos.push(`266 cierre M09: ${e.message}`); } };
+      if (aplazarDesactivacion) aplazarDesactivacion(desactivar);
+      else await desactivar();
     }
   }
 }

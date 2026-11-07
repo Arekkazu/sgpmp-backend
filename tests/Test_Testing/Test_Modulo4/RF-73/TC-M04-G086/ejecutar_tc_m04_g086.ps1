@@ -1,9 +1,21 @@
 # ejecutar_tc_m04_g086.ps1 - Runner Pytest para TC-M04-G086
+param(
+    [string]$Suffix = ""
+)
+
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = "c:\Users\Juansegutt\Integrador\sgpmp-backend"
 $TC       = "tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G086"
 $ResultDir = Join-Path $RepoRoot "$TC\resultados"
+
+# 0. Guarda de protección para V1 (D-08 / RN-R05-EXT)
+$V1Json = Join-Path $ResultDir "resultado_TC-M04-G086.json"
+if ([string]::IsNullOrEmpty($Suffix) -and (Test-Path $V1Json)) {
+    Write-Host "ADVERTENCIA: $V1Json (V1) ya existe. Para no sobreescribir V1 en reintentos, use -Suffix '_reintento1'." -ForegroundColor Yellow
+    Write-Host "Ejecución cancelada para proteger V1. Pase -Suffix explícitamente." -ForegroundColor Red
+    exit 1
+}
 
 # 1. Cargar .env.test
 $EnvFile = Join-Path $RepoRoot ".env.test"
@@ -33,7 +45,7 @@ if (-not (Test-Path $ResultDir)) {
 }
 
 # 5. pytest con junit
-$JunitXml = Join-Path $ResultDir "_raw_pytest.xml"
+$JunitXml = Join-Path $ResultDir "_raw_pytest$Suffix.xml"
 Push-Location $RepoRoot
 try {
     .\.venv\Scripts\pytest.exe $TC -v --junitxml="$JunitXml" --tb=short
@@ -44,7 +56,7 @@ finally {
 }
 
 # 6. Consolidar
-$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G086.json"
+$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G086$Suffix.json"
 .\.venv\Scripts\python.exe (Join-Path $RepoRoot "$TC\consolidar_resultados.py") $JunitXml $FinalJson
 
 # 7. Reporte

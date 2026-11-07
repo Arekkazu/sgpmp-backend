@@ -1,0 +1,90 @@
+{
+  "tc": "TC-M04-G081",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G081: Registro de eventos de inferencia",
+  "estado_general": "Rechazado",
+  "stats": {
+    "tests": 12,
+    "passes": 6,
+    "failures": 6
+  },
+  "checkpoints": [
+    {
+      "paso": "01-Login-ADMIN - NW-01: Autenticación exitosa del Administrador (HTTP 200)",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "02-Preflight-Auditoria-M04 - NW-02: Preflight exitoso sobre GET /prediccion/auditoria (HTTP 200)",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "03-TC-M04-250-Inferencia-Ejecutada-Diagnostico - HTTP 200 en consulta de auditoría",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "03-TC-M04-250-Inferencia-Ejecutada-Diagnostico - Existe al menos 1 evento INFERENCIA_EJECUTADA en M04",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "03-TC-M04-250-Inferencia-Ejecutada-Diagnostico - Los eventos INFERENCIA_EJECUTADA cumplen el contrato RF-73 v2.0",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "Sin eventos no se puede validar contrato (RF-66 no implementado): expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "04-TC-M04-251-Inferencia-Rechazada-Diagnostico - HTTP 200 en consulta de auditoría",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "04-TC-M04-251-Inferencia-Rechazada-Diagnostico - Existe al menos 1 evento INFERENCIA_RECHAZADA en M04",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "04-TC-M04-251-Inferencia-Rechazada-Diagnostico - Los eventos INFERENCIA_RECHAZADA cumplen el contrato RF-73 v2.0",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "Sin eventos no se puede validar contrato (RF-66 no implementado): expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "05-TC-M04-252-Alerta-Prediccion-Diagnostico - HTTP 200 en consulta de auditoría",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "05-TC-M04-252-Alerta-Prediccion-Diagnostico - Existe al menos 1 evento ALERTA_PREDICCION_GENERADA en M04",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "05-TC-M04-252-Alerta-Prediccion-Diagnostico - Los eventos ALERTA_PREDICCION_GENERADA cumplen el contrato RF-73 v2.0",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "Sin eventos no se puede validar contrato (RF-66 no implementado): expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "06-Teardown-Sandbox-Rollback - NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)",
+      "esperado": "Aserción exitosa conforme a contrato RF-73",
+      "obtenido": "OK",
+      "estado": "OK"
+    }
+  ],
+  "bloqueados": [
+    "TC-M04-250 (INFERENCIA_EJECUTADA) - Endpoint RF-66 no expuesto en backend REST",
+    "TC-M04-251 (INFERENCIA_RECHAZADA) - Endpoint RF-66 no expuesto en backend REST",
+    "TC-M04-252 (ALERTA_PREDICCION_GENERADA) - RF-57 no emite alerta hacia bitácora M04"
+  ]
+}

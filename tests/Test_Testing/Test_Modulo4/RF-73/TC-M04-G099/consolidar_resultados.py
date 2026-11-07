@@ -1,4 +1,8 @@
-"""Convierte JUnit XML de pytest al schema canónico del brief M4."""
+# | Fecha      | Nombre                   | Que se hizo                                                                 |
+# |------------|--------------------------|-----------------------------------------------------------------------------|
+# | 2026-10-25 | HulkyZeus                | RF-73 TC-M04-G099: consolidador inicial JUnit XML -> schema canónico        |
+# | 2026-10-30 | Juan Sebastian Gutierrez | RF-73 TC-M04-G099: D5 mapeo subcasos 305a/b/c y veredicto honesto sin_datos |
+"""Convierte JUnit XML de pytest al schema canónico del brief M4 para TC-M04-G099."""
 import json
 import sys
 import xml.etree.ElementTree as ET
@@ -28,10 +32,16 @@ def main(junit_path: str, out_json: str) -> None:
             obtenido = "todos los asserts pasaron"
             ok += 1
 
-        # Poblar "esperado" con un literal mínimo para no dejarlo vacío
+        # Poblar "esperado" con el mapeo del subcaso
         esperado = "asserts del subcaso según RF-73 v2.0"
-        if "tc_m04_056" in name:
-            esperado = "RF-73 E7: corrección de timestamp futuro + TIMESTAMP_CORREGIDO"
+        if "305a" in name:
+            esperado = "RF-73 E7 (Caso A): corrección de timestamp futuro (> 60s) a hora servidor y emisión de TIMESTAMP_CORREGIDO (WARNING, motivo=FUTURO)"
+        elif "305b" in name:
+            esperado = "RF-73 E7 (Caso B): corrección de timestamp desordenado a hora servidor y emisión de TIMESTAMP_CORREGIDO (WARNING, motivo=DESORDENADO)"
+        elif "305c" in name:
+            esperado = "RF-73 E7 (Caso C): persistencia con hora del servidor sin TIMESTAMP_CORREGIDO al omitir timestamp_evento"
+        elif "tc_m04_056" in name or "305" in name:
+            esperado = "RF-73 E7: corrección de timestamp futuro/desordenado + TIMESTAMP_CORREGIDO"
 
         checkpoints.append({
             "paso": name,
@@ -40,11 +50,28 @@ def main(junit_path: str, out_json: str) -> None:
             "estado": estado,
         })
 
-    veredicto = "APROBADO" if falla == 0 and len(checkpoints) > 0 else "RECHAZADO"
-    summary = {"total": len(checkpoints), "ok": ok, "falla": falla,
-               "veredicto": veredicto}
-    result = {"tc": "TC-M04-G099", "summary": summary,
-              "checkpoints": checkpoints}
+    # D5: Veredicto honesto
+    if len(checkpoints) == 0:
+        veredicto = "sin_datos"
+    elif falla > 0:
+        veredicto = "RECHAZADO"
+    elif ok > 0 and falla == 0:
+        veredicto = "APROBADO"
+    else:
+        veredicto = "RECHAZADO"
+
+    summary = {
+        "total": len(checkpoints),
+        "ok": ok,
+        "falla": falla,
+        "veredicto": veredicto,
+    }
+    result = {
+        "tc": "TC-M04-G099",
+        "rf": "RF-73",
+        "summary": summary,
+        "checkpoints": checkpoints,
+    }
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
     print(f"[OK] {out_json}")

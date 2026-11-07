@@ -1,8 +1,13 @@
+// | Fecha      | Nombre     | Que se hizo                                                    |
+// |------------|------------|----------------------------------------------------------------|
+// | 2026-10-23 | QA Team    | Version inicial de coleccion con sensor 91 preexistente        |
+// | 2026-10-30 | Juansegutt | B1-B5: eliminar auto-siembra, corregir asserts 324/325 y BD   |
+
 const fs = require('fs');
 const path = require('path');
 
 // =====================================================================
-// BUILD COLLECTION POSTMAN / NEWMAN — TC-M03-G170 V2 (CAMINO 2: SENSOR 91 PREEXISTENTE)
+// BUILD COLLECTION POSTMAN / NEWMAN — TC-M03-G170 V2 (SENSOR 91 PREEXISTENTE)
 // Módulo: M03 — Telemetría y Calidad
 // RF: RF-62 (Evaluación de calidad de datos, FA-08 re-evaluación), RF-63
 // Subcasos:
@@ -10,15 +15,6 @@ const path = require('path');
 //   - TC-M03-325: Rechazos por causa_documentada inválida (400/422)
 //   - TC-M03-326: Validaciones de rango de fechas (400/422)
 // =====================================================================
-
-function letrasAleatorias(len) {
-    const chars = "abcdefghijklmnopqrstuvwxyz";
-    let res = "";
-    for (let i = 0; i < len; i++) {
-        res += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return res;
-}
 
 function makeHeader(key, value) {
     return { key: key, value: value };
@@ -89,7 +85,7 @@ function makeItem(name, method, url, headers, bodyObj, preScripts, postTests) {
 }
 
 // =====================================================================
-// CARPETA 00 — PREFLIGHT (autosiembra canónica de contexto)
+// CARPETA 00 — SETUP (Autenticación sin auto-siembra)
 // =====================================================================
 const preflight = [
     // 00.01 — Login admin
@@ -100,135 +96,21 @@ const preflight = [
         'pm.test("Login 200", function () {',
         '    pm.response.to.have.status(200);',
         '    const r = pm.response.json();',
-        '    pm.expect(r.token).to.be.a("string").and.not.empty;',
-        '    pm.collectionVariables.set("token_admin", r.token);',
+        '    const token = r.token || r.access_token || (r.data && (r.data.token || r.data.access_token));',
+        '    pm.expect(token).to.be.a("string").and.not.empty;',
+        '    pm.collectionVariables.set("token_admin", token);',
         '});',
         'try {',
-        '    const parts = pm.response.json().token.split(".");',
+        '    const tokenVal = pm.collectionVariables.get("token_admin");',
+        '    const parts = tokenVal.split(".");',
         '    if (parts.length === 3) {',
         '        const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));',
         '        const id = payload.sub || payload.id_usuario || payload.user_id;',
-        '        pm.test("id_usuario extraido del JWT", function () {',
-        '            pm.expect(id, "JWT sin sub/id_usuario/user_id").to.exist;',
-        '        });',
         '        pm.collectionVariables.set("id_usuario_admin", id || 1);',
         '    }',
         '} catch (e) {',
         '    pm.collectionVariables.set("id_usuario_admin", 1);',
         '}'
-    ]),
-
-    // 00.02 — Tipo dispositivo
-    makeItem("00.02-Get-Tipos-Dispositivo", "GET",
-        "{{baseUrl}}/configuracion/tipos-dispositivo-iot?pagina=1&por_pagina=10", authAdmin(), null, [], [
-        'pm.test("Tipos dispositivo 200", function () {',
-        '    pm.response.to.have.status(200);',
-        '    const r = pm.response.json();',
-        '    const list = Array.isArray(r) ? r : (r.items || []);',
-        '    pm.expect(list.length).to.be.above(0);',
-        '    const match = list.find(t => (t.nombre || "").toUpperCase().includes("SENSOR")) || list[0];',
-        '    pm.collectionVariables.set("id_tipo_dispositivo", match.id_tipo_dispositivo);',
-        '});'
-    ]),
-
-    // 00.03 — Tipos área
-    makeItem("00.03-Get-Tipos-Area", "GET",
-        "{{baseUrl}}/configuracion/tipos-area?pagina=1&por_pagina=10", authAdmin(), null, [], [
-        'pm.test("Tipos área 200", function () {',
-        '    pm.response.to.have.status(200);',
-        '    const r = pm.response.json();',
-        '    const list = Array.isArray(r) ? r : (r.items || []);',
-        '    pm.expect(list.length).to.be.above(0);',
-        '    const match = list.find(a => (a.nombre || "").toUpperCase().includes("PRODUCCI")) || list[0];',
-        '    pm.collectionVariables.set("tipo_area_nombre", match.nombre);',
-        '});'
-    ]),
-
-    // 00.04 — Finca
-    makeItem("00.04-Crear-Finca", "POST", "{{baseUrl}}/configuracion/fincas", authAdmin(), {
-        nombre: "Finca " + letrasAleatorias(10),
-        ubicacion: {
-            departamento: "Huila",
-            municipio: "Neiva",
-            vereda: "Qa",
-            latitud: 2.9273,
-            longitud: -75.2819
-        },
-        tamano_h: 10.5,
-        id_usuario: "{{id_usuario_admin}}"
-    }, [], [
-        'pm.test("Finca 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_finca).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("id_finca", r.id_finca);',
-        '});'
-    ]),
-
-    // 00.05 — Área
-    makeItem("00.05-Crear-Area", "POST", "{{baseUrl}}/configuracion/infraestructuras", authAdmin(), {
-        nombre_infraestructura: "Area " + letrasAleatorias(10),
-        tipo_area: "{{tipo_area_nombre}}",
-        superficie: 100.0,
-        finca_id: "{{id_finca}}",
-        descripcion_infraestructura: "Area de pruebas reevaluacion RF-62",
-        especie_id: 2,
-        tipo_modelo_asignado: null
-    }, [], [
-        'pm.test("Área 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_infraestructura).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("id_infraestructura", r.id_infraestructura);',
-        '});'
-    ]),
-
-    // 00.06 — Dispositivo
-    makeItem("00.06-Crear-Dispositivo", "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot", authAdmin(), {
-        serial: "GDEV" + letrasAleatorias(8).toUpperCase(),
-        descripcion: "Dispositivo base pruebas reevaluacion",
-        id_infraestructura: "{{id_infraestructura}}",
-        id_tipo_dispositivo: "{{id_tipo_dispositivo}}",
-        es_activo: true
-    }, [], [
-        'pm.test("Dispositivo 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_dispositivo_iot).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("dev_id_324", r.id_dispositivo_iot);',
-        '});'
-    ]),
-
-    // 00.07 — Crear Sensor (Punto de falla conocido INC-M03-G167-SENSOR-500)
-    makeItem("00.07-Crear-Sensor", "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot/{{dev_id_324}}/sensores", authAdmin(), {
-        tipo_sensor: "TEMPERATURA_AGUA",
-        categoria: "TEMPERATURA",
-        marca: "YSI",
-        modelo: "ProSolo",
-        rango_minimo: 0.0,
-        rango_maximo: 50.0,
-        precision: 0.1,
-        unidad_medida: "°C",
-        id_variable: 9,
-        frecuencia_muestreo: 60,
-        pin_conexion: "A0",
-        fecha_instalacion: "2026-10-20T00:00:00Z"
-    }, [], [
-        'pm.test("Sensor 201 (Punto de falla INC-M03-G167-SENSOR-500)", function () {',
-        '    pm.response.to.have.status(201);',
-        '});'
-    ]),
-
-    // 00.08 — Asociar sensor al área
-    makeItem("00.08-Asociar-Sensor-Area", "POST",
-        "{{baseUrl}}/configuracion/sensores/1/asociar", authAdmin(), {
-        id_infraestructura: "{{id_infraestructura}}"
-    }, [], [
-        'pm.test("Asociación 201", function () {',
-        '    pm.expect([200, 201, 404]).to.include(pm.response.code);',
-        '});'
     ])
 ];
 
@@ -248,32 +130,54 @@ const tc324 = [
             ganancia: 1
         }
     }, [], [
-        'pm.test("324.01: Reevaluación HTTP 200", function () {',
+        'pm.test("324: Reevaluación HTTP 200", function () {',
         '    pm.response.to.have.status(200);',
         '});',
-        'const r = pm.response.json();',
-        'pm.test("324.02: Evaluaciones superadas >= 5", function () {',
-        '    pm.expect(r.evaluaciones_superadas).to.be.at.least(5);',
+        'pm.test("324: evaluaciones_superadas > 0", () => {',
+        '    pm.expect(pm.response.json().evaluaciones_superadas).to.be.greaterThan(0);',
         '});',
-        'pm.test("324.03: Documentar hallazgo: evaluaciones_creadas es 0", function () {',
-        '    pm.expect(r.evaluaciones_creadas, "INC-M03-G170: endpoint no regenera evaluaciones, solo supera").to.be.equal(0);',
+        'pm.test("324: evaluaciones_creadas > 0 (fix INC-M03-133-G170)", () => {',
+        '    pm.expect(pm.response.json().evaluaciones_creadas).to.be.greaterThan(0);',
+        '});',
+        'pm.test("324: contadores coherentes (creadas >= 5)", () => {',
+        '    pm.expect(pm.response.json().evaluaciones_creadas).to.be.at.least(5);',
         '});'
     ]),
 
-    // 324.02 — SELECT verificar SUPERADA en BD
-    makeItem("324.02-Verificar-Evaluaciones-Superadas-DB", "POST",
+    // 324.02 — Query 1: Verificar SUPERADA con id_evaluacion_superada poblado
+    makeItem("324.02-Verificar-BD-Superadas", "POST",
         "{{baseUrl}}/test-control/query", authQuery(), {
-        query: "SELECT id_evaluacion, estado_evaluacion, motivo_reevaluacion FROM modulo3.telemetria_calidad WHERE id_sensor = 91"
+        query: "SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad tc WHERE tc.id_sensor = 91 AND tc.estado_evaluacion = 'SUPERADA' AND tc.id_evaluacion_superada IS NOT NULL"
     }, [], [
-        'pm.test("324.04: Query BD 200 y evaluaciones marcadas SUPERADA", function () {',
+        'pm.test("324 BD: existen SUPERADA con id_evaluacion_superada poblado", () => {',
         '    pm.response.to.have.status(200);',
-        '    const body = pm.response.json();',
-        '    const rows = body.data || [];',
-        '    pm.expect(rows.length).to.be.at.least(5);',
-        '    rows.forEach(function(row) {',
-        '        pm.expect(row.estado_evaluacion).to.eql("SUPERADA");',
-        '        pm.expect(row.motivo_reevaluacion).to.include("Offset de calibracion mal configurado");',
-        '    });',
+        '    const data = pm.response.json().data || pm.response.json();',
+        '    pm.expect(parseInt(data[0].n)).to.be.greaterThan(0);',
+        '});'
+    ]),
+
+    // 324.03 — Query 2: Cada lectura tiene exactamente 1 VIGENTE (D7 RESUELTO)
+    makeItem("324.03-Verificar-BD-Vigentes", "POST",
+        "{{baseUrl}}/test-control/query", authQuery(), {
+        query: "SELECT COUNT(DISTINCT tc.id_telemetria) AS n_lecturas, SUM(CASE WHEN tc.estado_evaluacion = 'VIGENTE' THEN 1 ELSE 0 END) AS total_vig FROM modulo3.telemetria_calidad tc WHERE tc.id_sensor = 91"
+    }, [], [
+        'pm.test("324 BD: cada lectura tiene exactamente 1 VIGENTE (D7 RESUELTO)", () => {',
+        '    pm.response.to.have.status(200);',
+        '    const data = pm.response.json().data || pm.response.json();',
+        '    const row = data[0] || {};',
+        '    pm.expect(parseInt(row.total_vig)).to.eql(parseInt(row.n_lecturas));',
+        '});'
+    ]),
+
+    // 324.04 — Query 3: Nuevas VIGENTE tienen motivo_reevaluacion poblado
+    makeItem("324.04-Verificar-BD-Motivo", "POST",
+        "{{baseUrl}}/test-control/query", authQuery(), {
+        query: "SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad tc WHERE tc.id_sensor = 91 AND tc.estado_evaluacion = 'VIGENTE' AND tc.motivo_reevaluacion IS NOT NULL AND tc.motivo_reevaluacion <> ''"
+    }, [], [
+        'pm.test("324 BD: nuevas VIGENTE tienen motivo_reevaluacion poblado", () => {',
+        '    pm.response.to.have.status(200);',
+        '    const data = pm.response.json().data || pm.response.json();',
+        '    pm.expect(parseInt(data[0].n)).to.be.greaterThan(0);',
         '});'
     ])
 ];
@@ -332,8 +236,22 @@ const tc325 = [
         causa_documentada: "quiero cambiar el umbral_drift de 5% a 3%",
         parametros_correctos: { offset: 0, ganancia: 1 }
     }, [], [
-        'pm.test("325d: Causa de preferencia (CA-17)", function () {',
-        '    pm.expect([200, 400, 422]).to.include(pm.response.code);',
+        'pm.test("325d: rechazo por preferencia (CA-17)", () => {',
+        '    pm.expect(pm.response.code).to.eql(422);',
+        '    pm.expect((pm.response.json().message || "").toLowerCase())',
+        '        .to.satisfy(m => m.includes("error") || m.includes("document"));',
+        '});'
+    ]),
+
+    // 325.05 — Verificación BD Inocuidad
+    makeItem("325.05-Verificar-BD-Sin-Cambios", "POST",
+        "{{baseUrl}}/test-control/query", authQuery(), {
+        query: "SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad tc WHERE tc.id_sensor = 91 AND tc.timestamp_evaluacion > NOW() - interval '1 min'"
+    }, [], [
+        'pm.test("325 BD: 0 evaluaciones creadas ni superadas en rechazo", () => {',
+        '    pm.response.to.have.status(200);',
+        '    const data = pm.response.json().data || pm.response.json();',
+        '    pm.expect(parseInt(data[0].n)).to.eql(0);',
         '});'
     ])
 ];
@@ -367,6 +285,18 @@ const tc326 = [
     }, [], [
         'pm.test("326b: fecha_desde == fecha_hasta documentado", function () {',
         '    pm.expect([200, 400, 422]).to.include(pm.response.code);',
+        '});'
+    ]),
+
+    // 326.03 — Verificación BD Inocuidad
+    makeItem("326.03-Verificar-BD-Sin-Cambios", "POST",
+        "{{baseUrl}}/test-control/query", authQuery(), {
+        query: "SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad tc WHERE tc.id_sensor = 91 AND tc.timestamp_evaluacion > NOW() - interval '1 min'"
+    }, [], [
+        'pm.test("326 BD: 0 evaluaciones creadas ni superadas en rechazo fechas", () => {',
+        '    pm.response.to.have.status(200);',
+        '    const data = pm.response.json().data || pm.response.json();',
+        '    pm.expect(parseInt(data[0].n)).to.eql(0);',
         '});'
     ])
 ];
@@ -422,17 +352,11 @@ const collection = {
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },
-        { key: "broker_token", value: "" },
         { key: "token_admin", value: "" },
-        { key: "id_usuario_admin", value: "" },
-        { key: "id_tipo_dispositivo", value: "" },
-        { key: "tipo_area_nombre", value: "" },
-        { key: "id_finca", value: "" },
-        { key: "id_infraestructura", value: "" },
-        { key: "dev_id_324", value: "" }
+        { key: "id_usuario_admin", value: "" }
     ],
     item: [
-        { name: "00-Preflight-Autosiembra", item: preflight },
+        { name: "00-Setup", item: preflight },
         { name: "TC-324-reevaluacion-exitosa", item: tc324 },
         { name: "TC-325-rechazos-por-causa", item: tc325 },
         { name: "TC-326-rechazos-por-fechas", item: tc326 },

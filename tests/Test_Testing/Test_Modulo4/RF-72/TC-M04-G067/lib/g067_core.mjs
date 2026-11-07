@@ -13,14 +13,18 @@ export const REGISTROS = [
   ['205-inexistente',0,'DESCONOCIDO','uno',false],
   ['205-vacio',0,'','uno',false],
   ['205-numerico',0,123,'uno',false],
+  ['205-capitalizado',0,'Correcto','uno',false],
+  ['205-nulo',0,null,'uno',false],
+  ['205-lista',0,['CORRECTO'],'uno',false],
   ['205-minusculas',0,'correcto','uno',false]
 ].map(([clave,i,estado,diagnostico,valido]) => ({clave,caso:CASOS[i],estado,diagnostico,valido}));
 // 1 login + 4 activos + 128 páginas de descubrimiento + 8 versiones + 1 catálogo
-// + 26 POST (13 originales + 13 reemplazos) + 39 páginas de historial de verificación
-// + 13 auditorías + 1 DELETE + 39 páginas de historial poscierre = 260.
-export const PRESUPUESTO = Object.freeze({solicitudes_totales:260,paginas_activos:4,activos_maximos:32,
+// + 32 POST (16 originales + 16 reemplazos) + 48 páginas de historial de verificación
+// + 16 auditorías + 1 DELETE + 48 páginas de historial poscierre = 287.
+export const PRESUPUESTO = Object.freeze({solicitudes_totales:287,paginas_activos:4,activos_maximos:32,
   paginas_historial_descubrimiento:4,versiones_maximas:8,paginas_historial_verificacion:3,
-  reemplazos_por_registro:1,dias_busqueda:88,timeout_login_ms:120000,timeout_ms:30000,duracion_segundos:900});
+  reemplazos_por_registro:1,dias_busqueda:88,timeout_login_ms:120000,timeout_post_ms:120000,
+  timeout_ms:30000,duracion_segundos:900});
 export const CAPACIDADES = Object.freeze({contrato:'sigab-qa-ejecutor/1',grupo:'G067',casos:CASOS,
   operaciones:['evaluar','reintentar','reevaluar','recuperar'],versiones:{min:1,max:99},
   comprobaciones_obligatorias:Object.fromEntries(CASOS.map((c,i)=>[c,{API:[IDS[i]]}])),
@@ -55,6 +59,7 @@ const eventosDe = (h, reg, usuarioId) => (h?.eventos??[]).filter(e=>e.tipo_event
   && String(e.id_resultado_inferencia)===String(reg.dato.id_resultado_inferencia)
   && String(e.payload?.id_usuario_veterinario)===String(usuarioId));
 export function verificarRegistro(reg,post,h,a,usuarioId) {
+  if(h?.http>=500)return {estado:'NO_CONCLUYENTE',motivo:`Historial HTTP ${h.http} ${h.error_code??'sin código'}; comprobación técnica pendiente`};
   if(post?.http==null)return {estado:'NO_CONCLUYENTE',motivo:'POST sin respuesta; conciliación requerida'};
   if(post.http===403)return {estado:'BLOQUEADO',motivo:'HTTP 403 de clave o permiso'};
   if([409,422].includes(post.http)&&['RETROALIMENTACION_DUPLICADA','FUERA_DE_VENTANA_TEMPORAL'].includes(post.cuerpo?.error_code))
@@ -67,9 +72,11 @@ export function verificarRegistro(reg,post,h,a,usuarioId) {
       fallos.push('identidad de registro incorrecta');
   } else if(reg.caso===CASOS[0]) {
     if(post.http!==422)fallos.push(`HTTP ${post.http}; E3 exige 422`);
+    if(b.error_code!=='ESTADO_RETROALIMENTACION_INVALIDO')fallos.push('código distinto de ESTADO_RETROALIMENTACION_INVALIDO');
     if(!/estado.*(no es v[aá]lid|inv[aá]lid)/.test(t))fallos.push('mensaje sin estado no válido');
   } else if(reg.caso===CASOS[1]) {
     if(![400,422].includes(post.http))fallos.push(`HTTP ${post.http}; esperado rechazo`);
+    if(b.error_code!=='VAL_ENTRADA')fallos.push('código distinto de VAL_ENTRADA');
     if(!t.includes('estado_retroalimentacion')||!/obligatori|requerid/.test(t))
       fallos.push('rechazo sin campo estado_retroalimentacion requerido');
   } else {

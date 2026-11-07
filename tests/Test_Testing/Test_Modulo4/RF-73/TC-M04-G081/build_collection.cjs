@@ -3,9 +3,9 @@
  * Módulo 4: Predicción e IA
  * 
  * Subcasos:
- * - TC-M04-250 (INFERENCIA_EJECUTADA): [BLOQUEADO] - Endpoint productor RF-66 no expuesto en backend REST.
- * - TC-M04-251 (INFERENCIA_RECHAZADA): [BLOQUEADO] - RF-66 no expone API REST para payload corrupto.
- * - TC-M04-252 (ALERTA_PREDICCION_GENERADA): [BLOQUEADO] - POST /iot/alertas M03 no emite a M04.
+ * - TC-M04-250 (INFERENCIA_EJECUTADA)
+ * - TC-M04-251 (INFERENCIA_RECHAZADA)
+ * - TC-M04-252 (ALERTA_PREDICCION_GENERADA)
  */
 
 const fs = require('fs');
@@ -24,17 +24,20 @@ const collection = {
       script: {
         type: "text/javascript",
         exec: [
-          "if (!pm.collectionVariables.get(\"run_id\")) {",
-          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
+          "var runId = pm.environment.get(\"run_id\") || pm.collectionVariables.get(\"run_id\");",
+          "if (!runId) {",
+          "    runId = \"test-\" + pm.variables.replaceIn('{{$guid}}');",
+          "    pm.collectionVariables.set(\"run_id\", runId);",
           "}",
-          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
-          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
+          "var secret = pm.environment.get(\"sandbox_secret\") || pm.collectionVariables.get(\"sandbox_secret\");",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: runId });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secret });"
         ]
       }
     }
   ],
   variable: [
-    { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test", type: "string" },
+    { key: "baseUrl", value: "https://www.api.inmero.co/api-sgpmp-test", type: "string" },
     { key: "run_id", value: "", type: "string" },
     { key: "sandbox_secret", value: "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff", type: "string" },
     { key: "admin_password", value: "", type: "string" },
@@ -124,7 +127,49 @@ const collection = {
           script: {
             type: "text/javascript",
             exec: [
-              "console.log('[BLOQUEADO] TC-M04-250 (INFERENCIA_EJECUTADA): El endpoint productor RF-66 no está expuesto en la API REST de FastAPI (vive en subsistema AIoT/externo). Sin pm.test para evitar falsos aprobados.');"
+              "pm.test(\"HTTP 200 en consulta de auditoría\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const eventos = body.eventos || body.items || body.data || [];",
+              "const eventosFiltrados = eventos.filter(",
+              "    e => e.tipo_evento === 'INFERENCIA_EJECUTADA' && e.modulo === 'M04'",
+              ");",
+              "",
+              "pm.test(\"Existe al menos 1 evento INFERENCIA_EJECUTADA en M04\", () => {",
+              "    pm.expect(eventosFiltrados.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test(\"Los eventos INFERENCIA_EJECUTADA cumplen el contrato RF-73 v2.0\", () => {",
+              "    pm.expect(eventosFiltrados.length).to.be.greaterThan(0,",
+              "        \"Sin eventos no se puede validar contrato (RF-66 no implementado)\");",
+              "    const ev = eventosFiltrados[0];",
+              "    pm.expect(ev).to.have.property('id_evento');",
+              "    pm.expect(ev).to.have.property('tipo_evento', 'INFERENCIA_EJECUTADA');",
+              "    pm.expect(ev).to.have.property('modulo', 'M04');",
+              "    pm.expect(ev).to.have.property('tipo_actor', 'SISTEMA');",
+              "    pm.expect(ev).to.have.property('id_sistema', 'motor_inferencia');",
+              "    pm.expect(ev).to.have.property('resultado_operacion', 'EXITOSO');",
+              "    pm.expect(ev).to.have.property('severidad_evento');",
+              "    pm.expect(ev).to.have.property('correlacion_id');",
+              "    pm.expect(ev).to.have.property('id_referencia');",
+              "    pm.expect(ev).to.have.property('origen_dato');",
+              "    pm.expect(ev.origen_dato).to.be.oneOf(['EDGE', 'BACKEND', 'HIBRIDO']);",
+              "    pm.expect(ev).to.have.property('hash_evento');",
+              "    pm.expect(ev.hash_evento).to.match(/^[a-f0-9]{64}$/i,",
+              "        \"hash_evento debe ser SHA-256 (64 hex)\");",
+              "    pm.expect(ev).to.have.property('payload_evento');",
+              "    const pl = ev.payload_evento;",
+              "    ['activo_biologico_id', 'especie', 'tipo_modelo', 'version_modelo',",
+              "     'nivel_riesgo', 'probabilidad_riesgo_alto', 'enfermedad_estimada',",
+              "     'latencia_ms', 'contexto_incompleto'].forEach(k => {",
+              "        pm.expect(pl, `payload_evento debe incluir ${k}`).to.have.property(k);",
+              "    });",
+              "});",
+              "",
+              "console.log(`[DIAGNÓSTICO] INFERENCIA_EJECUTADA: ${eventosFiltrados.length} eventos encontrados`);",
+              "console.log(`[DIAGNÓSTICO] Si 0 → RF-66 no implementado (INC-M04-147-G081)`);"
             ]
           }
         }
@@ -152,7 +197,47 @@ const collection = {
           script: {
             type: "text/javascript",
             exec: [
-              "console.log('[BLOQUEADO] TC-M04-251 (INFERENCIA_RECHAZADA): RF-66 no expone API REST para enviar payload corrupto y forzar evento de rechazo en auditoría.');"
+              "pm.test(\"HTTP 200 en consulta de auditoría\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const eventos = body.eventos || body.items || body.data || [];",
+              "const eventosFiltrados = eventos.filter(",
+              "    e => e.tipo_evento === 'INFERENCIA_RECHAZADA' && e.modulo === 'M04'",
+              ");",
+              "",
+              "pm.test(\"Existe al menos 1 evento INFERENCIA_RECHAZADA en M04\", () => {",
+              "    pm.expect(eventosFiltrados.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test(\"Los eventos INFERENCIA_RECHAZADA cumplen el contrato RF-73 v2.0\", () => {",
+              "    pm.expect(eventosFiltrados.length).to.be.greaterThan(0,",
+              "        \"Sin eventos no se puede validar contrato (RF-66 no implementado)\");",
+              "    const ev = eventosFiltrados[0];",
+              "    pm.expect(ev).to.have.property('id_evento');",
+              "    pm.expect(ev).to.have.property('tipo_evento', 'INFERENCIA_RECHAZADA');",
+              "    pm.expect(ev).to.have.property('modulo', 'M04');",
+              "    pm.expect(ev).to.have.property('tipo_actor', 'SISTEMA');",
+              "    pm.expect(ev).to.have.property('id_sistema', 'motor_inferencia');",
+              "    pm.expect(ev).to.have.property('resultado_operacion', 'FALLIDO');",
+              "    pm.expect(ev).to.have.property('severidad_evento', 'WARNING');",
+              "    pm.expect(ev).to.have.property('correlacion_id');",
+              "    pm.expect(ev).to.have.property('id_referencia');",
+              "    pm.expect(ev).to.have.property('origen_dato');",
+              "    pm.expect(ev.origen_dato).to.be.oneOf(['EDGE', 'BACKEND', 'HIBRIDO']);",
+              "    pm.expect(ev).to.have.property('hash_evento');",
+              "    pm.expect(ev.hash_evento).to.match(/^[a-f0-9]{64}$/i,",
+              "        \"hash_evento debe ser SHA-256 (64 hex)\");",
+              "    pm.expect(ev).to.have.property('payload_evento');",
+              "    const pl = ev.payload_evento;",
+              "    ['activo_biologico_id', 'tipo_modelo', 'version_modelo', 'causa_rechazo'].forEach(k => {",
+              "        pm.expect(pl, `payload_evento debe incluir ${k}`).to.have.property(k);",
+              "    });",
+              "});",
+              "",
+              "console.log(`[DIAGNÓSTICO] INFERENCIA_RECHAZADA: ${eventosFiltrados.length} eventos encontrados`);",
+              "console.log(`[DIAGNÓSTICO] Si 0 → RF-66 no implementado (INC-M04-147-G081)`);"
             ]
           }
         }
@@ -180,7 +265,48 @@ const collection = {
           script: {
             type: "text/javascript",
             exec: [
-              "console.log('[BLOQUEADO] TC-M04-252 (ALERTA_PREDICCION_GENERADA): El endpoint POST /iot/alertas de RF-57 no emite eventos hacia la bitácora M04 (solo gestiona alertas ambientales M03).');"
+              "pm.test(\"HTTP 200 en consulta de auditoría\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const eventos = body.eventos || body.items || body.data || [];",
+              "const eventosFiltrados = eventos.filter(",
+              "    e => e.tipo_evento === 'ALERTA_PREDICCION_GENERADA' && e.modulo === 'M04'",
+              ");",
+              "",
+              "pm.test(\"Existe al menos 1 evento ALERTA_PREDICCION_GENERADA en M04\", () => {",
+              "    pm.expect(eventosFiltrados.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test(\"Los eventos ALERTA_PREDICCION_GENERADA cumplen el contrato RF-73 v2.0\", () => {",
+              "    pm.expect(eventosFiltrados.length).to.be.greaterThan(0,",
+              "        \"Sin eventos no se puede validar contrato (RF-66 no implementado)\");",
+              "    const ev = eventosFiltrados[0];",
+              "    pm.expect(ev).to.have.property('id_evento');",
+              "    pm.expect(ev).to.have.property('tipo_evento', 'ALERTA_PREDICCION_GENERADA');",
+              "    pm.expect(ev).to.have.property('modulo', 'M04');",
+              "    pm.expect(ev).to.have.property('tipo_actor', 'SISTEMA');",
+              "    pm.expect(ev).to.have.property('id_sistema', 'motor_alerta');",
+              "    pm.expect(ev).to.have.property('resultado_operacion', 'EXITOSO');",
+              "    pm.expect(ev).to.have.property('severidad_evento', 'CRITICAL');",
+              "    pm.expect(ev).to.have.property('correlacion_id');",
+              "    pm.expect(ev.correlacion_id).to.not.be.null;",
+              "    pm.expect(ev).to.have.property('id_referencia');",
+              "    pm.expect(ev).to.have.property('origen_dato');",
+              "    pm.expect(ev.origen_dato).to.be.oneOf(['EDGE', 'BACKEND', 'HIBRIDO']);",
+              "    pm.expect(ev).to.have.property('hash_evento');",
+              "    pm.expect(ev.hash_evento).to.match(/^[a-f0-9]{64}$/i,",
+              "        \"hash_evento debe ser SHA-256 (64 hex)\");",
+              "    pm.expect(ev).to.have.property('payload_evento');",
+              "    const pl = ev.payload_evento;",
+              "    ['activo_biologico_id', 'tipo_alerta', 'nivel_riesgo', 'probabilidad', 'version_modelo'].forEach(k => {",
+              "        pm.expect(pl, `payload_evento debe incluir ${k}`).to.have.property(k);",
+              "    });",
+              "});",
+              "",
+              "console.log(`[DIAGNÓSTICO] ALERTA_PREDICCION_GENERADA: ${eventosFiltrados.length} eventos encontrados`);",
+              "console.log(`[DIAGNÓSTICO] Si 0 → RF-66 no implementado (INC-M04-147-G081)`);"
             ]
           }
         }

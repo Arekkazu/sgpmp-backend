@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: reproducir marca TIME_DESYNC al insertar con evidencia de heartbeat en PostgreSQL real. |
 # | 2026-10-28 | Arekkazu | INC-M03-132-G30 RF-54: acepta el bloque de frecuencia de G16 al revertir |
+# | 2026-10-31 | Claude | INC-M03-238-G30 RF-54: reloj adelantado declarado sin sincronizar entra TIME_DESYNC |
 """La función SQL compartida determina el snapshot antes del INSERT inmutable."""
 import importlib.util
 from pathlib import Path
@@ -250,18 +251,43 @@ def test_calidad_oficial_excluye_time_desync_sin_cambiar_indice_y_conserva_snaps
     assert db_session.execute(text("SELECT count(*) FROM modulo3.telemetria_calidad WHERE id_telemetria=:id AND estado_evaluacion='VIGENTE'"),{'id':identificador}).scalar_one()==1
 
 
-@pytest.mark.parametrize('delta',[timedelta(minutes=2),timedelta(hours=-73)])
-def test_marca_no_relaja_rechazos_temporales_existentes(client,db_session,equipo_g30,headers_broker,delta):
+@pytest.mark.parametrize('delta,reloj',[
+    (timedelta(hours=-73),False),          # buffer de más de 72 h
+    (timedelta(hours=73),False),           # adelantado más allá del tope
+    (timedelta(minutes=2),True),           # dice estar sincronizado y fecha en el futuro
+    (timedelta(minutes=2),None),           # sin declaración del reloj
+])
+def test_marca_no_relaja_rechazos_temporales_existentes(client,db_session,equipo_g30,headers_broker,delta,reloj):
     e = equipo_g30
     # La asociacion debe cubrir la captura para alcanzar la validacion temporal.
     db_session.execute(text('UPDATE modulo9.sensores_areas_asociadas SET fecha_asociacion=:ts WHERE id_sensor=:s'),
                        {'ts':e['captura']-timedelta(days=5),'s':e['sensor']})
     db_session.commit()
-    r = client.post('/iot/telemetria',json=payload(e,reloj_sincronizado=False,
-        timestamp_captura=(e['captura']+delta).isoformat()),headers=headers_broker)
+    cuerpo = payload(e,timestamp_captura=(e['captura']+delta).isoformat())
+    if reloj is not None:
+        cuerpo['reloj_sincronizado'] = reloj
+    r = client.post('/iot/telemetria',json=cuerpo,headers=headers_broker)
     assert r.status_code==400,r.text
     assert r.json()['error_code']=='ERROR_TIEMPO'
     assert db_session.execute(text('SELECT count(*) FROM modulo3.telemetrias WHERE id_sensor=:s'),{'s':e['sensor']}).scalar_one()==0
+
+
+def test_buffer_con_reloj_adelantado_se_guarda_time_desync(client,db_session,equipo_g30,headers_broker):
+    """INC-M03-238-G30 (#877, TC-M03-049): reloj adelantado 20 min y 5 lecturas en buffer
+    con reloj_sincronizado=false: se aceptan y quedan TIME_DESYNC, como con el reloj atrasado."""
+    e = equipo_g30
+    db_session.execute(text('UPDATE modulo9.sensores_areas_asociadas SET fecha_asociacion=:ts WHERE id_sensor=:s'),
+                       {'ts':e['captura']-timedelta(days=5),'s':e['sensor']})
+    db_session.commit()
+    adelantado = e['captura']+timedelta(minutes=21)
+    registros = [payload(e,reloj_sincronizado=False,valor=22+i,
+                         timestamp_captura=(adelantado+timedelta(minutes=i)).isoformat()) for i in range(5)]
+    r = client.post('/iot/telemetria/batch',json={'registros':registros},headers=headers_broker)
+    assert r.status_code==200,r.text
+    assert r.json()['aceptados']==5 and r.json()['rechazados']==0,r.text
+    filas = db_session.execute(text("SELECT reloj_desincronizado, metadatos->'rf53_reloj'->>'codigo' "
+                                    "FROM modulo3.telemetrias WHERE id_sensor=:s"),{'s':e['sensor']}).all()
+    assert len(filas)==5 and all(tuple(f)==(True,'TIME_DESYNC') for f in filas)
 
 
 def test_migracion_reversible_conserva_funcion_y_privilegios(db_session):

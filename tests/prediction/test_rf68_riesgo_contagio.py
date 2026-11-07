@@ -1,6 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: mantener regresiones con umbrales explícitos de configuración. |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conservar regresiones existentes con el puerto explícito de ocupación. |
+# | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: sustituir E1 por el rechazo de cobertura mínima confirmado. |
+# | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: sustituir el bloqueo 429 por el recálculo de entradas diferentes confirmado. |
+# | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: identificar las salidas propias en los fakes del contrato RF-68. |
 """RF-68: fórmula, discretización, consistencia, datos incompletos y orquestación."""
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ from src.prediction.domain.entities.riesgo_contagio import (
     discretizar,
 )
 from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
-from src.shared.errors import BusinessRuleError, NotFoundError, TooManyRequestsError
+from src.shared.errors import BusinessRuleError, NotFoundError
 
 AHORA = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
 D = Decimal
@@ -30,7 +35,7 @@ D = Decimal
 
 def _parametros(**cambios):
     base = dict(w_fs=D("0.5"), w_fa=D("0.3"), w_fd=D("0.2"), temp_min=D("20"), temp_max=D("40"),
-                hr_min=D("40"), hr_max=D("100"), densidad_maxima=D("10"))
+                hr_min=D("40"), hr_max=D("100"), densidad_maxima=D("10"), umbral_riesgo_alto=D("0.70"))
     base.update(cambios)
     return ParametrosContagio(**base)
 
@@ -57,7 +62,7 @@ def test_formula_ponderada_ca9():
 
 @pytest.mark.parametrize("p, nivel", [("0.4999", 0), ("0.50", 1), ("0.6999", 1), ("0.70", 2), ("1", 2)])
 def test_discretizacion_en_las_fronteras(p, nivel):
-    assert discretizar(D(p)) == nivel
+    assert discretizar(D(p), D("0.70")) == nivel
 
 
 def test_acotamiento_de_temperatura_y_humedad():
@@ -121,9 +126,10 @@ def test_inferencias_de_mas_de_30_minutos_no_se_usan():
         _calcular(salidas_rf66=_salidas(["0.9"], desfase_s=31 * 60), ambiente=None)
 
 
-def test_cobertura_rf66_menor_al_50_calcula_sin_fs_e1():
-    r = _calcular(salidas_rf66=_salidas(["0.9"]), total_activos_lote=4)
-    assert "fs" in r.factores_ausentes and r.confianza_baja and "COBERTURA_RF66_MENOR_AL_50" in r.motivos_degradacion
+def test_cobertura_rf66_menor_al_60_rechaza_segun_e8_ca10():
+    with pytest.raises(DatosContagioError) as exc:
+        _calcular(salidas_rf66=_salidas(["0.9"]), total_activos_lote=4)
+    assert exc.value.codigo == "ERROR_DATOS_INSUFICIENTES"
 
 
 def test_score_poblacional_como_fs():
@@ -172,7 +178,7 @@ class _Alerta:
 
 
 def _config(**cambios):
-    base = dict(es_activa=True, id_configuracion_motor=3, config_version=2, w_factor_sanitario=D("0.5"),
+    base = dict(umbral_riesgo_alto=D("0.70"), umbral_alerta_critica=D("0.70"), es_activa=True, id_configuracion_motor=3, config_version=2, w_factor_sanitario=D("0.5"),
                 w_factor_ambiental=D("0.3"), w_factor_densidad=D("0.2"), temp_min_config=D("20"),
                 temp_max_config=D("40"), hr_min_config=D("40"), hr_max_config=D("100"), densidad_maxima_config=D("10"))
     base.update(cambios)
@@ -186,6 +192,7 @@ def _use_case(resultados=None, config=_config(), accesible=True):
         config_repo=SimpleNamespace(obtener_por_tipo=lambda t: config),
         resultado_repo=resultados or _Resultados(),
         activo_port=SimpleNamespace(activo_existe_y_accesible=lambda *a: accesible),
+        ocupacion_port=SimpleNamespace(obtener_muestras=lambda *a, **kw: []),
         alerta_port=alerta, auditoria_repo=auditoria,
     )
     return uc, alerta, auditoria
@@ -193,7 +200,7 @@ def _use_case(resultados=None, config=_config(), accesible=True):
 
 def _dto(probabilidades=("0.9", "0.9", "0.9", "0.9"), **cambios):
     ahora = datetime.now(timezone.utc).isoformat()
-    base = dict(id_lote=1, salidas_rf66=[{"probabilidad_riesgo_alto": p, "fecha_inferencia": ahora} for p in probabilidades],
+    base = dict(id_lote=1, salidas_rf66=[{"id_activo_biologico": 1, "probabilidad_riesgo_alto": p, "fecha_inferencia": ahora} for p in probabilidades],
                 densidad_poblacional="8", variables_ambientales={"temperatura": "38", "humedad_relativa": "95",
                                                                  "fecha_captura": ahora})
     base.update(cambios)
@@ -214,15 +221,16 @@ def test_confianza_baja_no_genera_alerta():
     assert r.nivel_texto == "ALTO" and r.confianza_baja and r.alerta_id is None and alerta.emitidas == 0
 
 
-def test_mismas_entradas_en_menos_de_5_s_usa_el_resultado_anterior_y_distintas_dan_429():
+def test_mismas_entradas_en_menos_de_5_s_usan_cache_y_distintas_recalculan():
     resultados = _Resultados()
     uc, _, _ = _use_case(resultados)
     dto = _dto()
     primero = uc.execute(dto, 1, 3)
     resultados.anteriores = [primero]
     assert uc.execute(dto, 1, 3).desde_cache
-    with pytest.raises(TooManyRequestsError):
-        uc.execute(_dto(densidad_poblacional="1"), 1, 3)
+    nuevo = uc.execute(_dto(densidad_poblacional="1"), 1, 3)
+    assert not nuevo.desde_cache and nuevo.id_resultado_contagio != primero.id_resultado_contagio
+    assert len(resultados.guardados) == 2
 
 
 def test_lote_inaccesible_es_404_y_sin_configuracion_422():

@@ -1,13 +1,10 @@
 {
-  "info": { "name": "G88 RF-58 por subcaso", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "info": { "name": "G88 RF-58 — plantilla de ejecución única", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
   "event": [
     { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
       "if (pm.environment.get('qa_autorizado') !== 'SI' || !pm.environment.get('run_id') || !pm.environment.get('sandbox_secret')) { pm.execution.skipRequest(); return; }",
       "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
-      "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});",
-      "if (pm.environment.get('solo_umbrales') === 'SI' && !pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
-      "if (pm.environment.get('solo_umbrales') !== 'SI' && pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
-      "if (pm.request.method === 'POST') { if (pm.environment.get('skip_ingesta') === 'SI') { pm.execution.skipRequest(); return; } const t=pm.environment.get('broker_service_token'); if (!t) { pm.execution.skipRequest(); return; } pm.request.headers.upsert({key:'Authorization',value:'Bearer '+t}); pm.request.body.update(pm.environment.get('cuerpo_ingesta')); }"
+      "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
     ] } },
     { "listen": "test", "script": { "type": "text/javascript", "exec": [
       "pm.test('[SETUP] Eco del RUN',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"

@@ -6,6 +6,9 @@ module.exports = {
   screenshotOnRunFailure: false,
   trashAssetsBeforeRuns: false,
   reporter: 'spec',
+  viewportWidth: 1600,
+  viewportHeight: 1000,
+  requestTimeout: 90000,
   e2e: {
     specPattern: '**/*.cy.js',
     supportFile: false,

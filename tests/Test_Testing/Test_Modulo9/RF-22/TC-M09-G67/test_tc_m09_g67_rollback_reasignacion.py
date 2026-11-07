@@ -171,6 +171,9 @@ class TestTCM09G67RollbackReasignacion:
         db = DbSpyConRollbackReal()
         sensor_area_repo = SensorAreaRepoSpy()
         auditoria_repo = AuditoriaRepoFallaEnReasignacion()
+        from unittest.mock import MagicMock
+        # REEJECUCION 2026-10-29 tras merge de origin/test: el constructor real ahora
+        # exige asociacion_sensor_activo_port (integracion con M02, DEV-27/ronda 2026-10).
         use_case = AsociarSensorAreaUseCase(
             db=db,
             sensor_repo=SensorRepoFake(),
@@ -178,6 +181,7 @@ class TestTCM09G67RollbackReasignacion:
             infra_repo=InfraRepoFake(),
             dispositivo_repo=DispositivoRepoFake(),
             auditoria_repo=auditoria_repo,
+            asociacion_sensor_activo_port=MagicMock(),
         )
         dto = AsociarSensorAreaDTO(
             id_dispositivo_iot=ID_DISPOSITIVO,

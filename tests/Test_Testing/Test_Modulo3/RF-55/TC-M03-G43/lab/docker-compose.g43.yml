@@ -1,0 +1,71 @@
+# Laboratorio G43 — NO arrancar en la fase de preparación.
+# Proyecto: g43-lab
+# Puertos solo en 127.0.0.1. Sin redes externas. Sin docker-compose.prod.yml.
+#
+# PostgreSQL host 5439 (no 5433 / 5447 / 5448).
+# Mosquitto host 1884.
+#
+# Uso futuro (no ejecutar ahora):
+#   docker compose -p g43-lab -f docker-compose.g43.yml --env-file .env.g43 up -d
+
+name: g43-lab
+
+networks:
+  g43_lab:
+    name: g43_lab
+    driver: bridge
+    # No "external". No sgpmp-network.
+
+volumes:
+  g43_pgdata:
+    name: g43_pgdata
+  g43_mosquitto_config:
+    name: g43_mosquitto_config
+
+services:
+  g43-postgres:
+    image: postgres:18.0
+    container_name: g43-postgres
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Falta POSTGRES_USER en .env.g43}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env.g43}
+      POSTGRES_DB: ${POSTGRES_DB:-sgpmp_g43_test}
+    ports:
+      - "127.0.0.1:${G43_PG_HOST_PORT:-5439}:5432"
+    volumes:
+      - g43_pgdata:/var/lib/postgresql
+    networks:
+      - g43_lab
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  g43-mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: g43-mosquitto
+    restart: "no"
+    environment:
+      MQTT_USERNAME: ${MQTT_USERNAME:?Falta MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:?Falta MQTT_PASSWORD}
+      MQTT_DEVICE_USERNAME: ${MQTT_DEVICE_USERNAME:?Falta MQTT_DEVICE_USERNAME}
+      MQTT_DEVICE_PASSWORD: ${MQTT_DEVICE_PASSWORD:?Falta MQTT_DEVICE_PASSWORD}
+    ports:
+      - "127.0.0.1:${G43_MQTT_HOST_PORT:-1884}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/acl:/mosquitto/config/acl:ro
+      - ./mosquitto/docker-entrypoint-g43.sh:/docker-entrypoint-g43.sh:ro
+      - g43_mosquitto_config:/mosquitto/secrets
+    entrypoint: ["/bin/sh", "/docker-entrypoint-g43.sh"]
+    networks:
+      - g43_lab
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/broker/uptime' -C 1 -W 3 -h 127.0.0.1 -p 1883 -u $$MQTT_USERNAME -P $$MQTT_PASSWORD >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s

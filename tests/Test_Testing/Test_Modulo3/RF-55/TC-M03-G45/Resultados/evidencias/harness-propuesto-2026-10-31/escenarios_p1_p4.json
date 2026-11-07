@@ -1,0 +1,54 @@
+{
+  "nota": "Umbral de temperatura copiado de scripts/casos_rf55.json (id 7). No se inventan umbrales de HR, pH ni OD. No se cargan reglas THI/hídrica para no mezclar RF-55.2 ni ERROR_CONFIGURACION de regla incompleta.",
+  "serial": "QA-G45-HARNESS",
+  "umbral_temperatura_casos_rf55": {
+    "id_umbral_ambiental": 7,
+    "version": "2026-10-05T17:59:58+00:00",
+    "variable": "temperatura_ambiente",
+    "unidad": "C",
+    "valor_min": 18.0,
+    "valor_max": 32.0,
+    "niveles": [
+      {"nivel": "normal", "limite_inferior": 18.0, "limite_superior": 24.0},
+      {"nivel": "precaucion", "limite_inferior": 24.0, "limite_superior": 28.0},
+      {"nivel": "critico", "limite_inferior": 28.0, "limite_superior": 32.0}
+    ]
+  },
+  "escenarios": [
+    {
+      "id": "P1",
+      "dato_invalido": "humedad_relativa=null",
+      "lecturas": [
+        {"variable": "temperatura_ambiente", "valor": 32.5, "unidad": "C"},
+        {"variable": "humedad_relativa", "valor": null, "unidad": "%"}
+      ]
+    },
+    {
+      "id": "P2",
+      "dato_invalido": "ph='abc' y oxigeno_disuelto=true",
+      "lecturas": [
+        {"variable": "ph", "valor": "abc", "unidad": "pH"},
+        {"variable": "oxigeno_disuelto", "valor": true, "unidad": "mg/L"}
+      ]
+    },
+    {
+      "id": "P3",
+      "dato_invalido": "HR 150 y pH 20 (rango físico); T válida con umbral 7; OD omitido a propósito",
+      "lecturas": [
+        {"variable": "temperatura_ambiente", "valor": 30.0, "unidad": "C"},
+        {"variable": "humedad_relativa", "valor": 150.0, "unidad": "%"},
+        {"variable": "ph", "valor": 20.0, "unidad": "pH"}
+      ],
+      "limitacion": "casos_rf55.json P3 también envía oxigeno_disuelto=3.9 sin umbral RF-17 → ERROR_CONFIGURACION (TC-M03-083), no es fallo de G45. Este harness no incluye OD."
+    },
+    {
+      "id": "P4",
+      "dato_invalido": "oxigeno_disuelto=true; lectura válida temperatura_ambiente=30",
+      "lecturas": [
+        {"variable": "temperatura_ambiente", "valor": 30.0, "unidad": "C"},
+        {"variable": "oxigeno_disuelto", "valor": true, "unidad": "mg/L"}
+      ],
+      "nota": "P4 de este pedido (booleano + válida). El P4 de casos_rf55.json usa HR null + T=30; se cubre el nulo en P1."
+    }
+  ]
+}

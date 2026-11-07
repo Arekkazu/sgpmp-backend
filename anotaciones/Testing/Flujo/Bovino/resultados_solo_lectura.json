@@ -1,0 +1,284 @@
+[
+ [
+  "U1",
+  "Umbral var 13: 3 niveles contiguos que cubren [38.00,43.00]",
+  "PASA",
+  "[(38.0, 39.5, 'normal'), (39.5, 40.0, 'precaucion'), (40.0, 43.0, 'critico')]"
+ ],
+ [
+  "U2",
+  "Umbral var 13: sincronizado con el Edge",
+  "PASA",
+  "APLICADA"
+ ],
+ [
+  "U1",
+  "Umbral var 14: 3 niveles contiguos que cubren [40.00,160.00]",
+  "PASA",
+  "[(40.0, 120.0, 'normal'), (120.0, 140.0, 'precaucion'), (140.0, 160.0, 'critico')]"
+ ],
+ [
+  "U2",
+  "Umbral var 14: sincronizado con el Edge",
+  "PASA",
+  "APLICADA"
+ ],
+ [
+  "D1",
+  "PC-BOV-001 en estado ACTIVO",
+  "PASA",
+  "ACTIVO"
+ ],
+ [
+  "D2",
+  "Ultimo contacto hace menos de 5 min",
+  "PASA",
+  "96 s"
+ ],
+ [
+  "T1",
+  "FC-BOV: hay lecturas hoy",
+  "PASA",
+  "264 lecturas"
+ ],
+ [
+  "T2",
+  "FC-BOV: sin timestamps duplicados",
+  "PASA",
+  "0 duplicados"
+ ],
+ [
+  "T3",
+  "FC-BOV: orden cronologico ascendente",
+  "PASA",
+  ""
+ ],
+ [
+  "T4",
+  "FC-BOV: ninguna lectura con estado distinto de LECTURA_VALIDA / ERROR_CALIBRACION",
+  "PASA",
+  "raras: []"
+ ],
+ [
+  "T4b",
+  "FC-BOV: lecturas ERROR_CALIBRACION",
+  "INFO",
+  "2 de 264: ids [129, 127], capturas ['00:27:14', '00:32:14'], valor_ajustado={None}"
+ ],
+ [
+  "T5",
+  "FC-BOV: origen_dato TIEMPO_REAL",
+  "PASA",
+  "{'TIEMPO_REAL'}"
+ ],
+ [
+  "T6",
+  "FC-BOV: valor_ajustado == valor en las LECTURA_VALIDA (sin calibracion)",
+  "PASA",
+  ""
+ ],
+ [
+  "T7",
+  "FC-BOV: ligadas a umbral e individuo",
+  "PASA",
+  "activo={'BOV-001-DEV'}"
+ ],
+ [
+  "T8",
+  "FC-BOV: sin huecos mayores a 10 min",
+  "PASA",
+  "intervalo max 300 s, mediana 300 s"
+ ],
+ [
+  "S1",
+  "FC-BOV: semaforo historico coincide con la banda del umbral DEV",
+  "PASA",
+  "0 discrepancias de 264: []"
+ ],
+ [
+  "E1",
+  "FC-BOV: total_lecturas de estadisticas = lecturas devueltas",
+  "PASA",
+  "264 vs 264"
+ ],
+ [
+  "E2",
+  "FC-BOV: minimo/maximo de estadisticas",
+  "PASA",
+  "api 64.0000-99.7900 vs calc 64.0-99.79"
+ ],
+ [
+  "E3",
+  "FC-BOV: pct_fuera_rango",
+  "INFO",
+  "api 0.0 % | calculado fuera de [min,max]=0.00 % | fuera de banda normal=0.00 %"
+ ],
+ [
+  "T1",
+  "TEMP-CORP-BOV: hay lecturas hoy",
+  "PASA",
+  "264 lecturas"
+ ],
+ [
+  "T2",
+  "TEMP-CORP-BOV: sin timestamps duplicados",
+  "PASA",
+  "0 duplicados"
+ ],
+ [
+  "T3",
+  "TEMP-CORP-BOV: orden cronologico ascendente",
+  "PASA",
+  ""
+ ],
+ [
+  "T4",
+  "TEMP-CORP-BOV: ninguna lectura con estado distinto de LECTURA_VALIDA / ERROR_CALIBRACION",
+  "PASA",
+  "raras: []"
+ ],
+ [
+  "T4b",
+  "TEMP-CORP-BOV: lecturas ERROR_CALIBRACION",
+  "INFO",
+  "2 de 264: ids [130, 131], capturas ['00:27:14', '00:32:14'], valor_ajustado={None}"
+ ],
+ [
+  "T5",
+  "TEMP-CORP-BOV: origen_dato TIEMPO_REAL",
+  "PASA",
+  "{'TIEMPO_REAL'}"
+ ],
+ [
+  "T6",
+  "TEMP-CORP-BOV: valor_ajustado == valor en las LECTURA_VALIDA (sin calibracion)",
+  "PASA",
+  ""
+ ],
+ [
+  "T7",
+  "TEMP-CORP-BOV: ligadas a umbral e individuo",
+  "PASA",
+  "activo={'BOV-001-DEV'}"
+ ],
+ [
+  "T8",
+  "TEMP-CORP-BOV: sin huecos mayores a 10 min",
+  "PASA",
+  "intervalo max 300 s, mediana 300 s"
+ ],
+ [
+  "S1",
+  "TEMP-CORP-BOV: semaforo historico coincide con la banda del umbral DEV",
+  "PASA",
+  "0 discrepancias de 264: []"
+ ],
+ [
+  "E1",
+  "TEMP-CORP-BOV: total_lecturas de estadisticas = lecturas devueltas",
+  "PASA",
+  "264 vs 264"
+ ],
+ [
+  "E2",
+  "TEMP-CORP-BOV: minimo/maximo de estadisticas",
+  "PASA",
+  "api 38.3100-40.7800 vs calc 38.31-40.78"
+ ],
+ [
+  "E3",
+  "TEMP-CORP-BOV: pct_fuera_rango",
+  "INFO",
+  "api 11.74 % | calculado fuera de [min,max]=0.00 % | fuera de banda normal=11.74 %"
+ ],
+ [
+  "A1",
+  "Alertas de Potrero 1 consultables",
+  "PASA",
+  "20 alertas"
+ ],
+ [
+  "A2",
+  "estado_alerta dentro del catalogo RF-57",
+  "PASA",
+  "{'VENCIDA'}"
+ ],
+ [
+  "A3",
+  "severidad dentro de LEVE/MODERADO/CRITICO",
+  "PASA",
+  "{'CRITICO'}"
+ ],
+ [
+  "A4",
+  "Relacion nivel_umbral -> severidad observada",
+  "INFO",
+  "{('critico', 'CRITICO'): 11}"
+ ],
+ [
+  "A5",
+  "Toda alerta de nivel critico tiene severidad CRITICO",
+  "PASA",
+  "11 alertas criticas"
+ ],
+ [
+  "A6",
+  "El valor de cada alerta cae en la banda DEV de su nivel_umbral",
+  "PASA",
+  "0 incoherentes: []"
+ ],
+ [
+  "A7",
+  "Toda lectura en banda critica POSTERIOR a la ultima version del umbral tiene una alerta a +-3 min",
+  "PASA",
+  "version umbral 2026-11-02T05:01:47.585050+00:00; sin alerta: []"
+ ],
+ [
+  "A7b",
+  "Lecturas en banda critica ANTERIORES a la version del umbral sin alerta",
+  "INFO",
+  "4: [('TEMP-CORP-BOV', 305, '40.5400', '2026-11-02T02:54:57.990180Z'), ('TEMP-CORP-BOV', 334, '40.7100', '2026-11-02T03:34:57.485294Z'), ('TEMP-CORP-BOV', 437, '40.4800', '2026-11-02T04:24:57.296037Z'), ('TEMP-CORP-BOV', 482, '40.5300', '2026-11-02T04:55:08.417948Z')]"
+ ],
+ [
+  "V1",
+  "version_umbral que muestra el historial: una sola por sensor aunque la lectura sea anterior a esa version",
+  "INFO",
+  "[('FC-BOV', '2026-11-02T05:01:47.585050Z'), ('TEMP-CORP-BOV', '2026-11-02T05:01:44.097375Z')] (el historial parece mostrar el umbral VIGENTE, no el vigente al capturar; no verificado)"
+ ],
+ [
+  "M1",
+  "Dashboard FC-BOV: semaforo actual coincide con la banda",
+  "PASA",
+  "valor 77.0800 banda normal semaforo VERDE"
+ ],
+ [
+  "M1",
+  "Dashboard TEMP-CORP-BOV: semaforo actual coincide con la banda",
+  "PASA",
+  "valor 38.5500 banda normal semaforo VERDE"
+ ],
+ [
+  "M2",
+  "Dashboard ACT-BOV (Actividad/Movimiento): semaforo",
+  "INFO",
+  "valor 0.2200 m/s² -> GRIS (sin_umbral=True)"
+ ],
+ [
+  "M2",
+  "Dashboard TEMP-AMB-POT1 (Temperatura Ambiental): semaforo",
+  "INFO",
+  "valor 24.9600 °C -> GRIS (sin_umbral=True)"
+ ],
+ [
+  "M2",
+  "Dashboard HR-POT1 (Humedad Relativa): semaforo",
+  "INFO",
+  "valor 67.7300 % -> GRIS (sin_umbral=True)"
+ ],
+ [
+  "M3",
+  "Estado general de la unidad vs peor semaforo de sus sensores",
+  "INFO",
+  "estado_general=GRIS; sensores=[('FC-BOV', 'VERDE'), ('TEMP-CORP-BOV', 'VERDE'), ('ACT-BOV', 'GRIS'), ('TEMP-AMB-POT1', 'GRIS'), ('HR-POT1', 'GRIS')]; sensores_online=5/5"
+ ]
+]

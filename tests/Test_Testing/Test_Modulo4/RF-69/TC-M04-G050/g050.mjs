@@ -200,7 +200,7 @@ function incidencia(caso, id, titulo, esperado, obtenido, evidencia, severidad =
     sustento_severidad: severidad === 'ALTA'
       ? 'El tipo o formato exigido no se puede registrar sin alternativa equivalente en RF-69.'
       : 'El registro puede continuar, pero el formato o metadato consultable es incorrecto.',
-    requisito: 'Matriz vigente G050; RF-69 Restricción 2, RFC-009 y RF-65.',
+    requisito: 'Resultado esperado del caso; RF-69 Restricción 2, línea 1873; RFC-009, línea 1784.',
     precondiciones: 'RUN autorizado; clave RF-71 válida; catálogo I3P-1; artefactos y hashes deterministas.',
     pasos: ['Enviar POST multipart de los seis tipos dentro del RUN; usar V2b ONNX si V2 se rechaza por formato.',
       'Consultar por GET cada id devuelto y comparar formato, tipo, paradigma, componente y métricas.'],
@@ -225,18 +225,18 @@ export function incidencia119(r, post, get, hashEnviado, v2bCreado) {
     sustento_severidad: identificadoComoOnnx
       ? 'El registro se completa y el hash es fiel, pero el metadato de formato es incorrecto. Los consumidores que dependan del formato (RF-66 al ejecutar y RF-70 al distribuir al Edge) podrían cargar el artefacto con el runtime equivocado; no bloquea el registro.'
       : 'El formato exigido no quedó disponible para el caso; sin alternativa equivalente para el artefacto SavedModel en RF-69.',
-    requisito: 'RF-69, Restricción 2, línea 1873: “Solo se aceptan artefactos en formato ONNX o TensorFlow SavedModel.” Fase 1, líneas 1993-1995: “El sistema verifica que el formato del artefacto sea ONNX o TensorFlow SavedModel. Si el formato es inválido → E1.” RNF-09, línea 2391: “Solo ONNX y TensorFlow SavedModel.” Matriz G050, nota de TC-M04-119: “la detección se basa en la firma binaria del archivo, no en su extensión”.',
+    requisito: 'Resultado esperado de TC-M04-119: “Registro completo con formato identificado como TensorFlow SavedModel”. RF-69, Restricción 2, línea 1873: “Solo se aceptan artefactos en formato ONNX o TensorFlow SavedModel.” Fase 1, líneas 1993-1995: “El sistema verifica que el formato del artefacto sea ONNX o TensorFlow SavedModel. Si el formato es inválido → E1.” RNF-09, línea 2391: “Solo ONNX y TensorFlow SavedModel”.',
     precondiciones: `RUN ${r.run_id} autorizado; clave RF-71 válida; catálogo I3P-1; saved_model.pb de 155 bytes construido según tensorflow/core/protobuf/saved_model.proto, con saved_model_schema_version=1 y MetaGraph “serve”; hash SHA-256 ${hash}.`,
     pasos: [
       `En el RUN autorizado, enviar POST /prediccion/modelos multipart con archivo_modelo=saved_model.pb, tipo_modelo=MODELO_ESPECIES_MEDIANAS, hash_artefacto_sha256=${hash} y cabecera X-RF71-Internal-Key.`,
       `Consultar GET /prediccion/modelos/${post?.id ?? '<id devuelto>'} y comparar formato_artefacto y hash_artefacto_sha256 con el archivo enviado.`,
       ...(v2bCreado ? ['Registrar V2b ONNX para el subcaso independiente TC-M04-120; no usarlo para decidir TC-M04-119.'] : [])
     ],
-    analisis: 'La API demuestra la discrepancia de formato. Hipótesis a comprobar: en origin/test, registrar_version_modelo_use_case.py:250-270 decide por el primer byte (0x08 → ONNX; 0x0a → TensorFlow). Un SavedModel real empieza con 0x08 porque el campo 1 saved_model_schema_version es varint, igual que el campo inicial de ModelProto ONNX. Esa lectura local no confirma la causa raíz en TEST.',
+    analisis: 'La API demuestra la discrepancia de formato. Desarrollo informó en issue #819 / PR #864 una corrección por estructura protobuf; el código local consultado en registrar_version_modelo_use_case.py:88-93,303-327 reconoce SavedModel antes de ONNX. El despliegue y la causa raíz en TEST no se infieren del código local.',
     impacto: identificadoComoOnnx
       ? 'Los consumidores que seleccionan runtime por formato (RF-66 y RF-70) podrían elegir ONNX para un SavedModel; además, un SavedModel podría guardarse con extensión .onnx. Impacto potencial, no observado en este RUN.'
       : 'El artefacto SavedModel exigido no queda disponible con el formato correcto.',
-    cierre: 'Identificar el formato por la estructura del mensaje y no por el primer byte, o recibir el formato declarado y validarlo contra la estructura; después, reevaluación V2 autorizada de TC-M04-119.' };
+    cierre: 'Comprobar en un RUN V2 autorizado la corrección informada por Desarrollo en issue #819 / PR #864.' };
 }
 function evaluarRegistro(post, get, d) {
   if (!post?.http) return { estado: 'NO_CONCLUYENTE', motivo: 'POST sin respuesta' };
@@ -254,6 +254,24 @@ function evaluarRegistro(post, get, d) {
   if (!comunes || post.http !== 201) return { estado: 'RECHAZADO', motivo: 'Registro o GET difiere en id, tipo, paradigma o estado APROBADO' };
   return { estado: 'APROBADO', motivo: 'Registro 201 y GET coherentes con tipo y paradigma' };
 }
+export function evaluarFormato(e, p, g, d) {
+  if (e.estado !== 'APROBADO') return e;
+  const postFormato = p.cuerpo?.formato_artefacto;
+  const postHash = p.cuerpo?.hash_artefacto_sha256;
+  if ((postFormato !== undefined && postFormato !== d.formato)
+    || (postHash !== undefined && postHash !== d.hash)
+    || g.cuerpo.formato_artefacto !== d.formato || g.cuerpo.hash_artefacto_sha256 !== d.hash) {
+    const partes = [];
+    if (postFormato !== undefined && postFormato !== d.formato)
+      partes.push(`POST formato_artefacto ${postFormato ?? 'nulo'} en lugar de ${d.formato}`);
+    if (postHash !== undefined && postHash !== d.hash) partes.push('POST hash divergente');
+    if (g.cuerpo.formato_artefacto !== d.formato)
+      partes.push(`formato_artefacto ${g.cuerpo.formato_artefacto ?? 'nulo'} en lugar de ${d.formato}`);
+    partes.push(g.cuerpo.hash_artefacto_sha256 === d.hash ? 'hash fiel' : 'hash divergente');
+    return { estado: 'RECHAZADO', motivo: partes.join('; ') };
+  }
+  return { estado: 'APROBADO', motivo: `POST 201; POST si incluye formato/hash y GET ${d.formato} con hash SHA-256 fiel` };
+}
 function metricasIguales(observado, d) {
   if (d.paradigma === 'POBLACIONAL') {
     const m = observado.metricas_poblacionales;
@@ -268,6 +286,31 @@ function metricasIguales(observado, d) {
     && Number(observado.roc_auc_score) === INDIVIDUAL.roc_auc_score
     && JSON.stringify(observado.recall_por_clase) === JSON.stringify(INDIVIDUAL.recall_por_clase)
     && JSON.stringify(observado.matriz_confusion) === JSON.stringify(INDIVIDUAL.matriz_confusion);
+}
+export function evaluarTipos(post, get, versiones, reemplazo = null) {
+  const usadosGet = [...get], usadosDatos = [...versiones];
+  const evaluaciones = TIPOS.map((_, i) => evaluarRegistro(post[i], get[i], versiones[i]));
+  if (reemplazo) {
+    usadosGet[1] = reemplazo.get;
+    usadosDatos[1] = reemplazo.datos;
+    evaluaciones[1] = reemplazo.post?.http
+      ? evaluarRegistro(reemplazo.post, reemplazo.get, reemplazo.datos)
+      : { estado: 'NO_CONCLUYENTE', motivo: 'V2b ONNX no se ejecutó tras rechazo de formato V2' };
+  }
+  const tecnico = evaluaciones.find(x => ['BLOQUEADO', 'NO_CONCLUYENTE'].includes(x.estado));
+  const defectos = evaluaciones.map((x, i) => ({ ...x, i })).filter(x => x.estado === 'RECHAZADO'
+    || (x.estado === 'APROBADO' && !metricasIguales(usadosGet[x.i].cuerpo, usadosDatos[x.i])));
+  const ids = usadosGet.map(x => idVersion(x?.cuerpo));
+  const idsPropios = ids.every((id, i) => id != null && ids.indexOf(id) === i);
+  if (tecnico) return { estado120: tecnico.estado,
+    motivo120: `No se verificaron seis registros: ${tecnico.motivo}`, usadosGet, defectos, idsPropios };
+  if (defectos.length || !idsPropios) return { estado120: 'RECHAZADO',
+    motivo120: [defectos.length ? `Tipos/métricas divergentes en V${defectos.map(x => x.i + 1).join(', V')}` : null,
+      !idsPropios ? 'Los seis GET no tienen IDs propios distintos' : null].filter(Boolean).join('; '),
+    usadosGet, defectos, idsPropios };
+  return { estado120: 'APROBADO',
+    motivo120: 'Seis tipos con POST 201 y GET 200, IDs propios, paradigmas, componentes y métricas independientes',
+    usadosGet, defectos, idsPropios };
 }
 function resumir(x) {
   if (!x) return null;
@@ -284,6 +327,12 @@ function resumir(x) {
 }
 function detallePorCaso(r) {
   const posts = r.respuestas.posts, gets = r.respuestas.gets, datos = r.datos?.versiones ?? [];
+  const posts120 = [...posts], gets120 = [...gets], datos120 = [...datos];
+  if (r.respuestas.v2b?.post) {
+    posts120[1] = r.respuestas.v2b.post;
+    gets120[1] = r.respuestas.v2b.get;
+    datos120[1] = r.datos.version2b;
+  }
   const numero = x => x == null ? 'sin respuesta' : String(x);
   const http = x => 'HTTP ' + numero(x?.http);
   const id = x => x?.id == null ? 'sin ID' : 'ID ' + x.id;
@@ -307,11 +356,12 @@ function detallePorCaso(r) {
     + ', F1 ' + (d.metricas?.f1_score_global ?? 'sin registro')
     + ' y recall ' + (d.metricas?.recall_clase_riesgo_alto ?? 'sin registro')
     + '; ' + (g ? 'se consultó GET /prediccion/modelos/' + (g.id ?? 'ID no recibido') : 'no consta consulta GET') + ' (' + id(g ?? p) + ').';
-  const respuesta = (p, g, d) => 'POST ' + http(p) + ', ' + id(p) + ' y estado '
-    + (p?.estado ?? 'sin estado') + '; GET ' + http(g) + ', formato '
+  const respuesta = (p, g, d) => 'POST ' + http(p) + ', ' + id(p) + ', estado '
+    + (p?.estado ?? 'sin estado') + ' y formato '
+    + (p?.formato_artefacto ?? 'no incluido') + '; GET ' + http(g) + ', formato '
     + (g?.formato_artefacto ?? 'sin formato observado') + ', hash '
     + (g?.hash_artefacto_sha256 ?? 'sin valor') + ' (' + (fiel(g, d) ? 'igual al enviado' : 'sin coincidencia confirmada') + ').';
-  const fallo120 = posts.map((p, i) => ({ p, g: gets[i], d: datos[i] ?? {} }))
+  const fallo120 = posts120.map((p, i) => ({ p, g: gets120[i], d: datos120[i] ?? {} }))
     .find(x => x.p?.http !== 201 || x.g?.http !== 200 || x.g?.tipo_modelo !== x.d.tipo
       || x.g?.paradigma !== x.d.paradigma || (x.g?.componente ?? null) !== (x.d.componente ?? null));
   const por118 = r.casos[CASOS[0]].estado === 'APROBADO'
@@ -323,8 +373,9 @@ function detallePorCaso(r) {
   const por119 = r.casos[CASOS[1]].estado === 'APROBADO'
     ? 'El registro y la consulta se completaron; el formato fue TensorFlow SavedModel y el hash coincidió con el archivo enviado.'
     : r.casos[CASOS[1]].estado === 'RECHAZADO'
-      ? 'Se exigía TensorFlow SavedModel y se obtuvo ' + (g1?.formato_artefacto ?? 'sin formato observado')
-        + ' en GET ' + http(g1) + ' tras POST ' + http(p1) + '; el hash '
+       ? 'Se exigía TensorFlow SavedModel y se obtuvo formato ' + (p1?.formato_artefacto ?? 'no incluido')
+         + ' en POST ' + http(p1) + ' y ' + (g1?.formato_artefacto ?? 'sin formato observado')
+         + ' en GET ' + http(g1) + '; el hash '
         + (fiel(g1, d1) ? 'sí coincidió' : 'no quedó confirmado') + '. Incidencia ' + incidencia(CASOS[1]) + '.'
       : sinCierre(CASOS[1]);
   const por120 = r.casos[CASOS[2]].estado === 'APROBADO'
@@ -334,22 +385,22 @@ function detallePorCaso(r) {
         + ', GET ' + http(fallo120?.g) + ', paradigma ' + (fallo120?.g?.paradigma ?? 'sin valor')
         + ' y componente ' + (fallo120?.g?.componente ?? 'sin valor') + '. Incidencia ' + incidencia(CASOS[2]) + '.'
       : sinCierre(CASOS[2]);
-  const enviados = posts.map((p, i) => nombre(datos[i]?.tipo) + ' en '
-    + (datos[i]?.formato === 'TENSORFLOW_SAVED_MODEL' ? 'TensorFlow SavedModel' : 'ONNX')
+  const enviados = posts120.map((p, i) => nombre(datos120[i]?.tipo) + ' en '
+    + (datos120[i]?.formato === 'TENSORFLOW_SAVED_MODEL' ? 'TensorFlow SavedModel' : 'ONNX')
     + ' (' + id(p) + ')').join(', ') || 'ningún modelo';
-  const observados = posts.map((p, i) => nombre(datos[i]?.tipo) + ': POST ' + http(p)
-    + ', GET ' + http(gets[i]) + ', ' + id(gets[i] ?? p)
-    + ', estado ' + (gets[i]?.estado ?? p?.estado ?? 'sin estado')
-    + ', paradigma ' + (gets[i]?.paradigma ?? 'sin valor')
-    + ', componente ' + (gets[i]?.componente ?? 'ninguno')).join('; ') || 'no constan respuestas de modelos';
+  const observados = posts120.map((p, i) => nombre(datos120[i]?.tipo) + ': POST ' + http(p)
+    + ', GET ' + http(gets120[i]) + ', ' + id(gets120[i] ?? p)
+    + ', estado ' + (gets120[i]?.estado ?? p?.estado ?? 'sin estado')
+    + ', paradigma ' + (gets120[i]?.paradigma ?? 'sin valor')
+    + ', componente ' + (gets120[i]?.componente ?? 'ninguno')).join('; ') || 'no constan respuestas de modelos';
   const poblacionales = datos.slice(3, 6).map(x => nombre(x.tipo) + ' con componente '
     + String(x.componente ?? 'sin componente').toLowerCase()).join(', ') || 'sin datos poblacionales';
   return '## Detalle por caso\n\n'
     + apartado(CASOS[0], paso(p0, g0, d0, 'archivo ONNX', 'especies grandes'),
-      '“Registro completo con formato identificado como ONNX” (matriz G050, TC-M04-118; RF-69, restricción 2, línea 1873, y fase 1, líneas 1993-1995).',
+      '“Registro completo con formato identificado como ONNX” (resultado esperado de TC-M04-118; RF-69, restricción 2, línea 1873, y fase 1, líneas 1993-1995).',
       respuesta(p0, g0, d0), por118) + '\n\n'
     + apartado(CASOS[1], paso(p1, g1, d1, 'saved_model.pb', 'especies medianas'),
-      '“Registro completo con formato identificado como TensorFlow SavedModel” (matriz G050, TC-M04-119; RF-69, restricción 2, línea 1873, y fase 1, líneas 1993-1995; la matriz exige identificar la firma binaria, no la extensión).',
+      '“Registro completo con formato identificado como TensorFlow SavedModel” (resultado esperado de TC-M04-119; RF-69, restricción 2, línea 1873, y fase 1, líneas 1993-1995; identificación por estructura binaria del archivo).',
       respuesta(p1, g1, d1), por119) + '\n\n'
     + apartado(CASOS[2], 'Como servicio interno RF-71, sin actor humano, se enviaron ' + (posts.filter(Boolean).length + (r.respuestas.v2b?.post ? 1 : 0))
         + ' POST para ' + enviados + '; los tipos individual y meta llevaron F1 0,91 y recall 0,93, y '
@@ -357,7 +408,7 @@ function detallePorCaso(r) {
         + (r.respuestas.v2b?.post ? 'tras el rechazo inicial de especies medianas, se registró un reemplazo ONNX con '
           + id(r.respuestas.v2b.post) + '; ' : '')
         + (gets.some(Boolean) ? 'se consultaron los IDs recibidos por GET.' : 'no constan consultas GET.'),
-      '“Los seis registros se completan y cada tipo se gestiona de forma independiente” (matriz G050, TC-M04-120; RF-69, actualización RFC-009, línea 1784, y enumerado de seis tipos, líneas 383-389).',
+      '“Los seis registros se completan y cada tipo se gestiona de forma independiente” (resultado esperado de TC-M04-120; RF-69, actualización RFC-009, línea 1784, y enumerado de seis tipos, líneas 383-389).',
       observados + (r.respuestas.v2b?.post ? '; reemplazo de especies medianas: POST '
         + http(r.respuestas.v2b.post) + ', GET ' + http(r.respuestas.v2b.get)
         + ', ' + id(r.respuestas.v2b.get ?? r.respuestas.v2b.post) : '')
@@ -378,12 +429,12 @@ export function informe(r) {
       ? `calibración ${celda(g?.metricas_poblacionales?.calibracion_completada)}, FP ${celda(g?.metricas_poblacionales?.tasa_falsos_positivos_rutina)}, detección ${celda(g?.metricas_poblacionales?.tasa_deteccion_eventos_clinicos)}`
       : `f1 ${celda(g?.f1_score)}, recall ${celda(g?.recall_clase_riesgo_alto)}`;
     return `| V${i + 1} ${d.tipo} | ${celda(g?.id ?? p?.id)} | ${d.formato}; ${d.paradigma}; ${d.componente ?? 'sin componente'} | `
-      + `${p?.http ?? 'sin respuesta'} / ${g?.http ?? 'sin GET'} | ${celda(g?.formato_artefacto)}; ${celda(g?.paradigma)}; `
+      + `${p?.http ?? 'sin respuesta'} / ${g?.http ?? 'sin GET'} | ${celda(p?.formato_artefacto)} / ${celda(g?.formato_artefacto)}; ${celda(g?.paradigma)}; `
       + `${celda(g?.componente)}; ${celda(g?.estado)} | ${celda(g?.hash_artefacto_sha256)} | ${metricas} |`;
   }).concat(r.respuestas.v2b?.post?.http ? (() => {
     const p = r.respuestas.v2b.post, g = r.respuestas.v2b.get;
     return `| V2b ${TIPOS[1].tipo} | ${celda(g?.id ?? p?.id)} | ONNX; INDIVIDUAL; sin componente | `
-      + `${p.http} / ${g?.http ?? 'sin GET'} | ${celda(g?.formato_artefacto)}; ${celda(g?.paradigma)}; `
+      + `${p.http} / ${g?.http ?? 'sin GET'} | ${celda(p?.formato_artefacto)} / ${celda(g?.formato_artefacto)}; ${celda(g?.paradigma)}; `
       + `${celda(g?.componente)}; ${celda(g?.estado)} | ${celda(g?.hash_artefacto_sha256)} | `
       + `f1 ${celda(g?.f1_score)}, recall ${celda(g?.recall_clase_riesgo_alto)} |`;
   })() : []).join('\n');
@@ -416,7 +467,10 @@ export function informe(r) {
   const revision = r.revision_qa
     ? `Fecha ${r.revision_qa.fecha}; realizada por ${r.revision_qa.realizada_por}. Motivo: ${r.revision_qa.motivo}. Se corrigió la descripción de formato y hash de TC-M04-119 y se completó la incidencia con requisito, datos observados e hipótesis; no se modificaron veredictos ni evidencias.`
     : 'Informe generado desde las comprobaciones y respuestas de este RUN; sin revisión posterior registrada.';
-  return `# TC-M04-G050 — ${decision}\n\n## Decisión del caso\n\nCaso agrupado TC-M04-G050 (RF-69); originales TC-M04-118, TC-M04-119 y TC-M04-120. Decisión: ${decision}. Motivo: ${motivoDecision}.\n\n| Caso | Comprobación | Decisión | Motivo breve |\n|---|---|---|---|\n${tabla}\n\nRUN oficial: ${r.oficial ? `sí (registro QA OFICIAL, DELETE ${r.cierre.run.cierre_http ?? 'sin respuesta'}, rollback ${r.cierre.rollback.verificado ? 'confirmado' : 'no confirmado'})` : 'no; faltan comprobaciones o cierre'}.\n\nQué falta: ${falta}\n\n${detallePorCaso(r)}\n\n## Identificación\n\nGrupo G050; casos TC-M04-118, TC-M04-119 y TC-M04-120; RF-69 v2.1; versión V${r.version}; RUN ${r.run_id}; ambiente ${r.ambiente}; autorización ${celda(r.autorizacion)}; referencia de código origin/test daefc3a5 (despliegue no verificado); Newman ${r.preflight_herramientas.newman?.version ?? 'no verificado'}; Cypress no requerido (solo API).\n\n## Esperado vs observado por caso\n\n- **TC-M04-118 / API-118-01:** Esperado de matriz: “Registro completo con formato identificado como ONNX”. Observado: POST ${r.respuestas.posts[0]?.http ?? 'sin respuesta'}, GET ${r.respuestas.gets[0]?.http ?? 'sin GET'}, formato_artefacto ${celda(r.respuestas.gets[0]?.formato_artefacto)}, hash ${r.respuestas.gets[0]?.hash_artefacto_sha256 === r.datos?.versiones?.[0]?.hash ? 'fiel' : 'no confirmado'}. Decisión ${r.casos[CASOS[0]].estado}.\n- **TC-M04-119 / API-119-01:** Esperado de matriz: “Registro completo con formato identificado como TensorFlow SavedModel”. Observado: POST ${p119?.http ?? 'sin respuesta'}, id ${celda(p119?.id)}, estado ${celda(p119?.estado)}; GET ${g119?.http ?? 'sin GET'}, formato_artefacto ${celda(g119?.formato_artefacto)}, hash ${hashFiel119 ? 'fiel al enviado' : 'no confirmado'}. Decisión ${r.casos[CASOS[1]].estado}.\n- **TC-M04-120 / API-120-01:** Esperado de matriz: “Los seis registros se completan y cada tipo se gestiona de forma independiente”. Observado: ${r.respuestas.posts.filter(x => x?.http === 201).length} POST 201 y ${r.respuestas.gets.filter(x => x?.http === 200).length} GET 200 de los seis tipos; paradigmas, componentes y métricas detallados abajo. Decisión ${r.casos[CASOS[2]].estado}.\n\n| Versión y tipo | ID | Esperado | HTTP POST / GET | GET observado: formato; paradigma; componente; estado | Hash GET | Métricas GET |\n|---|---|---|---|---|---|---|\n${observados}\n\n## Observaciones\n\nSe envió saved_model.pb como binario único porque el API admite un único archivo_modelo; no se comprobó la carga del directorio SavedModel en un runtime TensorFlow. Los hashes enviados y consultados constan en resultado.json y Newman JSON. ${r.respuestas.v2b?.post?.http ? 'V2b se creó con ONNX y un nuevo id_proceso_rf71 porque V2 fue rechazado por el artefacto; API-120-01 usa V2b para MEDIANAS.' : 'V2b no fue necesario porque V2 se registró; API-120-01 usa V2 para MEDIANAS.'} Para POBLACIONAL, el código origin/test consultado solo usa calibracion_completada para aprobar; no define umbral de aprobación para las tasas 0.02 y 0.96.\n\n## Incidencias de producto\n\n${incidencias}\n\n## Problemas técnicos y análisis\n\n${r.problemas_tecnicos.length ? r.problemas_tecnicos.map(x => `- ${celda(x)}`).join('\n') : 'Sin problemas técnicos observados.'} La hipótesis de código local no demuestra la causa raíz en TEST.\n\n## Cierre y rollback\n\nDELETE RUN HTTP ${r.cierre.run.cierre_http ?? 'sin respuesta'}. ${r.cierre.rollback.verificado ? 'Cierre de la transacción externa confirmado' : 'Rollback de BD no confirmado'}: ${celda(r.cierre.rollback.motivo)}. La eliminación de archivos en MODELOS_STORAGE_PATH y de posibles respaldos RF-73 no se verificó.\n\n## Revisión QA\n\n${revision}\n\n## Evidencias\n\n${r.evidencias.map(x => `- ${x}`).join('\n') || 'Sin evidencias registradas.'}\n\n## Conclusión y acción\n\n${decision}. Acción pendiente: ${falta}\n`;
+  const comparacionV2 = r.version === 2
+    ? `## Comparación V1 → V2\n\nReferencia V1: RUN-G050-V1-20261028-005856, resultado oficial; corrección informada por Desarrollo en issue #819 / PR #864: detección de SavedModel por estructura protobuf. El despliegue en TEST se decide con este RUN.\n\n| Caso | V1 | V2 | Cambio |\n|---|---|---|---|\n| TC-M04-118 | APROBADO: ONNX, hash fiel | ${r.casos[CASOS[0]].estado}: ${celda(r.casos[CASOS[0]].motivo)} | Regresión ONNX |\n| TC-M04-119 | RECHAZADO: SavedModel identificado como ONNX; INC-M04-G050-119 | ${r.casos[CASOS[1]].estado}: ${celda(r.casos[CASOS[1]].motivo)} | ${r.casos[CASOS[1]].estado === 'APROBADO' ? 'INC-M04-G050-119 CORREGIDA en este RUN' : 'INC-M04-G050-119 sin corrección acreditada en este RUN'} |\n| TC-M04-120 | APROBADO: seis tipos independientes | ${r.casos[CASOS[2]].estado}: ${celda(r.casos[CASOS[2]].motivo)} | Regresión de tipos RFC-009 |\n\n`
+    : '';
+  return `# TC-M04-G050 — ${decision}\n\n## Decisión del caso\n\nCaso agrupado TC-M04-G050 (RF-69); originales TC-M04-118, TC-M04-119 y TC-M04-120. Decisión: ${decision}. Motivo: ${motivoDecision}.\n\n| Caso | Comprobación | Decisión | Motivo breve |\n|---|---|---|---|\n${tabla}\n\nRUN oficial: ${r.oficial ? `sí (registro QA OFICIAL, DELETE ${r.cierre.run.cierre_http ?? 'sin respuesta'}, rollback ${r.cierre.rollback.verificado ? 'confirmado' : 'no confirmado'})` : 'no; faltan comprobaciones o cierre'}.\n\nQué falta: ${falta}\n\n${detallePorCaso(r)}\n\n${comparacionV2}## Identificación\n\nGrupo G050; casos TC-M04-118, TC-M04-119 y TC-M04-120; RF-69 v2.1; versión V${r.version}; RUN ${r.run_id}; ambiente ${r.ambiente}; autorización ${celda(r.autorizacion)}; código local consultado: src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py:88-93,303-327; commit y despliegue en TEST no verificados; Newman ${r.preflight_herramientas.newman?.version ?? 'no verificado'}; Cypress no requerido (solo API).\n\n## Esperado vs observado por caso\n\n- **TC-M04-118 / API-118-01:** Esperado del caso: “Registro completo con formato identificado como ONNX”. Observado: POST ${r.respuestas.posts[0]?.http ?? 'sin respuesta'}, GET ${r.respuestas.gets[0]?.http ?? 'sin GET'}, formato_artefacto ${celda(r.respuestas.gets[0]?.formato_artefacto)}, hash ${r.respuestas.gets[0]?.hash_artefacto_sha256 === r.datos?.versiones?.[0]?.hash ? 'fiel' : 'no confirmado'}. Decisión ${r.casos[CASOS[0]].estado}.\n- **TC-M04-119 / API-119-01:** Esperado del caso: “Registro completo con formato identificado como TensorFlow SavedModel”. Observado: POST ${p119?.http ?? 'sin respuesta'}, id ${celda(p119?.id)}, estado ${celda(p119?.estado)}; GET ${g119?.http ?? 'sin GET'}, formato_artefacto ${celda(g119?.formato_artefacto)}, hash ${hashFiel119 ? 'fiel al enviado' : 'no confirmado'}. Decisión ${r.casos[CASOS[1]].estado}.\n- **TC-M04-120 / API-120-01:** Esperado del caso: “Los seis registros se completan y cada tipo se gestiona de forma independiente”. Observado: ${r.respuestas.posts.filter(x => x?.http === 201).length + (r.respuestas.v2b?.post?.http === 201 ? 1 : 0)} POST 201 y ${r.respuestas.gets.filter(x => x?.http === 200).length + (r.respuestas.v2b?.get?.http === 200 ? 1 : 0)} GET 200 de los seis tipos; paradigmas, componentes y métricas detallados abajo. Decisión ${r.casos[CASOS[2]].estado}.\n\n| Versión y tipo | ID | Artefacto enviado; paradigma; componente | HTTP POST / GET | POST / GET observado: formato; paradigma; componente; estado | Hash GET | Métricas GET |\n|---|---|---|---|---|---|---|\n${observados}\n\n## Observaciones\n\nSe envió saved_model.pb como binario único porque el API admite un único archivo_modelo; no se comprobó la carga del directorio SavedModel en un runtime TensorFlow. Los hashes enviados y consultados constan en resultado.json y Newman JSON. El formato de cada versión figura en la tabla como dato observado; el formato del artefacto se evalúa en TC-M04-119 y no afecta al veredicto de TC-M04-120. ${r.respuestas.v2b?.post?.http ? 'V2b se creó con ONNX y un nuevo id_proceso_rf71 porque V2 fue rechazado por el artefacto; API-120-01 usa V2b para MEDIANAS tanto en V1 como en V2.' : 'V2b no fue necesario porque V2 se registró; API-120-01 usa V2 para MEDIANAS.'} Para POBLACIONAL, el código local consultado solo usa calibracion_completada para aprobar; no define umbral de aprobación para las tasas 0.02 y 0.96.\n\n## Incidencias de producto\n\n${incidencias}\n\n## Problemas técnicos y análisis\n\n${r.problemas_tecnicos.length ? r.problemas_tecnicos.map(x => `- ${celda(x)}`).join('\n') : 'Sin problemas técnicos observados.'} La hipótesis de código local no demuestra la causa raíz en TEST.\n\n## Cierre y rollback\n\nDELETE RUN HTTP ${r.cierre.run.cierre_http ?? 'sin respuesta'}. ${r.cierre.rollback.verificado ? 'Cierre de la transacción externa confirmado' : 'Rollback de BD no confirmado'}: ${celda(r.cierre.rollback.motivo)}. La eliminación de archivos en MODELOS_STORAGE_PATH y de posibles respaldos RF-73 no se verificó.\n\n## Revisión QA\n\n${revision}\n\n## Evidencias\n\n${r.evidencias.map(x => `- ${x}`).join('\n') || 'Sin evidencias registradas.'}\n\n## Conclusión y acción\n\n${decision}. Acción pendiente: ${falta}\n`;
 }
 function finalizar(c, r, secretos) {
   const nombre = r.version === 1 ? 'TC-M04-G050_resultado.md' : `TC-M04-G050_reevaluacion_V${r.version}.md`;
@@ -487,18 +541,7 @@ export async function evaluar(c, { env, ensayo = false }) {
     const evals = TIPOS.map((d, i) => !posts[i]?.http && primerBloqueo >= 0 && i > primerBloqueo
       ? { estado: 'BLOQUEADO', motivo: `Escenario detenido tras POST V${primerBloqueo + 1} HTTP ${posts[primerBloqueo].http}` }
       : evaluarRegistro(posts[i], gets[i], d));
-    const formato = i => {
-      const e = evals[i], p = posts[i], g = gets[i], d = versiones[i];
-      if (e.estado !== 'APROBADO') return e;
-      if (g.cuerpo.formato_artefacto !== d.formato || g.cuerpo.hash_artefacto_sha256 !== d.hash) {
-        const partes = [];
-        if (g.cuerpo.formato_artefacto !== d.formato)
-          partes.push(`formato_artefacto ${g.cuerpo.formato_artefacto ?? 'nulo'} en lugar de ${d.formato}`);
-        partes.push(g.cuerpo.hash_artefacto_sha256 === d.hash ? 'hash fiel' : 'hash divergente');
-        return { estado: 'RECHAZADO', motivo: partes.join('; ') };
-      }
-      return { estado: 'APROBADO', motivo: `POST 201; GET ${d.formato} y hash SHA-256 fiel` };
-    };
+     const formato = i => evaluarFormato(evals[i], posts[i], gets[i], versiones[i]);
     for (const [k, idx] of [0, 1].entries()) {
       const x = formato(idx); asignar(r, k, x.estado, x.motivo,
         { post: r.respuestas.posts[idx], get: r.respuestas.gets[idx], hash_enviado: versiones[idx].hash },
@@ -507,22 +550,8 @@ export async function evaluar(c, { env, ensayo = false }) {
     const rechazoArtefactoV2 = posts[1]?.http >= 400 && posts[1]?.http < 500
       && idVersion(posts[1]?.cuerpo) == null
       && /FORMATO|ARTEFACTO/i.test(JSON.stringify(posts[1]?.error ?? {}));
-    const usadosGet = [...gets], usadosDatos = [...versiones];
-    if (rechazoArtefactoV2) {
-      usadosGet[1] = get2b;
-      usadosDatos[1] = version2b;
-    }
-    const evals120 = TIPOS.map((d, i) => rechazoArtefactoV2 && i === 1 && !post2b?.http
-      ? { estado: 'NO_CONCLUYENTE', motivo: 'V2b ONNX no se ejecutó tras rechazo de formato V2' }
-      : i === 1 && rechazoArtefactoV2 ? evaluarRegistro(post2b, get2b, version2b) : evals[i]);
-    const tecnico = evals120.find(x => ['BLOQUEADO', 'NO_CONCLUYENTE'].includes(x.estado));
-    const defectos = evals120.map((x, i) => ({ ...x, i })).filter(x => x.estado === 'RECHAZADO'
-      || (x.estado === 'APROBADO' && !metricasIguales(usadosGet[x.i].cuerpo, usadosDatos[x.i])));
-    let estado120, motivo120;
-    if (tecnico) { estado120 = tecnico.estado; motivo120 = `No se verificaron seis registros: ${tecnico.motivo}`; }
-    else if (defectos.length) { estado120 = 'RECHAZADO';
-      motivo120 = `Tipos/metricas divergentes en V${defectos.map(x => x.i + 1).join(', V')}`; }
-    else { estado120 = 'APROBADO'; motivo120 = 'Seis tipos con POST 201 y GET, paradigmas, componentes y métricas independientes'; }
+    const { estado120, motivo120, usadosGet, defectos, idsPropios } = evaluarTipos(
+      posts, gets, versiones, rechazoArtefactoV2 ? { post: post2b, get: get2b, datos: version2b } : null);
     asignar(r, 2, estado120, motivo120,
       usadosGet.map((x, i) => { const g = resumir(x); return { version: i === 1 && rechazoArtefactoV2 ? '2b' : i + 1, tipo: g?.tipo_modelo,
         paradigma: g?.paradigma, componente: g?.componente, metricas_poblacionales: g?.metricas_poblacionales }; }),
@@ -534,12 +563,10 @@ export async function evaluar(c, { env, ensayo = false }) {
       ['newman/newman-G050.json', 'resultado.json']));
     if (t119) r.incidencias.push(incidencia119(r, r.respuestas.posts[1],
       r.respuestas.gets[1], versiones[1].hash, !!r.respuestas.v2b?.post?.http));
-    if (estado120 === 'RECHAZADO') {
-      if (defectos.length) r.incidencias.push(incidencia(CASOS[2], 'INC-M04-G050-120',
-        'Tipo, paradigma, componente o métricas de modelo divergentes',
-        'Seis tipos independientes con métricas de su paradigma', motivo120,
-        ['newman/newman-G050.json', 'resultado.json'], defectos.some(x => x.estado === 'RECHAZADO') ? 'ALTA' : 'MEDIA'));
-    }
+    if (estado120 === 'RECHAZADO') r.incidencias.push(incidencia(CASOS[2], 'INC-M04-G050-120',
+      'ID, tipo, paradigma, componente o métricas de modelo divergentes',
+      'Seis tipos independientes con ID propio y métricas de su paradigma', motivo120,
+      ['newman/newman-G050.json', 'resultado.json'], !idsPropios || defectos.some(x => x.estado === 'RECHAZADO') ? 'ALTA' : 'MEDIA'));
     if ([...posts, post2b, ...gets, get2b].some(x => x?.http === 403))
       r.problemas_tecnicos.push('HTTP_403_CLAVE_O_PERMISO_SIN_REINTENTO');
     if ([...posts, post2b, ...gets, get2b].some(x => x?.http >= 500))

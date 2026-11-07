@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: prueba clasificacion y etapa critica |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-40: CATALOGO_I3P1 ya retirado |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: la alerta de umbral lleva su regla en reglas_activadas |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58/59: sin activo se usa el umbral de la especie del área |
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -80,13 +81,22 @@ def test_aptitud_ia_no_sustituye_calidad_para_alerta_local():
     assert dto.reglas_activadas[0]['id']==4 and dto.reglas_activadas[0]['nombre'].endswith('_ROJO')
 
 
-@pytest.mark.parametrize('vinculo',[None,{'id_activo_biologico':None}])
-def test_contexto_sin_resolver_permanece_pendiente(vinculo):
+def test_contexto_sin_resolver_permanece_pendiente():
     uc = escenario()
-    uc.lecturas.vinculacion.return_value = vinculo
+    uc.lecturas.vinculacion.return_value = None
     with pytest.raises(ServiceUnavailableError) as e:
         uc.execute(11)
     assert e.value.code=='CONTEXTO_ALERTA_PENDIENTE'
+    uc.generador.execute.assert_not_called()
+
+
+def test_sin_activo_se_clasifica_por_area_y_no_queda_pendiente():
+    # M3-12: una lectura ambiental sin activo nunca lo tendrá; antes se reintentaba sin fin.
+    uc = escenario()
+    uc.lecturas.vinculacion.return_value = {'id_activo_biologico': None}
+    uc.clasificador.umbral_port.obtener_umbral_vigente_area.return_value = None
+    assert uc.execute(11) == {'decision': 'SIN_CLASIFICACION_RF17'}
+    assert uc.clasificador.umbral_port.obtener_umbral_vigente_area.call_args.kwargs['id_sensor'] == 6
     uc.generador.execute.assert_not_called()
 
 

@@ -99,6 +99,7 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        modelo_manejo: Optional[str] = None,
     ) -> Tuple[List[VinculacionLectura], int]:
         q = select(VinculacionLecturaModel)
         if ids_fincas_permitidas is not None:
@@ -115,6 +116,8 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
             q = q.where(VinculacionLecturaModel.mecanismo_vinculacion == mecanismo_vinculacion)
         if id_infraestructura is not None:
             q = q.where(VinculacionLecturaModel.id_infraestructura == id_infraestructura)
+        if modelo_manejo:
+            q = q.where(VinculacionLecturaModel.modelo_manejo == modelo_manejo)
         if fecha_desde is not None:
             q = q.where(VinculacionLecturaModel.fecha_creacion >= fecha_desde)
         if fecha_hasta is not None:

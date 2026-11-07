@@ -7,10 +7,13 @@
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: aviso E7 en segundo plano; el dashboard no espera al SMTP |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-58: catálogo de sensores para filtrar por nombre |
+# | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: la exportación conserva su regla (cualquier filtro) |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
   GET /iot/monitoreo/dashboard                   — Dashboard completo del usuario
+  GET /iot/monitoreo/sensores                    — Sensores del usuario por nombre (filtros, T-18)
   GET /iot/monitoreo/dashboard/{id_infraestructura} — Dashboard por unidad productiva
 
 RF-59 — CU04 Modo histórico:
@@ -28,6 +31,8 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
@@ -88,6 +93,43 @@ def _panel_alertas(use_case: ObtenerDashboardUseCase, id_infraestructura, ids_fi
     alertas, total = use_case.panel_alertas_activas(id_infraestructura, ids_fincas_permitidas=ids_fincas)
     return PanelAlertasActivasSchema(
         total=total, alertas=[AlertaActivaPanelSchema.model_validate(a) for a in alertas])
+
+
+class SensorCatalogoSchema(BaseModel):
+    id_sensor: int
+    nombre_sensor: str
+    nombre_infraestructura: Optional[str] = None
+    nombre_finca: Optional[str] = None
+
+
+# T-18: los filtros "ID sensor" pedían escribir un número; este catálogo los deja buscar por nombre.
+_SQL_SENSORES = text(
+    "SELECT s.id_sensores, s.nombre, i.nombre, f.nombre FROM modulo9.sensores s "
+    "JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot "
+    "JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura "
+    "JOIN modulo9.fincas f ON f.id_finca = i.id_finca "
+    "WHERE s.es_activo AND (CAST(:fincas AS integer[]) IS NULL OR i.id_finca = ANY(:fincas)) "
+    "ORDER BY f.nombre, i.nombre, s.nombre"
+)
+
+
+@router.get(
+    "/sensores",
+    response_model=list[SensorCatalogoSchema],
+    status_code=200,
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    dependencies=[Depends(require_permission(33, 2))],
+    summary="Sensores activos de las fincas del usuario, para elegirlos por nombre (T-18)",
+)
+def listar_sensores_catalogo(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> list[SensorCatalogoSchema]:
+    fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+    return [
+        SensorCatalogoSchema(id_sensor=i, nombre_sensor=n, nombre_infraestructura=a, nombre_finca=f)
+        for i, n, a, f in db.execute(_SQL_SENSORES, {"fincas": fincas}).all()
+    ]
 
 
 @router.get(
@@ -228,8 +270,8 @@ def exportar_historial(
         origen_dato=origen_dato,
         id_activo_biologico=id_activo_biologico,
     )
-    # FA-11: bloquear exportación sin filtros activos
-    if not filtros.tiene_filtro_adicional():
+    # FA-11: bloquear exportación sin filtros activos (cualquiera; no es la regla de rango)
+    if not filtros.filtros_presentes():
         raise ValidationError(
             code='EXPORTAR_SIN_FILTROS',
             message='Debe aplicar al menos un filtro adicional antes de exportar.',

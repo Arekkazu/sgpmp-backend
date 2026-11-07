@@ -312,7 +312,7 @@ def test_1_6_regla_mal_configurada_banda_incompleta_o_inconsistente():
 def test_2_1_corregir_la_configuracion_evento_pendiente_se_evalua(alertas):
     requiere_env("SENSOR_SIN_UMBRALES", "VARIABLE_SIN_UMBRALES")
     var = os.environ["VARIABLE_SIN_UMBRALES"]
-    cuerpo = evento(var="TEMPERATURA_AMBIENTAL", valor=35.0, sev="LEVE", tipo_variable=var, sensor_id=int(os.environ["SENSOR_SIN_UMBRALES"]), unidad="u")
+    cuerpo = evento(var="TEMPERATURA_AMBIENTAL", valor=35.0, sev="LEVE", tipo_variable=var, sensor_id=int(os.environ["SENSOR_SIN_UMBRALES"]), unidad=UNIDADES.get(var.upper(), "u"))
     r = requests.post(BASE_URL + "/iot/alertas", json=cuerpo, headers=hdr_dispositivo(), timeout=TIMEOUT)
     assert "PENDIENTE_EVALUACION" in r.text or r.status_code in (200, 201)
     u = _crear_umbral(NIVELES_OK)

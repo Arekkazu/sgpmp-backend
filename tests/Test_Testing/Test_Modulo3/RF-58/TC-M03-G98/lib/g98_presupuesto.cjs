@@ -1,12 +1,15 @@
 // Presupuesto único para capacidades, ejecutor, README e informe.
 module.exports = Object.freeze({
-  unidades_conocidas: [1, 268, 337],
-  unidades_adicionales: 3,
   fincas_descubrimiento: 2,
-  lecturas_descubrimiento: 3,
-  paginas_dashboard: 12,
+  unidades_candidatas: 6,
+  alertas_por_pagina: 200,
+  canario_por_pagina: 1,
   por_pagina: 50,
-  solicitudes_en_run: 15,
+  dispositivos_por_area: 8,
+  historiales_maximos: 24,
+  solicitudes_en_run: 224,
+  escrituras_alerta: 3,
+  lecturas_cierre: 3,
   margen_cierre: 1,
-  duracion_segundos: 600,
+  duracion_segundos: 900,
 });

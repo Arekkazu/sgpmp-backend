@@ -1,0 +1,536 @@
+{
+ "ejecutado": "2026-11-02T23:25:58",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "fixture": {
+  "infra": 16,
+  "lote": 21,
+  "disp": 16,
+  "serial": "QA-CERDO-LECT-042515",
+  "sensores": {
+   "QA-TEMP-AMB": 31,
+   "QA-HR": 32,
+   "QA-NH3": 33
+  },
+  "alertas": {
+   "QA-TEMP-AMB": [],
+   "QA-HR": [],
+   "QA-NH3": []
+  },
+  "dashboard": {
+   "estado_general": "GRIS",
+   "sensores": [
+    {
+     "n": "QA-TEMP-AMB-042515",
+     "sem": "GRIS",
+     "sin_umbral": true,
+     "valor": "-50.0000",
+     "calidad": "LECTURA_VALIDA"
+    },
+    {
+     "n": "QA-HR-042515",
+     "sem": "GRIS",
+     "sin_umbral": true,
+     "valor": "0.0000",
+     "calidad": "LECTURA_VALIDA"
+    },
+    {
+     "n": "QA-NH3-042515",
+     "sem": "GRIS",
+     "sin_umbral": true,
+     "valor": "0.0000",
+     "calidad": "LECTURA_VALIDA"
+    }
+   ]
+  }
+ },
+ "pasos": [
+  {
+   "id": "U0",
+   "descripcion": "Precondicion: Porcino no tiene umbrales",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "0 umbrales"
+  },
+  {
+   "id": "F1",
+   "descripcion": "Crear area QA de Porcino",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=16"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Crear lote de 5 cerdos",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=21"
+  },
+  {
+   "id": "F3",
+   "descripcion": "Registrar dispositivo QA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=16"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-TEMP-AMB (TEMPERATURA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=31"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-TEMP-AMB",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 31, \"especies\": [{\"id_especie\": 4, \"nombre\": \"Porcino\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-TEMP-AMB al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 31, \"id_sensor\": 31, \"id_dispositivo_iot\": 16, \"id_infraestructura\": 1"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-TEMP-AMB",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 30, \"id_dispositivo_iot\": 16, \"id_sensor\": 31, \"valor_referencia\": 25.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-TEMP-AMB al lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 19, \"id_activo_biologico\": 21, \"tipo_activo\": \"LOTE\", \"tipo_asociacion\": \"poblacional\", "
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-HR (HUMEDAD)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=32"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-HR",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 32, \"especies\": [{\"id_especie\": 4, \"nombre\": \"Porcino\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-HR al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 32, \"id_sensor\": 32, \"id_dispositivo_iot\": 16, \"id_infraestructura\": 1"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-HR",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 31, \"id_dispositivo_iot\": 16, \"id_sensor\": 32, \"valor_referencia\": 60.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-HR al lote",
+   "status": 409,
+   "error_code": "ACTIVO_YA_TIENE_SENSOR_POBLACIONAL",
+   "resultado": "FALLA",
+   "detalle": "{\"error_code\": \"ACTIVO_YA_TIENE_SENSOR_POBLACIONAL\", \"message\": \"El activo 21 ya tiene el sensor 31 con asociación POBLA"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-NH3 (AMONIACO)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=33"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-NH3",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 33, \"especies\": [{\"id_especie\": 4, \"nombre\": \"Porcino\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-NH3 al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 33, \"id_sensor\": 33, \"id_dispositivo_iot\": 16, \"id_infraestructura\": 1"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-NH3",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 32, \"id_dispositivo_iot\": 16, \"id_sensor\": 33, \"valor_referencia\": 5.0, \"ganancia"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-NH3 al lote",
+   "status": 409,
+   "error_code": "ACTIVO_YA_TIENE_SENSOR_POBLACIONAL",
+   "resultado": "FALLA",
+   "detalle": "{\"error_code\": \"ACTIVO_YA_TIENE_SENSOR_POBLACIONAL\", \"message\": \"El activo 21 ya tiene el sensor 31 con asociación POBLA"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar dispositivo",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  }
+ ],
+ "lecturas": [
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 24.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "24.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 35.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "35.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 99.9,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "99.9000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 100.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "100.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 100.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": -50.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "-50.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": -50.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 60.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "60.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 95.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "95.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 100.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "100.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 100.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 0.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "0.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": -0.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 10.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "10.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 40.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "40.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 499.9,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "499.9000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 500.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "500.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 500.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 0.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "0.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Porcino"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": -0.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  }
+ ]
+}

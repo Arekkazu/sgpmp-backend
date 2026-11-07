@@ -1,92 +1,76 @@
-<#
-.SYNOPSIS
-    Runner PowerShell para TC-M04-G092 (RF-73 Trazabilidad End-to-End con correlacion_id).
-.DESCRIPTION
-    Ejecuta la colección Newman de TC-M04-G092 bajo Sandbox transaccional con regla de CERO DML.
-    Genera el reporte oficial en resultados/resultado_TC-M04-G092.html y .json.
-#>
-param (
-    [string]$BaseUrl = "https://api.inmero.co/back-sigab-test"
+# ejecutar_tc_m04_g092.ps1 - Runner Pytest para TC-M04-G092
+# Uso:
+#   powershell -File tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G092\ejecutar_tc_m04_g092.ps1
+#   powershell -File tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G092\ejecutar_tc_m04_g092.ps1 -Suffix "_reintento2"
+param(
+    [string]$Suffix = ""
 )
 
 $ErrorActionPreference = "Stop"
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Cargar variables de entorno desde .env.test si existen
-$envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
-if (Test-Path $envTestPath) {
-    Get-Content $envTestPath | ForEach-Object {
-        $line = $_.Trim()
-        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
-            $parts = $line.Split("=", 2)
-            $k = $parts[0].Trim()
-            $v = $parts[1].Trim()
-            if (-not [System.Environment]::GetEnvironmentVariable($k)) {
-                [System.Environment]::SetEnvironmentVariable($k, $v, "Process")
-            }
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ScriptDir) {
+    $ScriptDir = (Get-Location).Path
+}
+$RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..\..\..\..\..")).Path
+$TC = "tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G092"
+$ResultDir = Join-Path $RepoRoot "$TC\resultados"
+
+if (-not (Test-Path $ResultDir)) {
+    New-Item -ItemType Directory -Path $ResultDir -Force | Out-Null
+}
+
+# Guarda V1: impedir sobreescritura accidental de la linea base V1
+$V1Json = Join-Path $ResultDir "resultado_TC-M04-G092.json"
+if ([string]::IsNullOrEmpty($Suffix) -and (Test-Path $V1Json)) {
+    Write-Host "ERROR: V1 existente ($V1Json). Use -Suffix '_reintentoN'." -ForegroundColor Yellow
+    exit 1
+}
+
+# Cargar .env.test
+$EnvFile = Join-Path $RepoRoot ".env.test"
+if (Test-Path $EnvFile) {
+    Get-Content $EnvFile | ForEach-Object {
+        if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$') {
+            $name  = $matches[1]
+            $value = $matches[2].Trim('"').Trim("'")
+            [Environment]::SetEnvironmentVariable($name, $value, "Process")
         }
     }
 }
 
-$sandboxSecret = [System.Environment]::GetEnvironmentVariable("TEST_SANDBOX_SECRET")
-$adminPassword = [System.Environment]::GetEnvironmentVariable("TEST_ADMIN_PASSWORD")
-
-if (-not $sandboxSecret) {
-    Write-Error "Variable TEST_SANDBOX_SECRET no definida en el entorno ni en .env.test"
-}
-if (-not $adminPassword) {
-    Write-Error "Variable TEST_ADMIN_PASSWORD no definida en el entorno ni en .env.test"
+$TestDb = $env:TEST_DATABASE_URL
+if (-not $TestDb -or -not $TestDb.StartsWith("postgresql://")) {
+    Write-Host "ERROR: TEST_DATABASE_URL debe empezar con postgresql:// (recibido: '$TestDb')" -ForegroundColor Red
+    exit 2
 }
 
-# Verificación de CERO DML en la colección antes de correr
-$collectionPath = Join-Path $scriptDir "test_tc_m04_g092.json"
-$checkerScript = Join-Path $scriptDir "..\verificar_sin_dml.cjs"
-if (Test-Path $checkerScript) {
-    Write-Host "Verificando regla CERO DML en la colección..." -ForegroundColor Yellow
-    node $checkerScript
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Chequeo CERO DML falló. Abortando ejecución."
-    }
-}
+$env:PYTHONPATH = "."
 
-$runId = "test-m04-g092-" + [System.Guid]::NewGuid().ToString().Substring(0, 8)
-Write-Host "Iniciando ejecución de TC-M04-G092 con Run ID: $runId" -ForegroundColor Cyan
+$JunitXml = Join-Path $ResultDir "_raw_pytest$Suffix.xml"
+$HtmlReport = Join-Path $ResultDir "resultado_TC-M04-G092$Suffix.html"
+$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G092$Suffix.json"
 
-$resultadosDir = Join-Path $scriptDir "resultados"
-if (-not (Test-Path $resultadosDir)) {
-    New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
-}
-
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M04-G092.html"
-$reportRawJson = Join-Path $resultadosDir "_raw_newman.json"
-
-$newmanArgs = @(
-    "run", $collectionPath,
-    "--env-var", "baseUrl=$BaseUrl",
-    "--env-var", "run_id=$runId",
-    "--env-var", "sandbox_secret=$sandboxSecret",
-    "--env-var", "admin_password=$adminPassword",
-    "-r", "cli,htmlextra,json",
-    "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "Reporte TC-M04-G092 - Trazabilidad correlacion_id (RF-73)",
-    "--reporter-htmlextra-hideRequestBody", "01-Login-ADMIN",
-    "--reporter-json-export", $reportRawJson
-)
-
-Write-Host "Ejecutando Newman..." -ForegroundColor Yellow
+Push-Location $RepoRoot
 try {
-    & npx -y newman @newmanArgs
-} catch {
-    Write-Warning "Newman completó con advertencias/fallos."
+    .\.venv\Scripts\pytest.exe $TC -v --junitxml="$JunitXml" --html="$HtmlReport" --self-contained-html --tb=short
+    $ExitPytest = $LASTEXITCODE
+}
+finally {
+    Pop-Location
 }
 
-# Consolidar resultados en JSON
-$consolidarScript = Join-Path $scriptDir "consolidar-resultados.cjs"
-if (Test-Path $consolidarScript) {
-    node $consolidarScript
-}
+$ConsolidadorPy = Join-Path $ScriptDir "consolidar_resultados.py"
+.\.venv\Scripts\python.exe $ConsolidadorPy $JunitXml $FinalJson
 
-Write-Host "Reporte HTML generado en: $reportHtml" -ForegroundColor Green
-Write-Host "Para verificar en scanner (ejecutar en carpeta qa-dashboard/):" -ForegroundColor Cyan
-Write-Host "cd ../../../qa-dashboard; python3 -c `"import scanner as s; print([c for c in s.scan()['casos'] if c['tc_id']=='TC-M04-G092'])`"" -ForegroundColor Green
-exit $LASTEXITCODE
+Write-Host ""
+Write-Host "=== RESUMEN TC-M04-G092 ===" -ForegroundColor Cyan
+if (Test-Path $FinalJson) {
+    Get-Content $FinalJson | ConvertFrom-Json | ConvertTo-Json -Depth 5
+}
+Write-Host "EXIT_PYTEST=$ExitPytest"
+Write-Host "RESULT_JSON=$FinalJson"
+Write-Host "RESULT_HTML=$HtmlReport"
+
+# Propagar exit code de pytest
+exit $ExitPytest

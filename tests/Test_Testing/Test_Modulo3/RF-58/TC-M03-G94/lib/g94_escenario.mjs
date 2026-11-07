@@ -1,9 +1,7 @@
 export const CASO = 'TC-M03-185';
 export const ORACULO = 'HTTP 200 con arreglos vacíos. La interfaz muestra "No tiene unidades productivas asignadas" y sugiere contactar al administrador; no se devuelve ningún dato de otras granjas ni error interno.';
 export const IDS = ['API-185-01', 'API-185-02', 'UI-185-01'];
-export const SESION_FUERA = Object.freeze([
-  'POST /sesiones/refresh', 'GET /usuarios/me', 'GET /sesiones/me/permisos',
-]);
+export const SESION_LOCAL = Object.freeze(['POST /sesiones/', 'POST /sesiones/refresh']);
 export const LIMITE = Object.freeze({ solicitudes_directas: 22, margen_cierre: 5, ui_api: 20, inactividad_segundos: 180 });
 export const CAPACIDADES = Object.freeze({ contrato: 'sigab-qa-ejecutor/1', grupo: 'G94', casos: [CASO],
   operaciones: ['evaluar', 'reintentar', 'reevaluar'], versiones: { min: 1, max: 99 },
@@ -36,20 +34,22 @@ export function clasificarUi(acta) {
   if (!acta) return { estado: 'ERROR_QA', motivo: 'Cypress sin acta; automatización por revisar' };
   if (acta.estado === 'ERROR_QA') return { estado: 'ERROR_QA', motivo: acta.motivo || 'BLOQUEO_G94' };
   if (!Array.isArray(acta.peticiones)) return { estado: 'ERROR_QA', motivo: 'Acta sin peticiones verificables' };
-  if (acta.peticiones.some(x => !x.en_sandbox && x.http >= 500
-    && SESION_FUERA.includes(`${x.metodo} ${x.ruta}`)))
-    return { estado: 'BLOQUEADO', motivo: '5xx de sesión fuera del sandbox' };
-  if (acta.peticiones.some(x => x.en_sandbox !== !SESION_FUERA.includes(`${x.metodo} ${x.ruta}`)))
-    return { estado: 'ERROR_QA', motivo: 'Ruta fuera de la lista cerrada de aislamiento' };
-  if (acta.peticiones.some(x => x.http != null && (x.en_sandbox ? !x.eco_run : x.eco_run)))
-    return { estado: 'NO_CONCLUYENTE', motivo: 'Eco RUN incoherente con el aislamiento de la petición' };
+  if (acta.peticiones.some(x => x.en_sandbox !== true))
+    return { estado: 'ERROR_QA', motivo: 'Petición UI fuera del RUN' };
+  if (acta.peticiones.some(x => ['/usuarios/me', '/sesiones/me/permisos'].includes(x.ruta) && x.http >= 500))
+    return { estado: 'NO_CONCLUYENTE', motivo: 'SESION_5XX dentro del RUN' };
+  if (acta.peticiones.some(x => x.http != null && !x.eco_run))
+    return { estado: 'NO_CONCLUYENTE', motivo: 'Eco RUN ausente en petición UI' };
+  if (acta.pendiente_al_terminar || acta.carga_sin_terminar)
+    return { estado: 'NO_CONCLUYENTE', motivo: 'Carga o peticiones UI sin terminar' };
   if (acta.dashboard?.http >= 500 && acta.dashboard.eco_run)
     return { estado: 'RECHAZADO', motivo: `Dashboard HTTP ${acta.dashboard.http}; error interno` };
   if (!acta.dashboard || acta.dashboard.http == null)
     return { estado: 'NO_CONCLUYENTE', motivo: 'dashboard no recibido en el plazo' };
   if (acta.dashboard.http !== 200 || !acta.dashboard.eco_run)
     return { estado: 'NO_CONCLUYENTE', motivo: 'Dashboard UI sin respuesta válida y eco RUN' };
-  if (acta.mensaje_exacto && acta.contacto_admin && acta.sin_tarjetas && acta.sin_error_interno)
+  if (acta.mensaje_exacto && acta.contacto_admin && acta.sin_tarjetas && acta.sin_error_interno
+    && !acta.datos_ajenos && acta.canario_e7 !== 'SENSORES_DEVUELTOS')
     return { estado: 'APROBADO', motivo: 'Oráculo visual completo' };
   return { estado: 'RECHAZADO', motivo: 'La pantalla cargó y difiere del oráculo visual' };
 }

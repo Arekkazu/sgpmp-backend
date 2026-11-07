@@ -10,6 +10,8 @@ import { clasificarRegistro } from './registro_qa.mjs';
 const A = CASOS.map(()=>'APROBADO'), one=(i,s='RECHAZADO')=>A.map((x,j)=>i===j?s:x);
 const BL=CASOS.map(()=>'BLOQUEADO'), NC='NO_CONCLUYENTE';
 const modos=[
+  ['v2_corregido',A,true], ['v2_defecto',one(0),true],
+  ['variante_nueva_aceptada',one(0),true], ['historial_500',[A[0],A[1],A[2],A[3],NC],false],
   ['todo_ok',A,true], ['comportamiento_codigo_actual',one(0),true],
   ['minusculas_aceptada',one(0),true], ['numerico_400',one(0),true],
   ['vacio_aceptado',one(0),true], ['inexistente_aceptado',one(0),true],
@@ -37,7 +39,7 @@ function makeServer(modo){
     id_activo_biologico:885,tipo_evento:'INFERENCIA',fecha_evento:new Date(Date.now()-86400000+i*60000).toISOString(),
     payload:{id_patologia:7,tipo_modelo:'MODELO_ESPECIES_MEDIANAS',id_version_modelo:43}}));
   const patologias=Array.from({length:8},(_,i)=>({id_patologia:i+7,especie_aplicable:'TODAS',es_activo:true,es_base:true}));
-  const retros=[],audit=[],received=[];let deleted=false,closed=false,errors=0,invalidData=false;
+  const retros=[],audit=[],received=[];let deleted=false,closed=false,errors=0,invalidData=false,historialFallido=false;
   const server=http.createServer(async(req,res)=>{
     const u=new URL(req.url,'http://127.0.0.1'),run=req.headers['x-test-run-id'];
     const body=req.method==='POST'?JSON.parse((await read(req))||'{}'):{};
@@ -54,6 +56,9 @@ function makeServer(modo){
       (modo==='error5xx'?[885,886,887]:[885]).map(n=>({id_activo_biologico:n,id_especie:220,tipo:'INDIVIDUAL'})),total_paginas:1},run);
     if(u.pathname.startsWith('/prediccion/historial/')){
       if(modo==='error5xx'&&errors++<3)return send(res,500,{error_code:'ERROR_INTERNO'},run);
+      if(modo==='historial_500'&&received.length&&!historialFallido){
+        historialFallido=true;return send(res,500,{error_code:'HISTORIAL_NO_DISPONIBLE'},run);
+      }
       const eventos=[...inferencias,...(closed?[]:retros)];
       return send(res,200,{eventos,cursor_siguiente:null,total_pagina:eventos.length},run);
     }
@@ -93,16 +98,19 @@ function makeServer(modo){
       if(key==='206-ausente'){
         if(modo==='ausente_aceptado')return send(res,201,persist('CORRECTO'),run);
         if(modo==='ausente_400_sin_campo')missing.fields=[{field:'otro',message:'Este campo es obligatorio.'}];
-        return send(res,['comportamiento_codigo_actual','ausente_400_completo','ausente_400_sin_campo'].includes(modo)?400:422,missing,run);
+        return send(res,['comportamiento_codigo_actual','v2_defecto','ausente_400_completo','ausente_400_sin_campo'].includes(modo)?400:422,missing,run);
       }
       if(key==='205-numerico'){
-        if(['numerico_400','comportamiento_codigo_actual'].includes(modo))return send(res,400,numeric,run);
+        if(['numerico_400','comportamiento_codigo_actual','v2_defecto'].includes(modo))return send(res,400,numeric,run);
         return send(res,422,e3,run);
       }
       if(key==='205-minusculas'){
-        if(['minusculas_aceptada','comportamiento_codigo_actual'].includes(modo))return send(res,201,persist('CORRECTO'),run);
+        if(['minusculas_aceptada','comportamiento_codigo_actual','v2_defecto'].includes(modo))return send(res,201,persist('CORRECTO'),run);
         return send(res,422,e3,run);
       }
+      if(key==='205-capitalizado')return modo==='variante_nueva_aceptada'
+        ?send(res,201,persist('CORRECTO'),run):send(res,422,e3,run);
+      if(key==='205-nulo'||key==='205-lista')return send(res,422,e3,run);
       if(key==='205-vacio'){
         if(modo==='vacio_aceptado')return send(res,201,persist(''),run);
         return send(res,422,e3,run);
@@ -134,8 +142,8 @@ for(const [modo,expected,official] of modos){
   const {server,status}=makeServer(modo);
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),`g067-${modo}-`));
-  const c={version:1,runId:'RUN-G067-V1-20261029-000000',referencia:'ENSAYO_LOCAL',
-    operacion:'evaluar',directorio:tmp,ensayo:true};
+  const c={version:2,version_anterior:1,runId:'RUN-G067-V2-20261101-000000',referencia:'ENSAYO_LOCAL',
+    operacion:'reevaluar',directorio:tmp,ensayo:true};
   try{
     let env={SIGAB_API_TEST_BASE:`http://127.0.0.1:${server.address().port}`,
       QA_SANDBOX_SECRET:'sandbox-local',QA_VETERINARIO_EMAIL:'vet@local.invalid',
@@ -152,15 +160,18 @@ for(const [modo,expected,official] of modos){
     if(!['login_sin_red','newman_no_disponible'].includes(modo))assert.equal(status().deleted,true,modo);
     const present=new Set(fs.readdirSync(tmp));
     if(fs.existsSync(path.join(tmp,'newman')))for(const x of fs.readdirSync(path.join(tmp,'newman')))present.add(`newman/${x}`);
-    assert.equal(clasificarRegistro(CAPACIDADES,r,present,{runId:c.runId,version:1}),official,modo);
+    assert.equal(clasificarRegistro(CAPACIDADES,r,present,{runId:c.runId,version:2}),official,modo);
     assert.ok(r.solicitudes.length<=PRESUPUESTO.solicitudes_totales,modo);
     assert.equal(r.cypress.total_pruebas,0,modo);
     assert.ok(r.registros.every(z=>!z.lista_enviada?.includes(7)),modo);
-    const report=fs.readFileSync(path.join(tmp,'TC-M04-G067_resultado.md'),'utf8');
+    const report=fs.readFileSync(path.join(tmp,'TC-M04-G067_reevaluacion_V2.md'),'utf8');
     assert.equal((report.match(/### TC-M04-/g)||[]).length,5,modo);
     assert.ok(report.includes('## Precondición de datos')&&report.includes('## Detalle por caso'),modo);
+    assert.ok(report.includes('## Comparación V1 → V2')&&report.includes('issue #862 / PR #871'),modo);
+    assert.equal(/matriz/i.test(report),false,modo);
+    assert.equal(/\{\"estado_retroalimentacion\"/.test(report),false,modo);
     assert.equal(/[\u00c3\u00c2\ufffd]/.test(report),false,modo);
-    if(modo==='comportamiento_codigo_actual'){
+    if(['comportamiento_codigo_actual','v2_defecto'].includes(modo)){
       assert.deepEqual(r.incidencias.map(x=>[x.id,x.severidad]),[
         ['INC-M04-G067-205-01','BAJA'],['INC-M04-G067-205-02','BAJA']]);
       assert.ok(report.includes("'correcto' recibió HTTP 201 y se guardó como CORRECTO"));
@@ -173,7 +184,7 @@ for(const [modo,expected,official] of modos){
     if(modo==='vacio_aceptado')assert.equal(r.incidencias.find(x=>x.clave==='205-vacio')?.severidad,'ALTA');
     if(modo==='vacio_aceptado')assert.notEqual(r.registros.find(z=>z.clave==='205-vacio').resultado,
       r.registros.find(z=>z.clave==='205-numerico').resultado);
-    if(['todo_ok','duplicada_con_reemplazo','ventana_con_reemplazo','corte_con_cierre','post_clave_403','post_tres_5xx'].includes(modo)){
+    if(['todo_ok','v2_corregido','duplicada_con_reemplazo','ventana_con_reemplazo','corte_con_cierre','post_clave_403','post_tres_5xx'].includes(modo)){
       assert.deepEqual(fs.readdirSync(path.join(tmp,'newman')).sort(),['newman-G067.html','newman-G067.json']);
       assert.deepEqual(r.evidencias.filter(x=>x.startsWith('newman/')).sort(),
         ['newman/newman-G067.html','newman/newman-G067.json']);
@@ -185,13 +196,37 @@ for(const [modo,expected,official] of modos){
     }
     if(modo==='post_clave_403')assert.equal(status().received.length,1);
     if(modo==='post_tres_5xx')assert.equal(status().received.length,3);
-    if(modo==='todo_ok'){
-      assert.equal(status().received.length,13);
+    if(['todo_ok','v2_corregido'].includes(modo)){
+      assert.equal(status().received.length,16);
       assert.equal(r.herramientas.newman.ejecuciones,1);
       assert.equal(r.herramientas.newman.iteraciones,1);
-      assert.equal(r.herramientas.newman.solicitudes,13);
-      assert.equal(r.herramientas.newman.aserciones,26);
-      assert.ok(report.includes('1 ejecución, 1 iteraciones, 13 solicitudes y 26 aserciones'));
+      assert.equal(r.herramientas.newman.solicitudes,16);
+      assert.equal(r.herramientas.newman.aserciones,32);
+      assert.ok(report.includes('1 ejecución, 1 iteraciones, 16 solicitudes y 32 aserciones'));
+    }
+    if(modo==='v2_corregido'){
+      assert.ok(report.includes('INC-M04-G067-205-01 e INC-M04-G067-205-02 CORREGIDAS'));
+      assert.ok(report.includes('OBS-M04-G067-206 CERRADA'));
+      assert.equal(r.registros.filter(z=>z.caso==='TC-M04-205').length,7);
+      assert.ok(r.registros.filter(z=>z.caso==='TC-M04-205').every(z=>z.codigo==='ESTADO_RETROALIMENTACION_INVALIDO'&&z.http===422&&z.persistio===false));
+      assert.equal(new Set(r.registros.filter(z=>z.caso==='TC-M04-205').map(z=>z.resultado)).size,1);
+      const resultados209=new Set(r.registros.filter(z=>z.caso==='TC-M04-209').map(z=>z.resultado));
+      assert.equal(resultados209.size,4);
+      assert.ok(r.registros.filter(z=>!z.clave.startsWith('209-')).every(z=>!resultados209.has(z.resultado)));
+      assert.equal(PRESUPUESTO.timeout_post_ms,120000);
+      assert.equal(PRESUPUESTO.timeout_ms,30000);
+    }
+    if(modo==='v2_defecto')assert.ok(report.includes('OBS-M04-G067-206: HTTP 400 completo'));
+    if(modo==='variante_nueva_aceptada')assert.equal(r.registros.find(z=>z.clave==='205-capitalizado').veredicto.estado,'RECHAZADO');
+    if(modo==='historial_500'){
+      assert.ok(r.problemas_tecnicos.some(x=>x.includes('HTTP 500 HISTORIAL_NO_DISPONIBLE')));
+      assert.equal(r.registros.find(z=>z.clave==='209-correcto-sin').veredicto.estado,'NO_CONCLUYENTE');
+    }
+    if(modo==='sin_respuesta'){
+      const z=r.registros.find(x=>x.clave==='208-omitido');
+      assert.equal(z.historial_http,200);
+      assert.equal(status().received.filter(x=>x==='208-omitido').length,1);
+      assert.ok(z.veredicto.motivo.includes('conciliación por historial'));
     }
     if(modo==='comportamiento_codigo_actual')assert.equal(r.registros.find(z=>z.clave==='205-minusculas').estado_persistido,'CORRECTO');
     if(modo==='parcial_vacia_aceptada')assert.equal(r.registros.find(z=>z.clave==='208-omitido').veredicto.estado,'APROBADO');

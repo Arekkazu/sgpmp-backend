@@ -1,3 +1,6 @@
+# | Fecha      | Nombre | Que se hizo |
+# |------------|--------|-------------|
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
 """Implementación SQLAlchemy del puerto UmbralAmbientalRepository."""
 from __future__ import annotations
 
@@ -63,6 +66,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
                 unidad_medida=umbral.unidad_medida,
                 valor_min=umbral.valor_min,
                 valor_max=umbral.valor_max,
+                tolerancia_semaforo=umbral.tolerancia_semaforo,
                 es_activo=umbral.es_activo,
                 fecha_actualizacion=umbral.fecha_actualizacion,
                 estado_sincronizacion=umbral.estado_sincronizacion,
@@ -92,6 +96,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             orm = self._db.get(UmbralAmbientalModel, umbral.id_umbral_ambiental)
             orm.valor_min = umbral.valor_min
             orm.valor_max = umbral.valor_max
+            orm.tolerancia_semaforo = umbral.tolerancia_semaforo
             orm.es_activo = umbral.es_activo
             orm.fecha_actualizacion = umbral.fecha_actualizacion
             orm.id_usuario = umbral.id_usuario
@@ -151,6 +156,9 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
                 unidad_medida=datos['unidad_medida'],
                 valor_min=Decimal(datos['valor_min']),
                 valor_max=Decimal(datos['valor_max']),
+                tolerancia_semaforo=(
+                    Decimal(datos['tolerancia_semaforo']) if datos.get('tolerancia_semaforo') is not None else None
+                ),
                 es_activo=True,
             )
             self._db.add(orm)
@@ -184,6 +192,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             unidad_medida=orm.unidad_medida,
             valor_min=orm.valor_min,
             valor_max=orm.valor_max,
+            tolerancia_semaforo=orm.tolerancia_semaforo,
             es_activo=orm.es_activo,
             niveles=niveles,
             fecha_actualizacion=orm.fecha_actualizacion,

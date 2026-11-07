@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | H-M3-18/19 RF-63: la exportación respeta filtros y alcance         |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-14 RF-63: la clasificación se resuelve por permiso |
 """H-M3-18/19: el CSV/JSON exportado conserva los filtros de la pantalla y el alcance por finca."""
 from types import SimpleNamespace
 
@@ -25,6 +26,8 @@ def test_exportar_pasa_entidad_severidad_resultado_y_fincas(monkeypatch):
 
     monkeypatch.setattr(modulo, 'ConsultarBitacoraIotUseCase', _UseCase)
     monkeypatch.setattr(modulo, '_fincas_de_la_bitacora', lambda db, usuario: [7])
+    # M3-14: la clasificación pedida pasa tal cual para quien tiene datos técnicos.
+    monkeypatch.setattr(modulo, '_clasificacion_de_la_bitacora', lambda db, usuario, pedida: pedida)
     app = FastAPI()
     app.include_router(modulo.router)
     app.dependency_overrides[get_db] = lambda: object()

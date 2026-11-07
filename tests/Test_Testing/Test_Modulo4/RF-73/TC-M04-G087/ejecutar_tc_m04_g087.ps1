@@ -1,9 +1,20 @@
 # ejecutar_tc_m04_g087.ps1 - Runner Pytest para TC-M04-G087
+param(
+    [string]$Suffix = ""
+)
+
 $ErrorActionPreference = "Stop"
 
 $RepoRoot  = "c:\Users\Juansegutt\Integrador\sgpmp-backend"
 $TC        = "tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087"
 $ResultDir = Join-Path $RepoRoot "$TC\resultados"
+
+# Guarda de protección V1 (R5 / RN-R05-EXT)
+$V1Json = Join-Path $ResultDir "resultado_TC-M04-G087.json"
+if ([string]::IsNullOrEmpty($Suffix) -and (Test-Path $V1Json)) {
+    Write-Host "V1 existente. Use -Suffix '_reintentoN'." -ForegroundColor Yellow
+    exit 1
+}
 
 # Cargar .env.test
 $EnvFile = Join-Path $RepoRoot ".env.test"
@@ -29,8 +40,8 @@ if (-not (Test-Path $ResultDir)) {
     New-Item -ItemType Directory -Path $ResultDir -Force | Out-Null
 }
 
-$JunitXml = Join-Path $ResultDir "resultado_TC-M04-G087_reintento1.xml"
-$HtmlReport = Join-Path $ResultDir "resultado_TC-M04-G087_reintento1.html"
+$JunitXml = Join-Path $ResultDir "_raw_pytest$Suffix.xml"
+$HtmlReport = Join-Path $ResultDir "resultado_TC-M04-G087$Suffix.html"
 Push-Location $RepoRoot
 try {
     .\.venv\Scripts\pytest.exe $TC -v --junitxml="$JunitXml" --html="$HtmlReport" --self-contained-html --tb=short
@@ -40,7 +51,7 @@ finally {
     Pop-Location
 }
 
-$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G087_reintento1.json"
+$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G087$Suffix.json"
 .\.venv\Scripts\python.exe (Join-Path $RepoRoot "$TC\consolidar_resultados.py") $JunitXml $FinalJson
 
 Write-Host ""

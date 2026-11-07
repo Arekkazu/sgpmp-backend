@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001/138-G001 RF-64: versión del catálogo y búsqueda por nombre |
+# | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64 (motor IA) |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,6 +18,15 @@ class PatologiaM04Repository(ABC):
     @abstractmethod
     def obtener_por_nombre(self, nombre: str) -> Optional[PatologiaM04]:
         """Búsqueda en el catálogo global sin distinguir mayúsculas ni espacios repetidos."""
+        ...
+
+    @abstractmethod
+    def id_base_por_codigo_rf64(self, codigo: int) -> Optional[int]:
+        """id de la patología base con código ``codigo`` (0–7) del catálogo base de RF-64.
+
+        Las 8 bases son datos de cada ambiente y su id cambia entre bases de datos; el código
+        es su posición en el catálogo (orden de registro). None si no existe.
+        """
         ...
 
     @abstractmethod

@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU02 H-04 RF-65: historial con nombres de usuario y versión |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: exponer el perfil de cálculo separado del despliegue en RF-65. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -25,6 +26,7 @@ class ConfiguracionMotorIAResponse(BaseModel):
     versiones_activas_por_componente: Optional[dict[str, int]] = None
     ventana_temporal_min: int
     modo_ejecucion: str
+    perfil_calculo_contagio: str = "ESTANDAR"
     id_version_modelo_activa: Optional[int] = None
     config_version: int
     w_factor_sanitario: Decimal
@@ -51,6 +53,7 @@ class ConfiguracionMotorIAResponse(BaseModel):
             versiones_activas_por_componente=entidad.versiones_activas_por_componente,
             ventana_temporal_min=entidad.ventana_temporal_min,
             modo_ejecucion=entidad.modo_ejecucion,
+            perfil_calculo_contagio=entidad.perfil_calculo_contagio,
             id_version_modelo_activa=entidad.id_version_modelo_activa,
             config_version=entidad.config_version,
             w_factor_sanitario=entidad.w_factor_sanitario,

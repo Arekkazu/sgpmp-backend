@@ -26,7 +26,7 @@ export function contextoEjecucion(argumentos, { grupo, casos, directorio, modoEn
   const ruta = path.resolve(archivo);
   const temp = path.resolve(os.tmpdir());
   const directorioEnsayo = path.dirname(ruta);
-  if (ensayo && (!['evaluar', 'reintentar'].includes(operacion) || !directorioEnsayo.startsWith(temp + path.sep)
+  if (ensayo && (!['evaluar', 'reintentar', 'reevaluar'].includes(operacion) || !directorioEnsayo.startsWith(temp + path.sep)
     || path.basename(ruta) !== 'contexto_operacion.json')) throw new Error('Ensayo fuera de temporal.');
   if ((!ensayo && path.dirname(ruta) !== esperado) || !(operacion === 'recuperar'
     ? /^recuperacion-\d{14}\.contexto\.json$/.test(path.basename(ruta))

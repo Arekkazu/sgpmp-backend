@@ -1,0 +1,1347 @@
+{
+  "grupo": "G070",
+  "run_id": "RUN-G070-V2-20261101-045537",
+  "version": 2,
+  "intento": 4,
+  "referencia": "AUT-G070-V2-R3-20261101",
+  "ambiente": "TEST",
+  "casos": {
+    "TC-M04-214": {
+      "estado": "APROBADO",
+      "motivo": "Campo anterior ignorado; 201 y timestamp del servidor posterior a inferencia y distinto del enviado; registro y auditoría comprobados"
+    },
+    "TC-M04-215": {
+      "estado": "APROBADO",
+      "motivo": "89 y 90 HTTP 201; 91 HTTP 422 E9 sin persistencia ni auditoría de registro"
+    },
+    "TC-M04-216": {
+      "estado": "APROBADO",
+      "motivo": "Rango, validaciones, RBAC, GET y lectura dinámica de RF-72 comprobados; ventana restaurada a 90"
+    },
+    "TC-M04-217": {
+      "estado": "APROBADO",
+      "motivo": "A ampliado aceptado; B vencido rechazado; global 90; RF-73, validaciones y RBAC comprobados"
+    },
+    "TC-M04-218": {
+      "estado": "APROBADO",
+      "motivo": "E9 contiene 90 días, id, fecha límite 2026-09-29 y contacto al administrador"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-214",
+      "fuente": "API",
+      "id": "API-214-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Campo anterior ignorado; 201 y timestamp del servidor posterior a inferencia y distinto del enviado; registro y auditoría comprobados",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-215",
+      "fuente": "API",
+      "id": "API-215-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "89 y 90 HTTP 201; 91 HTTP 422 E9 sin persistencia ni auditoría de registro",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-216",
+      "fuente": "API",
+      "id": "API-216-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Rango, validaciones, RBAC, GET y lectura dinámica de RF-72 comprobados; ventana restaurada a 90",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-217",
+      "fuente": "API",
+      "id": "API-217-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "A ampliado aceptado; B vencido rechazado; global 90; RF-73, validaciones y RBAC comprobados",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-218",
+      "fuente": "API",
+      "id": "API-218-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "E9 contiene 90 días, id, fecha límite 2026-09-29 y contacto al administrador",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:38 GMT",
+      "duracion_ms": 1114,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:39 GMT",
+      "duracion_ms": 644,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:39 GMT",
+      "duracion_ms": 158,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:39 GMT",
+      "duracion_ms": 299,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:40 GMT",
+      "duracion_ms": 646,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:40 GMT",
+      "duracion_ms": 330,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": "TC-M04-214",
+      "nombre": "G070-214",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "respuesta": {
+        "id_retroalimentacion": "60b99bc7-b11b-4fab-8da2-067783086867",
+        "fecha_retroalimentacion": "2026-11-01T04:55:39.822853Z",
+        "error_code": null,
+        "message": ""
+      },
+      "duracion_ms": 433
+    },
+    {
+      "caso": "TC-M04-215",
+      "nombre": "G070-215-89",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "d929c162-d834-4d8c-b130-a05c88b40694",
+      "respuesta": {
+        "id_retroalimentacion": "7fadde4a-a8f0-4d93-bdb0-6682b02fbe0b",
+        "fecha_retroalimentacion": "2026-11-01T04:55:39.822853Z",
+        "error_code": null,
+        "message": ""
+      },
+      "duracion_ms": 167
+    },
+    {
+      "caso": "TC-M04-215",
+      "nombre": "G070-215-90",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "7c215bf1-fbe3-4d94-97ac-454cb4d6eb19",
+      "respuesta": {
+        "id_retroalimentacion": "21c9c811-3453-4e0b-9043-87d28cea7a77",
+        "fecha_retroalimentacion": "2026-11-01T04:55:39.822853Z",
+        "error_code": null,
+        "message": ""
+      },
+      "duracion_ms": 155
+    },
+    {
+      "caso": "TC-M04-215",
+      "nombre": "G070-215-90H",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "8f7c7542-4d94-4679-ac0f-807141e19980",
+      "respuesta": {
+        "id_retroalimentacion": "b762bbb8-e012-403f-901f-914bffb938eb",
+        "fecha_retroalimentacion": "2026-11-01T04:55:39.822853Z",
+        "error_code": null,
+        "message": ""
+      },
+      "duracion_ms": 159
+    },
+    {
+      "caso": "TC-M04-215",
+      "nombre": "G070-215-91",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 422,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "50e68201-2a59-4699-9c4a-db825c9ebc49",
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "fecha_retroalimentacion": null,
+        "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+        "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia 50e68201-2a59-4699-9c4a-db825c9ebc49. La ventana válida para este resultado venció el 2026-10-30. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo."
+      },
+      "duracion_ms": 143
+    },
+    {
+      "caso": "TC-M04-218",
+      "nombre": "G070-218-120B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 422,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "cb261b4f-071e-4cfb-afcf-8846fae738be",
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "fecha_retroalimentacion": null,
+        "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+        "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia cb261b4f-071e-4cfb-afcf-8846fae738be. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo."
+      },
+      "duracion_ms": 147
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:45 GMT",
+      "duracion_ms": 559,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:45 GMT",
+      "duracion_ms": 151,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 4
+      }
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:45 GMT",
+      "duracion_ms": 136,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "GET configuración"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:45 GMT",
+      "duracion_ms": 141,
+      "respuesta": {
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_MLOPS_INVALIDO",
+          "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:45.964442+00:00"
+        }
+      },
+      "nombre": "PATCH 6"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:45 GMT",
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_MLOPS_INVALIDO",
+          "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:46.104659+00:00"
+        }
+      },
+      "nombre": "PATCH 366"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:45 GMT",
+      "duracion_ms": 145,
+      "respuesta": {
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_MLOPS_INVALIDO",
+          "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:46.249345+00:00"
+        }
+      },
+      "nombre": "PATCH decimal"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 137,
+      "respuesta": {
+        "error_code": "PARAMETRO_RETROALIMENTACION_INVALIDO",
+        "message": "Solo se admiten los parámetros de RF-72: ventana_retroalimentacion_dias. No pertenecen: parametro_no_admitido.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_RETROALIMENTACION_INVALIDO",
+          "message": "Solo se admiten los parámetros de RF-72: ventana_retroalimentacion_dias. No pertenecen: parametro_no_admitido.",
+          "fields": [
+            {
+              "field": "parametros",
+              "message": "Solo se admiten los parámetros de RF-72: ventana_retroalimentacion_dias. No pertenecen: parametro_no_admitido."
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:46.386167+00:00"
+        }
+      },
+      "nombre": "PATCH ajeno"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 139,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "PATCH 7"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 139,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "GET configuración"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "PATCH 8"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 138,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "GET configuración"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 145,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "PATCH 365"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:46 GMT",
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "GET configuración"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 157,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "RF-72 W91 con 365"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 143,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "PATCH restaurar 90"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "GET configuración"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 403,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 137,
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "ACCESO_DENEGADO",
+          "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:47.804163+00:00"
+        }
+      },
+      "nombre": "PATCH Veterinario 90"
+    },
+    {
+      "caso": "TC-M04-216",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 138,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "GET configuración"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 422,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 149,
+      "respuesta": {
+        "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+        "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia 2363c367-bdc5-4680-9c88-6d5d67b78b0f. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+          "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia 2363c367-bdc5-4680-9c88-6d5d67b78b0f. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:48.089491+00:00"
+        }
+      },
+      "nombre": "A antes"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion/ampliaciones",
+      "http": 201,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:47 GMT",
+      "duracion_ms": 162,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "ampliar A"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 150,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      },
+      "nombre": "auditoría ampliación"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 161,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "A después"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 422,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 142,
+      "respuesta": {
+        "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+        "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia cb261b4f-071e-4cfb-afcf-8846fae738be. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+          "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia cb261b4f-071e-4cfb-afcf-8846fae738be. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:48.706746+00:00"
+        }
+      },
+      "nombre": "B después"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 138,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      },
+      "nombre": "global después"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion/ampliaciones",
+      "http": 422,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 135,
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "total": null,
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "justificacion",
+              "message": "String should have at least 10 characters"
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:48.979659+00:00"
+        }
+      },
+      "nombre": "justificación corta"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion/ampliaciones",
+      "http": 422,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 137,
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "total": null,
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "dias_habilitados",
+              "message": "Input should be greater than or equal to 1"
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:49.116360+00:00"
+        }
+      },
+      "nombre": "días 0"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion/ampliaciones",
+      "http": 422,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:48 GMT",
+      "duracion_ms": 134,
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "total": null,
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "dias_habilitados",
+              "message": "Input should be less than or equal to 365"
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:49.250772+00:00"
+        }
+      },
+      "nombre": "días 366"
+    },
+    {
+      "caso": "TC-M04-217",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion/ampliaciones",
+      "http": 403,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:49 GMT",
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "total": null,
+        "cuerpo": {
+          "error_code": "ACCESO_DENEGADO",
+          "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:49.390736+00:00"
+        }
+      },
+      "nombre": "ampliación Veterinario"
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:49 GMT",
+      "duracion_ms": 287,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G070-V2-20261101-045537",
+      "http": 200,
+      "eco": null,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:49 GMT",
+      "duracion_ms": 126,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:49 GMT",
+      "duracion_ms": 305,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-retroalimentacion",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:49 GMT",
+      "duracion_ms": 137,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "fecha_servidor": "Sun, 01 Nov 2026 04:55:50 GMT",
+      "duracion_ms": 146,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    }
+  ],
+  "incidencias": [],
+  "observaciones": [
+    "90 días + 12 horas: HTTP 201, código —, mensaje —; antigüedad 2172.417 h; más de 90×24 h"
+  ],
+  "problemas_tecnicos": [],
+  "semilla": {
+    "reciente": {
+      "id": "511a6d66-a862-4822-bf47-2634333531b3",
+      "fecha": "2026-10-28T00:06:22Z",
+      "dias_backend": 4,
+      "horas": 100.821,
+      "en_tramo": true
+    },
+    "d89": {
+      "id": "d929c162-d834-4d8c-b130-a05c88b40694",
+      "fecha": "2026-08-04T03:30:38.781945Z",
+      "dias_backend": 89,
+      "horas": 2137.417,
+      "en_tramo": true
+    },
+    "d90": {
+      "id": "7c215bf1-fbe3-4d94-97ac-454cb4d6eb19",
+      "fecha": "2026-08-03T03:30:38.781945Z",
+      "dias_backend": 90,
+      "horas": 2161.417,
+      "en_tramo": true
+    },
+    "d90h": {
+      "id": "8f7c7542-4d94-4679-ac0f-807141e19980",
+      "fecha": "2026-08-02T16:30:38.781945Z",
+      "dias_backend": 90,
+      "horas": 2172.417,
+      "en_tramo": true
+    },
+    "d91": {
+      "id": "50e68201-2a59-4699-9c4a-db825c9ebc49",
+      "fecha": "2026-08-02T03:30:38.781945Z",
+      "dias_backend": 91,
+      "horas": 2185.417,
+      "en_tramo": true
+    },
+    "d120a": {
+      "id": "2363c367-bdc5-4680-9c88-6d5d67b78b0f",
+      "fecha": "2026-07-01T11:34:36.477639Z",
+      "dias_backend": 122,
+      "horas": 2945.351,
+      "en_tramo": true
+    },
+    "d120b": {
+      "id": "cb261b4f-071e-4cfb-afcf-8846fae738be",
+      "fecha": "2026-07-01T13:34:36.477639Z",
+      "dias_backend": 122,
+      "horas": 2943.351,
+      "en_tramo": true
+    }
+  },
+  "semilla_observada": [
+    {
+      "id": "d929c162-d834-4d8c-b130-a05c88b40694",
+      "fecha": "2026-08-04T03:30:38.781945Z",
+      "dias_backend": 89,
+      "horas": 2137.417,
+      "ms": 7694700219
+    },
+    {
+      "id": "7c215bf1-fbe3-4d94-97ac-454cb4d6eb19",
+      "fecha": "2026-08-03T03:30:38.781945Z",
+      "dias_backend": 90,
+      "horas": 2161.417,
+      "ms": 7781100219
+    },
+    {
+      "id": "8f7c7542-4d94-4679-ac0f-807141e19980",
+      "fecha": "2026-08-02T16:30:38.781945Z",
+      "dias_backend": 90,
+      "horas": 2172.417,
+      "ms": 7820700219
+    },
+    {
+      "id": "50e68201-2a59-4699-9c4a-db825c9ebc49",
+      "fecha": "2026-08-02T03:30:38.781945Z",
+      "dias_backend": 91,
+      "horas": 2185.417,
+      "ms": 7867500219
+    },
+    {
+      "id": "11e12f40-37f7-4793-a744-b843fe391546",
+      "fecha": "2026-08-01T12:34:36.477639Z",
+      "dias_backend": 91,
+      "horas": 2200.351,
+      "ms": 7921262523
+    },
+    {
+      "id": "ac952c1d-5574-4223-92ab-2df8a8ac9e32",
+      "fecha": "2026-07-31T12:34:36.477639Z",
+      "dias_backend": 92,
+      "horas": 2224.351,
+      "ms": 8007662523
+    },
+    {
+      "id": "fb07d478-2993-45a0-8636-02e62fd22c82",
+      "fecha": "2026-07-31T01:34:36.477639Z",
+      "dias_backend": 93,
+      "horas": 2235.351,
+      "ms": 8047262523
+    },
+    {
+      "id": "7d597a54-2d05-43d6-a12b-ad8a7c8ac4ff",
+      "fecha": "2026-07-30T12:34:36.477639Z",
+      "dias_backend": 93,
+      "horas": 2248.351,
+      "ms": 8094062523
+    },
+    {
+      "id": "cb261b4f-071e-4cfb-afcf-8846fae738be",
+      "fecha": "2026-07-01T13:34:36.477639Z",
+      "dias_backend": 122,
+      "horas": 2943.351,
+      "ms": 10596062523
+    },
+    {
+      "id": "2363c367-bdc5-4680-9c88-6d5d67b78b0f",
+      "fecha": "2026-07-01T11:34:36.477639Z",
+      "dias_backend": 122,
+      "horas": 2945.351,
+      "ms": 10603262523
+    }
+  ],
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 6,
+      "aserciones": 12
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200; sin nuevos registros, configuración en 90 y evento de ampliación ausente cuando fue identificable"
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G070.json",
+    "newman/newman-G070.html"
+  ],
+  "oficial": true,
+  "consume_version": true,
+  "hora_descubrimiento": "2026-11-01T04:55:39.000Z",
+  "v2_superficie": {
+    "openapi_http": 200,
+    "config_http": 200,
+    "rutas": {
+      "config": true,
+      "ampliacion": true
+    }
+  },
+  "v2_registro_216": {
+    "http": 201,
+    "id": "50e68201-2a59-4699-9c4a-db825c9ebc49"
+  },
+  "v2_config": {
+    "pasos": [
+      {
+        "nombre": "GET configuración",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 90,
+        "cuerpo": null
+      },
+      {
+        "nombre": "PATCH 6",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 400,
+        "eco": true,
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "valor": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_MLOPS_INVALIDO",
+          "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:45.964442+00:00"
+        }
+      },
+      {
+        "nombre": "PATCH 366",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 400,
+        "eco": true,
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "valor": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_MLOPS_INVALIDO",
+          "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:46.104659+00:00"
+        }
+      },
+      {
+        "nombre": "PATCH decimal",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 400,
+        "eco": true,
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "valor": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_MLOPS_INVALIDO",
+          "message": "La configuración del parámetro ventana_retroalimentacion_dias es inválida.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:46.249345+00:00"
+        }
+      },
+      {
+        "nombre": "PATCH ajeno",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 400,
+        "eco": true,
+        "error_code": "PARAMETRO_RETROALIMENTACION_INVALIDO",
+        "valor": null,
+        "cuerpo": {
+          "error_code": "PARAMETRO_RETROALIMENTACION_INVALIDO",
+          "message": "Solo se admiten los parámetros de RF-72: ventana_retroalimentacion_dias. No pertenecen: parametro_no_admitido.",
+          "fields": [
+            {
+              "field": "parametros",
+              "message": "Solo se admiten los parámetros de RF-72: ventana_retroalimentacion_dias. No pertenecen: parametro_no_admitido."
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:46.386167+00:00"
+        }
+      },
+      {
+        "nombre": "PATCH 7",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 7,
+        "cuerpo": null
+      },
+      {
+        "nombre": "GET configuración",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 7,
+        "cuerpo": null
+      },
+      {
+        "nombre": "PATCH 8",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 8,
+        "cuerpo": null
+      },
+      {
+        "nombre": "GET configuración",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 8,
+        "cuerpo": null
+      },
+      {
+        "nombre": "PATCH 365",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 365,
+        "cuerpo": null
+      },
+      {
+        "nombre": "GET configuración",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 365,
+        "cuerpo": null
+      },
+      {
+        "nombre": "RF-72 W91 con 365",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion",
+        "http": 201,
+        "eco": true,
+        "error_code": null,
+        "valor": null,
+        "cuerpo": null
+      },
+      {
+        "nombre": "PATCH restaurar 90",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 90,
+        "cuerpo": null
+      },
+      {
+        "nombre": "GET configuración",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 90,
+        "cuerpo": null
+      },
+      {
+        "nombre": "PATCH Veterinario 90",
+        "metodo": "PATCH",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 403,
+        "eco": true,
+        "error_code": "ACCESO_DENEGADO",
+        "valor": null,
+        "cuerpo": {
+          "error_code": "ACCESO_DENEGADO",
+          "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:47.804163+00:00"
+        }
+      },
+      {
+        "nombre": "GET configuración",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "valor": 90,
+        "cuerpo": null
+      }
+    ],
+    "restaurada": true
+  },
+  "v2_ampliacion": {
+    "pasos": [
+      {
+        "nombre": "A antes",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion",
+        "http": 422,
+        "eco": true,
+        "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+        "cuerpo": {
+          "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+          "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia 2363c367-bdc5-4680-9c88-6d5d67b78b0f. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:48.089491+00:00"
+        }
+      },
+      {
+        "nombre": "ampliar A",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion/ampliaciones",
+        "http": 201,
+        "eco": true,
+        "error_code": null,
+        "cuerpo": null
+      },
+      {
+        "nombre": "auditoría ampliación",
+        "metodo": "GET",
+        "ruta": "/prediccion/auditoria?tipo_evento=VENTANA_RETROALIMENTACION_AMPLIADA&fecha_desde=2026-11-01T04%3A54%3A37.265Z&id_referencia=2363c367-bdc5-4680-9c88-6d5d67b78b0f&por_pagina=200",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "cuerpo": null
+      },
+      {
+        "nombre": "A después",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion",
+        "http": 201,
+        "eco": true,
+        "error_code": null,
+        "cuerpo": null
+      },
+      {
+        "nombre": "B después",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion",
+        "http": 422,
+        "eco": true,
+        "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+        "cuerpo": {
+          "error_code": "FUERA_DE_VENTANA_TEMPORAL",
+          "message": "La retroalimentación no puede registrarse. Han transcurrido más de 90 días desde el resultado de inferencia cb261b4f-071e-4cfb-afcf-8846fae738be. La ventana válida para este resultado venció el 2026-09-29. Contacte al administrador si requiere registrar retroalimentación fuera de este plazo.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:48.706746+00:00"
+        }
+      },
+      {
+        "nombre": "global después",
+        "metodo": "GET",
+        "ruta": "/configuracion/parametros-retroalimentacion",
+        "http": 200,
+        "eco": true,
+        "error_code": null,
+        "cuerpo": null
+      },
+      {
+        "nombre": "justificación corta",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion/ampliaciones",
+        "http": 422,
+        "eco": true,
+        "error_code": "VAL_ENTRADA",
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "justificacion",
+              "message": "String should have at least 10 characters"
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:48.979659+00:00"
+        }
+      },
+      {
+        "nombre": "días 0",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion/ampliaciones",
+        "http": 422,
+        "eco": true,
+        "error_code": "VAL_ENTRADA",
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "dias_habilitados",
+              "message": "Input should be greater than or equal to 1"
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:49.116360+00:00"
+        }
+      },
+      {
+        "nombre": "días 366",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion/ampliaciones",
+        "http": 422,
+        "eco": true,
+        "error_code": "VAL_ENTRADA",
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "dias_habilitados",
+              "message": "Input should be less than or equal to 365"
+            }
+          ],
+          "timestamp": "2026-11-01T04:55:49.250772+00:00"
+        }
+      },
+      {
+        "nombre": "ampliación Veterinario",
+        "metodo": "POST",
+        "ruta": "/prediccion/retroalimentacion/ampliaciones",
+        "http": 403,
+        "eco": true,
+        "error_code": "ACCESO_DENEGADO",
+        "cuerpo": {
+          "error_code": "ACCESO_DENEGADO",
+          "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+          "fields": [],
+          "timestamp": "2026-11-01T04:55:49.390736+00:00"
+        }
+      }
+    ],
+    "auditoria": {
+      "http": 200,
+      "evento": true,
+      "id_evento": "9d12f968-cd2e-48ea-b1a3-b49041b4742c"
+    },
+    "persistencia": {
+      "a": 1,
+      "b": 0
+    }
+  }
+}

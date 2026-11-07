@@ -568,7 +568,7 @@
       "name": "4. Filtro por activo biologico (TC-M03-220)",
       "item": [
         {
-          "name": "4.1 id_activo_biologico (TC-M03-220): filtro no soportado en el contrato, fallo esperado",
+          "name": "4.1 id_activo_biologico (TC-M03-220)",
           "request": {
             "method": "GET",
             "header": [
@@ -681,7 +681,8 @@
                   "  items.forEach(function (i) { const t = Date.parse(i.timestamp_captura); pm.expect(t >= ini && t < finx, 'id_telemetria=' + i.id_telemetria + ' ts=' + i.timestamp_captura).to.be.true; }); }); }",
                   "}",
                   "console.log('[G112-5.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, total_encontrado: J.total_encontrado, total: J.total, truncado: J.truncado, n_items_verificados: items.length, distintos_especie: Array.from(new Set(items.map(function (i) { return i['especie']; })))}));",
-                  ""
+                  "",
+                  "try { pm.collectionVariables.set('fincas_adm_especie', JSON.stringify(Array.from(new Set(items.map(function (i) { return i.finca; }).filter(function (f) { return f !== null && f !== undefined && f !== ''; }))))); } catch (e) {}"
                 ]
               }
             }
@@ -754,8 +755,8 @@
                   "const fp = JSON.parse(pm.collectionVariables.get('fincas_prod') || '[]').map(norm);",
                   "if (!fp.length) { pm.test.skip('5.3: NO CONCLUYENTE, no se pudo leer las fincas del Productor (paso 5.2)'); }",
                   "else {",
-                  "pm.test('Todas las lecturas son de la especie solicitada', function () { const malas = items.filter(function (i) { return norm(i.especie) !== norm(pm.variables.get('especie_filtro')); }); pm.expect(malas.length).to.eql(0); });",
-                  "pm.test('Solo lecturas de fincas a las que el Productor tiene acceso', function () { const malas = items.filter(function (i) { return fp.indexOf(norm(i.finca)) === -1; }); pm.expect(malas.length, malas.length + ' lecturas de otras fincas, ej.: ' + JSON.stringify(malas.slice(0, 1).map(function (i) { return {id: i.id_telemetria, finca: i.finca}; }))).to.eql(0); });",
+                  "if (items.length === 0) {\n  const fa = JSON.parse(pm.collectionVariables.get('fincas_adm_especie') || '[]').map(norm);\n  if (fa.length === 0) { pm.test.skip('5.3: NO CONCLUYENTE, el Productor no ve lecturas de la especie y no se conoce la finca de las que ve el Administrador (5.1)'); }\n  else { pm.test('El Productor no ve lecturas de la especie porque las del Administrador son de fincas ajenas a las suyas', function () { fa.forEach(function (f) { pm.expect(fp.indexOf(f), 'finca ' + f + ' del Administrador esta entre las fincas del Productor').to.eql(-1); }); }); }\n} else {\npm.test('Todas las lecturas son de la especie solicitada', function () { const malas = items.filter(function (i) { return norm(i.especie) !== norm(pm.variables.get('especie_filtro')); }); pm.expect(malas.length).to.eql(0); });",
+                  "pm.test('Solo lecturas de fincas a las que el Productor tiene acceso', function () { const malas = items.filter(function (i) { return fp.indexOf(norm(i.finca)) === -1; }); pm.expect(malas.length, malas.length + ' lecturas de otras fincas, ej.: ' + JSON.stringify(malas.slice(0, 1).map(function (i) { return {id: i.id_telemetria, finca: i.finca}; }))).to.eql(0); });\n}",
                   "}",
                   "console.log('[G112-5.3][OBSERVADO] ' + JSON.stringify({status: pm.response.code, total_encontrado: J.total_encontrado, total: J.total, truncado: J.truncado, n_items_verificados: items.length, distintos_finca: Array.from(new Set(items.map(function (i) { return i['finca']; })))}));",
                   ""

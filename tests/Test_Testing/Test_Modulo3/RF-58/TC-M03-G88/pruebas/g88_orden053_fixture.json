@@ -1,0 +1,1017 @@
+{
+  "source": "reporte Newman del intento técnico 11 (copia saneada)",
+  "historial_422_real": {
+    "source": "reporte Newman del intento técnico 13 (copia saneada)",
+    "item": "TC-M03-266-06-HISTORIAL-INICIAL",
+    "http": 422,
+    "body": {
+      "error_code": "FECHA_FIN_FUTURA",
+      "message": "fecha_fin no puede ser posterior a la fecha actual.",
+      "fields": [{ "field": "fecha_fin", "message": "fecha_fin no puede ser posterior a la fecha actual." }]
+    }
+  },
+  "run": {
+    "executions": [
+      {
+        "item": {
+          "name": "TC-M03-169-0/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"timestamp_captura\":\"2026-10-30T19:22:15.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118430,
+            "estado_calidad": "LECTURA_VALIDA"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-169][PRE][PRE-169-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-169-0/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "15.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": null,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:15.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-169][PRE][PRE-169-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-169][ASSERT][API-169-02] Valor y semáforo observados"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-169-1/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"timestamp_captura\":\"2026-10-30T19:22:20.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118431,
+            "estado_calidad": "LECTURA_VALIDA"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-169][PRE][PRE-169-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-169-1/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "22.5000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": null,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:20.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-169][PRE][PRE-169-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-169][ASSERT][API-169-03] Valor y semáforo observados"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-169-2/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"timestamp_captura\":\"2026-10-30T19:22:25.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118432,
+            "estado_calidad": "LECTURA_VALIDA"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-169][PRE][PRE-169-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-169-2/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": null,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-169][PRE][PRE-169-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-169][ASSERT][API-169-04] Valor y semáforo observados"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-0/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"valor\":13.65,\"timestamp_captura\":\"2026-10-30T19:22:30.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118433,
+            "estado_calidad": "FUERA_DE_RANGO"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-0/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-170][ASSERT][API-170-02] Valor y semáforo observados",
+            "error": {
+              "message": "expected 30 to be close to 13.65 +/- 0.0001"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-1/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"valor\":14.85,\"timestamp_captura\":\"2026-10-30T19:22:35.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118434,
+            "estado_calidad": "FUERA_DE_RANGO"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-1/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-170][ASSERT][API-170-03] Valor y semáforo observados",
+            "error": {
+              "message": "expected 30 to be close to 14.85 +/- 0.0001"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-2/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"valor\":30.15,\"timestamp_captura\":\"2026-10-30T19:22:40.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118435,
+            "estado_calidad": "FUERA_DE_RANGO"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-2/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-170][ASSERT][API-170-04] Valor y semáforo observados",
+            "error": {
+              "message": "expected 30 to be close to 30.15 +/- 0.0001"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-3/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"valor\":31.35,\"timestamp_captura\":\"2026-10-30T19:22:45.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118436,
+            "estado_calidad": "FUERA_DE_RANGO"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-170-3/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-170][PRE][PRE-170-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-170][ASSERT][API-170-05] Valor y semáforo observados",
+            "error": {
+              "message": "expected 30 to be close to 31.35 +/- 0.0001"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-171-0/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"valor\":13.35,\"timestamp_captura\":\"2026-10-30T19:22:50.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118437,
+            "estado_calidad": "FUERA_DE_RANGO"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-171][PRE][PRE-171-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-171-0/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-171][PRE][PRE-171-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-171][ASSERT][API-171-02] Valor y semáforo observados",
+            "error": {
+              "message": "expected 30 to be close to 13.35 +/- 0.0001"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-171-1/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"valor\":31.65,\"timestamp_captura\":\"2026-10-30T19:22:55.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118438,
+            "estado_calidad": "FUERA_DE_RANGO"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-171][PRE][PRE-171-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-171-1/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-171][PRE][PRE-171-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-171][ASSERT][API-171-03] Valor y semáforo observados",
+            "error": {
+              "message": "expected 30 to be close to 31.65 +/- 0.0001"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-172-consulta/UMBRALES"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 4,
+            "items": [
+              {
+                "id_umbral_ambiental": 71,
+                "valor_min": "14.00",
+                "valor_max": "30.00",
+                "estado_sincronizacion": "PENDIENTE",
+                "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+                "es_activo": true,
+                "id_variable_ambiental": 1,
+                "niveles": [
+                  {
+                    "nivel": "normal",
+                    "limite_inferior": "20.00",
+                    "limite_superior": "30.00"
+                  },
+                  {
+                    "nivel": "precaucion",
+                    "limite_inferior": "18.00",
+                    "limite_superior": "20.00"
+                  },
+                  {
+                    "nivel": "critico",
+                    "limite_inferior": "14.00",
+                    "limite_superior": "18.00"
+                  }
+                ]
+              },
+              {
+                "id_umbral_ambiental": 70,
+                "valor_min": "15.00",
+                "valor_max": "30.00",
+                "estado_sincronizacion": "PENDIENTE",
+                "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+                "es_activo": true,
+                "id_variable_ambiental": 9,
+                "niveles": [
+                  {
+                    "nivel": "normal",
+                    "limite_inferior": "20.00",
+                    "limite_superior": "30.00"
+                  },
+                  {
+                    "nivel": "precaucion",
+                    "limite_inferior": "19.00",
+                    "limite_superior": "20.00"
+                  },
+                  {
+                    "nivel": "critico",
+                    "limite_inferior": "15.00",
+                    "limite_superior": "19.00"
+                  }
+                ]
+              },
+              {
+                "id_umbral_ambiental": 72,
+                "valor_min": "5.00",
+                "valor_max": "20.00",
+                "estado_sincronizacion": "PENDIENTE",
+                "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+                "es_activo": true,
+                "id_variable_ambiental": 10,
+                "niveles": [
+                  {
+                    "nivel": "normal",
+                    "limite_inferior": "10.00",
+                    "limite_superior": "20.00"
+                  },
+                  {
+                    "nivel": "precaucion",
+                    "limite_inferior": "9.00",
+                    "limite_superior": "10.00"
+                  },
+                  {
+                    "nivel": "critico",
+                    "limite_inferior": "5.00",
+                    "limite_superior": "9.00"
+                  }
+                ]
+              },
+              {
+                "id_umbral_ambiental": 69,
+                "valor_min": "30.00",
+                "valor_max": "39.00",
+                "estado_sincronizacion": "PENDIENTE",
+                "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+                "es_activo": true,
+                "id_variable_ambiental": 13,
+                "niveles": [
+                  {
+                    "nivel": "normal",
+                    "limite_inferior": "35.00",
+                    "limite_superior": "39.00"
+                  },
+                  {
+                    "nivel": "precaucion",
+                    "limite_inferior": "34.60",
+                    "limite_superior": "35.00"
+                  },
+                  {
+                    "nivel": "critico",
+                    "limite_inferior": "30.00",
+                    "limite_superior": "34.60"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-172][ASSERT][API-172-A] T configurable disponible en respuesta M09",
+            "error": {
+              "message": "ausencia de T en umbral y niveles: expected true to deeply equal false"
+            }
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-180-0/INGESTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{\"timestamp_captura\":\"2026-10-30T19:23:00.839Z\"}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_telemetria": 118439,
+            "estado_calidad": "LECTURA_VALIDA"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-180][PRE][PRE-180-INGESTA] Respuesta de ingesta registrada"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-180-0/DASHBOARD"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 2,
+            "sensores": [
+              {
+                "id_sensor": 552,
+                "ultimo_valor": "30.0000",
+                "ultima_unidad": "°C",
+                "estado_semaforo": "VERDE",
+                "etiqueta_estado": "Lectura fuera de rango",
+                "estado_calidad": "FUERA_DE_RANGO",
+                "indicador_anomalia": true,
+                "ultimo_timestamp_captura": "2026-10-30T19:22:25.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              },
+              {
+                "id_sensor": 737,
+                "ultimo_valor": "5.0000",
+                "ultima_unidad": "ppm",
+                "estado_semaforo": "GRIS",
+                "etiqueta_estado": "Sin umbral configurado",
+                "ultimo_timestamp_captura": "2026-10-30T19:23:00.839000Z",
+                "dato_desactualizado": false,
+                "id_alerta": null
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-180][PRE][PRE-180-DASHBOARD] Productor y sensor accesibles"
+          },
+          {
+            "assertion": "[TC-M03-180][ASSERT][API-180-02] Valor y semáforo observados"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-266-00-AREAS"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 13,
+            "items": []
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-266][PRE][COMP-AREAS] Especie solo área 504"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-266-00-DISPOSITIVOS"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 682,
+            "items": []
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-266][PRE][COMP-GATEWAY] Sin Edge ni gateway"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-266-00-UMBRALES"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 0,
+            "items": []
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-266][PRE][COMP-UMBRALES] Sin umbrales previos"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-266-01-ALTA"
+        },
+        "request": {
+          "method": "POST",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 201,
+          "body": {
+            "id_umbral_ambiental": 131,
+            "valor_min": "10.00",
+            "valor_max": "20.00",
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_actualizacion": null,
+            "motivo_fallo_sincronizacion": "Ningún Gateway Edge activo para la especie"
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-266][PRE][ALTA-M09] Pendiente"
+          }
+        ]
+      },
+      {
+        "item": {
+          "name": "TC-M03-266-02-UMBRAL-INICIAL"
+        },
+        "request": {
+          "method": "GET",
+          "body": {
+            "raw": "{}"
+          }
+        },
+        "response": {
+          "code": 200,
+          "body": {
+            "total": 1,
+            "items": [
+              {
+                "id_umbral_ambiental": 131,
+                "valor_min": "10.00",
+                "valor_max": "20.00",
+                "estado_sincronizacion": "PENDIENTE",
+                "fecha_actualizacion": null,
+                "es_activo": true,
+                "id_variable_ambiental": 9,
+                "niveles": [
+                  {
+                    "nivel": "critico",
+                    "limite_inferior": "10.00",
+                    "limite_superior": "12.00"
+                  },
+                  {
+                    "nivel": "precaucion",
+                    "limite_inferior": "12.00",
+                    "limite_superior": "13.00"
+                  },
+                  {
+                    "nivel": "normal",
+                    "limite_inferior": "13.00",
+                    "limite_superior": "20.00"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN"
+          },
+          {
+            "assertion": "[TC-M03-266][PRE][UMBRAL-INICIAL] 10-20 pendiente",
+            "error": {
+              "message": "expected false to deeply equal true"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

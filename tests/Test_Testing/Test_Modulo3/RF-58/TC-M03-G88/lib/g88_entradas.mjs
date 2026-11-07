@@ -95,8 +95,11 @@ export function asociacionVigente(respuesta, asociacionId, areaId) {
 }
 
 export function rangoHistorial(ahora = Date.now()) {
-  return { inicio: new Date(ahora - 86400000).toISOString().slice(0, 10),
-    fin: new Date(ahora).toISOString().slice(0, 10) };
+  const instante = new Date(ahora);
+  const utc = instante.toISOString().slice(0, 10);
+  const local = `${instante.getFullYear()}-${String(instante.getMonth() + 1).padStart(2, '0')}-${String(instante.getDate()).padStart(2, '0')}`;
+  const fin = utc < local ? utc : local;
+  return { inicio: new Date(Date.parse(`${fin}T00:00:00Z`) - 3 * 86400000).toISOString().slice(0, 10), fin };
 }
 
 export const campoT = (nombre) => /(?:toleran|toleranc|tolerancia|tolerance|^t$|^t_|_t$)/i.test(nombre);

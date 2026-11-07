@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: exponer el perfil aplicado independientemente de la calidad de ejecución. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,6 +23,7 @@ class RiesgoContagioResponse(BaseModel):
     nivel_riesgo_contagio_texto: str
     confianza_baja: bool
     modo_ejecucion: str
+    perfil_calculo_contagio: str = "ESTANDAR"
     data_quality_score: Decimal
     definicion_fs: Optional[str]
     factor_sanitario: Optional[Decimal]
@@ -45,6 +47,7 @@ class RiesgoContagioResponse(BaseModel):
             id_area_productiva=r.id_area_productiva, probabilidad_contagio=r.probabilidad_contagio,
             nivel_riesgo_contagio=r.nivel_riesgo_contagio, nivel_riesgo_contagio_texto=r.nivel_texto,
             confianza_baja=r.confianza_baja, modo_ejecucion=r.modo_ejecucion,
+            perfil_calculo_contagio=r.perfil_calculo_contagio,
             data_quality_score=r.data_quality_score, definicion_fs=r.definicion_fs,
             factor_sanitario=r.factor_sanitario, factor_ambiental=r.factor_ambiental,
             factor_densidad=r.factor_densidad, pesos_aplicados=r.pesos_aplicados,

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: adapta dobles al catalogo y bloqueo de lectura |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58/59: sin activo se usa el umbral de la especie del área |
 """INC-M09-106-G31 (#297): la clasificación semafórica en tiempo real debe usar los
 niveles RF-17 (normal/precaución/crítico) apenas se conoce la especie de la lectura.
 
@@ -99,6 +100,10 @@ class _UmbralPortFake:
         })
         return self.umbral
 
+    def obtener_umbral_vigente_area(self, id_variable_ambiental, id_infraestructura, timestamp, id_sensor=None):
+        self.llamadas.append({'area': True, 'id_sensor': id_sensor})
+        return self.umbral
+
 
 class _MonitoreoRepoFake:
     def __init__(self) -> None:
@@ -131,7 +136,7 @@ def _use_case(
 
 
 class TestReclasificarSemaforoUseCase:
-    def test_sin_activo_biologico_no_hace_nada(self) -> None:
+    def test_sin_activo_biologico_ni_umbral_del_area_no_hace_nada(self) -> None:
         caso_uso, monitoreo_repo, db = _use_case(
             telemetria=_telemetria(valor_ajustado=Decimal("38.00")), id_especie=39, umbral=None,
         )
@@ -141,6 +146,19 @@ class TestReclasificarSemaforoUseCase:
         assert resultado is None
         assert monitoreo_repo.llamadas == []
         assert db.commits == 0
+
+    def test_sin_activo_biologico_usa_el_umbral_del_area_del_sensor(self) -> None:
+        # M3-09 / M3-12: un sensor ambiental del área ya no se queda con el VERDE del trigger.
+        caso_uso, monitoreo_repo, db = _use_case(
+            telemetria=_telemetria(valor_ajustado=Decimal("42.00")), id_especie=None, umbral={"niveles": _NIVELES},
+        )
+
+        resultado = caso_uso.execute(id_telemetria=1, id_activo_biologico=None)
+
+        assert resultado == "ROJO"
+        assert caso_uso.umbral_port.llamadas == [{'area': True, 'id_sensor': 101}]
+        assert monitoreo_repo.llamadas[0]['estado_semaforo'] == "ROJO"
+        assert db.commits == 1
 
     def test_telemetria_inexistente_no_hace_nada(self) -> None:
         caso_uso, monitoreo_repo, _db = _use_case(telemetria=None, id_especie=39, umbral=None)
