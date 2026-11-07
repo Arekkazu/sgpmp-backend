@@ -1,0 +1,55 @@
+{
+  "grupo": "TC-M09-G23",
+  "rol": "Administrador",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "b6131f190e01768599f3ef5e4f9c13487cd78f68",
+  "rama": "qa/juan-esteban-m09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-05T20:42:26.306Z",
+  "caso": "TC-M09-51",
+  "plan": {
+    "caso": "TC-M09-51",
+    "especie": "Cachama Blanca",
+    "variable": "Temperatura Ambiental",
+    "unidad": "°C",
+    "limitesFisicos": [
+      -50,
+      100
+    ],
+    "beforeIds": [
+      10,
+      11
+    ],
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 9,
+      "valor_min": 40,
+      "valor_max": 10,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": -20,
+          "limite_superior": 10
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 10,
+          "limite_superior": 40
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 40,
+          "limite_superior": 70
+        }
+      ]
+    }
+  },
+  "posts": [],
+  "postGetStatus": 200,
+  "persisted": [],
+  "messages": [
+    "Debe ser menor al máximo.",
+    "Debe ser mayor al mínimo."
+  ],
+  "STOP_ALL": false
+}

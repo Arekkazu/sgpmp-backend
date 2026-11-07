@@ -1,0 +1,29 @@
+{
+  "grupo": "G070",
+  "run_id": "RUN-G070-V1-20261029-133841",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 142,
+    "paginas_historial": 40,
+    "versiones_maximas": 8,
+    "posts_maximos": 7,
+    "dias_busqueda": 125,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos": [
+    "Dos logins, Veterinario A y Administrador; último acceso y auditoría de autenticación",
+    "Lecturas de activo, historial, modelos, OpenAPI, configuración y auditoría",
+    "Retroalimentaciones aceptadas y auditoría, revertidas mediante DELETE",
+    "Intentos 422 sin persistencia; ningún cambio de configuración",
+    "DELETE siempre; historial poscierre puede crear HISTORIAL_CONSULTADO fuera del sandbox"
+  ]
+}

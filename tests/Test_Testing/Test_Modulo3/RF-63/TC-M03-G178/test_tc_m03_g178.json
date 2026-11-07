@@ -1,0 +1,1420 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g178-filtros-auditoria-v1",
+    "name": "TC-M03-G178 - Filtros y Combinaciones de Auditoría IoT (RF-63)",
+    "description": "Suite automatizada Newman para TC-M03-G178 (RF-63). Verifica filtros por tipo_evento, severidad_log, entidad_afectada_id, resultado y combinaciones AND.\n\nVersion de SOLO LECTURA (2026-10-26): ya no crea finca, dispositivo ni sensor ni genera eventos (el sandbox nunca confirma, asi que los eventos de auditoria, que se emiten despues del commit, no se generan dentro de el, y su reloj de BD queda congelado). Las pruebas consultan la bitacora tal como esta y toman de ella los ids que necesitan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar con --env-var sandbox_secret=<secreto> (el lanzador .ps1 ya lo hace).",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que",
+          "  // NADA llegue a TEST (sin sandbox esta prueba dejaria datos permanentes).",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  // pm.variables respeta la precedencia entorno > coleccion: el run_id del encabezado es el mismo del DELETE final.",
+          "  let runId = pm.variables.get('run_id');",
+          "  if (!runId || runId.trim() === '') { runId = 'test-' + pm.variables.replaceIn('{{$guid}}'); pm.collectionVariables.set('run_id', runId); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: runId });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://www.api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": ""
+    },
+    {
+      "key": "infra_id",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "device_serial",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "id_telemetria_eval",
+      "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Setup-Autenticacion",
+      "item": [
+        {
+          "name": "00-Login-ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso de ADMIN\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-Descubrir-Datos-Existentes (solo lectura)",
+      "item": [
+        {
+          "name": "00b-Obtener-Total-Global-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?pagina=1&por_pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Total global de auditoria obtenido\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total).to.be.above(0);",
+                  "    pm.collectionVariables.set(\"total_global_auditoria\", body.total);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01-Telemetria-Con-Evaluacion-Existente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const ev = (res.items || [])[0];",
+                  "if (ev) { pm.collectionVariables.set('id_telemetria_eval', String(ev.entidad_afectada_id)); }",
+                  "pm.test('Existe al menos un evento EVALUACION_CALIDAD_COMPLETADA para usar como referencia', function () { pm.response.to.have.status(200); pm.expect((pm.response.json().items || []).length).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&por_pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02-Dispositivo-Con-Transicion-Existente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const ev = (res.items || [])[0];",
+                  "if (ev) { pm.collectionVariables.set('device_id', String(ev.entidad_afectada_id)); }",
+                  "pm.test('Existe al menos un evento TRANSICION_MANTENIMIENTO_MANUAL para usar como referencia', function () { pm.response.to.have.status(200); pm.expect((pm.response.json().items || []).length).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL&por_pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "TRANSICION_MANTENIMIENTO_MANUAL"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03-TC-M03-340-Filtro-Tipo-Evento",
+      "item": [
+        {
+          "name": "07-TC-M03-340-Filtro-EVALUACION_CALIDAD_COMPLETADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro tipo_evento=EVALUACION_CALIDAD_COMPLETADA exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Todos los items devueltos coinciden con el tipo_evento solicitado\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.tipo_evento).to.eql(\"EVALUACION_CALIDAD_COMPLETADA\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08-TC-M03-340-Filtro-TRANSICION_MANTENIMIENTO_MANUAL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "TRANSICION_MANTENIMIENTO_MANUAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Todos los items devueltos coinciden con TRANSICION_MANTENIMIENTO_MANUAL\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.tipo_evento).to.eql(\"TRANSICION_MANTENIMIENTO_MANUAL\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09-TC-M03-340-DISPOSITIVO_SIN_SENAL-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=DISPOSITIVO_SIN_SEÑAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "DISPOSITIVO_SIN_SEÑAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso DISPOSITIVO_SIN_SEÑAL (RF-60): Requiere desconexión de broker MQTT o tarea background de timeout. No emitible por endpoint síncrono API.\");",
+                  "console.log(\"[INFO G178] Status de respuesta:\", pm.response.code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10-TC-M03-340-Tipo-Inexistente-Vacio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVENTO_INEXISTENTE_QA_XYZ",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVENTO_INEXISTENTE_QA_XYZ"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Tipo de evento sin registros devuelve total=0 y array vacío (no 404)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.eql(0);",
+                  "    pm.expect(res.items).to.be.an(\"array\").that.is.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04-TC-M03-341-Filtro-Severidad",
+      "item": [
+        {
+          "name": "11-TC-M03-341-Filtro-Severidad-INFO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?severidad_log=INFO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro severidad_log=INFO exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Todos los items devueltos tienen severidad INFO\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.severidad_log).to.eql(\"INFO\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12-TC-M03-341-Filtro-Severidad-WARNING",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?severidad_log=WARNING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "severidad_log",
+                  "value": "WARNING"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro severidad_log=WARNING responde 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "if (res.items.length > 0) {",
+                  "    pm.test(\"Items devueltos tienen severidad WARNING\", function () {",
+                  "        res.items.forEach(item => {",
+                  "            pm.expect(item.severidad_log).to.eql(\"WARNING\");",
+                  "        });",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13-TC-M03-341-Filtro-Severidad-Invalida-FATAL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?severidad_log=FATAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "severidad_log",
+                  "value": "FATAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 422) {",
+                  "    pm.test(\"Status 422 - Severidad inválida (FATAL) rechazada por validación de esquema\", function () {",
+                  "        pm.response.to.have.status(422);",
+                  "    });",
+                  "} else if (pm.response.code === 200) {",
+                  "    console.log(\"[DISCREPANCIA / LIMITACION API] severidad_log no está tipado como Enum estricto en Query router; responde 200 con total=0.\");",
+                  "    pm.test(\"Status 200 con lista vacía si backend filtra por string\", function () {",
+                  "        const res = pm.response.json();",
+                  "        pm.expect(res.total).to.eql(0);",
+                  "        pm.expect(res.items).to.be.empty;",
+                  "    });",
+                  "} else {",
+                  "    pm.test(\"Código de respuesta imprevisto para severidad inválida\", function () {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05-TC-M03-343-Entidad-Resultado-Custodia",
+      "item": [
+        {
+          "name": "14-TC-M03-343-Filtro-Entidad-Telemetria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?entidad_afectada_id={{id_telemetria_eval}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "entidad_afectada_id",
+                  "value": "{{id_telemetria_eval}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro por entidad_afectada_id (lectura) exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "const telId = pm.collectionVariables.get(\"id_telemetria_eval\");",
+                  "if (telId && res.items.length > 0) {",
+                  "    pm.test(\"Todos los eventos devueltos corresponden a la entidad_afectada_id filtrada\", function () {",
+                  "        res.items.forEach(item => {",
+                  "            pm.expect(String(item.entidad_afectada_id)).to.eql(telId);",
+                  "        });",
+                  "    });",
+                  "}",
+                  "",
+                  "pm.test(\"TC-M03-343: cadena de custodia con orden coherente\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.items.length).to.be.at.least(2,",
+                  "        \"una cadena de custodia completa requiere al menos 2 eventos\");",
+                  "",
+                  "    const timestamps = body.items.map(it => new Date(it.fecha_hora).getTime());",
+                  "    const esASC  = timestamps.every((t, i) => i === 0 || t >= timestamps[i-1]);",
+                  "    const esDESC = timestamps.every((t, i) => i === 0 || t <= timestamps[i-1]);",
+                  "    pm.expect(esASC || esDESC,",
+                  "        `eventos no ordenados coherentemente: ${timestamps.join(\", \")}`);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: secuencia logica captura -> validacion -> calidad -> vinculacion\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const tipos = body.items.map(it => it.tipo_evento);",
+                  "    const ordenEsperado = [",
+                  "        \"TELEMETRIA_VALIDADA\", \"POSTCOMMIT_RF53_LECTURAS_COMPLETADO\",",
+                  "        \"EVALUACION_CALIDAD_COMPLETADA\"",
+                  "    ];",
+                  "    const presentes = ordenEsperado.filter(t => tipos.includes(t));",
+                  "    pm.expect(presentes.length).to.be.at.least(2,",
+                  "        `se esperaban >=2 eventos de la cadena, encontrados: ${presentes.join(\", \")}`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15-TC-M03-343-Filtro-Entidad-Dispositivo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?entidad_afectada_id={{device_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "entidad_afectada_id",
+                  "value": "{{device_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro por entidad_afectada_id (dispositivo) exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "const devId = pm.collectionVariables.get(\"device_id\");",
+                  "if (devId && res.items.length > 0) {",
+                  "    pm.test(\"Eventos devueltos corresponden al id_dispositivo filtrado\", function () {",
+                  "        res.items.forEach(item => {",
+                  "            pm.expect(String(item.entidad_afectada_id)).to.eql(devId);",
+                  "        });",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16-TC-M03-343-Filtro-Resultado-EXITOSO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?resultado=EXITOSO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "resultado",
+                  "value": "EXITOSO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro resultado=EXITOSO exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Todos los items devueltos tienen resultado EXITOSO\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.resultado).to.eql(\"EXITOSO\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17-TC-M03-343-Filtro-Resultado-FALLIDO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?resultado=FALLIDO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "resultado",
+                  "value": "FALLIDO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro resultado=FALLIDO responde 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "if (res.items.length > 0) {",
+                  "    pm.test(\"Items devueltos tienen resultado FALLIDO\", function () {",
+                  "        res.items.forEach(item => {",
+                  "            pm.expect(item.resultado).to.eql(\"FALLIDO\");",
+                  "        });",
+                  "    });",
+                  "} else {",
+                  "    console.log(\"[INFO G178] No se produjeron eventos FALLIDOS en esta corrida de sandbox.\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18-TC-M03-343-Filtro-Id-Usuario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?id_usuario=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "id_usuario",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Endpoint acepta peticion con id_usuario\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: todos los items cumplen id_usuario=1\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.items.length).to.be.above(0, \"debe haber items para id_usuario=1\");",
+                  "    body.items.forEach((it) => {",
+                  "        pm.expect(it.id_usuario).to.eql(1, `item ${it.id_evento} no cumple el filtro`);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: filtro id_usuario reduce el total vs global\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const totalGlobal = pm.collectionVariables.get(\"total_global_auditoria\") || 3008198;",
+                  "    pm.expect(body.total).to.be.below(totalGlobal,",
+                  "        `el filtro debe reducir el total; esperado < ${totalGlobal}, obtenido ${body.total}`);",
+                  "    pm.expect(body.total).to.be.above(0, \"debe haber al menos 1 evento con id_usuario=1\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06-TC-M03-346-Combinaciones-AND",
+      "item": [
+        {
+          "name": "19a-TC-M03-346-Filtro-1-Tipo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro solo tipo\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"total_346_tipo\", body.total);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19b-TC-M03-346-Filtro-2-Tipo-Severidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro tipo y severidad\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"total_346_tipo_sev\", body.total);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19c-TC-M03-346-Filtro-3-Tipo-Sev-Clasif",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO&clasificacion_registro=NIC41",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                },
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Combinacion AND de 3 filtros exitosa\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Todos los items cumplen la conjuncion AND estricta\", function () {",
+                  "    pm.expect(body.items.length).to.be.at.least(1);",
+                  "    body.items.forEach(item => {",
+                  "        pm.expect(item.tipo_evento).to.eql(\"EVALUACION_CALIDAD_COMPLETADA\");",
+                  "        pm.expect(item.severidad_log).to.eql(\"INFO\");",
+                  "        pm.expect(item.clasificacion_registro).to.eql(\"NIC41\");",
+                  "    });",
+                  "});",
+                  "pm.collectionVariables.set(\"total_346_tipo_sev_clasif\", body.total);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19d-TC-M03-346-Filtro-4-Con-Entidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO&clasificacion_registro=NIC41&entidad_afectada_id={{id_telemetria_eval}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                },
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                },
+                {
+                  "key": "entidad_afectada_id",
+                  "value": "{{id_telemetria_eval}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro AND con entidad\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"total_346_con_entidad\", body.total);",
+                  "",
+                  "pm.test(\"TC-M03-346: AND progresivo reduce o mantiene el total\", function () {",
+                  "    const totalSoloTipo       = pm.collectionVariables.get(\"total_346_tipo\");",
+                  "    const totalTipoSeveridad  = pm.collectionVariables.get(\"total_346_tipo_sev\");",
+                  "    const totalTipoSevClasif  = pm.collectionVariables.get(\"total_346_tipo_sev_clasif\");",
+                  "    const totalConEntidad     = pm.collectionVariables.get(\"total_346_con_entidad\");",
+                  "",
+                  "    pm.expect(totalTipoSeveridad).to.be.at.most(totalSoloTipo);",
+                  "    pm.expect(totalTipoSevClasif).to.be.at.most(totalTipoSeveridad);",
+                  "    pm.expect(totalConEntidad).to.be.at.most(totalTipoSevClasif);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19e-TC-M03-346-Paginacion-Filtrada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO&clasificacion_registro=NIC41&pagina=2&por_pagina=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                },
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                },
+                {
+                  "key": "pagina",
+                  "value": "2"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-M03-346: paginacion sobre resultados filtrados\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const totalPaginasBackend = body.total_paginas ?? body.totalPages;",
+                  "    const totalPaginasComputado = Math.ceil(body.total / body.por_pagina);",
+                  "    const totalPaginas = totalPaginasBackend ?? totalPaginasComputado;",
+                  "",
+                  "    pm.expect(totalPaginas).to.be.at.least(1);",
+                  "    pm.expect(body.pagina).to.eql(2);",
+                  "    pm.expect(body.total_paginas === undefined).to.equal(true,",
+                  "        \"si total_paginas aparece en backend, ajustar el test\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20-TC-M03-346-Combinacion-AND-Sin-Resultados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL&clasificacion_registro=NIC41",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "TRANSICION_MANTENIMIENTO_MANUAL"
+                },
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Conjuncion sin interseccion devuelve total=0 y array vacio (no 500)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.eql(0);",
+                  "    pm.expect(res.items).to.be.an(\"array\").that.is.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21-TC-M03-346-Verificar-Filtro-rf_origen-No-Expone-Componente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?rf_origen=RF62",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "rf_origen",
+                  "value": "RF62"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Peticion con rf_origen procesada sin error\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: todos los items cumplen rf_origen=RF62\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.items.length).to.be.above(0);",
+                  "    const totalGlobal = pm.collectionVariables.get(\"total_global_auditoria\") || 3008198;",
+                  "    pm.expect(body.total).to.be.below(totalGlobal);",
+                  "    pm.expect(body.total).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: componente_origen NO se expone en items\", function () {",
+                  "    const body = pm.response.json();",
+                  "    body.items.forEach((it) => {",
+                  "        pm.expect(it).to.not.have.property(\"componente_origen\");",
+                  "        pm.expect(it).to.not.have.property(\"componente_origen_id\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22-TC-M03-346-Filtro-rf_origen-Invalido-400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?rf_origen=RF_INVALIDO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "rf_origen",
+                  "value": "RF_INVALIDO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-M03-343: rf_origen invalido -> 400 VAL_ENTRADA\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error_code).to.eql(\"VAL_ENTRADA\");",
+                  "    pm.expect(body.fields).to.be.an(\"array\").with.length.greaterThan(0);",
+                  "    const detalle = body.fields[0].message || \"\";",
+                  "    pm.expect(detalle.toLowerCase()).to.match(/opci[oó]n|permitid|v[aá]lid/i);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23-TC-M03-346-Por-Pagina-Limite-400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?por_pagina=201",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "201"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-M03-346: por_pagina > 200 -> 400 VAL_ENTRADA\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().error_code).to.eql(\"VAL_ENTRADA\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

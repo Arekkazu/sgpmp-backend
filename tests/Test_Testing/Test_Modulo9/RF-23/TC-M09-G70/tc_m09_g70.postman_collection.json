@@ -1,0 +1,674 @@
+{
+  "info": {
+    "name": "TC-M09-G70 - RF-23 validaciones y desenlaces",
+    "description": "RF-23 (matriz corregida). Ejecutado en TEST. Rango de frecuencia de SENSOR_AMBIENTAL (5-120), intervalo (5-240) e intervalo >= frecuencia. Sin ACK (504, 29/30/31 s) requiere broker: no se prueba aquí.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login adm",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_adm', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "Setup - registrar dispositivo va",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('dA', j.id_dispositivo_iot);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G70-va-{{run}}\", \"descripcion\": \"QA M09 G70 va\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Dispositivo inexistente -> 404 DISPOSITIVO_NO_ENCONTRADO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 404\", () => { pm.response.to.have.status(404); });",
+              "pm.test(\"error_code DISPOSITIVO_NO_ENCONTRADO\", () => { pm.expect(j.error_code).to.eql('DISPOSITIVO_NO_ENCONTRADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/999999/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "999999",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 10, \"intervalo_transmision\": 10}"
+        }
+      }
+    },
+    {
+      "name": "Frecuencia 4 (MIN-1) -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dA}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dA}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 4, \"intervalo_transmision\": 10}"
+        }
+      }
+    },
+    {
+      "name": "Frecuencia 121 (MAX+1) -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dA}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dA}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 121, \"intervalo_transmision\": 240}"
+        }
+      }
+    },
+    {
+      "name": "Intervalo 241 (MAX+1) -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dA}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dA}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 10, \"intervalo_transmision\": 241}"
+        }
+      }
+    },
+    {
+      "name": "Intervalo 9 (menor que frecuencia 10) -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dA}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dA}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 10, \"intervalo_transmision\": 9}"
+        }
+      }
+    },
+    {
+      "name": "Setup - registrar dispositivo vb",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('dB', j.id_dispositivo_iot);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G70-vb-{{run}}\", \"descripcion\": \"QA M09 G70 vb\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Frecuencia 5 (MIN) -> 202",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 202\", () => { pm.response.to.have.status(202); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dB}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dB}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 5, \"intervalo_transmision\": 5}"
+        }
+      }
+    },
+    {
+      "name": "Setup - registrar dispositivo vc",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('dC', j.id_dispositivo_iot);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G70-vc-{{run}}\", \"descripcion\": \"QA M09 G70 vc\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Frecuencia 120 (MAX) e intervalo 240 (MAX) -> 202",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 202\", () => { pm.response.to.have.status(202); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dC}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dC}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 120, \"intervalo_transmision\": 240}"
+        }
+      }
+    },
+    {
+      "name": "Setup - registrar dispositivo vd",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('dD', j.id_dispositivo_iot);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G70-vd-{{run}}\", \"descripcion\": \"QA M09 G70 vd\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Intervalo igual a frecuencia (10/10) -> 202",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 202\", () => { pm.response.to.have.status(202); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dD}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dD}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 10, \"intervalo_transmision\": 10}"
+        }
+      }
+    },
+    {
+      "name": "Segunda configuracion con PENDIENTE vigente -> 409 CONFIG_PENDIENTE_EXISTENTE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 409\", () => { pm.response.to.have.status(409); });",
+              "pm.test(\"error_code CONFIG_PENDIENTE_EXISTENTE\", () => { pm.expect(j.error_code).to.eql('CONFIG_PENDIENTE_EXISTENTE'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{dD}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{dD}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 10, \"intervalo_transmision\": 10}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tok_adm",
+      "value": ""
+    }
+  ]
+}

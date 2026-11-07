@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>G19 rev2</title></head><body><h1>TC-M02-G19 rev2</h1><p>Global APROBADO</p><p>INC-M02-55-G19: superado</p><h2>TC-M02-190: APROBADO</h2><pre>{
+  "resultado": "APROBADO",
+  "endpoint": "GET .../infraestructura?fecha_referencia=",
+  "id_activo": 5,
+  "fecha_referencia": "2026-06-29T20:08:28.714560Z",
+  "periodo_esperado": {
+    "id_historial": 3,
+    "id_infraestructura": 2,
+    "fecha_inicio": "2026-06-29T20:07:23.629232Z",
+    "fecha_fin": "2026-06-29T20:09:33.799888Z"
+  },
+  "http": 200,
+  "respuesta": "{\"tipo_consulta\": \"ACTIVA\", \"id_activo_biologico\": 5, \"asociacion_activa\": {\"id_historial\": 3, \"id_activo_biologico\": 5, \"id_infraestructura\": 2, \"nombre_infraestructura\": \"Estanque-02\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-06-29T20:07:23.629232Z\", \"fecha_fin\": \"2026-06-29T20:09:33.799888Z\"}, \"historial\": null, \"sensores_en_infraestructura\": [{\"id_sensor\": 4, \"nombre\": \"Sensor temperatura estanque-02\", \"id_dispositivo_iot\": 2, \"punto_instalacion\": \"Entrada de agua, profundidad 30 cm\", \"categoria\": \"TEMPERATURA\"}, {\"id_sensor\": 5, \"nombre\": \"Sensor pH estanque-02\", \"id_dispositivo_iot\": 2, \"punto_instalacion\": \"Centro del estanque, profundidad 40 cm\", \"categoria\": \"PH\"}], \"advertencia_integridad\": null}",
+  "tipo_consulta": "ACTIVA",
+  "infra_devuelta": 2,
+  "historial_id_devuelto": 3,
+  "cubre_periodo": true,
+  "vigente_actual_infra": 1,
+  "explicacion": "HTTP 200, historial 3 infra 2 cubre 2026-06-29T20:08:28.714560Z."
+}</pre><h2>TC-M02-191: APROBADO</h2><pre>{
+  "resultado": "APROBADO",
+  "endpoint": "GET .../infraestructura (sin query)",
+  "id_activo": 352,
+  "http": 200,
+  "respuesta": "{\"tipo_consulta\": \"ACTIVA\", \"id_activo_biologico\": 352, \"asociacion_activa\": {\"id_historial\": 308, \"id_activo_biologico\": 352, \"id_infraestructura\": 1, \"nombre_infraestructura\": \"Estanque-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-12T19:04:30.406435Z\", \"fecha_fin\": null}, \"historial\": null, \"sensores_en_infraestructura\": [{\"id_sensor\": 1, \"nombre\": \"Sensor temperatura estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Entrada de agua, profundidad 30 cm\", \"categoria\": \"TEMPERATURA\"}, {\"id_sensor\": 2, \"nombre\": \"Sensor pH estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Centro del estanque, profundidad 50 cm\", \"categoria\": \"PH\"}, {\"id_sensor\": 3, \"nombre\": \"Sensor oxígeno disuelto estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Salida de agua, profundidad 40 cm\", \"categoria\": \"OXIGENO\"}, {\"id_sensor\": 21, \"nombre\": \"Sensor Temperatura Test\", \"id_dispositivo_iot\": 13, \"punto_instalacion\": \"Esquina noroeste, metro 1.5\", \"categoria\": \"TEMPERATURA\"}], \"advertencia_integridad\": null}",
+  "explicacion": "Sin query: tipo_consulta=ACTIVA, fecha_fin=null, historial null."
+}</pre><h2>TC-M02-192: APROBADO</h2><pre>{
+  "resultado": "APROBADO",
+  "endpoint": "GET /activos-biologicos/4/infraestructura?tipo_consulta=HISTORIAL",
+  "id_activo": 4,
+  "inspeccion_activo_4": {
+    "id": 4,
+    "historial_http": 200,
+    "n": 2,
+    "n_vigentes": 0,
+    "motivos": [
+      "solape id_historial 292 y 293"
+    ],
+    "advertencia_en_historial": "Se detectó solapamiento entre los períodos de asociación a infraestructura con id_historial 292 y 293.",
+    "periodos": [
+      {
+        "id_historial": 293,
+        "id_infraestructura": 16,
+        "fecha_inicio": "2024-03-10T00:00:00Z",
+        "fecha_fin": "2024-03-20T00:00:00Z"
+      },
+      {
+        "id_historial": 292,
+        "id_infraestructura": 7,
+        "fecha_inicio": "2024-03-01T00:00:00Z",
+        "fecha_fin": "2024-03-15T00:00:00Z"
+      }
+    ]
+  },
+  "inconsistencia_detectada_en_datos": [
+    "solape id_historial 292 y 293"
+  ],
+  "http": 200,
+  "respuesta": "{\"tipo_consulta\": \"HISTORIAL\", \"id_activo_biologico\": 4, \"asociacion_activa\": null, \"historial\": [{\"id_historial\": 293, \"id_activo_biologico\": 4, \"id_infraestructura\": 16, \"nombre_infraestructura\": \"QA-G05-Infra-1789005185\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2024-03-10T00:00:00Z\", \"fecha_fin\": \"2024-03-20T00:00:00Z\"}, {\"id_historial\": 292, \"id_activo_biologico\": 4, \"id_infraestructura\": 7, \"nombre_infraestructura\": \"Piscina-Cam-02\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2024-03-01T00:00:00Z\", \"fecha_fin\": \"2024-03-15T00:00:00Z\"}], \"sensores_en_infraestructura\": [], \"advertencia_integridad\": \"Se detectó solapamiento entre los períodos de asociación a infraestructura con id_historial 292 y 293.\"}",
+  "advertencia_integridad": "Se detectó solapamiento entre los períodos de asociación a infraestructura con id_historial 292 y 293.",
+  "n_historial": 2,
+  "explicacion": "HTTP 200, advertencia_integridad presente, motivos=['solape id_historial 292 y 293']."
+}</pre><h2>TC-M02-193: APROBADO</h2><pre>{
+  "resultado": "APROBADO",
+  "endpoint": "GET /activos-biologicos/auditoria",
+  "id_activo": 5,
+  "fecha_referencia_esperada": "2026-06-29T20:08:28.714560Z",
+  "http_activa": 200,
+  "http_historial": 200,
+  "http_fecha_ref": 200,
+  "auditoria_http": 200,
+  "n_registros": 5,
+  "muestra": [
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:17.905740Z",
+      "tipo_consulta": "ACTIVA",
+      "fecha_referencia": "2026-06-29T20:08:28.714560+00:00",
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    },
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:17.464958Z",
+      "tipo_consulta": "HISTORIAL",
+      "fecha_referencia": null,
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    },
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:17.022888Z",
+      "tipo_consulta": "ACTIVA",
+      "fecha_referencia": null,
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    },
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:15.742401Z",
+      "tipo_consulta": "ACTIVA",
+      "fecha_referencia": "2026-06-29T20:08:28.714560+00:00",
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    },
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:09.185258Z",
+      "tipo_consulta": "HISTORIAL",
+      "fecha_referencia": null,
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    }
+  ],
+  "registros_con_fecha_referencia": [
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:17.905740Z",
+      "tipo_consulta": "ACTIVA",
+      "fecha_referencia": "2026-06-29T20:08:28.714560+00:00",
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    },
+    {
+      "id_activo_biologico": 5,
+      "id_usuario_responsable": 1,
+      "resultado": "EXITOSO",
+      "timestamp_evento": "2026-09-15T05:52:15.742401Z",
+      "tipo_consulta": "ACTIVA",
+      "fecha_referencia": "2026-06-29T20:08:28.714560+00:00",
+      "rf_origen": "RF34",
+      "tipo_evento": "INFRAESTRUCTURA_CONSULTADA"
+    }
+  ],
+  "tipos_consulta_en_bitacora": [
+    "ACTIVA",
+    "HISTORIAL"
+  ],
+  "al_menos_un_registro_completo": true,
+  "explicacion": "Campos base OK. Tipos ['ACTIVA', 'HISTORIAL']. Registros con fecha_referencia=2."
+}</pre><h2>complemento_inexistente: APROBADO</h2><pre>{
+  "resultado": "APROBADO",
+  "id_activo": 100352,
+  "http": 404,
+  "error_code": "ACTIVO_NO_ENCONTRADO",
+  "respuesta": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"No existe un activo biológico con id 100352.\", \"fields\": [], \"timestamp\": \"2026-09-15T05:52:18.711704+00:00\"}",
+  "explicacion": "404 ACTIVO_NO_ENCONTRADO."
+}</pre><p>Sin JWT. Historico no modificado.</p></body></html>

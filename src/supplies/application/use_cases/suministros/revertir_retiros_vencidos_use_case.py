@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: día calendario de Colombia         |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: revertir a ACTIVO los activos cuyo período de retiro venció (RF-76 pasos 11-13).
 
 Corre como tarea programada diaria (ver ``main.py``), sin usuario interactivo.
@@ -11,10 +15,12 @@ generó la obligación de retiro que ahora se levanta.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Callable
 
 from sqlalchemy.orm import Session
+
+from src.shared.fechas import hoy_usuario
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +43,7 @@ class RevertirRetirosVencidosUseCase:
         finally:
             db.close()
 
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_usuario()
         revertidos = 0
         for id_activo in activos:
             if self._revertir_si_vencido(id_activo, hoy):

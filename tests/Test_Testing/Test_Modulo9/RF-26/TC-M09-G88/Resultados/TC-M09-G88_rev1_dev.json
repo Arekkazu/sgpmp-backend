@@ -1,0 +1,33 @@
+{
+  "caso": "TC-M09-G88 / TC-M09-168",
+  "rf": "RF-26",
+  "ambiente": "DEV",
+  "frontend": "https://sigab-frontenddev-pbw0py-757e2f-158-69-200-27.sslip.io",
+  "backend": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp",
+  "usuario": "admin.dev@gmail.com",
+  "contrasena": "[REDACTED]",
+  "token": "[REDACTED]",
+  "herramienta": "Browser DEV (Cursor IDE) — no logout/login intermedio. Cypress actualizado para DEV; no se reejecutó Cypress para evitar un segundo login.",
+  "clasificacion": "APROBADO",
+  "expected": "Con sesión de Administrador activa, al modificar identidad visual (color/logo) el cambio se refleja en la UI sin cerrar sesión.",
+  "actual": "Tras PATCH desde UI (Actualizar identidad) el sidebar cambió de marca genérica SGP Multiespecie (verde) a Camaronera Costa Azul con fondo rgb(88,14,26) derivado de #C41E3A. URL permaneció en /configuracion (no /login). Usuario sidebar: Admin Camila / Administrador. Luego se restauró primary_color #007B8A; sidebarBg pasó a rgb(0,55,62).",
+  "logout_intermedio": false,
+  "sesion_activa": true,
+  "finca": {
+    "nombre": "Camaronera Costa Azul",
+    "id_finca_conocido": 3,
+    "color_antes": "#007B8A",
+    "color_prueba": "#C41E3A",
+    "color_despues_restauracion": "#007B8A",
+    "nota": "Fincas 5 y 6 siguen inactivas y no aparecen en el picker de Identidad Visual. No se reactivaron. Costa Azul se restauró al color original."
+  },
+  "pasos": [
+    "Login admin.dev@gmail.com → /dashboard (un login).",
+    "Sidebar inicial: SGP Multiespecie / Sistema Pecuario.",
+    "Configuración → Personalización → Identidad Visual.",
+    "Selección Camaronera Costa Azul.",
+    "Cambio Color primario #C41E3A. Aplicar vista previa (mock rojo; mensaje: cambios aún no guardados).",
+    "Actualizar identidad. Sidebar real: Camaronera Costa Azul, fondo maroon. Sin logout.",
+    "Restauración #007B8A + Actualizar identidad."
+  ]
+}

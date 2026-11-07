@@ -1,0 +1,431 @@
+{
+  "info": {
+    "name": "TC-M02-G59 v2.0 - Rechazo de eventos reproductivo en estados EN_TRATAMIENTO y AISLADO (RF-42)",
+    "description": "RF-42: el registro solo se permite con el activo en estado ACTIVO; cualquier otro estado -> 409. Complementa la v1 (CERRADO/BAJA), que se conserva como evidencia.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "pm.collectionVariables.set('rid', String(Date.now()));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Setup - activo INDIVIDUAL propio padre (nace ACTIVO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_padre', pm.response.json().id_activo_biologico); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G59-M-{{rid}}\",\"raza\":\"QA G59\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0C. Setup - registrar fase productiva activa (RF-37) padre",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Fase registrada (201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_padre}}/fases",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"id_ciclo_productiva\": {{id_ciclo_productiva}}, \"motivo_cambio\": \"QA G59 fase activa\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Setup - activo INDIVIDUAL propio madre (nace ACTIVO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo', pm.response.json().id_activo_biologico); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G59-H-{{rid}}\",\"raza\":\"QA G59\",\"sexo\":\"Hembra\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0C. Setup - registrar fase productiva activa (RF-37) madre",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Fase registrada (201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/fases",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"id_ciclo_productiva\": {{id_ciclo_productiva}}, \"motivo_cambio\": \"QA G59 fase activa\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Transicion a EN_TRATAMIENTO (RF-44) - TC-M02-G59",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "setTimeout(function () {}, 1500);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Transicion a EN_TRATAMIENTO aceptada (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"estado_nuevo\": \"EN_TRATAMIENTO\", \"fecha_cambio_estado\": \"{{fecha_hoy}}\", \"motivo_cambio\": \"QA RFC: precondicion TC-M02-G59\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-234 - Rechazar evento reproductivo sobre activo EN_TRATAMIENTO",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento', new Date(Date.now() - 500).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-234-EN_] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-234-EN_ - RF-42 solo admite ACTIVO; EN_TRATAMIENTO: HTTP 409', function () { pm.response.to.have.status(409); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-234-EN_ - RF-42 solo admite ACTIVO; EN_TRATAMIENTO: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/no se encuentra en estado ACTIVO/i); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/reproductivo",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"categoria\": \"servicio\", \"resultado\": \"exitoso\", \"id_padre\": {{id_padre}}, \"fecha\": \"{{fecha_evento}}\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Transicion a AISLADO (RF-44) - TC-M02-G59",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "setTimeout(function () {}, 1500);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Transicion a AISLADO aceptada (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"estado_nuevo\": \"AISLADO\", \"fecha_cambio_estado\": \"{{fecha_hoy}}\", \"motivo_cambio\": \"QA RFC: precondicion TC-M02-G59\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-234 - Rechazar evento reproductivo sobre activo AISLADO",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento', new Date(Date.now() - 500).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-234-AIS] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-234-AIS - RF-42 solo admite ACTIVO; AISLADO: HTTP 409', function () { pm.response.to.have.status(409); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-234-AIS - RF-42 solo admite ACTIVO; AISLADO: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/no se encuentra en estado ACTIVO/i); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/reproductivo",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"categoria\": \"servicio\", \"resultado\": \"exitoso\", \"id_padre\": {{id_padre}}, \"fecha\": \"{{fecha_evento}}\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "3"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "6"
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "2"
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "rid",
+      "value": ""
+    }
+  ]
+}

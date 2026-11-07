@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-75 CA-10: último consumo validado      |
+# | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 """Implementación SQLAlchemy del puerto :class:`ConsumoAlimentoRepository` (RF-75).
 
 Único punto donde se cruza la frontera ORM ↔ dominio para el consumo de
@@ -10,7 +14,7 @@ from __future__ import annotations
 from datetime import date, time
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -65,10 +69,8 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
 
     # ── Operaciones del puerto ───────────────────────────────────────────────
 
-    def obtener_tipo_alimento(self, id_tipo_alimento: int) -> Optional[TipoAlimentoRef]:
-        orm = self.db.get(TipoAlimentoModel, id_tipo_alimento)
-        if orm is None:
-            return None
+    @staticmethod
+    def _a_tipo_alimento(orm: TipoAlimentoModel) -> TipoAlimentoRef:
         return TipoAlimentoRef(
             id_tipo_elemento=orm.id_tipo_elemento,
             nombre=orm.nombre,
@@ -76,6 +78,17 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
             costo_unitario=orm.costo_unitario,
             estado=orm.estado,
         )
+
+    def obtener_tipo_alimento(self, id_tipo_alimento: int) -> Optional[TipoAlimentoRef]:
+        orm = self.db.get(TipoAlimentoModel, id_tipo_alimento)
+        return None if orm is None else self._a_tipo_alimento(orm)
+
+    def listar_tipos_alimento(self, *, solo_activos: bool) -> list[TipoAlimentoRef]:
+        consulta = select(TipoAlimentoModel).order_by(TipoAlimentoModel.nombre)
+        if solo_activos:
+            # `estado` es el enum enum_tipo_alimento_estado (ACTIVO | CESADO): upper() no aplica a enums.
+            consulta = consulta.where(TipoAlimentoModel.estado == "ACTIVO")
+        return [self._a_tipo_alimento(orm) for orm in self.db.scalars(consulta)]
 
     def existe_duplicado_validado(
         self,
@@ -98,6 +111,24 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
             .first()
         )
         return existe is not None
+
+    def ultimo_validado(
+        self, *, id_activo_biologico: int, tipo_alimento: str
+    ) -> Optional[tuple[date, Optional[time]]]:
+        fila = (
+            self.db.query(RegistroConsumoAlimentoModel.fecha_consumo, RegistroConsumoAlimentoModel.hora_suministro)
+            .filter(
+                RegistroConsumoAlimentoModel.estado_registro == EstadoRegistro.VALIDADO.value,
+                RegistroConsumoAlimentoModel.id_activo_biologico == id_activo_biologico,
+                func.lower(RegistroConsumoAlimentoModel.tipo_alimento) == tipo_alimento.lower(),
+            )
+            .order_by(
+                RegistroConsumoAlimentoModel.fecha_consumo.desc(),
+                func.coalesce(RegistroConsumoAlimentoModel.hora_suministro, _MEDIANOCHE).desc(),
+            )
+            .first()
+        )
+        return (fila.fecha_consumo, fila.hora_suministro) if fila else None
 
     def guardar(self, consumo: ConsumoAlimento) -> ConsumoAlimento:
         # costo_total lo calcula el trigger BEFORE INSERT — no se asigna aquí.
@@ -148,8 +179,11 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
         fecha_hasta: Optional[date] = None,
         tipo_alimento: Optional[str] = None,
         estado_registro: Optional[str] = None,
+        ids_permitidos: Optional[list[int]] = None,
     ) -> list[ConsumoAlimento]:
         query = self.db.query(RegistroConsumoAlimentoModel)
+        if ids_permitidos is not None:
+            query = query.filter(RegistroConsumoAlimentoModel.id_activo_biologico.in_(ids_permitidos))
         if id_activo_biologico is not None:
             query = query.filter(RegistroConsumoAlimentoModel.id_activo_biologico == id_activo_biologico)
         if fecha_desde is not None:

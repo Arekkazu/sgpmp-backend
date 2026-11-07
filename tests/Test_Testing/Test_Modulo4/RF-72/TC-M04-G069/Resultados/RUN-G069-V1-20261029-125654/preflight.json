@@ -1,0 +1,30 @@
+{
+  "grupo": "G069",
+  "run_id": "RUN-G069-V1-20261029-125654",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 37,
+    "paginas_descubrimiento": 4,
+    "versiones_maximas": 8,
+    "paginas_verificacion": 3,
+    "dias_busqueda": 88,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900,
+    "reemplazos_por_caso": 1
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos": [
+    "login Veterinario A y B una vez por cuenta; último acceso y auditoría de autenticación",
+    "lecturas de activo, historial, versiones y auditoría",
+    "tres retroalimentaciones esperadas y dos rechazos 409; reemplazos condicionales de precondición",
+    "DELETE del sandbox siempre tras iniciar peticiones",
+    "lecturas poscierre con posible HISTORIAL_CONSULTADO fuera del sandbox"
+  ]
+}

@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "TC-M02-G21 - Restricciones de inmutabilidad del activo individual (especie y tipo)",
+    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35. Agrupa TC-M02-035 (rechazar cambio de especie tras el registro) y TC-M02-036 (rechazar conversion de INDIVIDUAL a POBLACIONAL). Cada sub-caso se prueba en dos variantes: (a) el campo prohibido solo en el body (sin ningun campo editable real) y (b) el campo prohibido combinado con un campo editable valido, para separar 'la solicitud se rechaza' de 'el campo se ignora pero nada cambia'.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_original", "value": "3" },
+    { "key": "id_especie_intentada", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "identificador_activo", "value": "" },
+    { "key": "id_activo", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Setup - Registrar activo INDIVIDUAL con especie_id=3 (Camaron Blanco)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_original}},\n  \"fecha_inicio_ciclo\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_activo}}\",\n  \"raza\": \"Camaron QA-G21 original\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.500\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('identificador_activo', 'QA-G21-' + Date.now());",
+              "pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP CREAR ACTIVO] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Se crea el activo INDIVIDUAL con especie 3 (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  pm.collectionVariables.set('id_activo', body.id_activo_biologico);",
+              "  pm.test('Precondicion: especie_id=3 y tipo=INDIVIDUAL', function () {",
+              "    pm.expect(Number(body.id_especie)).to.eql(Number(pm.collectionVariables.get('id_especie_original')));",
+              "    pm.expect(body.tipo).to.eql('INDIVIDUAL');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1a. TC-M02-035 - PATCH solo con id_especie (sin campos editables) -> debe rechazarse",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 7\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-035a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La solicitud se rechaza (400) por no traer ningun campo editable real', function () { pm.response.to.have.status(400); });",
+              "const body = pm.response.json();",
+              "pm.test('El mensaje de rechazo no confirma ningun cambio de especie', function () {",
+              "  pm.expect(body.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1b. TC-M02-035 - PATCH id_especie + campo valido -> especie debe permanecer intacta",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{id_especie_intentada}},\n  \"raza\": \"Camaron QA-G21 raza cambiada\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-035b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La actualizacion del campo valido se acepta (200)', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('id_especie permanece en el valor original pese a pedir el cambio a otra especie', function () {",
+              "  pm.expect(Number(body.id_especie)).to.eql(Number(pm.collectionVariables.get('id_especie_original')));",
+              "  pm.expect(Number(body.id_especie)).to.not.eql(Number(pm.collectionVariables.get('id_especie_intentada')));",
+              "});",
+              "pm.test('raza si se actualizo (para confirmar que el PATCH funciono, no que fallo entero)', function () {",
+              "  pm.expect(body.detalle_individual.raza).to.eql('Camaron QA-G21 raza cambiada');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2a. TC-M02-036 - PATCH solo con tipo_activo (sin campos editables) -> debe rechazarse",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-036a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La solicitud se rechaza (400) por no traer ningun campo editable real', function () { pm.response.to.have.status(400); });",
+              "const body = pm.response.json();",
+              "pm.test('El error confirma que no se proceso ningun cambio', function () {",
+              "  pm.expect(body.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2b. TC-M02-036 - PATCH tipo_activo + campo valido -> tipo debe permanecer INDIVIDUAL",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"peso_inicial\": 9.999\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-036b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La actualizacion del campo valido se acepta (200)', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('tipo permanece INDIVIDUAL pese a pedir la conversion a POBLACIONAL', function () {",
+              "  pm.expect(body.tipo).to.eql('INDIVIDUAL');",
+              "});",
+              "pm.test('detalle_individual sigue presente (no se convirtio a lote)', function () {",
+              "  pm.expect(body.detalle_individual).to.not.be.null;",
+              "  pm.expect(body.detalle_poblacional).to.be.null;",
+              "  pm.expect(String(body.detalle_individual.peso_inicial)).to.eql('9.999');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Verificacion final - GET tras todos los intentos: especie y tipo siguen intactos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[VERIFICACION FINAL] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La consulta final responde 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('especie_id sigue siendo la original tras los 2 intentos de cambio', function () {",
+              "  pm.expect(Number(body.id_especie)).to.eql(Number(pm.collectionVariables.get('id_especie_original')));",
+              "});",
+              "pm.test('tipo sigue siendo INDIVIDUAL tras el intento de conversion a POBLACIONAL', function () {",
+              "  pm.expect(body.tipo).to.eql('INDIVIDUAL');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

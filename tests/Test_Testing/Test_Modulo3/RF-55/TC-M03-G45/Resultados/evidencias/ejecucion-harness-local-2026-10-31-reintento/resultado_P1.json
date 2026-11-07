@@ -1,0 +1,99 @@
+{
+  "id": "P1",
+  "entrada": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor": 32.5,
+      "unidad": "C"
+    },
+    {
+      "variable": "humedad_relativa",
+      "valor": null,
+      "unidad": "%"
+    }
+  ],
+  "validacion": [
+    {
+      "variable": "humedad_relativa",
+      "valor": null,
+      "es_finito": false,
+      "invalida": true,
+      "motivo": "valor no numérico o no finito: None"
+    }
+  ],
+  "lecturas_es_finito": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor_repr": "32.5",
+      "es_finito": true
+    },
+    {
+      "variable": "humedad_relativa",
+      "valor_repr": "None",
+      "es_finito": false
+    }
+  ],
+  "historial": [
+    {
+      "clasificacion": "LECTURA_INVALIDA",
+      "severidad": null,
+      "ruta": "LOCAL",
+      "estado": "LOCAL",
+      "variables": [
+        {
+          "tipo_variable": "humedad_relativa",
+          "valor": "None",
+          "unidad": "%"
+        }
+      ],
+      "detalle": {
+        "motivo": "valor no numérico o no finito: None"
+      }
+    },
+    {
+      "clasificacion": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "ruta": "DIRECTA",
+      "estado": "PENDIENTE",
+      "variables": [
+        {
+          "tipo_variable": "temperatura_ambiente",
+          "valor": 32.5,
+          "unidad": "C"
+        }
+      ],
+      "detalle": {
+        "nivel_umbral": "fuera_de_rango",
+        "id_umbral_ambiental": 7
+      }
+    }
+  ],
+  "eventos": [
+    {
+      "clasificacion_rf55": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "regla_aplicada": "UMBRAL_AMBIENTAL",
+      "variable": null
+    },
+    {
+      "clasificacion_rf55": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "regla_aplicada": "UMBRAL_AMBIENTAL",
+      "variable": null
+    }
+  ],
+  "telemetria": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor_crudo": 32.5
+    }
+  ],
+  "warnings_rf55": [
+    "Lectura de QA-G45-HARNESS descartada para RF-55 (humedad_relativa): valor no numérico o no finito: None"
+  ],
+  "paths": {
+    "tmp": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P1",
+    "historial": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P1\\historial.db",
+    "buffer": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P1\\buffer.db"
+  }
+}

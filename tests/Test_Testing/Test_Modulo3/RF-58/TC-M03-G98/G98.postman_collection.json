@@ -1,0 +1,53 @@
+{
+  "info": {"name":"TC-M03-G98 V2 — TC-M03-191","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "item": [{
+    "name":"API-191-01",
+    "request": {
+      "method":"GET",
+      "header":[
+        {"key":"Authorization","value":"Bearer {{token}}"},
+        {"key":"X-Test-Run-Id","value":"{{run_id}}"},
+        {"key":"X-Sandbox-Secret","value":"{{sandbox_secret}}"}
+      ],
+      "url":"{{base_url}}/iot/monitoreo/dashboard/{{unidad}}?pagina=1&por_pagina=50"
+    },
+    "event":[
+      {"listen":"prerequest","script":{"type":"text/javascript","exec":[
+        "const base = pm.environment.get('base_url') || '';",
+        "if (pm.environment.get('autorizado_run') !== 'SI' || !pm.environment.get('run_id') || !(base === 'https://www.api.inmero.co/api-sgpmp-test' || (pm.environment.get('ensayo_loopback') === 'SI' && /^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(base)))) { pm.execution.skipRequest(); throw Error('BLOQUEO_G98'); }"
+      ]}},
+      {"listen":"test","script":{"type":"text/javascript","exec":[
+        "let body; try { body = pm.response.json(); } catch { body = null; }",
+        "const respuestaCliente = Date.now(); pm.environment.set('respuesta_cliente_ms', String(respuestaCliente));",
+        "pm.test('[TC-M03-191][ASSERT][API-191-01] panel y contrato', () => {",
+        "  pm.expect(pm.response.code, 'HTTP 200').to.eql(200);",
+        "  pm.expect(pm.response.headers.get('X-Test-Run-Id'), 'eco RUN').to.eql(pm.environment.get('run_id'));",
+        "  const p = body && body.panel_alertas_activas;",
+        "  pm.expect(!!p && Number.isInteger(p.total) && Array.isArray(p.alertas), 'panel total + lista').to.eql(true);",
+        "  const xs = p.alertas, total = Number(pm.environment.get('expected_total'));",
+        "  pm.expect(total >= 3 && p.total >= 3, 'mínimo tres alertas ACTIVA').to.eql(true);",
+        "  pm.expect(p.total, 'total ACTIVA del área').to.eql(total);",
+        "  pm.expect(xs.length, 'lista limitada a 50').to.eql(Math.min(total, 50));",
+        "  pm.expect(xs[0]?.severidad, 'CRITICO primero').to.eql('CRITICO');",
+        "  const ids = JSON.parse(pm.environment.get('expected_ids')); const grado = {CRITICO:3,MODERADO:2,LEVE:1};",
+        "  const vistos = new Set();",
+        "  xs.forEach((a,i) => {",
+        "    pm.expect(!!a && Number.isInteger(a.id_alerta), 'id alerta').to.eql(true);",
+        "    pm.expect(ids.includes(a.id_alerta) && !vistos.has(a.id_alerta), 'ACTIVA y alcance autorizado').to.eql(true); vistos.add(a.id_alerta);",
+        "    pm.expect(a.id_infraestructura, 'área').to.eql(Number(pm.environment.get('unidad')));",
+        "    pm.expect(typeof a.tipo_alerta === 'string' && !!a.tipo_alerta.trim() && typeof a.tipo_variable === 'string' && !!a.tipo_variable.trim(), 'tipo y variable').to.eql(true);",
+        "    pm.expect(Object.prototype.hasOwnProperty.call(grado,a.severidad), 'RF-57').to.eql(true);",
+        "    const fecha = Date.parse(a.fecha_generacion), inicio = Date.parse(pm.environment.get('inicio_run'));",
+        "    const fechaCabecera = Date.parse(pm.response.headers.get('Date'));",
+        "    const respuesta = Number.isFinite(fechaCabecera) ? fechaCabecera : respuestaCliente;",
+        "    const inferior = Math.floor((inicio-120000-fecha)/60000)-1, superior = Math.floor((respuesta-fecha)/60000)+1;",
+        "    pm.expect(Number.isFinite(inicio) && Number.isFinite(fecha) && fecha <= respuesta+60000 && Number.isInteger(a.minutos_transcurridos) && a.minutos_transcurridos >= inferior && a.minutos_transcurridos <= superior, 'tiempo coherente: minutos_transcurridos entero dentro de ventana y fecha_generacion no futura').to.eql(true);",
+        "    if (a.minutos_transcurridos < 0 && fecha > inicio) pm.environment.set('observacion_tiempo', 'minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición');",
+        "    if (i) { pm.expect(grado[a.severidad] <= grado[xs[i-1].severidad], 'severidad descendente').to.eql(true); if (a.severidad === xs[i-1].severidad) pm.expect(fecha <= Date.parse(xs[i-1].fecha_generacion), 'recencia descendente').to.eql(true); }",
+        "  });",
+        "  if (total <= 50) pm.expect(vistos.size, 'todas las ACTIVA').to.eql(ids.length);",
+        "});"
+      ]}}
+    ]
+  }]
+}

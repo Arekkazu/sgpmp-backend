@@ -1,0 +1,97 @@
+{
+  "info": {
+    "name": "TC-M02-G57 - Reintento 1 (2026-09-19) - Fase-gate ahora antecede TODAS las validaciones reproductivas",
+    "description": "Re-ejecucion de TC-M02-G57 (RF-42) contra TEST el 2026-09-19. La coleccion original queda intacta como evidencia historica.\n\nRESULTADO: el bug original (500 en el primer evento reproductivo) esta corregido (ver TC-M02-G53 reintento1), pero la nueva puerta de fase (409 FASE_NO_COMPATIBLE_REPRODUCCION, ver TC-M02-G54/G57 reintento1) ahora intercepta CUALQUIER evento reproductivo -- incluido el sub-caso 3 de este TC (parto en LOTE, que antes daba 422 EVENTO_NO_PERMITIDO_LOTE segun TC-M02-G55 reintento1 de hace 4 dias). Confirmado en vivo: un LOTE sin fase asignada ahora da 409 FASE_NO_COMPATIBLE_REPRODUCCION en vez de 422 EVENTO_NO_PERMITIDO_LOTE -- la puerta de fase se evalua ANTES que la restriccion de tipo de activo. Esto es un cambio de comportamiento respecto a lo confirmado hace 4 dias en TC-M02-G55 (vale la pena revisarlo de nuevo con mas tiempo).\n\nSub-caso 1 (inseminacion con id_padre) tambien bloqueado por la puerta de fase en un activo sin fase; no se llego a probar si el bug de id_padre (ver TC-M02-G54/G56 reintento1) tambien lo afecta una vez pasada la fase, por falta de tiempo esta ronda.\n\nSe usan activos ya existentes en TEST (ninguno requiere creacion fresca dado que solo se prueban los caminos de rechazo).\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-224) - Inseminacion sobre activo sin fase (CAMBIO: 409 FASE_NO_COMPATIBLE_REPRODUCCION)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CAMBIO: rechazado con HTTP 409 (nueva puerta de fase, antecede a todo lo demas)', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio FASE_NO_COMPATIBLE_REPRODUCCION', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('FASE_NO_COMPATIBLE_REPRODUCCION');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"inseminacion\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}}\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_sin_fase}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_sin_fase}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3 (TC-M02-226) - Parto en LOTE sin fase (CAMBIO: 409 FASE_NO_COMPATIBLE_REPRODUCCION, no 422 EVENTO_NO_PERMITIDO_LOTE)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CAMBIO respecto a TC-M02-G55 reintento1 (hace 4 dias): ahora 409 en vez de 422', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio FASE_NO_COMPATIBLE_REPRODUCCION (antecede a la validacion de tipo LOTE)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('FASE_NO_COMPATIBLE_REPRODUCCION');",
+              "});",
+              "console.log('NOTA: sigue siendo un rechazo correcto en espiritu (el evento no se permite), pero el mecanismo/codigo cambio respecto a lo documentado hace 4 dias -- revisar con mas tiempo si esto afecta la conclusion de TC-M02-G55.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_lote}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_activo_sin_fase", "value": "379" },
+    { "key": "id_padre", "value": "303" },
+    { "key": "id_lote", "value": "347" }
+  ]
+}

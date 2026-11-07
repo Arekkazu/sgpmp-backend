@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74: E6 PESO_INVALIDO y score del RF    |
 """Servicio de dominio: cálculo del Índice de Conversión Alimenticia (RF-74).
 
 Corazón del CU-02. **Puro**: no toca BD, no lanza excepciones de flujo; recibe los
@@ -16,8 +19,11 @@ Fórmula (RF-74): ``CA = Alimento Total Consumido (kg) / Ganancia de Peso Total 
 
 Umbrales de clasificación (por defecto del RF): ``<2.0`` EXCELENTE · ``2.0–3.5``
 ACEPTABLE · ``3.5–5.0`` BAJA · ``>5.0`` CRITICA. ``CA`` se **trunca** a 4 decimales.
-``data_quality_score = factores_presentes / 4 * 100`` (peso inicial, peso final,
-consumo, variación positiva de peso).
+``data_quality_score`` (RF-74): 25 por cada dato crítico presente (peso inicial,
+peso final, consumo) y 25 más si los tres están y ninguno está corrupto — 0, 25,
+50, 75 (los tres pero alguno fuera de rango) o 100. Un pesaje fuera de rango
+cuenta como presente pero corrupto; si no hay ningún pesaje válido la causa es
+``PESO_INVALIDO`` (E6).
 """
 from __future__ import annotations
 
@@ -71,9 +77,11 @@ class CalculadoraICA:
         peso_final_kg: Optional[Decimal],
         es_poblacional: bool,
         cantidad_actual: Optional[int],
+        peso_inicial_invalido: bool = False,
+        peso_final_invalido: bool = False,
     ) -> ResultadoCalculoICA:
         score = self._data_quality_score(
-            alimento_total_kg, peso_inicial_kg, peso_final_kg
+            alimento_total_kg, peso_inicial_kg, peso_final_kg, peso_inicial_invalido, peso_final_invalido
         )
 
         causa = self._causa_no_calculable(
@@ -82,6 +90,8 @@ class CalculadoraICA:
             peso_final_kg=peso_final_kg,
             es_poblacional=es_poblacional,
             cantidad_actual=cantidad_actual,
+            peso_inicial_invalido=peso_inicial_invalido,
+            peso_final_invalido=peso_final_invalido,
         )
         if causa is not None:
             return ResultadoCalculoICA(
@@ -118,11 +128,13 @@ class CalculadoraICA:
         peso_final_kg: Optional[Decimal],
         es_poblacional: bool,
         cantidad_actual: Optional[int],
+        peso_inicial_invalido: bool = False,
+        peso_final_invalido: bool = False,
     ) -> Optional[CausaNoCalculo]:
         if peso_inicial_kg is None:
-            return CausaNoCalculo.SIN_PESO_INICIAL
+            return CausaNoCalculo.PESO_INVALIDO if peso_inicial_invalido else CausaNoCalculo.SIN_PESO_INICIAL
         if peso_final_kg is None:
-            return CausaNoCalculo.SIN_PESO_FINAL
+            return CausaNoCalculo.PESO_INVALIDO if peso_final_invalido else CausaNoCalculo.SIN_PESO_FINAL
         if alimento_total_kg is None or alimento_total_kg <= 0:
             return CausaNoCalculo.SIN_REGISTROS_CONSUMO
         if es_poblacional and (cantidad_actual is None or cantidad_actual <= 0):
@@ -171,15 +183,17 @@ class CalculadoraICA:
         alimento_total_kg: Optional[Decimal],
         peso_inicial_kg: Optional[Decimal],
         peso_final_kg: Optional[Decimal],
+        peso_inicial_invalido: bool = False,
+        peso_final_invalido: bool = False,
     ) -> int:
-        factores = [
-            peso_inicial_kg is not None,
-            peso_final_kg is not None,
-            alimento_total_kg is not None and alimento_total_kg > 0,
+        presentes = sum(
             (
-                peso_inicial_kg is not None
-                and peso_final_kg is not None
-                and (peso_final_kg - peso_inicial_kg) > 0
-            ),
-        ]
-        return round(sum(1 for f in factores if f) / len(factores) * 100)
+                peso_inicial_kg is not None or peso_inicial_invalido,
+                peso_final_kg is not None or peso_final_invalido,
+                alimento_total_kg is not None and alimento_total_kg > 0,
+            )
+        )
+        corrupto = (peso_inicial_kg is None and peso_inicial_invalido) or (
+            peso_final_kg is None and peso_final_invalido
+        )
+        return presentes * 25 + (25 if presentes == 3 and not corrupto else 0)

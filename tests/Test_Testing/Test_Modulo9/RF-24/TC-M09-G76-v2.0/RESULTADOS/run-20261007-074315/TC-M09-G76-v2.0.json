@@ -1,0 +1,240 @@
+{
+  "grupo": "TC-M09-G76-v2.0",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "runId": "run-20261007-074315",
+  "commit": "30ddd72144102a60af006b265a20cb18c1c72c85",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/",
+  "actor": {
+    "id_usuario": 4,
+    "correo": "ingeniero@pecuaria.co",
+    "rol": "Ingeniero de Campo",
+    "credencial": "[REDACTED]"
+  },
+  "administradorDiscovery": {
+    "usado": "administador.dev@gmail.com",
+    "getsQueLoRequirieron": [
+      {
+        "endpoint": "/configuracion/dispositivos-iot?solo_activos=false",
+        "statusConIngeniero": 200,
+        "motivo": "el Ingeniero recibe 200 con listado vacío por alcance"
+      },
+      {
+        "endpoint": "/configuracion/sensores/29/asociaciones",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      },
+      {
+        "endpoint": "/configuracion/dispositivos-iot/3",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      },
+      {
+        "endpoint": "/configuracion/sensores/6/asociaciones",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      },
+      {
+        "endpoint": "/configuracion/infraestructuras/1",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      }
+    ],
+    "ejecutaPostDeCalibracion": false
+  },
+  "preparacion146": {
+    "seUsoPatch": false,
+    "motivo": "se encontró un dispositivo ya inactivo utilizable (65 inactivos en TEST); no se ejecutó ningún PATCH"
+  },
+  "fixture146": {
+    "dispositivo": {
+      "id": 47,
+      "serial": "BUGCHECK-REASIGN-001",
+      "es_activo": false,
+      "descripcion": "debug",
+      "id_dispositivo_gateway": null
+    },
+    "sensor": {
+      "id": 29,
+      "nombre": "SensorBugcheck",
+      "categoria": "PH",
+      "es_activo": true,
+      "id_dispositivo_iot": 47
+    },
+    "area": {
+      "id_infraestructura": 3,
+      "punto_instalacion": "origen",
+      "tiene_estado": true,
+      "fecha_finalizacion": null
+    },
+    "rango": {
+      "categoria": "PH",
+      "min": "0.0000",
+      "max": "14.0000"
+    },
+    "valorEnviado": "7.0000",
+    "preexistenteInactivo": true
+  },
+  "fixture147": {
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "areaVigente": {
+      "id_infraestructura": 3,
+      "tiene_estado": true,
+      "fecha_finalizacion": null
+    },
+    "areaAlternativa": {
+      "id_infraestructura": 1,
+      "es_activo": true,
+      "existeEnTest": true,
+      "distintaDeLaVigente": true,
+      "asociadaAlSensor": false
+    },
+    "rango": {
+      "categoria": "TEMPERATURA",
+      "min": "0.0000",
+      "max": "45.0000"
+    },
+    "valorEnviado": "22.5000",
+    "origen": "oficial sensor 6 / dispositivo 3"
+  },
+  "presupuesto": {
+    "postCalibracionPlanificados": 2,
+    "postCalibracionEjecutados": 2,
+    "patchSetupPlanificados": 1,
+    "patchSetupEjecutados": 0
+  },
+  "stopAll": "NO",
+  "stopAllMotivo": null,
+  "casos": {
+    "146": {
+      "caso": "TC-M09-146-v2.0",
+      "titulo": "Dispositivo inactivo",
+      "ejecutado": true,
+      "httpEsperado": 422,
+      "httpObtenido": 422,
+      "error_code": "DISPOSITIVO_INACTIVO",
+      "mensajeEsperado": "Operación rechazada: El dispositivo BUGCHECK-REASIGN-001 está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+      "mensajeObtenido": "Solo se pueden calibrar sensores de dispositivos activos.",
+      "mensajeCoincide": false,
+      "diferenciaDeMensaje": {
+        "esperado": "Operación rechazada: El dispositivo BUGCHECK-REASIGN-001 está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+        "obtenido": "Solo se pueden calibrar sensores de dispositivos activos.",
+        "nota": "comparación exacta; un mensaje aproximado no es PASS"
+      },
+      "fechaEnviada": "2026-10-07T07:43:26.353Z",
+      "bodyEnviado": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 47,
+        "id_infraestructura": 3,
+        "valor_referencia": 7,
+        "observaciones": "QA TC-M09-146-v2.0",
+        "fecha_calibracion": "2026-10-07T07:43:26.353Z"
+      },
+      "historialPre": {
+        "total": 0,
+        "ids": []
+      },
+      "historialPost": {
+        "total": 0,
+        "ids": []
+      },
+      "idsNuevos": [],
+      "historicosIntactos": true,
+      "oraculo": {
+        "http_422": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true,
+        "historial_intacto": true
+      },
+      "resultado": "RECHAZADO"
+    },
+    "147": {
+      "caso": "TC-M09-147-v2.0",
+      "titulo": "Área incorrecta",
+      "ejecutado": true,
+      "httpEsperado": 400,
+      "httpObtenido": 400,
+      "error_code": "SENSOR_AREA_INVALIDA",
+      "mensajeEsperado": "Conflicto de ubicación: El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+      "mensajeObtenido": "El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+      "mensajeCoincide": false,
+      "diferenciaDeMensaje": {
+        "esperado": "Conflicto de ubicación: El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+        "obtenido": "El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+        "nota": "comparación exacta; un mensaje aproximado no es PASS"
+      },
+      "fechaEnviada": "2026-10-07T07:43:27.719Z",
+      "bodyEnviado": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 1,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-147-v2.0",
+        "fecha_calibracion": "2026-10-07T07:43:27.719Z"
+      },
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "historicosIntactos": true,
+      "oraculo": {
+        "http_400": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true,
+        "historial_intacto": true
+      },
+      "resultado": "RECHAZADO"
+    }
+  },
+  "resultadoGrupo": "RECHAZADO",
+  "assertions": {
+    "total": 55,
+    "failed": 2,
+    "failures": [
+      {
+        "item": "146 POST calibrar",
+        "assertion": "15. TC-M09-146-v2.0 — message coincide exactamente con el FA del RF",
+        "error": "expected 'Solo se pueden calibrar sensores de d…' to deeply equal 'Operación rechazada: El dispositivo B…'"
+      },
+      {
+        "item": "147 POST calibrar",
+        "assertion": "12. TC-M09-147-v2.0 — message coincide exactamente con el FA del RF",
+        "error": "expected 'El sensor 6 no está asociado al área …' to deeply equal 'Conflicto de ubicación: El sensor 6 n…'"
+      }
+    ]
+  }
+}

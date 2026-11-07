@@ -1,0 +1,20 @@
+{
+  "info": { "name": "G066 RF-72 comorbilidades y catálogo", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json", "description": "Contrato POST canónico; g066.mjs coordina selección, lecturas, cierre y veredictos. Para la lista de cuatro, HTTP 400 completo puede aprobarse con observación según decisión QA; 203 y 204 exigen 422." },
+  "item": [{ "name": "API-G066-POST", "request": { "method": "POST",
+    "header": [{ "key": "Authorization", "value": "Bearer {{token_veterinario}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" }, { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }, { "key": "X-Zona-Horaria", "value": "UTC" }, { "key": "Content-Type", "value": "application/json" }],
+    "url": { "raw": "{{base_url}}/prediccion/retroalimentacion", "host": ["{{base_url}}"], "path": ["prediccion", "retroalimentacion"] },
+    "body": { "mode": "raw", "raw": "{{cuerpo_retroalimentacion}}", "options": { "raw": { "language": "json" } } }
+  }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+    "const permitidos = JSON.parse(pm.iterationData.get('http_permitidos'));",
+    "pm.test('Código explícito por subcaso', function () { pm.expect(permitidos).to.include(pm.response.code); });",
+    "pm.test('Eco de X-Test-Run-Id', function () { pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')); });"
+  ] } }] },
+  { "name": "API-G066-PATCH-contingencia", "request": { "method": "PATCH",
+    "header": [{ "key": "Authorization", "value": "Bearer {{token_veterinario}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" }, { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }, { "key": "X-Zona-Horaria", "value": "UTC" }],
+    "url": { "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}/desactivar", "host": ["{{base_url}}"], "path": ["prediccion", "patologias", "{{id_patologia}}", "desactivar"] }
+  }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+    "const permitidos = JSON.parse(pm.iterationData.get('http_permitidos'));",
+    "pm.test('Código explícito por subcaso', function () { pm.expect(permitidos).to.include(pm.response.code); });",
+    "pm.test('Eco de X-Test-Run-Id', function () { pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')); });"
+  ] } }] }]
+}

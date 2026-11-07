@@ -1,0 +1,27 @@
+inicio=2026-10-25T18:01:01.703514-05:00
+fin=2026-10-25T18:01:04.254524-05:00
+duracion_s=2.551
+exit_code=1
+comando=C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe -m pytest --noconftest -p no:cacheprovider -v -rs --tb=short --junitxml=tests\Test_Testing\Test_Modulo3\RF-56\TC-M03-G59\Resultados\TC-M03-117\evidencias\reeval-2026-10-25\test_tc_m03_117_repos_aislados_entre_instancias.xml --html=tests\Test_Testing\Test_Modulo3\RF-56\TC-M03-G59\Resultados\TC-M03-117\evidencias\reeval-2026-10-25\test_tc_m03_117_repos_aislados_entre_instancias.html --self-contained-html tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G59/test_tc_m03_g59.py::test_tc_m03_117_repos_aislados_entre_instancias
+
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe
+metadata: {'Python': '3.13.7', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1', 'timeout': '2.4.0'}}
+rootdir: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1, timeout-2.4.0
+collecting ... collected 1 item
+
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G59/test_tc_m03_g59.py::test_tc_m03_117_repos_aislados_entre_instancias FAILED [100%]
+
+================================== FAILURES ===================================
+_______________ test_tc_m03_117_repos_aislados_entre_instancias _______________
+tests\Test_Testing\Test_Modulo3\RF-56\TC-M03-G59\test_tc_m03_g59.py:135: in test_tc_m03_117_repos_aislados_entre_instancias
+    assert ev_a.guardados[0].id_evento_edge_computing != ev_b.guardados[0].id_evento_edge_computing
+E   AssertionError: assert 1 != 1
+E    +  where 1 = EventoEdgeComputing(id_dispositivo_iot=7, id_sensor=8, clasificacion_rf55='NORMAL', tipo_evento='DATOS_PROCESADOS', fecha_captura=datetime.datetime(2026, 10, 25, 23, 1, 3, 487119, tzinfo=datetime.timezone.utc), fecha_procesamiento=datetime.datetime(2026, 10, 25, 23, 1, 3, 487119, tzinfo=datetime.timezone.utc), origen_dato='TIEMPO_REAL', estado_conectividad=True, variables_involucradas=[{'tipo_variable': 'TEMPERATURA_AMBIENTAL', 'valor': '22.0', 'unidad': 'C', 'timestamp_captura': '2026-10-25T23:01:03.487119Z'}], id_evento_edge_computing=1, severidad=None, metadatos={}).id_evento_edge_computing
+E    +  and   1 = EventoEdgeComputing(id_dispositivo_iot=7, id_sensor=8, clasificacion_rf55='DESVIACION_SIMPLE', tipo_evento='ALERTA_GENERADA', fecha_captura=datetime.datetime(2026, 10, 25, 23, 1, 3, 487446, tzinfo=datetime.timezone.utc), fecha_procesamiento=datetime.datetime(2026, 10, 25, 23, 1, 3, 487446, tzinfo=datetime.timezone.utc), origen_dato='TIEMPO_REAL', estado_conectividad=True, variables_involucradas=[{'tipo_variable': 'TEMPERATURA_AMBIENTAL', 'valor': '22.0', 'unidad': 'C', 'timestamp_captura': '2026-10-25T23:01:03.487446Z'}], id_evento_edge_computing=1, severidad='LEVE', metadatos={}).id_evento_edge_computing
+- generated xml file: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo3\RF-56\TC-M03-G59\Resultados\TC-M03-117\evidencias\reeval-2026-10-25\test_tc_m03_117_repos_aislados_entre_instancias.xml -
+- Generated html report: file:///C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G59/Resultados/TC-M03-117/evidencias/reeval-2026-10-25/test_tc_m03_117_repos_aislados_entre_instancias.html -
+============================== 1 failed in 1.20s ==============================
+

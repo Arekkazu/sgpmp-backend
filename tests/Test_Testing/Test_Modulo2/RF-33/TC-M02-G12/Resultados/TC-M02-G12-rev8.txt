@@ -1,0 +1,49 @@
+TC-M02-G12 rev8 RF-33/RF-16 TEST — ejecucion Newman
+Fecha UTC: 2026-10-04T18:50:52.7212203Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: admin@pecuaria.co (password via env de sesion; no se registra).
+Coleccion: tc_m02_g12_rev8.json
+Newman: 6 requests, 23 assertions, 0 failed, exit 0.
+NO se sobrescribe rev1-rev7.
+
+DIAGNOSTICO QA (antes de ejecutar)
+Causa del bloqueo rev7: ausencia de SGPMP_TEST_PASSWORD/CONTRASENA en Process/User/Machine
+del agente, no un defecto de URL, JWT, especie_id ni aserciones de 014.
+Defecto QA colateral: ejecutar_tc_m02_g12_rev7.ps1 escribe sobre Resultados/TC-M02-G12-rev7.txt
+(el diagnostico de contrato). Por eso esta corrida usa rev8.
+Defecto QA colateral: newman-reporter-htmlextra no estaba instalado; se genero HTML nativo
+desde el JSON real de Newman y PDF con Chrome headless.
+La coleccion rev7 era valida: login --env-var, GET metricas gated, POST solo si pesoDesteteOk=1.
+
+PRECONDICIONES VERIFICADAS EN TEST
+- Login POST /sesiones/ HTTP 200, token presente (redactado).
+- GET /configuracion/especies?solo_activas=true HTTP 200. id_especie=4 Cachama Blanca activa.
+- GET /configuracion/metricas?id_especie=4&solo_activas=true HTTP 200.
+  items: Peso id=16 (valor_min/max null) y peso_destete id=25 activo NUMERICO kg
+  valor_min="20.0000" valor_max="40.0000" id_especie=4.
+- GET /configuracion/infraestructuras?finca_id=1&solo_activas=true HTTP 200. id=3 Alevinera-01 activa.
+
+PASO B — TC-M02-014
+POST /activos-biologicos
+tipo_activo=POBLACIONAL id_especie=4 id_infraestructura=3 origen_financiero=nacimiento
+cantidad_inicial=10 peso_promedio_inicial=2.5 atributos_dinamicos.peso_destete=5
+HTTP 422
+error_code=ATRIBUTO_FUERA_DE_RANGO
+message=El atributo 'peso_destete' debe ser mayor o igual a 20.0000.
+fields=atributos_dinamicos.peso_destete
+sin id_activo_biologico (no persistio el rechazo).
+
+TC-M02-013: APROBADO (antecedente rev5 HTTP 400 ATRIBUTO_INVALIDO color_pelaje).
+No se reejecuto: contrato ATRIBUTO_INVALIDO y especie 4 sin cambio que lo justifique.
+
+TC-M02-014: APROBADO
+El bloqueo de contrato de rev6 (GET sin min/max) esta resuelto en TEST.
+Number("20.0000")===20 y Number("40.0000")===40 cumplieron la asercion.
+
+TC-M02-G12 global: APROBADO (013 antecedente + 014 ejecutado y coincidente con RF-16/RF-33).
+
+Comparacion con rev7:
+- rev7: OpenAPI ya tenia min/max; GET autenticado y POST no corridos.
+- rev8: GET autenticado 200 con 20-40; POST 422 ATRIBUTO_FUERA_DE_RANGO.
+
+Sin commit. Sin push. Sin DML. Sin cambios de producto.

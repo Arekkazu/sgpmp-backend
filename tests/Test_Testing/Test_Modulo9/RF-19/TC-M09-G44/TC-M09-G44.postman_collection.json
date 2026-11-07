@@ -1,0 +1,349 @@
+{
+  "info": {
+    "name": "RF-19 - TC-M09-G44 Permisos de gestion y consulta de fincas por rol",
+    "description": "Automatiza TC-M09-91: verifica que Administrador vea todas las fincas y pueda gestionarlas, mientras que Productor solo consulta las fincas asignadas a el (id_usuario propio), recibe 404 (no 403, para no filtrar existencia) al pedir el detalle de una finca ajena, y recibe 403 al intentar crear o editar (recurso fincas: Productor solo tiene R).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_productor", "value": "" },
+    { "key": "id_usuario_productor", "value": "" },
+    { "key": "id_finca_propia", "value": "" },
+    { "key": "id_finca_ajena", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_productor', json.token);",
+              "",
+              "// Decodifica el JWT (sin verificar firma) solo para leer el id_usuario",
+              "// del productor y usarlo mas adelante como referencia de 'propia'.",
+              "const payload = JSON.parse(atob(json.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+              "pm.collectionVariables.set('id_usuario_productor', String(payload.sub));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Admin registra una finca SIN asignar productor (control de 'finca ajena')",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.variables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_ajena', json.id_finca);",
+              "console.log('Finca ajena (sin productor asignado): id=' + json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Ajena RBAC {{sufijo_unico}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Admin registra una finca asignada al Productor (control de 'finca propia')",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.variables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_propia', json.id_finca);",
+              "pm.test('Quedo asignada al id_usuario del productor', function () {",
+              "    pm.expect(String(json.id_usuario)).to.eql(pm.collectionVariables.get('id_usuario_productor'));",
+              "});",
+              "console.log('Finca propia del productor: id=' + json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Propia RBAC {{sufijo_unico}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\",\n  \"id_usuario\": {{id_usuario_productor}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-91a - Admin lista TODAS las fincas (incluye la ajena y la propia)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const ids = json.items.map(f => f.id_finca);",
+              "console.log('Admin ve ' + json.total + ' fincas en total.');",
+              "pm.test('Incluye la finca ajena (sin productor asignado)', function () {",
+              "    pm.expect(ids).to.include(pm.collectionVariables.get('id_finca_ajena'));",
+              "});",
+              "pm.test('Incluye la finca propia del productor', function () {",
+              "    pm.expect(ids).to.include(pm.collectionVariables.get('id_finca_propia'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-91b - Productor lista SOLO sus fincas asignadas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const ids = json.items.map(f => f.id_finca);",
+              "console.log('Productor ve ' + json.total + ' fincas: ' + JSON.stringify(ids));",
+              "",
+              "pm.test('Incluye su propia finca', function () {",
+              "    pm.expect(ids).to.include(pm.collectionVariables.get('id_finca_propia'));",
+              "});",
+              "pm.test('NO incluye la finca ajena (sin productor asignado)', function () {",
+              "    pm.expect(ids).to.not.include(pm.collectionVariables.get('id_finca_ajena'));",
+              "});",
+              "pm.test('Todas las fincas devueltas pertenecen al productor autenticado', function () {",
+              "    const idProductor = parseInt(pm.collectionVariables.get('id_usuario_productor'), 10);",
+              "    pm.expect(json.items.every(f => f.id_usuario === idProductor)).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-91c - Productor consulta el detalle de SU finca (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle accesible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Es la finca propia esperada', function () {",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca_propia'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_propia}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_propia}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-91d - Productor NO puede ver el detalle de una finca ajena (404, no 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado como inexistente para este usuario (404)', function () { pm.response.to.have.status(404); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo FINCA_NO_ENCONTRADA (no revela que la finca existe)', function () {",
+              "    pm.expect(json.error_code).to.eql('FINCA_NO_ENCONTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_ajena}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_ajena}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-91e - Productor NO puede registrar fincas (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Intento Productor\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-91f - Productor NO puede editar ni siquiera su propia finca (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Intento Editar Productor\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\",\n  \"fecha_actualizacion\": \"2026-01-01T00:00:00Z\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_propia}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_propia}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

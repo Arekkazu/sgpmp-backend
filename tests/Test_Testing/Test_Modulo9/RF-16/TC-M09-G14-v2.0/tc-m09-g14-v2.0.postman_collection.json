@@ -1,0 +1,1639 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g14-v2.0-metricas-validaciones",
+    "name": "TC-M09-G14-v2.0 - Validación de campos de Métrica productiva (RF-16 v1.2)",
+    "description": "Suite E2E para TC-M09-G14-v2.0: 10 subcasos de validación, valores límite y concurrencia/coherencia de métricas de producción bajo RF-16 v1.2 y OWASP A03. Especie objetivo: Trucha Arcoíris (id 2).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com"
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "2"
+    },
+    {
+      "key": "run_start_time",
+      "value": ""
+    },
+    {
+      "key": "run_end_time",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc07a",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc07b",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc09a",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc09a_lower",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc10a",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc10b",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc10c",
+      "value": ""
+    },
+    {
+      "key": "nombre_sc10d",
+      "value": ""
+    },
+    {
+      "key": "id_sc07a",
+      "value": ""
+    },
+    {
+      "key": "id_sc07b",
+      "value": ""
+    },
+    {
+      "key": "id_sc09a",
+      "value": ""
+    },
+    {
+      "key": "id_sc10a",
+      "value": ""
+    },
+    {
+      "key": "id_sc10b",
+      "value": ""
+    },
+    {
+      "key": "id_sc10c",
+      "value": ""
+    },
+    {
+      "key": "id_sc10d",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "NW-01: Autenticación exitosa del Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var nowIso = new Date().toISOString();",
+              "pm.collectionVariables.set('run_start_time', nowIso);",
+              "console.log('RUN_START_TIME=' + nowIso);",
+              "",
+              "pm.test('NW-01: Autenticación exitosa del Administrador', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+              "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-02a: Verificación de salud del backend (Health)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-02a: Verificación de salud del backend (Health)', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-02a: Verificación de salud del backend (Health)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql('ok');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-02b: Preflight de nombres libres contra catálogo de métricas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas?id_especie=2&solo_activas=false",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ],
+          "query": [
+            {
+              "key": "id_especie",
+              "value": "2"
+            },
+            {
+              "key": "solo_activas",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-02b: Preflight de nombres libres contra catálogo de métricas', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-02b: Preflight de nombres libres contra catálogo de métricas', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    var items = Array.isArray(jsonData) ? jsonData : (jsonData.items || []);",
+              "    var ocupados = {};",
+              "    items.forEach(function(m) {",
+              "        if (m.nombre) {",
+              "            ocupados[m.nombre.trim().toLowerCase()] = true;",
+              "        }",
+              "    });",
+              "",
+              "    // SC07a: Nombre válido en límite inferior (3 caracteres)",
+              "    var cand3 = ['Pes', 'Uva', 'Ovo', 'Mar', 'Rio', 'Sol', 'Paz', 'Luz', 'Gas', 'Sal', 'Sur', 'Pan', 'Voz', 'Cal', 'Aro', 'Eco', 'Fin', 'Mes', 'Ley', 'Red'];",
+              "    var elegido_sc07a = null;",
+              "    for (var i = 0; i < cand3.length; i++) {",
+              "        var c3 = cand3[i];",
+              "        if (!ocupados[c3.toLowerCase()]) {",
+              "            elegido_sc07a = c3;",
+              "            ocupados[c3.toLowerCase()] = true;",
+              "            break;",
+              "        }",
+              "    }",
+              "",
+              "    // SC07b: Nombre válido en límite superior (60 caracteres)",
+              "    var base60 = 'MetricaDeLongitudSesentaCaracteresExactosParaTestQA2Verifica';",
+              "    var elegido_sc07b = null;",
+              "    if (!ocupados[base60.toLowerCase()]) {",
+              "        elegido_sc07b = base60;",
+              "        ocupados[base60.toLowerCase()] = true;",
+              "    } else {",
+              "        var letras60 = 'abcdefghijklmnopqrstuvwxyz';",
+              "        for (var j = 1; j < letras60.length; j++) {",
+              "            var c60 = 'MetricaDeLongitudSesentaCaracteresExactosParaTestQA2Verific' + letras60[j];",
+              "            if (!ocupados[c60.toLowerCase()]) {",
+              "                elegido_sc07b = c60;",
+              "                ocupados[c60.toLowerCase()] = true;",
+              "                break;",
+              "            }",
+              "        }",
+              "    }",
+              "",
+              "    // Función auxiliar para buscar variante libre con sufijo alfabético",
+              "    function buscarLibreConSufijo(baseOriginal, prefijoBase) {",
+              "        if (!ocupados[baseOriginal.toLowerCase()]) {",
+              "            ocupados[baseOriginal.toLowerCase()] = true;",
+              "            return baseOriginal;",
+              "        }",
+              "        var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "        for (var k = 1; k < letras.length; k++) {",
+              "            var cand = prefijoBase + letras[k];",
+              "            if (!ocupados[cand.toLowerCase()]) {",
+              "                ocupados[cand.toLowerCase()] = true;",
+              "                return cand;",
+              "            }",
+              "        }",
+              "        return null;",
+              "    }",
+              "",
+              "    var elegido_sc09a = buscarLibreConSufijo('Metrica Duplicada QA2', 'Metrica Duplicada QA');",
+              "    var elegido_sc10a = buscarLibreConSufijo('Ganancia Peso QA2', 'Ganancia Peso QA');",
+              "    var elegido_sc10b = buscarLibreConSufijo('Consumo Agua QA2', 'Consumo Agua QA');",
+              "    var elegido_sc10c = buscarLibreConSufijo('Talla Juvenil QA2', 'Talla Juvenil QA');",
+              "    var elegido_sc10d = buscarLibreConSufijo('Conteo Ovas QA2', 'Conteo Ovas QA');",
+              "",
+              "    pm.expect(elegido_sc07a, 'Nombre libre para SC07a (3 chars)').to.be.a('string').and.not.null;",
+              "    pm.expect(elegido_sc07a.length, 'Longitud SC07a exactamente 3').to.eql(3);",
+              "    pm.expect(elegido_sc07b, 'Nombre libre para SC07b (60 chars)').to.be.a('string').and.not.null;",
+              "    pm.expect(elegido_sc07b.length, 'Longitud SC07b exactamente 60').to.eql(60);",
+              "    pm.expect(elegido_sc09a, 'Nombre libre para SC09a').to.be.a('string').and.not.null;",
+              "    pm.expect(elegido_sc10a, 'Nombre libre para SC10a').to.be.a('string').and.not.null;",
+              "    pm.expect(elegido_sc10b, 'Nombre libre para SC10b').to.be.a('string').and.not.null;",
+              "    pm.expect(elegido_sc10c, 'Nombre libre para SC10c').to.be.a('string').and.not.null;",
+              "    pm.expect(elegido_sc10d, 'Nombre libre para SC10d').to.be.a('string').and.not.null;",
+              "",
+              "    pm.collectionVariables.set('nombre_sc07a', elegido_sc07a);",
+              "    pm.collectionVariables.set('nombre_sc07b', elegido_sc07b);",
+              "    pm.collectionVariables.set('nombre_sc09a', elegido_sc09a);",
+              "    pm.collectionVariables.set('nombre_sc09a_lower', elegido_sc09a.toLowerCase());",
+              "    pm.collectionVariables.set('nombre_sc10a', elegido_sc10a);",
+              "    pm.collectionVariables.set('nombre_sc10b', elegido_sc10b);",
+              "    pm.collectionVariables.set('nombre_sc10c', elegido_sc10c);",
+              "    pm.collectionVariables.set('nombre_sc10d', elegido_sc10d);",
+              "",
+              "    var nombresCorrida = {",
+              "        SC07a: { nombre_base: 'Pes', nombre_elegido: elegido_sc07a, longitud: elegido_sc07a.length },",
+              "        SC07b: { nombre_base: base60, nombre_elegido: elegido_sc07b, longitud: elegido_sc07b.length },",
+              "        SC09a: { nombre_base: 'Metrica Duplicada QA2', nombre_elegido: elegido_sc09a, longitud: elegido_sc09a.length },",
+              "        SC10a: { nombre_base: 'Ganancia Peso QA2', nombre_elegido: elegido_sc10a, longitud: elegido_sc10a.length },",
+              "        SC10b: { nombre_base: 'Consumo Agua QA2', nombre_elegido: elegido_sc10b, longitud: elegido_sc10b.length },",
+              "        SC10c: { nombre_base: 'Talla Juvenil QA2', nombre_elegido: elegido_sc10c, longitud: elegido_sc10c.length },",
+              "        SC10d: { nombre_base: 'Conteo Ovas QA2', nombre_elegido: elegido_sc10d, longitud: elegido_sc10d.length }",
+              "    };",
+              "",
+              "    console.log('NOMBRES_CORRIDA_JSON=' + JSON.stringify(nombresCorrida));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-03: SC01 Rechazar métrica sin unidad_medida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"Metrica Vacia QA\",\n  \"unidad_medida\": \"\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-03: SC01 Rechazar métrica sin unidad_medida', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-03: SC01 Rechazar métrica sin unidad_medida', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var matchField = jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+              "    pm.expect(matchField, 'Campo unidad_medida reportado en fields').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-04: SC02 Rechazar tipo_medicion inválido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"Metrica Tipo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"INVALIDO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-04: SC02 Rechazar tipo_medicion inválido', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-04: SC02 Rechazar tipo_medicion inválido', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var matchField = jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'tipo_medicion'; });",
+              "    pm.expect(matchField, 'Campo tipo_medicion reportado en fields').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-05: SC03 Rechazar combinación incoherente unidad y tipo_medicion",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"Metrica Incoherente QA\",\n  \"unidad_medida\": \"litros\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-05: SC03 Rechazar combinación incoherente unidad y tipo_medicion', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-05: SC03 Rechazar combinación incoherente unidad y tipo_medicion', function () {",
+              "    pm.response.to.have.status(422);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('UNIDAD_MEDIDA_INCOHERENTE');",
+              "    var matchField = (jsonData.field === 'unidad_medida') || (jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; }));",
+              "    pm.expect(matchField, 'Campo unidad_medida reportado').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-06: SC04 Rechazar aplica_a_tipo_activo inválido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"Metrica Activo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"GRUPO\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-06: SC04 Rechazar aplica_a_tipo_activo inválido', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-06: SC04 Rechazar aplica_a_tipo_activo inválido', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var matchField = jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'aplica_a_tipo_activo'; });",
+              "    pm.expect(matchField, 'Campo aplica_a_tipo_activo reportado').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-07: SC05 Rechazar nombre de métrica con 2 caracteres",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"Pe\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-07: SC05 Rechazar nombre de métrica con 2 caracteres', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-07: SC05 Rechazar nombre de métrica con 2 caracteres', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var matchField = jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'nombre'; });",
+              "    pm.expect(matchField, 'Campo nombre reportado en fields').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-08: SC06 Rechazar nombre de métrica con 61 caracteres",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"Maaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-08: SC06 Rechazar nombre de métrica con 61 caracteres', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-08: SC06 Rechazar nombre de métrica con 61 caracteres', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var matchField = jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'nombre'; });",
+              "    pm.expect(matchField, 'Campo nombre reportado en fields').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-09: SC07a Aceptar nombre de métrica con 3 caracteres",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc07a}}\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-09: SC07a Aceptar nombre de métrica con 3 caracteres', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-09: SC07a Aceptar nombre de métrica con 3 caracteres', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc07a');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc07a', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC07A=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-10: SC07b Aceptar nombre de métrica con 60 caracteres",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc07b}}\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-10: SC07b Aceptar nombre de métrica con 60 caracteres', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-10: SC07b Aceptar nombre de métrica con 60 caracteres', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc07b');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc07b', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC07B=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-11: SC08 Rechazar nombre de métrica vacío",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-11: SC08 Rechazar nombre de métrica vacío', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-11: SC08 Rechazar nombre de métrica vacío', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var matchField = jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'nombre'; });",
+              "    pm.expect(matchField, 'Campo nombre reportado en fields').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-12: SC09a Registrar métrica base para prueba de duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc09a}}\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-12: SC09a Registrar métrica base para prueba de duplicado', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-12: SC09a Registrar métrica base para prueba de duplicado', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc09a');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc09a', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC09A=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-13: SC09b Rechazar métrica duplicada en la misma especie (case-insensitive)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc09a_lower}}\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-13: SC09b Rechazar métrica duplicada en la misma especie (case-insensitive)', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-13: SC09b Rechazar métrica duplicada en la misma especie (case-insensitive)', function () {",
+              "    pm.response.to.have.status(409);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('METRICA_DUPLICADA');",
+              "    var matchField = (jsonData.field === 'nombre') || (jsonData.fields && jsonData.fields.some(function(f) { return f.field === 'nombre'; }));",
+              "    pm.expect(matchField, 'Campo nombre reportado').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-14: SC10a Aceptar combinación coherente PESO y kg",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc10a}}\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-14: SC10a Aceptar combinación coherente PESO y kg', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-14: SC10a Aceptar combinación coherente PESO y kg', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc10a');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc10a', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC10A=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-15: SC10b Aceptar combinación coherente VOLUMEN y ml",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc10b}}\",\n  \"unidad_medida\": \"ml\",\n  \"tipo_medicion\": \"VOLUMEN\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-15: SC10b Aceptar combinación coherente VOLUMEN y ml', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-15: SC10b Aceptar combinación coherente VOLUMEN y ml', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc10b');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc10b', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC10B=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-16: SC10c Aceptar combinación coherente LONGITUD y cm",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc10c}}\",\n  \"unidad_medida\": \"cm\",\n  \"tipo_medicion\": \"LONGITUD\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-16: SC10c Aceptar combinación coherente LONGITUD y cm', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-16: SC10c Aceptar combinación coherente LONGITUD y cm', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc10c');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc10c', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC10C=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-17: SC10d Aceptar combinación coherente CONTEO y unidades",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 2,\n  \"nombre\": \"{{nombre_sc10d}}\",\n  \"unidad_medida\": \"unidades\",\n  \"tipo_medicion\": \"CONTEO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"ENTERO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-17: SC10d Aceptar combinación coherente CONTEO y unidades', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "",
+              "pm.test('NW-17: SC10d Aceptar combinación coherente CONTEO y unidades', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.id_metrica_produccion).to.be.a('number');",
+              "    var expectedName = pm.collectionVariables.get('nombre_sc10d');",
+              "    pm.expect(jsonData.nombre.trim().toLowerCase()).to.eql(expectedName.trim().toLowerCase());",
+              "    pm.collectionVariables.set('id_sc10d', jsonData.id_metrica_produccion);",
+              "    console.log('CREATED_ID_SC10D=' + jsonData.id_metrica_produccion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-17b: Marcar fin de corrida",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var endIso = new Date().toISOString();",
+              "pm.collectionVariables.set('run_end_time', endIso);",
+              "console.log('RUN_END_TIME=' + endIso);",
+              "",
+              "pm.test('NW-17b: Marcar fin de corrida', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18a: Teardown SC07a desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc07a}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc07a}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc07a');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18a: Teardown SC07a desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-09)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18a: Teardown SC07a desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18a: Teardown SC07a desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18b: Teardown SC07b desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc07b}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc07b}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc07b');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18b: Teardown SC07b desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-10)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18b: Teardown SC07b desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18b: Teardown SC07b desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18c: Teardown SC09a desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc09a}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc09a}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc09a');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18c: Teardown SC09a desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-12)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18c: Teardown SC09a desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18c: Teardown SC09a desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18d: Teardown SC10a desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc10a}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc10a}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc10a');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18d: Teardown SC10a desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-14)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18d: Teardown SC10a desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18d: Teardown SC10a desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18e: Teardown SC10b desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc10b}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc10b}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc10b');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18e: Teardown SC10b desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-15)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18e: Teardown SC10b desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18e: Teardown SC10b desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18f: Teardown SC10c desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc10c}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc10c}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc10c');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18f: Teardown SC10c desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-16)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18f: Teardown SC10c desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18f: Teardown SC10c desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "NW-18g: Teardown SC10d desactivar métrica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/{{id_sc10d}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "{{id_sc10d}}",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.collectionVariables.get('id_sc10d');",
+              "if (!id || id === '') {",
+              "    pm.test('NW-18g: Teardown SC10d desactivar métrica', function () {",
+              "        pm.expect.fail('URL vacía por falta de captura del ID (dependiente de NW-17)');",
+              "    });",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "if (!token) {",
+              "    pm.test('NW-18g: Teardown SC10d desactivar métrica', function () {",
+              "        pm.expect.fail('Fallo por dependencia: NW-01 no obtuvo jwt_token.');",
+              "    });",
+              "    return;",
+              "}",
+              "pm.test('NW-18g: Teardown SC10d desactivar métrica', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

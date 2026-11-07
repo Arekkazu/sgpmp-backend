@@ -1,0 +1,62 @@
+{
+  "caso": "TC-M09-G83",
+  "subcaso": "TC-M09-158",
+  "revision": "cuarta",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "generado": "2026-09-19T02:23:03Z",
+  "escenario": "usuario autenticado + rol existente + sin permiso R sobre recurso 22 contexto_interfaz",
+  "no_aplica": "No se uso rolInexistente=999999 ni se muto el JWT",
+  "precondiciones": {
+    "recurso": { "id_recurso": 22, "nombre": "contexto_interfaz", "accion_requerida": "R id_accion=2" },
+    "roles_con_R": [1, 2, 3, 4, 5],
+    "roles_sin_R_confirmados_via_GET_roles": [6, 7, 8, 9],
+    "usuario": {
+      "id_usuario": 30,
+      "correo": "gestor.granja.test@pecuaria.co",
+      "nombre_rol": "Gestor de Granja",
+      "id_rol": 7,
+      "estado_cuenta": "Activo",
+      "permiso_R_contexto_interfaz": false
+    }
+  },
+  "login": {
+    "endpoint": "POST /sesiones/",
+    "http": 200,
+    "jwt_claims": { "sub": "30", "rol": 7 },
+    "token": "[REDACTED]"
+  },
+  "perfil": {
+    "endpoint": "GET /usuarios/me",
+    "http": 200,
+    "id_usuario": 30,
+    "nombre_rol": "Gestor de Granja"
+  },
+  "tc_m09_158": {
+    "endpoint": "GET /configuracion/interfaz/contexto",
+    "metodo": "GET",
+    "http_esperado": 403,
+    "http_recibido": 403,
+    "error_code_esperado": "ACCESO_DENEGADO",
+    "error_code_recibido": "ACCESO_DENEGADO",
+    "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+    "informacion_protegida_expuesta": "NO",
+    "cuerpo": {
+      "error_code": "ACCESO_DENEGADO",
+      "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+      "fields": [],
+      "timestamp": "2026-09-19T02:23:03.868538+00:00"
+    },
+    "assertions": {
+      "total": 3,
+      "pass": 3,
+      "fail": 0,
+      "detalle": [
+        "HTTP 403 (no 401)",
+        "error_code ACCESO_DENEGADO",
+        "sin id_usuario/id_rol/nombre_rol/modulos_autorizados/especies_configuradas/identidad_visual/id_finca"
+      ]
+    },
+    "resultado": "APROBADO"
+  }
+}

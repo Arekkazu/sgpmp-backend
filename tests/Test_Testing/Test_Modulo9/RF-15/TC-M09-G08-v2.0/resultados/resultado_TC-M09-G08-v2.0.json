@@ -1,0 +1,121 @@
+{
+  "tc": "TC-M09-G08-v2.0",
+  "ambiente": "TEST",
+  "fecha": "2026-10-07T04:48:58.183Z",
+  "checkpoints": [
+    {
+      "paso": "NW-01",
+      "esperado": "HTTP 200 OK con token JWT administrativo válido",
+      "obtenido": "HTTP 200 recibido con token JWT emitido",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-02",
+      "esperado": "HTTP 200 OK; backend activo, nombres de prueba libres y captura de run_start_time",
+      "obtenido": "HTTP 200 recibido; catálogo libre y timestamp de inicio capturado",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-03",
+      "esperado": "HTTP 201 Created con id_especie y fecha_actualizacion asignadas",
+      "obtenido": "HTTP 201 recibido; especie creada exitosamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-04",
+      "esperado": "Registro de auditoría CREATE persistido en modulo9.auditorias_especies para especie creada",
+      "obtenido": "Registro CREATE encontrado (ID=197, Usuario=104, Fecha=2026-10-07 04:45:42.741715+00:00)",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-04a",
+      "esperado": "id_usuario=104, tipo_operacion='CREATE', fecha_gestion >= run_start_time",
+      "obtenido": "Campos conformes: id_usuario=104, tipo_operacion='CREATE', fecha=2026-10-07 04:45:42.741715+00:00",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-04b",
+      "esperado": "valores_nuevos.grupo_manejo == 'ESPECIES_MEDIANAS'",
+      "obtenido": "campo grupo_manejo ausente en snapshot de auditoría (defecto raíz INC-M09-01-G01 v2.0).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "NW-05",
+      "esperado": "HTTP 200 OK con nombre actualizado",
+      "obtenido": "HTTP 400 VAL_ENTRADA: fecha_actualizacion=\"\" enviado (backend devolvió null en creación, DTO exige datetime). Refuerza defecto de INC-M09-62-G03.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "NW-07",
+      "esperado": "HTTP 200 OK (Pydantic ignora campo extra grupo_manejo)",
+      "obtenido": "HTTP 400 VAL_ENTRADA por misma causa que NW-05. Refuerza defecto de INC-M09-62-G03.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "NW-08",
+      "esperado": "Auditoría UPDATE persistida en BD tras intento de edición de grupo_manejo",
+      "obtenido": "Evento UPDATE persistido en BD (ID=201, Fecha=2026-10-07 04:47:56.524013+00:00)",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-08a",
+      "esperado": "tipo_operacion='UPDATE' y usuario/fecha válidos (id_usuario=104)",
+      "obtenido": "Evento UPDATE válido con id_usuario=104 y fecha=2026-10-07 04:47:56.524013+00:00",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-08b",
+      "esperado": "valores_anteriores.grupo_manejo == 'ESPECIES_MEDIANAS' AND valores_nuevos.grupo_manejo == 'ESPECIES_GRANDES'",
+      "obtenido": "campo grupo_manejo ausente en snapshot de auditoría (defecto raíz INC-M09-01-G01 v2.0).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "NW-09",
+      "esperado": "HTTP 200 OK con es_activo=false",
+      "obtenido": "HTTP 200 recibido; especie desactivada con es_activo=false",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-10",
+      "esperado": "tipo_operacion='DEACTIVATE', valores_anteriores.es_activo=true, valores_nuevos.es_activo=false",
+      "obtenido": "Auditoría DEACTIVATE confirmada (ID=198): es_activo=true -> es_activo=false",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-11",
+      "esperado": "HTTP 200 OK con es_activo=true",
+      "obtenido": "HTTP 200 recibido; especie reactivada con es_activo=true",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-12",
+      "esperado": "tipo_operacion='UPDATE', valores_anteriores.es_activo=false, valores_nuevos.es_activo=true",
+      "obtenido": "Auditoría de reactivación confirmada (ID=205): UPDATE con es_activo=false -> es_activo=true",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-13",
+      "esperado": "HTTP 200 OK; especie desactivada en teardown dejando es_activo=false",
+      "obtenido": "HTTP 200 recibido; especie desactivada exitosamente en teardown",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-14",
+      "esperado": "Cero fugas de credenciales, contraseñas o tokens JWT en resultados/ y evidencias/",
+      "obtenido": "Auditoría superada: cero secretos expuestos en evidencias y reportes",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-15",
+      "esperado": "Especie creada con es_activo=false y cero especies residuales activas de prueba",
+      "obtenido": "Integridad BD confirmada: especie ID=103 inactiva (es_activo=False) y 0 residuales activos",
+      "estado": "OK"
+    }
+  ],
+  "checkpoints_no_contabilizados": [
+    {
+      "paso": "NW-06",
+      "motivo": "Falso positivo por contaminación temporal: UPDATE id=206 en modulo9.auditorias_especies generado por prueba diagnóstica manual, no por flujo Newman. El filtro run_start_time de verificar-bd.py no distingue origen."
+    }
+  ]
+}

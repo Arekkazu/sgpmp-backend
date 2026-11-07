@@ -1,0 +1,20 @@
+{
+  "tc": "TC-M03-G166",
+  "intento": "reintento1",
+  "fecha": "2026-10-28T18:24:15Z",
+  "ambiente": "TEST",
+  "resultado": "RECHAZADO",
+  "causa_raiz": "INC-M03-G166-LATENCY (CRÍTICA-BLOQUEANTE): pool_size=5 + triggers sin aislamiento por sensor impiden completar fixture contexto_g166 bajo carga concurrente. Defecto del producto, no bloqueo de ambiente.",
+  "afecta_produccion": true,
+  "evidencia_tecnica": "6 intentos consecutivos, timeout irrecuperable en ingesta (15s y 45s). Duración 188.22s > 180s sandbox. Pre/post-check SQL limpios. V1 (2026-10-23) y diagnóstico Fase B corrieron limpias en aislamiento.",
+  "checkpoints": [
+    {"id": "CP-00", "paso": "Setup fixture contexto_g166 (calibración + 41 ingestas secuenciales)", "esperado": "41/41 HTTP 201 en <60s", "obtenido": "ReadTimeout 45s en ingesta (INC-M03-G166-LATENCY)", "estado": "FALLA"},
+    {"id": "CP-01", "paso": "TC-M03-309 LEVE R=4", "esperado": "sin flag, índice 100, APTO", "obtenido": "no ejecutado (setup abortado)", "estado": "FALLA"},
+    {"id": "CP-02", "paso": "TC-M03-309 LEVE R=5 y R=9", "esperado": "severidad=LEVE, índice 85, APTO", "obtenido": "no ejecutado (setup abortado)", "estado": "FALLA"},
+    {"id": "CP-03", "paso": "TC-M03-310 MODERADO R=10 y R=19", "esperado": "severidad=MODERADO, índice 65, APTO_CON_RESERVA", "obtenido": "no ejecutado (setup abortado)", "estado": "FALLA"},
+    {"id": "CP-04", "paso": "TC-M03-311 CRITICO R=20", "esperado": "severidad=CRITICO, índice 10, NO_APTO", "obtenido": "no ejecutado (setup abortado)", "estado": "FALLA"},
+    {"id": "CP-05", "paso": "RF-57 alerta técnica", "esperado": "alerta TECNICA emitida", "obtenido": "no ejecutado (setup abortado)", "estado": "FALLA"},
+    {"id": "CP-06", "paso": "RF-63 bitácora auditoría", "esperado": "evento registrado con metadatos", "obtenido": "no ejecutado (setup abortado)", "estado": "FALLA"},
+    {"id": "CP-07", "paso": "Teardown sandbox", "esperado": "HTTP 200 Rollback exitoso", "obtenido": "HTTP 200 Rollback exitoso", "estado": "OK"}
+  ]
+}

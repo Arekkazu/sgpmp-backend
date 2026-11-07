@@ -18,12 +18,17 @@ integración no está configurada en el ambiente (sin ``MQTT_BROKER_URL``/
 Los Gateway se llaman en paralelo para que N destinos no sumen N esperas de
 ACK; cada llamada pasa por el mismo semáforo global que RF-23, que protege el
 threadpool compartido de Starlette.
+
+DEV-10 (RF-20, D-06): el mismo transporte lleva el ``tipo_modelo_asignado`` de
+un área con ``origen: "tipo_modelo"`` (BRK-05, ``tipo_comando:
+"TIPO_MODELO_ASIGNADO"``, ``ACK_TIPO_MODELO``).
 """
 from __future__ import annotations
 
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
 import httpx
 
@@ -40,11 +45,35 @@ from src.configuration.infrastructure.adapters.mqtt_http_adapter import (
 logger = logging.getLogger(__name__)
 
 _MAX_GATEWAYS_EN_PARALELO = 8
-_MENSAJE_SIN_INTEGRACION = (
-    "La integración con el broker MQTT no está configurada en este ambiente. "
-    "El umbral quedó guardado y pendiente de sincronización."
+
+
+@dataclass(frozen=True)
+class _Comando:
+    origen: str
+    que: str
+    mensaje_sin_integracion: str
+    mensaje_no_disponible: str
+
+
+_UMBRAL = _Comando(
+    origen="umbral",
+    que="umbral",
+    mensaje_sin_integracion=(
+        "La integración con el broker MQTT no está configurada en este ambiente. "
+        "El umbral quedó guardado y pendiente de sincronización."
+    ),
+    mensaje_no_disponible="El broker MQTT no propagó el umbral.",
 )
-_MENSAJE_BROKER_NO_DISPONIBLE = "El broker MQTT no propagó el umbral."
+# DEV-10 (RF-20, D-06; BRK-05): tipo_comando TIPO_MODELO_ASIGNADO, confirmación ACK_TIPO_MODELO.
+_TIPO_MODELO = _Comando(
+    origen="tipo_modelo",
+    que="tipo_modelo_asignado",
+    mensaje_sin_integracion=(
+        "La integración con el broker MQTT no está configurada en este ambiente. "
+        "El tipo_modelo_asignado quedó guardado y pendiente de sincronización."
+    ),
+    mensaje_no_disponible="El broker MQTT no propagó el tipo_modelo_asignado.",
+)
 
 
 class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
@@ -54,26 +83,32 @@ class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
         self._token = os.environ.get("MQTT_BROKER_TOKEN", "")
 
     def propagar_umbral(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoEnvioMqtt]:
+        return self._propagar(seriales_gateway, payload, _UMBRAL)
+
+    def propagar_tipo_modelo(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoEnvioMqtt]:
+        return self._propagar(seriales_gateway, payload, _TIPO_MODELO)
+
+    def _propagar(self, seriales_gateway: list[str], payload: dict, comando: _Comando) -> dict[str, ResultadoEnvioMqtt]:
         if not seriales_gateway:
             return {}
         if not self._base_url or not self._token:
-            logger.error("MQTT_BROKER_URL/MQTT_BROKER_TOKEN no configurados -- umbral no propagado.")
+            logger.error("MQTT_BROKER_URL/MQTT_BROKER_TOKEN no configurados -- %s no propagado.", comando.que)
             return {
-                serial: ResultadoEnvioMqtt(estado=ESTADO_SIN_INTEGRACION, mensaje=_MENSAJE_SIN_INTEGRACION)
+                serial: ResultadoEnvioMqtt(estado=ESTADO_SIN_INTEGRACION, mensaje=comando.mensaje_sin_integracion)
                 for serial in seriales_gateway
             }
 
         hilos = min(len(seriales_gateway), _MAX_GATEWAYS_EN_PARALELO)
         with ThreadPoolExecutor(max_workers=hilos) as ejecutor:
-            resultados = ejecutor.map(lambda serial: self._enviar(serial, payload), seriales_gateway)
+            resultados = ejecutor.map(lambda serial: self._enviar(serial, payload, comando), seriales_gateway)
             return dict(zip(seriales_gateway, resultados))
 
-    def _enviar(self, serial: str, payload: dict) -> ResultadoEnvioMqtt:
+    def _enviar(self, serial: str, payload: dict, comando: _Comando) -> ResultadoEnvioMqtt:
         with _semaforo_llamadas_broker:
             try:
                 respuesta = httpx.post(
                     f"{self._base_url}/v1/commands",
-                    json={"origen": "umbral", "serial": serial, **payload},
+                    json={"origen": comando.origen, "serial": serial, **payload},
                     headers={"Authorization": f"Bearer {self._token}"},
                     timeout=_TIMEOUT_HTTP_SEGUNDOS,
                 )
@@ -90,7 +125,7 @@ class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
                 causa = f"sin respuesta del broker ({type(exc).__name__})"
             except (ValueError, KeyError) as exc:
                 causa = f"respuesta inválida del broker ({type(exc).__name__})"
-            logger.error("Umbral no propagado a %s: %s", serial, causa)
+            logger.error("%s no propagado a %s: %s", comando.que.capitalize(), serial, causa)
             return ResultadoEnvioMqtt(
-                estado="NO_CONF", mensaje=f"{_MENSAJE_BROKER_NO_DISPONIBLE} Causa: {causa}.", publicado=False
+                estado="NO_CONF", mensaje=f"{comando.mensaje_no_disponible} Causa: {causa}.", publicado=False
             )

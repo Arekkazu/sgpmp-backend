@@ -1,0 +1,273 @@
+{
+	"info": {
+		"_postman_id": "tc-m09-g20-auditoria-rf16",
+		"name": "TC-M09-G20 — Auditoría de operaciones sobre parámetros de RF-16 (TC-M09-44)",
+		"description": "Suite E2E para TC-M09-G20 (sub-caso TC-M09-44, OWASP A09). Verifica que las operaciones CREATE, UPDATE y DEACTIVATE sobre etapas productivas registren eventos de auditoría inmutables en modulo9.auditorias_ciclos_biologicos y que los intentos fallidos (HTTP 409) no generen eventos de auditoría.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+			"type": "string"
+		},
+		{
+			"key": "admin_email",
+			"value": "admin@pecuaria.co",
+			"type": "string"
+		},
+		{
+			"key": "admin_password",
+			"value": "Test1234!",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "id_ciclo_creado",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Paso 0: Auth Admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Auth Admin exitosa - HTTP 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Token JWT recibido', function () {",
+							"    pm.expect(resData.token).to.be.a('string').that.is.not.empty;",
+							"});",
+							"pm.collectionVariables.set('jwt_token', resData.token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/sesiones/",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"sesiones",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 1: TC-M09-44-1 - Crear Etapa (CREATE)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Creación exitosa - HTTP 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('ID de etapa generado', function () {",
+							"    pm.expect(resData.id_ciclo_biologico).to.be.a('number');",
+							"});",
+							"pm.collectionVariables.set('id_ciclo_creado', resData.id_ciclo_biologico.toString());"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa Auditoria QA\",\n  \"descripcion\": \"Prueba de auditoria TC-M09-44\",\n  \"duracion_dias\": 25\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 2: TC-M09-44-2 - Editar Etapa (UPDATE)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Edición exitosa - HTTP 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Nombre actualizado correctamente', function () {",
+							"    pm.expect(resData.nombre).to.eql('Etapa Auditoria QA Editada');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"nombre\": \"Etapa Auditoria QA Editada\",\n  \"descripcion\": \"Etapa editada para auditoria TC-M09-44\",\n  \"duracion_dias\": 35,\n  \"fecha_actualizacion\": null\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos/{{id_ciclo_creado}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos",
+						"{{id_ciclo_creado}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 3: TC-M09-44-3 - Desactivar Etapa (DEACTIVATE)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Desactivación exitosa - HTTP 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Etapa inactiva (es_activo = false)', function () {",
+							"    pm.expect(resData.es_activo).to.eql(false);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos/{{id_ciclo_creado}}/desactivar",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos",
+						"{{id_ciclo_creado}}",
+						"desactivar"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 4: TC-M09-44-4 - Edge Case (Intento Duplicado - HTTP 409)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Operación duplicada rechazada - HTTP 409', function () {",
+							"    pm.response.to.have.status(409);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ETAPA_DUPLICADA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ETAPA_DUPLICADA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Fase juvenil cachama\",\n  \"descripcion\": \"Intento duplicado auditoria\",\n  \"duracion_dias\": 30\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos"
+					]
+				}
+			}
+		}
+	]
+}

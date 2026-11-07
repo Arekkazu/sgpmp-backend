@@ -1,0 +1,577 @@
+{
+  "info": {
+    "name": "TC-M03-G117 - Alertas correlacionadas en el historial de telemetria (incluir_alertas y campos de la Salida 5)",
+    "description": "RF-59 CU04 sobre GET /iot/monitoreo/historial con incluir_alertas. Preparacion: busca en GET /alertas una alerta RESUELTA, una DESCARTADA y una VENCIDA que tengan id_telemetria e id_sensor (la lectura que las origino). (1) TC-M03-234: consulta la ventana de la lectura (un dia antes y despues, filtrada por su sensor) con incluir_alertas=false, sin el parametro y con true; sin alertas el id_alerta debe ser nulo en todas las lecturas; con true, la lectura de la alerta debe traer su id_alerta. (2) TC-M03-235: con incluir_alertas=true para cada estado, la respuesta debe traer la lista de alertas del periodo con id_alerta, tipo_alerta, severidad, timestamp_generacion, variable_afectada y estado_final. Solo GET. Las claves no se guardan en este archivo: correr_newman.ps1 pide correo y contrasena del Administrador. Ejecucion (desde tests\\Test_Testing): .\\correr_newman.ps1 -Caso G117 -Rf RF-59. Ambiente: solo TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": ""
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "cand_RESUELTA",
+      "value": ""
+    },
+    {
+      "key": "cand_DESCARTADA",
+      "value": ""
+    },
+    {
+      "key": "cand_VENCIDA",
+      "value": ""
+    },
+    {
+      "key": "cand_main",
+      "value": ""
+    },
+    {
+      "key": "v_ini",
+      "value": ""
+    },
+    {
+      "key": "v_fin",
+      "value": ""
+    },
+    {
+      "key": "v_sensor",
+      "value": ""
+    },
+    {
+      "key": "total_sin",
+      "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0. Preparacion: alertas con lectura asociada",
+      "item": [
+        {
+          "name": "0.RES Alertas en estado RESUELTA con lectura asociada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=RESUELTA&por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 0.RES] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const lista = Array.isArray(J.items) ? J.items : [];",
+                  "const con = lista.filter(function (a) { return a.id_telemetria != null && a.id_sensor != null && a.fecha_evento; });",
+                  "const el = con[0] || null;",
+                  "pm.collectionVariables.set('cand_RESUELTA', el ? JSON.stringify({ id_alerta: el.id_alerta, id_telemetria: el.id_telemetria, id_sensor: el.id_sensor, fecha_evento: el.fecha_evento, estado: el.estado_alerta, tipo_alerta: el.tipo_alerta, severidad: el.severidad, tipo_variable: el.tipo_variable, fecha_generacion: el.fecha_generacion }) : '');",
+                  "pm.test('Hay al menos una alerta RESUELTA con lectura asociada (' + con.length + ' de ' + lista.length + ' en la primera pagina)', function () { pm.expect(con.length, 'sin alertas RESUELTA con id_telemetria').to.be.above(0); });",
+                  "console.log('[G117-0.RES][OBSERVADO] total=' + J.total + ' con_lectura=' + con.length + ' elegida=' + JSON.stringify(el));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.DES Alertas en estado DESCARTADA con lectura asociada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=DESCARTADA&por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 0.DES] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const lista = Array.isArray(J.items) ? J.items : [];",
+                  "const con = lista.filter(function (a) { return a.id_telemetria != null && a.id_sensor != null && a.fecha_evento; });",
+                  "const el = con[0] || null;",
+                  "pm.collectionVariables.set('cand_DESCARTADA', el ? JSON.stringify({ id_alerta: el.id_alerta, id_telemetria: el.id_telemetria, id_sensor: el.id_sensor, fecha_evento: el.fecha_evento, estado: el.estado_alerta, tipo_alerta: el.tipo_alerta, severidad: el.severidad, tipo_variable: el.tipo_variable, fecha_generacion: el.fecha_generacion }) : '');",
+                  "pm.test('Hay al menos una alerta DESCARTADA con lectura asociada (' + con.length + ' de ' + lista.length + ' en la primera pagina)', function () { pm.expect(con.length, 'sin alertas DESCARTADA con id_telemetria').to.be.above(0); });",
+                  "console.log('[G117-0.DES][OBSERVADO] total=' + J.total + ' con_lectura=' + con.length + ' elegida=' + JSON.stringify(el));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.VEN Alertas en estado VENCIDA con lectura asociada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=VENCIDA&por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 0.VEN] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const lista = Array.isArray(J.items) ? J.items : [];",
+                  "const con = lista.filter(function (a) { return a.id_telemetria != null && a.id_sensor != null && a.fecha_evento; });",
+                  "const el = con[0] || null;",
+                  "pm.collectionVariables.set('cand_VENCIDA', el ? JSON.stringify({ id_alerta: el.id_alerta, id_telemetria: el.id_telemetria, id_sensor: el.id_sensor, fecha_evento: el.fecha_evento, estado: el.estado_alerta, tipo_alerta: el.tipo_alerta, severidad: el.severidad, tipo_variable: el.tipo_variable, fecha_generacion: el.fecha_generacion }) : '');",
+                  "pm.test('Hay al menos una alerta VENCIDA con lectura asociada (' + con.length + ' de ' + lista.length + ' en la primera pagina)', function () { pm.expect(con.length, 'sin alertas VENCIDA con id_telemetria').to.be.above(0); });",
+                  "console.log('[G117-0.VEN][OBSERVADO] total=' + J.total + ' con_lectura=' + con.length + ' elegida=' + JSON.stringify(el));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Comportamiento de incluir_alertas (TC-M03-234)",
+      "item": [
+        {
+          "name": "1.1 incluir_alertas=false explicito (TC-M03-234)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{v_ini}}&fecha_fin={{v_fin}}&sensor_id={{v_sensor}}&por_pagina=500&incluir_alertas=false"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const orden = ['RESUELTA', 'DESCARTADA', 'VENCIDA']; let main = '';",
+                  "orden.forEach(function (e) { if (!main && pm.collectionVariables.get('cand_' + e)) { main = e; } });",
+                  "pm.collectionVariables.set('cand_main', main ? pm.collectionVariables.get('cand_' + main) : '');",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_main') || 'null');",
+                  "if (c) { const d = new Date(c.fecha_evento); const hoy = new Date().toISOString().slice(0, 10);",
+                  "  const ini = new Date(d.getTime() - 86400000).toISOString().slice(0, 10); let fin = new Date(d.getTime() + 86400000).toISOString().slice(0, 10); if (fin > hoy) { fin = hoy; }",
+                  "  pm.collectionVariables.set('v_ini', ini); pm.collectionVariables.set('v_fin', fin); pm.collectionVariables.set('v_sensor', String(c.id_sensor)); }",
+                  ""
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_main') || 'null');",
+                  "pm.test('Hay una lectura con alerta para probar (alerta ' + (c ? c.id_alerta : 'ninguna') + ', lectura ' + (c ? c.id_telemetria : '-') + ')', function () { pm.expect(!!c, 'sin candidato en la preparacion').to.eql(true); });",
+                  "const lec = c ? items.find(function (i) { return Number(i.id_telemetria) === Number(c.id_telemetria); }) : null;",
+                  "pm.test('La lectura de la alerta aparece en el historial consultado (id_telemetria ' + (c ? c.id_telemetria : '-') + ', ventana ' + pm.collectionVariables.get('v_ini') + ' a ' + pm.collectionVariables.get('v_fin') + ', ' + items.length + ' lecturas)', function () { pm.expect(lec, 'no aparece').to.be.ok; });",
+                  "pm.test('id_alerta es nulo en todas las lecturas (' + items.length + ' lecturas)', function () { const con = items.filter(function (i) { return i.id_alerta != null; }); pm.expect(con.length, con.length + ' lecturas con id_alerta, ej.: ' + JSON.stringify(con.slice(0, 1).map(function (i) { return { id_telemetria: i.id_telemetria, id_alerta: i.id_alerta }; }))).to.eql(0); });",
+                  "pm.collectionVariables.set('total_sin', String(J.total_encontrado));",
+                  "console.log('[G117-1.1][OBSERVADO] total_encontrado=' + J.total_encontrado + ' filtros_aplicados.incluir_alertas=' + (J.filtros_aplicados || {}).incluir_alertas);",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Sin el parametro incluir_alertas: valor por defecto false (TC-M03-234)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{v_ini}}&fecha_fin={{v_fin}}&sensor_id={{v_sensor}}&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const orden = ['RESUELTA', 'DESCARTADA', 'VENCIDA']; let main = '';",
+                  "orden.forEach(function (e) { if (!main && pm.collectionVariables.get('cand_' + e)) { main = e; } });",
+                  "pm.collectionVariables.set('cand_main', main ? pm.collectionVariables.get('cand_' + main) : '');",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_main') || 'null');",
+                  "if (c) { const d = new Date(c.fecha_evento); const hoy = new Date().toISOString().slice(0, 10);",
+                  "  const ini = new Date(d.getTime() - 86400000).toISOString().slice(0, 10); let fin = new Date(d.getTime() + 86400000).toISOString().slice(0, 10); if (fin > hoy) { fin = hoy; }",
+                  "  pm.collectionVariables.set('v_ini', ini); pm.collectionVariables.set('v_fin', fin); pm.collectionVariables.set('v_sensor', String(c.id_sensor)); }",
+                  ""
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_main') || 'null');",
+                  "pm.test('Hay una lectura con alerta para probar (alerta ' + (c ? c.id_alerta : 'ninguna') + ', lectura ' + (c ? c.id_telemetria : '-') + ')', function () { pm.expect(!!c, 'sin candidato en la preparacion').to.eql(true); });",
+                  "const lec = c ? items.find(function (i) { return Number(i.id_telemetria) === Number(c.id_telemetria); }) : null;",
+                  "pm.test('La lectura de la alerta aparece en el historial consultado (id_telemetria ' + (c ? c.id_telemetria : '-') + ', ventana ' + pm.collectionVariables.get('v_ini') + ' a ' + pm.collectionVariables.get('v_fin') + ', ' + items.length + ' lecturas)', function () { pm.expect(lec, 'no aparece').to.be.ok; });",
+                  "pm.test('id_alerta es nulo en todas las lecturas (' + items.length + ' lecturas)', function () { const con = items.filter(function (i) { return i.id_alerta != null; }); pm.expect(con.length, con.length + ' lecturas con id_alerta, ej.: ' + JSON.stringify(con.slice(0, 1).map(function (i) { return { id_telemetria: i.id_telemetria, id_alerta: i.id_alerta }; }))).to.eql(0); });",
+                  "pm.collectionVariables.set('total_sin', String(J.total_encontrado));",
+                  "console.log('[G117-1.2][OBSERVADO] total_encontrado=' + J.total_encontrado + ' filtros_aplicados.incluir_alertas=' + (J.filtros_aplicados || {}).incluir_alertas);",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 incluir_alertas=true (TC-M03-234)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{v_ini}}&fecha_fin={{v_fin}}&sensor_id={{v_sensor}}&por_pagina=500&incluir_alertas=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_main') || 'null');",
+                  "pm.test('Hay una lectura con alerta para probar (alerta ' + (c ? c.id_alerta : 'ninguna') + ', lectura ' + (c ? c.id_telemetria : '-') + ')', function () { pm.expect(!!c, 'sin candidato en la preparacion').to.eql(true); });",
+                  "const lec = c ? items.find(function (i) { return Number(i.id_telemetria) === Number(c.id_telemetria); }) : null;",
+                  "pm.test('La lectura de la alerta aparece en el historial consultado (id_telemetria ' + (c ? c.id_telemetria : '-') + ', ventana ' + pm.collectionVariables.get('v_ini') + ' a ' + pm.collectionVariables.get('v_fin') + ', ' + items.length + ' lecturas)', function () { pm.expect(lec, 'no aparece').to.be.ok; });",
+                  "pm.test('filtros_aplicados indica incluir_alertas=true', function () { pm.expect((J.filtros_aplicados || {}).incluir_alertas).to.eql(true); });",
+                  "pm.test('La lectura asociada devuelve el id_alerta de su alerta (esperado ' + (c ? c.id_alerta : '-') + ', recibido ' + (lec ? lec.id_alerta : '-') + ')', function () { pm.expect(lec, 'sin lectura').to.be.ok; pm.expect(Number(lec.id_alerta)).to.eql(Number(c.id_alerta)); });",
+                  "pm.test('El total de lecturas no cambia con incluir_alertas (con true ' + J.total_encontrado + ', con false ' + pm.collectionVariables.get('total_sin') + ')', function () { pm.expect(String(J.total_encontrado)).to.eql(pm.collectionVariables.get('total_sin')); });",
+                  "console.log('[G117-1.3][OBSERVADO] lecturas con id_alerta=' + items.filter(function (i) { return i.id_alerta != null; }).length + ' de ' + items.length);",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Lista de alertas con los seis campos (TC-M03-235)",
+      "item": [
+        {
+          "name": "2.RES Alertas RESUELTA del periodo con incluir_alertas=true (TC-M03-235)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{v_ini}}&fecha_fin={{v_fin}}&sensor_id={{v_sensor}}&por_pagina=500&incluir_alertas=true"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_RESUELTA') || 'null');",
+                  "if (c) { const d = new Date(c.fecha_evento); const hoy = new Date().toISOString().slice(0, 10);",
+                  "  const ini = new Date(d.getTime() - 86400000).toISOString().slice(0, 10); let fin = new Date(d.getTime() + 86400000).toISOString().slice(0, 10); if (fin > hoy) { fin = hoy; }",
+                  "  pm.collectionVariables.set('v_ini', ini); pm.collectionVariables.set('v_fin', fin); pm.collectionVariables.set('v_sensor', String(c.id_sensor)); }",
+                  ""
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 2.RES] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_RESUELTA') || 'null');",
+                  "const claves = Object.keys(J).filter(function (k) { return /alerta/i.test(k) && Array.isArray(J[k]) && k !== 'items'; });",
+                  "const lista = claves.length ? J[claves[0]] : null;",
+                  "pm.test('La respuesta incluye la lista de alertas correlacionadas del periodo (campos de primer nivel: ' + Object.keys(J).join(', ') + ')', function () { pm.expect(lista, 'no hay una lista de alertas en la respuesta').to.be.an('array'); });",
+                  "pm.test('La lista contiene la alerta RESUELTA ' + (c ? c.id_alerta : '-') + ' con sus seis campos (id_alerta, tipo_alerta, severidad, timestamp_generacion, variable_afectada, estado_final)', function () {",
+                  "  pm.expect(lista, 'no hay lista de alertas').to.be.an('array'); const a = lista.find(function (x) { return c && Number(x.id_alerta) === Number(c.id_alerta); });",
+                  "  pm.expect(a, 'la alerta ' + (c ? c.id_alerta : '-') + ' no esta en la lista').to.be.ok;",
+                  "  const faltan = [\"id_alerta\", \"tipo_alerta\", \"severidad\", \"timestamp_generacion\", \"variable_afectada\", \"estado_final\"].filter(function (k) { return a[k] === undefined || a[k] === null; });",
+                  "  pm.expect(faltan.length, 'campos faltantes: ' + faltan.join(', ')).to.eql(0); });",
+                  "const lec = c ? items.find(function (i) { return Number(i.id_telemetria) === Number(c.id_telemetria); }) : null;",
+                  "console.log('[G117-2.RES][OBSERVADO] alerta ' + (c ? c.id_alerta : '-') + ' (' + (c ? c.estado : '-') + '): lectura ' + (lec ? JSON.stringify({ id_telemetria: lec.id_telemetria, id_alerta: lec.id_alerta }) : 'no aparece') + ' ; claves de alertas: ' + JSON.stringify(claves));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.DES Alertas DESCARTADA del periodo con incluir_alertas=true (TC-M03-235)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{v_ini}}&fecha_fin={{v_fin}}&sensor_id={{v_sensor}}&por_pagina=500&incluir_alertas=true"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_DESCARTADA') || 'null');",
+                  "if (c) { const d = new Date(c.fecha_evento); const hoy = new Date().toISOString().slice(0, 10);",
+                  "  const ini = new Date(d.getTime() - 86400000).toISOString().slice(0, 10); let fin = new Date(d.getTime() + 86400000).toISOString().slice(0, 10); if (fin > hoy) { fin = hoy; }",
+                  "  pm.collectionVariables.set('v_ini', ini); pm.collectionVariables.set('v_fin', fin); pm.collectionVariables.set('v_sensor', String(c.id_sensor)); }",
+                  ""
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 2.DES] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_DESCARTADA') || 'null');",
+                  "const claves = Object.keys(J).filter(function (k) { return /alerta/i.test(k) && Array.isArray(J[k]) && k !== 'items'; });",
+                  "const lista = claves.length ? J[claves[0]] : null;",
+                  "pm.test('La respuesta incluye la lista de alertas correlacionadas del periodo (campos de primer nivel: ' + Object.keys(J).join(', ') + ')', function () { pm.expect(lista, 'no hay una lista de alertas en la respuesta').to.be.an('array'); });",
+                  "pm.test('La lista contiene la alerta DESCARTADA ' + (c ? c.id_alerta : '-') + ' con sus seis campos (id_alerta, tipo_alerta, severidad, timestamp_generacion, variable_afectada, estado_final)', function () {",
+                  "  pm.expect(lista, 'no hay lista de alertas').to.be.an('array'); const a = lista.find(function (x) { return c && Number(x.id_alerta) === Number(c.id_alerta); });",
+                  "  pm.expect(a, 'la alerta ' + (c ? c.id_alerta : '-') + ' no esta en la lista').to.be.ok;",
+                  "  const faltan = [\"id_alerta\", \"tipo_alerta\", \"severidad\", \"timestamp_generacion\", \"variable_afectada\", \"estado_final\"].filter(function (k) { return a[k] === undefined || a[k] === null; });",
+                  "  pm.expect(faltan.length, 'campos faltantes: ' + faltan.join(', ')).to.eql(0); });",
+                  "const lec = c ? items.find(function (i) { return Number(i.id_telemetria) === Number(c.id_telemetria); }) : null;",
+                  "console.log('[G117-2.DES][OBSERVADO] alerta ' + (c ? c.id_alerta : '-') + ' (' + (c ? c.estado : '-') + '): lectura ' + (lec ? JSON.stringify({ id_telemetria: lec.id_telemetria, id_alerta: lec.id_alerta }) : 'no aparece') + ' ; claves de alertas: ' + JSON.stringify(claves));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.VEN Alertas VENCIDA del periodo con incluir_alertas=true (TC-M03-235)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{v_ini}}&fecha_fin={{v_fin}}&sensor_id={{v_sensor}}&por_pagina=500&incluir_alertas=true"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_VENCIDA') || 'null');",
+                  "if (c) { const d = new Date(c.fecha_evento); const hoy = new Date().toISOString().slice(0, 10);",
+                  "  const ini = new Date(d.getTime() - 86400000).toISOString().slice(0, 10); let fin = new Date(d.getTime() + 86400000).toISOString().slice(0, 10); if (fin > hoy) { fin = hoy; }",
+                  "  pm.collectionVariables.set('v_ini', ini); pm.collectionVariables.set('v_fin', fin); pm.collectionVariables.set('v_sensor', String(c.id_sensor)); }",
+                  ""
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G117 2.VEN] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const c = JSON.parse(pm.collectionVariables.get('cand_VENCIDA') || 'null');",
+                  "const claves = Object.keys(J).filter(function (k) { return /alerta/i.test(k) && Array.isArray(J[k]) && k !== 'items'; });",
+                  "const lista = claves.length ? J[claves[0]] : null;",
+                  "pm.test('La respuesta incluye la lista de alertas correlacionadas del periodo (campos de primer nivel: ' + Object.keys(J).join(', ') + ')', function () { pm.expect(lista, 'no hay una lista de alertas en la respuesta').to.be.an('array'); });",
+                  "pm.test('La lista contiene la alerta VENCIDA ' + (c ? c.id_alerta : '-') + ' con sus seis campos (id_alerta, tipo_alerta, severidad, timestamp_generacion, variable_afectada, estado_final)', function () {",
+                  "  pm.expect(lista, 'no hay lista de alertas').to.be.an('array'); const a = lista.find(function (x) { return c && Number(x.id_alerta) === Number(c.id_alerta); });",
+                  "  pm.expect(a, 'la alerta ' + (c ? c.id_alerta : '-') + ' no esta en la lista').to.be.ok;",
+                  "  const faltan = [\"id_alerta\", \"tipo_alerta\", \"severidad\", \"timestamp_generacion\", \"variable_afectada\", \"estado_final\"].filter(function (k) { return a[k] === undefined || a[k] === null; });",
+                  "  pm.expect(faltan.length, 'campos faltantes: ' + faltan.join(', ')).to.eql(0); });",
+                  "const lec = c ? items.find(function (i) { return Number(i.id_telemetria) === Number(c.id_telemetria); }) : null;",
+                  "console.log('[G117-2.VEN][OBSERVADO] alerta ' + (c ? c.id_alerta : '-') + ' (' + (c ? c.estado : '-') + '): lectura ' + (lec ? JSON.stringify({ id_telemetria: lec.id_telemetria, id_alerta: lec.id_alerta }) : 'no aparece') + ' ; claves de alertas: ' + JSON.stringify(claves));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar:  newman run <coleccion> --env-var \"sandbox_secret=<secreto>\"",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que",
+          "  // NADA llegue a TEST (sin sandbox el login dejaria una sesion permanente).",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  let runId = pm.variables.get('run_id');",
+          "  if (!runId || runId.trim() === '') { runId = 'test-' + pm.variables.replaceIn('{{$guid}}'); pm.collectionVariables.set('run_id', runId); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: runId });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ]
+}

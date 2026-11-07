@@ -1,0 +1,46 @@
+{
+  "revision": "TC-M09-175-rev6",
+  "caso": "TC-M09-175",
+  "grupo": "TC-M09-G91",
+  "fecha_utc_inicio": "2026-10-09T23:34:08Z",
+  "fecha_utc_cierre": "2026-10-09T23:35:21Z",
+  "rama": "laura",
+  "commit": "c5ac9b6f",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "backend_recuperado": true,
+  "postgres_via_app": true,
+  "resultado_funcional_actor_175": "BLOQUEADO",
+  "aprobado": false,
+  "dml": false,
+  "patch": false,
+  "delete": false,
+  "restore_qa": false,
+  "probes": {
+    "openapi": 200,
+    "get_global_unauth": {"status": 401, "error_code": "TOKEN_REQUERIDO"},
+    "login_admin": 200,
+    "get_global_admin": {"status": 200, "body": null, "ausente": true},
+    "get_tema_admin": {"status": 200, "body": {"theme_mode": 1, "fuente": "personal", "id_tema_visual": 6}},
+    "login_175_dedicated_password": false,
+    "login_175_test_password_once": {"status": 401, "error_code": "CREDENCIALES_INVALIDAS", "intento": "1/5", "reintentos": 0},
+    "get_tema_175": null,
+    "get_global_cierre": {"status": 200, "body": null, "ausente": true, "utc": "2026-10-09T23:35:21Z"}
+  },
+  "observacion_soporte_no_oficial": {
+    "nota": "No sustituye al actor cm09175.qa@sgpmp-test.com. No se usa para APROBADO.",
+    "correo": "contador@pecuaria.co",
+    "id_usuario": 5,
+    "rol": "Contador",
+    "estado": "Activo",
+    "get_tema": {"status": 200, "theme_mode": 1, "fuente": "defecto", "id_tema_visual": null},
+    "tipos": {"theme_mode": "int", "fuente": "str", "id_tema_visual": "NoneType"},
+    "oraculo_175_coincide": true
+  },
+  "restauracion": {
+    "global_ausente_al_cerrar": true,
+    "valores_inventados": false,
+    "pendiente_alex_samuel": true
+  },
+  "g91_cierre": false
+}

@@ -1,0 +1,68 @@
+{
+  "info": {
+    "name": "TC-M02-G15 rev5 — solo 031",
+    "description": "Reevaluacion TEST TC-M02-031. No ejecuta 027/028. No sobrescribe rev4. Password via --env-var.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token_ing", "value": "" },
+    { "key": "id_activo", "value": "350" }
+  ],
+  "item": [
+    {
+      "name": "01 login ingeniero@pecuaria.co (un intento)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "var code = pm.response.code;",
+            "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+            "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }",
+            "pm.collectionVariables.set('login_ing_http', String(code));"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 GET /usuarios/me",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_ing}}" }],
+        "url": "{{base_url}}/usuarios/me"
+      }
+    },
+    {
+      "name": "03 GET /sesiones/me/permisos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_ing}}" }],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      }
+    },
+    {
+      "name": "04 GET /activos-biologicos listado",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_ing}}" }],
+        "url": "{{base_url}}/activos-biologicos?pagina=1&page_size=20"
+      }
+    },
+    {
+      "name": "05 GET /activos-biologicos/{id} ficha (historico 350 si no hay otro)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_ing}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      }
+    }
+  ]
+}

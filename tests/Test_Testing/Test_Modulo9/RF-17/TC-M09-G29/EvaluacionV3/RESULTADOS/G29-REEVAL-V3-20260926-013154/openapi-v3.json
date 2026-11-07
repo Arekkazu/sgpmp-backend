@@ -1,0 +1,106 @@
+{
+  "DEV": {
+    "base": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp",
+    "health": 200,
+    "openapi": 200,
+    "operacionesRF17": {
+      "POST /configuracion/umbrales": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "GET /configuracion/umbrales": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "PATCH /configuracion/umbrales/{id_umbral_ambiental}": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "412",
+        "422"
+      ]
+    },
+    "umbralAmbientalResponse": [
+      "es_activo",
+      "estado_sincronizacion",
+      "fecha_actualizacion",
+      "fecha_ultima_sincronizacion",
+      "id_especie",
+      "id_umbral_ambiental",
+      "id_variable_ambiental",
+      "motivo_fallo_sincronizacion",
+      "niveles",
+      "unidad_medida",
+      "valor_max",
+      "valor_min"
+    ],
+    "rutasUmbrales": [
+      "/configuracion/umbrales",
+      "/configuracion/umbrales/{id_umbral_ambiental}",
+      "/configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+      "/configuracion/umbrales/{id_umbral_ambiental}/desactivar"
+    ],
+    "rutasSincronizacionEdgeMqtt": [
+      "/iot/eventos-edge"
+    ]
+  },
+  "TEST_https": {
+    "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "health": 200,
+    "openapi": 200,
+    "operacionesRF17": {
+      "POST /configuracion/umbrales": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "GET /configuracion/umbrales": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ],
+      "PATCH /configuracion/umbrales/{id_umbral_ambiental}": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "412",
+        "422"
+      ]
+    },
+    "umbralAmbientalResponse": [
+      "es_activo",
+      "estado_sincronizacion",
+      "fecha_actualizacion",
+      "fecha_ultima_sincronizacion",
+      "id_especie",
+      "id_umbral_ambiental",
+      "id_variable_ambiental",
+      "motivo_fallo_sincronizacion",
+      "niveles",
+      "unidad_medida",
+      "valor_max",
+      "valor_min"
+    ],
+    "rutasUmbrales": [
+      "/configuracion/umbrales",
+      "/configuracion/umbrales/{id_umbral_ambiental}",
+      "/configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+      "/configuracion/umbrales/{id_umbral_ambiental}/desactivar"
+    ],
+    "rutasSincronizacionEdgeMqtt": [
+      "/iot/eventos-edge"
+    ]
+  }
+}

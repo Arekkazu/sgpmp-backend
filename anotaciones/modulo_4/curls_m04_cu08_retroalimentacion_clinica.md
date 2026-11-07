@@ -254,3 +254,83 @@ WHERE tipo_evento IN ('RETROALIMENTACION_REGISTRADA', 'CONFLICTO_RETROALIMENTACI
 ORDER BY fecha_evento DESC
 LIMIT 5;
 ```
+
+---
+
+## E8 — Error de persistencia (DEV-48)
+
+No se reproduce con un curl normal: ocurre cuando falla la base de datos o el almacenamiento al guardar la retroalimentación (no cuando el dato es rechazado: un 409/400/422 sigue igual).
+
+Respuesta esperada `500`:
+```json
+{
+  "error_code": "ERROR_PERSISTENCIA_RETROALIMENTACION",
+  "message": "Error interno al registrar la retroalimentación.",
+  "fields": []
+}
+```
+
+Se registra el incidente en la auditoría técnica de RF-73 (`modulo4.eventos_auditoria_m04`): `tipo_evento = RETROALIMENTACION_REGISTRADA`, `resultado_operacion = FALLIDO`, `severidad_evento = ERROR`, `codigo_error = ERROR_PERSISTENCIA_RETROALIMENTACION` y la clase del error en `descripcion_error`. Si la bitácora tampoco responde, el evento queda en el fallback local `logs/audit_fallback_M04_YYYYMMDD.log` (RF-73 E8).
+
+```sql
+SELECT fecha_evento, id_referencia, codigo_error, descripcion_error, payload_evento
+FROM modulo4.eventos_auditoria_m04
+WHERE tipo_evento = 'RETROALIMENTACION_REGISTRADA' AND resultado_operacion = 'FALLIDO'
+ORDER BY fecha_evento DESC
+LIMIT 5;
+```
+
+---
+
+## Bandeja de inferencias por evaluar (2026-11-03)
+
+La pantalla Retroalimentación pintaba una lista de ejemplo (`retroMock.ts`) porque el backend solo
+exponía el registro. Sin gaps de BD: la RLS de `resultados_inferencia` y `retroalimentaciones_clinicas`
+ya limita a las fincas del usuario, y `retroalimentacion_clinica` · Leer (45·R) existe para
+Veterinario y Administrador.
+
+**Qué entra** (no todas las inferencias: el motor emite una por animal cada pocos minutos):
+- la que abre un episodio de riesgo moderado o alto (el nivel pasa a 2 o 3 respecto a la anterior
+  del mismo animal),
+- la que generó alerta,
+- cualquiera que ya tenga una evaluación.
+
+**Estado:** `EVALUADO` si tiene alguna; si no, `PENDIENTE` dentro de la ventana
+(`ventana_retroalimentacion_dias`, o una ampliación vigente del Administrador) y `VENTANA_VENCIDA` fuera.
+`puede_evaluar` aplica al usuario actual las reglas del registro: en ventana, sin evaluación propia
+(una por veterinario y resultado; otro veterinario sí puede) y activo fuera de BAJA.
+
+Verificado contra PostgreSQL 16 con el esquema completo (baseline + todas las migraciones) y un
+escenario con episodios dentro y fuera de la ventana, ampliación, evaluación propia y activo en BAJA.
+
+### GET /prediccion/retroalimentacion/bandeja
+
+```bash
+curl -s "http://localhost:8000/prediccion/retroalimentacion/bandeja?estado_evaluacion=PENDIENTE&nivel_riesgo=3&pagina=1&por_pagina=25" \
+  -H "Authorization: Bearer <TOKEN_VET>"
+```
+
+Parámetros opcionales: `estado_evaluacion` (`PENDIENTE` | `EVALUADO` | `VENTANA_VENCIDA`), `nivel_riesgo`
+(0–3), `id_activo_biologico`, `desde`/`hasta` (ISO 8601; sin zona se toma como UTC; por defecto la
+ventana más 30 días), `pagina`, `por_pagina` (1–100). Pendientes primero, luego por fecha.
+
+Respuesta esperada `200`:
+```json
+{
+  "items": [{
+    "id_resultado_inferencia": "…", "id_activo_biologico": 4, "identificador_activo": "BOV-003",
+    "especie": "Bovino", "nombre_finca": "…", "nombre_area": "…", "nivel_riesgo": 3,
+    "id_patologia": 6, "nombre_patologia": "Septicemia", "confianza_global": "0.9100",
+    "fecha_inferencia": "2026-11-01T14:05:00Z", "tiene_alerta_generada": false, "modo_sombra": true,
+    "estado_evaluacion": "PENDIENTE", "fecha_limite": "2027-01-30T14:05:00Z",
+    "numero_evaluaciones": 0, "evaluada_por_mi": false, "activo_en_baja": false, "puede_evaluar": true
+  }],
+  "total": 6, "pagina": 1, "por_pagina": 25, "ventana_dias": 90,
+  "indicadores": {"pendientes": 4, "evaluadas": 1, "vencidas": 1}
+}
+```
+
+Errores:
+- `400 ESTADO_EVALUACION_INVALIDO | NIVEL_RIESGO_INVALIDO | PAGINA_INVALIDA | POR_PAGINA_INVALIDO | RANGO_FECHAS_INVALIDO | RANGO_FECHAS_EXCESIVO`
+- `401` sin token · `403 ACCESO_DENEGADO` sin 45·R (por ejemplo, Productor)
+- `503 PARAMETRO_CONFIGURACION_AUSENTE` si falta `ventana_retroalimentacion_dias` en M09 (mismo caso que el registro)

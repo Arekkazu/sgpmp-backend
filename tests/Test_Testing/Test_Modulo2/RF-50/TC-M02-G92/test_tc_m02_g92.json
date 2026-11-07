@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "TC-M02-G92 — BLOQUEADO — solo gate ejecutable",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "RF50/RF51. Plantillas oficiales inhabilitadas explícitamente. Ejecutar únicamente 00-SETUP-LECTURA. La aprobación del gate no aprueba G92."
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "OpenAPI — gate únicamente; G92 BLOQUEADO",
+          "request": {
+            "method": "GET",
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gate HTTPS: HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('OpenAPI JSON',()=>pm.response.to.be.json);",
+                  "const s=pm.response.json();",
+                  "pm.test('Contratos RF50 y RF51 presentes',()=>{ for(const end of ['datos-consolidados','indicadores']) pm.expect(s.paths['/activos-biologicos/{id_activo}/'+end].get.responses).to.have.property('200'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "TC-M02-154 — BLOQUEADO / NO EJECUTADO",
+          "description": "Plantilla inhabilitada. Revalidar BD/contrato, completar comparación exhaustiva RF50 y resolver M04 y restricción de escrituras antes de habilitar. No constituye prueba aprobada.",
+          "request": {
+            "method": "GET",
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/datos-consolidados?tipo_dato=todos&pagina=1&page_size=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{m04_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.warn('BLOQUEADO: M04 no disponible y restricción cero escrituras sin resolver.');",
+                  "pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON',()=>pm.response.to.be.json);",
+                  "const b=pm.response.json();",
+                  "pm.test('DTO OpenAPI capturado',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_activo_biologico\": {\"type\": \"integer\", \"title\": \"Id Activo Biologico\"}, \"identificador\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Identificador\"}, \"tipo_activo\": {\"type\": \"string\", \"title\": \"Tipo Activo\"}, \"especie\": {\"type\": \"string\", \"title\": \"Especie\"}, \"estado_actual\": {\"type\": \"string\", \"title\": \"Estado Actual\"}, \"infraestructura_asociada\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Infraestructura Asociada\"}, \"fase_productiva_activa\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Fase Productiva Activa\"}, \"historial_eventos\": {\"items\": {\"additionalProperties\": true, \"type\": \"object\"}, \"type\": \"array\", \"title\": \"Historial Eventos\", \"default\": []}, \"historial_fases\": {\"items\": {\"additionalProperties\": true, \"type\": \"object\"}, \"type\": \"array\", \"title\": \"Historial Fases\", \"default\": []}, \"historico_estados\": {\"items\": {\"additionalProperties\": true, \"type\": \"object\"}, \"type\": \"array\", \"title\": \"Historico Estados\", \"default\": []}, \"metricas_actuales\": {\"additionalProperties\": true, \"type\": \"object\", \"title\": \"Metricas Actuales\", \"default\": {}}, \"total_registros\": {\"type\": \"integer\", \"title\": \"Total Registros\"}, \"pagina_actual\": {\"type\": \"integer\", \"title\": \"Pagina Actual\"}, \"total_paginas\": {\"type\": \"integer\", \"title\": \"Total Paginas\"}, \"registros_por_pagina\": {\"type\": \"integer\", \"title\": \"Registros Por Pagina\"}, \"fecha_generacion\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Generacion\"}}, \"type\": \"object\", \"required\": [\"id_activo_biologico\", \"identificador\", \"tipo_activo\", \"especie\", \"estado_actual\", \"infraestructura_asociada\", \"fase_productiva_activa\", \"total_registros\", \"pagina_actual\", \"total_paginas\", \"registros_por_pagina\", \"fecha_generacion\"], \"title\": \"DatosConsolidadosResponse\"}));",
+                  "pm.test('Activo correcto',()=>pm.expect(b.id_activo_biologico).to.eql(295));",
+                  "pm.test('Tiempo <= 5 segundos',()=>pm.expect(pm.response.responseTime).to.be.below(5001));",
+                  "pm.test('Identificador correcto',()=>pm.expect(b.identificador).to.eql('QAJE-DAT-COMPL')); "
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-159 — BLOQUEADO / NO EJECUTADO",
+          "description": "Plantilla inhabilitada. Revalidar BD/contrato, completar comparación exhaustiva RF50 y resolver M04 y restricción de escrituras antes de habilitar. No constituye prueba aprobada.",
+          "request": {
+            "method": "GET",
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/indicadores?fecha_inicio=2026-07-15&fecha_fin=2026-08-15&tipo_indicador=CRECIMIENTO",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{m04_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.warn('BLOQUEADO: M04 no disponible y restricción cero escrituras sin resolver.');",
+                  "pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON',()=>pm.response.to.be.json);",
+                  "const b=pm.response.json();",
+                  "pm.test('DTO OpenAPI capturado',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_activo_biologico\": {\"type\": \"integer\", \"title\": \"Id Activo Biologico\"}, \"tipo_activo\": {\"type\": \"string\", \"title\": \"Tipo Activo\"}, \"indicadores\": {\"items\": {\"properties\": {\"tipo\": {\"type\": \"string\", \"title\": \"Tipo\"}, \"valor\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^(?!^[-+.]*$)[+-]?0*\\\\d*\\\\.?\\\\d*$\"}, {\"type\": \"null\"}], \"title\": \"Valor\"}, \"unidad\": {\"type\": \"string\", \"title\": \"Unidad\"}, \"periodo_inicio\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date\"}, {\"type\": \"null\"}], \"title\": \"Periodo Inicio\"}, \"periodo_fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date\"}, {\"type\": \"null\"}], \"title\": \"Periodo Fin\"}, \"variables_usadas\": {\"additionalProperties\": true, \"type\": \"object\", \"title\": \"Variables Usadas\", \"default\": {}}, \"fecha_calculo\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Calculo\"}, \"disponible\": {\"type\": \"boolean\", \"title\": \"Disponible\"}}, \"type\": \"object\", \"required\": [\"tipo\", \"unidad\", \"fecha_calculo\", \"disponible\"], \"title\": \"IndicadorZootecnicoResponse\"}, \"type\": \"array\", \"title\": \"Indicadores\"}, \"advertencias\": {\"items\": {\"type\": \"string\"}, \"type\": \"array\", \"title\": \"Advertencias\", \"default\": []}}, \"type\": \"object\", \"required\": [\"id_activo_biologico\", \"tipo_activo\", \"indicadores\"], \"title\": \"IndicadoresActivoResponse\"}));",
+                  "pm.test('Activo correcto',()=>pm.expect(b.id_activo_biologico).to.eql(295));",
+                  "const g=b.indicadores.find(x=>x.tipo==='ganancia_peso');",
+                  "pm.test('GDP y variables BD',()=>{pm.expect(g).to.exist;pm.expect(g.disponible).to.eql(true);pm.expect(Number(g.valor)).to.eql(0.9677);pm.expect(g.unidad).to.eql('kg/dia');pm.expect(g.periodo_inicio).to.eql('2026-07-15');pm.expect(g.periodo_fin).to.eql('2026-08-15');pm.expect(g.variables_usadas).to.deep.eql({peso_inicial_kg:200,peso_final_kg:230,dias:31,total_mediciones:2});pm.expect(Number.isNaN(Date.parse(g.fecha_calculo))).to.eql(false);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "item": []
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "TC-M09-G32 REEVALUACION V2 — TC-M09-69 RF-17 → Monitoreo (solo lectura)",
+    "description": "Discovery y oraculo de integracion sin escrituras. Precondiciones: actor, RF17_BEFORE y APIs de Monitoreo accesibles. Oraculo TC-69: Monitoreo debe exponer/usar la configuracion efectiva de RF-17 (id/rango/niveles o semaforo calculado con ella).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Actor RF-17",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/usuarios/me" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.json();",
+        "pm.test('Precondicion: /usuarios/me 200',()=>pm.response.to.have.status(200));",
+        "pm.test('Precondicion: actor Administrador o Veterinario activo',()=>{pm.expect(['Administrador','Veterinario']).to.include(b.nombre_rol);pm.expect(b.estado_cuenta).to.eql('Activo');});"
+      ] } }]
+    },
+    {
+      "name": "RF17_BEFORE",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.json(); const id=Number(pm.environment.get('id_umbral'));",
+        "pm.test('Precondicion: GET RF-17 200',()=>pm.response.to.have.status(200));",
+        "pm.test('Precondicion: configuracion RF-17 existente y activa',()=>{const u=b.items.find(x=>x.id_umbral_ambiental===id);pm.expect(u,'umbral').to.not.be.undefined;pm.expect(u.es_activo).to.eql(true);pm.expect(u.niveles).to.have.lengthOf(3);});"
+      ] } }]
+    },
+    {
+      "name": "MONITORING_BEFORE dashboard",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/iot/monitoreo/dashboard?pagina=1&por_pagina=50" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.json(); const s=b.sensores||[];",
+        "pm.test('Precondicion: API Monitoreo dashboard 200',()=>pm.response.to.have.status(200));",
+        "const campos=s.length?Object.keys(s[0]):[];",
+        "pm.test('Oraculo TC-69: el dashboard expone la configuracion RF-17 efectiva (id_umbral / valor_min / valor_max / niveles)',()=>{pm.expect(campos.filter(c=>/(^|_)umbral|valor_min|valor_max|^niveles$|nivel(es)?_(normal|precaucion|critico|alerta)|limite_(inferior|superior)|version_config/i.test(c)),'campos de umbral en EstadoSensor: '+campos.join(',')).to.not.be.empty;});",
+        "pm.test('Oraculo TC-69: el dashboard permite correlacionar especie de la configuracion',()=>{pm.expect(campos.filter(c=>/especie/i.test(c)),'campos: '+campos.join(',')).to.not.be.empty;});"
+      ] } }]
+    },
+    {
+      "name": "MONITORING_BEFORE historial",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&pagina=1&por_pagina=50&orden=DESC" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.json(); const it=b.items||[];",
+        "pm.test('Precondicion: API Monitoreo historial 200',()=>pm.response.to.have.status(200));",
+        "const campos=it.length?Object.keys(it[0]):[];",
+        "pm.test('Oraculo TC-69: el historial expone la configuracion RF-17 aplicada',()=>{pm.expect(campos.filter(c=>/(^|_)umbral|valor_min|valor_max|^niveles$|nivel(es)?_(normal|precaucion|critico|alerta)|limite_(inferior|superior)|version_config/i.test(c)),'campos: '+campos.join(',')).to.not.be.empty;});",
+        "pm.test('Oraculo TC-69: el semaforo historico se calcula con un umbral (no todo GRIS)',()=>{pm.expect(it.length,'lecturas en ventana').to.be.above(0);pm.expect(it.some(x=>x.estado_semaforo_historico&&x.estado_semaforo_historico!=='GRIS'),'semaforos: '+[...new Set(it.map(x=>x.estado_semaforo_historico))].join(',')).to.eql(true);});"
+      ] } }]
+    }
+  ]
+}

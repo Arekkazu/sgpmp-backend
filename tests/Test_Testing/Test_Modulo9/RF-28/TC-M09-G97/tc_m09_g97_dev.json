@@ -1,0 +1,657 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g97-rf28-dev",
+    "name": "TC-M09-G97 DEV - Restauración default y persistencia entre sesiones (RF-28)",
+    "description": "DEV. Password via --env-var contrasena. Restore final = PATCH snapshot, never POST /restaurar. Login B only after DELETE /sesiones/.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "correo", "value": "admin.dev@gmail.com" },
+    { "key": "token", "value": "" },
+    { "key": "token_a", "value": "" },
+    { "key": "token_b", "value": "" },
+    { "key": "login_ok", "value": "0" },
+    { "key": "precheck_ok", "value": "0" },
+    { "key": "marcador_ok", "value": "0" },
+    { "key": "restaurar_ok", "value": "0" },
+    { "key": "id_rol", "value": "" },
+    { "key": "widget_id", "value": "" },
+    { "key": "widget_clave", "value": "" },
+    { "key": "snapshot_grid", "value": "[]" },
+    { "key": "snapshot_active", "value": "[]" },
+    { "key": "version_actual", "value": "" },
+    { "key": "abort_reason", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "function defaultsPorRol(idRol) {",
+          "    const d = {",
+          "        '1': {",
+          "            grid: [",
+          "                {id_widget:6,posicion_fila:1,posicion_columna:1,span_columnas:2,visible:true,orden:0},",
+          "                {id_widget:9,posicion_fila:1,posicion_columna:3,span_columnas:1,visible:true,orden:1},",
+          "                {id_widget:15,posicion_fila:1,posicion_columna:4,span_columnas:1,visible:true,orden:2},",
+          "                {id_widget:14,posicion_fila:2,posicion_columna:1,span_columnas:2,visible:true,orden:3},",
+          "                {id_widget:7,posicion_fila:2,posicion_columna:3,span_columnas:1,visible:true,orden:4}",
+          "            ],",
+          "            active: ['estado_iot','alertas_crit','cfg_pendiente','fincas_estado','cal_sensores']",
+          "        }",
+          "    };",
+          "    return d[String(idRol)] || null;",
+          "}",
+          "function normGrid(grid) {",
+          "    return (grid || []).map(function (w) {",
+          "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, !!w.visible].join(':');",
+          "    }).sort();",
+          "}",
+          "pm.variables.set('_helpers_ok', '1');"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00-PRECHECK",
+      "item": [
+        {
+          "name": "00.1 POST /sesiones login A",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            },
+            "url": "{{baseUrl}}/sesiones/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('G97 login A HTTP 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code !== 200 || !json.token) {",
+                  "    pm.collectionVariables.set('login_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'Login A HTTP ' + code);",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('token_a', json.token);",
+                  "pm.collectionVariables.set('login_ok', '1');",
+                  "try {",
+                  "    const part = json.token.split('.')[1];",
+                  "    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');",
+                  "    const pad = b64 + '==='.slice((b64.length + 3) % 4);",
+                  "    const payload = JSON.parse(atob(pad));",
+                  "    pm.collectionVariables.set('id_rol', payload.rol != null ? String(payload.rol) : '');",
+                  "    pm.test('G97 JWT contiene rol', function () {",
+                  "        pm.expect(payload.rol, 'claim rol').to.not.be.undefined;",
+                  "    });",
+                  "} catch (e) {",
+                  "    pm.collectionVariables.set('id_rol', '');",
+                  "    pm.test('G97 JWT contiene rol', function () { pm.expect.fail(String(e)); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 GET dashboard snapshot",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "pm.test('PRECHECK GET dashboard 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) {",
+                  "    pm.collectionVariables.set('precheck_ok', '0');",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('snapshot_grid', JSON.stringify(json.grid || []));",
+                  "pm.collectionVariables.set('snapshot_active', JSON.stringify(json.active_widget || []));",
+                  "pm.collectionVariables.set('version_actual', json.version_perfil == null ? '' : String(json.version_perfil));",
+                  "pm.test('PRECHECK snapshot grid/active_widget', function () {",
+                  "    pm.expect(json).to.have.property('grid');",
+                  "    pm.expect(json).to.have.property('active_widget');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 GET widgets catálogo",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard/widgets"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "pm.test('PRECHECK GET widgets 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const widgets = Array.isArray(pm.response.json()) ? pm.response.json() : [];",
+                  "pm.test('PRECHECK catálogo no vacío', function () { pm.expect(widgets.length).to.be.above(0); });",
+                  "if (!widgets.length) {",
+                  "    pm.collectionVariables.set('precheck_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'Catálogo vacío');",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "const preferido = widgets.find(function (w) { return w.id_widget === 1; }) || widgets[0];",
+                  "pm.collectionVariables.set('widget_id', String(preferido.id_widget));",
+                  "pm.collectionVariables.set('widget_clave', String(preferido.clave));",
+                  "pm.collectionVariables.set('precheck_ok', '1');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-186",
+      "item": [
+        {
+          "name": "186.1 PATCH marcador distinto al default",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const grid = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const active = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "const idW = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const clave = pm.collectionVariables.get('widget_clave');",
+                  "const filtered = grid.filter(function (w) {",
+                  "    return !(w.posicion_fila === 3 && w.posicion_columna === 4);",
+                  "});",
+                  "const orden = filtered.reduce(function (m, w) { return Math.max(m, w.orden || 0); }, 0) + 1;",
+                  "filtered.push({ id_widget: idW, posicion_fila: 3, posicion_columna: 4, span_columnas: 1, visible: true, orden: orden });",
+                  "const act = active.indexOf(clave) >= 0 ? active : active.concat([clave]);",
+                  "const body = { layout_config: filtered, active_widget: act };",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "pm.test('TC-M09-186 PATCH marcador HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "186.2 GET confirma personalización",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "function normGrid(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, !!w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const snap = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const idW = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "pm.test('TC-M09-186 GET 200 tras marcador', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const marker = (json.grid || []).find(function (w) {",
+                  "    return w.visible && w.posicion_fila === 3 && w.posicion_columna === 4 && w.id_widget === idW && w.span_columnas === 1;",
+                  "});",
+                  "pm.test('TC-M09-186 marcador 3,4 persistido', function () {",
+                  "    pm.expect(marker, 'widget en fila 3 col 4').to.exist;",
+                  "});",
+                  "pm.test('TC-M09-186 layout distinto al snapshot', function () {",
+                  "    pm.expect(normGrid(json.grid)).to.not.eql(normGrid(snap));",
+                  "});",
+                  "if (marker) pm.collectionVariables.set('marcador_ok', '1');",
+                  "else {",
+                  "    pm.collectionVariables.set('marcador_ok', '0');",
+                  "    pm.execution.setNextRequest('99.1 GET version actual antes de restaurar snapshot');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "186.3 POST restaurar default del rol",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard/restaurar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('marcador_ok') !== '1') { return; }",
+                  "function normGrid(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, !!w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-M09-186 POST /restaurar HTTP 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code !== 200) {",
+                  "    pm.collectionVariables.set('restaurar_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'POST restaurar HTTP ' + code + ' error_code=' + (json.error_code || ''));",
+                  "    pm.execution.setNextRequest('99.1 GET version actual antes de restaurar snapshot');",
+                  "    return;",
+                  "}",
+                  "pm.test('TC-M09-186 respuesta tiene grid y active_widget', function () {",
+                  "    pm.expect(json).to.have.property('grid');",
+                  "    pm.expect(json).to.have.property('active_widget');",
+                  "});",
+                  "const idRol = pm.collectionVariables.get('id_rol');",
+                  "pm.test('TC-M09-186 rol conocido para comparar default', function () {",
+                  "    pm.expect(idRol).to.eql('1');",
+                  "});",
+                  "if (idRol === '1') {",
+                  "    const expectedGrid = [",
+                  "        {id_widget:6,posicion_fila:1,posicion_columna:1,span_columnas:2,visible:true},",
+                  "        {id_widget:9,posicion_fila:1,posicion_columna:3,span_columnas:1,visible:true},",
+                  "        {id_widget:15,posicion_fila:1,posicion_columna:4,span_columnas:1,visible:true},",
+                  "        {id_widget:14,posicion_fila:2,posicion_columna:1,span_columnas:2,visible:true},",
+                  "        {id_widget:7,posicion_fila:2,posicion_columna:3,span_columnas:1,visible:true}",
+                  "    ];",
+                  "    const expectedActive = ['estado_iot','alertas_crit','cfg_pendiente','fincas_estado','cal_sensores'];",
+                  "    pm.test('TC-M09-186 grid = default Admin rol 1', function () {",
+                  "        pm.expect(normGrid(json.grid)).to.eql(normGrid(expectedGrid));",
+                  "    });",
+                  "    pm.test('TC-M09-186 active_widget = default Admin', function () {",
+                  "        pm.expect(json.active_widget).to.eql(expectedActive);",
+                  "    });",
+                  "}",
+                  "pm.collectionVariables.set('restaurar_ok', '1');",
+                  "if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "186.4 GET coincide con default tras restaurar",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "function normGrid(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, !!w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const json = pm.response.json();",
+                  "if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "pm.test('TC-M09-186 GET 200 tras restaurar', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.collectionVariables.get('id_rol') === '1') {",
+                  "    const expectedGrid = [",
+                  "        {id_widget:6,posicion_fila:1,posicion_columna:1,span_columnas:2,visible:true},",
+                  "        {id_widget:9,posicion_fila:1,posicion_columna:3,span_columnas:1,visible:true},",
+                  "        {id_widget:15,posicion_fila:1,posicion_columna:4,span_columnas:1,visible:true},",
+                  "        {id_widget:14,posicion_fila:2,posicion_columna:1,span_columnas:2,visible:true},",
+                  "        {id_widget:7,posicion_fila:2,posicion_columna:3,span_columnas:1,visible:true}",
+                  "    ];",
+                  "    pm.test('TC-M09-186 GET grid = default Admin', function () {",
+                  "        pm.expect(normGrid(json.grid)).to.eql(normGrid(expectedGrid));",
+                  "    });",
+                  "    pm.test('TC-M09-186 GET active_widget = default Admin', function () {",
+                  "        pm.expect(json.active_widget).to.eql(['estado_iot','alertas_crit','cfg_pendiente','fincas_estado','cal_sensores']);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-188",
+      "item": [
+        {
+          "name": "188.1 PATCH marcador persistencia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const idW = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const clave = pm.collectionVariables.get('widget_clave');",
+                  "const body = {",
+                  "    layout_config: [",
+                  "        { id_widget: idW, posicion_fila: 3, posicion_columna: 4, span_columnas: 1, visible: true, orden: 0 }",
+                  "    ],",
+                  "    active_widget: [clave]",
+                  "};",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "pm.test('TC-M09-188 PATCH marcador HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "188.2 GET con token A confirma marcador",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "const json = pm.response.json();",
+                  "const idW = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "pm.test('TC-M09-188 GET A HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('TC-M09-188 GET A tiene marcador 3,4', function () {",
+                  "    const m = (json.grid || []).find(function (w) {",
+                  "        return w.visible && w.posicion_fila === 3 && w.posicion_columna === 4 && w.id_widget === idW;",
+                  "    });",
+                  "    pm.expect(m).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "188.3 DELETE /sesiones logout A",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "url": "{{baseUrl}}/sesiones/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "pm.test('TC-M09-188 logout HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "188.4 GET con token A debe fallar (sesión cerrada)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "pm.test('TC-M09-188 GET A tras logout es 401/equivalente (esperado)', function () {",
+                  "    pm.expect([401, 403, 410]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "188.5 POST /sesiones login B (nueva sesión)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            },
+            "url": "{{baseUrl}}/sesiones/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-M09-188 login B HTTP 200 (nueva sesión, no reintento)', function () {",
+                  "    pm.expect(code).to.eql(200);",
+                  "});",
+                  "if (code !== 200 || !json.token) {",
+                  "    pm.collectionVariables.set('abort_reason', 'Login B HTTP ' + code + ' — no se reintenta');",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "pm.collectionVariables.set('token_b', json.token);",
+                  "pm.collectionVariables.set('token', json.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "188.6 GET con token B persiste marcador",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_b}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('restaurar_ok') !== '1') { return; }",
+                  "if (!pm.collectionVariables.get('token_b')) { return; }",
+                  "const json = pm.response.json();",
+                  "const idW = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const clave = pm.collectionVariables.get('widget_clave');",
+                  "if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "pm.test('TC-M09-188 GET B HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const m = (json.grid || []).find(function (w) {",
+                  "    return w.visible && w.posicion_fila === 3 && w.posicion_columna === 4 && w.id_widget === idW && w.span_columnas === 1;",
+                  "});",
+                  "pm.test('TC-M09-188 persistencia: marcador presente en sesión B', function () {",
+                  "    pm.expect(m).to.exist;",
+                  "});",
+                  "pm.test('TC-M09-188 persistencia: active_widget incluye clave del marcador', function () {",
+                  "    pm.expect(json.active_widget || []).to.include(clave);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-RESTORE",
+      "item": [
+        {
+          "name": "99.1 GET version actual antes de restaurar snapshot",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "pm.test('RESTORE pre-GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.version_perfil != null) pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.2 PATCH snapshot inicial (no POST /restaurar)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const grid = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const active = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "const body = { layout_config: grid, active_widget: active };",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('RESTORE PATCH snapshot HTTP 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code !== 200) {",
+                  "    pm.collectionVariables.set('abort_reason', 'RESTORE PATCH HTTP ' + code + ' ' + (json.error_code || ''));",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "99.3 GET verifica snapshot",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "function normGrid(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, !!w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const snap = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const act = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "pm.test('RESTORE GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('RESTORE grid coincide con snapshot', function () {",
+                  "    pm.expect(normGrid(json.grid)).to.eql(normGrid(snap));",
+                  "});",
+                  "pm.test('RESTORE active_widget coincide con snapshot', function () {",
+                  "    pm.expect(json.active_widget || []).to.eql(act);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

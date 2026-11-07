@@ -1,3 +1,7 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: mantener el respaldo de auditoría independiente en volumen persistente. |
+# | 2026-11-06 | Arekkazu | M07 RF-101: SGPMP_ENTORNO; credenciales de AgroFusion pasan al registro de clientes |
 services:
   db:
     # container_name único (no el genérico "db"): Dokploy conecta el backend
@@ -70,13 +74,25 @@ services:
       AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH}
       AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE}
       AGROFUSION_ISSUER: ${AGROFUSION_ISSUER}
-      AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID}
-      AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET}
+      SGPMP_ENTORNO: ${SGPMP_ENTORNO:-DEV}
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
+      BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN}
+      # RF-56/RF-66: cliente hacia el motor de inferencia M04 (motor-ia). URL vacía => los paquetes
+      # quedan pendientes. Cargar la URL solo cuando el motor tenga modelos (ver .env.example).
+      IOT_INFERENCIA_M04_URL: ${IOT_INFERENCIA_M04_URL:-}
+      IOT_INFERENCIA_M04_TOKEN: ${IOT_INFERENCIA_M04_TOKEN:-}
+      IOT_INFERENCIA_TLS_MIN: ${IOT_INFERENCIA_TLS_MIN:-1.3}
+      IOT_INFERENCIA_CA_FILE: ${IOT_INFERENCIA_CA_FILE:-}
+      IOT_AUDITORIA_RESPALDO_PATH: /app/storage/auditoria_iot/fallas.sqlite3
+      # DEV-15: URL firmada del artefacto OTA. Sin las dos, POST /prediccion/ota/distribuciones responde 503.
+      OTA_URL_SECRET: ${OTA_URL_SECRET:-}
+      OTA_URL_BASE: ${OTA_URL_BASE:-}
+      OTA_URL_TTL_SEGUNDOS: ${OTA_URL_TTL_SEGUNDOS:-86400}
     volumes:
       - sgpmp_modelos:/app/storage/modelos
+      - sgpmp_auditoria_iot:/app/storage/auditoria_iot
       # RF-14: credenciales del service account de Firebase (push FCM). El JSON
       # se carga como File Mount del compose en Dokploy con File Path
       # `firebase.json`, que Dokploy guarda en ../files/. FIREBASE_CREDENTIALS_PATH
@@ -94,3 +110,4 @@ services:
 volumes:
   sgpmp_pgdata:
   sgpmp_modelos:
+  sgpmp_auditoria_iot:

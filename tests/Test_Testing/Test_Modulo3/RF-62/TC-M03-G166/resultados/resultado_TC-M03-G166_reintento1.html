@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>TC-M03-G166 Reintento 1 - RECHAZADO</title></head>
+<body>
+<h1>TC-M03-G166 — Reintento 1</h1>
+<p>Fecha: 2026-10-28T18:24:15Z | Ambiente: TEST | Veredicto: RECHAZADO</p>
+<p>Causa raíz: INC-M03-G166-LATENCY (CRÍTICA-BLOQUEANTE) — pool_size=5 + triggers sin aislamiento por sensor.</p>
+<h2>Resumen</h2>
+<ul>
+<li>Total Assertions: 8</li>
+<li>Total Failed Tests: 7</li>
+<li>Passed: 1</li>
+<li>Failed: 7</li>
+</ul>
+<h2>Checkpoints</h2>
+<table border="1">
+<tr><th>ID</th><th>Paso</th><th>Esperado</th><th>Obtenido</th><th>Estado</th></tr>
+<tr><td>CP-00</td><td>Setup fixture contexto_g166</td><td>41/41 HTTP 201 en &lt;60s</td><td>ReadTimeout 45s (INC-M03-G166-LATENCY)</td><td>FALLA</td></tr>
+<tr><td>CP-01</td><td>TC-M03-309 LEVE R=4</td><td>sin flag, índice 100, APTO</td><td>no ejecutado</td><td>FALLA</td></tr>
+<tr><td>CP-02</td><td>TC-M03-309 LEVE R=5/R=9</td><td>severidad=LEVE, índice 85, APTO</td><td>no ejecutado</td><td>FALLA</td></tr>
+<tr><td>CP-03</td><td>TC-M03-310 MODERADO R=10/R=19</td><td>severidad=MODERADO, índice 65, APTO_CON_RESERVA</td><td>no ejecutado</td><td>FALLA</td></tr>
+<tr><td>CP-04</td><td>TC-M03-311 CRITICO R=20</td><td>severidad=CRITICO, índice 10, NO_APTO</td><td>no ejecutado</td><td>FALLA</td></tr>
+<tr><td>CP-05</td><td>RF-57 alerta técnica</td><td>alerta TECNICA emitida</td><td>no ejecutado</td><td>FALLA</td></tr>
+<tr><td>CP-06</td><td>RF-63 bitácora</td><td>evento registrado</td><td>no ejecutado</td><td>FALLA</td></tr>
+<tr><td>CP-07</td><td>Teardown sandbox</td><td>HTTP 200 Rollback exitoso</td><td>HTTP 200 Rollback exitoso</td><td>OK</td></tr>
+</table>
+</body>
+</html>

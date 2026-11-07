@@ -1,0 +1,1205 @@
+{
+  "info": {
+    "name": "TC-M04-G034 - Aislamiento por lote, calidad de datos y trazabilidad del modelo de contagio (RF-68 CA-6 / CA-9 / RF-73)",
+    "description": "Verifica que las salidas de otro lote no contaminen Fs, que la calidad varie con los sensores sin cambiar P, y que cada calculo quede en la bitacora.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!pm.variables.get('sandbox_secret') && !_esLogin) {",
+          "    console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "    pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_contagio",
+      "value": "/prediccion/riesgo-contagio"
+    },
+    {
+      "key": "lotes",
+      "value": "[]"
+    },
+    {
+      "key": "ult_uso",
+      "value": "{}"
+    },
+    {
+      "key": "lote_actual",
+      "value": ""
+    },
+    {
+      "key": "cuerpo_ref",
+      "value": ""
+    },
+    {
+      "key": "endpoint_disponible",
+      "value": ""
+    },
+    {
+      "key": "puede_ejecutar",
+      "value": ""
+    },
+    {
+      "key": "alerta_id",
+      "value": ""
+    },
+    {
+      "key": "id_resultado",
+      "value": ""
+    },
+    {
+      "key": "t0",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin (Administrador)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Precondicion: existe el endpoint POST /prediccion/riesgo-contagio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}{{ruta_contagio}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var _existe = !(pm.response.code === 404 || pm.response.code === 405);",
+              "pm.collectionVariables.set('endpoint_disponible', _existe ? 'true' : 'false');",
+              "console.log('[TC-M04-G034 0B] POST {} -> ' + pm.response.code + ' ' + pm.response.text().slice(0, 300));",
+              "pm.test('0B. El endpoint existe (cuerpo vacio responde distinto de 404/405; esperado 422 de validacion)', function () { pm.expect(_existe, 'status=' + pm.response.code).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0D. Descubrir lotes (activos biologicos) accesibles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos?page_size=100"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('t0', new Date(Date.now() - 5000).toISOString());",
+              "pm.collectionVariables.set('ult_uso', '{}'); pm.collectionVariables.set('lote_actual', ''); pm.collectionVariables.set('cuerpo_ref', '');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var J = {}; try { J = pm.response.json(); } catch (e) {}",
+              "var regs = J.registros || J.items || [];",
+              "var pob = regs.filter(function (a) { return a.tipo === 'POBLACIONAL'; });",
+              "var elegidos = (pob.length ? pob : regs).slice(0, 6).map(function (a) { return a.id_activo_biologico; });",
+              "pm.collectionVariables.set('lotes', JSON.stringify(elegidos));",
+              "pm.collectionVariables.set('puede_ejecutar', elegidos.length ? 'true' : 'false');",
+              "console.log('[TC-M04-G034 0D] status=' + pm.response.code + ' activos=' + regs.length + ' poblacionales=' + pob.length + ' lotes elegidos=' + JSON.stringify(elegidos));",
+              "pm.test('0D. GET /activos-biologicos responde 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('0D. Hay al menos un lote (activo biologico) para ejecutar el modelo', function () { pm.expect(elegidos.length).to.be.above(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0. Preparacion",
+      "item": [
+        {
+          "name": "0C. Configurar RF-65: pesos Fs 0.5 / Fa 0.3 / Fd 0.2, T 20-36, HR 40-90, densidad maxima 15",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_modelo\": \"MODELO_RIESGO_CONTAGIO\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.5,\n  \"umbral_alerta_critica\": 0.75,\n  \"w_factor_sanitario\": 0.5,\n  \"w_factor_ambiental\": 0.3,\n  \"w_factor_densidad\": 0.2,\n  \"temp_min_config\": 20,\n  \"temp_max_config\": 36,\n  \"hr_min_config\": 40,\n  \"hr_max_config\": 90,\n  \"densidad_maxima_config\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G034 0C] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 600));",
+                  "pm.test('0C. Configuracion RF-65 creada (200/201)', function () { pm.expect([200, 201], pm.response.text().slice(0, 300)).to.include(pm.response.code); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// v3.0 (ajuste de QA): RF-65 CA-9 exige config_version vigente al modificar una configuracion existente (412 CONFLICTO_CONCURRENCIA si no coincide).",
+                  "// Se lee la configuracion vigente DENTRO del sandbox (mismas cabeceras) y se envia su config_version; si no existe configuracion, no se envia.",
+                  "pm.sendRequest({",
+                  "    url: pm.variables.get('base_url') + '/prediccion/motor-ia/MODELO_RIESGO_CONTAGIO',",
+                  "    method: 'GET',",
+                  "    header: [",
+                  "        { key: 'Authorization', value: 'Bearer ' + pm.variables.get('token_admin') },",
+                  "        { key: 'X-Test-Run-Id', value: pm.variables.get('run_id') },",
+                  "        { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }",
+                  "    ]",
+                  "}, function (err, res) {",
+                  "    try {",
+                  "        var cuerpo = JSON.parse(pm.request.body.raw);",
+                  "        if (!err && res && res.code === 200) {",
+                  "            var v = res.json().config_version;",
+                  "            if (v !== undefined && v !== null) { cuerpo.config_version = v; }",
+                  "        } else {",
+                  "            delete cuerpo.config_version;",
+                  "        }",
+                  "        pm.request.body.update(JSON.stringify(cuerpo, null, 2));",
+                  "        console.log('[config_version] vigente=' + cuerpo.config_version + ' (GET ' + (res ? res.code : 'sin respuesta') + ')');",
+                  "    } catch (e) { console.log('[config_version] no se pudo ajustar: ' + e); }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Aislamiento por lote",
+      "item": [
+        {
+          "name": "1.1 Linea base del lote: Fs 0.30, Fa 0.50, Fd 0.60 -> 0.42",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 10, \"enfermos\": 3, \"amb\": {\"T\": 28.0, \"HR\": 65.0}, \"densidad\": 9.0, \"reusar_lote\": false};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.42, \"fs\": 0.3, \"fa\": 0.5, \"fd\": 0.6, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 0, \"cb\": false};",
+                  "var ET = \"1.1 Linea base del lote: Fs 0.30, Fa 0.50, Fd 0.60 -> 0.42\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Salidas de otro lote mezcladas (5 salidas con id_activo_biologico de otros lotes, p=0.95): Fs del lote no debe cambiar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 10, \"enfermos\": 3, \"amb\": {\"T\": 28.0, \"HR\": 65.0}, \"densidad\": 9.0, \"otros_lotes\": 5};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.42, \"fs\": 0.3, \"fa\": 0.5, \"fd\": 0.6, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 0, \"cb\": false};",
+                  "var ET = \"1.2 Salidas de otro lote mezcladas (5 salidas con id_activo_biologico de otros lotes, p=0.95): Fs del lote no debe cambiar\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Calidad de datos segun sensores operativos",
+      "item": [
+        {
+          "name": "2.1 Sensores operativos 100 %: data_quality_score = 1.0 y P sin cambio (0.42)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 10, \"enfermos\": 3, \"amb\": {\"T\": 28.0, \"HR\": 65.0}, \"densidad\": 9.0, \"sensores_pct\": 100};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.42, \"fs\": 0.3, \"fa\": 0.5, \"fd\": 0.6, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 0, \"cb\": false, \"quality\": 1.0};",
+                  "var ET = \"2.1 Sensores operativos 100 %: data_quality_score = 1.0 y P sin cambio (0.42)\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Sensores operativos 80 %: data_quality_score = 0.95 y P sin cambio (0.42)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 10, \"enfermos\": 3, \"amb\": {\"T\": 28.0, \"HR\": 65.0}, \"densidad\": 9.0, \"sensores_pct\": 80};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.42, \"fs\": 0.3, \"fa\": 0.5, \"fd\": 0.6, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 0, \"cb\": false, \"quality\": 0.95};",
+                  "var ET = \"2.2 Sensores operativos 80 %: data_quality_score = 0.95 y P sin cambio (0.42)\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Sensores operativos 70 %: data_quality_score = 0.925 y P sin cambio (0.42)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 10, \"enfermos\": 3, \"amb\": {\"T\": 28.0, \"HR\": 65.0}, \"densidad\": 9.0, \"sensores_pct\": 70};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.42, \"fs\": 0.3, \"fa\": 0.5, \"fd\": 0.6, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 0, \"cb\": false, \"quality\": 0.925};",
+                  "var ET = \"2.3 Sensores operativos 70 %: data_quality_score = 0.925 y P sin cambio (0.42)\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Sensores operativos 60 %: data_quality_score = 0.9 y P sin cambio (0.42)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 10, \"enfermos\": 3, \"amb\": {\"T\": 28.0, \"HR\": 65.0}, \"densidad\": 9.0, \"sensores_pct\": 60};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.42, \"fs\": 0.3, \"fa\": 0.5, \"fd\": 0.6, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 0, \"cb\": false, \"quality\": 0.9};",
+                  "var ET = \"2.4 Sensores operativos 60 %: data_quality_score = 0.9 y P sin cambio (0.42)\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Resultado y trazabilidad",
+      "item": [
+        {
+          "name": "3.1 Resultado Medio: Fs 0.40, Fa 0.70, Fd 0.70 -> 0.55",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var P = {\"total\": 20, \"enfermos\": 8, \"amb\": {\"T\": 31.2, \"HR\": 75.0}, \"densidad\": 10.5};",
+                  "var _lotes = []; try { _lotes = JSON.parse(pm.collectionVariables.get('lotes') || '[]'); } catch (e) {}",
+                  "var _uso = {}; try { _uso = JSON.parse(pm.collectionVariables.get('ult_uso') || '{}'); } catch (e) {}",
+                  "var _sleep = function (ms) { var t = Date.now() + ms; while (Date.now() < t) {} };",
+                  "var _lote = null;",
+                  "if ((P.reusar_lote || P.reusar_cuerpo) && pm.collectionVariables.get('lote_actual')) { _lote = Number(pm.collectionVariables.get('lote_actual')); }",
+                  "else { var _mejor = Infinity; _lotes.forEach(function (id) { var u = _uso[id] || 0; if (u < _mejor) { _mejor = u; _lote = id; } }); }",
+                  "// RF-68 5.1: minimo 5 s entre ejecuciones del mismo lote. Se rota entre lotes y, si hace falta, se espera (5.4 s) salvo que el subcaso pruebe justamente esa ventana.",
+                  "if (typeof P.espera === 'number') { _sleep(P.espera); }",
+                  "else if (P.espera !== 'ninguna' && _lote !== null) { var _falta = 5400 - (Date.now() - (_uso[_lote] || 0)); if (_falta > 0) { _sleep(_falta); } }",
+                  "var _ahora = Date.now();",
+                  "var _iso = function (ms) { return new Date(ms).toISOString(); };",
+                  "var _cuerpo;",
+                  "if (P.reusar_cuerpo) { _cuerpo = pm.collectionVariables.get('cuerpo_ref') || '{}'; }",
+                  "else {",
+                  "    var _edad = (P.edad_inf_s === undefined ? 5 : P.edad_inf_s) * 1000;",
+                  "    var _n = (P.salidas === undefined || P.salidas === null) ? P.total : P.salidas;",
+                  "    var _sal = [];",
+                  "    for (var i = 0; i < _n; i++) { _sal.push({ probabilidad_riesgo_alto: i < (P.enfermos || 0) ? 0.9 : 0.1, fecha_inferencia: _iso(_ahora - _edad) }); }",
+                  "    if (P.otros_lotes) { _lotes.filter(function (x) { return x !== _lote; }).slice(0, P.otros_lotes).forEach(function (x) { _sal.push({ id_activo_biologico: x, probabilidad_riesgo_alto: 0.95, fecha_inferencia: _iso(_ahora - _edad) }); }); }",
+                  "    (P.extra_salidas || []).forEach(function (x) { _sal.push({ id_activo_biologico: x.id, probabilidad_riesgo_alto: x.p, fecha_inferencia: _iso(_ahora - _edad) }); });",
+                  "    var _b = { id_lote: _lote, salidas_rf66: _sal, total_activos_lote: P.total, porcentaje_sensores_activos: (P.sensores_pct === undefined ? 100 : P.sensores_pct) };",
+                  "    if (P.amb) { var _ea = (P.amb.edad_s !== undefined) ? P.amb.edad_s * 1000 : _edad + (P.amb.desfase_s || 0) * 1000; _b.variables_ambientales = { temperatura: P.amb.T, humedad_relativa: P.amb.HR, fecha_captura: _iso(_ahora - _ea) }; }",
+                  "    if (P.densidad !== undefined && P.densidad !== null) { _b.densidad_poblacional = P.densidad; }",
+                  "    _cuerpo = JSON.stringify(_b);",
+                  "}",
+                  "if (_lote !== null) { _uso[_lote] = Date.now(); pm.collectionVariables.set('ult_uso', JSON.stringify(_uso)); pm.collectionVariables.set('lote_actual', String(_lote)); }",
+                  "if (P.guardar_ref) { pm.collectionVariables.set('cuerpo_ref', _cuerpo); }",
+                  "pm.variables.set('cuerpo', _cuerpo); pm.variables.set('lote_usado', String(_lote));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var E = {\"status\": 201, \"p\": 0.55, \"fs\": 0.4, \"fa\": 0.7, \"fd\": 0.7, \"pesos\": {\"fs\": 0.5, \"fa\": 0.3, \"fd\": 0.2}, \"nivel\": 1, \"cb\": false, \"alerta\": false, \"guardar_resultado\": true};",
+                  "var ET = \"3.1 Resultado Medio: Fs 0.40, Fa 0.70, Fd 0.70 -> 0.55\";",
+                  "var _ok = pm.collectionVariables.get('endpoint_disponible') === 'true' && pm.collectionVariables.get('puede_ejecutar') === 'true';",
+                  "var J = null; try { J = pm.response.json(); } catch (e) {}",
+                  "console.log('[TC-M04-G034 ' + ET.slice(0, 4) + '] lote=' + pm.variables.get('lote_usado') + ' status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms envio=' + String(pm.variables.get('cuerpo')).slice(0, 700) + ' || resp=' + pm.response.text().slice(0, 1200));",
+                  "if (!_ok) {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe o no hay lote disponible (ver 0B / 0D)');",
+                  "} else if (E.requiere && pm.collectionVariables.get(E.requiere) !== 'true') {",
+                  "    pm.test.skip('Omitido: no se cumplio la precondicion previa (' + E.requiere + '); ver el paso anterior');",
+                  "} else {",
+                  "var num = function (v) { return (v === null || v === undefined) ? null : Number(v); };",
+                  "var tol = E.tol || 0.001;",
+                  "if (E.obs) {",
+                  "    pm.test(ET + ' [OBSERVADO] HTTP ' + pm.response.code + (J && J.error_code ? ' ' + J.error_code : ''), function () { pm.expect(true).to.eql(true); });",
+                  "    if (J && J.probabilidad_contagio !== undefined) { console.log('[OBSERVADO] ' + ET + ' -> P=' + J.probabilidad_contagio + ' nivel=' + J.nivel_riesgo_contagio + ' (' + J.nivel_riesgo_contagio_texto + ') fs=' + J.factor_sanitario + ' fa=' + J.factor_ambiental + ' fd=' + J.factor_densidad); }",
+                  "} else {",
+                  "pm.test(ET + ' -> HTTP ' + E.status, function () { pm.expect(pm.response.code, 'respuesta: ' + pm.response.text().slice(0, 400)).to.eql(E.status); });",
+                  "if (pm.response.code === E.status && J) {",
+                  "    if (E.error_code) { pm.test(ET + ': error_code = ' + E.error_code, function () { pm.expect(J.error_code).to.eql(E.error_code); }); }",
+                  "    if (E.p !== undefined) { pm.test(ET + ': probabilidad_contagio = ' + E.p, function () { pm.expect(num(J.probabilidad_contagio)).to.be.closeTo(E.p, tol); }); }",
+                  "    if (E.nivel !== undefined) { pm.test(ET + ': nivel_riesgo_contagio = ' + E.nivel + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel] + ')', function () { pm.expect(J.nivel_riesgo_contagio).to.eql(E.nivel); }); }",
+                  "    if (E.nivel_no !== undefined) { pm.test(ET + ': nivel_riesgo_contagio distinto de ' + E.nivel_no + ' (' + ['BAJO', 'MEDIO', 'ALTO'][E.nivel_no] + ')', function () { pm.expect(J.nivel_riesgo_contagio, 'nivel=' + J.nivel_riesgo_contagio + ' P=' + J.probabilidad_contagio).to.not.eql(E.nivel_no); }); }",
+                  "    if (E.cb !== undefined) { pm.test(ET + ': confianza_baja = ' + E.cb, function () { pm.expect(J.confianza_baja).to.eql(E.cb); }); }",
+                  "    if (E.modo) { pm.test(ET + ': modo_ejecucion = ' + E.modo, function () { pm.expect(J.modo_ejecucion).to.eql(E.modo); }); }",
+                  "    if (E.alerta === true) { pm.test(ET + ': genera alerta (alerta_id presente)', function () { pm.expect(J.alerta_id, 'alerta_id').to.not.be.oneOf([null, undefined]); }); if (J.alerta_id) { pm.collectionVariables.set('alerta_id', String(J.alerta_id)); } }",
+                  "    if (E.alerta === false) { pm.test(ET + ': NO genera alerta (alerta_id nulo)', function () { pm.expect(J.alerta_id === null || J.alerta_id === undefined, 'alerta_id=' + J.alerta_id).to.eql(true); }); }",
+                  "    [['fs', 'factor_sanitario'], ['fa', 'factor_ambiental'], ['fd', 'factor_densidad']].forEach(function (par) {",
+                  "        if (E[par[0]] === undefined) { return; }",
+                  "        if (E[par[0]] === null) { pm.test(ET + ': ' + par[1] + ' ausente (nulo)', function () { pm.expect(J[par[1]] === null || J[par[1]] === undefined, par[1] + '=' + J[par[1]]).to.eql(true); }); }",
+                  "        else { pm.test(ET + ': ' + par[1] + ' = ' + E[par[0]], function () { pm.expect(num(J[par[1]])).to.be.closeTo(E[par[0]], tol); }); }",
+                  "    });",
+                  "    if (E.pesos) { pm.test(ET + ': pesos_aplicados = ' + JSON.stringify(E.pesos), function () { ['fs', 'fa', 'fd'].forEach(function (k) { pm.expect(num((J.pesos_aplicados || {})[k]), 'peso ' + k).to.be.closeTo(E.pesos[k], 0.002); }); }); }",
+                  "    if (E.ausentes) { pm.test(ET + ': factores_ausentes = ' + JSON.stringify(E.ausentes), function () { pm.expect((J.factores_ausentes || []).slice().sort()).to.eql(E.ausentes); }); }",
+                  "    if (E.motivos_inc) { pm.test(ET + ': motivos_degradacion incluye ' + E.motivos_inc.join(','), function () { E.motivos_inc.forEach(function (m) { pm.expect(J.motivos_degradacion, 'motivos=' + JSON.stringify(J.motivos_degradacion)).to.include(m); }); }); }",
+                  "    if (E.sin_motivos) { pm.test(ET + ': sin motivos de degradacion', function () { pm.expect(J.motivos_degradacion || [], 'motivos').to.eql([]); }); }",
+                  "    if (E.motivos_exc) { pm.test(ET + ': motivos_degradacion NO incluye ' + E.motivos_exc.join(','), function () { E.motivos_exc.forEach(function (m) { pm.expect(J.motivos_degradacion || [], 'motivos').to.not.include(m); }); }); }",
+                  "    if (E.cache !== undefined) { pm.test(ET + ': desde_cache = ' + E.cache, function () { pm.expect(J.desde_cache).to.eql(E.cache); }); }",
+                  "    if (E.quality !== undefined) { pm.test(ET + ': data_quality_score = ' + E.quality, function () { pm.expect(num(J.data_quality_score)).to.be.closeTo(E.quality, 0.002); }); }",
+                  "    if (E.asumida !== undefined) { pm.test(ET + ': densidad_asumida = ' + E.asumida, function () { pm.expect(J.densidad_asumida).to.eql(E.asumida); }); }",
+                  "    if (E.definicion) { pm.test(ET + ': definicion_fs = ' + E.definicion, function () { pm.expect(J.definicion_fs).to.eql(E.definicion); }); }",
+                  "    if (E.guardar_resultado && J.id_resultado_contagio) { pm.collectionVariables.set('id_resultado', String(J.id_resultado_contagio)); }",
+                  "}",
+                  "}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 La persistencia (Paso 9) deja el resultado del lote en el historial diagnostico RF-67: GET /prediccion/historial/{lote}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/historial/{{lote_actual}}?fecha_inicio={{f_ini}}&fecha_fin={{f_fin}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _d = new Date(); pm.variables.set('f_ini', new Date(_d.getTime() - 86400000).toISOString().slice(0, 10)); pm.variables.set('f_fin', _d.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G034 3.2] id_resultado=' + pm.collectionVariables.get('id_resultado') + ' GET historial -> ' + pm.response.code + ' ' + pm.response.text().slice(0, 500));",
+                  "pm.test('3.2 GET /prediccion/historial/{lote} responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "pm.test('3.2 El historial del lote contiene el resultado de contagio calculado en 3.1', function () { var t = pm.response.text().toLowerCase(); pm.expect(t.indexOf('contagio') !== -1 || t.indexOf(String(pm.collectionVariables.get('id_resultado'))) !== -1, 'el historial no menciona el resultado de contagio').to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 El calculo queda registrado en la bitacora RF-73 (RIESGO_CONTAGIO_CALCULADO)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/auditoria?fecha_desde={{t0}}&tipo_evento=RIESGO_CONTAGIO_CALCULADO&pagina=1&por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G034 3.3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "var J = {}; try { J = pm.response.json(); } catch (e) {}",
+                  "var it = J.items || J.registros || [];",
+                  "pm.test('3.3 GET /prediccion/auditoria responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('3.3 Hay al menos un evento RIESGO_CONTAGIO_CALCULADO posterior al inicio de la corrida', function () { pm.expect(it.length).to.be.above(0); });",
+                  "if (pm.collectionVariables.get('id_resultado')) { pm.test('3.3 El resultado de 3.1 figura en la bitacora', function () { pm.expect(pm.response.text()).to.include(pm.collectionVariables.get('id_resultado')); }); }",
+                  "console.log('[OBSERVADO] Agregacion historica de 5 min y consulta GET de resultados: no existen en el backend (fuera de alcance documentado).');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M04-G034] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "tc": "TC-M03-G168",
+  "summary": {
+    "total": 65,
+    "ok": 17,
+    "falla": 48,
+    "veredicto": "RECHAZADO",
+    "bloqueo_externo": {
+      "inc_sensor_500": "POST /configuracion/dispositivos-iot/{id}/sensores → 500 por es_activo NOT NULL",
+      "inc_gap_not_implemented": "gap_temporal_anomalo comentado en Fase 5 del use case",
+      "subcasos_afectados": [
+        "TC-312",
+        "TC-316",
+        "TC-317",
+        "TC-323"
+      ]
+    }
+  },
+  "checkpoints": [
+    {
+      "paso": "Preflight (crear finca, area, dispositivo)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Crear sensor",
+      "esperado": "PASSED",
+      "obtenido": "500 ERROR_INTERNO",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-312 / TC-316 / TC-317 / TC-323 (evaluaciones)",
+      "esperado": "PASSED",
+      "obtenido": "BLOCKED",
+      "estado": "FALLA"
+    }
+  ]
+}

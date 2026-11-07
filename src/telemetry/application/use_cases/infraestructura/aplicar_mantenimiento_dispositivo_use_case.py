@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: restringe mantenimiento y alcance de finca |
 """RF-60 CA-7/CA-8: Transición manual de mantenimiento de un dispositivo IoT.
 
 Permite a Administrador/Ingeniero poner un dispositivo EN_MANTENIMIENTO o
@@ -25,10 +28,12 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import BusinessRuleError, NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError, ServiceUnavailableError
 from src.telemetry.domain.entities.estado_dispositivo_iot import EstadoDispositivoIoT
 from src.telemetry.domain.entities.evento_auditoria_iot import (
     ComponenteOrigen,
+    EventoAuditoriaIot,
+    clasificar_componente,
     EntidadAfectadaTipo,
     SeveridadLog,
     TipoResultado,
@@ -56,8 +61,13 @@ class AplicarMantenimientoDispositivoUseCase:
         dto: AplicarMantenimientoDTO,
         id_usuario: int,
         nombre_usuario: str,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> EstadoDispositivoIoT:
-        estado = self.estado_repo.obtener_por_dispositivo(id_dispositivo_iot)
+        if ids_fincas_permitidas is not None and not self.estado_repo.pertenece_a_fincas(
+            id_dispositivo_iot, ids_fincas_permitidas):
+            raise NotFoundError('ESTADO_DISPOSITIVO_NO_ENCONTRADO',
+                                'No existe un estado accesible para el dispositivo indicado.')
+        estado = self.estado_repo.bloquear_por_dispositivo(id_dispositivo_iot)
         if estado is None:
             raise NotFoundError(
                 code='ESTADO_DISPOSITIVO_NO_ENCONTRADO',
@@ -75,6 +85,7 @@ class AplicarMantenimientoDispositivoUseCase:
         ahora = datetime.now(timezone.utc)
 
         try:
+            estado.validar_transicion_manual(dto.nuevo_estado)
             # causa=None: enum_causa_inactividad no tiene un valor de mantenimiento (ver docstring).
             # El histórico de transición lo inserta el trigger trg_rf60_02_log_transicion_estado
             # al actualizar el estado (usa estado.id_usuario como id_usuairo_responsable).
@@ -85,19 +96,12 @@ class AplicarMantenimientoDispositivoUseCase:
                 id_usuario=id_usuario,
             )
             self.estado_repo.actualizar(estado)
+            self._emitir_auditoria(id_dispositivo_iot, estado_anterior, dto.nuevo_estado,
+                dto.motivo, id_usuario, nombre_usuario)
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
-
-        self._emitir_auditoria(
-            id_dispositivo_iot=id_dispositivo_iot,
-            estado_anterior=estado_anterior,
-            estado_nuevo=dto.nuevo_estado,
-            motivo=dto.motivo,
-            id_usuario=id_usuario,
-            nombre_usuario=nombre_usuario,
-        )
 
         return estado
 
@@ -112,28 +116,22 @@ class AplicarMantenimientoDispositivoUseCase:
     ) -> None:
         if self.auditoria_repo is None:
             return
-        try:
-            from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
-            svc = RegistrarEventoAuditoriaIotUseCase(db=self.db, auditoria_repo=self.auditoria_repo)
-            svc.execute(
-                tipo_evento='TRANSICION_MANTENIMIENTO_MANUAL',
-                resultado=TipoResultado.EXITOSO,
-                componente_origen=ComponenteOrigen.RF60,
-                severidad_log=SeveridadLog.INFO,
-                descripcion=(
-                    f'Transición manual de dispositivo {id_dispositivo_iot} a {estado_nuevo} '
-                    f'por {nombre_usuario}.'
-                ),
-                entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
-                entidad_afectada_id=str(id_dispositivo_iot),
-                accion_detallada={
-                    'id_dispositivo_iot': id_dispositivo_iot,
-                    'estado_anterior': estado_anterior,
-                    'estado_nuevo': estado_nuevo,
-                    'motivo': motivo,
-                },
-                id_usuario=id_usuario,
-                nombre_usuario=nombre_usuario,
-            )
-        except Exception:
-            pass
+        from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
+        clasificacion, retencion = clasificar_componente(ComponenteOrigen.RF60)
+        evento = EventoAuditoriaIot(
+            id_evento=None, tipo_evento='TRANSICION_MANTENIMIENTO_MANUAL',
+            fecha_hora=datetime.now(timezone.utc), resultado=TipoResultado.EXITOSO,
+            componente_origen=ComponenteOrigen.RF60, severidad_log=SeveridadLog.INFO,
+            clasificacion_registro=clasificacion, retencion_aplicable=retencion,
+            descripcion=f'Transición manual de dispositivo {id_dispositivo_iot} a {estado_nuevo}.',
+            entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+            entidad_afectada_id=str(id_dispositivo_iot), id_usuario=id_usuario,
+            nombre_usuario=nombre_usuario,
+            accion_detallada={'id_dispositivo_iot': id_dispositivo_iot,
+                'estado_anterior': estado_anterior, 'estado_nuevo': estado_nuevo, 'motivo': motivo},
+        )
+        evento.hash_integridad = _calcular_hash(evento)
+        registrado = self.auditoria_repo.registrar(evento)
+        if registrado.id_evento is None:
+            raise ServiceUnavailableError('AUDITORIA_NO_DISPONIBLE',
+                'No fue posible registrar la transición manual.')

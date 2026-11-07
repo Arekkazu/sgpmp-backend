@@ -1,0 +1,22 @@
+{
+  "caso": "TC-M01-053",
+  "titulo": "Frontera de expiración del token de recuperación (14:59 aceptado / 15:01 rechazado)",
+  "rf": "RF-09",
+  "responsable": "María José (verificación con cuenta propia u20212200102@usco.edu.co, tokens reales)",
+  "fecha": "2026-09-05",
+  "veredicto": "SIN FALLAS BLOQUEANTES",
+  "checkpoints": [
+    {
+      "paso": "0A/1A: Disparar y usar Token A a los 14:59",
+      "esperado": "HTTP 200 (el token todavía debe ser válido dentro del límite de 15 minutos)",
+      "obtenido": "Token disparado 04:36:20 UTC, probado 04:51:16 UTC (14:56 transcurridos) -> HTTP 200, 'Contraseña restablecida exitosamente'",
+      "estado": "OK"
+    },
+    {
+      "paso": "0B/1B: Disparar y usar Token B a los 15:01",
+      "esperado": "El token ya vencido debe rechazarse",
+      "obtenido": "Token disparado 04:51:28 UTC, probado 05:12:07 UTC (20:39 transcurridos, bien pasado el límite) -> HTTP 410 TOKEN_EXPIRADO ('El enlace de recuperación ha expirado... válidos durante 15 minutos'). El script original de Daniela esperaba HTTP 401 TOKEN_INVALIDO; el backend responde 410, que es el código correcto según la propia jerarquía de errores del proyecto (GoneError -> 410, definida explícitamente para 'recurso que existió pero ya no aplica: token expirado'). No es un defecto -- el script original asumió el código equivocado.",
+      "estado": "OK"
+    }
+  ]
+}

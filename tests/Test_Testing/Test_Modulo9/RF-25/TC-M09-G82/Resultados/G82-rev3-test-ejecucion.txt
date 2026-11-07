@@ -1,0 +1,22 @@
+TC-M09-G82 / TC-M09-157 — retest rev3 TEST
+Fecha UTC inspeccion: 2026-09-19T02:11:08Z
+Ambiente: TEST
+baseUrl: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Coleccion historica NO modificada: tc_m09_g82.json (sigue usando ingeniero + /configuracion/fincas/19)
+Evidencias historicas NO modificadas: TC-M09-G82_rev2.*, mochawesome.html
+
+Matriz DBA: usuario=20 finca=999 esperado=rechazo + evento de seguridad
+
+Inspeccion (solo lectura, un login admin):
+  POST /sesiones/ admin@pecuaria.co -> 200 id=1 Administrador
+  GET /usuarios/20/detalle -> 404 USUARIO_NO_ENCONTRADO
+  GET /configuracion/fincas/999 -> 404 FINCA_NO_ENCONTRADA
+  GET /usuarios/admin paginas 1-2 -> total 75, sin id 20
+  GET /configuracion/fincas/19 (diagnostico, no es la matriz) -> 200 id_usuario=null
+
+No se ejecuto el GET de autorizacion como usuario 20.
+No se mutaron aserciones del JSON historico.
+No se fusiono origin/dev.
+
+Clasificacion TC-M09-157: BLOQUEADO
+Password/JWT: [REDACTED]

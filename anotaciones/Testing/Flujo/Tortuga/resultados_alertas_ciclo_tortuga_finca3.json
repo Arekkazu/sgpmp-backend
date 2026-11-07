@@ -1,0 +1,139 @@
+{
+ "ejecutado": "2026-11-02T23:56:15",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "area_QA": 25,
+ "fixture": {
+  "disp": 21,
+  "lotes": {
+   "QA-O2-A": 41,
+   "QA-O2-B": 42
+  },
+  "alertas": {
+   "QA-O2-A": 279,
+   "QA-O2-B": 280
+  }
+ },
+ "pasos": [
+  {
+   "id": "E0",
+   "descripcion": "Alertas generadas por las lecturas criticas",
+   "alerta_A": 279,
+   "estado_A": "ACTIVA",
+   "severidad_A": "CRITICO",
+   "tipo_A": "RIESGO_HIDRICO",
+   "alerta_B": 280,
+   "estado_B": "ACTIVA",
+   "severidad_B": "CRITICO",
+   "tipo_B": "RIESGO_HIDRICO",
+   "resultado": "PASA"
+  },
+  {
+   "id": "L1",
+   "descripcion": "ACTIVA -> CERRADA (estado que no existe)",
+   "esperado": "422 TRANSICION_INVALIDA, sigue ACTIVA",
+   "status": 422,
+   "error_code": "TRANSICION_INVALIDA",
+   "estado_resultante": "ACTIVA",
+   "fecha_atencion": null,
+   "fecha_resolucion": null,
+   "motivo_descarte": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "L2",
+   "descripcion": "ACTIVA -> EN_ATENCION",
+   "esperado": "200, fecha_atencion informada",
+   "status": 200,
+   "error_code": null,
+   "estado_resultante": "EN_ATENCION",
+   "fecha_atencion": "2026-11-03T04:56:00.593232Z",
+   "fecha_resolucion": null,
+   "motivo_descarte": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "L3",
+   "descripcion": "EN_ATENCION -> RESUELTA",
+   "esperado": "200, fecha_resolucion informada",
+   "status": 200,
+   "error_code": null,
+   "estado_resultante": "RESUELTA",
+   "fecha_atencion": "2026-11-03T04:56:00.593232Z",
+   "fecha_resolucion": "2026-11-03T04:56:01.383071Z",
+   "motivo_descarte": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "L4",
+   "descripcion": "RESUELTA -> ACTIVA (retroceso)",
+   "esperado": "rechazo 4xx, sigue RESUELTA",
+   "status": 422,
+   "error_code": "TRANSICION_INVALIDA",
+   "estado_resultante": "RESUELTA",
+   "fecha_atencion": "2026-11-03T04:56:00.593232Z",
+   "fecha_resolucion": "2026-11-03T04:56:01.383071Z",
+   "motivo_descarte": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "L5",
+   "descripcion": "RESUELTA -> EN_ATENCION",
+   "esperado": "rechazo 4xx, sigue RESUELTA",
+   "status": 422,
+   "error_code": "TRANSICION_INVALIDA",
+   "estado_resultante": "RESUELTA",
+   "fecha_atencion": "2026-11-03T04:56:00.593232Z",
+   "fecha_resolucion": "2026-11-03T04:56:01.383071Z",
+   "motivo_descarte": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "L6",
+   "descripcion": "Motivo de 501 caracteres",
+   "esperado": "400/422 (maximo 500), sin cambio",
+   "status": 400,
+   "error_code": "VAL_ENTRADA",
+   "estado_resultante": "ACTIVA",
+   "fecha_atencion": null,
+   "fecha_resolucion": null,
+   "motivo_descarte": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "L7",
+   "descripcion": "ACTIVA -> DESCARTADA con motivo",
+   "esperado": "200, motivo_descarte informado",
+   "status": 200,
+   "error_code": null,
+   "estado_resultante": "DESCARTADA",
+   "fecha_atencion": null,
+   "fecha_resolucion": "2026-11-03T04:56:04.505464Z",
+   "motivo_descarte": "QA: falsa alarma de prueba",
+   "resultado": "PASA"
+  },
+  {
+   "id": "L8",
+   "descripcion": "DESCARTADA -> ACTIVA (retroceso)",
+   "esperado": "rechazo 4xx, sigue DESCARTADA",
+   "status": 422,
+   "error_code": "TRANSICION_INVALIDA",
+   "estado_resultante": "DESCARTADA",
+   "fecha_atencion": null,
+   "fecha_resolucion": "2026-11-03T04:56:04.505464Z",
+   "motivo_descarte": "QA: falsa alarma de prueba",
+   "resultado": "PASA"
+  },
+  {
+   "id": "L9",
+   "descripcion": "Estado inexistente",
+   "esperado": "400/422",
+   "status": 422,
+   "error_code": "TRANSICION_INVALIDA",
+   "estado_resultante": "DESCARTADA",
+   "fecha_atencion": null,
+   "fecha_resolucion": "2026-11-03T04:56:04.505464Z",
+   "motivo_descarte": "QA: falsa alarma de prueba",
+   "resultado": "PASA"
+  }
+ ]
+}

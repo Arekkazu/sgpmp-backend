@@ -1,7 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M03-147-G191 RF-63 CA-13: registra eventos incompletos sin rechazarlos |
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
@@ -18,6 +22,11 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
     clasificar_componente,
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
+
+logger = logging.getLogger(__name__)
+
+# tipo_evento es NOT NULL: un evento recibido sin tipo se guarda con este valor.
+TIPO_EVENTO_NO_INFORMADO = 'TIPO_EVENTO_NO_INFORMADO'
 
 
 def _calcular_hash(evento: EventoAuditoriaIot) -> str:
@@ -51,9 +60,9 @@ class RegistrarEventoAuditoriaIotUseCase:
 
     def execute(
         self,
-        tipo_evento: str,
+        tipo_evento: Optional[str],
         resultado: TipoResultado,
-        componente_origen: ComponenteOrigen,
+        componente_origen: Optional[ComponenteOrigen],
         severidad_log: SeveridadLog = SeveridadLog.INFO,
         descripcion: Optional[str] = None,
         entidad_afectada_tipo: Optional[EntidadAfectadaTipo] = None,
@@ -64,10 +73,23 @@ class RegistrarEventoAuditoriaIotUseCase:
         id_sesion: Optional[UUID] = None,
         direccion_ip: Optional[str] = None,
         registro_incompleto: bool = False,
+        fecha_evento: Optional[datetime] = None,
     ) -> None:
+        """``fecha_evento`` es el instante en que ocurrió el evento (por omisión, ahora).
+
+        RF-63 CA-13 / E3: si falta ``tipo_evento`` o el RF emisor el evento se
+        registra igual, con ``registro_incompleto=true`` y los campos faltantes en
+        ``accion_detallada.campos_faltantes``.
+        """
         try:
+            faltantes = [campo for campo, valor in (
+                ('tipo_evento', tipo_evento), ('rf_origen', componente_origen)) if not valor]
+            if faltantes:
+                registro_incompleto = True
+                accion_detallada = {**(accion_detallada or {}), 'campos_faltantes': faltantes}
+                tipo_evento = tipo_evento or TIPO_EVENTO_NO_INFORMADO
             clasificacion, retencion = clasificar_componente(componente_origen)
-            ahora = datetime.now(timezone.utc)
+            ahora = fecha_evento or datetime.now(timezone.utc)
 
             evento = EventoAuditoriaIot(
                 id_evento=None,
@@ -90,7 +112,14 @@ class RegistrarEventoAuditoriaIotUseCase:
             )
             evento.hash_integridad = _calcular_hash(evento)
 
-            self.auditoria_repo.registrar(evento)
+            registrado = self.auditoria_repo.registrar(evento)
+            if registrado.id_evento is None:
+                # El adaptador best-effort devuelve el evento sin ID si falla.
+                # No confirmar una transacción fallida ni aparentar éxito.
+                self.db.rollback()
+                logger.warning('RF-63: no se pudo registrar el evento de auditoría (tipo=%s).', tipo_evento)
+                return
             self.db.commit()
         except Exception:
             self.db.rollback()
+            logger.warning('RF-63: no se pudo registrar el evento de auditoría (tipo=%s).', tipo_evento)

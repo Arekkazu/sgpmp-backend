@@ -1,0 +1,39 @@
+{
+  "grupo": "TC-M09-G32",
+  "caso": "TC-M09-69",
+  "fecha": "2026-09-06",
+  "metodo": "Revisión de contrato/código en la rama QA y consultas API HTTPS de solo lectura en TEST.",
+  "rf17": {
+    "consulta": "GET /configuracion/umbrales?id_especie={id}&solo_activas=true",
+    "modificacion": "PATCH /configuracion/umbrales/{id_umbral_ambiental}",
+    "dto": ["valor_min", "valor_max", "niveles"],
+    "configuraciones_activas_descubiertas": 10
+  },
+  "monitoreo": {
+    "endpoints_expuestos": [
+      "GET /iot/monitoreo/dashboard",
+      "GET /iot/monitoreo/dashboard/{id_infraestructura}",
+      "GET /iot/monitoreo/historial"
+    ],
+    "dashboard_http": 200,
+    "historial_http": 200,
+    "expone_id_umbral_ambiental": false,
+    "expone_valor_min_efectivo": false,
+    "expone_valor_max_efectivo": false,
+    "expone_version_configuracion": false,
+    "expone_contexto_especie_activo_en_lecturas_recientes": false
+  },
+  "revision_estatica": {
+    "dashboard": "Lee estados actuales de sensores; no consulta un umbral RF-17 ni una caché de umbrales en el caso de uso revisado.",
+    "historial": "Invoca UmbralHistoricoM09Adapter, cuyo código actual retorna sin umbral y documenta que deja los semáforos históricos en GRIS.",
+    "alcance": "El SHA desplegado en TEST no está confirmado; esta revisión no prueba por sí sola un defecto del despliegue."
+  },
+  "decision_previa_a_escritura": {
+    "correlacion_configuracion_monitoreo_before": false,
+    "patch_ejecutado": false,
+    "sql_ejecutado": false,
+    "motivo": "Sin un mecanismo observable y correlacionable no puede verificarse que Monitoreo adoptó un cambio; modificar un umbral generaría una escritura TEST sin oráculo válido.",
+    "equipo_responsable_del_desbloqueo": "Desarrollo",
+    "accion": "REPORTAR A DESARROLLO"
+  }
+}

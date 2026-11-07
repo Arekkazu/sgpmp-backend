@@ -1,0 +1,180 @@
+{
+  "grupo": "TC-M09-G27",
+  "caso": "TC-M09-59",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "trazabilidad": "CU-07",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "front": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io",
+  "fecha": "2026-09-06T00:36:48.521Z",
+  "resultado": "APROBADO",
+  "intento": 1,
+  "actor": {
+    "email": "gestor.granja.test@pecuaria.co",
+    "rol": "Gestor de Granja",
+    "rolEsperado": "Gestor de granja",
+    "authStatus": 200,
+    "identityStatus": 200,
+    "permisosStatus": 200,
+    "permisoRF17Actualizar": false
+  },
+  "seleccionActor": [
+    {
+      "actor": "Productor",
+      "email": "m2m.nuevo@ejemplo.com",
+      "login": "fallido",
+      "status": 403
+    },
+    {
+      "actor": "Supervisor",
+      "email": "supervisor.dev@sgpmp.test",
+      "login": "fallido",
+      "status": 400
+    },
+    {
+      "actor": "Gestor de granja",
+      "email": "gestor.granja.test@pecuaria.co",
+      "login": "ok",
+      "meStatus": 200,
+      "permisosStatus": 200,
+      "rolReal": "Gestor de Granja",
+      "permisoRF17Actualizar": false,
+      "seleccionado": true
+    }
+  ],
+  "autenticacion": {
+    "actorLogin": 200,
+    "actorIdentity": 200,
+    "actorPermisos": 200,
+    "rolNoAutorizado": true,
+    "permisoActualizarRF17": false
+  },
+  "contract": {
+    "metodo": "PATCH",
+    "endpoint": "/configuracion/umbrales/10",
+    "recurso": 20,
+    "accionActualizar": 3
+  },
+  "especie": {
+    "id": 4,
+    "nombre": "Cachama Blanca",
+    "es_activo": true
+  },
+  "variable": {
+    "id": 1,
+    "nombre": "Temperatura del agua",
+    "unidad": "°C",
+    "limiteFisicoMin": 0,
+    "limiteFisicoMax": 45
+  },
+  "before": {
+    "id_umbral_ambiental": 10,
+    "id_especie": 4,
+    "id_variable_ambiental": 1,
+    "unidad_medida": "°C",
+    "valor_min": "0.00",
+    "valor_max": "100.00",
+    "es_activo": true,
+    "niveles": [
+      {
+        "nivel": "critico",
+        "limite_inferior": "0.00",
+        "limite_superior": "22.00"
+      },
+      {
+        "nivel": "normal",
+        "limite_inferior": "26.00",
+        "limite_superior": "32.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "22.00",
+        "limite_superior": "26.00"
+      }
+    ]
+  },
+  "payloadSolicitado": {
+    "valor_min": 9,
+    "valor_max": 36,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": 9,
+        "limite_superior": 18
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": 18,
+        "limite_superior": 27
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": 27,
+        "limite_superior": 36
+      }
+    ],
+    "fecha_actualizacion": null
+  },
+  "metodo": "PATCH",
+  "endpoint": "/configuracion/umbrales/10",
+  "status": 403,
+  "errorCode": "ACCESO_DENEGADO",
+  "respuesta": {
+    "error_code": "ACCESO_DENEGADO",
+    "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+    "fields": [],
+    "timestamp": "2026-09-06T00:36:47.651636+00:00"
+  },
+  "eventos": [
+    {
+      "metodo": "PATCH",
+      "endpoint": "/configuracion/umbrales/10",
+      "status": 403,
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-09-06T00:36:47.651636+00:00"
+      },
+      "transportError": false
+    }
+  ],
+  "after": {
+    "id_umbral_ambiental": 10,
+    "id_especie": 4,
+    "id_variable_ambiental": 1,
+    "unidad_medida": "°C",
+    "valor_min": "0.00",
+    "valor_max": "100.00",
+    "es_activo": true,
+    "niveles": [
+      {
+        "nivel": "critico",
+        "limite_inferior": "0.00",
+        "limite_superior": "22.00"
+      },
+      {
+        "nivel": "normal",
+        "limite_inferior": "26.00",
+        "limite_superior": "32.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "22.00",
+        "limite_superior": "26.00"
+      }
+    ]
+  },
+  "persistencia": false,
+  "assertions": {
+    "total": 4,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "STOP_ALL": false,
+  "html": "newman/newman-TC-M09-59-intento1.html"
+}

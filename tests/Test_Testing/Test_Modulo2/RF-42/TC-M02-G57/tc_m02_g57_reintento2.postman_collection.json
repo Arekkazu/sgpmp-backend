@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "TC-M02-G57 - Reintento 2 (2026-10-04, TEST) - lote BAJA: la puerta de estado precede a la de fase",
+    "description": "Re-ejecucion en TEST. Corrige la aserción del sub-caso 3 de reintento1: el lote 347 esta en BAJA, y el codigo valida el ESTADO del activo (ESTADO_NO_PERMITE_EVENTOS) antes de la FASE. La puerta de FASE solo se alcanza con un lote ACTIVO, y en TEST no existe ningun lote POBLACIONAL ACTIVO ni se puede crear uno (DENSIDAD_MAXIMA_NO_CONFIGURADA), asi que esa rama queda NO verificada hoy. Sub-caso 1 (individuo sin fase) sigue dando 409 FASE_NO_COMPATIBLE_REPRODUCCION.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-224) - Inseminacion sobre activo sin fase (CAMBIO: 409 FASE_NO_COMPATIBLE_REPRODUCCION)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CAMBIO: rechazado con HTTP 409 (nueva puerta de fase, antecede a todo lo demas)', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio FASE_NO_COMPATIBLE_REPRODUCCION', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('FASE_NO_COMPATIBLE_REPRODUCCION');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"inseminacion\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_sin_fase}}/eventos/reproductivo",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_sin_fase}}",
+            "eventos",
+            "reproductivo"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3 (TC-M02-226) - Parto en LOTE BAJA (estado precede a fase)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('409 en lote BAJA', function () { pm.response.to.have.status(409); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "pm.test('ESTADO_NO_PERMITE_EVENTOS (puerta de estado antes que la de fase)', function () { pm.expect(r && r.error_code).to.equal('ESTADO_NO_PERMITE_EVENTOS'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/eventos/reproductivo",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "reproductivo"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "admin_correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "admin_contrasena",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_activo_sin_fase",
+      "value": "379"
+    },
+    {
+      "key": "id_padre",
+      "value": "303"
+    },
+    {
+      "key": "id_lote",
+      "value": "347"
+    }
+  ]
+}

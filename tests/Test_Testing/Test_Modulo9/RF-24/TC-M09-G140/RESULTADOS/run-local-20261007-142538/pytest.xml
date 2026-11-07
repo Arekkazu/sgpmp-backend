@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.545" timestamp="2026-10-07T09:26:55.439758-05:00" hostname="Juanher01"><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G140.test_tc_m09_286_local" name="test_compuerta_previa_al_laboratorio_local" time="3.330"><failure message="AssertionError: TC-M09-286 queda BLOQUEADO / NO VERIFICABLE.&#10;  El artefacto de la rama no contiene la implementación VISION: faltan operacion_vision, modo_calibracion, persistencia_baseline_vision, algoritmo_refinamiento, configuracion_max_iter, configuracion_epsilon, fuente_vector_vision, percentiles_p5_p95. Sin operación VISION, persistencia de línea base, algoritmo de refinamiento ni configuración de ε/máximo de iteraciones, el laboratorio no puede probar nada.&#10;  Piezas presentes: 0/8&#10;assert False">def test_compuerta_previa_al_laboratorio_local():
+        raiz = repo_root()
+        carpetas = ["src", "alembic"]
+    
+        # Piezas esenciales que el laboratorio necesitaría para que TC-286 sea ejecutable.
+        piezas = {
+            "operacion_vision": r"(?&lt;![A-Za-z])VISION(?![A-Za-z])",
+            "modo_calibracion": r"modo_calibracion",
+            "persistencia_baseline_vision": r"linea[_ ]?base|lineas_base",
+            "algoritmo_refinamiento": r"refinamiento|convergencia|mediana_iterativa",
+            "configuracion_max_iter": r"max_iter|maximo_iteraciones",
+            "configuracion_epsilon": r"epsilon",
+            "fuente_vector_vision": r"vector_comportamiento|ventana_observacion",
+            "percentiles_p5_p95": r"winsoriz|percentil|p95",
+        }
+        hallazgos = {nombre: buscar(patron, carpetas) for nombre, patron in piezas.items()}
+        presentes = {nombre: bool(archivos) for nombre, archivos in hallazgos.items()}
+    
+        # "baseline" sí aparece en la rama, pero corresponde al baseline de integridad de RF-10 y al
+        # dump de esquema: se deja constancia para que nadie lo confunda con la línea base VISION.
+        baseline_integridad = buscar_sin_filtro(r"integridad_baseline|esquema_baseline", carpetas)
+        falsos_positivos = {
+            "CAMARA_VISION_y_atributos_de_camara": buscar_sin_filtro(r"CAMARA_VISION|ATRIBUTOS_VISION", carpetas),
+            "linea_base_de_integridad_rf10": buscar_sin_filtro(r"linea[_ ]?base de integridad", carpetas),
+        }
+    
+        ev = {
+            "grupo": GRUPO, "caso": CASO, "requisito": RF,
+            "ambiente": "LOCAL_AISLADO", "prueba_local": True, "run_id": RUN_ID,
+            "fecha": datetime.now(timezone.utc).isoformat(),
+            "artefacto_evaluado": {"repositorio": str(raiz.name), "carpetas": carpetas},
+            "compuerta_previa": {
+                "piezas_requeridas": presentes,
+                "archivos_por_pieza": hallazgos,
+                "cumplidas": sum(1 for v in presentes.values() if v),
+                "total": len(presentes),
+            },
+            "falsos_positivos_descartados": {
+                "coincidencias": falsos_positivos,
+                "nota": ("CAMARA_VISION es el tipo de dispositivo cámara y ATRIBUTOS_VISION sus "
+                         "atributos (resolución, fps, área de cobertura): no acreditan una operación "
+                         "de calibración VISION. 'Línea base de integridad' es de RF-10. Contarlos "
+                         "como presencia daría un falso positivo de ejecutabilidad."),
+            },
+            "baseline_existente_no_vision": {
+                "archivos": baseline_integridad,
+                "nota": ("Los 'baseline' de la rama son el baseline de integridad de RF-10 "
+                         "(modulo1.integridad_baseline) y el dump de esquema. No son la línea base "
+                         "VISION del Flujo F."),
+            },
+            "laboratorio": {
+                "levantado": False,
+                "motivo": ("No se crea un laboratorio local para una función inexistente: el paquete "
+                           "lo prohíbe expresamente y no se construyen mocks para simular VISION."),
+                "compose_no_creado": True,
+            },
+            "config": {"epsilon": None, "max_iter_original": None,
+                       "max_iter_durante": None, "max_iter_restaurado": None},
+            "baseline_previa": None, "dataset_no_convergente": None, "oracle": None,
+            "response": None, "auditoria": None, "baseline_post": None,
+            "presupuesto": {"postVisionPlanificadosLocal": 2, "postVisionEjecutados": 0},
+        }
+    
+        ejecutable = all(presentes.values())
+        ev["resultado"] = "APROBADO" if ejecutable else "BLOQUEADO / NO VERIFICABLE"
+        ev["motivo"] = None if ejecutable else (
+            "El artefacto de la rama no contiene la implementación VISION: faltan "
+            + ", ".join(n for n, v in presentes.items() if not v)
+            + ". Sin operación VISION, persistencia de línea base, algoritmo de refinamiento ni "
+              "configuración de ε/máximo de iteraciones, el laboratorio no puede probar nada."
+        )
+        ev["seguridad"] = {"limpio": True, "criterio": "La compuerta solo lee archivos del repositorio."}
+    
+        (OUT_DIR / "evidencia.json").write_text(
+            json.dumps(ev, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    
+&gt;       assert ejecutable, (
+            "TC-M09-286 queda BLOQUEADO / NO VERIFICABLE.\n" + ev["motivo"] +
+            f"\nPiezas presentes: {ev['compuerta_previa']['cumplidas']}/{ev['compuerta_previa']['total']}"
+        )
+E       AssertionError: TC-M09-286 queda BLOQUEADO / NO VERIFICABLE.
+E         El artefacto de la rama no contiene la implementación VISION: faltan operacion_vision, modo_calibracion, persistencia_baseline_vision, algoritmo_refinamiento, configuracion_max_iter, configuracion_epsilon, fuente_vector_vision, percentiles_p5_p95. Sin operación VISION, persistencia de línea base, algoritmo de refinamiento ni configuración de ε/máximo de iteraciones, el laboratorio no puede probar nada.
+E         Piezas presentes: 0/8
+E       assert False
+
+test_tc_m09_286_local.py:184: AssertionError</failure></testcase></testsuite></testsuites>

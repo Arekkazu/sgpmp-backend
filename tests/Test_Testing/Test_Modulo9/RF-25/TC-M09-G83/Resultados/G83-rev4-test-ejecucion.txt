@@ -1,0 +1,18 @@
+TC-M09-158 / G83 rev4 TEST
+Ambiente: TEST https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Historico NO modificado: tc_m09_g83.json, TC-M09-G83-Newman.html, rev2, rev3_dev
+
+Inspeccion (admin un login): GET /roles/ — recurso 22 R solo roles 1-5.
+Usuario de prueba: id=30 gestor.granja.test@pecuaria.co rol=7 Gestor de Granja. R contexto_interfaz=NO.
+
+Un login de prueba:
+  POST /sesiones/ -> 200 JWT sub=30 rol=7 [REDACTED]
+  GET /usuarios/me -> 200 Gestor de Granja
+  GET /configuracion/interfaz/contexto -> 403 ACCESO_DENEGADO
+  Cuerpo sin modulos_autorizados / id_finca / identidad_visual / id_usuario / id_rol
+
+Newman no se reejecuto para no duplicar login del mismo usuario.
+Coleccion lista: tc_m09_g83_rev4_test.json (password via --env-var)
+
+Clasificacion: APROBADO
+Password/JWT/Bearer: [REDACTED]

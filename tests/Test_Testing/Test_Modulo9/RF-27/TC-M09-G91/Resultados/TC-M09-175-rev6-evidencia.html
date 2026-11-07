@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>TC-M09-175 rev6</title></head>
+<body>
+  <h1>TC-M09-175 rev6 TEST</h1>
+  <p><strong>Actor nominado (cm09175.qa@sgpmp-test.com): BLOQUEADO</strong> — no APROBADO</p>
+  <p>UTC 2026-10-09T23:34:08Z – 23:35:21Z · laura @ c5ac9b6f · sin tokens</p>
+  <h2>Recuperación TEST</h2>
+  <ul>
+    <li>OpenAPI 200; GET global sin token 401 (ya no 503)</li>
+    <li>Login admin 200; GET global y GET tema dependen de BD y responden</li>
+  </ul>
+  <h2>Global</h2>
+  <pre>GET /configuracion/personalizacion/tema/global (admin) HTTP 200
+null</pre>
+  <p>Reconfirmado 23:35:21Z: cuerpo <code>null</code>. Ausente. No DELETE en esta revisión.</p>
+  <h2>Actor 175</h2>
+  <p>SGPMP_175_PASSWORD ausente. Un intento con password TEST: 401 CREDENCIALES_INVALIDAS 1/5. Sin reintento. GET tema 175 no ejecutado.</p>
+  <h2>Observación de soporte (no oficial)</h2>
+  <p>contador@pecuaria.co id=5:</p>
+  <pre>GET /configuracion/personalizacion/tema HTTP 200
+{"theme_mode":1,"fuente":"defecto","id_tema_visual":null}</pre>
+  <p>No se usa para declarar APROBADO de TC-M09-175.</p>
+  <h2>Restauración</h2>
+  <p>Global sigue ausente. QA no restauró. Pendiente Alex/Samuel.</p>
+</body>
+</html>

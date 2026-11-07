@@ -1,0 +1,293 @@
+{
+  "tc": "TC-M03-G167",
+  "summary": {
+    "total": 47,
+    "ok": 18,
+    "falla": 29,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "00.01-Login-Admin :: Login 200",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.01-Login-Admin :: id_usuario extraido del JWT",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.02-Descubrir-Tipo-Dispositivo :: Tipo SENSOR disponible",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.03-Descubrir-Tipo-Area :: Tipo área Galpón disponible",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.03b-Descubrir-Especie :: Especie activa descubierta",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.04-Crear-Finca :: Finca 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.05-Crear-Area :: Área 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.06-Crear-Dispositivo :: Dispositivo 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.07-Crear-Sensor :: Sensor 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.08-Asociar-Sensor-Area :: Asociación 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1A.01-Calibrar :: 1A: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1A.02-Ingestar-Serie-20 :: 1A: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1A.03-Ingestar-Lectura-Evaluada :: 1A: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1A.04-Evaluar-Calidad :: 1A (5.00% (borde estricto, sin flag)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1B.01-Calibrar :: 1B: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1B.02-Ingestar-Serie-20 :: 1B: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1B.03-Ingestar-Lectura-Evaluada :: 1B: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1B.04-Evaluar-Calidad :: 1B (7.00% (tramo <10%)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1C.01-Calibrar :: 1C: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1C.02-Ingestar-Serie-20 :: 1C: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1C.03-Ingestar-Lectura-Evaluada :: 1C: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1C.04-Evaluar-Calidad :: 1C (9.99% (frontera <10%)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2A.01-Calibrar :: 2A: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "2A.02-Ingestar-Serie-20 :: 2A: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2A.03-Ingestar-Lectura-Evaluada :: 2A: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2A.04-Evaluar-Calidad :: 2A (10.00% (frontera 10-20%)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2B.01-Calibrar :: 2B: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "2B.02-Ingestar-Serie-20 :: 2B: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2B.03-Ingestar-Lectura-Evaluada :: 2B: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2B.04-Evaluar-Calidad :: 2B (15.00% (tramo 10-20%)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.01-Calibrar :: 3A: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3A.02-Ingestar-Serie-20 :: 3A: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.03-Ingestar-Lectura-Evaluada :: 3A: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.04-Evaluar-Calidad :: 3A (20.01% (frontera >20%)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.05-Verificar-Alerta-RF57 :: 3A: [INC-M03-RF57] alerta t?cnica emitida (esperada)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 200 but got 400",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.06-Verificar-Bitacora-RF63 :: 3A: bit?cora RF-63 con EVALUACION_CALIDAD_COMPLETADA",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.07-Verificar-Transicion-SUPERADA-D7 :: 3A: D7 - exactamente 1 VIGENTE",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 200 but got 400",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.07-Verificar-Transicion-SUPERADA-D7 :: 3A: transici?n SUPERADA - al menos 1 SUPERADA con motivo, id_superada y versi?n",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 200 but got 400",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.01-Calibrar :: 3B: calibración 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3B.02-Ingestar-Serie-20 :: 3B: batch 200 (total=20, aceptados=20, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 20",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.03-Ingestar-Lectura-Evaluada :: 3B: lectura 21 ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 401",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.04-Evaluar-Calidad :: 3B (25.00% (tramo >20%)): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 201 but got 405",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.05-Verificar-Alerta-RF57 :: 3B: [INC-M03-RF57] alerta t?cnica emitida (esperada)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 200 but got 400",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.06-Verificar-Bitacora-RF63 :: 3B: bit?cora RF-63 con EVALUACION_CALIDAD_COMPLETADA",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to be above +0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.07-Verificar-Transicion-SUPERADA-D7 :: 3B: D7 - exactamente 1 VIGENTE",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 200 but got 400",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.07-Verificar-Transicion-SUPERADA-D7 :: 3B: transici?n SUPERADA - al menos 1 SUPERADA con motivo, id_superada y versi?n",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected response to have status code 200 but got 400",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "99.01-Rollback-Sandbox :: Rollback 200",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

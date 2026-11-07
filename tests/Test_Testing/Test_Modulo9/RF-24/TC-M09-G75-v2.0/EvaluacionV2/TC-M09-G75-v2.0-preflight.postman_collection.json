@@ -1,0 +1,534 @@
+{
+  "info": {
+    "name": "TC-M09-G75-v2.0 - PREFLIGHT CORREGIDO (validacion suplementaria, solo lectura)",
+    "description": "Validacion suplementaria de automatizacion QA para TC-M09-G75-v2.0.\n\nNO es un RUN funcional: no ejecuta ningun POST de calibracion y no crea, modifica ni elimina datos. Los unicos POST son los de autenticacion /sesiones/.\n\nCorrige el mecanismo de discovery heredado de la primera evaluacion: el Ingeniero de Campo es el actor principal de todas las lecturas de precondicion y el Administrador auxiliar se usa solo como fallback de solo lectura cuando el Ingeniero no tiene alcance.\n\nEl objetivo funcional de las lecturas no cambia: dispositivo existente y activo, sensor existente, activo y de la categoria del caso, asociacion vigente con la infraestructura correcta, y rango publicado para la categoria.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Preflight de disponibilidad. Solo lectura.",
+              "pm.test('Health responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.test('Health reporta estado ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}/health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "OpenAPI del grupo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('OpenAPI responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const p = pm.response.json().paths || {};",
+              "const calibrar = p['/configuracion/sensores/{id_sensor}/calibrar'];",
+              "const calibraciones = p['/configuracion/sensores/{id_sensor}/calibraciones'];",
+              "const rangos = p['/configuracion/sensores/rangos-calibracion'];",
+              "pm.test('POST calibrar esta declarado', () => pm.expect(calibrar && calibrar.post, 'post calibrar').to.exist);",
+              "pm.test('GET calibraciones esta declarado', () => pm.expect(calibraciones && calibraciones.get, 'get calibraciones').to.exist);",
+              "pm.test('GET rangos-calibracion esta declarado', () => pm.expect(rangos && rangos.get, 'get rangos').to.exist);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": [
+            "{{base_url}}/openapi.json"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Autenticacion del actor del caso. No escribe datos de negocio.",
+              "pm.test('Login del Ingeniero de Campo es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token del Ingeniero').to.be.a('string').and.not.empty;",
+              "pm.environment.set('session_value', b.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}/sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{actor_email}}\",\"contrasena\":\"{{actor_secret}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Identidad del Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Identidad responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('Es el actor funcional del caso', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('actor_email')));",
+              "pm.test('Rol es Ingeniero de Campo', () => pm.expect(b.nombre_rol).to.eql('Ingeniero de Campo'));",
+              "pm.environment.set('actor_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/me",
+          "host": [
+            "{{base_url}}/usuarios/me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Permisos del Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Permisos responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const ps = pm.response.json().permisos || [];",
+              "const tiene = (r, a) => ps.some(x => x.id_recurso === r && x.id_accion === a);",
+              "pm.test('Permiso de lectura de dispositivos (11,2)', () => pm.expect(tiene(11, 2)).to.eql(true));",
+              "pm.test('Permiso de registro de calibraciones (12,1)', () => pm.expect(tiene(12, 1)).to.eql(true));",
+              "pm.test('Permiso de consulta de historial (12,2)', () => pm.expect(tiene(12, 2)).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/me/permisos",
+          "host": [
+            "{{base_url}}/sesiones/me/permisos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Dispositivo activo (Ingeniero)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Discovery corregido: el actor del caso intenta la lectura primero.",
+              "pm.environment.set('disp_http_ingeniero', String(pm.response.code));",
+              "if (pm.response.code >= 200 && pm.response.code <= 299) {",
+              "  const b = pm.response.json();",
+              "  pm.test('Dispositivo del fixture existe', () => pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))));",
+              "  pm.test('Dispositivo esta activo', () => pm.expect(b.es_activo).to.eql(true));",
+              "  pm.test('Dispositivo leido por el Ingeniero de Campo', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "  pm.environment.set('disp_fuente', 'Ingeniero');",
+              "  postman.setNextRequest('Sensores del dispositivo');",
+              "} else {",
+              "  // Sin alcance: no se marca fallo aqui; la lectura se delega al fallback de solo lectura.",
+              "  pm.environment.set('disp_fuente', 'pendiente');",
+              "  console.log('Dispositivo: el Ingeniero responde HTTP ' + pm.response.code + '; se intenta el fallback de Administrador.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login Administrador auxiliar (fallback dispositivo)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Solo se ejecuta si el Ingeniero no tuvo alcance. Cuenta de solo lectura.",
+              "pm.test('Login del Administrador auxiliar es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token del Administrador').to.be.a('string').and.not.empty;",
+              "pm.environment.set('admin_session', b.token);",
+              "pm.environment.set('admin_fallback_usado', 'SI');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}/sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{admin_email}}\",\"contrasena\":\"{{admin_secret}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Dispositivo activo (fallback Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dispositivo responde 2xx con el fallback de Administrador', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('Dispositivo del fixture existe', () => pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))));",
+              "pm.test('Dispositivo esta activo', () => pm.expect(b.es_activo).to.eql(true));",
+              "pm.environment.set('disp_fuente', 'Administrador');",
+              "pm.environment.set('disp_http_administrador', String(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sensores del dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sensores del dispositivo responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_id')));",
+              "pm.test('Sensor del fixture pertenece al dispositivo', () => { pm.expect(row).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))); });",
+              "pm.test('Sensor esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+              "pm.test('Sensor es de la categoria del caso', () => pm.expect(row.categoria).to.eql(pm.environment.get('categoria')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Asociacion vigente del sensor (Ingeniero)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('asoc_http_ingeniero', String(pm.response.code));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const vigente = (x) => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined);",
+              "if (pm.response.code >= 200 && pm.response.code <= 299) {",
+              "  const row = (pm.response.json().items || []).find(x => vigente(x) && sid(x) === Number(pm.environment.get('sensor_id')) && x.id_dispositivo_iot === Number(pm.environment.get('device_id')) && x.id_infraestructura === Number(pm.environment.get('area_id')));",
+              "  pm.test('Asociacion sensor-dispositivo-area esta vigente', () => pm.expect(row).to.exist);",
+              "  pm.test('Asociaciones leidas por el Ingeniero de Campo', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "  pm.environment.set('asoc_fuente', 'Ingeniero');",
+              "  postman.setNextRequest('Rango vigente de la categoria');",
+              "} else {",
+              "  pm.environment.set('asoc_fuente', 'pendiente');",
+              "  console.log('Asociaciones: el Ingeniero responde HTTP ' + pm.response.code + '; se intenta el fallback de Administrador.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociaciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociaciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login Administrador auxiliar (fallback asociaciones)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login del Administrador auxiliar es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token del Administrador').to.be.a('string').and.not.empty;",
+              "pm.environment.set('admin_session', b.token);",
+              "pm.environment.set('admin_fallback_usado', 'SI');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}/sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{admin_email}}\",\"contrasena\":\"{{admin_secret}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Asociacion vigente del sensor (fallback Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Asociaciones responden 2xx con el fallback de Administrador', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const vigente = (x) => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined);",
+              "const row = (pm.response.json().items || []).find(x => vigente(x) && sid(x) === Number(pm.environment.get('sensor_id')) && x.id_dispositivo_iot === Number(pm.environment.get('device_id')) && x.id_infraestructura === Number(pm.environment.get('area_id')));",
+              "pm.test('Asociacion sensor-dispositivo-area esta vigente', () => pm.expect(row).to.exist);",
+              "pm.environment.set('asoc_fuente', 'Administrador');",
+              "pm.environment.set('asoc_http_administrador', String(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociaciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociaciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Rango vigente de la categoria",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rangos responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const row = (pm.response.json().items || []).find(x => x.categoria === pm.environment.get('categoria'));",
+              "pm.test('La categoria del caso tiene rango publicado', () => pm.expect(row).to.exist);",
+              "pm.environment.set('range_min', String(row.valor_min));",
+              "pm.environment.set('range_max', String(row.valor_max));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/rangos-calibracion",
+          "host": [
+            "{{base_url}}/configuracion/sensores/rangos-calibracion"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Historial del sensor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Historial responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const items = pm.response.json().items || [];",
+              "pm.test('El historial es consultable por el actor del caso', () => pm.expect(items).to.be.an('array'));",
+              "// Las precondiciones del fixture quedan resueltas por el Ingeniero o por el fallback.",
+              "pm.test('Precondicion de dispositivo resuelta', () => pm.expect(pm.environment.get('disp_fuente')).to.be.oneOf(['Ingeniero', 'Administrador']));",
+              "pm.test('Precondicion de asociacion resuelta', () => pm.expect(pm.environment.get('asoc_fuente')).to.be.oneOf(['Ingeniero', 'Administrador']));",
+              "// Persistencia de las calibraciones validas creadas por el RUN funcional oficial.",
+              "const esperadas = String(pm.environment.get('ids_validas_del_run') || '').split(',').filter(Boolean).map(Number);",
+              "for (const id of esperadas) {",
+              "  pm.test('La calibracion ' + id + ' del RUN oficial sigue persistida', () => pm.expect(items.find(x => x.id_calibracion === id), 'id_calibracion ' + id).to.exist);",
+              "}",
+              "pm.environment.set('historial_total', String(pm.response.json().total));",
+              "pm.environment.set('historial_ids', items.map(x => x.id_calibracion).join(','));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "TC-M02-G07 - Re-verificacion 2026-09-15 - RBAC 403 no genera auditoria",
+    "description": "Re-ejecucion del sub-caso 2 (TC-M02-249) de TC-M02-G07 (RF-52) contra TEST el 2026-09-15. La coleccion original (tc_m02_g07.postman_collection.json) queda intacta como evidencia historica; esta version documenta el estado ACTUAL. Sub-caso 1 (TC-M02-248, auditoria en evento exitoso) sigue verificado solo con Pytest, sin cambios -- no se re-ejecuta aqui.\n\nRESULTADO: SIGUE ROTO, sin cambios. `require_permission` (src/shared/rbac.py) sigue sin registrar nada en ninguna tabla de auditoria al rechazar con 403 -- confirmado de nuevo comparando el conteo de `GET /activos-biologicos/auditoria` antes y despues de un intento rechazado con la cuenta Contador (contador@pecuaria.co, sin permisos sobre recurso 29). El conteo no cambia.\n\nUsa un activo INDIVIDUAL ya existente en TEST (id=253) en vez de crear uno fresco (POST /activos-biologicos sigue en 500, ver TC-M02-G66/G69).\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_admin', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Contador (sin permisos recurso 29)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion Contador exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_contador', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{contador_correo}}\",\n  \"contrasena\": \"{{contador_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1 - Capturar conteo de auditoria ANTES del intento rechazado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta) { pm.collectionVariables.set('total_antes', respuesta.total_registros); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_admin}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "id_activo_biologico", "value": "{{id_activo}}" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 (TC-M02-249) - Contador intenta registrar evento reproductivo (403 esperado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Contador (sin permisos recurso 29) intenta crear un evento reproductivo ---');",
+              "console.log(pm.response.text());",
+              "pm.test('rechazado con HTTP 403', function () { pm.response.to.have.status(403); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio ACCESO_DENEGADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_contador}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_activo}},\n  \"fecha\": \"2026-09-14T14:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Capturar conteo de auditoria DESPUES (BUG: sigue sin cambiar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('BUG SIGUE PRESENTE: el conteo de auditoria NO cambio tras el rechazo RBAC (require_permission no audita)', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('total_antes'), 10);",
+              "    pm.expect(respuesta.total_registros).to.equal(antes);",
+              "});",
+              "console.log('CONCLUSION: sin cambios respecto al hallazgo original del 2026-09-10 -- require_permission sigue sin dejar rastro de auditoria consultable por API.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_admin}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "id_activo_biologico", "value": "{{id_activo}}" } ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "contador_correo", "value": "contador@pecuaria.co" },
+    { "key": "contador_contrasena", "value": "Test1234!" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_contador", "value": "" },
+    { "key": "id_activo", "value": "253" },
+    { "key": "total_antes", "value": "" }
+  ]
+}

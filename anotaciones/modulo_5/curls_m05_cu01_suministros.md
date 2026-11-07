@@ -81,6 +81,30 @@ Filtros opcionales: `id_activo_biologico`, `fecha_desde`, `fecha_hasta`, `tipo_a
 
 ---
 
+## Flujo 3b — Catálogo de tipos de alimento (RF-75) · quien pueda leer consumos
+
+Lista lo que acepta `id_tipo_alimento` al registrar un consumo. Por defecto solo los
+`ACTIVO`; con `solo_activos=false` incluye los `CESADO`. Ordenado por nombre. RBAC: R sobre 47.
+
+```bash
+curl http://localhost:8000/suministros/consumo-alimentos/tipos-alimento \
+  -H "Authorization: Bearer <PROD>"
+curl "http://localhost:8000/suministros/consumo-alimentos/tipos-alimento?solo_activos=false" \
+  -H "Authorization: Bearer <ADMIN>"
+```
+Respuesta esperada `200`:
+```json
+{ "total": 1, "items": [
+  { "id_tipo_alimento": 1, "nombre": "test", "unidad_medida": "kg", "costo_unitario": "1.0000", "estado": "ACTIVO" }
+] }
+```
+
+Errores posibles:
+- `401` — sin token o token vencido.
+- `403` — el rol no tiene R sobre `consumo_alimentos` (47).
+
+---
+
 ## Flujo 4 — Registrar aplicación de medicamento (RF-76) · Veterinario/Administrador
 
 ```bash

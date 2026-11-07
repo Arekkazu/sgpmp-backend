@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: exponer colecciones y consulta por especie con compatibilidad mono. |
 """Router de la calibración por visión (RF-24 v2.0, modalidad VISION, RFC-011).
 
 Endpoints:
@@ -34,6 +37,7 @@ from src.configuration.infrastructure.schema.calibracion_vision_schema import (
     CalibracionVisionResponse,
     LineaBaseVisionResponse,
     ListaCalibracionesVisionResponse,
+    ListaLineasBaseVisionResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
@@ -87,7 +91,7 @@ def _permiso_calibrar_auditado(
 
 @router.post(
     "",
-    response_model=CalibracionVisionResponse,
+    response_model=CalibracionVisionResponse | ListaCalibracionesVisionResponse,
     status_code=201,
     dependencies=[Depends(_permiso_calibrar_auditado)],
     responses={
@@ -104,10 +108,13 @@ def calibrar_vision(
     dto: CalibrarVisionDTO,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> CalibracionVisionResponse:
+) -> CalibracionVisionResponse | ListaCalibracionesVisionResponse:
     """Calcula la línea base por visión de un área para su especie con las observaciones de sus cámaras (RF-24, modalidad VISION).
 
     **Acceso:** `sensores` · Crear.
+
+    Monoespecie conserva el objeto original. Multiespecie devuelve `total` e `items`,
+    uno por especie, publicados en una sola transaccion. RF-56 aporta vectores agregados del area.
 
     Si converge publica la nueva línea base; un cálculo fallido devuelve el estado y la etapa donde falló. Los rechazos por permiso también quedan auditados.
     """
@@ -121,6 +128,9 @@ def calibrar_vision(
         eventos_repo=SqlAlchemyEventoRepository(db),
     )
     calibracion = use_case.execute(dto, usuario_actual, ids_fincas_permitidas=_alcance(db, usuario_actual))
+    if isinstance(calibracion, list):
+        items = [CalibracionVisionResponse.from_entity(c) for c in calibracion]
+        return ListaCalibracionesVisionResponse(total=len(items), items=items)
     return CalibracionVisionResponse.from_entity(calibracion)
 
 
@@ -155,23 +165,29 @@ def listar_calibraciones_vision(
 
 @router.get(
     "/linea-base",
-    response_model=LineaBaseVisionResponse,
+    response_model=LineaBaseVisionResponse | ListaLineasBaseVisionResponse,
     dependencies=[Depends(require_permission(_RECURSO, 2))],
     responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
     summary="Línea base por visión vigente de un área para su especie (RF-24 v2.0)",
 )
 def obtener_linea_base_vision(
     area_id: int = Query(...),
+    especie_id: int | None = Query(None, gt=0),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> LineaBaseVisionResponse:
+) -> LineaBaseVisionResponse | ListaLineasBaseVisionResponse:
     """Línea base por visión vigente del área para su especie (RF-24).
 
     **Acceso:** `sensores` · Leer.
 
-    Responde 404 si el área nunca se calibró con éxito.
+    Monoespecie conserva el objeto original; multiespecie devuelve `total` e `items`.
+    `especie_id` permite consultar un par concreto asociado al area.
+    Responde 404 si no hay linea vigente para la seleccion.
     """
     linea_base = _consultar(db).obtener_linea_base_vigente(
-        area_id, ids_fincas_permitidas=_alcance(db, usuario_actual)
+        area_id, especie_id=especie_id, ids_fincas_permitidas=_alcance(db, usuario_actual)
     )
+    if isinstance(linea_base, list):
+        items = [LineaBaseVisionResponse.from_entity(lb) for lb in linea_base]
+        return ListaLineasBaseVisionResponse(total=len(items), items=items)
     return LineaBaseVisionResponse.from_entity(linea_base)

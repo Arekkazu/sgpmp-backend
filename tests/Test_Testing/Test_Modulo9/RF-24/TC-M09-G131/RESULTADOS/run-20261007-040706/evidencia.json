@@ -1,0 +1,204 @@
+{
+  "grupo": "TC-M09-G131",
+  "casos": [
+    "TC-M09-258",
+    "TC-M09-259",
+    "TC-M09-260"
+  ],
+  "run_id": "run-20261007-040706",
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "prueba_local": false,
+  "post_planificados": 4,
+  "post_ejecutados": 2,
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi": {
+    "endpoints": {
+      "calibrar": true,
+      "calibraciones": true
+    },
+    "modo_calibracion_declarado": false,
+    "required": false,
+    "dominio": []
+  },
+  "actor": {
+    "id_usuario": 4,
+    "correo": "ingeniero@pecuaria.co",
+    "rol": "Ingeniero de Campo",
+    "estado": "Activo",
+    "permisos_calibracion": [
+      1,
+      2,
+      3
+    ],
+    "actor_auxiliar_get": "administador.dev@gmail.com",
+    "intentos_admin": [
+      {
+        "correo": "admin.dev@gmail.com",
+        "resultado": "La cuenta admin.dev@gmail.com no autentica (HTTP 401)."
+      },
+      {
+        "correo": "administador.dev@gmail.com",
+        "login": 200,
+        "get_dispositivo_1": 200
+      }
+    ]
+  },
+  "fixtures": {
+    "f258": {
+      "sensor": 3,
+      "dispositivo": 1,
+      "area": 1,
+      "categoria": "OXIGENO",
+      "rango": {
+        "min": "0.0000",
+        "max": "20.0000"
+      },
+      "asociacion": 3,
+      "fuente": "GET en TEST"
+    },
+    "f259": {
+      "sensor": 6,
+      "dispositivo": 3,
+      "area": 3,
+      "categoria": "TEMPERATURA",
+      "rango": {
+        "min": "0.0000",
+        "max": "45.0000"
+      },
+      "asociacion": 6,
+      "fuente": "GET en TEST"
+    },
+    "alterno": 3
+  },
+  "TC-M09-258": {
+    "sensor": 3,
+    "pre": {
+      "total": 2,
+      "ids": [
+        3,
+        9
+      ]
+    },
+    "request": {
+      "ruta": "/configuracion/sensores/3/calibrar",
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 1,
+        "valor_referencia": 10,
+        "observaciones": "QA TC-M09-258",
+        "fecha_calibracion": "2026-10-07T09:07:12.458Z"
+      },
+      "valor_referencia_literal": "10.0000"
+    },
+    "http": 422,
+    "error_code": "SENSOR_DISPOSITIVO_INVALIDO",
+    "mensaje": "El sensor 3 no pertenece al dispositivo 3.",
+    "id_respuesta": null,
+    "assertions_newman": [
+      {
+        "name": "La respuesta pertenece a 4xx",
+        "error": null
+      }
+    ],
+    "post": {
+      "total": 2,
+      "ids": [
+        3,
+        9
+      ]
+    },
+    "ids_creados": [],
+    "resultado": "APROBADO",
+    "motivo": "HTTP 422; total e IDs del historial sin cambios."
+  },
+  "TC-M09-259": {
+    "sensor": 6,
+    "pre": {
+      "total": 6,
+      "ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    "request": {
+      "ruta": "/configuracion/sensores/6/calibrar",
+      "body": {
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-259",
+        "fecha_calibracion": "2026-10-07T09:07:27.257Z"
+      },
+      "valor_referencia_literal": "22.5000"
+    },
+    "http": 201,
+    "error_code": null,
+    "mensaje": "",
+    "id_respuesta": 16,
+    "assertions_newman": [
+      {
+        "name": "La respuesta pertenece a 4xx",
+        "error": "expected 201 to be within 400..499"
+      }
+    ],
+    "post": {
+      "total": 7,
+      "ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
+    },
+    "ids_creados": [
+      16
+    ],
+    "resultado": "RECHAZADO",
+    "motivo": "El historial cambió tras la petición inválida; IDs nuevos: 16."
+  },
+  "TC-M09-260": {
+    "OTRO": {
+      "resultado": "NO EJECUTADO",
+      "motivo": "STOP_ALL: Persistencia inesperada en TC-M09-259 —; IDs 16."
+    },
+    "VACIO": {
+      "resultado": "NO EJECUTADO",
+      "motivo": "STOP_ALL: Persistencia inesperada en TC-M09-259 —; IDs 16."
+    }
+  },
+  "stop_all": true,
+  "resultado_general": "RECHAZADO",
+  "motivo_general": "Al menos un subcaso incumplió el oráculo de 4xx y ausencia de persistencia.",
+  "incidencias": [
+    {
+      "grupo_responsable": "Por determinar",
+      "casos": [
+        "TC-M09-259"
+      ],
+      "motivo": "Una o más peticiones inválidas incumplieron el oráculo RF-24 v2.0.",
+      "obtenido": "TC-M09-259/—: HTTP 201; El historial cambió tras la petición inválida; IDs nuevos: 16.",
+      "causa_raiz": "Por determinar; contrastar contrato desplegado y código sin inferirla solo de la API.",
+      "type": "bug",
+      "severity": "Important",
+      "priority": "High"
+    }
+  ],
+  "motivo_stop_all": "Persistencia inesperada en TC-M09-259 —; IDs 16."
+}

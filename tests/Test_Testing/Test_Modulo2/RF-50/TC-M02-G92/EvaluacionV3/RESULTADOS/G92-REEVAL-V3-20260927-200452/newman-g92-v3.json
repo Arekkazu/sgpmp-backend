@@ -1,0 +1,4543 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+        "name": "00 - Login de la identidad tecnica",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "5fd9a7ab-f047-4a27-b75b-af11946f6947",
+              "type": "text/javascript",
+              "exec": [
+                "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+                "const t = pm.response.json().token;",
+                "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+                "pm.collectionVariables.set('token_tecnico', t);"
+              ],
+              "_lastExecutionId": "49a2c9ac-2233-482e-a6be-5b5986e2994a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+        "name": "01 - Identidad y rol del consumidor",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "usuarios",
+              "me"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_tecnico}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "266dc5ee-4759-44c9-8750-3b91a88abb29",
+              "type": "text/javascript",
+              "exec": [
+                "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+                "const b = pm.response.json();",
+                "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+                "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+                "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+              ],
+              "_lastExecutionId": "537fc746-3182-4c5c-ab65-07f939f29f2f"
+            }
+          }
+        ]
+      },
+      {
+        "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+        "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "295",
+              "datos-consolidados"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "todos"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_tecnico}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+              "type": "text/javascript",
+              "exec": [
+                "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                "const b = cuerpo();",
+                "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                "  const faltan = contrato.filter((c) => !(c in b));",
+                "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                "});",
+                "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                "});",
+                "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                "});",
+                "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                "  pm.expect(b.pagina_actual).to.eql(1);",
+                "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                "  pm.expect(b.total_registros).to.be.at.least(0);",
+                "});"
+              ],
+              "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+            }
+          }
+        ]
+      },
+      {
+        "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+        "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "295",
+              "indicadores"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_indicador",
+                "value": "CRECIMIENTO"
+              },
+              {
+                "key": "fecha_inicio",
+                "value": "2026-07-15"
+              },
+              {
+                "key": "fecha_fin",
+                "value": "2026-08-15"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_tecnico}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "8a395d6f-0e74-4c4a-9651-b8dad13492b2",
+              "type": "text/javascript",
+              "exec": [
+                "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                "const b = cuerpo();",
+                "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+                "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+                "  pm.expect(b.indicadores).to.be.an('array');",
+                "});",
+                "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+                "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+                "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+                "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+                "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+                "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+                "  const esperado = pm.collectionVariables.get('expected_gpd');",
+                "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+                "});",
+                "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+                "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+                "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+                "});",
+                "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+                "aplanar(g.variables_usadas, '');",
+                "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+                "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+                "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+                "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+                "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+                "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+              ],
+              "_lastExecutionId": "a3bb7eae-3396-4d68-85c4-c5b5633fa3db"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "integracion.tes@gmail.com",
+        "key": "email_tecnico"
+      },
+      {
+        "type": "any",
+        "value": "295",
+        "key": "id_activo"
+      },
+      {
+        "type": "any",
+        "value": "QAJE-DAT-COMPL",
+        "key": "identificador"
+      },
+      {
+        "type": "any",
+        "value": "2026-07-15",
+        "key": "fecha_inicio"
+      },
+      {
+        "type": "any",
+        "value": "2026-08-15",
+        "key": "fecha_fin"
+      },
+      {
+        "type": "any",
+        "value": "5000",
+        "key": "rnf_ms"
+      },
+      {
+        "type": "any",
+        "value": "0.9677",
+        "key": "expected_gpd"
+      },
+      {
+        "type": "any",
+        "value": "200.00",
+        "key": "expected_peso_inicial"
+      },
+      {
+        "type": "any",
+        "value": "230.00",
+        "key": "expected_peso_final"
+      },
+      {
+        "type": "any",
+        "value": "31",
+        "key": "expected_dias"
+      },
+      {
+        "type": "any",
+        "value": "2",
+        "key": "expected_total_mediciones"
+      }
+    ],
+    "info": {
+      "_postman_id": "ee2fa97c-0a70-42d2-aae5-85fa400b5641",
+      "name": "TC-M02-G92 REEVALUACION V3 — TC-M02-154 (RF-50) y TC-M02-159 (RF-51) — CU12",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Consumo de los endpoints analiticos de M02 por una identidad tecnica de integracion autorizada. Precondiciones: identidad exacta suministrada, cuenta activa, rol tecnico, permiso READ sobre activos_biologicos y alcance sobre la finca del fixture. Oraculo: TC-M02-154 datos consolidados conforme al contrato en menos de 5 s; TC-M02-159 indicador de ganancia diaria de peso disponible, con el valor recalculado de forma independiente a partir de las mediciones reales.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "d21ab737-d6ff-455e-9841-fd64c2beb408",
+    "values": [
+      {
+        "type": "any",
+        "value": "[REDACTED]",
+        "key": "clave_tecnica"
+      }
+    ]
+  },
+  "globals": {
+    "id": "b5c01bf5-331f-47aa-9efe-35b104b50b85",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 26,
+        "pending": 0,
+        "failed": 4
+      },
+      "testScripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 262.5,
+      "responseMin": 131,
+      "responseMax": 646,
+      "responseSd": 221.4593642183595,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1790557498700,
+      "completed": 1790557500122
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 4,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "83c4a8d0-713b-462a-8d61-295fb10ea475",
+          "httpRequestId": "1dbb551f-de89-45b8-9db0-8553b5894674"
+        },
+        "item": {
+          "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+          "name": "00 - Login de la identidad tecnica",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5fd9a7ab-f047-4a27-b75b-af11946f6947",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+                  "pm.collectionVariables.set('token_tecnico', t);"
+                ],
+                "_lastExecutionId": "49a2c9ac-2233-482e-a6be-5b5986e2994a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ee6dcabe-c3d4-4756-9dc5-a29bd5b38f92",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "84",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"[REDACTED]\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "response": {
+          "id": "18093801-bce8-4d88-8b81-f97be3c82039",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "408"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 28 Sep 2026 01:04:58 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=TMAt3aIuTpZauLzokKD_aXvvLZL1hd3WI0Du_S4_JTc; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4fdf2d96-23d6-4356-9f7b-c099cd0f7549"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              77,
+              84,
+              69,
+              105,
+              76,
+              67,
+              74,
+              113,
+              100,
+              71,
+              107,
+              105,
+              79,
+              105,
+              73,
+              121,
+              78,
+              68,
+              85,
+              120,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              74,
+              118,
+              98,
+              67,
+              73,
+              54,
+              78,
+              122,
+              103,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              53,
+              77,
+              68,
+              85,
+              52,
+              78,
+              106,
+              73,
+              53,
+              79,
+              67,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              107,
+              119,
+              78,
+              84,
+              85,
+              51,
+              78,
+              68,
+              107,
+              52,
+              102,
+              81,
+              46,
+              81,
+              112,
+              114,
+              57,
+              74,
+              52,
+              81,
+              116,
+              79,
+              69,
+              54,
+              51,
+              119,
+              52,
+              100,
+              112,
+              118,
+              85,
+              56,
+              57,
+              50,
+              73,
+              107,
+              109,
+              83,
+              74,
+              77,
+              120,
+              75,
+              76,
+              83,
+              75,
+              97,
+              95,
+              79,
+              108,
+              65,
+              99,
+              78,
+              87,
+              79,
+              52,
+              107,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 646,
+          "responseSize": 408
+        },
+        "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+        "assertions": [
+          {
+            "assertion": "00: la identidad tecnica autentica",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "52ddd713-b5e1-42a0-9065-e1e68fe3ed04",
+          "length": 4,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "8d9ac477-6696-4b20-9c4c-0961716cbe9f"
+        },
+        "item": {
+          "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+          "name": "01 - Identidad y rol del consumidor",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "usuarios",
+                "me"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "266dc5ee-4759-44c9-8750-3b91a88abb29",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+                  "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+                  "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+                ],
+                "_lastExecutionId": "537fc746-3182-4c5c-ab65-07f939f29f2f"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "usuarios",
+              "me"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [JWT REDACTED]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "503ecc62-1031-44a8-b344-676ad75f6c15",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=TMAt3aIuTpZauLzokKD_aXvvLZL1hd3WI0Du_S4_JTc",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "48b6691e-6ef5-4772-a3f7-476c143c26a2",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "341"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 28 Sep 2026 01:04:58 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "f0e13a92-66b2-4650-a540-1c88507a577a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              34,
+              58,
+              49,
+              49,
+              49,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              34,
+              58,
+              34,
+              73,
+              110,
+              116,
+              101,
+              103,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              77,
+              79,
+              34,
+              44,
+              34,
+              97,
+              112,
+              101,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              34,
+              58,
+              34,
+              74,
+              117,
+              97,
+              110,
+              101,
+              115,
+              34,
+              44,
+              34,
+              99,
+              111,
+              114,
+              114,
+              101,
+              111,
+              95,
+              101,
+              108,
+              101,
+              99,
+              116,
+              114,
+              111,
+              110,
+              105,
+              99,
+              111,
+              34,
+              58,
+              34,
+              105,
+              110,
+              116,
+              101,
+              103,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              46,
+              116,
+              101,
+              115,
+              64,
+              103,
+              109,
+              97,
+              105,
+              108,
+              46,
+              99,
+              111,
+              109,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              67,
+              67,
+              34,
+              44,
+              34,
+              110,
+              117,
+              109,
+              101,
+              114,
+              111,
+              95,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              55,
+              52,
+              49,
+              53,
+              42,
+              42,
+              42,
+              42,
+              42,
+              42,
+              42,
+              42,
+              42,
+              42,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              110,
+              97,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              49,
+              57,
+              57,
+              48,
+              45,
+              48,
+              49,
+              45,
+              48,
+              49,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              49,
+              84,
+              50,
+              51,
+              58,
+              48,
+              56,
+              58,
+              51,
+              51,
+              46,
+              52,
+              52,
+              57,
+              57,
+              56,
+              53,
+              34,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              114,
+              111,
+              108,
+              34,
+              58,
+              34,
+              73,
+              110,
+              116,
+              101,
+              103,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              77,
+              48,
+              52,
+              34,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              99,
+              117,
+              101,
+              110,
+              116,
+              97,
+              34,
+              58,
+              34,
+              65,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              50,
+              44,
+              34,
+              102,
+              105,
+              110,
+              99,
+              97,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 131,
+          "responseSize": 341
+        },
+        "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+        "assertions": [
+          {
+            "assertion": "01: /usuarios/me 200",
+            "skipped": false
+          },
+          {
+            "assertion": "01: es exactamente la identidad tecnica suministrada",
+            "skipped": false
+          },
+          {
+            "assertion": "01: la cuenta esta activa",
+            "skipped": false
+          },
+          {
+            "assertion": "01: el rol es una identidad tecnica de integracion",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "5cc3334c-0afe-4236-bde2-fc8391fe765b",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e654211b-5d36-46ce-aa0f-1138392f50f7"
+        },
+        "item": {
+          "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+          "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "295",
+                "datos-consolidados"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                  "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                  "const b = cuerpo();",
+                  "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                  "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                  "  const faltan = contrato.filter((c) => !(c in b));",
+                  "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                  "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                  "});",
+                  "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                  "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                  "  pm.expect(b.pagina_actual).to.eql(1);",
+                  "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                  "  pm.expect(b.total_registros).to.be.at.least(0);",
+                  "});"
+                ],
+                "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "295",
+              "datos-consolidados"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "todos"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [JWT REDACTED]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "e475a2f9-d3b7-4951-b99f-1e71dc24bc7b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=TMAt3aIuTpZauLzokKD_aXvvLZL1hd3WI0Du_S4_JTc",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "8510c6ad-c464-4b82-be37-06b044129a82",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "218"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 28 Sep 2026 01:04:59 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "a82b5e12-fbf3-40f2-ba52-103d6605f592"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              83,
+              67,
+              79,
+              80,
+              69,
+              95,
+              84,
+              73,
+              80,
+              79,
+              95,
+              68,
+              65,
+              84,
+              79,
+              95,
+              78,
+              79,
+              95,
+              65,
+              85,
+              84,
+              79,
+              82,
+              73,
+              90,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              58,
+              32,
+              69,
+              108,
+              32,
+              109,
+              195,
+              179,
+              100,
+              117,
+              108,
+              111,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              97,
+              110,
+              116,
+              101,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              97,
+              117,
+              116,
+              111,
+              114,
+              105,
+              122,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              109,
+              105,
+              114,
+              32,
+              100,
+              97,
+              116,
+              111,
+              115,
+              32,
+              100,
+              101,
+              32,
+              116,
+              105,
+              112,
+              111,
+              32,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              97,
+              115,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              56,
+              84,
+              48,
+              49,
+              58,
+              48,
+              52,
+              58,
+              53,
+              57,
+              46,
+              52,
+              52,
+              53,
+              55,
+              50,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 131,
+          "responseSize": 218
+        },
+        "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+        "assertions": [
+          {
+            "assertion": "TC-M02-154: HTTP 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "TC-M02-154: HTTP 200",
+              "message": "expected 403 to deeply equal 200",
+              "stack": "AssertionError: expected 403 to deeply equal 200\n   at Object.eval sandbox-script.js:1:3)"
+            }
+          },
+          {
+            "assertion": "TC-M02-154: respuesta en JSON",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-154: tiempo de respuesta dentro del RNF",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-154: la respuesta cumple el contrato desplegado",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 3,
+              "test": "TC-M02-154: la respuesta cumple el contrato desplegado",
+              "message": "campos ausentes: expected [ 'id_activo_biologico', …(15) ] to be empty",
+              "stack": "AssertionError: campos ausentes: expected [ 'id_activo_biologico', …(15) ] to be empty\n   at Object.eval sandbox-script.js:4:3)"
+            }
+          },
+          {
+            "assertion": "TC-M02-154: los datos corresponden al activo solicitado",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 4,
+              "test": "TC-M02-154: los datos corresponden al activo solicitado",
+              "message": "expected undefined to deeply equal 295",
+              "stack": "AssertionError: expected undefined to deeply equal 295\n   at Object.eval sandbox-script.js:5:3)"
+            }
+          },
+          {
+            "assertion": "TC-M02-154: no expone informacion de otros activos",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-154: la paginacion es coherente",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 6,
+              "test": "TC-M02-154: la paginacion es coherente",
+              "message": "expected undefined to deeply equal 1",
+              "stack": "AssertionError: expected undefined to deeply equal 1\n   at Object.eval sandbox-script.js:7:3)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1890fec6-2a60-437d-bf74-4ac976a5539a",
+          "length": 4,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "fa7e3433-9a1e-4536-b388-051552a842ac"
+        },
+        "item": {
+          "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+          "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "295",
+                "indicadores"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_indicador",
+                  "value": "CRECIMIENTO"
+                },
+                {
+                  "key": "fecha_inicio",
+                  "value": "2026-07-15"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "2026-08-15"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8a395d6f-0e74-4c4a-9651-b8dad13492b2",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                  "const b = cuerpo();",
+                  "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+                  "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+                  "  pm.expect(b.indicadores).to.be.an('array');",
+                  "});",
+                  "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+                  "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+                  "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+                  "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+                  "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+                  "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+                  "  const esperado = pm.collectionVariables.get('expected_gpd');",
+                  "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+                  "});",
+                  "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+                  "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+                  "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+                  "});",
+                  "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+                  "aplanar(g.variables_usadas, '');",
+                  "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+                  "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+                  "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+                  "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+                  "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+                  "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+                ],
+                "_lastExecutionId": "a3bb7eae-3396-4d68-85c4-c5b5633fa3db"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "295",
+              "indicadores"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_indicador",
+                "value": "CRECIMIENTO"
+              },
+              {
+                "key": "fecha_inicio",
+                "value": "2026-07-15"
+              },
+              {
+                "key": "fecha_fin",
+                "value": "2026-08-15"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [JWT REDACTED]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3eb34bc3-812f-4d44-b367-575f5f294b95",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=TMAt3aIuTpZauLzokKD_aXvvLZL1hd3WI0Du_S4_JTc",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "bc8a1428-cd85-466e-8665-886043c704e6",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "367"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 28 Sep 2026 01:04:59 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "2d1c05ae-da30-4336-98f6-75f6ad1798c8"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              57,
+              53,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              105,
+              110,
+              100,
+              105,
+              99,
+              97,
+              100,
+              111,
+              114,
+              101,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              103,
+              97,
+              110,
+              97,
+              110,
+              99,
+              105,
+              97,
+              95,
+              112,
+              101,
+              115,
+              111,
+              34,
+              44,
+              34,
+              118,
+              97,
+              108,
+              111,
+              114,
+              34,
+              58,
+              34,
+              48,
+              46,
+              57,
+              54,
+              55,
+              55,
+              34,
+              44,
+              34,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              107,
+              103,
+              47,
+              100,
+              105,
+              97,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              105,
+              111,
+              100,
+              111,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              55,
+              45,
+              49,
+              53,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              105,
+              111,
+              100,
+              111,
+              95,
+              102,
+              105,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              56,
+              45,
+              49,
+              53,
+              34,
+              44,
+              34,
+              118,
+              97,
+              114,
+              105,
+              97,
+              98,
+              108,
+              101,
+              115,
+              95,
+              117,
+              115,
+              97,
+              100,
+              97,
+              115,
+              34,
+              58,
+              123,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              108,
+              95,
+              107,
+              103,
+              34,
+              58,
+              50,
+              48,
+              48,
+              46,
+              48,
+              44,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              102,
+              105,
+              110,
+              97,
+              108,
+              95,
+              107,
+              103,
+              34,
+              58,
+              50,
+              51,
+              48,
+              46,
+              48,
+              44,
+              34,
+              100,
+              105,
+              97,
+              115,
+              34,
+              58,
+              51,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              109,
+              101,
+              100,
+              105,
+              99,
+              105,
+              111,
+              110,
+              101,
+              115,
+              34,
+              58,
+              50,
+              125,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              99,
+              97,
+              108,
+              99,
+              117,
+              108,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              56,
+              84,
+              48,
+              49,
+              58,
+              48,
+              52,
+              58,
+              53,
+              57,
+              46,
+              54,
+              56,
+              50,
+              50,
+              48,
+              57,
+              90,
+              34,
+              44,
+              34,
+              100,
+              105,
+              115,
+              112,
+              111,
+              110,
+              105,
+              98,
+              108,
+              101,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              125,
+              93,
+              44,
+              34,
+              97,
+              100,
+              118,
+              101,
+              114,
+              116,
+              101,
+              110,
+              99,
+              105,
+              97,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 142,
+          "responseSize": 367
+        },
+        "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+        "assertions": [
+          {
+            "assertion": "TC-M02-159: HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: tiempo de respuesta dentro del RNF",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: la respuesta cumple el contrato desplegado",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el indicador de ganancia de peso esta presente",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el indicador esta disponible",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el indicador expone los campos del contrato",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: la unidad es kg/dia",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el valor coincide con el recalculo independiente",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el periodo corresponde al rango de las mediciones",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: declara las variables utilizadas en el calculo",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el peso inicial utilizado es el de la primera medicion",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el peso final utilizado es el de la ultima medicion",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: los dias transcurridos son los reales entre mediciones",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-159: el total de mediciones utilizadas es el real",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1334
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "TC-M02-154: HTTP 200",
+          "message": "expected 403 to deeply equal 200",
+          "stack": "AssertionError: expected 403 to deeply equal 200\n   at Object.eval sandbox-script.js:1:3)",
+          "checksum": "a35fd3c1a9e307c4fe360183a90f689e",
+          "id": "1800a817-1162-4551-b773-2e5a4bdf7b26",
+          "timestamp": 1790557499852,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+          "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "295",
+                "datos-consolidados"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                  "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                  "const b = cuerpo();",
+                  "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                  "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                  "  const faltan = contrato.filter((c) => !(c in b));",
+                  "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                  "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                  "});",
+                  "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                  "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                  "  pm.expect(b.pagina_actual).to.eql(1);",
+                  "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                  "  pm.expect(b.total_registros).to.be.at.least(0);",
+                  "});"
+                ],
+                "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+              "name": "00 - Login de la identidad tecnica",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5fd9a7ab-f047-4a27-b75b-af11946f6947",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+                      "const t = pm.response.json().token;",
+                      "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+                      "pm.collectionVariables.set('token_tecnico', t);"
+                    ],
+                    "_lastExecutionId": "49a2c9ac-2233-482e-a6be-5b5986e2994a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+              "name": "01 - Identidad y rol del consumidor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "usuarios",
+                    "me"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "266dc5ee-4759-44c9-8750-3b91a88abb29",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+                      "const b = pm.response.json();",
+                      "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+                      "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+                      "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+                    ],
+                    "_lastExecutionId": "537fc746-3182-4c5c-ab65-07f939f29f2f"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+              "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "datos-consolidados"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_dato",
+                      "value": "todos"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                      "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                      "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                      "  const faltan = contrato.filter((c) => !(c in b));",
+                      "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                      "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                      "});",
+                      "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                      "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                      "  pm.expect(b.pagina_actual).to.eql(1);",
+                      "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                      "  pm.expect(b.total_registros).to.be.at.least(0);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+              "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "indicadores"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_indicador",
+                      "value": "CRECIMIENTO"
+                    },
+                    {
+                      "key": "fecha_inicio",
+                      "value": "2026-07-15"
+                    },
+                    {
+                      "key": "fecha_fin",
+                      "value": "2026-08-15"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8a395d6f-0e74-4c4a-9651-b8dad13492b2",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+                      "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+                      "  pm.expect(b.indicadores).to.be.an('array');",
+                      "});",
+                      "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+                      "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+                      "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+                      "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+                      "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+                      "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+                      "  const esperado = pm.collectionVariables.get('expected_gpd');",
+                      "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+                      "});",
+                      "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+                      "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+                      "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+                      "});",
+                      "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+                      "aplanar(g.variables_usadas, '');",
+                      "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+                      "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+                      "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+                      "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+                      "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+                      "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+                    ],
+                    "_lastExecutionId": "a3bb7eae-3396-4d68-85c4-c5b5633fa3db"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "integracion.tes@gmail.com",
+              "key": "email_tecnico"
+            },
+            {
+              "type": "any",
+              "value": "295",
+              "key": "id_activo"
+            },
+            {
+              "type": "any",
+              "value": "QAJE-DAT-COMPL",
+              "key": "identificador"
+            },
+            {
+              "type": "any",
+              "value": "2026-07-15",
+              "key": "fecha_inicio"
+            },
+            {
+              "type": "any",
+              "value": "2026-08-15",
+              "key": "fecha_fin"
+            },
+            {
+              "type": "any",
+              "value": "5000",
+              "key": "rnf_ms"
+            },
+            {
+              "type": "any",
+              "value": "0.9677",
+              "key": "expected_gpd"
+            },
+            {
+              "type": "any",
+              "value": "200.00",
+              "key": "expected_peso_inicial"
+            },
+            {
+              "type": "any",
+              "value": "230.00",
+              "key": "expected_peso_final"
+            },
+            {
+              "type": "any",
+              "value": "31",
+              "key": "expected_dias"
+            },
+            {
+              "type": "any",
+              "value": "2",
+              "key": "expected_total_mediciones"
+            }
+          ],
+          "info": {
+            "_postman_id": "ee2fa97c-0a70-42d2-aae5-85fa400b5641",
+            "name": "TC-M02-G92 REEVALUACION V3 — TC-M02-154 (RF-50) y TC-M02-159 (RF-51) — CU12",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Consumo de los endpoints analiticos de M02 por una identidad tecnica de integracion autorizada. Precondiciones: identidad exacta suministrada, cuenta activa, rol tecnico, permiso READ sobre activos_biologicos y alcance sobre la finca del fixture. Oraculo: TC-M02-154 datos consolidados conforme al contrato en menos de 5 s; TC-M02-159 indicador de ganancia diaria de peso disponible, con el valor recalculado de forma independiente a partir de las mediciones reales.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "5cc3334c-0afe-4236-bde2-fc8391fe765b",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e654211b-5d36-46ce-aa0f-1138392f50f7",
+          "scriptId": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+          "execution": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 3,
+          "test": "TC-M02-154: la respuesta cumple el contrato desplegado",
+          "message": "campos ausentes: expected [ 'id_activo_biologico', …(15) ] to be empty",
+          "stack": "AssertionError: campos ausentes: expected [ 'id_activo_biologico', …(15) ] to be empty\n   at Object.eval sandbox-script.js:4:3)",
+          "checksum": "3bc66140d6c6863e771e6e9096cadb9f",
+          "id": "31331680-42e2-43e6-9007-dcfa4b733326",
+          "timestamp": 1790557499856,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 4,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:3 in test-script",
+        "source": {
+          "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+          "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "295",
+                "datos-consolidados"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                  "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                  "const b = cuerpo();",
+                  "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                  "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                  "  const faltan = contrato.filter((c) => !(c in b));",
+                  "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                  "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                  "});",
+                  "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                  "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                  "  pm.expect(b.pagina_actual).to.eql(1);",
+                  "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                  "  pm.expect(b.total_registros).to.be.at.least(0);",
+                  "});"
+                ],
+                "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+              "name": "00 - Login de la identidad tecnica",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5fd9a7ab-f047-4a27-b75b-af11946f6947",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+                      "const t = pm.response.json().token;",
+                      "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+                      "pm.collectionVariables.set('token_tecnico', t);"
+                    ],
+                    "_lastExecutionId": "49a2c9ac-2233-482e-a6be-5b5986e2994a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+              "name": "01 - Identidad y rol del consumidor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "usuarios",
+                    "me"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "266dc5ee-4759-44c9-8750-3b91a88abb29",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+                      "const b = pm.response.json();",
+                      "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+                      "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+                      "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+                    ],
+                    "_lastExecutionId": "537fc746-3182-4c5c-ab65-07f939f29f2f"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+              "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "datos-consolidados"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_dato",
+                      "value": "todos"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                      "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                      "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                      "  const faltan = contrato.filter((c) => !(c in b));",
+                      "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                      "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                      "});",
+                      "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                      "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                      "  pm.expect(b.pagina_actual).to.eql(1);",
+                      "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                      "  pm.expect(b.total_registros).to.be.at.least(0);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+              "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "indicadores"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_indicador",
+                      "value": "CRECIMIENTO"
+                    },
+                    {
+                      "key": "fecha_inicio",
+                      "value": "2026-07-15"
+                    },
+                    {
+                      "key": "fecha_fin",
+                      "value": "2026-08-15"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8a395d6f-0e74-4c4a-9651-b8dad13492b2",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+                      "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+                      "  pm.expect(b.indicadores).to.be.an('array');",
+                      "});",
+                      "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+                      "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+                      "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+                      "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+                      "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+                      "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+                      "  const esperado = pm.collectionVariables.get('expected_gpd');",
+                      "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+                      "});",
+                      "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+                      "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+                      "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+                      "});",
+                      "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+                      "aplanar(g.variables_usadas, '');",
+                      "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+                      "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+                      "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+                      "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+                      "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+                      "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+                    ],
+                    "_lastExecutionId": "a3bb7eae-3396-4d68-85c4-c5b5633fa3db"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "integracion.tes@gmail.com",
+              "key": "email_tecnico"
+            },
+            {
+              "type": "any",
+              "value": "295",
+              "key": "id_activo"
+            },
+            {
+              "type": "any",
+              "value": "QAJE-DAT-COMPL",
+              "key": "identificador"
+            },
+            {
+              "type": "any",
+              "value": "2026-07-15",
+              "key": "fecha_inicio"
+            },
+            {
+              "type": "any",
+              "value": "2026-08-15",
+              "key": "fecha_fin"
+            },
+            {
+              "type": "any",
+              "value": "5000",
+              "key": "rnf_ms"
+            },
+            {
+              "type": "any",
+              "value": "0.9677",
+              "key": "expected_gpd"
+            },
+            {
+              "type": "any",
+              "value": "200.00",
+              "key": "expected_peso_inicial"
+            },
+            {
+              "type": "any",
+              "value": "230.00",
+              "key": "expected_peso_final"
+            },
+            {
+              "type": "any",
+              "value": "31",
+              "key": "expected_dias"
+            },
+            {
+              "type": "any",
+              "value": "2",
+              "key": "expected_total_mediciones"
+            }
+          ],
+          "info": {
+            "_postman_id": "ee2fa97c-0a70-42d2-aae5-85fa400b5641",
+            "name": "TC-M02-G92 REEVALUACION V3 — TC-M02-154 (RF-50) y TC-M02-159 (RF-51) — CU12",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Consumo de los endpoints analiticos de M02 por una identidad tecnica de integracion autorizada. Precondiciones: identidad exacta suministrada, cuenta activa, rol tecnico, permiso READ sobre activos_biologicos y alcance sobre la finca del fixture. Oraculo: TC-M02-154 datos consolidados conforme al contrato en menos de 5 s; TC-M02-159 indicador de ganancia diaria de peso disponible, con el valor recalculado de forma independiente a partir de las mediciones reales.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "5cc3334c-0afe-4236-bde2-fc8391fe765b",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e654211b-5d36-46ce-aa0f-1138392f50f7",
+          "scriptId": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+          "execution": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 4,
+          "test": "TC-M02-154: los datos corresponden al activo solicitado",
+          "message": "expected undefined to deeply equal 295",
+          "stack": "AssertionError: expected undefined to deeply equal 295\n   at Object.eval sandbox-script.js:5:3)",
+          "checksum": "04fb705a3c010597479cd33bc062a6de",
+          "id": "d816e2a8-b22a-4079-8de6-620c522990d3",
+          "timestamp": 1790557499856,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 5,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:4 in test-script",
+        "source": {
+          "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+          "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "295",
+                "datos-consolidados"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                  "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                  "const b = cuerpo();",
+                  "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                  "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                  "  const faltan = contrato.filter((c) => !(c in b));",
+                  "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                  "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                  "});",
+                  "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                  "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                  "  pm.expect(b.pagina_actual).to.eql(1);",
+                  "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                  "  pm.expect(b.total_registros).to.be.at.least(0);",
+                  "});"
+                ],
+                "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+              "name": "00 - Login de la identidad tecnica",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5fd9a7ab-f047-4a27-b75b-af11946f6947",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+                      "const t = pm.response.json().token;",
+                      "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+                      "pm.collectionVariables.set('token_tecnico', t);"
+                    ],
+                    "_lastExecutionId": "49a2c9ac-2233-482e-a6be-5b5986e2994a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+              "name": "01 - Identidad y rol del consumidor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "usuarios",
+                    "me"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "266dc5ee-4759-44c9-8750-3b91a88abb29",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+                      "const b = pm.response.json();",
+                      "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+                      "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+                      "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+                    ],
+                    "_lastExecutionId": "537fc746-3182-4c5c-ab65-07f939f29f2f"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+              "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "datos-consolidados"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_dato",
+                      "value": "todos"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                      "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                      "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                      "  const faltan = contrato.filter((c) => !(c in b));",
+                      "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                      "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                      "});",
+                      "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                      "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                      "  pm.expect(b.pagina_actual).to.eql(1);",
+                      "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                      "  pm.expect(b.total_registros).to.be.at.least(0);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+              "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "indicadores"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_indicador",
+                      "value": "CRECIMIENTO"
+                    },
+                    {
+                      "key": "fecha_inicio",
+                      "value": "2026-07-15"
+                    },
+                    {
+                      "key": "fecha_fin",
+                      "value": "2026-08-15"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8a395d6f-0e74-4c4a-9651-b8dad13492b2",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+                      "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+                      "  pm.expect(b.indicadores).to.be.an('array');",
+                      "});",
+                      "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+                      "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+                      "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+                      "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+                      "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+                      "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+                      "  const esperado = pm.collectionVariables.get('expected_gpd');",
+                      "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+                      "});",
+                      "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+                      "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+                      "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+                      "});",
+                      "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+                      "aplanar(g.variables_usadas, '');",
+                      "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+                      "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+                      "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+                      "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+                      "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+                      "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+                    ],
+                    "_lastExecutionId": "a3bb7eae-3396-4d68-85c4-c5b5633fa3db"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "integracion.tes@gmail.com",
+              "key": "email_tecnico"
+            },
+            {
+              "type": "any",
+              "value": "295",
+              "key": "id_activo"
+            },
+            {
+              "type": "any",
+              "value": "QAJE-DAT-COMPL",
+              "key": "identificador"
+            },
+            {
+              "type": "any",
+              "value": "2026-07-15",
+              "key": "fecha_inicio"
+            },
+            {
+              "type": "any",
+              "value": "2026-08-15",
+              "key": "fecha_fin"
+            },
+            {
+              "type": "any",
+              "value": "5000",
+              "key": "rnf_ms"
+            },
+            {
+              "type": "any",
+              "value": "0.9677",
+              "key": "expected_gpd"
+            },
+            {
+              "type": "any",
+              "value": "200.00",
+              "key": "expected_peso_inicial"
+            },
+            {
+              "type": "any",
+              "value": "230.00",
+              "key": "expected_peso_final"
+            },
+            {
+              "type": "any",
+              "value": "31",
+              "key": "expected_dias"
+            },
+            {
+              "type": "any",
+              "value": "2",
+              "key": "expected_total_mediciones"
+            }
+          ],
+          "info": {
+            "_postman_id": "ee2fa97c-0a70-42d2-aae5-85fa400b5641",
+            "name": "TC-M02-G92 REEVALUACION V3 — TC-M02-154 (RF-50) y TC-M02-159 (RF-51) — CU12",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Consumo de los endpoints analiticos de M02 por una identidad tecnica de integracion autorizada. Precondiciones: identidad exacta suministrada, cuenta activa, rol tecnico, permiso READ sobre activos_biologicos y alcance sobre la finca del fixture. Oraculo: TC-M02-154 datos consolidados conforme al contrato en menos de 5 s; TC-M02-159 indicador de ganancia diaria de peso disponible, con el valor recalculado de forma independiente a partir de las mediciones reales.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "5cc3334c-0afe-4236-bde2-fc8391fe765b",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e654211b-5d36-46ce-aa0f-1138392f50f7",
+          "scriptId": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+          "execution": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 6,
+          "test": "TC-M02-154: la paginacion es coherente",
+          "message": "expected undefined to deeply equal 1",
+          "stack": "AssertionError: expected undefined to deeply equal 1\n   at Object.eval sandbox-script.js:7:3)",
+          "checksum": "12129d9b145338f76a0034f946583ce3",
+          "id": "bc73e1e7-71eb-4a61-8f3a-0e0b17e22aff",
+          "timestamp": 1790557499857,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 7,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:6 in test-script",
+        "source": {
+          "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+          "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "295",
+                "datos-consolidados"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tecnico}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                  "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                  "const b = cuerpo();",
+                  "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                  "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                  "  const faltan = contrato.filter((c) => !(c in b));",
+                  "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                  "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                  "});",
+                  "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                  "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                  "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                  "});",
+                  "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                  "  pm.expect(b.pagina_actual).to.eql(1);",
+                  "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                  "  pm.expect(b.total_registros).to.be.at.least(0);",
+                  "});"
+                ],
+                "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "3b72194a-cdc3-40b3-996d-f59912047ec1",
+              "name": "00 - Login de la identidad tecnica",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5fd9a7ab-f047-4a27-b75b-af11946f6947",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+                      "const t = pm.response.json().token;",
+                      "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+                      "pm.collectionVariables.set('token_tecnico', t);"
+                    ],
+                    "_lastExecutionId": "49a2c9ac-2233-482e-a6be-5b5986e2994a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "110efbd1-09ce-4ede-a0f4-f2d8607e86d3",
+              "name": "01 - Identidad y rol del consumidor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "usuarios",
+                    "me"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "266dc5ee-4759-44c9-8750-3b91a88abb29",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+                      "const b = pm.response.json();",
+                      "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+                      "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+                      "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+                    ],
+                    "_lastExecutionId": "537fc746-3182-4c5c-ab65-07f939f29f2f"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "1b4c4302-1b8f-4df2-beec-cf38e220464f",
+              "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "datos-consolidados"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_dato",
+                      "value": "todos"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+                      "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+                      "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+                      "  const faltan = contrato.filter((c) => !(c in b));",
+                      "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+                      "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+                      "});",
+                      "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+                      "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+                      "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+                      "});",
+                      "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+                      "  pm.expect(b.pagina_actual).to.eql(1);",
+                      "  pm.expect(b.registros_por_pagina).to.eql(20);",
+                      "  pm.expect(b.total_registros).to.be.at.least(0);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "4373b689-aa1f-46a8-af51-0862022592eb",
+              "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "activos-biologicos",
+                    "295",
+                    "indicadores"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_indicador",
+                      "value": "CRECIMIENTO"
+                    },
+                    {
+                      "key": "fecha_inicio",
+                      "value": "2026-07-15"
+                    },
+                    {
+                      "key": "fecha_fin",
+                      "value": "2026-08-15"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_tecnico}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "8a395d6f-0e74-4c4a-9651-b8dad13492b2",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                      "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                      "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+                      "const b = cuerpo();",
+                      "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+                      "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+                      "  pm.expect(b.indicadores).to.be.an('array');",
+                      "});",
+                      "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+                      "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+                      "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+                      "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+                      "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+                      "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+                      "  const esperado = pm.collectionVariables.get('expected_gpd');",
+                      "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+                      "});",
+                      "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+                      "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+                      "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+                      "});",
+                      "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+                      "aplanar(g.variables_usadas, '');",
+                      "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+                      "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+                      "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+                      "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+                      "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+                      "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+                    ],
+                    "_lastExecutionId": "a3bb7eae-3396-4d68-85c4-c5b5633fa3db"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "integracion.tes@gmail.com",
+              "key": "email_tecnico"
+            },
+            {
+              "type": "any",
+              "value": "295",
+              "key": "id_activo"
+            },
+            {
+              "type": "any",
+              "value": "QAJE-DAT-COMPL",
+              "key": "identificador"
+            },
+            {
+              "type": "any",
+              "value": "2026-07-15",
+              "key": "fecha_inicio"
+            },
+            {
+              "type": "any",
+              "value": "2026-08-15",
+              "key": "fecha_fin"
+            },
+            {
+              "type": "any",
+              "value": "5000",
+              "key": "rnf_ms"
+            },
+            {
+              "type": "any",
+              "value": "0.9677",
+              "key": "expected_gpd"
+            },
+            {
+              "type": "any",
+              "value": "200.00",
+              "key": "expected_peso_inicial"
+            },
+            {
+              "type": "any",
+              "value": "230.00",
+              "key": "expected_peso_final"
+            },
+            {
+              "type": "any",
+              "value": "31",
+              "key": "expected_dias"
+            },
+            {
+              "type": "any",
+              "value": "2",
+              "key": "expected_total_mediciones"
+            }
+          ],
+          "info": {
+            "_postman_id": "ee2fa97c-0a70-42d2-aae5-85fa400b5641",
+            "name": "TC-M02-G92 REEVALUACION V3 — TC-M02-154 (RF-50) y TC-M02-159 (RF-51) — CU12",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Consumo de los endpoints analiticos de M02 por una identidad tecnica de integracion autorizada. Precondiciones: identidad exacta suministrada, cuenta activa, rol tecnico, permiso READ sobre activos_biologicos y alcance sobre la finca del fixture. Oraculo: TC-M02-154 datos consolidados conforme al contrato en menos de 5 s; TC-M02-159 indicador de ganancia diaria de peso disponible, con el valor recalculado de forma independiente a partir de las mediciones reales.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "5cc3334c-0afe-4236-bde2-fc8391fe765b",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e654211b-5d36-46ce-aa0f-1138392f50f7",
+          "scriptId": "8d5b4efe-a2e3-4614-ac5a-8574cf4e3d98",
+          "execution": "281babe7-59e0-4b58-bbe9-aa4b367902ff"
+        }
+      }
+    ],
+    "error": null
+  }
+}

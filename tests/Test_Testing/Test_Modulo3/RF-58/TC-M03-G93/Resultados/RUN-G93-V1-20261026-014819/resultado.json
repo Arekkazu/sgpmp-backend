@@ -1,0 +1,378 @@
+{
+  "grupo": "G93",
+  "run_id": "RUN-G93-V1-20261026-014819",
+  "version": 1,
+  "oficial": false,
+  "consume_version": true,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G93-V1-R6-20261026",
+  "commit": null,
+  "datos": {
+    "ids_telemetria": [],
+    "id_area_v1": 519,
+    "id_area_v2": null,
+    "candidatas_v2": [],
+    "descubrimiento_v2": null
+  },
+  "casos": {
+    "TC-M03-184": {
+      "id": "TC-M03-184",
+      "estado": "RECHAZADO",
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "motivo": "Discrepancia del oráculo comprobada por API/UI pública",
+      "observado": {
+        "V1": {
+          "http": 200,
+          "id": 519,
+          "api": "La unidad no figura en resumen_unidades"
+        },
+        "UI_V1": {
+          "panel_global": "",
+          "vista_filtrada": null,
+          "texto_estado_global": "",
+          "texto_estado_filtrado": null
+        }
+      }
+    }
+  },
+  "variantes": {
+    "V1": "RECHAZADO",
+    "V2": "NO_CONCLUYENTE"
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-184",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "id": "API-184-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "La unidad no figura en resumen_unidades",
+      "evidencia": "newman/newman-V1-519.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "id": "API-184-02",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "La unidad no figura; imposible acreditar ausencia de valores fabricados en su resumen",
+      "evidencia": "newman/newman-V1-519.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "UI",
+      "herramienta": "Cypress",
+      "id": "UI-184-01",
+      "tipo": "ASSERT",
+      "estado": "NO_CONCLUYENTE",
+      "motivo": "INICIAL:CARGA_SIN_RESPUESTA_DIAGNOSTICO_PENDIENTE; HTTP sin respuesta; espera agotada; UI cargando false; error ",
+      "evidencia": "cypress/UI-184-V1.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "id": "API-184-03",
+      "tipo": "ASSERT",
+      "estado": "NO_EJECUTADA",
+      "motivo": "Variante sin ejecución acreditada",
+      "evidencia": null
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "UI",
+      "herramienta": "Cypress",
+      "id": "UI-184-02",
+      "tipo": "ASSERT",
+      "estado": "NO_EJECUTADA",
+      "motivo": "Variante sin ejecución acreditada",
+      "evidencia": null
+    }
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 1104
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 795
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/184",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 190
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/184",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 216
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 203
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 201,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 201
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/519",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 176
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas?solo_activas=true",
+      "http": 401,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 237
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G93-V1-20261026-014819",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 125
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/519",
+      "http": 404,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 154
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/519?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 224
+    }
+  ],
+  "newman": [
+    {
+      "fase": "V1",
+      "archivo": "newman/newman-V1-519.json",
+      "http": 200,
+      "fallos": [
+        {
+          "id": null,
+          "mensaje": "unidad visible: expected undefined to exist"
+        },
+        {
+          "id": null,
+          "mensaje": "expected undefined to be null"
+        }
+      ]
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 1,
+    "detalle": [
+      {
+        "fase": "V1",
+        "estado": "NO_CONCLUYENTE",
+        "ejecutadas": 1,
+        "proceso_fallido": false,
+        "motivo": "INICIAL:CARGA_SIN_RESPUESTA_DIAGNOSTICO_PENDIENTE; HTTP sin respuesta; espera agotada; UI cargando false; error ",
+        "criterio": "INICIAL:CARGA_SIN_RESPUESTA_DIAGNOSTICO_PENDIENTE",
+        "rel": "cypress/UI-184-V1.json",
+        "http": null,
+        "error_red": null,
+        "ui_inicial": {
+          "cargando": false,
+          "error": "",
+          "unidades_visibles": 0,
+          "unidad_objetivo_presente": false,
+          "gris": false,
+          "texto_estado": "",
+          "mensaje_ausencia": "",
+          "fecha_historica": true,
+          "fecha_visible": false,
+          "fecha_observada": "",
+          "sin_valores_fabricados": true,
+          "desde_cache": false
+        },
+        "ui_objetivo": null,
+        "peticiones": [
+          {
+            "metodo": "POST",
+            "ruta": "/sesiones/refresh",
+            "alias": "refresh",
+            "inicio": "2026-10-26T01:48:44.175Z",
+            "fin": "2026-10-26T01:48:44.338Z",
+            "duracion_ms": 163,
+            "http": 200,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": "refresh"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/interfaz/contexto",
+            "alias": null,
+            "inicio": "2026-10-26T01:48:44.366Z",
+            "fin": "2026-10-26T01:48:44.548Z",
+            "duracion_ms": 182,
+            "http": 200,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/usuarios/me",
+            "alias": null,
+            "inicio": "2026-10-26T01:48:44.370Z",
+            "fin": "2026-10-26T01:48:44.519Z",
+            "duracion_ms": 149,
+            "http": 500,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/sesiones/me/permisos",
+            "alias": null,
+            "inicio": "2026-10-26T01:48:44.372Z",
+            "fin": "2026-10-26T01:48:44.517Z",
+            "duracion_ms": 145,
+            "http": 500,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/idioma",
+            "alias": null,
+            "inicio": "2026-10-26T01:48:44.949Z",
+            "fin": "2026-10-26T01:48:45.092Z",
+            "duracion_ms": 143,
+            "http": 200,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/tema",
+            "alias": null,
+            "inicio": "2026-10-26T01:48:44.980Z",
+            "fin": "2026-10-26T01:48:45.124Z",
+            "duracion_ms": 144,
+            "http": 200,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/notificaciones",
+            "alias": null,
+            "inicio": "2026-10-26T01:48:45.064Z",
+            "fin": "2026-10-26T01:48:45.213Z",
+            "duracion_ms": 149,
+            "http": 200,
+            "eco_run": true,
+            "error_red": null,
+            "alias_en_callback": null
+          }
+        ],
+        "incidencias_tecnicas": [
+          "CONTROL_AUTO_ON_AUSENTE"
+        ],
+        "observaciones_documentales": [],
+        "pendiente_al_terminar": false,
+        "proceso": 0,
+        "diagnostico_rel": "cypress/UI-184-V1.diagnostico.json",
+        "log_rel": "cypress/UI-184-V1.diagnostico.log"
+      }
+    ]
+  },
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-V1-519.json",
+    "cypress/UI-184-V1.json",
+    "cypress/UI-184-V1.diagnostico.json",
+    "cypress/UI-184-V1.diagnostico.log",
+    "newman/newman-G93-consolidado.html",
+    "cypress/g93.cy.js/UI-184-V1.png"
+  ],
+  "problemas_tecnicos": [
+    "UI V1: CONTROL_AUTO_ON_AUSENTE",
+    "V2: PRE_FINCAS_PRODUCTOR_NO_VISIBLES"
+  ],
+  "hallazgos_rendimiento": [
+    "UI V1: INICIAL:CARGA_SIN_RESPUESTA_DIAGNOSTICO_PENDIENTE; HTTP sin respuesta; espera agotada; UI cargando false; error ; diagnóstico pendiente, sin atribuir causa raíz"
+  ],
+  "dependencias": [],
+  "observaciones_documentales": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "estado": "CONFIRMADO",
+      "comprobaciones": [
+        {
+          "recurso": "area_v1",
+          "http": 404,
+          "ok": true
+        },
+        {
+          "recurso": "dashboard_area_v1",
+          "http": 200,
+          "ok": true
+        }
+      ]
+    },
+    "motivo": "DELETE y relaciones públicas acreditadas"
+  },
+  "presupuesto": {
+    "abierto": false,
+    "cerrado": true,
+    "cuenta": 11,
+    "remotas_en_run": 7,
+    "ui_en_curso": false,
+    "areas": [
+      519
+    ]
+  },
+  "codigo_salida": 0
+}

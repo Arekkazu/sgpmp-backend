@@ -1,0 +1,39 @@
+{
+  "tc": "TC-M02-G84",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G84-REEVAL-V2-20260915-161500",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-143: Asociar sensor DIRECTA a activo individual válido",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: directa",
+      "obtenido": "HTTP 201 Created, id_asociacion: 31, ACTIVA, directa verificado",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G84-REEVAL-V2-20260915-161500/reporte_v2.html"
+    },
+    {
+      "paso": "TC-M02-144: Asociar sensor AMBIENTAL compartido a infraestructura",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: ambiental",
+      "obtenido": "HTTP 201 Created, id_asociacion: 32, ACTIVA, ambiental verificado",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G84-REEVAL-V2-20260915-161500/reporte_v2.html"
+    },
+    {
+      "paso": "TC-M02-145: Asociar sensor POBLACIONAL a lote",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: poblacional",
+      "obtenido": "HTTP 201 Created, id_asociacion: 33, ACTIVA, poblacional verificado",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G84-REEVAL-V2-20260915-161500/reporte_v2.html"
+    },
+    {
+      "paso": "TC-M02-150: Advertencia informativa por dispositivo IoT desconectado",
+      "esperado": "HTTP 201 Created + advertencia conteniendo aviso de desconexión",
+      "obtenido": "HTTP 201 Created, id_asociacion: 34, advertencia: null",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G84-REEVAL-V2-20260915-161500/reporte_v2.html",
+      "nota_qa": "Bloqueo confirmado por gap funcional del backend: en activo_biologico_router.py se devolvía advertencia=None hardcodeado sin integración con Telemetría."
+    }
+  ]
+}

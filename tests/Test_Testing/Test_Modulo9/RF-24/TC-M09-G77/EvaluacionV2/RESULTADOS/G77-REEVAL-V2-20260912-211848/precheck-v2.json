@@ -1,0 +1,160 @@
+{
+  "caso": "TC-M09-148",
+  "grupo": "TC-M09-G77",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "tipo": "REEVALUACION V2",
+  "rama": "qa/juan-esteban-re-evaluacion-M02",
+  "entorno": "TEST",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G77-REEVAL-V2-20260912-211848",
+  "fecha": "2026-09-13T02:28:28.655Z",
+  "preflight": [
+    {
+      "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 404,
+      "nota": "esquema HTTP suministrado"
+    },
+    {
+      "url": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/sensores/{id_sensor}/calibrar",
+      "respuestasDeclaradas": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ],
+      "declara403": true
+    }
+  ],
+  "esquemaSuministradoHttp": {
+    "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "resultado": {
+      "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 404,
+      "nota": "esquema HTTP suministrado"
+    },
+    "nota": "HTTP devuelve 404 del proxy en todas las rutas; ejecucion sobre HTTPS autorizada explicitamente por el responsable QA."
+  },
+  "actorDiscovery": {
+    "correo": "ingeniero@pecuaria.co",
+    "nombre_rol": "Ingeniero de Campo",
+    "estado_cuenta": "Activo",
+    "permisosRecurso12": [
+      1,
+      2,
+      3
+    ],
+    "uso": "solo GET",
+    "alcance": {
+      "listaDispositivos": 0,
+      "fincasAsignadas": 0,
+      "esGlobal": false
+    }
+  },
+  "actorDiscoveryEfectivo": {
+    "correo": "administador.dev@gmail.com",
+    "rol": "Administrador",
+    "escalado": true,
+    "motivo": "El Ingeniero de Campo no tiene fincas asignadas en TEST: alcance de finca deja la lista de dispositivos en total 0 y el detalle/asociaciones en 404.",
+    "uso": "exclusivamente GET; no ejecuta ninguna calibracion"
+  },
+  "actorNegativo": {
+    "correo": "m2m.nuevo@ejemplo.com",
+    "login_status": 200,
+    "autenticado": true,
+    "error_code": null,
+    "mensaje": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+    "perfil": {
+      "id_usuario": 35,
+      "correo_electronico": "m2m.nuevo@ejemplo.com",
+      "nombre_rol": "Productor",
+      "estado_cuenta": "Activo",
+      "fincas": 0
+    },
+    "permisosRecurso12": [
+      2
+    ],
+    "historialLegiblePorProductor": {
+      "status": 200,
+      "total": 0
+    }
+  },
+  "rolesAutorizadosRF24": [
+    "Administrador",
+    "Ingeniero de Campo"
+  ],
+  "plan": {
+    "dispositivo": {
+      "id_dispositivo_iot": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true,
+      "id_infraestructura": 1
+    },
+    "sensor": {
+      "id_sensores": 7,
+      "nombre": "Sensor oxígeno disuelto alevinera-01",
+      "categoria": "OXIGENO",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "areaCorrecta": {
+      "id_infraestructura": 3,
+      "id_asociacion": 7,
+      "punto_instalacion": "Zona de alevinaje, profundidad 20 cm",
+      "vigente": true
+    },
+    "rangoTecnico": {
+      "min": "0.0000",
+      "max": "20.0000"
+    },
+    "valor": "10.0000",
+    "descartados": []
+  },
+  "cuerpoPreparado": {
+    "id_dispositivo_iot": 3,
+    "id_infraestructura": 3,
+    "valor_referencia": "10.0000",
+    "ganancia": "1.0000",
+    "offset": "10.0000",
+    "fecha_calibracion": "2026-09-13T02:28:28.647Z",
+    "observaciones": "QA TC-M09-148 REEVALUACION V2 G77-REEVAL-V2-20260912-211848"
+  },
+  "historyBefore": {
+    "actor": "Administrador (GET read-only)",
+    "total": 0,
+    "ids": [],
+    "items": []
+  },
+  "checklist": {
+    "entornoTestAccesible": true,
+    "contratoDeclara403": true,
+    "productorAutenticado": true,
+    "rolProductorConfirmado": true,
+    "cuentaActiva": true,
+    "rolNoAutorizadoRF24": true,
+    "sinPermisoCrearRecurso12": true,
+    "dispositivoExisteYActivo": true,
+    "sensorExisteYActivo": true,
+    "sensorPerteneceAlDispositivo": true,
+    "areaCorrectaVigente": true,
+    "valorDentroDelRango": true,
+    "historyBeforeCapturado": true,
+    "unicaCondicionNegativaEsElRol": true
+  },
+  "postEjecutados": 0
+}

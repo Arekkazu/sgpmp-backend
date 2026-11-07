@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura reintentos de dev y conserva get_db del sandbox de test |
+# | 2026-10-25 | SamuelPR21 |  reseteo de contexto RLS en Sandbox QA para evitar herencia de identidad entre peticiones
 """Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
 
 Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
@@ -11,8 +16,11 @@ rendirse y traduce el fallo a `ServiceUnavailableError`.
 import logging
 import os
 import time
-from typing import Optional
+from contextlib import contextmanager
+from datetime import timezone
+from typing import Iterator, Optional
 
+import psycopg2.extensions as pg_ext
 from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy import create_engine, event, text
@@ -20,6 +28,7 @@ from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.shared.errors import ServiceUnavailableError
+from src.shared.fechas import nombre_zona_usuario
 
 load_dotenv()
 
@@ -46,9 +55,26 @@ if not DATABASE_URL:
 # falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
 # siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
 # (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
+# La sesión de Postgres siempre en UTC (ver src/shared/fechas.py): así `now()`,
+# `CURRENT_DATE` y los `::date` no dependen de la configuración del servidor.
 engine = create_engine(
-    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
+    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False,
+    connect_args={"options": "-c timezone=UTC"},
 )
+
+# Las pocas columnas `timestamp` sin zona (`modulo1.usuarios.fecha_registro`,
+# `auditoria.logs_*`, varias vistas) guardan hora UTC porque la sesión es UTC,
+# pero llegaban a Python sin zona y la API las serializaba sin offset: el
+# navegador las leía como hora local. Se marcan UTC al leerlas.
+_TIMESTAMP_SIN_ZONA = pg_ext.string_types[1114]
+
+
+def _timestamp_utc(valor, cursor):
+    fecha = _TIMESTAMP_SIN_ZONA(valor, cursor)
+    return fecha.replace(tzinfo=timezone.utc) if fecha is not None else None
+
+
+pg_ext.register_type(pg_ext.new_type((1114,), "TIMESTAMP_UTC", _timestamp_utc))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Identidad de la transacción para RLS (F2/F4 del control de acceso por BD).
@@ -116,6 +142,17 @@ def _reaplicar_identidad(session: Session, _transaccion, conexion) -> None:
         _aplicar_identidad(conexion, identidad)
 
 
+@event.listens_for(Session, "after_begin")
+def _declarar_zona_usuario(_session: Session, _transaccion, conexion) -> None:
+    """`modulo1.fn_hoy_usuario()` lee `app.zona_horaria` para que los triggers
+    usen el mismo "hoy" que la API. Sin zona (UTC) no hace falta el viaje: la
+    función ya cae a UTC. `true` la limita a la transacción, como la identidad.
+    """
+    zona = nombre_zona_usuario()
+    if zona != "UTC":
+        conexion.execute(text("SELECT set_config('app.zona_horaria', :zona, true)"), {"zona": zona})
+
+
 def _declarar(db: Session, identidad) -> None:
     db.info[_CLAVE_IDENTIDAD] = identidad
     if db.in_transaction():
@@ -141,6 +178,36 @@ def declarar_identidad_si_anonima(db: Session, id_usuario: int) -> None:
 def declarar_identidad_sistema(db: Session) -> None:
     """Hace que `db` actúe como el usuario de servicio."""
     _declarar(db, _SISTEMA)
+
+
+@contextmanager
+def como_sistema(db: Session) -> Iterator[None]:
+    """Corre un bloque de `db` como el usuario de servicio y luego restaura la identidad.
+
+    Para búsquedas internas cuyo resultado no puede depender de quién llama,
+    dentro de la misma transacción del request (ej. a qué Gateway Edge va una
+    regla, DEV-08). `modulo9` tiene RLS forzada (FORCE ROW LEVEL SECURITY) y su
+    dueño no tiene BYPASSRLS, así que una función SECURITY DEFINER ya no la
+    evita. Usarlo solo para lecturas acotadas: todo lo que corre adentro ve
+    lo que ve el Administrador.
+    """
+    anterior = db.info.get(_CLAVE_IDENTIDAD)
+    declarar_identidad_sistema(db)
+    try:
+        yield
+    finally:
+        if anterior is not None:
+            _declarar(db, anterior)
+        else:
+            db.info.pop(_CLAVE_IDENTIDAD, None)
+            if db.in_transaction():
+                db.connection().execute(
+                    text(
+                        "SELECT set_config('app.current_user_id', '', true), "
+                        "set_config('app.current_role', '', true), "
+                        "set_config('app.usuario_id', '', true)"
+                    )
+                )
 
 
 def id_usuario_servicio(db: Session) -> int:
@@ -207,6 +274,9 @@ def _conectar_con_reintentos(db: Session) -> None:
 def get_db():
     """Generador de sesiones SQLAlchemy para inyección de dependencias FastAPI.
 
+    Con ``ENABLE_TEST_SANDBOX=true`` y un ``X-Test-Run-Id`` en el request,
+    entrega la sesión aislada del sandbox de pruebas en vez de una del pool.
+
     Yields:
         Session: Sesión de base de datos activa para el request actual.
 
@@ -214,13 +284,73 @@ def get_db():
         ServiceUnavailableError: Si la base de datos no responde al inicio del
             request. Código ``BD_NO_DISPONIBLE``, HTTP 503.
     """
+    if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() != "true":
+        db = SessionLocal()
+        try:
+            _conectar_con_reintentos(db)
+            yield db
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+        return
+
+    from src.shared.tesing_context import test_run_id_context
+    from src.shared.rollback.infraestructure.testing_sandbox import (
+        get_or_create_test_session,
+        SandboxCapacityExceeded,
+    )
+    from fastapi import HTTPException, status
+
+    run_id = test_run_id_context.get()
+
+    if run_id:
+        test_session = None
+        try:
+            test_session = get_or_create_test_session(run_id)
+            
+            # --- INICIO PARCHE DBA-01: RESETEO DE IDENTIDAD EN SANDBOX ---
+            # Al reutilizar la sesión física para diferentes peticiones/usuarios 
+            # dentro del mismo run_id, debemos limpiar la identidad previa 
+            # almacenada en session.info. De lo contrario, funciones como 
+            # `declarar_identidad_si_anonima` no sobrescribirán la identidad 
+            # (porque ven que ya existe una) y la transacción heredará el 
+            # contexto RLS del usuario anterior, causando violaciones RLS.
+            test_session.info.pop(_CLAVE_IDENTIDAD, None)
+            
+            # Adicionalmente, limpiamos las variables de configuración de 
+            # PostgreSQL a nivel de transacción para asegurar un estado prístino
+            # antes de que el middleware/dependencias declaren la nueva identidad.
+            if test_session.in_transaction():
+                try:
+                    test_session.connection().execute(
+                        text(
+                            "SELECT set_config('app.current_user_id', '', true), "
+                            "set_config('app.current_role', '', true), "
+                            "set_config('app.usuario_id', '', true)"
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"[Sandbox] No se pudo limpiar contexto RLS previo: {e}")
+
+            yield test_session
+        except SandboxCapacityExceeded as e:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+        except Exception:
+            if test_session is not None:
+                try:
+                    test_session.rollback()
+                except Exception:
+                    pass
+            raise
+        return
+
     db = SessionLocal()
     try:
         _conectar_con_reintentos(db)
         yield db
     except Exception:
-        # Sin esto, una excepción a mitad de request deja la transacción abierta
-        # hasta el close(), y la sesión puede volver al pool contaminada.
         db.rollback()
         raise
     finally:

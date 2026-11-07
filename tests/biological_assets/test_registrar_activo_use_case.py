@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: el doble del área declara sus especies (RFC-012) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """RF-33: snapshot inicial (Evento 0) y código HTTP del flujo de costo inválido.
 
 - El registro exitoso debe dejar un snapshot version=1/tipo_evento=CREACION en
@@ -21,10 +25,11 @@ from src.biological_assets.application.use_cases.registro.registrar_activo_use_c
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistorialActivo
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsulta
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametroEspecie
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AuthorizationError, BusinessRuleError, ConflictError
+from src.shared.errors import AuthorizationError, BusinessRuleError
 
 
 class DbFake:
@@ -65,15 +70,48 @@ class EspecieFake:
 
 
 class InfraFake:
-    def __init__(self, superficie: Decimal | None = None, id_especie: int | None = None) -> None:
+    """Área con una especie opcional ya asociada. La especie entrante (``obtener_especie``)
+    comparte grupo y densidad con la del área salvo que se indique otra cosa (DEV-23)."""
+
+    def __init__(
+        self,
+        superficie: Decimal | None = None,
+        id_especie: int | None = None,
+        densidad: Decimal | None = Decimal('1000'),
+        grupo: str | None = 'RUMIANTES',
+        densidad_entrante: Decimal | None = Decimal('1000'),
+        grupo_entrante: str | None = 'RUMIANTES',
+        ocupacion: int = 0,
+    ) -> None:
         self.superficie = superficie
         self.id_especie = id_especie
+        self.densidad, self.grupo = densidad, grupo
+        self.densidad_entrante, self.grupo_entrante = densidad_entrante, grupo_entrante
+        self.ocupacion = ocupacion
+        self.asociadas: list[tuple[int, int]] = []
+        self.bloqueos: list[int] = []
 
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Potrero 1', tipo='potrero', es_activo=True,
-            superficie=self.superficie, id_finca=5, id_especie=self.id_especie,
+            superficie=self.superficie, id_finca=5,
+            especies=(
+                [EspecieDelArea(self.id_especie, 'Bovino', self.grupo, self.densidad)]
+                if self.id_especie is not None else []
+            ),
         )
+
+    def obtener_especie(self, id_especie: int):
+        return EspecieDelArea(id_especie, f'Especie {id_especie}', self.grupo_entrante, self.densidad_entrante)
+
+    def calcular_ocupacion(self, id_infraestructura: int) -> int:
+        return self.ocupacion
+
+    def bloquear_capacidad(self, id_infraestructura: int) -> None:
+        self.bloqueos.append(id_infraestructura)
+
+    def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
+        self.asociadas.append((id_infraestructura, id_especie))
 
 
 class ParametrosFake:
@@ -375,17 +413,18 @@ def test_registro_poblacional_sin_superficie_se_rechaza() -> None:
     assert repo.guardados == 0
 
 
-def test_registro_poblacional_rechaza_densidad_superior_al_limite_m09() -> None:
+def test_registro_poblacional_rechaza_si_supera_la_capacidad_efectiva_del_area() -> None:
+    # DEV-23 (RFC-012): el límite de densidad por lote (409 DENSIDAD_MAXIMA_SUPERADA)
+    # queda implicado por la capacidad del área: floor(0.1 × 500) = 50 < 100 → 422.
     db = DbFake()
     repo = ActivoRepoFake()
     uc = _use_case(
         repo,
         db,
-        infra_port=InfraFake(superficie=Decimal('500')),
-        densidad_maxima=Decimal('0.1'),
+        infra_port=InfraFake(superficie=Decimal('500'), densidad_entrante=Decimal('0.1')),
     )
 
-    with pytest.raises(ConflictError) as exc_info:
+    with pytest.raises(BusinessRuleError) as exc_info:
         uc.execute(
             _dto(
                 tipo_activo='POBLACIONAL',
@@ -399,18 +438,19 @@ def test_registro_poblacional_rechaza_densidad_superior_al_limite_m09() -> None:
             _usuario(),
         )
 
-    assert exc_info.value.code == 'DENSIDAD_MAXIMA_SUPERADA'
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'CAPACIDAD_EXCEDIDA'
     assert repo.guardados == 0
 
 
 def test_registro_poblacional_sin_limite_m09_no_omite_validacion() -> None:
+    # DEV-23 (RFC-012, H-12.4): especie sin densidad → 422 de configuración faltante.
     db = DbFake()
     repo = ActivoRepoFake()
     uc = _use_case(
         repo,
         db,
-        infra_port=InfraFake(superficie=Decimal('500')),
-        densidad_maxima=None,
+        infra_port=InfraFake(superficie=Decimal('500'), densidad_entrante=None),
     )
 
     with pytest.raises(BusinessRuleError) as exc_info:
@@ -427,7 +467,8 @@ def test_registro_poblacional_sin_limite_m09_no_omite_validacion() -> None:
             _usuario(),
         )
 
-    assert exc_info.value.code == 'DENSIDAD_MAXIMA_NO_CONFIGURADA'
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'ESPECIE_SIN_DENSIDAD'
     assert repo.guardados == 0
 
 
@@ -452,25 +493,35 @@ def test_infraestructura_de_finca_propia_o_alcance_global_se_registra() -> None:
         assert len(repo.historial) == 1
 
 
-# ── Regla C1: el ID escrito a mano no salta el filtro de especie del formulario ──
+# ── Regla C1 multiespecie (RFC-012, DEV-23): el área acepta otra especie del mismo grupo ──
 
-def test_infraestructura_de_otra_especie_es_422_sin_persistir() -> None:
+def test_infraestructura_de_otro_grupo_de_manejo_es_422_sin_persistir() -> None:
     db = DbFake()
     repo = ActivoRepoFake()
-    infra = InfraFake(superficie=Decimal('500'), id_especie=5)
+    infra = InfraFake(superficie=Decimal('500'), id_especie=5, grupo='RUMIANTES', grupo_entrante='AVES')
 
     with pytest.raises(BusinessRuleError) as exc:
         _use_case(repo, db, infra_port=infra).execute(_dto(id_especie=4), _usuario())
 
-    assert exc.value.code == 'INCOMPATIBILIDAD_ESPECIE'
+    assert exc.value.code == 'GRUPOS_MANEJO_INCOMPATIBLES'
     assert exc.value.field == 'id_infraestructura'
+    assert infra.asociadas == []
     assert repo.historial == []
     assert db.commits == 0
 
 
+def test_otra_especie_del_mismo_grupo_se_asocia_al_area_y_se_registra() -> None:
+    repo = ActivoRepoFake()
+    infra = InfraFake(superficie=Decimal('500'), id_especie=5)
+    _use_case(repo, DbFake(), infra_port=infra).execute(_dto(id_especie=4), _usuario())
+    assert infra.asociadas == [(1, 4)]
+    assert len(repo.historial) == 1
+
+
 def test_infraestructura_de_la_misma_especie_o_sin_especie_se_registra() -> None:
-    for id_especie_area in (1, None):
+    for id_especie_area, asociadas in ((1, []), (None, [(1, 1)])):
         repo = ActivoRepoFake()
         infra = InfraFake(superficie=Decimal('500'), id_especie=id_especie_area)
         _use_case(repo, DbFake(), infra_port=infra).execute(_dto(id_especie=1), _usuario())
         assert len(repo.historial) == 1
+        assert infra.asociadas == asociadas  # solo se asocia si la especie no estaba

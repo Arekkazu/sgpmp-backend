@@ -1,0 +1,1292 @@
+{
+  "grupo": "TC-M03-G87",
+  "rf": "RF-58",
+  "version": 1,
+  "intento": 7,
+  "tipo": "reintento",
+  "referencia": "AUT-G87-V1-R5-20261023",
+  "run_id": "RUN-G87-V1-20261023-145303",
+  "ambiente": "TEST",
+  "herramientas": {
+    "node": "v22.15.1"
+  },
+  "inicio": "2026-10-23T14:53:03.235Z",
+  "operacion": "REINTENTAR",
+  "alcance_reevaluacion": null,
+  "consume_version": true,
+  "estado": "CONCLUIDA",
+  "datos": {
+    "finca": 184,
+    "area": 349,
+    "especie": 126,
+    "umbral_dashboard": {
+      "id": 70,
+      "min": 15,
+      "max": 30
+    },
+    "umbral": {
+      "id": 70,
+      "min": 15,
+      "max": 30
+    },
+    "infraestructura_dispositivo_s1": 349,
+    "especie_dispositivo_s1": 126,
+    "ocupacion_inicial": 0,
+    "s1": {
+      "id": 552,
+      "dispositivo": 357,
+      "nombre": "[REDACTADO]",
+      "area_original": 349,
+      "calibrado": true,
+      "calibracion": {
+        "id": 68,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha": "2026-10-23T06:35:14.221134Z"
+      },
+      "reasociacion_necesaria": false,
+      "motivo_reasociacion": "La asociación activa ya apunta al área del dashboard del Productor."
+    },
+    "s2": {
+      "id": 77,
+      "dispositivo": 266,
+      "nombre": "[REDACTADO]",
+      "area_original": 328,
+      "calibrado": false,
+      "indicador_ingeniero": null
+    },
+    "rango_fisico": [
+      -50,
+      100
+    ],
+    "valores_ajustados_s1": {
+      "v_a1": 23,
+      "v_a2": 24,
+      "v_a3": 25,
+      "v_fuera": 31
+    },
+    "bloqueo_s1": null,
+    "lecturas": {
+      "v_a1": 23,
+      "v_a2": 24,
+      "v_a3": 25,
+      "v_fuera": 31,
+      "v_c1": 21.7,
+      "v_c2": 22.3,
+      "ts": {
+        "a1": "2026-10-23T14:47:10.759Z",
+        "a2": "2026-10-23T14:48:10.759Z",
+        "a3": "2026-10-23T14:49:10.759Z",
+        "fuera": "2026-10-23T14:50:10.759Z",
+        "c1": "2026-10-23T14:47:10.759Z",
+        "c2": "2026-10-23T14:48:10.759Z"
+      }
+    },
+    "ids_telemetria": [
+      116852,
+      116853,
+      116854,
+      116855,
+      116856,
+      116857
+    ]
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-178",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "SETUP Reasignar S2 al área del escenario",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "S2 asociado al área del escenario (RF-22)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "SETUP Reasignar S2 al área del escenario",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168 Lectura válida 1 de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168 Lectura válida 1 de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "PRE",
+      "id": "PRE-168-01",
+      "descripcion": "Lectura válida 1 aceptada como LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168 Lectura válida 1 de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168 Lectura válida 2 de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168 Lectura válida 2 de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "PRE",
+      "id": "PRE-168-01",
+      "descripcion": "Lectura válida 2 aceptada como LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168 Lectura válida 2 de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura válida 3 de S1 (valor 25)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura válida 3 de S1 (valor 25)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "PRE",
+      "id": "PRE-168-01",
+      "descripcion": "Lectura válida 3 aceptada como LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura válida 3 de S1 (valor 25)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "PRE",
+      "id": "PRE-177-01",
+      "descripcion": "Lectura 25 aceptada como LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura válida 3 de S1 (valor 25)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura posterior fuera del rango operativo de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura posterior fuera del rango operativo de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "PRE",
+      "id": "PRE-168-02",
+      "descripcion": "Lectura posterior clasificada FUERA_DE_RANGO (RF-53)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura posterior fuera del rango operativo de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "PRE",
+      "id": "PRE-177-02",
+      "descripcion": "Lectura posterior clasificada FUERA_DE_RANGO (RF-53)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "168/177 Lectura posterior fuera del rango operativo de S1",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "178 Lectura 1 de S2 (sin calibración)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "PRE",
+      "id": "PRE-178-01",
+      "descripcion": "Lectura 1 de S2 clasificada ERROR_CALIBRACION",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "178 Lectura 1 de S2 (sin calibración)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "178 Lectura 2 de S2 (sin calibración)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "PRE",
+      "id": "PRE-178-01",
+      "descripcion": "Lectura 2 de S2 clasificada ERROR_CALIBRACION",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "178 Lectura 2 de S2 (sin calibración)",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "PRE",
+      "id": "PRE-168-03",
+      "descripcion": "Sesión del Productor vigente (no 401)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "ASSERT",
+      "id": "API-168-01",
+      "descripcion": "Dashboard del Productor responde HTTP 200",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "ASSERT",
+      "id": "API-168-02",
+      "descripcion": "El sensor S1 aparece en el dashboard",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "ASSERT",
+      "id": "API-168-03",
+      "descripcion": "ultimo_valor = valor de la última LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "ASSERT",
+      "id": "API-168-04",
+      "descripcion": "ultima_unidad = unidad de la última LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-168",
+      "tipo": "ASSERT",
+      "id": "API-168-05",
+      "descripcion": "ultimo_timestamp_captura = timestamp de la última LECTURA_VALIDA",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "PRE",
+      "id": "PRE-177-03",
+      "descripcion": "Sesión del Productor vigente (no 401)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "ASSERT",
+      "id": "API-177-01",
+      "descripcion": "Dashboard HTTP 200 y el sensor S1 no se oculta",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "ASSERT",
+      "id": "API-177-02",
+      "descripcion": "La lectura FUERA_DE_RANGO no reemplaza el valor operativo 25",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "ASSERT",
+      "id": "API-177-03",
+      "descripcion": "La anomalía permanece visible (estado_calidad FUERA_DE_RANGO o semáforo ROJO)",
+      "fuente": "API",
+      "ok": false,
+      "naturaleza": null,
+      "obtenido": "{\"ultimo_valor\":\"25.0000\",\"ultima_unidad\":\"°C\",\"ultimo_timestamp_captura\":\"2026-10-23T14:49:10.759000Z\",\"estado_calidad\":\"LECTURA_VALIDA\",\"estado_semaforo\":\"VERDE\",\"id_alerta\":null,\"nivel_bateria_pct\":null,\"calidad_senal_rssi\":null,\"calidad_senal_snr\":null}: expected false to deeply equal true",
+      "peticion": "Dashboard del Productor",
+      "estado": "RECHAZADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "PRE",
+      "id": "PRE-178-02",
+      "descripcion": "Sesión del Productor vigente (no 401)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-01",
+      "descripcion": "Productor: HTTP 200 y el sensor S2 permanece visible",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-02",
+      "descripcion": "Productor: ERROR_CALIBRACION no se presenta como lectura operativa",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-03",
+      "descripcion": "Productor: S2 no genera alerta operativa",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-04",
+      "descripcion": "Productor: no recibe información técnica (batería, RSSI, SNR)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Productor",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "SETUP",
+      "id": "SETUP",
+      "descripcion": "Respuesta atendida dentro del RUN (eco X-Test-Run-Id)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Ingeniero de Campo",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "PRE",
+      "id": "PRE-178-03",
+      "descripcion": "Sesión del Ingeniero vigente (no 401)",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Ingeniero de Campo",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-05",
+      "descripcion": "Ingeniero: HTTP 200 y el sensor S2 permanece visible",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Ingeniero de Campo",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-06",
+      "descripcion": "Ingeniero: identifica condición técnica o necesidad de calibración en el dashboard",
+      "fuente": "API",
+      "ok": false,
+      "naturaleza": null,
+      "obtenido": "{\"ultimo_valor\":\"25.0000\",\"estado_calidad\":\"LECTURA_VALIDA\",\"estado_semaforo\":\"VERDE\",\"id_alerta\":null,\"nivel_bateria_pct\":\"77.00\",\"calidad_senal_rssi\":\"-83.00\"}: expected false to deeply equal true",
+      "peticion": "Dashboard del Ingeniero de Campo",
+      "estado": "RECHAZADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "API-178-07",
+      "descripcion": "Ingeniero: la lectura inválida no se trata como operacional normal",
+      "fuente": "API",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "peticion": "Dashboard del Ingeniero de Campo",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "PRE",
+      "id": "PRE-UI-01",
+      "descripcion": "Productor: la UI recibe el dashboard real del RUN",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "PRE",
+      "id": "PRE-UI-01",
+      "descripcion": "Productor: la UI recibe el dashboard real del RUN",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "ASSERT",
+      "id": "UI-177-01",
+      "descripcion": "Productor: la tarjeta de S1 es visible",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "ASSERT",
+      "id": "UI-177-02",
+      "descripcion": "Productor: S1 muestra 25 como valor operativo, no el anómalo",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-177",
+      "tipo": "ASSERT",
+      "id": "UI-177-03",
+      "descripcion": "Productor: la anomalía de S1 es visible (ROJO / ícono)",
+      "fuente": "UI",
+      "ok": false,
+      "naturaleza": null,
+      "obtenido": "AssertionError: semáforo ROJO con ícono visible: expected undefined to exist",
+      "estado": "RECHAZADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "UI-178-01",
+      "descripcion": "Productor: la tarjeta de S2 es visible",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "UI-178-02",
+      "descripcion": "Productor: ERROR_CALIBRACION no se muestra como lectura operativa",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "UI-178-03",
+      "descripcion": "Productor: sin información técnica (batería %, dBm)",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "PRE",
+      "id": "PRE-UI-01",
+      "descripcion": "Ingeniero: la UI recibe el dashboard real del RUN",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "UI-178-04",
+      "descripcion": "Ingeniero: la tarjeta de S2 es visible",
+      "fuente": "UI",
+      "ok": true,
+      "naturaleza": null,
+      "obtenido": "conforme",
+      "estado": "APROBADO"
+    },
+    {
+      "caso": "TC-M03-178",
+      "tipo": "ASSERT",
+      "id": "UI-178-05",
+      "descripcion": "Ingeniero: el detalle muestra ERROR_CALIBRACION / requiere calibración",
+      "fuente": "UI",
+      "ok": false,
+      "naturaleza": null,
+      "obtenido": "AssertionError: detalle=\"Detalle del sensor · QA58 A1-S02 G87-2 valor 25 y fuera de rango25.0000°CNormalVariable medidaTemperatura AmbientalCategoríaAMBIENTALEstado de calidadLECTURA_VALIDAEstado de desviación—ConectividadACTIVOBatería77.00%Señal LoRaWAN (RSSI)-83.00 dBmSNR4.50 dBTendencia—Última lectura02:58:32 p. m.Sin reporte—Unidad productivaÁrea QA M03 G87FincaFinca Prueba AlfaAlerta activa asociada—Dispositivo IoT#266\": expected false to equal true",
+      "estado": "RECHAZADO"
+    }
+  ],
+  "casos": {
+    "TC-M03-168": {
+      "estado": "APROBADO",
+      "motivo": "Todas las comprobaciones verificadas.",
+      "aprobadas": [
+        "PRE-168-01",
+        "PRE-168-02",
+        "PRE-168-03",
+        "API-168-01",
+        "API-168-02",
+        "API-168-03",
+        "API-168-04",
+        "API-168-05"
+      ],
+      "rechazadas": [],
+      "bloqueadas": []
+    },
+    "TC-M03-177": {
+      "estado": "RECHAZADO",
+      "motivo": "Criterios incumplidos: API-177-03, UI-177-03.",
+      "aprobadas": [
+        "PRE-177-01",
+        "PRE-177-02",
+        "PRE-177-03",
+        "API-177-01",
+        "API-177-02",
+        "PRE-UI-01",
+        "UI-177-01",
+        "UI-177-02"
+      ],
+      "rechazadas": [
+        "API-177-03",
+        "UI-177-03"
+      ],
+      "bloqueadas": []
+    },
+    "TC-M03-178": {
+      "estado": "RECHAZADO",
+      "motivo": "Criterios incumplidos: API-178-06, UI-178-05.",
+      "aprobadas": [
+        "PRE-178-01",
+        "PRE-178-02",
+        "API-178-01",
+        "API-178-02",
+        "API-178-03",
+        "API-178-04",
+        "PRE-178-03",
+        "API-178-05",
+        "API-178-07",
+        "PRE-UI-01",
+        "UI-178-01",
+        "UI-178-02",
+        "UI-178-03",
+        "UI-178-04"
+      ],
+      "rechazadas": [
+        "API-178-06",
+        "UI-178-05"
+      ],
+      "bloqueadas": []
+    }
+  },
+  "cierre": {
+    "run": {
+      "intentos": [
+        {
+          "host": "API",
+          "http": 200
+        }
+      ],
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "conclusion": "ROLLBACK_CONFIRMADO",
+      "asociaciones_actuales": {
+        "77": 328,
+        "552": 349
+      },
+      "ocupacion_area": 0,
+      "historial": {
+        "77": {
+          "http": 200,
+          "completo": true,
+          "coincidencias": []
+        },
+        "552": {
+          "http": 200,
+          "completo": true,
+          "coincidencias": []
+        }
+      },
+      "dashboard_http": 200
+    },
+    "sesiones": {
+      "admin": 200,
+      "prod": 200,
+      "eng": 200,
+      "ui_prod": 200,
+      "ui_eng": 200
+    }
+  },
+  "incidencias": [
+    "ERROR_QA: Cypress: 0 comprobaciones"
+  ],
+  "newman": {
+    "solicitudes": 9,
+    "aserciones": 37,
+    "fallidas": 2
+  },
+  "cypress": {
+    "navegador": "chrome",
+    "ruta": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "version": "155.0.8059.85",
+    "duracion_ms": 58451,
+    "exit_code": 1,
+    "total_pruebas": 11,
+    "motivo": null,
+    "reconocido_cypress": true
+  },
+  "fin": "2026-10-23T14:54:39.760Z",
+  "veredicto_grupo": "RECHAZADO",
+  "evidencias": [
+    "resultado.json",
+    "newman/newman-TC-M03-G87.html",
+    "newman/newman-TC-M03-G87.json",
+    "cypress/g87.cy.js/TC-M03-177_productor_S1.png",
+    "cypress/g87.cy.js/TC-M03-178_ingeniero_S2.png",
+    "cypress/g87.cy.js/TC-M03-178_productor_S2.png"
+  ],
+  "oficial": true,
+  "clasificacion": "OFICIAL",
+  "bitacora": [
+    {
+      "etiqueta": "Login admin",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 1219,
+      "respuesta": "{\n  \"token\": \"[REDACTADO]\",\n  \"tipo\": \"Bearer\",\n  \"expira_en\": 28799,\n  \"message\": \"Sesión iniciada exitosamente.\",\n  \"perfil_incompleto\": false\n}"
+    },
+    {
+      "etiqueta": "Login prod",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 677,
+      "respuesta": "{\n  \"token\": \"[REDACTADO]\",\n  \"tipo\": \"Bearer\",\n  \"expira_en\": 28799,\n  \"message\": \"Sesión iniciada exitosamente.\",\n  \"perfil_incompleto\": false\n}"
+    },
+    {
+      "etiqueta": "Login eng",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 450,
+      "respuesta": "{\n  \"token\": \"[REDACTADO]\",\n  \"tipo\": \"Bearer\",\n  \"expira_en\": 28799,\n  \"message\": \"Sesión iniciada exitosamente.\",\n  \"perfil_incompleto\": false\n}"
+    },
+    {
+      "etiqueta": "Perfil prod",
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": false,
+      "status": 200,
+      "ms": 173,
+      "respuesta": "{\n  \"id_usuario\": 35,\n  \"nombre\": \"[REDACTADO]\",\n  \"apellidos\": \"[REDACTADO]\",\n  \"correo_electronico\": \"[REDACTADO]\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"[REDACTADO]\",\n  \"fecha_nacimiento\": \"[REDACTADO]\",\n  \"fecha_registro\": \"2026-08-08T20:35:36.387305\",\n  \"telefono\": \"[REDACTADO]\",\n  \"direccion\": \"[REDACTADO]\",\n  \"nombre_rol\": \"Productor\",\n  \"estado_cuenta\": \"Activo\",\n  \"ultimo_acceso\": \"2026-10-23T14:53:06.995291Z\",\n  \"version\": 3,\n  \"fincas\": [\n    {\n      \"id_finca\": 1,\n      \"nombre\": \"[REDACTADO]\"\n    },\n    {\n      \"id_finca\": 80,\n      \"nombre\": \"[REDACTADO]\"\n   "
+    },
+    {
+      "etiqueta": "Perfil eng",
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": false,
+      "status": 200,
+      "ms": 176,
+      "respuesta": "{\n  \"id_usuario\": 4,\n  \"nombre\": \"[REDACTADO]\",\n  \"apellidos\": \"[REDACTADO]\",\n  \"correo_electronico\": \"[REDACTADO]\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"[REDACTADO]\",\n  \"fecha_nacimiento\": \"[REDACTADO]\",\n  \"fecha_registro\": \"2026-04-28T09:39:56.759176\",\n  \"telefono\": \"[REDACTADO]\",\n  \"direccion\": \"[REDACTADO]\",\n  \"nombre_rol\": \"Ingeniero de Campo\",\n  \"estado_cuenta\": \"Activo\",\n  \"ultimo_acceso\": \"2026-10-23T14:53:07.169193Z\",\n  \"version\": 8,\n  \"fincas\": [\n    {\n      \"id_finca\": 1,\n      \"nombre\": \"[REDACTADO]\"\n    },\n    {\n      \"id_finca\": 85,\n      \"nombre\": \"[REDACTADO]"
+    },
+    {
+      "etiqueta": "Áreas de finca 1",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=1",
+      "en_run": false,
+      "status": 200,
+      "ms": 164,
+      "respuesta": "{\n  \"total\": 7,\n  \"items\": [\n    {\n      \"id_infraestructura\": 3,\n      \"nombre_infraestructura\": \"Alevinera-01\",\n      \"tipo_area\": \"Estanque\",\n      \"superficie\": \"500.00\",\n      \"id_finca\": 1,\n      \"descripcion_infraestructura\": \"Área de alevinaje y larvicultura de tilapia\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": null,\n      \"especie_id\": null,\n      \"tipo_modelo_asignado\": null\n    },\n    {\n      \"id_infraestructura\": 390,\n      \"nombre_infraestructura\": \"Área QA 02 (Vacía)\",\n      \"tipo_area\": \"Estanque\",\n      \"superficie\": \"200.00\",\n      \"id_finca\": 1,\n      \"descripcio"
+    },
+    {
+      "etiqueta": "Umbrales especie 5",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=5",
+      "en_run": false,
+      "status": 200,
+      "ms": 161,
+      "respuesta": "{\n  \"total\": 3,\n  \"items\": [\n    {\n      \"id_umbral_ambiental\": 12,\n      \"id_especie\": 5,\n      \"id_variable_ambiental\": 1,\n      \"unidad_medida\": \"°C\",\n      \"valor_min\": \"0.00\",\n      \"valor_max\": \"100.00\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": null,\n      \"niveles\": [\n        {\n          \"nivel\": \"normal\",\n          \"limite_inferior\": \"24.00\",\n          \"limite_superior\": \"30.00\"\n        },\n        {\n          \"nivel\": \"precaucion\",\n          \"limite_inferior\": \"20.00\",\n          \"limite_superior\": \"24.00\"\n        },\n        {\n          \"nivel\": \"critico\",\n          \"limite"
+    },
+    {
+      "etiqueta": "Umbrales especie 5",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=5",
+      "en_run": false,
+      "status": 200,
+      "ms": 148,
+      "respuesta": "{\n  \"total\": 3,\n  \"items\": [\n    {\n      \"id_umbral_ambiental\": 12,\n      \"id_especie\": 5,\n      \"id_variable_ambiental\": 1,\n      \"unidad_medida\": \"°C\",\n      \"valor_min\": \"0.00\",\n      \"valor_max\": \"100.00\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": null,\n      \"niveles\": [\n        {\n          \"nivel\": \"normal\",\n          \"limite_inferior\": \"24.00\",\n          \"limite_superior\": \"30.00\"\n        },\n        {\n          \"nivel\": \"precaucion\",\n          \"limite_inferior\": \"20.00\",\n          \"limite_superior\": \"24.00\"\n        },\n        {\n          \"nivel\": \"critico\",\n          \"limite"
+    },
+    {
+      "etiqueta": "Umbrales especie 109",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=109",
+      "en_run": false,
+      "status": 200,
+      "ms": 157,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_umbral_ambiental\": 63,\n      \"id_especie\": 109,\n      \"id_variable_ambiental\": 9,\n      \"unidad_medida\": \"°C\",\n      \"valor_min\": \"35.00\",\n      \"valor_max\": \"41.00\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": null,\n      \"niveles\": [\n        {\n          \"nivel\": \"normal\",\n          \"limite_inferior\": \"35.00\",\n          \"limite_superior\": \"37.00\"\n        },\n        {\n          \"nivel\": \"precaucion\",\n          \"limite_inferior\": \"37.00\",\n          \"limite_superior\": \"39.00\"\n        },\n        {\n          \"nivel\": \"critico\",\n          \"limi"
+    },
+    {
+      "etiqueta": "Áreas de finca 184",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=184",
+      "en_run": false,
+      "status": 200,
+      "ms": 170,
+      "respuesta": "{\n  \"total\": 12,\n  \"items\": [\n    {\n      \"id_infraestructura\": 349,\n      \"nombre_infraestructura\": \"Área QA M03 G87\",\n      \"tipo_area\": \"Galpón\",\n      \"superficie\": \"25.00\",\n      \"id_finca\": 184,\n      \"descripcion_infraestructura\": \"Semilla QA G87 (RF-58): área sin sensores con especie 126 para umbral 70 de Temperatura Ambiental.\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": null,\n      \"especie_id\": 126,\n      \"tipo_modelo_asignado\": null\n    },\n    {\n      \"id_infraestructura\": 399,\n      \"nombre_infraestructura\": \"Infra Prueba Alfa M04-1792715755\",\n      \"tipo_area\": \"Estanq"
+    },
+    {
+      "etiqueta": "Umbrales especie 126",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=126",
+      "en_run": false,
+      "status": 200,
+      "ms": 152,
+      "respuesta": "{\n  \"total\": 4,\n  \"items\": [\n    {\n      \"id_umbral_ambiental\": 71,\n      \"id_especie\": 126,\n      \"id_variable_ambiental\": 1,\n      \"unidad_medida\": \"°C\",\n      \"valor_min\": \"14.00\",\n      \"valor_max\": \"30.00\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": \"2026-10-21T20:18:32.541708Z\",\n      \"niveles\": [\n        {\n          \"nivel\": \"normal\",\n          \"limite_inferior\": \"20.00\",\n          \"limite_superior\": \"30.00\"\n        },\n        {\n          \"nivel\": \"precaucion\",\n          \"limite_inferior\": \"18.00\",\n          \"limite_superior\": \"20.00\"\n        },\n        {\n          \"nivel\": \""
+    },
+    {
+      "etiqueta": "Ocupación área 349",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "en_run": false,
+      "status": 200,
+      "ms": 297,
+      "respuesta": "{\n  \"total\": 0,\n  \"pagina\": 1,\n  \"por_pagina\": 50,\n  \"resumen_unidades\": [],\n  \"sensores\": []\n}"
+    },
+    {
+      "etiqueta": "Áreas de la finca",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=184",
+      "en_run": false,
+      "status": 200,
+      "ms": 188,
+      "respuesta": "{\n  \"total\": 12,\n  \"items\": [\n    {\n      \"id_infraestructura\": 349,\n      \"nombre_infraestructura\": \"Área QA M03 G87\",\n      \"tipo_area\": \"Galpón\",\n      \"superficie\": \"25.00\",\n      \"id_finca\": 184,\n      \"descripcion_infraestructura\": \"Semilla QA G87 (RF-58): área sin sensores con especie 126 para umbral 70 de Temperatura Ambiental.\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": null,\n      \"especie_id\": 126,\n      \"tipo_modelo_asignado\": null\n    },\n    {\n      \"id_infraestructura\": 399,\n      \"nombre_infraestructura\": \"Infra Prueba Alfa M04-1792715755\",\n      \"tipo_area\": \"Estanq"
+    },
+    {
+      "etiqueta": "Dispositivos",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot",
+      "en_run": false,
+      "status": 200,
+      "ms": 1458,
+      "respuesta": "{\n  \"total\": 323,\n  \"items\": [\n    {\n      \"id_dispositivo_iot\": 140,\n      \"serial\": \"[REDACTADO]\",\n      \"descripcion\": \"camara detectora\",\n      \"id_infraestructura\": 22,\n      \"id_tipo_dispositivo\": 5,\n      \"categoria\": \"CAMARA\",\n      \"es_activo\": false,\n      \"fecha_creacion\": \"2026-10-06T14:07:50.416102Z\",\n      \"id_dispositivo_gateway\": null,\n      \"resolucion\": \"1920x1080\",\n      \"fps\": 22,\n      \"area_cobertura_m2\": \"90.00\"\n    },\n    {\n      \"id_dispositivo_iot\": 148,\n      \"serial\": \"[REDACTADO]\",\n      \"descripcion\": \"QA M09 G56 s49\",\n      \"id_infraestructura\": 3,\n      \"id_tipo"
+    },
+    {
+      "etiqueta": "Sensores del dispositivo 357",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": false,
+      "status": 200,
+      "ms": 148,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_sensores\": 552,\n      \"nombre\": \"[REDACTADO]\",\n      \"id_dispositivo_iot\": 357,\n      \"es_activo\": true,\n      \"categoria\": \"TEMPERATURA\"\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Calibraciones del sensor 552",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 143,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_calibracion\": 68,\n      \"id_dispositivo_iot\": 357,\n      \"id_sensor\": 552,\n      \"valor_referencia\": 25,\n      \"ganancia\": 1,\n      \"offset\": 0,\n      \"fecha_calibracion\": \"2026-10-23T06:35:14.221134Z\",\n      \"id_usuario\": 155,\n      \"observaciones\": \"QA G87 S1: calibración identidad (ganancia 1, offset 0)\",\n      \"modo_calibracion\": \"SENSOR\"\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Sensores del dispositivo 266",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/266/sensores",
+      "en_run": false,
+      "status": 200,
+      "ms": 158,
+      "respuesta": "{\n  \"total\": 6,\n  \"items\": [\n    {\n      \"id_sensores\": 76,\n      \"nombre\": \"[REDACTADO]\",\n      \"id_dispositivo_iot\": 266,\n      \"es_activo\": true,\n      \"categoria\": \"TEMPERATURA\"\n    },\n    {\n      \"id_sensores\": 77,\n      \"nombre\": \"[REDACTADO]\",\n      \"id_dispositivo_iot\": 266,\n      \"es_activo\": true,\n      \"categoria\": \"TEMPERATURA\"\n    },\n    {\n      \"id_sensores\": 78,\n      \"nombre\": \"[REDACTADO]\",\n      \"id_dispositivo_iot\": 266,\n      \"es_activo\": true,\n      \"categoria\": \"TEMPERATURA\"\n    },\n    {\n      \"id_sensores\": 79,\n      \"nombre\": \"[REDACTADO]\",\n      \"id_dispositivo_iot\": 2"
+    },
+    {
+      "etiqueta": "Calibraciones del sensor 76",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/76/calibraciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 148,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_calibracion\": 47,\n      \"id_dispositivo_iot\": 266,\n      \"id_sensor\": 76,\n      \"valor_referencia\": 85,\n      \"ganancia\": 1,\n      \"offset\": 0,\n      \"fecha_calibracion\": \"2026-10-15T19:25:08.200590Z\",\n      \"id_usuario\": 137,\n      \"observaciones\": \"SEED-RF62: calibración nominal (aislamiento multi-finca)\",\n      \"modo_calibracion\": \"SENSOR\"\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Calibraciones del sensor 77",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/77/calibraciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 161,
+      "respuesta": "{\n  \"total\": 0,\n  \"items\": []\n}"
+    },
+    {
+      "etiqueta": "Asociación del sensor 552",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 141,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_sensores_area_asociada\": 519,\n      \"id_sensor\": 552,\n      \"id_dispositivo_iot\": 357,\n      \"id_infraestructura\": 349,\n      \"punto_instalacion\": \"QA G87 S1\",\n      \"tiene_estado\": true,\n      \"fecha_asociacion\": \"2026-10-23T06:35:14.221134Z\",\n      \"fecha_finalizacion\": null,\n      \"id_usuario\": 155\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Asociación del sensor 77",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/77/asociaciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 152,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_sensores_area_asociada\": 52,\n      \"id_sensor\": 77,\n      \"id_dispositivo_iot\": 266,\n      \"id_infraestructura\": 328,\n      \"punto_instalacion\": \"Punto QA58\",\n      \"tiene_estado\": true,\n      \"fecha_asociacion\": \"2026-08-23T20:18:32.541708Z\",\n      \"fecha_finalizacion\": null,\n      \"id_usuario\": 104\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Infraestructura del dispositivo S1 357",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": false,
+      "status": 200,
+      "ms": 151,
+      "respuesta": "{\n  \"id_dispositivo_iot\": 357,\n  \"serial\": \"[REDACTADO]\",\n  \"descripcion\": \"QA G87 S1 (TC-M03-168/177): sensor de Temperatura Ambiental del área 349\",\n  \"id_infraestructura\": 349,\n  \"id_tipo_dispositivo\": 3,\n  \"categoria\": \"SENSOR\",\n  \"es_activo\": true,\n  \"fecha_creacion\": \"2026-10-23T06:35:14.221134Z\",\n  \"id_dispositivo_gateway\": null,\n  \"resolucion\": null,\n  \"fps\": null,\n  \"area_cobertura_m2\": null\n}"
+    },
+    {
+      "etiqueta": "Infraestructura del dispositivo S1 349",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": false,
+      "status": 200,
+      "ms": 152,
+      "respuesta": "{\n  \"id_infraestructura\": 349,\n  \"nombre_infraestructura\": \"Área QA M03 G87\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"25.00\",\n  \"id_finca\": 184,\n  \"descripcion_infraestructura\": \"Semilla QA G87 (RF-58): área sin sensores con especie 126 para umbral 70 de Temperatura Ambiental.\",\n  \"es_activo\": true,\n  \"fecha_actualizacion\": null,\n  \"especie_id\": 126,\n  \"tipo_modelo_asignado\": null\n}"
+    },
+    {
+      "etiqueta": "Umbrales especie del dispositivo S1 126",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=126",
+      "en_run": false,
+      "status": 200,
+      "ms": 139,
+      "respuesta": "{\n  \"total\": 4,\n  \"items\": [\n    {\n      \"id_umbral_ambiental\": 71,\n      \"id_especie\": 126,\n      \"id_variable_ambiental\": 1,\n      \"unidad_medida\": \"°C\",\n      \"valor_min\": \"14.00\",\n      \"valor_max\": \"30.00\",\n      \"es_activo\": true,\n      \"fecha_actualizacion\": \"2026-10-21T20:18:32.541708Z\",\n      \"niveles\": [\n        {\n          \"nivel\": \"normal\",\n          \"limite_inferior\": \"20.00\",\n          \"limite_superior\": \"30.00\"\n        },\n        {\n          \"nivel\": \"precaucion\",\n          \"limite_inferior\": \"18.00\",\n          \"limite_superior\": \"20.00\"\n        },\n        {\n          \"nivel\": \""
+    },
+    {
+      "etiqueta": "Rango físico de la variable",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": false,
+      "status": 200,
+      "ms": 146,
+      "respuesta": "{\n  \"total\": 16,\n  \"items\": [\n    {\n      \"id_variable_ambiental\": 16,\n      \"nombre\": \"[REDACTADO]\",\n      \"unidad\": \"m/s²\",\n      \"valor_fisico_min\": \"0\",\n      \"valor_fisico_max\": \"200\"\n    },\n    {\n      \"id_variable_ambiental\": 11,\n      \"nombre\": \"[REDACTADO]\",\n      \"unidad\": \"ppm\",\n      \"valor_fisico_min\": \"0\",\n      \"valor_fisico_max\": \"500\"\n    },\n    {\n      \"id_variable_ambiental\": 4,\n      \"nombre\": \"[REDACTADO]\",\n      \"unidad\": \"mg/L\",\n      \"valor_fisico_min\": \"0\",\n      \"valor_fisico_max\": \"10\"\n    },\n    {\n      \"id_variable_ambiental\": 8,\n      \"nombre\": \"[REDACTADO]\",\n    "
+    },
+    {
+      "etiqueta": "Sandbox disponible",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G87-V1-20261023-145303-NO-EXISTE",
+      "en_run": false,
+      "status": 404,
+      "ms": 120,
+      "respuesta": "{\n  \"detail\": \"Run ID no encontrado.\"\n}"
+    },
+    {
+      "etiqueta": "Apertura del RUN (sin escritura)",
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "status": 200,
+      "eco_run": true,
+      "ms": 151,
+      "respuesta": "{\n  \"id_usuario\": 4,\n  \"nombre\": \"[REDACTADO]\",\n  \"apellidos\": \"[REDACTADO]\",\n  \"correo_electronico\": \"[REDACTADO]\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"[REDACTADO]\",\n  \"fecha_nacimiento\": \"[REDACTADO]\",\n  \"fecha_registro\": \"2026-04-28T09:39:56.759176\",\n  \"telefono\": \"[REDACTADO]\",\n  \"direccion\": \"[REDACTADO]\",\n  \"nombre_rol\": \"Ingeniero de Campo\",\n  \"estado_cuenta\": \"Activo\",\n  \"ultimo_acceso\": \"2026-10-23T14:53:12.015136Z\",\n  \"version\": 8,\n  \"fincas\": [\n    {\n      \"id_finca\": 1,\n      \"nombre\": \"[REDACTADO]\"\n    },\n    {\n      \"id_finca\": 85,\n      \"nombre\": \"[REDACTADO]"
+    },
+    {
+      "etiqueta": "Newman: SETUP Reasignar S2 al área del escenario",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_sensores_area_asociada\": 521,\n  \"id_sensor\": 77,\n  \"id_dispositivo_iot\": 266,\n  \"id_infraestructura\": 349,\n  \"punto_instalacion\": \"QA G87 S2\",\n  \"tiene_estado\": true,\n  \"fecha_asociacion\": \"2026-10-23T14:53:35.408617Z\",\n  \"fecha_finalizacion\": null,\n  \"id_usuario\": 4,\n  \"asociaciones_activo_superadas\": []\n}"
+    },
+    {
+      "etiqueta": "Newman: 168 Lectura válida 1 de S1",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_telemetria\": 116852,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_procesamiento\": \"2026-10-23T14:53:12.008472Z\",\n  \"latencia_procesamiento_ms\": 361000\n}"
+    },
+    {
+      "etiqueta": "Newman: 168 Lectura válida 2 de S1",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_telemetria\": 116853,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_procesamiento\": \"2026-10-23T14:53:12.008472Z\",\n  \"latencia_procesamiento_ms\": 301000\n}"
+    },
+    {
+      "etiqueta": "Newman: 168/177 Lectura válida 3 de S1 (valor 25)",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_telemetria\": 116854,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_procesamiento\": \"2026-10-23T14:53:12.008472Z\",\n  \"latencia_procesamiento_ms\": 241000\n}"
+    },
+    {
+      "etiqueta": "Newman: 168/177 Lectura posterior fuera del rango operativo de S1",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_telemetria\": 116855,\n  \"estado_calidad\": \"FUERA_DE_RANGO\",\n  \"timestamp_procesamiento\": \"2026-10-23T14:53:12.008472Z\",\n  \"latencia_procesamiento_ms\": 181000\n}"
+    },
+    {
+      "etiqueta": "Newman: 178 Lectura 1 de S2 (sin calibración)",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_telemetria\": 116856,\n  \"estado_calidad\": \"ERROR_CALIBRACION\",\n  \"timestamp_procesamiento\": \"2026-10-23T14:53:12.008472Z\",\n  \"latencia_procesamiento_ms\": 361000\n}"
+    },
+    {
+      "etiqueta": "Newman: 178 Lectura 2 de S2 (sin calibración)",
+      "metodo": "POST",
+      "en_run": true,
+      "status": 201,
+      "respuesta": "{\n  \"id_telemetria\": 116857,\n  \"estado_calidad\": \"ERROR_CALIBRACION\",\n  \"timestamp_procesamiento\": \"2026-10-23T14:53:12.008472Z\",\n  \"latencia_procesamiento_ms\": 301000\n}"
+    },
+    {
+      "etiqueta": "Newman: Dashboard del Productor",
+      "metodo": "GET",
+      "en_run": true,
+      "status": 200,
+      "respuesta": "[\n  {\n    \"id_sensor\": 77,\n    \"ultimo_valor\": \"25.0000\",\n    \"ultima_unidad\": \"°C\",\n    \"ultimo_timestamp_captura\": \"2026-10-21T19:58:32.541708Z\",\n    \"estado_calidad\": \"LECTURA_VALIDA\",\n    \"estado_semaforo\": \"VERDE\",\n    \"id_alerta\": null,\n    \"nivel_bateria_pct\": null,\n    \"calidad_senal_rssi\": null,\n    \"calidad_senal_snr\": null\n  },\n  {\n    \"id_sensor\": 552,\n    \"ultimo_valor\": \"25.0000\",\n    \"ultima_unidad\": \"°C\",\n    \"ultimo_timestamp_captura\": \"2026-10-23T14:49:10.759000Z\",\n    \"estado_calidad\": \"LECTURA_VALIDA\",\n    \"estado_semaforo\": \"VERDE\",\n    \"id_alerta\": null,\n    \"nivel_bateria_pct\": null,\n    \"calidad_senal_rssi\": null,\n    \"calidad_senal_snr\": null\n  }\n]"
+    },
+    {
+      "etiqueta": "Newman: Dashboard del Ingeniero de Campo",
+      "metodo": "GET",
+      "en_run": true,
+      "status": 200,
+      "respuesta": "[\n  {\n    \"id_sensor\": 77,\n    \"ultimo_valor\": \"25.0000\",\n    \"ultima_unidad\": \"°C\",\n    \"ultimo_timestamp_captura\": \"2026-10-21T19:58:32.541708Z\",\n    \"estado_calidad\": \"LECTURA_VALIDA\",\n    \"estado_semaforo\": \"VERDE\",\n    \"id_alerta\": null,\n    \"nivel_bateria_pct\": \"77.00\",\n    \"calidad_senal_rssi\": \"-83.00\",\n    \"calidad_senal_snr\": \"4.50\"\n  },\n  {\n    \"id_sensor\": 552,\n    \"ultimo_valor\": \"25.0000\",\n    \"ultima_unidad\": \"°C\",\n    \"ultimo_timestamp_captura\": \"2026-10-23T14:49:10.759000Z\",\n    \"estado_calidad\": \"LECTURA_VALIDA\",\n    \"estado_semaforo\": \"VERDE\",\n    \"id_alerta\": null,\n    \"nivel_bateria_pct\": \"81.00\",\n    \"calidad_senal_rssi\": \"-71.00\",\n    \"calidad_senal_snr\": \"7.50\"\n  }\n]"
+    },
+    {
+      "etiqueta": "Host del frontend dentro del RUN",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "en_run": true,
+      "status": 200,
+      "eco_run": true,
+      "ms": 811,
+      "respuesta": "{\n  \"total\": 2,\n  \"pagina\": 1,\n  \"por_pagina\": 50,\n  \"resumen_unidades\": [\n    {\n      \"id_infraestructura\": 349,\n      \"nombre_infraestructura\": \"Área QA M03 G87\",\n      \"id_finca\": 184,\n      \"nombre_finca\": \"Finca Prueba Alfa\",\n      \"total_sensores\": 2,\n      \"sensores_online\": 2,\n      \"sensores_sin_senal\": 0,\n      \"sensores_con_error\": 0,\n      \"estado_general\": \"VERDE\",\n      \"alertas_activas_count\": 0,\n      \"ultimo_dato_recibido\": \"2026-10-23T14:49:10.759000Z\"\n    }\n  ],\n  \"sensores\": [\n    {\n      \"id_sensor\": 77,\n      \"id_dispositivo_iot\": 266,\n      \"nombre_sensor\": \"QA58 A1-S02 "
+    },
+    {
+      "etiqueta": "Vigencia admin",
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": false,
+      "status": 200,
+      "ms": 557,
+      "respuesta": "{\n  \"id_usuario\": 104,\n  \"nombre\": \"[REDACTADO]\",\n  \"apellidos\": \"[REDACTADO]\",\n  \"correo_electronico\": \"[REDACTADO]\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"[REDACTADO]\",\n  \"fecha_nacimiento\": \"[REDACTADO]\",\n  \"fecha_registro\": \"2026-09-13T00:50:33.158162\",\n  \"telefono\": \"[REDACTADO]\",\n  \"direccion\": \"[REDACTADO]\",\n  \"nombre_rol\": \"Administrador\",\n  \"estado_cuenta\": \"Activo\",\n  \"ultimo_acceso\": \"2026-10-23T14:54:38.846831Z\",\n  \"version\": 1,\n  \"fincas\": [\n    {\n      \"id_finca\": 162,\n      \"nombre\": \"[REDACTADO]\"\n    },\n    {\n      \"id_finca\": 163,\n      \"nombre\": \"[REDACTADO]"
+    },
+    {
+      "etiqueta": "Cierre del RUN",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G87-V1-20261023-145303",
+      "en_run": false,
+      "status": 200,
+      "ms": 418,
+      "respuesta": "{\n  \"status\": \"Rollback exitoso\"\n}"
+    },
+    {
+      "etiqueta": "Rollback asociación 552",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 137,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_sensores_area_asociada\": 519,\n      \"id_sensor\": 552,\n      \"id_dispositivo_iot\": 357,\n      \"id_infraestructura\": 349,\n      \"punto_instalacion\": \"QA G87 S1\",\n      \"tiene_estado\": true,\n      \"fecha_asociacion\": \"2026-10-23T06:35:14.221134Z\",\n      \"fecha_finalizacion\": null,\n      \"id_usuario\": 155\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Rollback asociación 77",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/77/asociaciones",
+      "en_run": false,
+      "status": 200,
+      "ms": 161,
+      "respuesta": "{\n  \"total\": 1,\n  \"items\": [\n    {\n      \"id_sensores_area_asociada\": 52,\n      \"id_sensor\": 77,\n      \"id_dispositivo_iot\": 266,\n      \"id_infraestructura\": 328,\n      \"punto_instalacion\": \"Punto QA58\",\n      \"tiene_estado\": true,\n      \"fecha_asociacion\": \"2026-08-23T20:18:32.541708Z\",\n      \"fecha_finalizacion\": null,\n      \"id_usuario\": 104\n    }\n  ]\n}"
+    },
+    {
+      "etiqueta": "Rollback dashboard",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "en_run": false,
+      "status": 200,
+      "ms": 295,
+      "respuesta": "{\n  \"total\": 0,\n  \"pagina\": 1,\n  \"por_pagina\": 50,\n  \"resumen_unidades\": [],\n  \"sensores\": []\n}"
+    },
+    {
+      "etiqueta": "Rollback historial 552",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-23&fecha_fin=2026-10-23",
+      "en_run": false,
+      "status": 200,
+      "ms": 167,
+      "respuesta": "{\n  \"total\": 0,\n  \"pagina\": 1,\n  \"por_pagina\": 100,\n  \"paginas_totales\": 1,\n  \"filtros_aplicados\": {\n    \"fecha_inicio\": \"2026-10-23\",\n    \"fecha_fin\": \"2026-10-23\",\n    \"sensor_id\": 552,\n    \"tipo_variable\": null,\n    \"categoria_variable\": null,\n    \"id_infraestructura\": null,\n    \"especie\": null,\n    \"estado_dato\": null,\n    \"origen_dato\": null,\n    \"incluir_alertas\": false\n  },\n  \"rango_real_datos\": {\n    \"primer_timestamp\": null,\n    \"ultimo_timestamp\": null\n  },\n  \"items\": [],\n  \"estadisticas\": []\n}"
+    },
+    {
+      "etiqueta": "Rollback historial 77",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?sensor_id=77&fecha_inicio=2026-10-23&fecha_fin=2026-10-23",
+      "en_run": false,
+      "status": 200,
+      "ms": 158,
+      "respuesta": "{\n  \"total\": 0,\n  \"pagina\": 1,\n  \"por_pagina\": 100,\n  \"paginas_totales\": 1,\n  \"filtros_aplicados\": {\n    \"fecha_inicio\": \"2026-10-23\",\n    \"fecha_fin\": \"2026-10-23\",\n    \"sensor_id\": 77,\n    \"tipo_variable\": null,\n    \"categoria_variable\": null,\n    \"id_infraestructura\": null,\n    \"especie\": null,\n    \"estado_dato\": null,\n    \"origen_dato\": null,\n    \"incluir_alertas\": false\n  },\n  \"rango_real_datos\": {\n    \"primer_timestamp\": null,\n    \"ultimo_timestamp\": null\n  },\n  \"items\": [],\n  \"estadisticas\": []\n}"
+    },
+    {
+      "etiqueta": "Logout admin",
+      "metodo": "DELETE",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 165,
+      "respuesta": "{\n  \"message\": \"Sesión cerrada exitosamente.\"\n}"
+    },
+    {
+      "etiqueta": "Logout prod",
+      "metodo": "DELETE",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 175,
+      "respuesta": "{\n  \"message\": \"Sesión cerrada exitosamente.\"\n}"
+    },
+    {
+      "etiqueta": "Logout eng",
+      "metodo": "DELETE",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 171,
+      "respuesta": "{\n  \"message\": \"Sesión cerrada exitosamente.\"\n}"
+    },
+    {
+      "etiqueta": "Logout ui_prod",
+      "metodo": "DELETE",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 145,
+      "respuesta": "{\n  \"message\": \"Sesión cerrada exitosamente.\"\n}"
+    },
+    {
+      "etiqueta": "Logout ui_eng",
+      "metodo": "DELETE",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "status": 200,
+      "ms": 155,
+      "respuesta": "{\n  \"message\": \"Sesión cerrada exitosamente.\"\n}"
+    }
+  ]
+}

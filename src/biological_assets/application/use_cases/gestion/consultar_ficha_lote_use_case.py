@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Caso de uso: ficha de gestión de un lote POBLACIONAL (RF-36)."""
 
 from __future__ import annotations
@@ -69,9 +72,12 @@ class ConsultarFichaLoteUseCase:
         dp = activo.detalle_poblacional
 
         infra = self.infra_port.obtener_activa(activo.id_infraestructura)
+        # RFC-012 (DEV-23): la densidad que limita el área es el MIN de las especies
+        # presentes (la misma que define su capacidad efectiva). Antes salía de
+        # capacidad_maxima/superficie, NULL en todas las áreas.
         densidad_maxima: Optional[Decimal] = None
-        if infra and infra.capacidad_maxima and infra.superficie and infra.superficie > 0:
-            densidad_maxima = Decimal(infra.capacidad_maxima) / infra.superficie
+        if infra and infra.especies and all(e.densidad is not None for e in infra.especies):
+            densidad_maxima = min(Decimal(e.densidad) for e in infra.especies)
 
         especie = self.especie_port.obtener_activa(activo.id_especie)
 

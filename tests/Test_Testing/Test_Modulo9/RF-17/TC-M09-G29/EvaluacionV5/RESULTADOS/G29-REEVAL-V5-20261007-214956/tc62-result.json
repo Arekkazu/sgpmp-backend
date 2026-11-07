@@ -1,0 +1,1635 @@
+{
+  "runId": "G29-REEVAL-V5-20261007-214956",
+  "caso": "TC-M09-62",
+  "version": "V5",
+  "ambiente": "TEST",
+  "autorizadoPor": "Juan (QA)",
+  "inicio": "2026-10-08T18:21:57.352537+00:00",
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "tokenPersistido": false
+  },
+  "umbral": {
+    "id": 48,
+    "id_especie": 4,
+    "variable": {
+      "id": 2,
+      "nombre": "pH del agua",
+      "unidad": "pH",
+      "rangoFisico": [
+        "0",
+        "14"
+      ]
+    }
+  },
+  "configuracionA": {
+    "valor_min": "5.90",
+    "valor_max": "8.70",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "5.90",
+        "limite_superior": "6.83"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "6.83",
+        "limite_superior": "7.76"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "7.76",
+        "limite_superior": "8.70"
+      }
+    ]
+  },
+  "preDelGate": {
+    "valor_min": "5.60",
+    "valor_max": "8.40",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "5.60",
+        "limite_superior": "6.53"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "6.53",
+        "limite_superior": "7.46"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "7.46",
+        "limite_superior": "8.40"
+      }
+    ]
+  },
+  "escriturasOficialesEmitidas": 1,
+  "presupuesto": "1 escritura oficial, 0 reintentos",
+  "revalidacion": {
+    "preActual": {
+      "id_umbral_ambiental": 48,
+      "id_especie": 4,
+      "id_variable_ambiental": 2,
+      "unidad_medida": "pH",
+      "valor_min": "5.60",
+      "valor_max": "8.40",
+      "es_activo": true,
+      "fecha_actualizacion": null,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "5.60",
+          "limite_superior": "6.53"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "6.53",
+          "limite_superior": "7.46"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "7.46",
+          "limite_superior": "8.40"
+        }
+      ],
+      "estado_sincronizacion": "PENDIENTE",
+      "fecha_ultima_sincronizacion": null,
+      "motivo_fallo_sincronizacion": null
+    },
+    "destino": {
+      "destinosRf17": [
+        "SERBY-TAX-FIRMWARE"
+      ],
+      "unicoYEsElObjetivo": true,
+      "gatewayId": 138,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T18:20:02.466962Z",
+        "id_ultimo_heartbeat": 249,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T18:20:02.466962Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "nodoAsociado": true,
+      "timestamp": "2026-10-08T18:23:16.714245+00:00"
+    },
+    "timestamp": "2026-10-08T18:23:16.714711+00:00"
+  },
+  "bitacoraPre": {
+    "http": 200,
+    "cuerpo": {
+      "total": 42,
+      "pagina": 1,
+      "por_pagina": 50,
+      "items": [
+        {
+          "id_evento": "42f854cd-ebf0-4eac-ae3c-e916b9f117c8",
+          "id_usuario": 104,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo DISPOSITIVO-CAMARONERA-10",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:57:19.611548Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "DISPOSITIVO-CAMARONERA-10"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "130",
+          "severidad_log": "INFO",
+          "hash_integridad": "c27c77ba3eddaf1a5e5f5752725305c7fe70e553dd347d656e9526f45a898a0f",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:57:19.612663Z"
+        },
+        {
+          "id_evento": "736a2369-c5a1-4768-9d1d-60b0ab7656be",
+          "id_usuario": 104,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo RASPBERRY3BPRUEBA",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:57:19.158687Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "RASPBERRY3BPRUEBA"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "128",
+          "severidad_log": "INFO",
+          "hash_integridad": "b9ad9d10faa9d74035d8e9ae9aedc40642f16a9bd89fcbef25fce018451b4099",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:57:19.160431Z"
+        },
+        {
+          "id_evento": "991bc04c-8ace-442f-b8e9-1556a386a147",
+          "id_usuario": 104,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo PRUEBA2",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:57:18.751448Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "PRUEBA2"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "132",
+          "severidad_log": "INFO",
+          "hash_integridad": "d913846da9fbfb61c55e192d0ea46c416a14a7956ad6ac1629c5ccaa1ab0c097",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:57:18.752501Z"
+        },
+        {
+          "id_evento": "eca04a77-7d95-4ef8-b66c-5ac8f0c08de3",
+          "id_usuario": 104,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo TC-M09-G59-RESUELTO-1791163477491",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:57:17.695025Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "TC-M09-G59-RESUELTO-1791163477491"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "134",
+          "severidad_log": "INFO",
+          "hash_integridad": "9987f7aa35ffa93176e9dd85cbe9485110d9d62a6de3553ce09b74138a6be660",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:57:17.696056Z"
+        },
+        {
+          "id_evento": "86664231-7d3d-4e5f-8dc1-f8a202b08371",
+          "id_usuario": 104,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo TC-M09-G59-1791163477491",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:57:16.902223Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "TC-M09-G59-1791163477491"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "133",
+          "severidad_log": "INFO",
+          "hash_integridad": "84ee8220b63154cf8a2df8fc710fa0356d75311f7c10c36236e69433d5232b16",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:57:16.903581Z"
+        },
+        {
+          "id_evento": "7bfd6244-98a4-4b8c-a2f4-5997cc984d1a",
+          "id_usuario": 104,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo QA-G31-V5-1008170709",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:36:49.339526Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "QA-G31-V5-1008170709"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "203",
+          "severidad_log": "INFO",
+          "hash_integridad": "f46612eb8d637fceead10610c43d8f69e240f9c7f68899ac82b6951364e970d1",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:36:49.340688Z"
+        },
+        {
+          "id_evento": "bd5f39d0-4f39-4709-bd21-6fb6d81efb9d",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:14:04.448351Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "62",
+          "severidad_log": "WARNING",
+          "hash_integridad": "db86b6fcc92b0dba2a0e060e35f49c417048195d7c6b7b80071ec7c688ce6604",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:14:04.445080Z"
+        },
+        {
+          "id_evento": "68aa955f-2828-4d0b-ac40-b1ae52b80a0e",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:12:26.642771Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "61",
+          "severidad_log": "WARNING",
+          "hash_integridad": "dda8ae11e0ac23287fe240fd56936d21a99cd4a2247b7fef81c67afdcf3cd428",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:12:26.639907Z"
+        },
+        {
+          "id_evento": "daef3b67-1026-4189-a621-54bf9eaa44b9",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T17:12:26.026162Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "60",
+          "severidad_log": "WARNING",
+          "hash_integridad": "8097474b8e5a3eeb27c380ded02c8c4f05189fd199bd12111d8edc440120221e",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T17:12:26.021119Z"
+        },
+        {
+          "id_evento": "cdd59765-eb9b-4cb3-b938-4779285c964d",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T06:37:20.448441Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "59",
+          "severidad_log": "WARNING",
+          "hash_integridad": "e6c58fbd7897bdec86244379990f6fd9908fc0a1064a758b521d23b29bed263a",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T06:37:20.446388Z"
+        },
+        {
+          "id_evento": "e4c75cd1-a2aa-4bdc-8797-7038667d0625",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T06:37:19.775981Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "58",
+          "severidad_log": "WARNING",
+          "hash_integridad": "f19b90cdc5f57be0ec5edfd9b983c3bca7394b8e71a965b3839f23d6c8f4089e",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T06:37:19.772712Z"
+        },
+        {
+          "id_evento": "19e3e45a-d334-46cf-945a-f4e22f368316",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-08T06:37:19.028999Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "57",
+          "severidad_log": "WARNING",
+          "hash_integridad": "342a28d19dc6724743ee89970206008a3ade3edcfd05eea14f99273c707a9d34",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-08T06:37:19.021135Z"
+        },
+        {
+          "id_evento": "afb9175e-4073-4de1-9be2-00016676effb",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo QA-M09-G132-bj-733620",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-07T01:15:43.340090Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "QA-M09-G132-bj-733620"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "170",
+          "severidad_log": "INFO",
+          "hash_integridad": "765a3fa40cc97fccac9355d607d27dbeb0725a27cef6f17f9b8a574a9e13b53d",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-07T01:15:43.341482Z"
+        },
+        {
+          "id_evento": "545aef10-ecfb-4017-818b-c4a8a876feb3",
+          "id_usuario": 126,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo 223123123123",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-06T14:11:27.072606Z",
+          "accion_detallada": {
+            "motivo": "dispositivo_desactivado",
+            "serial": "223123123123"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "140",
+          "severidad_log": "INFO",
+          "hash_integridad": "6779098761d36548209d7780cbfdc9550c95720ada28efdedd9b6a5785501dfd",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-06T14:11:27.073979Z"
+        },
+        {
+          "id_evento": "10865cc5-8b36-49fd-9141-0d231547b44d",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:28:15.845900Z",
+          "accion_detallada": {
+            "estado": "APLICADA",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "INFO",
+          "hash_integridad": "f2d5dac84617578120f6274bd9c0afe006755f32310637888220bd26cb506d72",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:28:15.846993Z"
+        },
+        {
+          "id_evento": "fa95b001-4d3a-4380-9a2d-67b641676637",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_EMITIDA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_EMITIDA para el dispositivo SERBY-TAX-FIRMWARE",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:23:52.590969Z",
+          "accion_detallada": {
+            "serial": "SERBY-TAX-FIRMWARE",
+            "seriales": [
+              "SERBY-TAX-FIRMWARE",
+              "TEST-AMBIENTAL"
+            ]
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "138",
+          "severidad_log": "INFO",
+          "hash_integridad": "73e35e1d38d130a964e962f75d457bce3e9c6f479a005b764d020b2e09bd37f9",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:23:52.542925Z"
+        },
+        {
+          "id_evento": "88d823f8-b8a3-4f0d-bf98-2d184778dcca",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:13:11.793531Z",
+          "accion_detallada": {
+            "estado": "PENDIENTE",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "WARNING",
+          "hash_integridad": "2d8099cb7c11a72b9dc746ae1decb278cb4b63e231c99353e96be7da74cdfe86",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:13:11.049490Z"
+        },
+        {
+          "id_evento": "115835f4-2274-4ee4-8e52-275ff06a3c8a",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:13:10.524663Z",
+          "accion_detallada": {
+            "estado": "PENDIENTE",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "WARNING",
+          "hash_integridad": "d6b055f20813949269d9ba8b1def91fd5de092fcdf8f1170151d26ec8ed618cb",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:13:10.478322Z"
+        },
+        {
+          "id_evento": "e195b69b-c9fe-45d4-bd1c-f895ec2d9692",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:13:09.742598Z",
+          "accion_detallada": {
+            "estado": "PENDIENTE",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "WARNING",
+          "hash_integridad": "c9f2bae12a9ddcd41660ec939ec24ef49590f6a3946f519c85e25d9ddeb63160",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:13:09.681381Z"
+        },
+        {
+          "id_evento": "f873b97e-8d92-43ac-b10a-ff5809c2c569",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:13:01.692835Z",
+          "accion_detallada": {
+            "estado": "PENDIENTE",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "WARNING",
+          "hash_integridad": "d1404d1e50a7803f240cd5a55bceb71cb1dda16e0681237edee297a1f72e195b",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:13:00.943338Z"
+        },
+        {
+          "id_evento": "c2591442-99a4-46c6-a0b0-bc53774625b6",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:13:00.380014Z",
+          "accion_detallada": {
+            "estado": "PENDIENTE",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "WARNING",
+          "hash_integridad": "f8c3e4e989f5a89b4ed95a0c125d6afa64443f8447b6512ea14e7c3429a1c153",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:13:00.338424Z"
+        },
+        {
+          "id_evento": "20b55774-ebda-44cf-863e-b31940d40ed1",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_REINTENTADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_REINTENTADA para el dispositivo TEST-AMBIENTAL",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:12:59.485174Z",
+          "accion_detallada": {
+            "estado": "PENDIENTE",
+            "serial": "TEST-AMBIENTAL",
+            "id_configuracion_remota": 27
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "139",
+          "severidad_log": "WARNING",
+          "hash_integridad": "a2ec589b41addf4e83c3aaae6ac0b066129089f50d1e1f3a36279e7241cb3a26",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:12:59.429639Z"
+        },
+        {
+          "id_evento": "775978ba-a8b3-4f55-bdce-701265732594",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_EMITIDA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_EMITIDA para el dispositivo SERBY-TAX-FIRMWARE",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T23:05:09.110581Z",
+          "accion_detallada": {
+            "serial": "SERBY-TAX-FIRMWARE",
+            "seriales": [
+              "SERBY-TAX-FIRMWARE",
+              "TEST-AMBIENTAL"
+            ]
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "138",
+          "severidad_log": "INFO",
+          "hash_integridad": "0ee6886bc05e79141c4286960e3e388c407c4ac29f003d2bda662314fc6b12e2",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T23:05:09.067961Z"
+        },
+        {
+          "id_evento": "83ea03c8-bf95-4f2c-9d75-c2510723c72f",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_EMITIDA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_EMITIDA para el dispositivo SERBY-TAX-FIRMWARE",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T22:59:52.289446Z",
+          "accion_detallada": {
+            "serial": "SERBY-TAX-FIRMWARE",
+            "seriales": [
+              "SERBY-TAX-FIRMWARE"
+            ]
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "138",
+          "severidad_log": "INFO",
+          "hash_integridad": "8ebbb10ddaf39dfa4fb3f5a709cc6130e67368bb1e26476d5776afb88c7cd939",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T22:59:51.829029Z"
+        },
+        {
+          "id_evento": "9c5786e6-84b9-4379-9f80-1e9edb531974",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-05T07:12:27.202840Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "56",
+          "severidad_log": "WARNING",
+          "hash_integridad": "a831db68b55701871d651aec34f9241313164b06d4d91e84b0ecca3abe69e909",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-05T07:12:27.195279Z"
+        },
+        {
+          "id_evento": "e2820735-031e-4810-be0b-79ebd165d2d2",
+          "id_usuario": 1,
+          "nombre_usuario": null,
+          "tipo_evento": "CREDENCIAL_MQTT_REVOCADA",
+          "modulo": "M03",
+          "descripcion": "CREDENCIAL_MQTT_REVOCADA para el dispositivo DISPOSITIVOCAMARONERA41",
+          "resultado": "FALLIDO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-04T23:10:31.646912Z",
+          "accion_detallada": {
+            "error": "BROKER_MQTT_NO_DISPONIBLE",
+            "motivo": "dispositivo_desactivado",
+            "serial": "DISPOSITIVOCAMARONERA41"
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "129",
+          "severidad_log": "WARNING",
+          "hash_integridad": "9b4122fe4d4172b0199b13045a614b06465906bf6c0215dd3c2120dbdd5af994",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-04T23:10:31.647834Z"
+        },
+        {
+          "id_evento": "b5875301-181b-485e-9c22-86cb63fb01cd",
+          "id_usuario": 47,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_CANCELADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_CANCELADA para el dispositivo G71-1791146362835",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-04T22:28:32.834477Z",
+          "accion_detallada": {
+            "serial": "G71-1791146362835",
+            "estado_anterior": "PENDIENTE",
+            "id_configuracion_remota": 26
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "124",
+          "severidad_log": "INFO",
+          "hash_integridad": "396d9bd49516b14116a31ebfd657ea6337dc51a95e18bcb5e10253bda5c0bee4",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-04T22:28:32.835741Z"
+        },
+        {
+          "id_evento": "1a51a195-8966-4a6c-a92a-3d773a15f189",
+          "id_usuario": 47,
+          "nombre_usuario": null,
+          "tipo_evento": "CONFIGURACION_REMOTA_CANCELADA",
+          "modulo": "M03",
+          "descripcion": "CONFIGURACION_REMOTA_CANCELADA para el dispositivo G71-1791146362835",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-10-04T22:20:02.900255Z",
+          "accion_detallada": {
+            "serial": "G71-1791146362835",
+            "estado_anterior": "PENDIENTE",
+            "id_configuracion_remota": 25
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "124",
+          "severidad_log": "INFO",
+          "hash_integridad": "5048f65f82250918b7f07dc88868b80b2a11ff10dc062ebc539c9963faf96785",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-10-04T22:20:02.905134Z"
+        },
+        {
+          "id_evento": "c9d51353-1ce4-4f27-97cd-4baafe1060e0",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-27T10:16:34.254392Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "54",
+          "severidad_log": "WARNING",
+          "hash_integridad": "33b5f8e49ff4505e9b7407f421fb188d6706459c533f7c14c20833671633a662",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-27T10:16:34.250888Z"
+        },
+        {
+          "id_evento": "57b3d03c-e523-4cba-9ec6-05df40e700a8",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-27T10:16:33.757666Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "53",
+          "severidad_log": "WARNING",
+          "hash_integridad": "5b3866a18bd4319c644a22570b74fb60d88378cf3d5fde4c105e160bf18d928f",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-27T10:16:33.753961Z"
+        },
+        {
+          "id_evento": "85f6ef3a-c1c1-443b-81e8-b9197ad195b1",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-27T10:16:33.256138Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "52",
+          "severidad_log": "WARNING",
+          "hash_integridad": "c5bb895a5df17569086329e313a6b6a2e22612088c314403c2c5971da07d960b",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-27T10:16:33.252042Z"
+        },
+        {
+          "id_evento": "3494fd9e-f233-47ba-8211-b3885eae53dd",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-27T09:28:03.212090Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "51",
+          "severidad_log": "WARNING",
+          "hash_integridad": "b8246ff56662cf2f0ab0e056ec3a12635c47d3bc81852b45202d331aca7583c8",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-27T09:28:03.207369Z"
+        },
+        {
+          "id_evento": "9d59d1cb-c522-4974-bfc1-deea760eb9a5",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-27T09:27:47.338496Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "50",
+          "severidad_log": "WARNING",
+          "hash_integridad": "4e8319774615d87b4d89599d12e496863b2108a68bf48d9bd6d74887053e781d",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-27T09:27:47.334399Z"
+        },
+        {
+          "id_evento": "a2e62ceb-659c-4a38-9f97-117f20eca4aa",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-27T09:23:58.761266Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "49",
+          "severidad_log": "WARNING",
+          "hash_integridad": "8205421ad36f17039a0efb9ed6c68eb72e33737b524d1d782df49908f455d301",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-27T09:23:58.753367Z"
+        },
+        {
+          "id_evento": "7c93d273-d70c-4592-ab8d-12595c7c2303",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['calibracion_no_disponible', 'serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-06T01:47:47.084914Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              },
+              "calibracion_no_disponible": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "47",
+          "severidad_log": "WARNING",
+          "hash_integridad": "94cce5a6fcd6056f869f1987d49d5be046e9ebd9c9a52a8f12fea9a409fb0849",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-06T01:47:47.082336Z"
+        },
+        {
+          "id_evento": "52dfc226-3786-4697-9375-baa286a96a6d",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['calibracion_no_disponible', 'serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-06T01:46:32.681070Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              },
+              "calibracion_no_disponible": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "46",
+          "severidad_log": "WARNING",
+          "hash_integridad": "792b7b696a25e42fa0aa985a02f51643a7373d6b34acf0522f46b56c49ff5083",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-06T01:46:32.678306Z"
+        },
+        {
+          "id_evento": "73424d86-27ed-4ac8-85a3-6ca4e42ba2ae",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['calibracion_no_disponible', 'serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-06T01:46:05.557789Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              },
+              "calibracion_no_disponible": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "45",
+          "severidad_log": "WARNING",
+          "hash_integridad": "5f5c93c706fa7dbfd8a06ba46ab844a255db5c599f213a18af09c32436928c19",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-06T01:46:05.554350Z"
+        },
+        {
+          "id_evento": "2155aae5-c65d-4d85-b278-bb500f95fedd",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-06T01:40:19.581637Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "44",
+          "severidad_log": "WARNING",
+          "hash_integridad": "efa3414853199fdba4f32b0a6e4793a9b853767d0a386791384922d0421876d3",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-06T01:40:19.571278Z"
+        },
+        {
+          "id_evento": "3ab7b909-78a3-4635-b6b2-0b9ee6046dc6",
+          "id_usuario": null,
+          "nombre_usuario": null,
+          "tipo_evento": "EVALUACION_CALIDAD_COMPLETADA",
+          "modulo": "M03",
+          "descripcion": "Evaluación de calidad completada. Anomalías: ['calibracion_no_disponible', 'serie_insuficiente'].",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-09-05T14:37:57.564618Z",
+          "accion_detallada": {
+            "flags": {
+              "serie_insuficiente": {
+                "activo": true
+              },
+              "calibracion_no_disponible": {
+                "activo": true
+              }
+            }
+          },
+          "entidad_afectada_tipo": "CALIDAD_DATO",
+          "entidad_afectada_id": "43",
+          "severidad_log": "WARNING",
+          "hash_integridad": "0fbfa6ac85be8b23e936a5de57ad5d0a4af4bee6a6a5f8fd12a2482b9667de69",
+          "clasificacion_registro": "NIC41",
+          "retencion_aplicable": 5,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-09-05T14:37:57.554383Z"
+        },
+        {
+          "id_evento": "c7142ce3-a2b9-4312-9aa6-96bf505f44b0",
+          "id_usuario": 1,
+          "nombre_usuario": "Carlos Rodríguez Pérez",
+          "tipo_evento": "TRANSICION_MANTENIMIENTO_MANUAL",
+          "modulo": "M03",
+          "descripcion": "Transición manual de dispositivo 1 a EN_MANTENIMIENTO por Carlos Rodríguez Pérez.",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-07-27T16:51:07.250950Z",
+          "accion_detallada": {
+            "motivo": "Cambio de sensor (verificación)",
+            "estado_nuevo": "EN_MANTENIMIENTO",
+            "estado_anterior": "INACTIVO",
+            "id_dispositivo_iot": 1
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "1",
+          "severidad_log": "INFO",
+          "hash_integridad": "103ebde013b032404316ff97f7379cc2537218c329bc9baec1ecae5cd8e5b2eb",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-07-27T16:51:07.252692Z"
+        },
+        {
+          "id_evento": "7636f6d8-fd77-4e16-86b6-c4381f274e76",
+          "id_usuario": 1,
+          "nombre_usuario": "Carlos Rodríguez Pérez",
+          "tipo_evento": "TRANSICION_MANTENIMIENTO_MANUAL",
+          "modulo": "M03",
+          "descripcion": "Transición manual de dispositivo 1 a ACTIVO por Carlos Rodríguez Pérez.",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-07-27T16:46:46.226795Z",
+          "accion_detallada": {
+            "motivo": null,
+            "estado_nuevo": "ACTIVO",
+            "estado_anterior": "EN_MANTENIMIENTO",
+            "id_dispositivo_iot": 1
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "1",
+          "severidad_log": "INFO",
+          "hash_integridad": "39d90638ca657ccc184d786df2f8bb8e73c92fe2e07c0ddd9cfabb8a0bf67835",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-07-27T16:46:46.227097Z"
+        },
+        {
+          "id_evento": "e76cc6f5-2ad4-49be-b494-f1ba79e76045",
+          "id_usuario": 1,
+          "nombre_usuario": "Carlos Rodríguez Pérez",
+          "tipo_evento": "TRANSICION_MANTENIMIENTO_MANUAL",
+          "modulo": "M03",
+          "descripcion": "Transición manual de dispositivo 1 a EN_MANTENIMIENTO por Carlos Rodríguez Pérez.",
+          "resultado": "EXITOSO",
+          "direccion_ip": null,
+          "user_agent": null,
+          "id_sesion": null,
+          "fecha_hora": "2026-07-27T16:46:46.213574Z",
+          "accion_detallada": {
+            "motivo": "Cambio de sensor (verificación)",
+            "estado_nuevo": "EN_MANTENIMIENTO",
+            "estado_anterior": "INACTIVO",
+            "id_dispositivo_iot": 1
+          },
+          "entidad_afectada_tipo": "DISPOSITIVO",
+          "entidad_afectada_id": "1",
+          "severidad_log": "INFO",
+          "hash_integridad": "5b99a9f64af08463952a98ffd31bc25f4301f4148d2d952c1ef166ec1f542a67",
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": 1,
+          "registro_incompleto": false,
+          "timestamp_registro": "2026-07-27T16:46:46.215124Z"
+        }
+      ]
+    }
+  },
+  "auditoriaPre": {
+    "total": 1,
+    "items": [
+      {
+        "id_auditoria_umbral": 12,
+        "id_umbral_ambiental": 48,
+        "id_usuario": 104,
+        "tipo_operacion": "CREATE",
+        "valores_anteriores": null,
+        "valores_nuevos": {
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "5.60",
+              "limite_superior": "6.53"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "6.53",
+              "limite_superior": "7.46"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "7.46",
+              "limite_superior": "8.4"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "8.40",
+          "valor_min": "5.60",
+          "id_especie": 4,
+          "unidad_medida": "pH",
+          "fecha_actualizacion": null,
+          "id_umbral_ambiental": 48,
+          "id_variable_ambiental": 2
+        },
+        "fecha_gestion": "2026-09-14T22:19:08.558779Z"
+      }
+    ]
+  },
+  "request": {
+    "metodo": "PATCH",
+    "ruta": "/configuracion/umbrales/48",
+    "cuerpo": {
+      "valor_min": "5.90",
+      "valor_max": "8.70",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "5.90",
+          "limite_superior": "6.83"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "6.83",
+          "limite_superior": "7.76"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "7.76",
+          "limite_superior": "8.70"
+        }
+      ],
+      "fecha_actualizacion": null
+    },
+    "cabecerasSanitizadas": [
+      "Authorization: <omitido>",
+      "Content-Type: application/json"
+    ],
+    "timestamp": "2026-10-08T18:23:17.634988+00:00"
+  },
+  "response": {
+    "http": 500,
+    "cuerpo": {
+      "error_code": "FALLO_SINCRONIZACION_EDGE",
+      "message": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión.",
+      "fields": [],
+      "timestamp": "2026-10-08T18:23:17.925547+00:00"
+    },
+    "emitido": "2026-10-08T18:23:17.634988+00:00",
+    "recibido": "2026-10-08T18:23:18.087922+00:00"
+  },
+  "post": {
+    "umbral": {
+      "id_umbral_ambiental": 48,
+      "id_especie": 4,
+      "id_variable_ambiental": 2,
+      "unidad_medida": "pH",
+      "valor_min": "5.90",
+      "valor_max": "8.70",
+      "es_activo": true,
+      "fecha_actualizacion": "2026-10-08T18:23:17.862048Z",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "5.90",
+          "limite_superior": "6.83"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "6.83",
+          "limite_superior": "7.76"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "7.76",
+          "limite_superior": "8.70"
+        }
+      ],
+      "estado_sincronizacion": "NO_CONF",
+      "fecha_ultima_sincronizacion": null,
+      "motivo_fallo_sincronizacion": "SERBY-TAX-FIRMWARE: No se pudo contactar al broker MQTT para propagar el umbral."
+    },
+    "auditoria": {
+      "total": 2,
+      "items": [
+        {
+          "id_auditoria_umbral": 57,
+          "id_umbral_ambiental": 48,
+          "id_usuario": 104,
+          "tipo_operacion": "UPDATE",
+          "valores_anteriores": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "5.60",
+                "limite_superior": "6.53"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "6.53",
+                "limite_superior": "7.46"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "7.46",
+                "limite_superior": "8.40"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "8.40",
+            "valor_min": "5.60",
+            "id_especie": 4,
+            "unidad_medida": "pH",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 48,
+            "id_variable_ambiental": 2
+          },
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "5.90",
+                "limite_superior": "6.83"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "6.83",
+                "limite_superior": "7.76"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "7.76",
+                "limite_superior": "8.70"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "8.70",
+            "valor_min": "5.90",
+            "id_especie": 4,
+            "unidad_medida": "pH",
+            "fecha_actualizacion": "2026-10-08T18:23:17.862048+00:00",
+            "id_umbral_ambiental": 48,
+            "id_variable_ambiental": 2
+          },
+          "fecha_gestion": "2026-10-08T18:23:17.849550Z"
+        },
+        {
+          "id_auditoria_umbral": 12,
+          "id_umbral_ambiental": 48,
+          "id_usuario": 104,
+          "tipo_operacion": "CREATE",
+          "valores_anteriores": null,
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "5.60",
+                "limite_superior": "6.53"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "6.53",
+                "limite_superior": "7.46"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "7.46",
+                "limite_superior": "8.4"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "8.40",
+            "valor_min": "5.60",
+            "id_especie": 4,
+            "unidad_medida": "pH",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 48,
+            "id_variable_ambiental": 2
+          },
+          "fecha_gestion": "2026-09-14T22:19:08.558779Z"
+        }
+      ]
+    },
+    "destino": {
+      "destinosRf17": [
+        "SERBY-TAX-FIRMWARE"
+      ],
+      "unicoYEsElObjetivo": true,
+      "gatewayId": 138,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T18:20:02.466962Z",
+        "id_ultimo_heartbeat": 249,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T18:20:02.466962Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "nodoAsociado": true,
+      "timestamp": "2026-10-08T18:24:38.612189+00:00"
+    },
+    "bitacora": {
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    "timestamp": "2026-10-08T18:24:38.959144+00:00"
+  },
+  "oraculo": {
+    "1_httpExitosoConformeAlContrato": false,
+    "2_configuracionAPersistidaCentralmente": true,
+    "3_propagacionRealAlGatewayObjetivo": true,
+    "4_ackRealDelEdge": false,
+    "5_estadoSincronizacionAplicada": false,
+    "6_fechaUltimaSincronizacionRegistrada": false,
+    "7_sinMotivoDeFalloDeSincronizacion": false,
+    "8_edgeOperandoConConfiguracionA": false
+  },
+  "trazabilidadDelAck": "En el contrato desplegado, APLICADA solo puede originarse en el cuerpo que devuelve POST {broker}/v1/commands despues del ACK_UMBRAL del Edge: el backend no construye ese estado por su cuenta, el stub que siempre devolvia PENDIENTE no existe en src/, y con un unico destino la consolidacion no puede enmascarar un Gateway sin ACK. Un Edge desconectado habria dado PENDIENTE + HTTP 500.",
+  "limitacionDeObservacion": "El producto no expone un endpoint que devuelva la configuracion efectiva en campo del Edge, asi que la condicion 8 se sostiene en la cadena contractual anterior mas el ACK, no en una lectura directa del dispositivo. No se fabrica evidencia que no existe.",
+  "verdict": "RECHAZADO",
+  "motivo": "El Edge estaba ONLINE y era el unico destino, pero el flujo devolvio NO_CONF (HTTP 500). Motivo: SERBY-TAX-FIRMWARE: No se pudo contactar al broker MQTT para propagar el umbral.",
+  "restauracionPre": {
+    "realizada": false,
+    "razon": "Si TC-62 aprueba, A debe quedar aplicada como baseline para TC-63 (instruccion de Juan)."
+  },
+  "fin": "2026-10-08T18:24:38.961192+00:00",
+  "diagnostico": {
+    "sintoma": "estado_sincronizacion=NO_CONF, HTTP 500, motivo \"SERBY-TAX-FIRMWARE: No se pudo contactar al broker MQTT para propagar el umbral.\"",
+    "origenDelMensaje": "EdgeSincronizacionMqttAdapter._enviar, rama except (httpx.HTTPError, ValueError, KeyError) -> _MENSAJE_BROKER_NO_DISPONIBLE. El mismo texto se emite para tres causas distintas: broker inalcanzable, respuesta HTTP de error (raise_for_status lanza HTTPStatusError, subclase de HTTPError) y cuerpo inesperado (ValueError/KeyError por falta de \"estado\"/\"mensaje\").",
+    "integracionConfigurada": "No fue ESTADO_SIN_INTEGRACION, luego MQTT_BROKER_URL y MQTT_BROKER_TOKEN estan configurados y hubo intento real de propagacion.",
+    "conectividadDescartadaDesdeDentroDelBackend": "La consulta de credencial del mismo Gateway (GET /configuracion/dispositivos-iot/138/credencial-mqtt) devolvio emitida/habilitada/conectada=true antes y despues del PATCH. Esa ruta la sirve MqttHttpAdapter._credencial contra GET {MQTT_BROKER_URL}/v1/devices/{serial}/credential, con el MISMO _base_url y el MISMO _token que usa el adaptador de umbrales. Si el broker fuese inalcanzable o el token invalido, esa lectura tambien habria fallado.",
+    "sondeosDeSoloLecturaSinCredenciales": {
+      "GET /v1/commands": "405 Method Not Allowed -> la ruta existe y solo acepta POST",
+      "POST /v1/commands sin token": "401 -> la ruta existe y exige autenticacion",
+      "GET /v1/devices/SERBY-TAX-FIRMWARE/credential sin token": "401 -> la ruta existe",
+      "nota": "Sondeos contra la URL publica del broker, sobre rutas documentadas en el codigo fuente, no adivinadas. No se cambio configuracion del broker, no se publicaron mensajes MQTT ni se desconecto ningun cliente. La URL publica puede no coincidir con el MQTT_BROKER_URL interno del backend, asi que estos sondeos corroboran pero no sustituyen la evidencia del parrafo anterior."
+    },
+    "causaDescartada": "Falta de conectividad con el broker y token invalido.",
+    "noDeterminableDesdeQa": "Cual de las tres ramas se activo (HTTPStatusError, ValueError o KeyError) y el codigo/cuerpo exacto que devolvio el broker. El backend lo registra con logger.error(\"Broker MQTT no disponible al propagar umbral a %s: %r\", serial, exc). Se requiere ese log del backend TEST y/o el log del broker en la ventana de la escritura.",
+    "ventanaDeLaEscritura": {
+      "emitido": "2026-10-08T18:23:17.634988+00:00",
+      "recibido": "2026-10-08T18:23:18.087922+00:00"
+    },
+    "loQueSiFunciono": "El flujo alterno \"Error de sincronizacion con el Nodo Edge\" de RF-17 se comporta como exige el RF: la Configuracion A quedo persistida centralmente, se respondio HTTP 500, el motivo quedo informado y se genero auditoria (1 -> 2 registros). El 500 no revirtio la escritura.",
+    "observacionSecundaria": "El mensaje de fallo afirma \"No se pudo contactar al broker\" aun cuando el broker si respondio. Atribuye a conectividad lo que puede ser un rechazo de contrato o un cuerpo inesperado, lo que dificulta el diagnostico. Observacion menor para Desarrollo, independiente del defecto principal.",
+    "noEsDelFixture": "El fan-out quedo en un unico destino (SERBY-TAX-FIRMWARE) antes y despues, el Edge estuvo ONLINE con heartbeat al segundo, y el nodo siguio asociado. El saneamiento del fixture hizo su trabajo: el fallo que aparece ahora es de la integracion, no de los datos de prueba.",
+    "hipotesisPrincipal": {
+      "enunciado": "El broker desplegado en TEST no atiende el comando origen \"umbral\" / UMBRAL_AMBIENTAL: responde a POST /v1/commands con un estado de error (o un cuerpo sin \"estado\"/\"mensaje\"), y el adaptador lo traduce a NO_CONF.",
+      "evidenciaQueLaSostiene": [
+        "La anotacion INC-M09-104-G29 dice que el lado broker del contrato vive en la rama \"feature/rf17-propagacion-umbrales-edge\" del repo BROKER-MQTT-SGPMP. Si esa rama no esta desplegada en TEST, el broker no conoce el origen \"umbral\".",
+        "La ruta POST /v1/commands existe y autentica (405 a GET, 401 sin token), luego el fallo no es de ruta ni de red.",
+        "La lectura de credencial del mismo Gateway, con el mismo _base_url y _token, funciono antes y despues del PATCH.",
+        "El mismo endpoint /v1/commands con origen \"configuracion\" (RF-23) es el camino que el broker si atiende."
+      ],
+      "comoConfirmarla": [
+        "log del backend TEST en la ventana de la escritura (registra el repr de la excepcion real)",
+        "log del broker para ese POST /v1/commands",
+        "estado de despliegue de la rama feature/rf17-propagacion-umbrales-edge en el broker de TEST"
+      ]
+    },
+    "hipotesisDescartadaPorQa": {
+      "enunciado": "Que el fallo se deba a que el backend no envia id_comando ni emitido_en, que el contrato acordado lista.",
+      "porQueSeDescarta": "RF-23 envia un payload igualmente minimo (solo frecuencia_captura e intervalo_transmision, mas origen y serial) y ese camino funciona, de modo que el broker genera id_comando/emitido_en por su cuenta. La ausencia de esos campos en el payload de umbral no es, por si sola, una explicacion del rechazo. Queda como punto menor a verificar junto al contrato, no como causa raiz."
+    }
+  },
+  "estadoFinalDelDato": {
+    "umbral": 48,
+    "quedaEn": "Configuracion A (5.90-8.70)",
+    "estado_sincronizacion": "NO_CONF",
+    "restauradoAlPre": false,
+    "razon": "Instruccion de Juan para resultado adverso: preservar el estado y las evidencias para analisis."
+  },
+  "diagnosticoSoloLectura": {
+    "ventanaReal": {
+      "patchEmitido": "2026-10-08T18:23:17.634988+00:00",
+      "errorDelBackend": "2026-10-08T18:23:17.925547+00:00",
+      "respuestaRecibida": "2026-10-08T18:23:18.087922+00:00",
+      "duracionTotalMs": 452.9,
+      "backendLlegoAlErrorEnMs": 290.6
+    },
+    "loQueLaDuracionDescarta": "El backend produjo el error en ~291 ms. Ni la espera de ACK del broker (30 s) ni el timeout HTTP del backend (MQTT_BROKER_HTTP_TIMEOUT, 35 s) llegaron a agotarse: NO hubo timeout. No permite distinguir entre un fallo de conexion inmediato y una respuesta HTTP rapida.",
+    "fuentesConsultadasPorQa": {
+      "GET /iot/auditoria ventana 18:23:00-18:24:00Z": "HTTP 200, total 0 eventos",
+      "GET /iot/auditoria entidad_afectada_id=138": "HTTP 200, total 3, todos CREDENCIAL_MQTT_EMITIDA (ajenos a esta escritura)",
+      "GET /iot/alertas-tecnicas": "HTTP 200, total 0",
+      "GET /auditoria/catalogo/tipos-evento": "no existe ningun tipo de evento de umbral ni de broker",
+      "GET /configuracion/umbrales/48/auditoria": "2 registros; el UPDATE guarda valores anteriores/nuevos, no la causa del fallo de propagacion",
+      "openapi TEST (210 rutas)": "ninguna ruta expone logs de aplicacion"
+    },
+    "porQueNoHayRastroPersistente": "El camino de propagacion de umbrales no escribe en la bitacora IoT: EdgeSincronizacionMqttAdapter y sincronizar_umbral_edge solo usan logger.error, nunca BitacoraIotPort (a diferencia de RF-23, credenciales, alta/baja de dispositivos y gateway, que si la usan). La unica constancia de la causa es la linea de log de la aplicacion.",
+    "evidenciaQueFaltaYDondeEsta": {
+      "linea": "edge_sincronizacion_mqtt_adapter.py:84 -> logger.error(\"Broker MQTT no disponible al propagar umbral a %s: %r\", serial, exc)",
+      "contiene": "el repr de la excepcion real, que distingue HTTPStatusError (con status y cuerpo), ValueError, KeyError o error de conexion",
+      "ubicacion": "log del contenedor del backend TEST (api.inmero.co/back-sigab-test), no expuesto por ninguna API",
+      "accesibleParaQa": false
+    },
+    "clasificacion": "D. POR DETERMINAR",
+    "justificacionDeLaClasificacion": "La evidencia accesible a QA confirma unicamente que la integracion real fue intentada y termino en NO_CONF sin ACK_UMBRAL, y que no fue por agotamiento de timeout. No permite distinguir entre A (contrato/payload del backend), B (broker) y C (infraestructura/red).",
+    "causaRaiz": "Por determinar",
+    "responsable": "Por determinar"
+  }
+}

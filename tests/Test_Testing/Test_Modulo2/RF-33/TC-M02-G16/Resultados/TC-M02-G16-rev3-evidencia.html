@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>TC-M02-G16 rev3</title></head><body><h1>TC-M02-G16 rev3 — TC-M02-030</h1><p>Global: BLOQUEADO</p><p>030: BLOQUEADO</p><pre>{
+  &quot;resultado&quot;: &quot;BLOQUEADO&quot;,
+  &quot;endpoint&quot;: &quot;POST /activos-biologicos  atributos_dinamicos&quot;,
+  &quot;metrica_texto&quot;: null,
+  &quot;control&quot;: null,
+  &quot;intentos&quot;: [],
+  &quot;conclusion&quot;: &quot;BLOQUEADO: GET /configuracion/metricas 200 en especies consultadas pero sigue sin metrica activa tipo TEXTO en especie activa. tipos=[&#x27;NUMERICO&#x27;, &#x27;TEXTO&#x27;]. Se observo TEXTO no usable: {&#x27;id_especie&#x27;: 1, &#x27;id_metrica&#x27;: 26, &#x27;nombre&#x27;: &#x27;Observaciones Veterinarias QA&#x27;, &#x27;tipo_dato&#x27;: &#x27;TEXTO&#x27;, &#x27;es_activo&#x27;: True, &#x27;aplicabilidad&#x27;: &#x27;AMBOS&#x27;, &#x27;especie_activa&#x27;: False}. No se crea la metrica ni se modifica RF-16.&quot;,
+  &quot;busqueda_metricas&quot;: {
+    &quot;especies_http&quot;: 200,
+    &quot;especies_n&quot;: 30,
+    &quot;consultas&quot;: [
+      {
+        &quot;id_especie&quot;: 5,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 41,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 39,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 4,
+        &quot;tipos&quot;: [
+          &quot;NUMERICO&quot;
+        ]
+      },
+      {
+        &quot;id_especie&quot;: 40,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 1,
+        &quot;tipos&quot;: [
+          &quot;NUMERICO&quot;
+        ]
+      },
+      {
+        &quot;id_especie&quot;: 4,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 3,
+        &quot;tipos&quot;: [
+          &quot;NUMERICO&quot;
+        ]
+      },
+      {
+        &quot;id_especie&quot;: 3,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 43,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 42,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 44,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 61,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 54,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 49,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 53,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 55,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;id_especie&quot;: 50,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 0,
+        &quot;tipos&quot;: []
+      },
+      {
+        &quot;omitidas&quot;: 15
+      }
+    ],
+    &quot;tipos_vistos&quot;: [
+      &quot;NUMERICO&quot;,
+      &quot;TEXTO&quot;
+    ],
+    &quot;texto_inactiva_o_especie_inactiva&quot;: {
+      &quot;id_especie&quot;: 1,
+      &quot;id_metrica&quot;: 26,
+      &quot;nombre&quot;: &quot;Observaciones Veterinarias QA&quot;,
+      &quot;tipo_dato&quot;: &quot;TEXTO&quot;,
+      &quot;es_activo&quot;: true,
+      &quot;aplicabilidad&quot;: &quot;AMBOS&quot;,
+      &quot;especie_activa&quot;: false
+    }
+  }
+}</pre><p>Payload XSS viajo como dato JSON, no se ejecuto JS. Rev2 intacta.</p></body></html>

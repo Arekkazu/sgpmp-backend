@@ -1,0 +1,677 @@
+{
+  "grupo": "G120",
+  "run_id": "RUN-G120-V1-20261026-233328",
+  "version": 1,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G120-V1-R6-20261026",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M03-241": {
+      "estado": "APROBADO",
+      "motivo": "Intervalo completo, origen y contraste acreditados"
+    },
+    "TC-M03-242": {
+      "estado": "APROBADO",
+      "motivo": "Una lectura lógica tras segundo envío"
+    },
+    "TC-M03-243": {
+      "estado": "APROBADO",
+      "motivo": "Ambas lecturas de 23 h y 24 h integradas con captura original"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-241",
+      "fuente": "API",
+      "id": "API-241-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Intervalo completo, origen y contraste acreditados",
+      "evidencia": "newman/newman-G120.json"
+    },
+    {
+      "caso": "TC-M03-242",
+      "fuente": "API",
+      "id": "API-242-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Una lectura lógica tras segundo envío",
+      "evidencia": "newman/newman-G120.json"
+    },
+    {
+      "caso": "TC-M03-243",
+      "fuente": "API",
+      "id": "API-243-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Ambas lecturas de 23 h y 24 h integradas con captura original",
+      "evidencia": "newman/newman-G120.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G120.json",
+    "newman/newman-G120.html",
+    "resultado.json",
+    "TC-M03-G120_resultado.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot?solo_activos=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/1?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/268?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/337?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/3?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/328?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/329?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/330?pagina=1&por_pagina=50",
+      "http": null,
+      "en_run": true,
+      "eco": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/331?pagina=1&por_pagina=50",
+      "http": null,
+      "en_run": true,
+      "eco": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/3/sensores",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=1970-01-01&fecha_fin=2026-10-26&sensor_id=6&estado_dato=LECTURA_VALIDA&por_pagina=20&pagina=1&orden=DESC",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-26&sensor_id=6&tipo_variable=Temperatura+Corporal&por_pagina=500&pagina=1&orden=ASC",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria/batch",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria/batch",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria/batch",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria/batch",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/auditoria?entidad_afectada_id=117095&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/auditoria?entidad_afectada_id=117096&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-26&sensor_id=6&tipo_variable=Temperatura+Corporal&por_pagina=500&pagina=1&orden=ASC",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G120-V1-20261026-233328",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-26&sensor_id=6&tipo_variable=Temperatura+Corporal&por_pagina=500&pagina=1&orden=ASC",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    }
+  ],
+  "semilla": {
+    "device_id": 3,
+    "sensor_id": 6,
+    "id_variable": 13,
+    "tipo_variable": "TEMPERATURA_CORPORAL",
+    "unidad": "°C",
+    "valor": 38.5
+  },
+  "diagnostico_semilla": {
+    "pasos": [
+      {
+        "paso": "dispositivos_config",
+        "http": 200,
+        "eco": true,
+        "recibidos": 183,
+        "filtros": {
+          "activos_no_camara_aptos": 178
+        }
+      },
+      {
+        "paso": "variables_catalogo",
+        "http": 200,
+        "eco": true,
+        "recibidos": 16,
+        "filtros": {}
+      },
+      {
+        "paso": "dispositivos_rf60",
+        "http": 200,
+        "eco": true,
+        "recibidos": 183,
+        "filtros": {
+          "activo": 1,
+          "otros": 182
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": 200,
+        "eco": true,
+        "recibidos": 4,
+        "filtros": {
+          "verdes_validos": 0,
+          "lecturas_validas_recientes": 1,
+          "sensores_vinculables": 4
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": 200,
+        "eco": true,
+        "recibidos": 1,
+        "filtros": {
+          "verdes_validos": 0,
+          "lecturas_validas_recientes": 0,
+          "sensores_vinculables": 0
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": 200,
+        "eco": true,
+        "recibidos": 13,
+        "filtros": {
+          "verdes_validos": 4,
+          "lecturas_validas_recientes": 13,
+          "sensores_vinculables": 13
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": 200,
+        "eco": true,
+        "recibidos": 1,
+        "filtros": {
+          "verdes_validos": 0,
+          "lecturas_validas_recientes": 0,
+          "sensores_vinculables": 0
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": 200,
+        "eco": true,
+        "recibidos": 16,
+        "filtros": {
+          "verdes_validos": 11,
+          "lecturas_validas_recientes": 16,
+          "sensores_vinculables": 16
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": 200,
+        "eco": true,
+        "recibidos": 4,
+        "filtros": {
+          "verdes_validos": 0,
+          "lecturas_validas_recientes": 4,
+          "sensores_vinculables": 4
+        }
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": null,
+        "eco": null,
+        "recibidos": null,
+        "filtros": {},
+        "error": "TimeoutError"
+      },
+      {
+        "paso": "dashboard_unidad",
+        "http": null,
+        "eco": null,
+        "recibidos": null,
+        "filtros": {},
+        "error": "TimeoutError"
+      },
+      {
+        "paso": "sensores",
+        "http": 200,
+        "eco": true,
+        "recibidos": 3,
+        "filtros": {
+          "activos_vinculados": 3
+        }
+      },
+      {
+        "paso": "historial_semilla",
+        "http": 200,
+        "eco": true,
+        "recibidos": 3,
+        "filtros": {
+          "validas_historial": 3
+        }
+      }
+    ],
+    "filtros": {
+      "dispositivos_activos_sensor": 178,
+      "sensores_activos_vinculados": 3,
+      "dashboard_verde": 15,
+      "historial_valido": 1,
+      "valores_aptos": 1
+    },
+    "alcance_incompleto": true,
+    "fuente": "dashboard",
+    "fuente_valor": {
+      "origen": "historial_LECTURA_VALIDA",
+      "timestamp_captura": "2026-10-25T23:03:14.722257Z",
+      "unidad": "°C",
+      "rango": null
+    },
+    "errores_unidad": 2,
+    "sin_valor_seguro": 0,
+    "efecto_dashboard": "GET dashboard puede registrar auditoría y enviar correo a administradores si hay sensores sin umbral",
+    "conectividad": {
+      "activo": 1,
+      "otros": 182
+    },
+    "estado_conectividad_informativo": "BUFFER_ACTIVO"
+  },
+  "marcas": {
+    "intervalo": [
+      "2026-10-26T11:32:26.884Z",
+      "2026-10-26T11:33:26.884Z",
+      "2026-10-26T11:34:26.884Z"
+    ],
+    "duplicado": "2026-10-26T11:36:26.884Z",
+    "bordes": [
+      "2026-10-26T00:34:26.884Z",
+      "2026-10-25T23:34:26.884Z"
+    ],
+    "real": "2026-10-25T23:03:14.722257Z",
+    "envio": "2026-10-26T23:34:26.884Z"
+  },
+  "ingestas": {
+    "real": {
+      "fuente": "historial_existente",
+      "http": null,
+      "eco": true,
+      "id_telemetria": 117088,
+      "error": null,
+      "error_cuerpo": null
+    },
+    "bordes": {
+      "http": 200,
+      "eco": true,
+      "aceptados": 2,
+      "rechazados": 0,
+      "duplicados": 0,
+      "error": null,
+      "error_cuerpo": {
+        "codigo": null,
+        "mensaje": null,
+        "campo": null,
+        "campos": null,
+        "timestamp": null,
+        "detalle": null
+      },
+      "detalle": [
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-25T23:34:26.884000Z",
+          "estado": "LECTURA_VALIDA",
+          "id_telemetria": 117095,
+          "error": null
+        },
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-26T00:34:26.884000Z",
+          "estado": "LECTURA_VALIDA",
+          "id_telemetria": 117096,
+          "error": null
+        }
+      ]
+    },
+    "intervalo": {
+      "http": 200,
+      "eco": true,
+      "aceptados": 3,
+      "rechazados": 0,
+      "duplicados": 0,
+      "error": null,
+      "error_cuerpo": {
+        "codigo": null,
+        "mensaje": null,
+        "campo": null,
+        "campos": null,
+        "timestamp": null,
+        "detalle": null
+      },
+      "detalle": [
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-26T11:32:26.884000Z",
+          "estado": "LECTURA_VALIDA",
+          "id_telemetria": 117097,
+          "error": null
+        },
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-26T11:33:26.884000Z",
+          "estado": "LECTURA_VALIDA",
+          "id_telemetria": 117098,
+          "error": null
+        },
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-26T11:34:26.884000Z",
+          "estado": "LECTURA_VALIDA",
+          "id_telemetria": 117099,
+          "error": null
+        }
+      ]
+    },
+    "duplicado_primero": {
+      "http": 200,
+      "eco": true,
+      "aceptados": 1,
+      "rechazados": 0,
+      "duplicados": 0,
+      "error": null,
+      "error_cuerpo": {
+        "codigo": null,
+        "mensaje": null,
+        "campo": null,
+        "campos": null,
+        "timestamp": null,
+        "detalle": null
+      },
+      "detalle": [
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-26T11:36:26.884000Z",
+          "estado": "LECTURA_VALIDA",
+          "id_telemetria": 117100,
+          "error": null
+        }
+      ]
+    },
+    "duplicado_segundo": {
+      "http": 200,
+      "eco": true,
+      "aceptados": 0,
+      "rechazados": 0,
+      "duplicados": 1,
+      "error": null,
+      "error_cuerpo": {
+        "codigo": null,
+        "mensaje": null,
+        "campo": null,
+        "campos": null,
+        "timestamp": null,
+        "detalle": null
+      },
+      "detalle": [
+        {
+          "sensor_id": 6,
+          "timestamp_captura": "2026-10-26T11:36:26.884000Z",
+          "estado": "ERROR_DUPLICADO",
+          "id_telemetria": null,
+          "error": "Dato duplicado — marcado como CONFIRMADO en buffer"
+        }
+      ]
+    }
+  },
+  "observacion_sincronizacion": {
+    "batch": {
+      "estado": "ausente",
+      "campo": null,
+      "momentos": []
+    },
+    "auditoria": {
+      "estado": "consultada",
+      "filtro": "entidad_afectada_id por lectura",
+      "consultas": [
+        {
+          "id_telemetria": 117095,
+          "http": 200,
+          "eco": true,
+          "total": 0,
+          "eventos": []
+        },
+        {
+          "id_telemetria": 117096,
+          "http": 200,
+          "eco": true,
+          "total": 0,
+          "eventos": []
+        }
+      ]
+    }
+  },
+  "filas": [
+    {
+      "captura": "2026-10-26T11:32:26.884Z",
+      "filas": [
+        {
+          "id_telemetria": 117097,
+          "timestamp_captura": "2026-10-26T11:32:26.884000Z",
+          "origen_dato": "BUFFER_LOCAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    },
+    {
+      "captura": "2026-10-26T11:33:26.884Z",
+      "filas": [
+        {
+          "id_telemetria": 117098,
+          "timestamp_captura": "2026-10-26T11:33:26.884000Z",
+          "origen_dato": "BUFFER_LOCAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    },
+    {
+      "captura": "2026-10-26T11:34:26.884Z",
+      "filas": [
+        {
+          "id_telemetria": 117099,
+          "timestamp_captura": "2026-10-26T11:34:26.884000Z",
+          "origen_dato": "BUFFER_LOCAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    },
+    {
+      "captura": "2026-10-26T11:36:26.884Z",
+      "filas": [
+        {
+          "id_telemetria": 117100,
+          "timestamp_captura": "2026-10-26T11:36:26.884000Z",
+          "origen_dato": "BUFFER_LOCAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    },
+    {
+      "captura": "2026-10-26T00:34:26.884Z",
+      "filas": [
+        {
+          "id_telemetria": 117096,
+          "timestamp_captura": "2026-10-26T00:34:26.884000Z",
+          "origen_dato": "BUFFER_LOCAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    },
+    {
+      "captura": "2026-10-25T23:34:26.884Z",
+      "filas": [
+        {
+          "id_telemetria": 117095,
+          "timestamp_captura": "2026-10-25T23:34:26.884000Z",
+          "origen_dato": "BUFFER_LOCAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    },
+    {
+      "captura": "2026-10-25T23:03:14.722257Z",
+      "filas": [
+        {
+          "id_telemetria": 117088,
+          "timestamp_captura": "2026-10-25T23:03:14.722257Z",
+          "origen_dato": "TIEMPO_REAL",
+          "tipo_variable": "Temperatura Corporal"
+        }
+      ]
+    }
+  ],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "GET público HTTP 200; escrituras 6; sin ID 0; restos 0; total 1"
+    }
+  },
+  "inicio": "2026-10-26T23:33:28.580Z"
+}

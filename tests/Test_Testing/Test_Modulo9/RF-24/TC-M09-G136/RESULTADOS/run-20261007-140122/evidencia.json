@@ -1,0 +1,306 @@
+{
+  "grupo": "TC-M09-G136",
+  "caso": "TC-M09-274",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "run_id": "run-20261007-140122",
+  "ambiente": "LOCAL_AISLADO",
+  "prueba_local": true,
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G133/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G134/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G135/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G142/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "(vacio)",
+    "diff_cached_stat": "(vacio)",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "lab_guard": {
+    "base_de_datos": "sgpmp_g136_lab",
+    "usuario_conexion": "g136_owner",
+    "host_dsn": "127.0.0.1",
+    "host_api": "127.0.0.1",
+    "puerto": 5432,
+    "compose_project": "sgpmp-g136",
+    "contenedores": {
+      "db": "sgpmp-g136-db",
+      "backend": "sgpmp-g136-backend"
+    },
+    "volumen": "sgpmp_g136_pgdata (exclusivo del caso)",
+    "problemas": [],
+    "resultado": "PASS",
+    "postgres": "PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "alembic_version": "78f6f579b5ba"
+  },
+  "db_roles": {
+    "owner": {
+      "rol": "g136_owner",
+      "uso": "migraciones, seed, REVOKE/GRANT y consultas administrativas"
+    },
+    "app": {
+      "rolname": "g136_app",
+      "rolsuper": false,
+      "rolinherit": true,
+      "rolbypassrls": true,
+      "rolcanlogin": true,
+      "uso": "DATABASE_URL real del backend"
+    },
+    "app_es_superuser": false,
+    "app_es_owner_eventos": false,
+    "app_hereda_de_otro_rol": false,
+    "owners_tablas": [
+      {
+        "schemaname": "modulo1",
+        "tablename": "eventos",
+        "tableowner": "postgres"
+      },
+      {
+        "schemaname": "modulo9",
+        "tablename": "auditorias_calibraciones",
+        "tableowner": "g136_owner"
+      },
+      {
+        "schemaname": "modulo9",
+        "tablename": "calibraciones",
+        "tableowner": "postgres"
+      }
+    ],
+    "nota_bypassrls": "BYPASSRLS es necesario porque las políticas RLS leen app.current_user_id, que la aplicación fija después de autenticar: sin él el login es imposible. Solo afecta políticas de FILA, no privilegios de TABLA, de modo que el REVOKE de INSERT sobre modulo1.eventos sigue siendo efectivo."
+  },
+  "fixtures": {
+    "actor": {
+      "id_usuario": 3,
+      "correo": "ingeniero.g136@pecuaria.co",
+      "rol": "Ingeniero de Campo",
+      "estado": "Activo",
+      "credencial": "[REDACTED]",
+      "token_obtenido_antes_del_revoke": true,
+      "control_de_lectura_http": 200
+    },
+    "rango": {
+      "id_dispositivo_iot": 1,
+      "serial": "IOT-G136-LAB-ACT",
+      "es_activo": true,
+      "id_sensor": 1,
+      "categoria": "TEMPERATURA",
+      "id_infraestructura": 1,
+      "valor_min": "0.0000",
+      "valor_max": "45.0000",
+      "valor_fuera": "45.0001",
+      "criterio_valor": "max + 0.0001, determinista respecto al rango sembrado"
+    },
+    "dispositivo_inactivo": {
+      "id_dispositivo_iot": 2,
+      "serial": "IOT-G136-LAB-INACT",
+      "es_activo": false,
+      "id_sensor": 2,
+      "categoria": "TEMPERATURA",
+      "id_infraestructura": 1,
+      "valor_usado": "22.5000"
+    }
+  },
+  "privilegios": {
+    "insert_eventos_antes": true,
+    "insert_eventos_durante": false,
+    "calibraciones_insert_conservado": true,
+    "auditoria_m9_insert_conservado": true,
+    "insert_eventos_restaurado": true
+  },
+  "alertas_detectadas": {
+    "total": 8,
+    "entradas": [
+      {
+        "fragmento": "RF-24: no se pudo auditar el rechazo de calibración del sensor 1"
+      },
+      {
+        "fragmento": "psycopg2.errors.InsufficientPrivilege: permission denied for table eventos"
+      },
+      {
+        "fragmento": "sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for table eventos"
+      },
+      {
+        "fragmento": "File \"/app/src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py\", line 52, in auditar_rechazo_calibracion"
+      },
+      {
+        "fragmento": "RF-24: no se pudo auditar el rechazo de calibración del sensor 2"
+      },
+      {
+        "fragmento": "psycopg2.errors.InsufficientPrivilege: permission denied for table eventos"
+      },
+      {
+        "fragmento": "sqlalchemy.exc.ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for table eventos"
+      },
+      {
+        "fragmento": "File \"/app/src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py\", line 52, in auditar_rechazo_calibracion"
+      }
+    ],
+    "criterio": "Una constancia observable por cada fallo de auditoría. Varias líneas de una misma excepción se agrupan como un único evento de alerta. El RF no define sink, formato ni texto literal: el canal elegido es el log del backend."
+  },
+  "range": {
+    "variante": "RANGE",
+    "request": {
+      "endpoint": "/configuracion/sensores/1/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 1,
+        "id_infraestructura": 1,
+        "valor_referencia": 45.0001,
+        "observaciones": "QA TC-M09-274 RANGE",
+        "fecha_calibracion": "2026-10-07T14:01:25.145152+00:00"
+      }
+    },
+    "response": {
+      "http": 400,
+      "cuerpo": {
+        "error_code": "VALOR_FUERA_DE_RANGO",
+        "message": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+        "fields": [
+          {
+            "field": "valor_referencia",
+            "message": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado."
+          }
+        ],
+        "timestamp": "2026-10-07T14:01:25.226433+00:00"
+      }
+    },
+    "ventana": {
+      "t_before": "2026-10-07T14:01:25.145152+00:00",
+      "t_after": "2026-10-07T14:01:25.233351+00:00"
+    },
+    "http_esperado": 400,
+    "http_obtenido": 400,
+    "no_es_500": true,
+    "mensaje_esperado": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+    "mensaje_obtenido": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+    "mensaje_coincide": false,
+    "calibraciones_pre": {
+      "ids": [],
+      "total": 0
+    },
+    "calibraciones_post": {
+      "ids": [],
+      "total": 0
+    },
+    "calibracion_creada": false,
+    "evento_rf10_creado": false,
+    "eventos_en_la_ventana": [],
+    "alerta_log": {
+      "captura_de_logs_operativa": true,
+      "alerta_encontrada": true,
+      "fragmento": "RF-24: no se pudo auditar el rechazo de calibración del sensor 1"
+    },
+    "oraculo": {
+      "http_correcto": true,
+      "no_es_500": true,
+      "mensaje_fa_correcto": false,
+      "sin_calibracion_creada": true,
+      "evento_rf10_no_escrito": true,
+      "alerta_observable": true
+    },
+    "resultado": "RECHAZADO"
+  },
+  "inactive": {
+    "variante": "INACTIVE",
+    "request": {
+      "endpoint": "/configuracion/sensores/2/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 2,
+        "id_infraestructura": 1,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-274 INACTIVE",
+        "fecha_calibracion": "2026-10-07T14:01:25.235983+00:00"
+      }
+    },
+    "response": {
+      "http": 422,
+      "cuerpo": {
+        "error_code": "DISPOSITIVO_INACTIVO",
+        "message": "Solo se pueden calibrar sensores de dispositivos activos.",
+        "fields": [],
+        "timestamp": "2026-10-07T14:01:25.271949+00:00"
+      }
+    },
+    "ventana": {
+      "t_before": "2026-10-07T14:01:25.235983+00:00",
+      "t_after": "2026-10-07T14:01:25.279010+00:00"
+    },
+    "http_esperado": 422,
+    "http_obtenido": 422,
+    "no_es_500": true,
+    "mensaje_esperado": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+    "mensaje_obtenido": "Solo se pueden calibrar sensores de dispositivos activos.",
+    "mensaje_coincide": false,
+    "calibraciones_pre": {
+      "ids": [],
+      "total": 0
+    },
+    "calibraciones_post": {
+      "ids": [],
+      "total": 0
+    },
+    "calibracion_creada": false,
+    "evento_rf10_creado": false,
+    "eventos_en_la_ventana": [],
+    "alerta_log": {
+      "captura_de_logs_operativa": true,
+      "alerta_encontrada": true,
+      "fragmento": "psycopg2.errors.InsufficientPrivilege: permission denied for table eventos"
+    },
+    "oraculo": {
+      "http_correcto": true,
+      "no_es_500": true,
+      "mensaje_fa_correcto": false,
+      "sin_calibracion_creada": true,
+      "evento_rf10_no_escrito": true,
+      "alerta_observable": true
+    },
+    "resultado": "RECHAZADO"
+  },
+  "restauracion": {
+    "grant_ejecutado": true,
+    "privilegios_restaurados": true,
+    "salida": "GRANT",
+    "nota": "Se devuelve exactamente el privilegio que el snapshot PRE demostraba disponible."
+  },
+  "resultado": "RECHAZADO",
+  "motivo": "El oráculo se alcanzó y el producto incumple en: RANGE: mensaje_fa_correcto | INACTIVE: mensaje_fa_correcto",
+  "incidencia": {
+    "requerida": "SÍ",
+    "grupo_responsable": "Desarrollo",
+    "grupo_de_prueba": "TC-M09-G136",
+    "caso": "TC-M09-274",
+    "variantes_afectadas": "ambas (RANGE e INACTIVE)",
+    "resultado": "RECHAZADO",
+    "motivo": "Los mensajes funcionales de ambos rechazos no corresponden al FA de RF-24 v2.0.",
+    "esperado": {
+      "RANGE": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+      "INACTIVE": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración."
+    },
+    "obtenido": {
+      "RANGE": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+      "INACTIVE": "Solo se pueden calibrar sensores de dispositivos activos."
+    },
+    "causa_raiz": "Los mensajes implementados no son los del flujo alterno de RF-24 v2.0. El mecanismo best-effort sí funciona: el fallo de auditoría no altera el código HTTP ni crea calibraciones.",
+    "type": "bug",
+    "severity": "Normal",
+    "priority": "Normal",
+    "evidencia": "evidencia.json / backend.log / pytest.xml"
+  },
+  "seguridad": {
+    "hallazgos": [],
+    "credenciales_en_claro": 0,
+    "limpio": true,
+    "criterio": "Se buscan valores de secreto, no vocabulario. El token vive solo en memoria."
+  }
+}

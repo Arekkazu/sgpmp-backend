@@ -1,8 +1,613 @@
+## [1.4.0-rc.51](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.50...v1.4.0-rc.51) (2026-11-07)
+
+### Bug Fixes
+
+* **db:** USAGE sobre public para los roles de la app (pgcrypto en triggers de hash M05/M06) ([35f17c2](https://github.com/Arekkazu/sgpmp-backend/commit/35f17c29d5408be0938c36b68e0813342720fcf2))
+
+## [1.4.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.49...v1.4.0-rc.50) (2026-11-06)
+
+### Bug Fixes
+
+* **rf-sso02-mod7:** contrato real de AgroFusion en la sincronizacion de usuarios ([07cdc3c](https://github.com/Arekkazu/sgpmp-backend/commit/07cdc3c01b63912929fd5662e601bac168ea770c))
+* **rf-sso02-mod7:** nombres de campo de AgroFusion en la sincronizacion de usuarios ([f0cb5a9](https://github.com/Arekkazu/sgpmp-backend/commit/f0cb5a9e92c5c6722a152f75d8caf6d0d98375f8))
+
+## [1.4.0-rc.49](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.48...v1.4.0-rc.49) (2026-11-06)
+
+### Features
+
+* **rf-sso02-mod7:** UPDATE_USER, activacion idempotente RFC-019 D-19.6 y comprobante 06 apagado ([0962ce1](https://github.com/Arekkazu/sgpmp-backend/commit/0962ce1034dff70d1b95a1d195a2e05e719535ba))
+* **rf95-rf101-mod7:** consulta AAEF de AgroFusion con token de canal, contratos y auditoria ([b2b9097](https://github.com/Arekkazu/sgpmp-backend/commit/b2b9097bfe50598810aa9e56df6aa1dee16ef23b))
+* **rf95-rf102-mod7:** esquema modulo7 alineado a RFC-017/019 para la consulta AAEF ([268054c](https://github.com/Arekkazu/sgpmp-backend/commit/268054c44b57071f8e8f26ff2c17afbbf30ac674))
+* **rf96-rf97-mod7:** mappers de compras y comprobante NIC 41 y envelope AAEF ([ba3be7a](https://github.com/Arekkazu/sgpmp-backend/commit/ba3be7a6a1f07d51699c3f7012d3f549a3a0628e))
+
+## [1.4.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.47...v1.4.0-rc.48) (2026-11-06)
+
+### Features
+
+* **rf82-rf94-mod6:** listados del periodo y filtros validados para las vistas del prototipo ([a391352](https://github.com/Arekkazu/sgpmp-backend/commit/a391352192f86a0407cd8a5f38ce5003ffd5f1ae))
+
+## [1.4.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.46...v1.4.0-rc.47) (2026-11-05)
+
+### Features
+
+* **rf19-mod9:** titular tributario de la finca con digito de verificacion DIAN ([38add00](https://github.com/Arekkazu/sgpmp-backend/commit/38add00261b47f67b9a206199eedd44152615022))
+* **rf82-rf94-mod6:** esquema modulo6 alineado a RFC-018 para la valoracion NIC 41 ([f179c83](https://github.com/Arekkazu/sgpmp-backend/commit/f179c837f0692c7a39c9f23388040dd1aaaf21c2))
+* **rf82-rf94-mod6:** modulo financiero NIC 41 con cierre de periodo y comprobante ([198c523](https://github.com/Arekkazu/sgpmp-backend/commit/198c5233e31c827701b40a8fbce823bb69e915ff))
+* **rf83-rf86-mod6:** nucleo de calculo NIC 41 en dominio puro ([1ed524a](https://github.com/Arekkazu/sgpmp-backend/commit/1ed524ac9a45074213cb925ac1acbc228974ac93))
+
+### Bug Fixes
+
+* **rf79-mod5:** la provision incremental a M06 lleva la fecha del consumo ([1294770](https://github.com/Arekkazu/sgpmp-backend/commit/1294770e830d13c3aa54347da35ed7d9ba40b0b2))
+* **rf82-mod6:** Bearer sin hallazgos criticos en las ayudas SQL de M06 (CWE-89) ([5e19939](https://github.com/Arekkazu/sgpmp-backend/commit/5e199397534d9fc85a66ed0882ce4469057d5fbf))
+* **rf92-mod6:** los precios de referencia del informe citan NIIF 13 parr. 93, no el parr. 48 derogado ([27f0dce](https://github.com/Arekkazu/sgpmp-backend/commit/27f0dce90cd697e79214f1c68f0e54b491174cbd))
+
+## [1.4.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.45...v1.4.0-rc.46) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-69:** la versión de modelo trae el identificador del animal además del id ([e863e22](https://github.com/Arekkazu/sgpmp-backend/commit/e863e225c6298444f8ef595129e0532591e41b70))
+
+## [1.4.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.44...v1.4.0-rc.45) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-57:** correos de alertas con nombres del área, animal y sensor en vez de ids y códigos ([d1f7126](https://github.com/Arekkazu/sgpmp-backend/commit/d1f7126522f640aaac3fc65f62a51b6ce95d3c81)), closes [#id](https://github.com/Arekkazu/sgpmp-backend/issues/id)
+
+## [1.4.0-rc.44](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.43...v1.4.0-rc.44) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-49:** las asociaciones sensor-activo devuelven el nombre del sensor y el serial del dispositivo ([9490d69](https://github.com/Arekkazu/sgpmp-backend/commit/9490d6957334b62d9c1f25d5b5e9f87f8343296f))
+
+## [1.4.0-rc.43](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.42...v1.4.0-rc.43) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-23:** intervalo de transmisión mínimo de 10 minutos en la configuración remota ([309f5bb](https://github.com/Arekkazu/sgpmp-backend/commit/309f5bba87aa4bbb263b4e09e9e97a6a8acdce6a))
+* **rf-73,rf-71:** rango de fechas invertido en la bitácora M04 responde 400 y días de lecturas en enteros ([0e90fb3](https://github.com/Arekkazu/sgpmp-backend/commit/0e90fb31156e30151d18c45895ebe7041e8ef93c))
+
+## [1.4.0-rc.42](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.41...v1.4.0-rc.42) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-57:** el reintento de correos de alertas no martilla el SMTP ([4798e94](https://github.com/Arekkazu/sgpmp-backend/commit/4798e941d0098ea9d3507e7a5db8ba17172d9bcb))
+* **rf-64:** editar e inactivar patologías personalizadas bajo RLS y auditar los intentos rechazados ([0a2431f](https://github.com/Arekkazu/sgpmp-backend/commit/0a2431f3c701f76c4d74f37a2948c17c2366364b))
+* **rf-73:** filtros de la bitácora M04 con un tipo de evento o severidad inexistente responden 4xx y no 500 ([abbdf70](https://github.com/Arekkazu/sgpmp-backend/commit/abbdf701ac2d3821af10b25f1d9ee4b911191464))
+
+## [1.4.0-rc.41](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.40...v1.4.0-rc.41) (2026-11-03)
+
+### Performance Improvements
+
+* **rf-72:** bandeja de retroalimentacion en una sola consulta ([d60d9f6](https://github.com/Arekkazu/sgpmp-backend/commit/d60d9f64b1bd0bbc92c63ab99784c5db4c75f0a6))
+
+## [1.4.0-rc.40](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.39...v1.4.0-rc.40) (2026-11-03)
+
+### Features
+
+* **rf-62:** listado de observaciones de vision evaluadas con la politica vigente ([98b2445](https://github.com/Arekkazu/sgpmp-backend/commit/98b244549e9babe679da3964bb6387085260eec2))
+* **rf-72:** bandeja de inferencias por evaluar para la retroalimentacion clinica ([854ed38](https://github.com/Arekkazu/sgpmp-backend/commit/854ed388c47b51dc7a49b704cf72d295ff88e49a))
+
+### Bug Fixes
+
+* **rf-53:** ingesta compara los enum de la bitacora como texto ([38bc16f](https://github.com/Arekkazu/sgpmp-backend/commit/38bc16f265160f241663ed2ceaeecc9ee98d9971))
+
+## [1.4.0-rc.39](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.38...v1.4.0-rc.39) (2026-11-03)
+
+### Features
+
+* **rf-46:** historial del activo con eventos de telemetría y predicción ([239fe6b](https://github.com/Arekkazu/sgpmp-backend/commit/239fe6b8b6d9786e982429985000287a579a149d))
+* **rf-53:** lectura de la bitácora de ingesta para el monitor de ingesta ([7f0413a](https://github.com/Arekkazu/sgpmp-backend/commit/7f0413a5cfc8f40d3bb001256dbffd510269c6c1))
+* **rf-60:** exponer parámetros de heartbeat por categoría y ventanas de visión ([0347a34](https://github.com/Arekkazu/sgpmp-backend/commit/0347a34c08006669f9b9caf4c84e50e6201d9e44))
+* **rf-66:** monitor de inferencias paginado con filtros por animal y totales ([f1b7f25](https://github.com/Arekkazu/sgpmp-backend/commit/f1b7f2510d2b26d09c0209466ea7e7e2ac6932eb))
+* **rf-71:** datos para que el motor entrene y registre su version por animal ([3627feb](https://github.com/Arekkazu/sgpmp-backend/commit/3627febd330174f1b918bef27f5784829bd50753))
+* **rf-71:** el proceso de reentrenamiento informa la especie del animal ([53996ec](https://github.com/Arekkazu/sgpmp-backend/commit/53996eca352951c5549920fae3df96bae50ff007))
+* **rf-71:** procesos de reentrenamiento por animal que ejecuta el motor de ia ([5355c94](https://github.com/Arekkazu/sgpmp-backend/commit/5355c9456d2359891cd393c7c66d9a746b9b9b98))
+* **rf-71:** reentrenamiento programado por antigüedad de la versión del animal ([c92e3c8](https://github.com/Arekkazu/sgpmp-backend/commit/c92e3c88ed8b02204c50beeea19b34a120fba6e0))
+* **rf-73:** filtrar la bitácora m04 por entidad referenciada y nombrar la referencia ([72dfedb](https://github.com/Arekkazu/sgpmp-backend/commit/72dfedb4a76f47527169db95239cffa5f2875e03))
+
+### Bug Fixes
+
+* **rf-53,rf-60,rf-71:** cerrar los gaps de bd de los ajustes m02/m03/m04 ([dfc68d0](https://github.com/Arekkazu/sgpmp-backend/commit/dfc68d0289268538276cad453eca40b70b1f851a))
+
+## [1.4.0-rc.38](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.37...v1.4.0-rc.38) (2026-11-02)
+
+### Bug Fixes
+
+* **rf-66:** GET de inferencias y de contagio con por_activo para que Estado sanitario no pierda animales ([30599d4](https://github.com/Arekkazu/sgpmp-backend/commit/30599d4e03c0aa68170aea2320924f0360433192))
+
+## [1.4.0-rc.37](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.36...v1.4.0-rc.37) (2026-11-02)
+
+### Features
+
+* **rf-66:** el motor IA arma su catálogo desde el backend y un animal nuevo recibe su versión solo ([79161dc](https://github.com/Arekkazu/sgpmp-backend/commit/79161dccfc51c66e58e4afd43eb5506e17d076ee))
+
+### Bug Fixes
+
+* **rf-58:** la caché del estado del sensor no serializa la ingesta bajo ráfagas (INC-M04-251-G166) ([e902016](https://github.com/Arekkazu/sgpmp-backend/commit/e902016446455d6ec04537ea9ca33c427669f504)), closes [#928](https://github.com/Arekkazu/sgpmp-backend/issues/928)
+
+## [1.4.0-rc.36](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.35...v1.4.0-rc.36) (2026-11-02)
+
+### Features
+
+* **rf-66:** la cámara del área se compara con el inventario del lote poblacional ([ac18c9e](https://github.com/Arekkazu/sgpmp-backend/commit/ac18c9e22ab0b208255f0a6b6b9c56a10cba5b6c))
+
+## [1.4.0-rc.35](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.34...v1.4.0-rc.35) (2026-11-02)
+
+### Features
+
+* **rf-66:** el monitor de inferencias y de contagio devuelve id_infraestructura del activo ([ed8631f](https://github.com/Arekkazu/sgpmp-backend/commit/ed8631f32a53836650eb4c6cdcf3369add9dc589))
+* **rf-66:** ver en Predicción lo que detecta la cámara (captura de cada ventana) ([d44a89a](https://github.com/Arekkazu/sgpmp-backend/commit/d44a89ae32492ab83085f4c6538dfcf2db91d580))
+
+## [1.4.0-rc.34](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.33...v1.4.0-rc.34) (2026-11-02)
+
+### Features
+
+* **rf-66:** modelo POBLACIONAL — puntaje de anomalía del área por visión y contagio (RF-68) ([53799ad](https://github.com/Arekkazu/sgpmp-backend/commit/53799ad69f53048815e1d5b73ae0f094622871c5))
+
+## [1.4.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.32...v1.4.0-rc.33) (2026-11-02)
+
+### Features
+
+* **rf-110:** editar una arista de transmisión (vía, dirección, intensidad, barrera) ([c2946e5](https://github.com/Arekkazu/sgpmp-backend/commit/c2946e5bf5397edc81a661d1a8ec0bef875e60a6))
+
+## [1.4.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.31...v1.4.0-rc.32) (2026-11-02)
+
+### Features
+
+* **rfc-021:** RF-110 aristas de transmisión entre áreas y exposición en RF-68 (C21.1/C21.4) ([738795d](https://github.com/Arekkazu/sgpmp-backend/commit/738795d2104aa9e57a5d9f4dce34efde04311322))
+
+## [1.4.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.30...v1.4.0-rc.31) (2026-11-02)
+
+### Features
+
+* **rf68:** el riesgo de contagio se calcula solo tras cada resultado de RF-66 ([a667c83](https://github.com/Arekkazu/sgpmp-backend/commit/a667c83b3d68af0ec189f1ba6afeaef5719a7fb0))
+
+## [1.4.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.29...v1.4.0-rc.30) (2026-11-02)
+
+### Bug Fixes
+
+* **rf64-rf66:** probabilidades del motor guardadas por id_patologia y nombre de la clase fundida ([0d8a0af](https://github.com/Arekkazu/sgpmp-backend/commit/0d8a0af6674d5bd80d314001f8ed692eea111a84))
+
+## [1.4.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.28...v1.4.0-rc.29) (2026-11-02)
+
+### Bug Fixes
+
+* **rf62-rf66:** apto_para_ia de la ventana del motor sale de la evaluación vigente de RF-62 ([f5fb3d4](https://github.com/Arekkazu/sgpmp-backend/commit/f5fb3d4bf8a92116dfd04ba2b9ea0acd6d94fbde))
+
+## [1.4.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.27...v1.4.0-rc.28) (2026-11-01)
+
+### Bug Fixes
+
+* **rf22-rf53:** nombre de sensor único por dispositivo y permiso FOR UPDATE de RF53_AUDITORIA ([d980f3b](https://github.com/Arekkazu/sgpmp-backend/commit/d980f3befe728b1c600b2ffacba1cfcd117f98de))
+
+## [1.4.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.26...v1.4.0-rc.27) (2026-11-01)
+
+### Features
+
+* **rfc-010:** RF-69 sintético aprobado solo para sombra y nombre_version de 100 (H2) ([a138ea1](https://github.com/Arekkazu/sgpmp-backend/commit/a138ea18a3509f16c55eaa4a171c6964d7f006e7))
+* **rfc-010:** RF-69 versión de modelo por animal, estado SOMBRA y fuente de datos ([dc1bbf0](https://github.com/Arekkazu/sgpmp-backend/commit/dc1bbf0c374ba3588e8f6d00764d6c5fb850b6ba))
+* **rfc-010:** script que registra ET-02 en RF-69 y arma el catálogo del motor (RF-66) ([85e19a7](https://github.com/Arekkazu/sgpmp-backend/commit/85e19a72004081bc8a95ff77f101ff13770887dc)), closes [#54](https://github.com/Arekkazu/sgpmp-backend/issues/54)
+
+### Bug Fixes
+
+* **rf-66:** pasar las variables del motor de inferencia M04 al contenedor del backend ([5e87d61](https://github.com/Arekkazu/sgpmp-backend/commit/5e87d61e80c322a8a64f55d84bac72838706dd1f))
+
+## [1.4.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.25...v1.4.0-rc.26) (2026-10-31)
+
+### Features
+
+* **rf17-mod4:** el paquete al motor IA lleva los rangos RF-17 de la especie del activo ([9ed1ac1](https://github.com/Arekkazu/sgpmp-backend/commit/9ed1ac15b94a472b151ab09ea3b9512771fa69f1))
+
+## [1.4.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.24...v1.4.0-rc.25) (2026-10-31)
+
+### Features
+
+* **rf71-prediction:** solicitar el reentrenamiento del modelo individual queda en la auditoría ([5cd1583](https://github.com/Arekkazu/sgpmp-backend/commit/5cd15831cdacdd078e0da014fee2b8e457f7f2d3))
+
+## [1.4.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.23...v1.4.0-rc.24) (2026-10-31)
+
+### Features
+
+* **rf71-prediction:** aviso de datos insuficientes para reentrenar el modelo individual ([422ef7a](https://github.com/Arekkazu/sgpmp-backend/commit/422ef7a55ceaa8eb69cd2cd2038a74670f057ba6))
+
+## [1.4.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.22...v1.4.0-rc.23) (2026-10-31)
+
+### Bug Fixes
+
+* **rf68-mod4:** aislar salidas rf66 por lote ([#857](https://github.com/Arekkazu/sgpmp-backend/issues/857)) ([7844377](https://github.com/Arekkazu/sgpmp-backend/commit/7844377884e7047a4eaf60c6542317f6060ecb95))
+* **rf68-mod4:** aplicar umbrales activos de contagio ([#852](https://github.com/Arekkazu/sgpmp-backend/issues/852)) ([5f7e9cd](https://github.com/Arekkazu/sgpmp-backend/commit/5f7e9cd47dce1bf47cadecdf2400b4fe1450dce8))
+* **rf68-mod4:** exigir cobertura minima de inferencias ([#854](https://github.com/Arekkazu/sgpmp-backend/issues/854)) ([20e1aa2](https://github.com/Arekkazu/sgpmp-backend/commit/20e1aa24ba23ff2ffefadd24666964a4de7e8823))
+* **rf68-mod4:** habilitar perfil mvp de contagio ([#856](https://github.com/Arekkazu/sgpmp-backend/issues/856)) ([90220f9](https://github.com/Arekkazu/sgpmp-backend/commit/90220f9b7ea6d3c2e89e953dfcdcd2273b92ab28))
+* **rf68-mod4:** la cobertura RF-66 cuenta las salidas con el id del lote al combinar [#854](https://github.com/Arekkazu/sgpmp-backend/issues/854) y [#857](https://github.com/Arekkazu/sgpmp-backend/issues/857) ([6b155f3](https://github.com/Arekkazu/sgpmp-backend/commit/6b155f3277d7c7ec5b0279b051e359e9b625ab70)), closes [#852](https://github.com/Arekkazu/sgpmp-backend/issues/852)
+* **rf68-mod4:** recalcular contagio ante cambios de entradas ([#855](https://github.com/Arekkazu/sgpmp-backend/issues/855)) ([e351b50](https://github.com/Arekkazu/sgpmp-backend/commit/e351b508857ac629f0a7df5798a4f1f6b88dd6f2))
+* **rf68-mod4:** recuperar densidad historica del lote ([#853](https://github.com/Arekkazu/sgpmp-backend/issues/853)) ([133dc64](https://github.com/Arekkazu/sgpmp-backend/commit/133dc649eea0b63d1e965448ed08ba0b3cbe2514))
+
+## [1.4.0-rc.22](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.21...v1.4.0-rc.22) (2026-10-31)
+
+### Features
+
+* **rf66-prediction:** URL del motor IA en cualquier dominio y ventana del activo en cada paquete ([2c0d5ca](https://github.com/Arekkazu/sgpmp-backend/commit/2c0d5caa387022ffd94624ff5a40e3a347b2a5fb))
+
+### Bug Fixes
+
+* **rf56-telemetry:** la cola de reenvío llega al motor IA real y no se bloquea con su respuesta ([43c7527](https://github.com/Arekkazu/sgpmp-backend/commit/43c75271bc8f34ffb290e19c7254a203cc8c2717))
+
+## [1.4.0-rc.21](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.20...v1.4.0-rc.21) (2026-10-31)
+
+### Features
+
+* **rf57-telemetry:** accion sugerida en las alertas ambientales segun variable y direccion del valor (M3-06) ([ed6341f](https://github.com/Arekkazu/sgpmp-backend/commit/ed6341f68124b9b8890e4482d795186fc294e477))
+* **rf60-telemetry:** las transiciones de estado traen el nombre del responsable (CP58) ([88f5071](https://github.com/Arekkazu/sgpmp-backend/commit/88f5071b86cd05c0aa552e6edbcff57e42d1a168))
+* **rf61-telemetry:** filtro por modelo de manejo y rango de fechas invertido rechazado en vinculaciones (CP74, CP84) ([f9cc82e](https://github.com/Arekkazu/sgpmp-backend/commit/f9cc82e30fbe28b343611191031fe98f8f6bbd52))
+* **rf62-telemetry:** las evaluaciones de calidad traen el sensor y la lectura por nombre (T-18) ([22fe85a](https://github.com/Arekkazu/sgpmp-backend/commit/22fe85a6b1a3699d00696bfdeae7bec0ed8f0bc6))
+* **rf70-prediction:** equipos objetivo compatibles con el tipo de modelo y nombre del dispositivo en los despliegues (M4-05, T-18) ([9ac1e36](https://github.com/Arekkazu/sgpmp-backend/commit/9ac1e3626a95a5a379dc6574467326fb011b9238))
+
+### Bug Fixes
+
+* **rf57-telemetry:** sin activo vinculado el semaforo y la alerta usan la especie del area (M3-12, M3-09, N-06) ([87faa25](https://github.com/Arekkazu/sgpmp-backend/commit/87faa25c88668a199731265aed37f3def82dcc1d))
+* **rf58-telemetry:** conectividad viva del dispositivo y contador de alertas por area con el criterio del panel (CP06, M3-08) ([41d798d](https://github.com/Arekkazu/sgpmp-backend/commit/41d798d2e07ab4fffb45c7ba434e5780a732b101))
+* **rf59-telemetry:** mas de 90 dias solo con filtro de variable, sensor o especie e indices del historial (TC-DIS-160, CP17) ([04fd2f9](https://github.com/Arekkazu/sgpmp-backend/commit/04fd2f918136d426488bed661f082de89e143a84))
+* **rf63-telemetry:** sin permiso de datos tecnicos la bitacora IoT solo muestra y exporta registros NIC 41 (M3-14) ([b950743](https://github.com/Arekkazu/sgpmp-backend/commit/b9507439046c797e10e4e4b0c2779662582ece85))
+* **rf64-prediction:** las patologias solo admiten las 11 variables del RF-64 (M4-02) ([50a02b4](https://github.com/Arekkazu/sgpmp-backend/commit/50a02b4e84fc3c0950c3d7dc5c4d6dec0528c644))
+* **rf68-prediction:** el listado de contagio tolera JSONB con otra forma y las inferencias traen el nombre de cada patologia (N-04, T-18) ([6b1d789](https://github.com/Arekkazu/sgpmp-backend/commit/6b1d7893cedd4c01b9f1ee36aefb80d430d59486))
+
+## [1.4.0-rc.20](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.19...v1.4.0-rc.20) (2026-10-31)
+
+### Bug Fixes
+
+* **rf54-telemetry:** lectura con reloj adelantado y reloj_sincronizado=false se guarda TIME_DESYNC (INC-M03-238-G30) ([dcc3f41](https://github.com/Arekkazu/sgpmp-backend/commit/dcc3f4191f62986f6eace672c8360d59adbc4318)), closes [#877](https://github.com/Arekkazu/sgpmp-backend/issues/877)
+* **rf54-telemetry:** sin reloj_sincronizado la captura futura la rechaza la funcion con su bitacora (INC-M03-238-G30) ([8cded5a](https://github.com/Arekkazu/sgpmp-backend/commit/8cded5a42152828d0c6708642dfe6178f7c00922)), closes [#877](https://github.com/Arekkazu/sgpmp-backend/issues/877)
+* **rf57-mod9:** umbrales ambientales los configuran Administrador e Ingeniero de Campo, no el Veterinario (INC-M03-175-G57A) ([adb60f2](https://github.com/Arekkazu/sgpmp-backend/commit/adb60f23db4dbf34d3918ee378dcb9e803af5f9d)), closes [#880](https://github.com/Arekkazu/sgpmp-backend/issues/880)
+* **rf57-telemetry:** el evento PENDIENTE_EVALUACION se reevalua cuando la regla ya tiene umbral (INC-M03-173-G85) ([7d2d48c](https://github.com/Arekkazu/sgpmp-backend/commit/7d2d48c506d809ed1623cc035d2141a088c37e25)), closes [#878](https://github.com/Arekkazu/sgpmp-backend/issues/878)
+* **rf57-telemetry:** lectura aislada fuera de la banda NORMAL genera alerta REGLA_SIMPLE en vez de 422 (INC-M03-240-G69) ([8d0cd7a](https://github.com/Arekkazu/sgpmp-backend/commit/8d0cd7a24f38a5410eac631d9ddd8099eb130750)), closes [#881](https://github.com/Arekkazu/sgpmp-backend/issues/881)
+* **rf57-telemetry:** PREDICCION_PATOLOGIA se deduplica por tipo de alerta y activo biologico (INC-M03-241-G74) ([ee67a7e](https://github.com/Arekkazu/sgpmp-backend/commit/ee67a7e36525723ef77026a4ee04712f437a3429)), closes [#882](https://github.com/Arekkazu/sgpmp-backend/issues/882)
+* **rf58-telemetry:** estado general de la unidad con todos sus sensores, no la pagina (INC-M03-247-G92) ([224aaa1](https://github.com/Arekkazu/sgpmp-backend/commit/224aaa1b5b1c5a55df19aa6923f946a8e572a1ea)), closes [#897](https://github.com/Arekkazu/sgpmp-backend/issues/897)
+* **rf58-telemetry:** la cadena de migraciones del lote 31-10 cuelga de 785022cc8ef9 para no dejar dos heads (INC-M03-246-G88) ([7bc2176](https://github.com/Arekkazu/sgpmp-backend/commit/7bc21769821ce4ba39dd125127241b92552c9991))
+* **rf58-telemetry:** semaforo con la ultima lectura, el umbral vigente y tolerancia T configurable (INC-M03-246-G88) ([1eb6ab2](https://github.com/Arekkazu/sgpmp-backend/commit/1eb6ab2bfea4331b56744af09173ada63b902298)), closes [#889](https://github.com/Arekkazu/sgpmp-backend/issues/889)
+* **rf59-telemetry:** alertas correlacionadas del historial por la fecha del evento, no de generacion (INC-M03-242-G117) ([e6d8912](https://github.com/Arekkazu/sgpmp-backend/commit/e6d8912763b7ac5d19814383594bff7ea0bd51aa)), closes [#883](https://github.com/Arekkazu/sgpmp-backend/issues/883)
+* **rf62-telemetry:** ERROR_CALIBRACION corre congelado, outlier y gap, y FUERA_DE_RANGO guarda la version de limites fisicos (INC-M03-243-G169) ([f6a24d3](https://github.com/Arekkazu/sgpmp-backend/commit/f6a24d38e369f29cb6222f921792234ca64fdf0e)), closes [#885](https://github.com/Arekkazu/sgpmp-backend/issues/885)
+* **rf62-telemetry:** la evaluacion de calidad automatica vuelve a correr bajo RLS (INC-M03-235-G16) ([f9d012f](https://github.com/Arekkazu/sgpmp-backend/commit/f9d012f3d04e362985d6c42c042fd4a4ddd4f422)), closes [#875](https://github.com/Arekkazu/sgpmp-backend/issues/875)
+* **rf62-telemetry:** politica RLS UPDATE para marcar SUPERADA la evaluacion de calidad (INC-M03-239-G165) ([87583e5](https://github.com/Arekkazu/sgpmp-backend/commit/87583e5c6463a4752dc7adfd0444854cb91cd7c9)), closes [#874](https://github.com/Arekkazu/sgpmp-backend/issues/874)
+* **rf62-telemetry:** posible_drift se calcula contra el valor de referencia de la calibracion vigente (INC-M03-236-G16) ([ea6ec4b](https://github.com/Arekkazu/sgpmp-backend/commit/ea6ec4bfe875244f6dc5f167e3f6763a0f628508)), closes [#876](https://github.com/Arekkazu/sgpmp-backend/issues/876)
+
+## [1.4.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.18...v1.4.0-rc.19) (2026-10-31)
+
+### Features
+
+* **rf66-prediction:** el motor IA registra sus resultados en POST /prediccion/inferencias ([c59f3a0](https://github.com/Arekkazu/sgpmp-backend/commit/c59f3a0df610dfef7ad8fa7416d864864d66dd5c))
+
+### Bug Fixes
+
+* **rf66-prediction:** la migracion 785022cc8ef9 cuelga de e5a1c7d39f62 para no dejar dos heads ([166604f](https://github.com/Arekkazu/sgpmp-backend/commit/166604fe9b9b65589da99a42bee100780cb6f4a6))
+
+## [1.4.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.17...v1.4.0-rc.18) (2026-10-31)
+
+### Bug Fixes
+
+* **rf61-telemetry:** particiones con RLS, tarea diaria y piso de frecuencia sin romper la config activa (PR [#891](https://github.com/Arekkazu/sgpmp-backend/issues/891)) ([be74bb0](https://github.com/Arekkazu/sgpmp-backend/commit/be74bb0b4e601dbb39dc0e25899ab8f87014fc9d)), closes [#870](https://github.com/Arekkazu/sgpmp-backend/issues/870)
+
+## [1.4.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.16...v1.4.0-rc.17) (2026-10-31)
+
+### Bug Fixes
+
+* **m03:** Optimizar triggers de telemetría para alta concurrencia [INC-M03-79-G166] ([86e6fc7](https://github.com/Arekkazu/sgpmp-backend/commit/86e6fc7392d231d0be0dfbb35e3aeb3afe0c8ebb))
+
+## [1.4.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.15...v1.4.0-rc.16) (2026-10-30)
+
+### Features
+
+* **rf49-mod9:** configurar desde M09 las especies compatibles de un sensor (INC-M03-135-G01) ([d3b1359](https://github.com/Arekkazu/sgpmp-backend/commit/d3b13590bfea26acd2a2979ff69636bf32ba3c1f))
+* **rf72-prediction:** ventana de retroalimentacion desde M09 y ampliacion justificada por resultado (INC-M04-229-G070) ([e540133](https://github.com/Arekkazu/sgpmp-backend/commit/e5401337a4d5dc31ab3875864e42a6fd924b0bc6)), closes [#865](https://github.com/Arekkazu/sgpmp-backend/issues/865)
+
+### Bug Fixes
+
+* **rf24-mod9:** la calibracion acepta offsets negativos con limite propio (INC-M03-137-G09) ([b330ff1](https://github.com/Arekkazu/sgpmp-backend/commit/b330ff172e25f940ed86d761c80d332e273dc58a))
+* **rf53-telemetry:** la ingesta verifica el checksum contra el contenido de la lectura (INC-M03-136-G02) ([1c9af6f](https://github.com/Arekkazu/sgpmp-backend/commit/1c9af6f8c0ae7b7b751e23ab8c8f15785622ac8c))
+* **rf57-telemetry:** POST /iot/alertas rechaza categoria_variable, tipo_evento y estado_conectividad fuera de catalogo (INC-M04-224-G66) ([5791516](https://github.com/Arekkazu/sgpmp-backend/commit/57915164eb5c1a930c4b06bd5c57a914c3160e5a))
+* **rf59-telemetry:** alertas correlacionadas con SQL fijo y parametros enlazados (Bearer CWE-89) ([bcd0fae](https://github.com/Arekkazu/sgpmp-backend/commit/bcd0fae0905d9d615c3767c78d77560999932d05)), closes [#858](https://github.com/Arekkazu/sgpmp-backend/issues/858)
+* **rf59-telemetry:** alertas_correlacionadas incluye las alertas del sensor o activo del periodo (INC-M04-226-G117) ([178a6e4](https://github.com/Arekkazu/sgpmp-backend/commit/178a6e4b240098786491898747311c942765382e))
+* **rf59-telemetry:** categoria_variable, estado_dato y origen_dato se pueden usar solos en el historial (INC-M04-225-G112) ([6a3acb9](https://github.com/Arekkazu/sgpmp-backend/commit/6a3acb9ccb8114097c444117c0d504db2c7d2d73)), closes [#763](https://github.com/Arekkazu/sgpmp-backend/issues/763)
+* **rf68-prediction:** el resultado de contagio del lote aparece en el historial diagnostico (INC-M04-223-G034) ([27b9fb3](https://github.com/Arekkazu/sgpmp-backend/commit/27b9fb39ac1a463f935ddfb0c4e23396365be176))
+* **rf72-prediction:** estado_retroalimentacion literal y rechazo de activo en BAJA (INC-M04-227-G067, INC-M04-228-G068) ([4590cc8](https://github.com/Arekkazu/sgpmp-backend/commit/4590cc8b9836ab0a26619b7c1189624f09061964))
+* **rf72-prediction:** materializar el historial con la identidad del usuario sin violar RLS (INC-M04-230-G72) ([2a2f057](https://github.com/Arekkazu/sgpmp-backend/commit/2a2f05758cac629e94d86292c77000a9dadaf2d6))
+
+## [1.4.0-rc.15](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.14...v1.4.0-rc.15) (2026-10-29)
+
+### Features
+
+* **rf54-telemetry:** GET /iot/buffer, panel del buffer Edge de todos los dispositivos (TC-DIS-148) ([f327eed](https://github.com/Arekkazu/sgpmp-backend/commit/f327eed279714a099d7fadc5980c97f32aa0a52a))
+* **rf66-rf68-prediction:** GET /prediccion/inferencias y GET /prediccion/riesgo-contagio para el monitor ([9bd759b](https://github.com/Arekkazu/sgpmp-backend/commit/9bd759b56dc12deaeb5693e5b81373d11f8e0222))
+* **rf68-prediction:** el listado de contagio trae el detalle del calculo ([3d3db0f](https://github.com/Arekkazu/sgpmp-backend/commit/3d3db0f653c7ad1014ebf92be788bc5e6a587234))
+
+### Bug Fixes
+
+* **rf65-prediction:** historial de configuracion del motor con nombres (CU02 H-04) ([0199abc](https://github.com/Arekkazu/sgpmp-backend/commit/0199abc6a32979808763d07fcdb8303634010688)), closes [#126](https://github.com/Arekkazu/sgpmp-backend/issues/126)
+* **rf69-prediction:** las versiones rechazadas y deprecadas no admiten notas de validacion (CU05 H-06) ([6e00e8f](https://github.com/Arekkazu/sgpmp-backend/commit/6e00e8fca33f7314c5f2f414fd4375772e539d5f))
+* **rf69-prediction:** una version POBLACIONAL sin componente no se activa (CU05 H-03) ([1584c22](https://github.com/Arekkazu/sgpmp-backend/commit/1584c2260d4959169a631a61c4e082e3f1c7ce9a))
+* **rf70-prediction:** los despliegues OTA traen el nombre de su version (CU06 H-02) ([073867a](https://github.com/Arekkazu/sgpmp-backend/commit/073867abc993c1e3d1f473cb1bf226fc0464ea5f))
+* **rf73-prediction:** eventos de la bitacora M04 con su tipo y campos minimos (CU09 H-01/H-02/H-03/H-04) ([1187cb1](https://github.com/Arekkazu/sgpmp-backend/commit/1187cb192ad0ef8d51e7a7090b44604a3fa06d98))
+* **sast:** SQL del monitor de prediccion como literales fijos (CWE-89) ([91e27da](https://github.com/Arekkazu/sgpmp-backend/commit/91e27da227052462254ef6cdec382b4990700826))
+
+## [1.4.0-rc.14](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.13...v1.4.0-rc.14) (2026-10-29)
+
+### Features
+
+* **rf58:** panel integrado de alertas activas en el dashboard de monitoreo ([cbde65a](https://github.com/Arekkazu/sgpmp-backend/commit/cbde65a9f515a6c47d665bf6712d3f0a9d35462e)), closes [#788](https://github.com/Arekkazu/sgpmp-backend/issues/788)
+* **rf62:** exponer la politica de vision en /configuracion/politica-vision ([23b9907](https://github.com/Arekkazu/sgpmp-backend/commit/23b9907f4ca3141697105403990e3c9875efed6b)), closes [#843](https://github.com/Arekkazu/sgpmp-backend/issues/843)
+* **rf73:** filtro de la bitacora M04 por tipo_modelo del evento ([80f2c65](https://github.com/Arekkazu/sgpmp-backend/commit/80f2c65591ac6ba7da5ac9897a21f7e6eee70f0b))
+
+### Bug Fixes
+
+* **rf60-rf53:** mantenimiento manual desde cualquier estado y rechazo de lecturas en mantenimiento ([ebbcc19](https://github.com/Arekkazu/sgpmp-backend/commit/ebbcc19fdc366ea39777929d9620a05287b3c8c7)), closes [#847](https://github.com/Arekkazu/sgpmp-backend/issues/847)
+* **rf63:** la exportacion de la bitacora IoT respeta los filtros y el alcance por finca ([38c9d26](https://github.com/Arekkazu/sgpmp-backend/commit/38c9d262c8aa210ec17135f346437fc5a55a3748))
+* **rf69-rf72:** validaciones de versiones y retroalimentacion responden 422 y SavedModel se detecta por estructura ([bd76cb2](https://github.com/Arekkazu/sgpmp-backend/commit/bd76cb264190b20f984cbff2ac79af00845bd08e)), closes [#819](https://github.com/Arekkazu/sgpmp-backend/issues/819) [#820](https://github.com/Arekkazu/sgpmp-backend/issues/820) [844/#845](https://github.com/844/sgpmp-backend/issues/845)
+* **rf73:** la exportacion de la bitacora M04 respeta el filtro tipo_modelo ([4eea3d8](https://github.com/Arekkazu/sgpmp-backend/commit/4eea3d8ad2872607c55c5b31a6067314b2e3e307))
+* **rfc020-rf58-rf60:** el dashboard refleja el estado operativo del dispositivo ([8d6e0f2](https://github.com/Arekkazu/sgpmp-backend/commit/8d6e0f2cadbda5f8f2945d62afee72080afcdb76)), closes [#794](https://github.com/Arekkazu/sgpmp-backend/issues/794)
+
+## [1.4.0-rc.13](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.12...v1.4.0-rc.13) (2026-10-29)
+
+### Features
+
+* **rls-mod4:** politicas rls de modulo4 (RF-64, RF-65, RF-66, RF-72, RF-73) ([42ce29e](https://github.com/Arekkazu/sgpmp-backend/commit/42ce29eb39ae6cceead0f6feb512921f4e671234))
+
+### Bug Fixes
+
+* **rf69-mod4:** el registro interno de versiones actua como usuario de servicio ([38be80d](https://github.com/Arekkazu/sgpmp-backend/commit/38be80d88755e0d95b1b41a781fb192cc3647df1))
+* **rls-mod4:** la RLS de modulo4 corre y usa los recursos reales de M04 (RF-64..RF-73) ([5553823](https://github.com/Arekkazu/sgpmp-backend/commit/55538238720e04027e558d40761d0159ae75d531)), closes [#831](https://github.com/Arekkazu/sgpmp-backend/issues/831) [#808](https://github.com/Arekkazu/sgpmp-backend/issues/808)
+
+## [1.4.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.11...v1.4.0-rc.12) (2026-10-29)
+
+### Bug Fixes
+
+* **alembic:** encadenar rls_modulo_03 a ebbb160365e5 hasta que entre [#831](https://github.com/Arekkazu/sgpmp-backend/issues/831) ([ebf7350](https://github.com/Arekkazu/sgpmp-backend/commit/ebf7350c5381fcd64ade8afdc58ca77a937f9288))
+
+## [1.4.0-rc.11](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.10...v1.4.0-rc.11) (2026-10-29)
+
+### Features
+
+* **rf55-mod3:** crud de reglas de alerta para cargarlas sin sql manual (BE-0) ([c07d6e4](https://github.com/Arekkazu/sgpmp-backend/commit/c07d6e469ca5d1ab32a54333004deefa76813421))
+* **rf55-mod3:** evidencia por evento del SLA de deteccion en Edge de 500 ms (INC-M03-118-G61) ([c54f5c5](https://github.com/Arekkazu/sgpmp-backend/commit/c54f5c56074876c6e2e9cb161e25595b30e6261c)), closes [#662](https://github.com/Arekkazu/sgpmp-backend/issues/662)
+* **rf56-mod3:** canal HTTPS hacia M04 con TLS mínimo 1.3 y verificación de certificado (INC-M03-120-G63) ([c280520](https://github.com/Arekkazu/sgpmp-backend/commit/c280520f86da4c7e443c82c167e343f9903efeeb)), closes [#666](https://github.com/Arekkazu/sgpmp-backend/issues/666)
+* **rf56-mod3:** consulta del paquete de inferencia y su ciclo de vida en la bitacora (INC-M03-116-G59) ([b7bc98b](https://github.com/Arekkazu/sgpmp-backend/commit/b7bc98bd4bbad4813940cdd32f301a56af9de207)), closes [#659](https://github.com/Arekkazu/sgpmp-backend/issues/659)
+* **rf56-mod3:** huella SHA-256 del contenido del paquete para idempotencia (INC-M03-117-G60) ([83a01eb](https://github.com/Arekkazu/sgpmp-backend/commit/83a01ebb8afc8468df659f62cdf0e8c4b79f5c37)), closes [#658](https://github.com/Arekkazu/sgpmp-backend/issues/658) [#660](https://github.com/Arekkazu/sgpmp-backend/issues/660)
+* **rf56-mod3:** límite de ráfagas configurable y verificado bajo carga real (INC-M03-121-G64) ([ab558ef](https://github.com/Arekkazu/sgpmp-backend/commit/ab558ef9d2dbd646ef7ee1e3bd26f8a5872d8e86)), closes [#668](https://github.com/Arekkazu/sgpmp-backend/issues/668)
+* **rf57-mod3:** E14 agrupa reglas simples de sensores del área en una alerta compuesta (INC-M03-164-G71) ([eacd391](https://github.com/Arekkazu/sgpmp-backend/commit/eacd391a7668eb5552ea3039a9f826dd252ffb16)), closes [#741](https://github.com/Arekkazu/sgpmp-backend/issues/741) [#742](https://github.com/Arekkazu/sgpmp-backend/issues/742)
+* **rf57-mod3:** E9, un evento sin umbral configurado no genera alerta operativa (INC-M03-173-G85) ([c28d0b8](https://github.com/Arekkazu/sgpmp-backend/commit/c28d0b8675f1ab83f34ce11d039d77bf88e5cd1b)), closes [#752](https://github.com/Arekkazu/sgpmp-backend/issues/752)
+* **rf57-mod3:** reevaluación de alertas por IA tras la recuperación del motor (INC-M03-167-G75) ([97e0c0f](https://github.com/Arekkazu/sgpmp-backend/commit/97e0c0f5ae2cd3dfe556d64aac8ea2fee584942d)), closes [#744](https://github.com/Arekkazu/sgpmp-backend/issues/744) [#745](https://github.com/Arekkazu/sgpmp-backend/issues/745)
+* **rf57-mod3:** umbral_confianza_edge_ia con valor base y parámetros de alertas por API (INC-M03-168-G76) ([05b96dc](https://github.com/Arekkazu/sgpmp-backend/commit/05b96dc8e3b0608a02529ad6a702e710b89e3a8b)), closes [#745](https://github.com/Arekkazu/sgpmp-backend/issues/745) [#747](https://github.com/Arekkazu/sgpmp-backend/issues/747)
+* **rf57-mod3:** ventana de deduplicación y plazos SLA configurables por API (INC-M03-176-G57A) ([caed024](https://github.com/Arekkazu/sgpmp-backend/commit/caed024a6f8d5eca33300a43783321ab36f17de0)), closes [#747](https://github.com/Arekkazu/sgpmp-backend/issues/747) [#755](https://github.com/Arekkazu/sgpmp-backend/issues/755)
+* **telemetry:** indicadores del sistema de alertas RF-57 y vencidas en el dashboard (INC-M03-178-G57B) ([353f745](https://github.com/Arekkazu/sgpmp-backend/commit/353f745d80b5c931676d35385a66c63b619c7bc2)), closes [#757](https://github.com/Arekkazu/sgpmp-backend/issues/757)
+
+### Bug Fixes
+
+* **rf53-mod3:** completar marca de frecuencia en ingesta (INC-M03-130-G16) ([b843cd9](https://github.com/Arekkazu/sgpmp-backend/commit/b843cd9e4eaec0688b13239c48f5717a61633cfe))
+* **rf53-mod3:** resguardar fallas de persistencia (INC-M03-125-G12) ([f88d440](https://github.com/Arekkazu/sgpmp-backend/commit/f88d4402e89c2fda70117b464013dcf6fe0bd167))
+* **rf54-mod3:** alertar por capacidad del buffer (INC-M03-129-G27) ([2ad87a3](https://github.com/Arekkazu/sgpmp-backend/commit/2ad87a33e2f6fecde250b4e00d8bb96aa853e7b9))
+* **rf54-mod3:** conservar secuencia del buffer edge (INC-M03-131-G23) ([9a0aa19](https://github.com/Arekkazu/sgpmp-backend/commit/9a0aa196e5112c0125e4b6095e8ed5c4424c7b66))
+* **rf54-mod3:** conservar TIME_DESYNC en ingesta y calidad (INC-M03-132-G30) ([66039d0](https://github.com/Arekkazu/sgpmp-backend/commit/66039d0c7ce49b5f8f65e6fd89dee479b9c964f3))
+* **rf54-mod3:** consultar estado del buffer edge (INC-M03-126-G27) ([5911d3c](https://github.com/Arekkazu/sgpmp-backend/commit/5911d3c108b71164b72e7b4ddb644136435a694b))
+* **rf55-mod3:** el backend conserva la regla de los eventos Edge (INC-M03-199-G54) ([cd2f6f2](https://github.com/Arekkazu/sgpmp-backend/commit/cd2f6f297ff1cade30ac9ffd152f377ac7112205)), closes [#746](https://github.com/Arekkazu/sgpmp-backend/issues/746)
+* **rf55-mod3:** guarda valor y umbrales aplicados por el edge (INC-M03-111-G43) ([3c80461](https://github.com/Arekkazu/sgpmp-backend/commit/3c80461efe4fe1b8c0b18a62535af0cf6a0b58df)), closes [#647](https://github.com/Arekkazu/sgpmp-backend/issues/647)
+* **rf55-mod3:** la regla que evalúa el edge llega al evento y a la alerta (BE-1, BE-2, BE-3) ([23752fd](https://github.com/Arekkazu/sgpmp-backend/commit/23752fdc5f918c053170af0a9ffe4258b1e33205))
+* **rf55-mod3:** reglas edge validadas contra el firmware y regla real en la alerta (BE-3) ([7d568d2](https://github.com/Arekkazu/sgpmp-backend/commit/7d568d2db5ebe43dbee68aafe96bcb27a027e1e0))
+* **rf56-mod3:** envia paquetes pendientes en lotes de maximo 500 (INC-M03-112-G55) ([22c6e4f](https://github.com/Arekkazu/sgpmp-backend/commit/22c6e4fc6202c8d4bf83b72d924d4e26f16f2cc2)), closes [#655](https://github.com/Arekkazu/sgpmp-backend/issues/655)
+* **rf56-mod3:** reintentos con backoff 0/5/15/30/60 s y cola de reenvio de paquetes (INC-M03-113-G56) ([d468d59](https://github.com/Arekkazu/sgpmp-backend/commit/d468d59a6af68c9923c7efc945b587b26e2962b4)), closes [#656](https://github.com/Arekkazu/sgpmp-backend/issues/656)
+* **rf57-mod3:** el aviso de contexto incompleto llega al administrador (INC-M03-170-G77) ([dbd0530](https://github.com/Arekkazu/sgpmp-backend/commit/dbd0530b5604d7bec8fd0c30eeda13fb013d2ce4)), closes [#749](https://github.com/Arekkazu/sgpmp-backend/issues/749)
+* **rf57-mod3:** la alerta se asocia al activo biológico del sensor y su contexto (INC-M03-169-G77) ([632e3c9](https://github.com/Arekkazu/sgpmp-backend/commit/632e3c9de2afdb070c1bed285c5247bf8b263da7)), closes [#748](https://github.com/Arekkazu/sgpmp-backend/issues/748)
+* **rf57-mod3:** las reglas compuestas exigen su condición mínima de activación (INC-M03-163-G70) ([da854b2](https://github.com/Arekkazu/sgpmp-backend/commit/da854b2b7347c6c28eba0b25e3fe506063b23b35)), closes [#740](https://github.com/Arekkazu/sgpmp-backend/issues/740) [#741](https://github.com/Arekkazu/sgpmp-backend/issues/741)
+* **rf57-mod3:** los filtros del listado de alertas fuera del catálogo responden 400 (INC-M03-171-G78) ([a719daa](https://github.com/Arekkazu/sgpmp-backend/commit/a719daa8a9a0b0fc5fd6b270ae1b28c249f0e926)), closes [#750](https://github.com/Arekkazu/sgpmp-backend/issues/750)
+* **rf57-mod3:** POST /iot/alertas evalúa el valor contra las reglas de RF-57 (INC-M03-162-G68) ([6edafe8](https://github.com/Arekkazu/sgpmp-backend/commit/6edafe89d7563b900eb77dd59367383d5540f487)), closes [#740](https://github.com/Arekkazu/sgpmp-backend/issues/740)
+* **rf57-mod3:** PREDICCION_PATOLOGIA exige el umbral mínimo de confianza de IA (INC-M03-166-G73) ([d698122](https://github.com/Arekkazu/sgpmp-backend/commit/d6981223499e60b7e9fd1ba74578d973f3e79bf8)), closes [#744](https://github.com/Arekkazu/sgpmp-backend/issues/744)
+* **rf57-mod3:** un estado no catalogado responde 422 TRANSICION_INVALIDA (INC-M03-172-G79) ([daeff32](https://github.com/Arekkazu/sgpmp-backend/commit/daeff322c44fd55946cd5222fb04fe65f92e9fd4)), closes [#751](https://github.com/Arekkazu/sgpmp-backend/issues/751)
+* **rf60-mod3:** conservar buffer activo hasta confirmar vaciado (INC-M03-127-G27) ([761faa8](https://github.com/Arekkazu/sgpmp-backend/commit/761faa8b560cba63d731264b25a2a95f18ecb10c))
+* **rf62-mod3:** la reevaluacion conserva TIME_DESYNC de la lectura (INC-M03-132-G30) ([bd0d1ba](https://github.com/Arekkazu/sgpmp-backend/commit/bd0d1baad62dbb6f9a1bbf46672dab6dfe40a6fb)), closes [#813](https://github.com/Arekkazu/sgpmp-backend/issues/813) [#814](https://github.com/Arekkazu/sgpmp-backend/issues/814)
+* **rf62-mod3:** regenerar reevaluaciones en un lote atomico (INC-M03-133-G170) ([8e3c9b0](https://github.com/Arekkazu/sgpmp-backend/commit/8e3c9b0811d238cdf97e102074996fd1925b21ff))
+* **rf63-mod3:** la bitácora se consulta con los nombres de RF-57 y del catálogo de RF-63 (INC-M03-165-G71) ([a492313](https://github.com/Arekkazu/sgpmp-backend/commit/a49231376e373f9a237d1452665b7dfc5bd3543e)), closes [#742](https://github.com/Arekkazu/sgpmp-backend/issues/742) [#743](https://github.com/Arekkazu/sgpmp-backend/issues/743)
+* **rf73-mod4:** validar eventos de auditoria antes de persistir ([#726](https://github.com/Arekkazu/sgpmp-backend/issues/726)) ([02e42c4](https://github.com/Arekkazu/sgpmp-backend/commit/02e42c4a6fd4b94253e58733a475d6963da311d6))
+* **telemetry:** dashboard RF-58 sin aviso E7 síncrono ni conteo pesado (INC-M03-177-G57B) ([b6e16c9](https://github.com/Arekkazu/sgpmp-backend/commit/b6e16c9b69172cf6d1f47d8cecb2be818894d88a)), closes [#756](https://github.com/Arekkazu/sgpmp-backend/issues/756)
+
+## [1.4.0-rc.10](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.9...v1.4.0-rc.10) (2026-10-27)
+
+### Features
+
+* **rf68-mod4:** migracion con tipo de alerta RIESGO_CONTAGIO y permiso para ejecutar el modelo ([2711a1d](https://github.com/Arekkazu/sgpmp-backend/commit/2711a1df97aa5e6315e7307d774b51e4d1f86d76))
+* **rf68-mod4:** POST /prediccion/riesgo-contagio ejecuta el modelo de riesgo de contagio (INC-M04-196-G026) ([a1a312f](https://github.com/Arekkazu/sgpmp-backend/commit/a1a312ffc03fabf4fad72ea7af33931dcc78e63f))
+
+### Bug Fixes
+
+* **rf55-mod3:** validar orden temporal de eventos edge (INC-M03-110-G42) ([e2f952e](https://github.com/Arekkazu/sgpmp-backend/commit/e2f952eb3445ffc64ab67e914cc9dc7a80b18ea2))
+* **rf57:** POST /iot/alertas rechaza eventos incoherentes y las alertas de umbral nombran su regla ([1589c45](https://github.com/Arekkazu/sgpmp-backend/commit/1589c451f77becdc0bb720b9846cb6107268f566))
+* **rf58-mod3:** conservar lectura valida y condicion posterior ([#678](https://github.com/Arekkazu/sgpmp-backend/issues/678)) ([c8c584f](https://github.com/Arekkazu/sgpmp-backend/commit/c8c584fec451a60d3bd2f4e3eee437ead614fd7d))
+* **rf59-rf58:** historial con combinaciones R12, varias variables, alertas y estadisticas por umbral ([890b160](https://github.com/Arekkazu/sgpmp-backend/commit/890b160ffd8ab709ee3ff4f2c70bed4ce83731ae))
+* **rf60-telemetry:** firmware se compara con SemVer 2.0 y el no comparable cierra la etapa (FW-06) ([d8ed027](https://github.com/Arekkazu/sgpmp-backend/commit/d8ed027640681089335f831b0ef9302ba14853d0))
+* **rf62-mod3:** conservar snapshot de calibracion en ingesta (INC-M03-123-G167) ([96b23b8](https://github.com/Arekkazu/sgpmp-backend/commit/96b23b8ef46b30dad0c3601979786f366b00f7e2))
+* **rf62-mod3:** corregir sigma cero y auditar drift pendiente (INC-M03-104-G165) ([0b7b230](https://github.com/Arekkazu/sgpmp-backend/commit/0b7b230bc72b77e7ac76104a21ce578877cd7417))
+* **rf62-mod3:** validar consultas y parametros de calidad (INC-M03-103-G164) ([c1401d5](https://github.com/Arekkazu/sgpmp-backend/commit/c1401d5ad7b9b5857f6010b75654aa651faaca7c))
+* **rf65-mod4:** cada peso del modelo de contagio en [0, 1] ademas de sumar 1.0 (RF-68) ([5c9aa30](https://github.com/Arekkazu/sgpmp-backend/commit/5c9aa30ea29b22a4f757fb21d2fdcccfca8bb920))
+* **rf70-mod4:** la OTA PROGRAMADO espera su ventana y se libera sola al abrirla (E1) ([3c16f18](https://github.com/Arekkazu/sgpmp-backend/commit/3c16f18ae07ca382ba6a08d24a200447e192484b))
+* **rf73-mod4:** truncado conserva campos minimos, filtro correlacion_id y correccion de timestamp E7 ([b440932](https://github.com/Arekkazu/sgpmp-backend/commit/b440932a9af838a95a810e67e0050a44b27db9ac))
+* **shared:** 422 por ruta en validacion de parametros y bitacora E1 de alertas (RF-59, RF-73, RF-57) ([e77e7ff](https://github.com/Arekkazu/sgpmp-backend/commit/e77e7ff994d5ec2eedee1b6fdbe738327c202757))
+
+## [1.4.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.8...v1.4.0-rc.9) (2026-10-26)
+
+### Features
+
+* **rf57-telemetry:** filtro de alertas por area (T-18) ([5487e5c](https://github.com/Arekkazu/sgpmp-backend/commit/5487e5c0370dd3252a2d401881f44393a234398b))
+
+### Bug Fixes
+
+* **rf57-telemetry:** la alerta trae el nombre del activo ademas de la ubicacion (T-18) ([baf594f](https://github.com/Arekkazu/sgpmp-backend/commit/baf594ffdad449cca508fd299d5d19fcc25f80c2))
+* **rf58-telemetry:** dashboard e historial con la unidad del catalogo I3P-1 antes que la de la lectura (M3-09) ([332b5d1](https://github.com/Arekkazu/sgpmp-backend/commit/332b5d14ad11d1911058e7ed236eff4b5be1cf45))
+* **rf58-telemetry:** el dashboard trae el conteo del semaforo de todos los sensores, no de la pagina (M3-08) ([1db6ddd](https://github.com/Arekkazu/sgpmp-backend/commit/1db6dddc5c9d3860d3987fb9de198490be443356))
+* **rf60-telemetry:** firmware con prefijo v se compara por segmentos (M3-12) ([717bb80](https://github.com/Arekkazu/sgpmp-backend/commit/717bb80ca59759a9d3dd60e6011697f32fc128a5))
+* **rf61-telemetry:** vinculaciones con nombres de activo, area, finca, variable y usuario (T-18) ([dd4bb41](https://github.com/Arekkazu/sgpmp-backend/commit/dd4bb417ae977bcd4ecfa8b3eae6748e168e6a1e)), closes [#115703](https://github.com/Arekkazu/sgpmp-backend/issues/115703) [#854](https://github.com/Arekkazu/sgpmp-backend/issues/854) [#391](https://github.com/Arekkazu/sgpmp-backend/issues/391)
+* **rf63-telemetry:** la bitacora IoT se limita a los equipos de las fincas del usuario salvo para el auditor (M3-14) ([bb36a38](https://github.com/Arekkazu/sgpmp-backend/commit/bb36a383d5232eeaf7456dd793c795fb1deba421))
+* **rf63-telemetry:** reintentos postcommit con espera creciente en vez de un fallo por minuto (M3-12) ([1a24381](https://github.com/Arekkazu/sgpmp-backend/commit/1a243816eedde752f1e2dda8b24926da897c0cf0))
+* **rf64-prediction:** patologias con nombre y unidad de cada variable y nombre de la especie (M4-02) ([481bce8](https://github.com/Arekkazu/sgpmp-backend/commit/481bce8a0317590e037e98445221bc6c554a4a69))
+* **rf73-prediction:** la auditoria M04 trae el nombre del usuario actor (T-18) ([4e456a1](https://github.com/Arekkazu/sgpmp-backend/commit/4e456a1759adaad7ae32c790ed4ae578777884de))
+* **rf74-supplies:** recalcular el ICA consolida la alerta critica abierta en vez de duplicarla (M3-07) ([25c1364](https://github.com/Arekkazu/sgpmp-backend/commit/25c1364acf1191f2e26ce47a2ab1c8dec71b16e2))
+* **telemetry:** SQL literal en text() en nombres de vinculaciones para el SAST CWE-89 (RF-61) ([cb54cda](https://github.com/Arekkazu/sgpmp-backend/commit/cb54cda835979f74e37da586335588b64cc53da0))
+
+## [1.4.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.7...v1.4.0-rc.8) (2026-10-26)
+
+### Bug Fixes
+
+* **alembic:** une los heads 4e7a1c9d2f60 y f62b120bb13f que dejo el merge de [#733](https://github.com/Arekkazu/sgpmp-backend/issues/733) (INC-M03-150-G92) ([6b116a2](https://github.com/Arekkazu/sgpmp-backend/commit/6b116a2a4b473a935ddbbe6033c212335749f1e7))
+
+## [1.4.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.6...v1.4.0-rc.7) (2026-10-25)
+
+### Bug Fixes
+
+* **rf22-mod9:** registrar sensor sin INSERT ... RETURNING bajo RLS (INC-M03-124-G01) ([d3d6ec3](https://github.com/Arekkazu/sgpmp-backend/commit/d3d6ec39663b9ba21e726788dd6f51b3378b14e3)), closes [#679](https://github.com/Arekkazu/sgpmp-backend/issues/679)
+* **rf58-telemetry:** el semaforo vuelve al color de la lectura al resolver o descartar la alerta (INC-M03-149-G89) ([2380f47](https://github.com/Arekkazu/sgpmp-backend/commit/2380f475abe2653cd85bfbfddc070870cfcb953f)), closes [#705](https://github.com/Arekkazu/sgpmp-backend/issues/705)
+* **rf62-telemetry:** calidad de vision ponderada y asincrona (INC-M03-134-G192) ([0e559f9](https://github.com/Arekkazu/sgpmp-backend/commit/0e559f91c5669f1ec7207dc31ad67e334272cc70)), closes [#689](https://github.com/Arekkazu/sgpmp-backend/issues/689)
+* **rf63-telemetry:** bitacora IoT completa, filtrable y con verificacion acotada (INC-M03-135/136/137/147) ([7907525](https://github.com/Arekkazu/sgpmp-backend/commit/79075257a46534430c4f457cdf9a90e24f041c0e)), closes [#690](https://github.com/Arekkazu/sgpmp-backend/issues/690) [#691](https://github.com/Arekkazu/sgpmp-backend/issues/691) [#692](https://github.com/Arekkazu/sgpmp-backend/issues/692) [#702](https://github.com/Arekkazu/sgpmp-backend/issues/702)
+* **rf64-prediction:** version del catalogo, nombre normalizado, variables unicas y busqueda (INC-M04-138/139/140/142) ([7aed822](https://github.com/Arekkazu/sgpmp-backend/commit/7aed8227eb281ea17f700ba766bdac6f116f352c)), closes [#693](https://github.com/Arekkazu/sgpmp-backend/issues/693) [#694](https://github.com/Arekkazu/sgpmp-backend/issues/694) [#695](https://github.com/Arekkazu/sgpmp-backend/issues/695) [#697](https://github.com/Arekkazu/sgpmp-backend/issues/697)
+* **rf67-prediction:** encadenar 4e7a1c9d2f60 tras 8c4e2a6f1b93 para un solo head de Alembic ([ec029d0](https://github.com/Arekkazu/sgpmp-backend/commit/ec029d028e34448fcf77e5f4a9511480362bb7bc)), closes [#718](https://github.com/Arekkazu/sgpmp-backend/issues/718) [#721](https://github.com/Arekkazu/sgpmp-backend/issues/721)
+* **rf67-prediction:** historial diagnostico ordenado, estable, con nombre historico e inmutable (INC-M04-143/144/145/146) ([000a9bd](https://github.com/Arekkazu/sgpmp-backend/commit/000a9bdff8394a4b6204c3f6106c15819710d281)), closes [#698](https://github.com/Arekkazu/sgpmp-backend/issues/698) [#699](https://github.com/Arekkazu/sgpmp-backend/issues/699) [#700](https://github.com/Arekkazu/sgpmp-backend/issues/700) [#701](https://github.com/Arekkazu/sgpmp-backend/issues/701)
+* **rf67-prediction:** md5 del id de alerta con usedforsecurity=False (Bandit B324) ([c7d02ce](https://github.com/Arekkazu/sgpmp-backend/commit/c7d02ce25d5d607d41b3db52838f85eed2b98c71))
+* **rf70-prediction:** registrar HASH_INVALIDO_DETECTADO en la OTA (INC-M04-152-G083) ([a8d7593](https://github.com/Arekkazu/sgpmp-backend/commit/a8d75933ac28c4631b63fea72acceac452a96fe8)), closes [#709](https://github.com/Arekkazu/sgpmp-backend/issues/709)
+* **rf73-prediction:** payload minimo de CONFLICTO_RETROALIMENTACION (INC-M04-154-G085) ([0daa24e](https://github.com/Arekkazu/sgpmp-backend/commit/0daa24e4a0ac76a66695012bc0bce034c17e338f)), closes [#711](https://github.com/Arekkazu/sgpmp-backend/issues/711)
+* **rf73-prediction:** persistir origen_dato en la bitacora M04 (INC-M04-151-G081) ([4400b74](https://github.com/Arekkazu/sgpmp-backend/commit/4400b7461153e5dd7614e698a061c0843d36d946)), closes [#708](https://github.com/Arekkazu/sgpmp-backend/issues/708)
+
+## [1.4.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.5...v1.4.0-rc.6) (2026-10-25)
+
+### Bug Fixes
+
+* **rls:** alinea SELECT/UPDATE de sensores a criterio directo por dispositivo ([0808894](https://github.com/Arekkazu/sgpmp-backend/commit/08088948c6dfdf577559ba3182abfc69f50bbc6e))
+* **rls:** encadenar f62b120bb13f al head de dev (INC-M03-150-G92) ([9a7fcda](https://github.com/Arekkazu/sgpmp-backend/commit/9a7fcdac8a774336351fb72ae53dc9c6ec64d831))
+
+## [1.4.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.4...v1.4.0-rc.5) (2026-10-25)
+
+### Bug Fixes
+
+* **rf63-telemetry:** keepalives en la conexión de Alembic para CREATE INDEX CONCURRENTLY ([29c2942](https://github.com/Arekkazu/sgpmp-backend/commit/29c2942a40463367b6ddeebcf3d8c5f8bc6bc919))
+
+## [1.4.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.3...v1.4.0-rc.4) (2026-10-25)
+
+### Bug Fixes
+
+* **rf63-telemetry:** el worker postcommit deja de pasar el statement_timeout en la bitacora IoT ([484ae6a](https://github.com/Arekkazu/sgpmp-backend/commit/484ae6ad6ff43bbde211495bb4434122f4dfa4c2))
+
+## [1.4.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.2...v1.4.0-rc.3) (2026-10-25)
+
+### Features
+
+* **rf60-mod3:** GET /iot/dispositivos lista los dispositivos de las fincas del usuario con su estado (M3-10) ([aa3878d](https://github.com/Arekkazu/sgpmp-backend/commit/aa3878d2631acde47e2e7013109f0c8f8399961f))
+
+### Bug Fixes
+
+* **rf57-mod3:** alertas con nombres de finca, area y sensor, autor en el historial y filtro por fecha de resolucion (M3-05, M3-06, M3-08) ([1d1a616](https://github.com/Arekkazu/sgpmp-backend/commit/1d1a61652a5aaa8a0ee4555c0800c46c0811a966)), closes [#876](https://github.com/Arekkazu/sgpmp-backend/issues/876) [#399](https://github.com/Arekkazu/sgpmp-backend/issues/399) [#80](https://github.com/Arekkazu/sgpmp-backend/issues/80)
+* **rf62-mod3:** la calidad de telemetria se limita a las fincas del usuario (M3-14) ([43e5f42](https://github.com/Arekkazu/sgpmp-backend/commit/43e5f42f13fdff24b9840a7d8824c3c96236337c))
+* **rf69-prediction:** las notas de validacion clinica no se sobrescriben (M4-06) ([5c19d57](https://github.com/Arekkazu/sgpmp-backend/commit/5c19d57533b5663fd6d897d823fcdc6789816245))
+
+## [1.4.0-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.1...v1.4.0-rc.2) (2026-10-23)
+
+### Features
+
+* **rf17-identity-access:** /sesiones/me/permisos devuelve nombre_recurso para los recursos sin id fijo (DEV-25, FE-09) ([a5ec885](https://github.com/Arekkazu/sgpmp-backend/commit/a5ec88538d23805722dbf635e7d883a89072e4eb))
+* **rf24-mod9:** calcular linea base por especie del area (DEV-24) ([93eaf88](https://github.com/Arekkazu/sgpmp-backend/commit/93eaf880705875bb33b8381ef395a572d805ce56))
+* **rf33-mod2:** fecha de nacimiento opcional y advertencia de edad del activo (DEV-20) ([bf354fe](https://github.com/Arekkazu/sgpmp-backend/commit/bf354fe0faa3ad91f376596421698f30b42d9b98))
+* **rf33-rf34-rf36-rf48-mod2:** capacidad efectiva del area en registro, altas y transferencias (DEV-23) ([ed547ad](https://github.com/Arekkazu/sgpmp-backend/commit/ed547adb617bbb47ff7a38de45588d926ca66020))
+* **rf53-rf62:** DB-09 columnas del sobre de vision y catalogo de estado_calibracion ([#637](https://github.com/Arekkazu/sgpmp-backend/issues/637)) ([9efd86a](https://github.com/Arekkazu/sgpmp-backend/commit/9efd86acc94cdd91286461b628ad360732c2c9fe))
+* **rf57-mod3:** notificacion de alertas, tormenta y escalamiento por el canal de RF-14 (DEV-32) ([b248649](https://github.com/Arekkazu/sgpmp-backend/commit/b24864973daaf6418ed5b1a7b6f5078181d03996))
+* **rf57-mod3:** tarea periodica que vence las alertas sin atender por SLA (DEV-31) ([9e79e77](https://github.com/Arekkazu/sgpmp-backend/commit/9e79e77bec8900e5658835e8dc37861a66779321))
+* **rf61:** DB-13 catalogo de estados, causa y contexto de vinculaciones ([#648](https://github.com/Arekkazu/sgpmp-backend/issues/648)) ([cfa0c0b](https://github.com/Arekkazu/sgpmp-backend/commit/cfa0c0b9931be390faee68029b669a2e8576361a))
+* **rf65-prediction:** concurrencia optimista con config_version e historial append-only del motor IA (DEV-36) ([23d07fd](https://github.com/Arekkazu/sgpmp-backend/commit/23d07fde7b9bd1bf45600fbe7aaf51ad15e988a8))
+* **rf65:** DB-14 historial append-only de la configuracion del motor de IA ([#649](https://github.com/Arekkazu/sgpmp-backend/issues/649)) ([00ead4a](https://github.com/Arekkazu/sgpmp-backend/commit/00ead4a52a56d26e90e8009d8ae43cd286858a64))
+* **rf69-rf72-mod4:** avisos de carga externa y version rechazada, incidente de persistencia (DEV-48) ([7efadb9](https://github.com/Arekkazu/sgpmp-backend/commit/7efadb93e0c88f03f59fd43fd9ff4a681a581792))
+* **rf73-prediction:** reintentos, respaldo local y sincronizacion de la bitacora M04; lectura del Veterinario (DEV-37) ([b121568](https://github.com/Arekkazu/sgpmp-backend/commit/b1215687e71e95bf157595e144b2c5ec310d4098))
+* **rf75-mod5:** catalogo de tipos de alimento para elegir el alimento al registrar un consumo ([b6fc563](https://github.com/Arekkazu/sgpmp-backend/commit/b6fc5632d5d055821a534bbbfe04048784ce75fa))
+* **rf79-mod6:** recepcion provisional de las provisiones NIC-41 de M05 y consolidacion al cerrar el ciclo ([7c905d5](https://github.com/Arekkazu/sgpmp-backend/commit/7c905d5e352ccb419aa4573779e13594be99c36b))
+* **rfc012-rf15:** densidad_poblacional_max y reduccion que deja areas excedidas (DEV-21) ([dcab2e3](https://github.com/Arekkazu/sgpmp-backend/commit/dcab2e32fd8469bab1ce7fdfa87fdf683ccd7f3d))
+* **rfc012-rf20:** areas multiespecie con capacidad por densidad (DEV-22) ([851db2b](https://github.com/Arekkazu/sgpmp-backend/commit/851db2ba5950fd2cef550b707951c0fbe96a1572))
+* **rfc012-rf20:** DB-06 tabla puente area-especie y reescritura de los 6 objetos que leian infraestructuras.id_especie ([#613](https://github.com/Arekkazu/sgpmp-backend/issues/613)) ([2ae9f0b](https://github.com/Arekkazu/sgpmp-backend/commit/2ae9f0bcb1c87c257a0a5f0cc8a226740888cee5))
+* **rfc013-rf01:** edad de registro y perfil en el rango [18, 100) (DEV-18) ([8690672](https://github.com/Arekkazu/sgpmp-backend/commit/86906727ff725f7f937bc18dfcab2eeb5e3511be))
+* **rfc014-rf15:** DB-07 esperanza_vida_dias, fecha_nacimiento opcional y nivel_criticidad del area ([#614](https://github.com/Arekkazu/sgpmp-backend/issues/614)) ([3fe02be](https://github.com/Arekkazu/sgpmp-backend/commit/3fe02be63091e0ff87d21bf5dd7e67616475ccd5))
+* **rfc014-rf15:** esperanza de vida de la especie en dias (DEV-19) ([c357511](https://github.com/Arekkazu/sgpmp-backend/commit/c357511c976707619978d2c6dc884752b024ccfe))
+* **rfc016-rf17:** es_critica editable en variables ambientales, solo Administrador (DEV-25) ([222deff](https://github.com/Arekkazu/sgpmp-backend/commit/222deff363ce3e6fc763bf740caa7155047b78f1))
+
+### Bug Fixes
+
+* **rf15-mod9:** desactivar especie con proceso critico activo responde 422 (DEV-46) ([3945dfe](https://github.com/Arekkazu/sgpmp-backend/commit/3945dfe8043c9b8dd6c88555ceccd2b83a2e0dd7))
+* **rf17-rf53-rf57-rf61:** ajustes de integracion entre DEV-25, DEV-27, DEV-28, DEV-30, DEV-44 y DEV-49 ([a0b3f81](https://github.com/Arekkazu/sgpmp-backend/commit/a0b3f81fe1ec82521ef091185cc8008a27600d8e))
+* **rf17-rf57-rf58-rf73:** DB-08 permisos por nombre de recurso ([#615](https://github.com/Arekkazu/sgpmp-backend/issues/615)) ([a50c05c](https://github.com/Arekkazu/sgpmp-backend/commit/a50c05c9ef58daf11d62841b54906931d7e7e19b))
+* **rf20-rf53-rf58-rf65:** una sola cadena de Alembic para DB-06..14 y DEV-40/42/49 y correcciones de DB-06, DB-08, DB-10, DB-12, DB-13 y DB-14 ([ef4254f](https://github.com/Arekkazu/sgpmp-backend/commit/ef4254f8d6ba66952e8aa139f0024b7cf41c42d0)), closes [#653](https://github.com/Arekkazu/sgpmp-backend/issues/653)
+* **rf53-rf62:** preparar calidad ponderada y detectar ventanas de vision (DEV-28) ([b99aca9](https://github.com/Arekkazu/sgpmp-backend/commit/b99aca956e1a2a1c40481fd732de9a0abf982bfd))
+* **rf53:** consultar catalogo dinamico m09 y auditar rechazos estructurales ([f8b62bc](https://github.com/Arekkazu/sgpmp-backend/commit/f8b62bc90fd095f80cd5461764de3c5aa500ebfa)), closes [#3695](https://github.com/Arekkazu/sgpmp-backend/issues/3695) [#3783](https://github.com/Arekkazu/sgpmp-backend/issues/3783)
+* **rf53:** DB-10 fn_ingesta_telemetria con mantenimiento, asociacion, latencia y frecuencia anomala ([#640](https://github.com/Arekkazu/sgpmp-backend/issues/640)) ([9a70ea1](https://github.com/Arekkazu/sgpmp-backend/commit/9a70ea1b687816ba7f22702f60c3ce9c943f9957))
+* **rf53:** generar alertas criticas en postcommit ([b007fb3](https://github.com/Arekkazu/sgpmp-backend/commit/b007fb3d50c0100f44434979964bdf75e63b353a)), closes [#3698](https://github.com/Arekkazu/sgpmp-backend/issues/3698) [#3790](https://github.com/Arekkazu/sgpmp-backend/issues/3790) [#3791](https://github.com/Arekkazu/sgpmp-backend/issues/3791)
+* **rf56-mod3:** bitacora de rechazos, eventos individuales y limite por dispositivo en eventos Edge (DEV-45) ([6fdc41f](https://github.com/Arekkazu/sgpmp-backend/commit/6fdc41f49f2ed908906cba715199012fedd1dc85))
+* **rf56-mod3:** eventos-edge rechaza dispositivo o sensor inactivos con 401 (DEV-29) ([22335a1](https://github.com/Arekkazu/sgpmp-backend/commit/22335a1e0e0c5a9faff2fe00396dada3c4c66980))
+* **rf57:** evitar historial duplicado y auditar rechazos y fallos tecnicos ([933dc63](https://github.com/Arekkazu/sgpmp-backend/commit/933dc6334db5635700609fa01b21ceebc6c554e8)), closes [#3693](https://github.com/Arekkazu/sgpmp-backend/issues/3693) [#3778](https://github.com/Arekkazu/sgpmp-backend/issues/3778) [#3779](https://github.com/Arekkazu/sgpmp-backend/issues/3779)
+* **rf57:** restringir descarte y transiciones de alertas ([818ca7f](https://github.com/Arekkazu/sgpmp-backend/commit/818ca7f6abac2c090598193cf6e2361d68947bb9)), closes [#3692](https://github.com/Arekkazu/sgpmp-backend/issues/3692) [#3775](https://github.com/Arekkazu/sgpmp-backend/issues/3775) [#3776](https://github.com/Arekkazu/sgpmp-backend/issues/3776)
+* **rf58-mod3:** vista del productor por permiso, GRIS sin umbral y anomalias visibles (DEV-39) ([c75088e](https://github.com/Arekkazu/sgpmp-backend/commit/c75088eaf606690d55acadab26ff264983942ae6))
+* **rf58:** DB-12 cache del dashboard con FUERA_DE_RANGO, ERROR_CALIBRACION y semaforo GRIS ([#645](https://github.com/Arekkazu/sgpmp-backend/issues/645)) ([bc51aaf](https://github.com/Arekkazu/sgpmp-backend/commit/bc51aafc008640dbde7df5709292e5239674d4ec))
+* **rf59-mod3:** zona horaria, truncado con aviso, bitacora de consultas e intervalos vacios (DEV-38) ([3e6a854](https://github.com/Arekkazu/sgpmp-backend/commit/3e6a854a7ad92c547a32d8b9e8567223a3951adf))
+* **rf60:** corregir flujos de heartbeat y mantenimiento (DEV-42) ([ad615e9](https://github.com/Arekkazu/sgpmp-backend/commit/ad615e99109773f0aef69f23d0bfa602ffc60dad)), closes [#3700](https://github.com/Arekkazu/sgpmp-backend/issues/3700) [#3795](https://github.com/Arekkazu/sgpmp-backend/issues/3795) [#3796](https://github.com/Arekkazu/sgpmp-backend/issues/3796)
+* **rf60:** parametrizar heartbeat y aplicar cadena canonica ([a218a3d](https://github.com/Arekkazu/sgpmp-backend/commit/a218a3d95c74b7c39a79ef82981ab138f0ff3ff3)), closes [#3696](https://github.com/Arekkazu/sgpmp-backend/issues/3696) [#3785](https://github.com/Arekkazu/sgpmp-backend/issues/3785) [#3786](https://github.com/Arekkazu/sgpmp-backend/issues/3786) [#3787](https://github.com/Arekkazu/sgpmp-backend/issues/3787)
+* **rf62:** evaluar gaps e inactividad y generar alertas tecnicas ([30d2d3f](https://github.com/Arekkazu/sgpmp-backend/commit/30d2d3f3dd1f56356e7ff64340e00b9190f83f79)), closes [#3699](https://github.com/Arekkazu/sgpmp-backend/issues/3699) [#3792](https://github.com/Arekkazu/sgpmp-backend/issues/3792) [#3793](https://github.com/Arekkazu/sgpmp-backend/issues/3793) [#3794](https://github.com/Arekkazu/sgpmp-backend/issues/3794)
+* **rf63-rf73:** DB-11 inmutabilidad de bitacoras IoT y auditoria M04 ([#642](https://github.com/Arekkazu/sgpmp-backend/issues/642)) ([99675f5](https://github.com/Arekkazu/sgpmp-backend/commit/99675f52fc2802ede6c14e6700402079016241d7))
+* **rf64-mod4:** patologia base no editable (405) ni inactivable (DEV-35) ([0f36bff](https://github.com/Arekkazu/sgpmp-backend/commit/0f36bff0be08bfd13e3e0d7bc6f83d1de1f824f9))
+* **rf65-mod4:** version no validada y configuracion incompatible responden 409 (DEV-33) ([71dc8aa](https://github.com/Arekkazu/sgpmp-backend/commit/71dc8aaade18006f1240c8386fbcac76183e574e))
+* **rf65-rf69-mod4:** ajustes de integracion de DEV-36, DEV-24 y DEV-48 tras usar los PRs [#676](https://github.com/Arekkazu/sgpmp-backend/issues/676), [#677](https://github.com/Arekkazu/sgpmp-backend/issues/677) y [#669](https://github.com/Arekkazu/sgpmp-backend/issues/669) ([4f2632e](https://github.com/Arekkazu/sgpmp-backend/commit/4f2632e5cd7875be951f526847d3bc06c3a7c22b))
+* **rf69-mod4:** codigos HTTP de activacion, rechazo y JSON invalido (DEV-34) ([5600852](https://github.com/Arekkazu/sgpmp-backend/commit/5600852222e1f0a79dc87dde92e9f5efec6a242e))
+* **rf69-rf70-mod4:** la OTA distribuye versiones APROBADO (DEV-26) ([045d452](https://github.com/Arekkazu/sgpmp-backend/commit/045d452499b5fc28319fcc8003f073937f5cb0ed))
+* **rf74-rf81-mod5:** flujo completo de suministros alineado al RF (codigos HTTP, mensajes, exportaciones y outbox a M06) ([f675c77](https://github.com/Arekkazu/sgpmp-backend/commit/f675c77d25a0594afb6265638577335ad09847f4))
+* **rf74-rf81-mod5:** migracion de M05 en la cadena de RFC-012..016 y tipos de evento con ids fijos 33-38 ([0c4bd39](https://github.com/Arekkazu/sgpmp-backend/commit/0c4bd3993bebd543b787ddb12f0f2f75c5c59d4d))
+* **rf74-rf81-mod5:** migracion del flujo completo de suministros (correccion aditiva, outbox a M06, archivos exportados) ([78e9454](https://github.com/Arekkazu/sgpmp-backend/commit/78e9454a9f06b1c1a5ba5857cfcf80f5a761360d))
+* **sast:** Bearer sin hallazgos criticos ni altos en historial M05 y respaldo M04 ([6c6f37a](https://github.com/Arekkazu/sgpmp-backend/commit/6c6f37abb476fa704e0fc62814a190bc2570bb04))
+* **shared:** dias, consultas SQL, mensajes y correos en la zona del usuario ([894bc81](https://github.com/Arekkazu/sgpmp-backend/commit/894bc8102a1ba0963f87ab8129e6d7140a091f59))
+* **shared:** fecha de nacimiento del activo como date y "hoy" del usuario en la BD ([d71674a](https://github.com/Arekkazu/sgpmp-backend/commit/d71674a792e29410dee34c6d800ad5413559a973))
+* **shared:** fechas en UTC y dia calendario en la zona del usuario (X-Zona-Horaria) ([51c60dd](https://github.com/Arekkazu/sgpmp-backend/commit/51c60dd136ba3c181e02ccde95fe8ca02211a225))
+* **telemetry:** alinear vinculaciones RF-61 y traslados DEV-44 ([80f8e92](https://github.com/Arekkazu/sgpmp-backend/commit/80f8e92b9e2e3947f54ec8bdaeeea0dc2b676691)), closes [#3702](https://github.com/Arekkazu/sgpmp-backend/issues/3702) [#3801](https://github.com/Arekkazu/sgpmp-backend/issues/3801) [#3802](https://github.com/Arekkazu/sgpmp-backend/issues/3802)
+* **telemetry:** completar cobertura e integridad RF-63 DEV-47 ([3fb1645](https://github.com/Arekkazu/sgpmp-backend/commit/3fb16452e31b77665fdb50cb02eece503fd62ba5))
+
+## [1.4.0-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.3-rc.1...v1.4.0-rc.1) (2026-10-20)
+
+### Features
+
+* **rf20-mod9:** propagar tipo_modelo_asignado del area al Gateway Edge (DEV-10) ([8bcdd0d](https://github.com/Arekkazu/sgpmp-backend/commit/8bcdd0dfec9318e4a53acebbb21b056aa281bb10))
+* **rf53-mod9:** marca es_critica en variables_ambientales para la cola del broker (BRK-09) ([a514445](https://github.com/Arekkazu/sgpmp-backend/commit/a51444585035e550800b7a2496611b1967dac904))
+* **rf53:** token de servicio del broker en /iot/*, el serial deja de ser credencial (DEV-06) ([1d503b5](https://github.com/Arekkazu/sgpmp-backend/commit/1d503b5195150688362c6f8fda213d5bbac8fd3b))
+* **rf54-mod3:** retirar modulo3.buffers, el buffer vive en el Edge (DB-03) ([b0917b7](https://github.com/Arekkazu/sgpmp-backend/commit/b0917b781cd3b74bcb7f33f867f5295b2bdc9ee7))
+* **rf54:** endpoint interno de eventos de buffer del Gateway Edge (DEV-11) ([05c0b77](https://github.com/Arekkazu/sgpmp-backend/commit/05c0b779d05f64c34d5d53d600a37009d6aa2f41))
+* **rf55-mod3:** propagar reglas compuestas al Gateway Edge (DEV-08) ([7c104f3](https://github.com/Arekkazu/sgpmp-backend/commit/7c104f3e90e969df5e07309a90d91f377b016375))
+* **rf60-mod3:** columnas de heartbeat y vision del lote DB-03 (RF-56) ([80238af](https://github.com/Arekkazu/sgpmp-backend/commit/80238afc8c2b22cd515c046b15b5b66779193edc))
+* **rf65-mod4:** sincronizar la configuracion del motor con los nodos Edge (DEV-09) ([6c54e2b](https://github.com/Arekkazu/sgpmp-backend/commit/6c54e2bf54aab023b931438d55e22e7ada327e78))
+* **rf70-prediction:** esquema de distribuciones OTA y firma del artefacto que usa el orquestador (DB-04, DEV-15) ([5971722](https://github.com/Arekkazu/sgpmp-backend/commit/597172243b6d5f777470762b5e40612baf738ffc))
+* **rf70-prediction:** un solo despliegue OTA en curso por dispositivo y componente (DB-04) ([525b526](https://github.com/Arekkazu/sgpmp-backend/commit/525b526709571a85668680b7b332439360bb833d))
+* **rf70-rf73-mod4:** orquestador OTA de modelos por componente (DEV-15) ([c26a477](https://github.com/Arekkazu/sgpmp-backend/commit/c26a47759fc0b873452f7da94aad6f1f23451df6))
+
+### Bug Fixes
+
+* **rf18:** parametrizar calidad y mlops de dev-14 ([648d45f](https://github.com/Arekkazu/sgpmp-backend/commit/648d45f28b11a7be059dc0b30d4235ba468a2965)), closes [#3520](https://github.com/Arekkazu/sgpmp-backend/issues/3520) [#3590](https://github.com/Arekkazu/sgpmp-backend/issues/3590) [#3591](https://github.com/Arekkazu/sgpmp-backend/issues/3591) [#3592](https://github.com/Arekkazu/sgpmp-backend/issues/3592)
+* **rf53-mod3:** corregir columnas, latencia en minutos y fk de bitacora en fn_ingesta_telemetria (DB-02) ([207ec7d](https://github.com/Arekkazu/sgpmp-backend/commit/207ec7d2f75ebb6a1d835c443322b171f500fcd7))
+* **rf53-mod3:** fn_ingesta_telemetria valida contra el umbral de la especie y registra los rechazos en bitacora_ingest (DB-02) ([1c9b8ce](https://github.com/Arekkazu/sgpmp-backend/commit/1c9b8ce896b68411fc663f0b49df14c05e3b27e2))
+* **rf53-mod3:** fn_obtener_calibracion usa la ganancia y el offset de RF-24 (DB-02) ([a3a4e71](https://github.com/Arekkazu/sgpmp-backend/commit/a3a4e71ae89c4103bc02de20512033a9774e7ba4))
+* **rf53:** adaptar vision al sobre d4 del broker ([238c2db](https://github.com/Arekkazu/sgpmp-backend/commit/238c2dbadecd68dde1cd1615f4309a90dbaf8532)), closes [#3525](https://github.com/Arekkazu/sgpmp-backend/issues/3525) [#3607](https://github.com/Arekkazu/sgpmp-backend/issues/3607)
+* **rf53:** unificar ingesta bplus y recuperar postcommit ([07db21e](https://github.com/Arekkazu/sgpmp-backend/commit/07db21e0a00d2b75e1cdc478437fcd2e37be2217))
+* **rf56:** conservar paquetes pendientes sin inferencia real ([fa41e8e](https://github.com/Arekkazu/sgpmp-backend/commit/fa41e8e3786382e1d2ff6bb511024874f8d7c50e)), closes [#3513](https://github.com/Arekkazu/sgpmp-backend/issues/3513) [#3568](https://github.com/Arekkazu/sgpmp-backend/issues/3568)
+* **rf60-mod3:** el diagnostico del heartbeat revalida los campos D11 sin exigir device_id ni serial ([2551cbb](https://github.com/Arekkazu/sgpmp-backend/commit/2551cbb549fd5f34880224b6b28094696c882a2d))
+* **rf60-mod3:** excluir alertas tecnicas de GET /iot/alertas (DEV-13) ([d61519b](https://github.com/Arekkazu/sgpmp-backend/commit/d61519ba1f316e3974ec184f855ea70816b008b5))
+* **rf60:** ampliar heartbeat con diagnosticos postcommit ([e453d54](https://github.com/Arekkazu/sgpmp-backend/commit/e453d54baae83296f2d29c45c7ecba0582f9e8a8)), closes [#3524](https://github.com/Arekkazu/sgpmp-backend/issues/3524) [#3603](https://github.com/Arekkazu/sgpmp-backend/issues/3603) [#3604](https://github.com/Arekkazu/sgpmp-backend/issues/3604) [#3605](https://github.com/Arekkazu/sgpmp-backend/issues/3605)
+* **rf60:** las alertas tecnicas fallaban al insertarse por fecha_registro nula ([bc13d43](https://github.com/Arekkazu/sgpmp-backend/commit/bc13d43f539656e3d45c459fe16a5b068a38c14d))
+* **rf62:** persistir aptitud sin modificar telemetrias ([8fc5ef9](https://github.com/Arekkazu/sgpmp-backend/commit/8fc5ef9c37fcd652b9b97fd5b9c14c54cbf181aa)), closes [#3560](https://github.com/Arekkazu/sgpmp-backend/issues/3560) [#3561](https://github.com/Arekkazu/sgpmp-backend/issues/3561)
+* **rf67-rf70-rf73-mod4:** emitir la auditoria M04 con valores del enum y no tragarse el flush (DEV-03) ([81ff150](https://github.com/Arekkazu/sgpmp-backend/commit/81ff15048ebbdf58a4d25bf8f727731b127bd43e))
+* **rf69-mod4:** agrupar la unicidad de produccion sin algoritmo y con componente nulo (DB-01, RFC-009) ([15b2086](https://github.com/Arekkazu/sgpmp-backend/commit/15b2086fd38e83545684d2d48575e066408eac3c))
+* **rf69-mod4:** unicidad de produccion por tipo_modelo y componente en versiones_modelos (DB-01, RFC-009) ([2500670](https://github.com/Arekkazu/sgpmp-backend/commit/250067039a4da935ff6d0c58cd75763cda5751ed))
+* **rf70-prediction:** la descarga OTA sirve el artefacto desde el almacen de RF-69 y el compose pasa las variables OTA ([098f635](https://github.com/Arekkazu/sgpmp-backend/commit/098f635a5f02d6c67a26171c7c7b65755d2e6ff9))
+* **shared:** traducir rechazos sqlstate de rf53 rf57 y rf69 ([49644a9](https://github.com/Arekkazu/sgpmp-backend/commit/49644a9109c7d968f4c167b34fc8a571d31d21b0)), closes [#3512](https://github.com/Arekkazu/sgpmp-backend/issues/3512) [#3566](https://github.com/Arekkazu/sgpmp-backend/issues/3566)
+
+## [1.3.3-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.2...v1.3.3-rc.1) (2026-10-13)
+
 ## [1.3.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.2...v1.3.3) (2026-10-13)
 
 ### Bug Fixes
 
 * **rf16-mod9:** no pedir reactivar una metrica inactiva al editarla ([be68505](https://github.com/Arekkazu/sgpmp-backend/commit/be68505b0d8457fbcb77cacfa6d760d3dd1b6d84))
+
+## [1.3.2-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.1...v1.3.2-rc.1) (2026-10-13)
 
 ## [1.3.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.1...v1.3.2) (2026-10-13)
 

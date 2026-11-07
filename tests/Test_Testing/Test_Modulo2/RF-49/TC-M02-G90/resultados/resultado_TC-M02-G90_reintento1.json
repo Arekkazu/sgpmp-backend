@@ -1,0 +1,26 @@
+{
+  "tc": "TC-M02-G90",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G90-REEVAL-V2-20260915-192500",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-220: Asociación AMBIENTAL pura a nivel de infraestructura (Tipo B)",
+      "esperado": "HTTP 201 Created asociada a infraestructura sin forzar activo biológico puntual",
+      "obtenido": "HTTP 201 Created persistiendo forzosamente activo 19 (defecto INC-M02-G90-01 persistente; sin endpoint en API para Tipo B puro)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G90-REEVAL-V2-20260915-192500/reporte_TC-M02-G90_v2.html",
+      "nota_qa": "Reevaluación V2 confirma persistencia del defecto INC-M02-G90-01: API sin endpoint a nivel de infraestructura."
+    },
+    {
+      "paso": "TC-M02-221: Coherencia territorial entre infraestructuras distintas de la misma finca",
+      "esperado": "Comportamiento coherente con RF-49 (Restricción 2 / Flujo E2 a nivel de finca territorial)",
+      "obtenido": "HTTP 201 Created confirmado mediante regla V6 misma finca (aprobado con observación documental OBS-M02-G90-02)",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G90-REEVAL-V2-20260915-192500/reporte_TC-M02-G90_v2.html",
+      "nota_qa": "Aceptado: el backend valida id_finca y aprueba entre infraestructuras de la misma finca."
+    }
+  ]
+}

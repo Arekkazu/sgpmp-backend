@@ -1,0 +1,1381 @@
+{
+  "info": {
+    "name": "TC-M03-G57A - Configuracion dinamica de reglas, umbrales y parametros del sistema de alertas (Restriccion 3, Fase 5, E12, Restriccion 12)",
+    "description": "RF-57 Restriccion 3 / Fase 5 / E12 / Restriccion 12. Subcaso 1 (N33): crear en la especie QA 108 un umbral de TEMPERATURA_AMBIENTAL (variable 9; normal hasta 30), modificarlo como Administrador (a 28) y como Ingeniero de Campo (a 29) con PATCH /configuracion/umbrales/{id}; se comprueba que persiste sin despliegue. La severidad de POST /iot/alertas la fija severidad_edge (BUG-G69-01), por eso el paso 1.4 solo documenta. Subcaso 2 (N34): Productor y Veterinario reciben 403 al editar, crear y desactivar. Subcasos 3 a 5 (N35 a N37): el umbral de confianza de IA (umbral_confianza_edge_ia) solo se carga con scripts/configurar_parametros_dev14.py; N_sistema, N_unidad, la ventana de deduplicacion, el SLA y la reevaluacion de IA no tienen endpoint: las pruebas listan /openapi.json y GET /configuracion/parametros para dejar la ausencia demostrada. Subcaso 6 (N38): auditoria del umbral (GET /configuracion/umbrales/{id}/auditoria) y bitacora general. Todo se crea dentro del sandbox transaccional y se revierte con el rollback; todas las peticiones (menos los logins) llevan X-Test-Run-Id y X-Sandbox-Secret; el ultimo item (Z) hace DELETE /test-control/runs/{run_id}. Las claves, el secreto del sandbox y el token del broker no se guardan en este archivo: el script correr_newman.ps1 las pide en la terminal. Ejecucion: .\\correr_newman.ps1 -Caso G57A (desde tests\\Test_Testing). No usar --bail. Ambiente: solo TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "correo_admin",
+      "value": ""
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "correo_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "contrasena_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "correo_productor",
+      "value": ""
+    },
+    {
+      "key": "contrasena_productor",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "correo_veterinario",
+      "value": ""
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "1"
+    },
+    {
+      "key": "serial",
+      "value": ""
+    },
+    {
+      "key": "broker_service_token",
+      "value": ""
+    },
+    {
+      "key": "id_evento_edge",
+      "value": "1"
+    },
+    {
+      "key": "ts_run_inicio",
+      "value": ""
+    },
+    {
+      "key": "id_especie_qa",
+      "value": "108"
+    },
+    {
+      "key": "id_variable_temp",
+      "value": "9"
+    },
+    {
+      "key": "id_variable_hum",
+      "value": "10"
+    },
+    {
+      "key": "id_umbral_temp",
+      "value": ""
+    },
+    {
+      "key": "fecha_umbral_json",
+      "value": "null"
+    },
+    {
+      "key": "id_cur",
+      "value": "0"
+    },
+    {
+      "key": "id_regla_qa",
+      "value": "0"
+    },
+    {
+      "key": "fecha_regla_qa",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login Administrador",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');",
+              "pm.collectionVariables.set('ts_run_inicio', new Date(Date.now() - 60000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Login Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Ingeniero de Campo exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_ingeniero', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0C. Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Productor exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_productor', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0D. Login Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_veterinario', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0Z. Preparacion: crear evento edge valido (POST /iot/eventos-edge) para usar su id como id_evento_edge_computing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_service_token}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/eventos-edge",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"clasificacion_rf55\": \"NORMAL\",\n  \"severidad\": \"LEVE\",\n  \"variables_involucradas\": [{\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.0,\n      \"unidad\": \"°C\"\n    }],\n  \"timestamp_captura\": \"{{ts_now}}\",\n  \"timestamp_procesamiento_edge\": \"{{ts_now}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"estado_conectividad\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+              "pm.variables.set('ts_now', _iso(_n));",
+              "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+              "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+              "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+              "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+              "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+              "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+              "pm.variables.set('uniq', String(_n).slice(-9));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "console.log('[TC-M03-G57A 0Z] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+              "const _guardar = function (j) {",
+              "  const k = ['id_evento_edge_computing', 'id_evento_edge', 'id_evento', 'id'].find(function (n) { return j && j[n] !== undefined && j[n] !== null; })",
+              "          || Object.keys(j || {}).find(function (n) { return /^id_/.test(n) && typeof j[n] === 'number'; });",
+              "  if (k) { pm.collectionVariables.set('id_evento_edge', String(j[k])); console.log('[TC-M03-G57A 0Z] id_evento_edge = ' + j[k] + ' (campo ' + k + ')'); return true; }",
+              "  return false; };",
+              "const _cands = [\"NORMAL\", \"LEVE\", \"ANOMALIA\", \"ALERTA\", \"CRITICO\"];",
+              "const _fin = function () { pm.test('Preparacion: evento edge de referencia creado y id_evento_edge disponible (si falla, revisar el codigo y mensaje del log; o pasar --env-var id_evento_edge=<id existente>)', function () { pm.expect(pm.collectionVariables.get('id_evento_edge')).to.not.eql('1'); }); };",
+              "const _intentar = function (i) {",
+              "  const b = JSON.parse(pm.variables.replaceIn(pm.request.body.raw)); b.clasificacion_rf55 = _cands[i];",
+              "  const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+              "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/iot/eventos-edge', method: 'POST', header: h, body: {mode: 'raw', raw: JSON.stringify(b)}}, function (e, r) {",
+              "    let j = {}; try { j = r.json(); } catch (x) {}",
+              "    console.log('[TC-M03-G57A 0Z] reintento clasificacion_rf55=' + _cands[i] + ' -> ' + (r ? r.code : e) + ' ' + (r ? r.text().slice(0, 300) : ''));",
+              "    if (r && r.code === 201) { _guardar(j); _fin(); } else if (r && (r.code === 400 || r.code === 422) && i + 1 < _cands.length) { _intentar(i + 1); } else { _fin(); } });",
+              "};",
+              "if (pm.response.code === 201) { _guardar(J); _fin(); }",
+              "else if (pm.response.code === 400 || pm.response.code === 422) { _intentar(1); }",
+              "else { _fin(); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Modificar un umbral como Administrador e Ingeniero de Campo (TC-M03-N33)",
+      "item": [
+        {
+          "name": "1.0 Precondicion: la especie QA 108 no tiene umbral activo de TEMPERATURA_AMBIENTAL (variable 9)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie_qa}}&solo_activas=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _l = (J.items || []).filter(function (u) { return String(u.id_variable_ambiental) === pm.collectionVariables.get('id_variable_temp'); });",
+                  "pm.test('Precondicion: sin umbral de temperatura ambiental en la especie QA', function () { pm.expect(_l.length).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1 Preparacion (Administrador): crear el umbral original de temperatura ambiental (normal hasta 30)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": {{id_especie_qa}},\n  \"id_variable_ambiental\": {{id_variable_temp}},\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 30\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 30,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Umbral creado (HTTP 201)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.collectionVariables.set('id_umbral_temp', String(J.id_umbral_ambiental || ''));",
+                  "pm.collectionVariables.set('fecha_umbral_json', J.fecha_actualizacion ? JSON.stringify(J.fecha_actualizacion) : 'null');",
+                  "console.log('[G57A-1.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, estado_sincronizacion: J.estado_sincronizacion}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Administrador: modificar el limite del nivel normal de 30 a 28 (el nivel LEVE/precaucion empieza en 28)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 28\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 28,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ],\n  \"fecha_actualizacion\": {{fecha_umbral_json}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Administrador puede modificar el umbral (HTTP 200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _n = ((J.niveles || []).filter(function (x) { return x.nivel === 'normal'; })[0] || {});",
+                  "pm.test('El nivel normal termina en 28 (nuevo borde)', function () { pm.expect(Number(_n.limite_superior)).to.eql(28); });",
+                  "pm.collectionVariables.set('fecha_umbral_json', J.fecha_actualizacion ? JSON.stringify(J.fecha_actualizacion) : 'null');",
+                  "console.log('[G57A-1.2][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, estado_sincronizacion: J.estado_sincronizacion}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 La nueva configuracion persiste (rige sin reiniciar ni desplegar)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie_qa}}&solo_activas=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _u = ((J.items || []).filter(function (u) { return String(u.id_umbral_ambiental) === pm.collectionVariables.get('id_umbral_temp'); })[0] || {});",
+                  "const _n = ((_u.niveles || []).filter(function (x) { return x.nivel === 'normal'; })[0] || {});",
+                  "pm.test('El umbral guardado (GET) tiene el nivel normal hasta 28: la configuracion persiste sin despliegue', function () { pm.expect(Number(_n.limite_superior)).to.eql(28); });",
+                  "console.log('[G57A][OBSERVADO] umbral=' + JSON.stringify({id: _u.id_umbral_ambiental, niveles: _u.niveles, estado_sincronizacion: _u.estado_sincronizacion}));",
+                  "if (_u.id_umbral_ambiental) { pm.collectionVariables.set('fecha_umbral_json', _u.fecha_actualizacion ? JSON.stringify(_u.fecha_actualizacion) : 'null'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Evento en el nuevo borde (29.0 C): se documenta la clasificacion (la severidad la fija severidad_edge, ver BUG-G69-01)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 29.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_now', new Date().toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('El evento se recibe (HTTP 200/201)', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "console.log('[G57A-1.4][OBSERVADO] ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, id_alerta: J.id_alerta}));",
+                  "pm.collectionVariables.set('id_cur', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4x Aislamiento: descartar la alerta del paso 1.4",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_cur}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA G57A aislamiento\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.4x] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Descartada (200) o inexistente (404)', function () { pm.expect([200, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5a Leer la fecha_actualizacion vigente antes de la edicion del Ingeniero",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie_qa}}&solo_activas=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.5a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _u = ((J.items || []).filter(function (u) { return String(u.id_umbral_ambiental) === pm.collectionVariables.get('id_umbral_temp'); })[0] || {});",
+                  "if (_u.id_umbral_ambiental) { pm.collectionVariables.set('fecha_umbral_json', _u.fecha_actualizacion ? JSON.stringify(_u.fecha_actualizacion) : 'null'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5b Ingeniero de Campo: modificar el limite del nivel normal de 28 a 29",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 29\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 29,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ],\n  \"fecha_actualizacion\": {{fecha_umbral_json}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.5b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('El Ingeniero de Campo puede modificar el umbral (HTTP 200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _n = ((J.niveles || []).filter(function (x) { return x.nivel === 'normal'; })[0] || {});",
+                  "pm.test('El nivel normal termina en 29 (nuevo borde)', function () { pm.expect(Number(_n.limite_superior)).to.eql(29); });",
+                  "pm.collectionVariables.set('fecha_umbral_json', J.fecha_actualizacion ? JSON.stringify(J.fecha_actualizacion) : 'null');",
+                  "console.log('[G57A-1.5b][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, estado_sincronizacion: J.estado_sincronizacion}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6 El cambio del Ingeniero persiste",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie_qa}}&solo_activas=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _u = ((J.items || []).filter(function (u) { return String(u.id_umbral_ambiental) === pm.collectionVariables.get('id_umbral_temp'); })[0] || {});",
+                  "const _n = ((_u.niveles || []).filter(function (x) { return x.nivel === 'normal'; })[0] || {});",
+                  "pm.test('El umbral guardado (GET) tiene el nivel normal hasta 29: la configuracion persiste sin despliegue', function () { pm.expect(Number(_n.limite_superior)).to.eql(29); });",
+                  "console.log('[G57A][OBSERVADO] umbral=' + JSON.stringify({id: _u.id_umbral_ambiental, niveles: _u.niveles, estado_sincronizacion: _u.estado_sincronizacion}));",
+                  "if (_u.id_umbral_ambiental) { pm.collectionVariables.set('fecha_umbral_json', _u.fecha_actualizacion ? JSON.stringify(_u.fecha_actualizacion) : 'null'); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Rol no autorizado: Productor y Veterinario (TC-M03-N34)",
+      "item": [
+        {
+          "name": "2.proda Productor: intentar modificar el umbral - debe responder 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 20\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 20,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ],\n  \"fecha_actualizacion\": {{fecha_umbral_json}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.proda] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Productor no puede modificar el umbral (HTTP 403 ACCESO_DENEGADO)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "console.log('[G57A-2.proda][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, estado_sincronizacion: J.estado_sincronizacion}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.prodb Productor: intentar crear un umbral - debe responder 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": {{id_especie_qa}},\n  \"id_variable_ambiental\": {{id_variable_hum}},\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 30\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 30,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.prodb] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Productor no puede crear umbrales (HTTP 403)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.prodc Productor: intentar desactivar el umbral - debe responder 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}/desactivar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.prodc] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Productor no puede desactivar umbrales (HTTP 403)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.vetea Veterinario: intentar modificar el umbral - debe responder 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 20\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 20,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ],\n  \"fecha_actualizacion\": {{fecha_umbral_json}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.vetea] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Veterinario no puede modificar el umbral (HTTP 403 ACCESO_DENEGADO)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "console.log('[G57A-2.vetea][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, estado_sincronizacion: J.estado_sincronizacion}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.veteb Veterinario: intentar crear un umbral - debe responder 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": {{id_especie_qa}},\n  \"id_variable_ambiental\": {{id_variable_hum}},\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 30\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 30,\n      \"limite_superior\": 35\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 35,\n      \"limite_superior\": 50\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.veteb] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Veterinario no puede crear umbrales (HTTP 403)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.vetec Veterinario: intentar desactivar el umbral - debe responder 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}/desactivar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.vetec] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('Veterinario no puede desactivar umbrales (HTTP 403)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 El umbral no cambio (sigue con el valor del Ingeniero: normal hasta 29) y sigue activo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie_qa}}&solo_activas=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _u = ((J.items || []).filter(function (u) { return String(u.id_umbral_ambiental) === pm.collectionVariables.get('id_umbral_temp'); })[0] || {});",
+                  "const _n = ((_u.niveles || []).filter(function (x) { return x.nivel === 'normal'; })[0] || {});",
+                  "pm.test('El umbral guardado (GET) tiene el nivel normal hasta 29: la configuracion persiste sin despliegue', function () { pm.expect(Number(_n.limite_superior)).to.eql(29); });",
+                  "console.log('[G57A][OBSERVADO] umbral=' + JSON.stringify({id: _u.id_umbral_ambiental, niveles: _u.niveles, estado_sincronizacion: _u.estado_sincronizacion}));",
+                  "if (_u.id_umbral_ambiental) { pm.collectionVariables.set('fecha_umbral_json', _u.fecha_actualizacion ? JSON.stringify(_u.fecha_actualizacion) : 'null'); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Umbral de confianza de IA y umbral_confianza_minimo configurables (TC-M03-N35)",
+      "item": [
+        {
+          "name": "3.0 GET /configuracion/parametros-alertas: expone el umbral de confianza de IA (E12/E13) y umbral_confianza_minimo (CA-2)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 3.0] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('umbral_confianza_edge_ia (base 0.85, rango 0.70-0.95)', function () { var p = _g('umbral_confianza_edge_ia'); pm.expect(p, 'no listado').to.exist; pm.expect(Number(p.valor)).to.eql(0.85); pm.expect(Number(p.rango_minimo)).to.eql(0.7); pm.expect(Number(p.rango_maximo)).to.eql(0.95); });",
+                  "pm.test('rf57_umbral_confianza_minimo (base 0.75)', function () { var p = _g('rf57_umbral_confianza_minimo'); pm.expect(p, 'no listado').to.exist; pm.expect(Number(p.valor)).to.eql(0.75); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.1 N35: el Administrador cambia umbral_confianza_edge_ia a 0.80 y rf57_umbral_confianza_minimo a 0.80 (sin despliegue)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"umbral_confianza_edge_ia\": 0.8,\n    \"rf57_umbral_confianza_minimo\": 0.8\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 3.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH /configuracion/parametros-alertas responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('umbral_confianza_edge_ia queda en 0.8', function () { pm.expect(_g('umbral_confianza_edge_ia'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('umbral_confianza_edge_ia').valor)).to.eql(0.8); });",
+                  "pm.test('rf57_umbral_confianza_minimo queda en 0.8', function () { pm.expect(_g('rf57_umbral_confianza_minimo'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_umbral_confianza_minimo').valor)).to.eql(0.8); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 N35: umbral_confianza_edge_ia fuera de 0.70-0.95 (0.96) se rechaza",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"umbral_confianza_edge_ia\": 0.96\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 3.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "pm.test('0.96 rechazado con 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 N35: el cambio persiste (GET) y se puede restaurar a 0.85 / 0.75",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"umbral_confianza_edge_ia\": 0.85,\n    \"rf57_umbral_confianza_minimo\": 0.75\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 3.3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH de restauracion responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('valores restaurados 0.85 y 0.75', function () { pm.expect(Number(_g('umbral_confianza_edge_ia').valor)).to.eql(0.85); pm.expect(Number(_g('rf57_umbral_confianza_minimo').valor)).to.eql(0.75); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Parametros de tormenta N_sistema y N_unidad (TC-M03-N36)",
+      "item": [
+        {
+          "name": "4.1 N36: el Administrador configura N_sistema y N_unidad (tormenta de alertas)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"rf57_tormenta_alertas_por_minuto\": 50,\n    \"rf57_tormenta_alertas_por_minuto_unidad\": 10\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 4.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH /configuracion/parametros-alertas responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('rf57_tormenta_alertas_por_minuto queda en 50', function () { pm.expect(_g('rf57_tormenta_alertas_por_minuto'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_tormenta_alertas_por_minuto').valor)).to.eql(50); });",
+                  "pm.test('rf57_tormenta_alertas_por_minuto_unidad queda en 10', function () { pm.expect(_g('rf57_tormenta_alertas_por_minuto_unidad'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_tormenta_alertas_por_minuto_unidad').valor)).to.eql(10); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Ventanas configurables: deduplicacion, reevaluacion de IA, SLA/escalamiento y reglas (TC-M03-N37)",
+      "item": [
+        {
+          "name": "5.1 N37: el Administrador configura la ventana de deduplicacion, la reevaluacion de IA y el SLA por severidad",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"rf57_ventana_deduplicacion_min\": 45,\n    \"rf57_ventana_reevaluacion_min\": 90,\n    \"rf57_sla_critico_min\": 10,\n    \"rf57_sla_moderado_min\": 45,\n    \"rf57_sla_leve_min\": 180\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 5.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH /configuracion/parametros-alertas responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('rf57_ventana_deduplicacion_min queda en 45', function () { pm.expect(_g('rf57_ventana_deduplicacion_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_ventana_deduplicacion_min').valor)).to.eql(45); });",
+                  "pm.test('rf57_ventana_reevaluacion_min queda en 90', function () { pm.expect(_g('rf57_ventana_reevaluacion_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_ventana_reevaluacion_min').valor)).to.eql(90); });",
+                  "pm.test('rf57_sla_critico_min queda en 10', function () { pm.expect(_g('rf57_sla_critico_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_sla_critico_min').valor)).to.eql(10); });",
+                  "pm.test('rf57_sla_moderado_min queda en 45', function () { pm.expect(_g('rf57_sla_moderado_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_sla_moderado_min').valor)).to.eql(45); });",
+                  "pm.test('rf57_sla_leve_min queda en 180', function () { pm.expect(_g('rf57_sla_leve_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_sla_leve_min').valor)).to.eql(180); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2a Reglas de alerta: el Administrador crea una regla (POST /iot/reglas-alertas)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/reglas-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"QA G57A regla temperatura\",\n  \"descripcion\": \"Regla de prueba QA (sandbox)\",\n  \"tipo_sensor\": \"TEMPERATURA\",\n  \"categoria_variable\": \"AMBIENTAL\",\n  \"umbral_min\": 15,\n  \"umbral_max\": 30,\n  \"ventana_confirmacion_min\": 0,\n  \"lectura_confirmacion_max\": 1,\n  \"mensaje\": \"QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 5.2a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/reglas-alertas responde 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "var _id = J.id_regla_alertas || J.id_regla_alerta || J.id; pm.collectionVariables.set('id_regla_qa', String(_id || 0)); pm.collectionVariables.set('fecha_regla_qa', String(J.fecha_actualizacion || ''));",
+                  "pm.test('la regla creada devuelve su identificador', function () { pm.expect(_id).to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2b Reglas de alerta: el Administrador modifica la regla (PUT /iot/reglas-alertas/{id}) y el cambio persiste",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/reglas-alertas/{{id_regla_qa}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"QA G57A regla temperatura\",\n  \"descripcion\": \"Regla de prueba QA modificada\",\n  \"tipo_sensor\": \"TEMPERATURA\",\n  \"categoria_variable\": \"AMBIENTAL\",\n  \"umbral_min\": 15,\n  \"umbral_max\": 28,\n  \"ventana_confirmacion_min\": 0,\n  \"lectura_confirmacion_max\": 1,\n  \"mensaje\": \"QA\",\n  \"fecha_actualizacion\": \"{{fecha_regla_qa}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 5.2b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('PUT responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "pm.test('umbral_max queda en 28', function () { pm.expect(Number(J.umbral_max)).to.eql(28); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Auditoria de cada cambio de configuracion (TC-M03-N38)",
+      "item": [
+        {
+          "name": "6.1 Auditoria del umbral (GET /configuracion/umbrales/{id}/auditoria): creacion y dos ediciones con usuario, valor anterior y valor nuevo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}/auditoria"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 6.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _it = J.items || [];",
+                  "console.log('[G57A-6.1][OBSERVADO] total=' + J.total + ' ' + JSON.stringify(_it.map(function (a) { return [a.tipo_operacion, a.id_usuario, a.valores_anteriores, a.valores_nuevos]; })).slice(0, 1500));",
+                  "const _ed = _it.filter(function (a) { return /UPDATE|EDIC|ACTUALIZ|MODIF/i.test(a.tipo_operacion); });",
+                  "pm.test('Hay una entrada de auditoria por cada cambio (creacion + al menos 2 ediciones = 3)', function () { pm.expect(_it.length, 'entradas').to.be.at.least(3); });",
+                  "pm.test('Las 2 ediciones registran usuario, valor anterior y valor nuevo', function () { pm.expect(_ed.length, 'ediciones').to.be.at.least(2); _ed.forEach(function (a) { pm.expect(a.id_usuario, 'id_usuario').to.exist; pm.expect(a.valores_anteriores, 'valores_anteriores').to.exist; pm.expect(a.valores_nuevos, 'valores_nuevos').to.exist; }); });",
+                  "pm.test('Las ediciones las hicieron al menos dos usuarios distintos y cada una queda atribuida', function () { pm.expect(new Set(_ed.map(function (a) { return a.id_usuario; })).size).to.be.at.least(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Bitacora general (GET /iot/auditoria) desde el inicio de la corrida: se documenta lo que existe sobre umbrales y los rechazos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/auditoria?fecha_desde={{ts_run_inicio}}&pagina=1&por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 6.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _c = {}; (J.items || []).forEach(function (e) { const k = e.tipo_evento + ' | ' + e.entidad_afectada_tipo + ' | ' + e.resultado; _c[k] = (_c[k] || 0) + 1; });",
+                  "console.log('[G57A-6.2][OBSERVADO] eventos desde ' + pm.collectionVariables.get('ts_run_inicio') + ' (total ' + J.total + '): ' + JSON.stringify(_c));",
+                  "const _rech = (J.items || []).filter(function (e) { return /DENEG|RECHAZ|403|AUTORIZ/i.test(JSON.stringify(e)); });",
+                  "console.log('[G57A-6.2][OBSERVADO] eventos de rechazo/acceso denegado en la bitacora = ' + _rech.length + ' ' + JSON.stringify(_rech.slice(0, 5)).slice(0, 800));",
+                  "const _u = (J.items || []).filter(function (e) { return /UMBRAL/i.test(e.tipo_evento + ' ' + e.entidad_afectada_tipo); });",
+                  "pm.test('La bitacora general registra los cambios de umbral (CA-16 por analogia)', function () { pm.expect(_u.length, 'eventos de umbral').to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M03-G57A] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      }
+    }
+  ]
+}

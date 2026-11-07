@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>TC-M09-G88 rev1 DEV</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 24px; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; }
+    .ok { color: #0b6b2c; font-weight: 700; }
+    img { max-width: 920px; width: 100%; border: 1px solid #ccc; margin: 8px 0 24px; }
+    code { background: #f4f4f4; padding: 0 4px; }
+  </style>
+</head>
+<body>
+  <h1>TC-M09-G88 / TC-M09-168 — DEV</h1>
+  <p><span class="ok">APROBADO</span> — la identidad visual se aplicó en el sidebar sin cerrar sesión.</p>
+  <p>Usuario: admin.dev@gmail.com. Contraseña y JWT: no incluidos. Frontend DEV.</p>
+  <h2>Expected vs Actual</h2>
+  <p><strong>Expected:</strong> el cambio de color/logo se refleja de inmediato en la UI con la misma sesión.</p>
+  <p><strong>Actual:</strong> tras Actualizar identidad, el menú lateral pasó de SGP Multiespecie (verde) a Camaronera Costa Azul (granate #C41E3A). La URL no volvió a /login. Luego se restauró #007B8A.</p>
+  <h2>Evidencias</h2>
+  <p>01 — Personalización / Identidad Visual (fincas activas)</p>
+  <img src="g88-03-personalizacion-identidad.png" alt="Picker de fincas Identidad Visual"/>
+  <p>04 — Formulario Costa Azul (color original #007B8A)</p>
+  <img src="g88-04-formulario-costa-azul.png" alt="Formulario identidad Costa Azul"/>
+  <p>05 — Antes del cambio de color</p>
+  <img src="g88-05-antes-color-007B8A.png" alt="Color primario original"/>
+  <p>07 — Sidebar tras guardar, misma sesión</p>
+  <img src="g88-07-sidebar-identidad-aplicada.png" alt="Sidebar con identidad aplicada"/>
+  <p>08 — Dashboard posterior; sesión sigue activa (avatar AC)</p>
+  <img src="g88-08-dashboard-sesion-activa.png" alt="Dashboard con sesión activa"/>
+</body>
+</html>

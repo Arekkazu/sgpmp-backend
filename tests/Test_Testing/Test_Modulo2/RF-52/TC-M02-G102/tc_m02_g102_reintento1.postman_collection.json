@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "TC-M02-G102 - Re-verificacion 2026-09-15 - Evento sanitario (RF-41) ya no da 500",
+    "description": "Re-ejecucion enfocada del hallazgo de TC-M02-G102 (RF-41, encontrado de pasada el 2026-09-10) contra TEST el 2026-09-15. La coleccion original (tc_m02_g102.postman_collection.json) queda intacta como evidencia historica; esta version documenta el estado ACTUAL del endpoint sanitario. La parte de clasificacion de auditoria (Restriccion 7, confirmada 100% correcta por lectura de codigo el 2026-09-10) no cambio y no se re-verifica aqui -- no depende de datos en vivo.\n\nRESULTADO: CORREGIDO. `POST /activos-biologicos/{id}/eventos/sanitario` con tipo=CONTROL_PREVENTIVO ya no responde 500 ERROR_INTERNO. Con validacion nueva encontrada de paso: CONTROL_PREVENTIVO ahora EXIGE el campo `observaciones` (400 VAL_ENTRADA si falta) -- esto es una validacion Pydantic correcta, no un bug, simplemente no estaba documentada en la ficha original. Con `observaciones` presente, el evento se registra correctamente (201) y queda en la bitacora con clasificacion_biologica=SANITARIO, resultado=EXITOSO, rf_origen=RF41.\n\nUsa un activo INDIVIDUAL ya existente en TEST (id=252, creado 2026-09-10, sin historial sanitario previo) en vez de crear uno fresco (POST /activos-biologicos sigue en 500, ver TC-M02-G66/G69).\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Hallazgo previo - sin observaciones, VAL_ENTRADA (validacion correcta, no bug)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sin observaciones: rechazado con HTTP 400 (validacion Pydantic correcta)', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio VAL_ENTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"descripcion\": \"Revision sanitaria de rutina\",\n  \"fecha\": \"2026-09-14T12:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo}}", "eventos", "sanitario" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (TC-M02-G102) - Evento sanitario CONTROL_PREVENTIVO con observaciones (CORREGIDO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Evento sanitario con observaciones presente ---');",
+              "console.log(pm.response.text());",
+              "pm.test('CORREGIDO: el evento sanitario se registra correctamente (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('el evento queda registrado con tipo=CONTROL_PREVENTIVO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.evento.sanitario.tipo).to.equal('CONTROL_PREVENTIVO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"descripcion\": \"Revision sanitaria de rutina (re-verificacion 2026-09-15)\",\n  \"observaciones\": \"Sin hallazgos relevantes\",\n  \"fecha\": \"2026-09-14T12:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo}}", "eventos", "sanitario" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion - la bitacora clasifica el evento como SANITARIO/EXITOSO/RF41",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Verificacion: la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const registros = respuesta ? (respuesta.registros || []) : [];",
+              "const sanitarios = registros.filter(function (r) { return r.rf_origen === 'RF41'; });",
+              "pm.test('Verificacion: existe al menos un evento SANITARIO/EXITOSO/RF41 en la bitacora', function () {",
+              "    pm.expect(sanitarios.length).to.be.above(0);",
+              "    pm.expect(sanitarios[0].clasificacion_biologica).to.equal('SANITARIO');",
+              "    pm.expect(sanitarios[0].resultado).to.equal('EXITOSO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "id_activo_biologico", "value": "{{id_activo}}" } ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_activo", "value": "252" }
+  ]
+}

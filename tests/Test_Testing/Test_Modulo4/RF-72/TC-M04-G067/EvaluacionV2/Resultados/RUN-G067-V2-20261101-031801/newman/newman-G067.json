@@ -1,0 +1,623 @@
+{
+  "herramienta": "Newman",
+  "version": "6.2.2",
+  "iteraciones": 1,
+  "solicitudes": 16,
+  "ejecuciones": [
+    {
+      "clave": "209-correcto-sin",
+      "caso": "TC-M04-209",
+      "solicitud": 1,
+      "cuerpo": {
+        "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 209-correcto-sin",
+        "estado_retroalimentacion": "CORRECTO"
+      },
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 526,
+      "respuesta": {
+        "id_retroalimentacion": "e773f9cb-b249-45b5-bbf1-eb024c1e8c6a",
+        "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "estado_retroalimentacion": "CORRECTO",
+        "diagnosticos_reales": null,
+        "error_code": null,
+        "field": null,
+        "mensaje": "",
+        "detalle_campo": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "209-correcto-con",
+      "caso": "TC-M04-209",
+      "solicitud": 2,
+      "cuerpo": {
+        "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 209-correcto-con",
+        "estado_retroalimentacion": "CORRECTO",
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 1017,
+      "respuesta": {
+        "id_retroalimentacion": "38b4f6f6-f89a-41fe-98e1-1845f347f774",
+        "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+        "estado_retroalimentacion": "CORRECTO",
+        "diagnosticos_reales": [
+          8
+        ],
+        "error_code": null,
+        "field": null,
+        "mensaje": "",
+        "detalle_campo": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "209-sin-evento-sin",
+      "caso": "TC-M04-209",
+      "solicitud": 3,
+      "cuerpo": {
+        "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 209-sin-evento-sin",
+        "estado_retroalimentacion": "SIN_EVENTO"
+      },
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 153,
+      "respuesta": {
+        "id_retroalimentacion": "8a364384-95db-412a-9021-e4769d06d50a",
+        "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+        "estado_retroalimentacion": "SIN_EVENTO",
+        "diagnosticos_reales": null,
+        "error_code": null,
+        "field": null,
+        "mensaje": "",
+        "detalle_campo": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "209-sin-evento-con",
+      "caso": "TC-M04-209",
+      "solicitud": 4,
+      "cuerpo": {
+        "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 209-sin-evento-con",
+        "estado_retroalimentacion": "SIN_EVENTO",
+        "diagnosticos_reales": [
+          9
+        ]
+      },
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 158,
+      "respuesta": {
+        "id_retroalimentacion": "0e5749a1-38f5-4e39-bf9b-733cdbf431cb",
+        "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+        "estado_retroalimentacion": "SIN_EVENTO",
+        "diagnosticos_reales": [
+          9
+        ],
+        "error_code": null,
+        "field": null,
+        "mensaje": "",
+        "detalle_campo": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "207-omitido",
+      "caso": "TC-M04-207",
+      "solicitud": 5,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 207-omitido",
+        "estado_retroalimentacion": "PARCIAL"
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 146,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "DIAGNOSTICO_REQUERIDO",
+        "field": "diagnosticos_reales",
+        "mensaje": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación.",
+        "detalle_campo": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "207-vacio",
+      "caso": "TC-M04-207",
+      "solicitud": 6,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 207-vacio",
+        "estado_retroalimentacion": "PARCIAL",
+        "diagnosticos_reales": []
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 146,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "DIAGNOSTICO_REQUERIDO",
+        "field": "diagnosticos_reales",
+        "mensaje": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación.",
+        "detalle_campo": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "208-omitido",
+      "caso": "TC-M04-208",
+      "solicitud": 7,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 208-omitido",
+        "estado_retroalimentacion": "INCORRECTO"
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 151,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "DIAGNOSTICO_REQUERIDO",
+        "field": "diagnosticos_reales",
+        "mensaje": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación.",
+        "detalle_campo": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "208-vacio",
+      "caso": "TC-M04-208",
+      "solicitud": 8,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 208-vacio",
+        "estado_retroalimentacion": "INCORRECTO",
+        "diagnosticos_reales": []
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 147,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "DIAGNOSTICO_REQUERIDO",
+        "field": "diagnosticos_reales",
+        "mensaje": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación.",
+        "detalle_campo": "El diagnóstico clínico es obligatorio para este tipo de retroalimentación."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "206-ausente",
+      "caso": "TC-M04-206",
+      "solicitud": 9,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 206-ausente",
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 140,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "VAL_ENTRADA",
+        "field": "estado_retroalimentacion",
+        "mensaje": "Errores de validacion en la solicitud",
+        "detalle_campo": "Este campo es obligatorio."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-inexistente",
+      "caso": "TC-M04-205",
+      "solicitud": 10,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-inexistente",
+        "estado_retroalimentacion": "DESCONOCIDO",
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 145,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-vacio",
+      "caso": "TC-M04-205",
+      "solicitud": 11,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-vacio",
+        "estado_retroalimentacion": "",
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 150,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-numerico",
+      "caso": "TC-M04-205",
+      "solicitud": 12,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-numerico",
+        "estado_retroalimentacion": 123,
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 145,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-capitalizado",
+      "caso": "TC-M04-205",
+      "solicitud": 13,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-capitalizado",
+        "estado_retroalimentacion": "Correcto",
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 145,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-nulo",
+      "caso": "TC-M04-205",
+      "solicitud": 14,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-nulo",
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 149,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-lista",
+      "caso": "TC-M04-205",
+      "solicitud": 15,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-lista",
+        "estado_retroalimentacion": [
+          "CORRECTO"
+        ],
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 145,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "clave": "205-minusculas",
+      "caso": "TC-M04-205",
+      "solicitud": 16,
+      "cuerpo": {
+        "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "id_activo_biologico": 885,
+        "observaciones_clinicas": "QA G067 205-minusculas",
+        "estado_retroalimentacion": "correcto",
+        "diagnosticos_reales": [
+          8
+        ]
+      },
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 143,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "estado_retroalimentacion": null,
+        "diagnosticos_reales": null,
+        "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+        "field": "estado_retroalimentacion",
+        "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+        "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+      },
+      "aserciones": [
+        {
+          "nombre": "Código explícito por subcaso",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de X-Test-Run-Id",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "fallos": [],
+  "error": null
+}

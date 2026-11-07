@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: cambio manual del estado operativo de un activo (RF-44)."""
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, NotFoundError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario, inicio_dia_usuario
 
 
 class CambiarEstadoUseCase:
@@ -82,7 +85,7 @@ class CambiarEstadoUseCase:
                 field='estado_nuevo',
             )
 
-        if dto.fecha_cambio_estado > hoy_colombia():
+        if dto.fecha_cambio_estado > hoy_usuario():
             raise BusinessRuleError(
                 code='FECHA_FUTURA',
                 message=(
@@ -104,11 +107,11 @@ class CambiarEstadoUseCase:
             )
 
         id_estado_anterior = activo.id_estado
-        # Hoy usa la hora real (como RF-38/RF-45); un día pasado, su medianoche UTC.
-        if dto.fecha_cambio_estado == hoy_colombia():
+        # Hoy usa la hora real (como RF-38/RF-45); un día pasado, su medianoche en la zona del usuario.
+        if dto.fecha_cambio_estado == hoy_usuario():
             fecha = datetime.now(timezone.utc)
         else:
-            fecha = datetime.combine(dto.fecha_cambio_estado, datetime.min.time()).replace(tzinfo=timezone.utc)
+            fecha = inicio_dia_usuario(dto.fecha_cambio_estado)
 
         try:
             # aplicar_cambio_estado valida BAJA irreversible, estado redundante y matriz de

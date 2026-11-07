@@ -4,7 +4,7 @@
 
 | Método | Ruta | Auth | RF |
 |--------|------|------|----|
-| POST | `/iot/alertas` | Dispositivo IoT (`access_key`) | FA-01–FA-08 |
+| POST | `/iot/alertas` | Broker MQTT (token de servicio) + `serial` | FA-01–FA-08 |
 | GET | `/iot/alertas` | JWT + RBAC(32, R) | FA-09 |
 | GET | `/iot/alertas/{id}` | JWT + RBAC(32, R) | FA-09 |
 | PATCH | `/iot/alertas/{id}/estado` | JWT + RBAC(32, U) | FA-10 |
@@ -17,11 +17,12 @@
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/alertas \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "tipo_variable": "TEMPERATURA_AMBIENTAL",
     "valor": 42.5,
     "unidad": "C",
@@ -54,11 +55,12 @@ curl -s -X POST http://localhost:8000/iot/alertas \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/alertas \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "tipo_variable": "TEMPERATURA_AMBIENTAL",
     "valor": 43.1,
     "unidad": "C",
@@ -88,11 +90,12 @@ curl -s -X POST http://localhost:8000/iot/alertas \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/alertas \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "tipo_variable": "TEMPERATURA_AMBIENTAL",
     "valor": 99.9,
     "unidad": "C",
@@ -121,11 +124,12 @@ curl -s -X POST http://localhost:8000/iot/alertas \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/alertas \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 2,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "tipo_variable": "NH3",
     "valor": 28.0,
     "unidad": "ppm",
@@ -159,11 +163,12 @@ curl -s -X POST http://localhost:8000/iot/alertas \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/alertas \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 2,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "tipo_variable": "TEMPERATURA_CORPORAL",
     "valor": 41.2,
     "unidad": "C",
@@ -196,11 +201,12 @@ curl -s -X POST http://localhost:8000/iot/alertas \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/alertas \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "CLAVE-INVALIDA",
+    "serial": "SERIAL-DE-OTRO-NODO",
     "tipo_variable": "TEMPERATURA_AMBIENTAL",
     "valor": 42.5,
     "unidad": "C",
@@ -215,7 +221,7 @@ curl -s -X POST http://localhost:8000/iot/alertas \
 ```json
 {
   "code": "DISPOSITIVO_NO_AUTORIZADO",
-  "message": "Credenciales de dispositivo inválidas o dispositivo inactivo."
+  "message": "El dispositivo o el sensor no corresponden al serial, o están inactivos."
 }
 ```
 
@@ -403,8 +409,15 @@ curl -s -X PATCH "http://localhost:8000/iot/alertas/1/estado" \
 
 ## Notas
 
-- `POST /iot/alertas` no usa JWT — la autenticación es por `access_key` (serial del dispositivo).
+- `POST /iot/alertas` no usa JWT — lo llama el broker con su token de servicio del broker (`Authorization: Bearer $BROKER_SERVICE_TOKEN`, D3 de AIOT-DEV-03); el `serial` del body identifica al nodo.
 - Los endpoints GET y PATCH requieren JWT Bearer con permisos RBAC sobre `recurso=32` (alertas_operativas).
+- **RF-60 D-09 (DEV-13):** GET y PATCH solo atienden alertas **operativas**. Las técnicas (`tipo_alerta = TECNICA`: batería, conectividad, sobrecalentamiento) no aparecen en el listado, aunque se filtre `?tipo_alerta=TECNICA` (página vacía), y su detalle o PATCH responde `404 ALERTA_NO_ENCONTRADA`. Se consultan y gestionan solo por `/iot/alertas-tecnicas` (recurso 36, Admin e Ingeniero), ver `curls_m03_cu05_infraestructura_iot.md`.
+
+```bash
+# Productor intentando resolver una alerta técnica por /iot/alertas → 404
+curl -s -X PATCH "http://localhost:8000/iot/alertas/40/estado"   -H "Content-Type: application/json"   -H "Authorization: Bearer $JWT_PRODUCTOR"   -d '{"nuevo_estado": "RESUELTA"}'
+# {"code": "ALERTA_NO_ENCONTRADA", "message": "Alerta 40 no encontrada.", "field": null}
+```
 - La deduplicación opera en ventana de 30 minutos sobre `(id_sensor, tipo_variable)` con `estado IN (ACTIVA, EN_ATENCION)`.
 - SLA: CRITICO→5 min, MODERADO→30 min, LEVE→2 h hasta `fecha_vencimiento`.
 - CU02 llama automáticamente a `GenararAlertaUseCase` (internamente) cuando recibe una DESVIACION_SIMPLE o DESVIACION_COMPUESTA con severidad definida.

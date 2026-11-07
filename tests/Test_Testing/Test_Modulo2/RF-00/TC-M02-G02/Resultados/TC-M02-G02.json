@@ -1,0 +1,78 @@
+{
+  "caso": "TC-M02-G02",
+  "subcaso": "TC-M02-003",
+  "rf": "RF-00",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-14T23:27:01.225633+00:00",
+  "pasos": [
+    "Login productor (productor@pecuaria.co) HTTP 200 (un intento).",
+    "Login admin (admin@pecuaria.co) HTTP 200 (un intento).",
+    "GET /configuracion/especies (productor_pre) HTTP 200.",
+    "Nombre de prueba elegido: Especie Seguridad Laura",
+    "POST /configuracion/especies (Productor) HTTP 403.",
+    "GET /configuracion/especies (productor_post) HTTP 200.",
+    "Auditoria de intento no verificable por API publica."
+  ],
+  "http": {
+    "login_productor": 200,
+    "login_admin": 200,
+    "get_productor_pre": 200,
+    "post_productor": 403,
+    "get_productor_post": 200
+  },
+  "aserciones": [
+    {
+      "nombre": "login_productor",
+      "ok": true,
+      "detalle": "HTTP 200 con token (redactado)."
+    },
+    {
+      "nombre": "get_productor_precheck",
+      "ok": true,
+      "detalle": "Productor tiene lectura del catalogo."
+    },
+    {
+      "nombre": "nombre_ausente_pre",
+      "ok": true,
+      "detalle": "'Especie Seguridad Laura' no existe en precheck (productor)."
+    },
+    {
+      "nombre": "post_403",
+      "ok": true,
+      "detalle": "HTTP 403 (esperado 403)."
+    },
+    {
+      "nombre": "error_code_acceso_denegado",
+      "ok": true,
+      "detalle": "error_code=ACCESO_DENEGADO"
+    },
+    {
+      "nombre": "mensaje_autorizacion",
+      "ok": true,
+      "detalle": "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+    },
+    {
+      "nombre": "no_creacion",
+      "ok": true,
+      "detalle": "coincidencias postcheck=0"
+    }
+  ],
+  "clasificacion_funcional": "APROBADO",
+  "auditoria": "La auditoria del intento no pudo verificarse mediante API publica disponible.",
+  "limitaciones": [
+    "POST /configuracion/especies exige RBAC recurso 8 accion C=1; el 403 sale de require_permission ANTES del caso de uso de registro.",
+    "No hay GET publico de intentos de autorizacion fallidos sobre especies.",
+    "Disponibilidad M02/M03/M04 no aplica a este escenario de denegacion."
+  ],
+  "residuo": "ninguno: el POST no creo la especie",
+  "nombre_prueba": "Especie Seguridad Laura",
+  "total_pre": 25,
+  "post_cuerpo": {
+    "error_code": "ACCESO_DENEGADO",
+    "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+    "fields": [],
+    "timestamp": "2026-09-14T23:27:03.073473+00:00"
+  },
+  "total_post": 25
+}

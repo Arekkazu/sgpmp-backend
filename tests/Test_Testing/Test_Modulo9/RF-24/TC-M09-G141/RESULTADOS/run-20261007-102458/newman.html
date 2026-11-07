@@ -1,0 +1,65 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>G141 Newman</title><style>body{font:16px system-ui;max-width:70rem;margin:2rem;line-height:1.5}pre{white-space:pre-wrap;background:#f4f4f4;padding:1rem}</style><h1>G141 — Newman GET OpenAPI TEST</h1><p>RUN run-20261007-102458 · Newman exit 0 · VISION: no · POST VISION: 0</p><h2>GET y assertions</h2><pre>newman
+
+TC-M09-G141 - preflight VISION TEST
+
+→ GET OpenAPI TEST
+  GET https://api.inmero.co/back-sigab-test/openapi.json [200 OK, 568.78kB, 924ms]
+  √  OpenAPI TEST responde 200
+  √  OpenAPI contiene rutas y esquemas
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                  0 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                  2 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 1045ms                                       │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 568.4kB (approx)                            │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 924ms [min: 924ms, max: 924ms, s.d.: 0µs] │
+└──────────────────────────────────────────────────────────────────┘
+</pre><h2>Contrato encontrado</h2><pre>{
+  &quot;encontrada&quot;: false,
+  &quot;method&quot;: null,
+  &quot;path&quot;: null,
+  &quot;request_schema&quot;: null,
+  &quot;responses&quot;: null,
+  &quot;security&quot;: null,
+  &quot;busqueda&quot;: {
+    &quot;paths_totales&quot;: 210,
+    &quot;post_totales&quot;: 77,
+    &quot;schemas_totales&quot;: 305,
+    &quot;apariciones_exactas&quot;: {
+      &quot;VISION&quot;: 0,
+      &quot;modo_calibracion&quot;: 0,
+      &quot;ventana_observacion&quot;: 0,
+      &quot;origen_disparo&quot;: 0
+    },
+    &quot;candidatas&quot;: []
+  },
+  &quot;operacion_sensor_existente&quot;: {
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/configuracion/sensores/{id_sensor}/calibrar&quot;,
+    &quot;summary&quot;: &quot;Registrar calibración de sensor (RF-24 Flujo D)&quot;,
+    &quot;request_schema&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RegistrarCalibracionDTO&quot;
+    },
+    &quot;campos_dto&quot;: [
+      &quot;id_dispositivo_iot&quot;,
+      &quot;id_infraestructura&quot;,
+      &quot;valor_referencia&quot;,
+      &quot;ganancia&quot;,
+      &quot;offset&quot;,
+      &quot;fecha_calibracion&quot;,
+      &quot;observaciones&quot;
+    ]
+  }
+}</pre><p>OpenAPI SHA-256: 3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8</p></html>

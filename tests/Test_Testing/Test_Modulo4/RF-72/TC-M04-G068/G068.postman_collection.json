@@ -1,0 +1,13 @@
+{
+  "info": {"name":"G068 RF-72 ejecución única", "schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json", "description":"210, 211, reemplazo condicional, baja temporal del 885, estado, bitácora RF-52 y 245."},
+  "item": [
+    {"name":"G068-210","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_210}}"}}},
+    {"name":"G068-211","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_211}}"}}},
+    {"name":"G068-211-REEMPLAZO","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_211_reemplazo}}"}}},
+    {"name":"G068-BAJA-VET","request":{"method":"POST","url":"{{base_url}}/activos-biologicos/885/eventos/baja","body":{"mode":"raw","raw":"{{cuerpo_baja}}"}}},
+    {"name":"G068-BAJA-ADMIN","request":{"method":"POST","url":"{{base_url}}/activos-biologicos/885/eventos/baja","body":{"mode":"raw","raw":"{{cuerpo_baja}}"}}},
+    {"name":"G068-ESTADO-BAJA","request":{"method":"GET","url":"{{base_url}}/activos-biologicos/885"}},
+    {"name":"G068-BITACORA-BAJA","request":{"method":"GET","url":"{{base_url}}/activos-biologicos/auditoria?rf_origen=RF45&tipo_evento=BAJA_REGISTRADA&id_activo_biologico=885&fecha_inicio={{inicio_baja}}&pagina=1&page_size=100"}},
+    {"name":"G068-245","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_245}}"}}}
+  ]
+}

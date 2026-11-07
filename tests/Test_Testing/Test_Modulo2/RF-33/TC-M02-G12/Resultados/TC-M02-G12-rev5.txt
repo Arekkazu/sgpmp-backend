@@ -1,0 +1,62 @@
+TC-M02-G12 rev5 RF-33/RF-16 TEST
+Coleccion: tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G12/tc_m02_g12_rev5.json
+Fecha UTC: 2026-09-26T03:21:54.9040712Z
+Usuario: admin@pecuaria.co (recurso 19 metricas + POST activos). Password via env.
+Newman exit 1: UNICA assertion fallida = peso_destete no existe en GET. No es fallo de 013.
+
+HISTORICO revision3 (2026-09-15):
+GET /configuracion/metricas?id_especie=4&solo_activas=true -> 500 ERROR_INTERNO
+GET /configuracion/metricas?id_especie=4 -> 500 ERROR_INTERNO
+POST 013 color_pelaje -> 500 ERROR_INTERNO
+014 BLOQUEADO
+INC-M02-45-G12 pendiente.
+
+FASE 1 cuerpo historico:
+- especie 4 Cachama Blanca
+- infra finca 1 (Alevinera-01 id 3)
+- usuario admin@pecuaria.co
+- 013 atributos_dinamicos.color_pelaje = "Negro" tipo POBLACIONAL nacimiento cantidad_inicial=10
+- 014 atributos_dinamicos.peso_destete = 5 (skip si GET no demuestra 20-40)
+- GET metricas id_especie=4 solo_activas=true y sin filtro
+- assertions 013: HTTP 400 ATRIBUTO_INVALIDO
+- variables: token via login; infraestructura_id desde GET; color_pelaje literal; peso_destete gated pesoDesteteOk
+
+CONTRATO OpenAPI TEST actual:
+GET /configuracion/metricas: query id_especie obligatorio, solo_activas default false. HTTP 200/401/403/422.
+MetricaProduccionResponse SIN valor_min/valor_max.
+POST /activos-biologicos: 201/400/401/403/409/422/429
+atributos_dinamicos presente en DTO.
+
+CODIGO rama laura (sin modificar):
+- Configuracion en modulo9.metricas_produccion (ORM tiene valor_min/valor_max).
+- GET usa _a_entidad TipoMedicion(orm.tipo_medicion) sin try -> 500 posible si enum legado.
+- POST _validar_atributos_dinamicos: clave no activa -> ValidationError ATRIBUTO_INVALIDO HTTP 400.
+  fuera de rango -> BusinessRuleError ATRIBUTO_FUERA_DE_RANGO HTTP 422.
+- ParametrosEspecieM09Adapter lee min/max de ORM, no del GET.
+
+BD TEST SELECT (sgpmp_test, solo lectura):
+especie 4 Cachama Blanca activa.
+metricas: id=16 Peso activa kg NUMERICO AMBOS min=NULL max=NULL
+          id=15 Peso Test inactiva min=NULL max=NULL
+peso_destete: 0 filas en todo el catalogo
+color_pelaje: 0 filas
+
+GET TEST rev5:
+solo_activas=true HTTP 200 total=1 item Peso id=16 (sin min/max en payload)
+sin filtro HTTP 200 total=2 Peso + Peso Test
+NO 500.
+
+013 POST POBLACIONAL especie 4 infra 3 color_pelaje Negro:
+HTTP 400 ATRIBUTO_INVALIDO
+message: El atributo 'color_pelaje' no corresponde a una metrica activa de la especie.
+fields: atributos_dinamicos
+sin id_activo_biologico
+05b INDIVIDUAL mismo atributo: 400 ATRIBUTO_INVALIDO (no densidad, no 500)
+
+014 NO EJECUTADO: no hay peso_destete; GET no expone 20-40; BD min/max de Peso son NULL. 5 no se puede demostrar fuera de rango de peso_destete. No se sustituyo especie ni clave.
+
+INC-M02-45-G12: NO SE REPRODUCE en esta revision (GET y 013 ya no son 500).
+
+GLOBAL G12: BLOQUEADO (014 no construible). 013 APROBADO no basta para el grupo.
+
+No commit. No push. No DML. No cambio de codigo productivo. Assertions 013 no se relajaron.

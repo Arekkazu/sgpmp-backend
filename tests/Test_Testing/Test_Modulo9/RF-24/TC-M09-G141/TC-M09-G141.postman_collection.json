@@ -1,0 +1,17 @@
+{
+  "info": {
+    "name": "TC-M09-G141 - preflight VISION TEST",
+    "description": "Newman consulta el OpenAPI antes del segundo cálculo de línea base.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GET OpenAPI TEST",
+      "request": {"method": "GET", "url": "{{base_url}}/openapi.json"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('OpenAPI TEST responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('OpenAPI contiene rutas y esquemas', function () { var d = pm.response.json(); pm.expect(d.paths).to.be.an('object'); pm.expect(d.components.schemas).to.be.an('object'); });"
+      ]}}]
+    }
+  ]
+}

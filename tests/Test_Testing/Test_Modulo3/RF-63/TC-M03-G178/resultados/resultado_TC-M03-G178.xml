@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M03-G178 - Filtros y Combinaciones de Auditoría IoT (RF-63)" tests="17" time="5.164">
+  <testsuite name="00-Setup-Autenticacion / 00-Login-ADMIN" id="0e0ba0a1-1fa8-4660-b52e-d0b55d21e3b1" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="1.103">
+    <testcase name="Status 200 - Login exitoso de ADMIN" time="1.103" classname="00SetupAutenticacion00LoginAdmin"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-340-Filtro-Tipo-Evento / 07-TC-M03-340-Filtro-EVALUACION_CALIDAD_COMPLETADA" id="94db56bc-5c92-4302-b908-81270b3240f3" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.400">
+    <testcase name="Status 200 - Filtro tipo_evento=EVALUACION_CALIDAD_COMPLETADA exitoso" time="0.400" classname="03TcM03340FiltroTipoEvento07TcM03340FiltroEvaluacionCalidadCompletada"/>
+    <testcase name="Todos los items devueltos coinciden con el tipo_evento solicitado" time="0.400" classname="03TcM03340FiltroTipoEvento07TcM03340FiltroEvaluacionCalidadCompletada"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-340-Filtro-Tipo-Evento / 08-TC-M03-340-Filtro-TRANSICION_MANTENIMIENTO_MANUAL" id="a5e29102-30af-41e5-be5b-3af3d999dca3" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.223">
+    <testcase name="Status 200 - Filtro tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL exitoso" time="0.223" classname="03TcM03340FiltroTipoEvento08TcM03340FiltroTransicionMantenimientoManual"/>
+    <testcase name="Todos los items devueltos coinciden con TRANSICION_MANTENIMIENTO_MANUAL" time="0.223" classname="03TcM03340FiltroTipoEvento08TcM03340FiltroTransicionMantenimientoManual"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-340-Filtro-Tipo-Evento / 09-TC-M03-340-DISPOSITIVO_SIN_SENAL-Bloqueado" id="16012474-e249-4d11-bb3a-af315302fde0" timestamp="2026-10-24T20:34:54.134Z" tests="0" failures="0" errors="0" time="0.159"/>
+  <testsuite name="03-TC-M03-340-Filtro-Tipo-Evento / 10-TC-M03-340-Tipo-Inexistente-Vacio" id="00240d80-2dad-408b-807c-567b01e0a6cd" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.136">
+    <testcase name="Status 200 - Tipo de evento sin registros devuelve total=0 y array vacío (no 404)" time="0.136" classname="03TcM03340FiltroTipoEvento10TcM03340TipoInexistenteVacio"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-341-Filtro-Severidad / 11-TC-M03-341-Filtro-Severidad-INFO" id="b23d16b4-311f-4265-a0e8-6a210360bf86" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.301">
+    <testcase name="Status 200 - Filtro severidad_log=INFO exitoso" time="0.301" classname="04TcM03341FiltroSeveridad11TcM03341FiltroSeveridadInfo"/>
+    <testcase name="Todos los items devueltos tienen severidad INFO" time="0.301" classname="04TcM03341FiltroSeveridad11TcM03341FiltroSeveridadInfo"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-341-Filtro-Severidad / 12-TC-M03-341-Filtro-Severidad-WARNING" id="0eebc402-7b95-4ba2-92c5-b0b43d53953b" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.282">
+    <testcase name="Status 200 - Filtro severidad_log=WARNING responde 200" time="0.282" classname="04TcM03341FiltroSeveridad12TcM03341FiltroSeveridadWarning"/>
+    <testcase name="Items devueltos tienen severidad WARNING" time="0.282" classname="04TcM03341FiltroSeveridad12TcM03341FiltroSeveridadWarning"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-341-Filtro-Severidad / 13-TC-M03-341-Filtro-Severidad-Invalida-FATAL" id="f983010a-c535-4af3-a3f0-60ddba1abc01" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.125">
+    <testcase name="Status 200 con lista vacía si backend filtra por string" time="0.125" classname="04TcM03341FiltroSeveridad13TcM03341FiltroSeveridadInvalidaFatal"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-343-Entidad-Resultado-Custodia / 14-TC-M03-343-Filtro-Entidad-Telemetria" id="0e872dd5-faf6-45f8-87a3-623e150d5641" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.145">
+    <testcase name="Status 200 - Filtro por entidad_afectada_id (lectura) exitoso" time="0.145" classname="05TcM03343EntidadResultadoCustodia14TcM03343FiltroEntidadTelemetria"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-343-Entidad-Resultado-Custodia / 15-TC-M03-343-Filtro-Entidad-Dispositivo" id="79ea813a-e5ad-4611-8435-7398ae9d18bc" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.205">
+    <testcase name="Status 200 - Filtro por entidad_afectada_id (dispositivo) exitoso" time="0.205" classname="05TcM03343EntidadResultadoCustodia15TcM03343FiltroEntidadDispositivo"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-343-Entidad-Resultado-Custodia / 16-TC-M03-343-Filtro-Resultado-EXITOSO" id="14f8b708-e1f4-4b41-8506-374cfdb3dea1" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.377">
+    <testcase name="Status 200 - Filtro resultado=EXITOSO exitoso" time="0.377" classname="05TcM03343EntidadResultadoCustodia16TcM03343FiltroResultadoExitoso"/>
+    <testcase name="Todos los items devueltos tienen resultado EXITOSO" time="0.377" classname="05TcM03343EntidadResultadoCustodia16TcM03343FiltroResultadoExitoso"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-343-Entidad-Resultado-Custodia / 17-TC-M03-343-Filtro-Resultado-FALLIDO" id="262bf480-fe6f-4e34-9c98-458b2fd48498" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.393">
+    <testcase name="Status 200 - Filtro resultado=FALLIDO responde 200" time="0.393" classname="05TcM03343EntidadResultadoCustodia17TcM03343FiltroResultadoFallido"/>
+    <testcase name="Items devueltos tienen resultado FALLIDO" time="0.393" classname="05TcM03343EntidadResultadoCustodia17TcM03343FiltroResultadoFallido"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-343-Entidad-Resultado-Custodia / 18-TC-M03-343-Filtro-Id-Usuario-Limitacion" id="cc63248a-4c30-4750-8e4d-e95cbcdc9571" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.281">
+    <testcase name="Status 200 - Endpoint acepta petición con id_usuario" time="0.281" classname="05TcM03343EntidadResultadoCustodia18TcM03343FiltroIdUsuarioLimitacion"/>
+  </testsuite>
+  <testsuite name="06-TC-M03-346-Combinaciones-AND / 19-TC-M03-346-Combinacion-AND-3-Filtros" id="0826364f-c064-4de0-8fd5-f7a670f1d930" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.442">
+    <testcase name="Status 200 - Combinación AND de 3 filtros exitosa" time="0.442" classname="06TcM03346CombinacionesAnd19TcM03346CombinacionAnd3Filtros"/>
+    <testcase name="Todos los items cumplen la conjunción AND estricta" time="0.442" classname="06TcM03346CombinacionesAnd19TcM03346CombinacionAnd3Filtros"/>
+  </testsuite>
+  <testsuite name="06-TC-M03-346-Combinaciones-AND / 20-TC-M03-346-Combinacion-AND-Sin-Resultados" id="bd937a39-d205-4afc-9a00-693598df1525" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.128">
+    <testcase name="Status 200 - Conjunción sin intersección devuelve total=0 y array vacío (no 500)" time="0.128" classname="06TcM03346CombinacionesAnd20TcM03346CombinacionAndSinResultados"/>
+  </testsuite>
+  <testsuite name="06-TC-M03-346-Combinaciones-AND / 21-TC-M03-346-Verificar-Filtro-rf_origen-No-Expone-Componente" id="38f78c2c-e760-4be3-8d76-8d2913735f25" timestamp="2026-10-24T20:34:54.134Z" tests="2" failures="0" errors="0" time="0.269">
+    <testcase name="Status 200 - Petición con rf_origen procesada sin error" time="0.269" classname="06TcM03346CombinacionesAnd21TcM03346VerificarFiltroRfOrigenNoExponeComponente"/>
+    <testcase name="Invariante de seguridad: componente_origen NO es revelado en la respuesta" time="0.269" classname="06TcM03346CombinacionesAnd21TcM03346VerificarFiltroRfOrigenNoExponeComponente"/>
+  </testsuite>
+  <testsuite name="99-Teardown-Rollback / 99-Teardown-Rollback-Sandbox" id="01bbc036-0bb0-4a14-be5b-a40fa908949d" timestamp="2026-10-24T20:34:54.134Z" tests="1" failures="0" errors="0" time="0.195">
+    <testcase name="Status 200 - Rollback exitoso" time="0.195" classname="99TeardownRollback99TeardownRollbackSandbox"/>
+  </testsuite>
+</testsuites>

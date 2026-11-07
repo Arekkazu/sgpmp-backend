@@ -1,0 +1,536 @@
+{
+ "ejecutado": "2026-11-02T23:38:55",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "fixture": {
+  "infra": 18,
+  "lote": 24,
+  "disp": 17,
+  "serial": "QA-POLLO-LECT-043807",
+  "sensores": {
+   "QA-TEMP-AMB": 34,
+   "QA-HR": 35,
+   "QA-NH3": 36
+  },
+  "alertas": {
+   "QA-TEMP-AMB": [],
+   "QA-HR": [],
+   "QA-NH3": []
+  },
+  "dashboard": {
+   "estado_general": "GRIS",
+   "sensores": [
+    {
+     "n": "QA-TEMP-AMB-043807",
+     "sem": "GRIS",
+     "sin_umbral": true,
+     "valor": "-50.0000",
+     "calidad": "LECTURA_VALIDA"
+    },
+    {
+     "n": "QA-HR-043807",
+     "sem": "GRIS",
+     "sin_umbral": true,
+     "valor": "0.0000",
+     "calidad": "LECTURA_VALIDA"
+    },
+    {
+     "n": "QA-NH3-043807",
+     "sem": "GRIS",
+     "sin_umbral": true,
+     "valor": "0.0000",
+     "calidad": "LECTURA_VALIDA"
+    }
+   ]
+  }
+ },
+ "pasos": [
+  {
+   "id": "U0",
+   "descripcion": "Precondicion: Pollo de engorde no tiene umbrales",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "0 umbrales"
+  },
+  {
+   "id": "F1",
+   "descripcion": "Crear area QA de Pollo de engorde",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=18"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Crear lote de 5 pollos",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=24"
+  },
+  {
+   "id": "F3",
+   "descripcion": "Registrar dispositivo QA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=17"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-TEMP-AMB (TEMPERATURA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=34"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-TEMP-AMB",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 34, \"especies\": [{\"id_especie\": 5, \"nombre\": \"Pollo De Engorde\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-TEMP-AMB al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 34, \"id_sensor\": 34, \"id_dispositivo_iot\": 17, \"id_infraestructura\": 1"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-TEMP-AMB",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 33, \"id_dispositivo_iot\": 17, \"id_sensor\": 34, \"valor_referencia\": 25.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-TEMP-AMB al lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 20, \"id_activo_biologico\": 24, \"tipo_activo\": \"LOTE\", \"tipo_asociacion\": \"poblacional\", "
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-HR (HUMEDAD)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=35"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-HR",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 35, \"especies\": [{\"id_especie\": 5, \"nombre\": \"Pollo De Engorde\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-HR al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 35, \"id_sensor\": 35, \"id_dispositivo_iot\": 17, \"id_infraestructura\": 1"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-HR",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 34, \"id_dispositivo_iot\": 17, \"id_sensor\": 35, \"valor_referencia\": 60.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-HR al lote",
+   "status": 409,
+   "error_code": "ACTIVO_YA_TIENE_SENSOR_POBLACIONAL",
+   "resultado": "FALLA",
+   "detalle": "{\"error_code\": \"ACTIVO_YA_TIENE_SENSOR_POBLACIONAL\", \"message\": \"El activo 24 ya tiene el sensor 34 con asociación POBLA"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-NH3 (AMONIACO)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=36"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-NH3",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 36, \"especies\": [{\"id_especie\": 5, \"nombre\": \"Pollo De Engorde\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-NH3 al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 36, \"id_sensor\": 36, \"id_dispositivo_iot\": 17, \"id_infraestructura\": 1"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-NH3",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 35, \"id_dispositivo_iot\": 17, \"id_sensor\": 36, \"valor_referencia\": 5.0, \"ganancia"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-NH3 al lote",
+   "status": 409,
+   "error_code": "ACTIVO_YA_TIENE_SENSOR_POBLACIONAL",
+   "resultado": "FALLA",
+   "detalle": "{\"error_code\": \"ACTIVO_YA_TIENE_SENSOR_POBLACIONAL\", \"message\": \"El activo 24 ya tiene el sensor 34 con asociación POBLA"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar dispositivo",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  }
+ ],
+ "lecturas": [
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 24.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "24.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 35.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "35.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 99.9,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "99.9000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 100.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "100.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 100.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": -50.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "-50.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": -50.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 60.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "60.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 95.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "95.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 100.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "100.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 100.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 0.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "0.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": -0.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 10.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "10.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 40.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "40.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 499.9,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "499.9000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 500.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "500.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 500.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": 0.0,
+   "http": 201,
+   "error_code": null,
+   "estado_calidad_respuesta": "LECTURA_VALIDA",
+   "message": "",
+   "historial": {
+    "estado_calidad": "LECTURA_VALIDA",
+    "semaforo": "GRIS",
+    "id_alerta": null,
+    "id_umbral": null,
+    "valor_ajustado": "0.0000",
+    "tipo_activo": "POBLACIONAL",
+    "especie": "Pollo De Engorde"
+   }
+  },
+  {
+   "sensor": "QA-NH3",
+   "tipo_variable": "NH3",
+   "valor": -0.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "estado_calidad_respuesta": null,
+   "message": "El valor excede los límites físicos del sensor.",
+   "historial": null
+  }
+ ]
+}

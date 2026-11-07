@@ -1,0 +1,80 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G94",
+  "run_id": "RUN-G94-V1-20261031-090629",
+  "version": 1,
+  "operacion": "reintentar",
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "SIGAB_FRONT_TEST_URL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    }
+  ],
+  "plan": {
+    "escrituras": [
+      "PUT /usuarios/{id_usuario}/fincas con ids_fincas=[] si había fincas"
+    ],
+    "lectura_origen": "GET /usuarios/{id_usuario}/detalle por Administrador",
+    "orden": [
+      "logins previos",
+      "RUN",
+      "PUT y verificación",
+      "Newman API",
+      "GET /usuarios/me sin fincas",
+      "Cypress UI",
+      "DELETE RUN",
+      "restitución por detalle"
+    ]
+  },
+  "limite": {
+    "solicitudes_directas": 22,
+    "margen_cierre": 5,
+    "ui_api": 20,
+    "inactividad_segundos": 180
+  },
+  "barreras": [],
+  "ok": true,
+  "herramientas": {
+    "newman": {
+      "status": 0,
+      "codigo": null,
+      "vencio_tiempo": false,
+      "duracion_ms": 3159,
+      "version": "6.2.2"
+    },
+    "cypress": {
+      "status": 0,
+      "codigo": null,
+      "vencio_tiempo": false,
+      "duracion_ms": 381,
+      "version": "14.5.4"
+    },
+    "chrome": {
+      "disponible": true
+    }
+  }
+}

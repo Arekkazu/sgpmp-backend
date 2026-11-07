@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M03-G180 - Exportación JSON y CSV Auditoría IoT (RF-63)" tests="8" time="13.812">
+  <testsuite name="00-Setup-Autenticacion / 00-Login-ADMIN" id="598082d3-abd7-4329-a20f-3bae712a7bed" timestamp="2026-10-24T23:12:12.859Z" tests="1" failures="0" errors="0" time="0.908">
+    <testcase name="Status 200 - Login exitoso de ADMIN" time="0.908" classname="00SetupAutenticacion00LoginAdmin"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-338-Exportacion-JSON / 07-TC-M03-338-Exportar-JSON-Sin-Filtros" id="d3019c80-709a-4cd3-ac2e-b3a134e19073" timestamp="2026-10-24T23:12:12.859Z" tests="4" failures="0" errors="0" time="2.382">
+    <testcase name="Status 200 - Exportación JSON exitosa" time="2.382" classname="03TcM03338ExportacionJson07TcM03338ExportarJsonSinFiltros"/>
+    <testcase name="Cabeceras Content-Type y Content-Disposition correctas para JSON" time="2.382" classname="03TcM03338ExportacionJson07TcM03338ExportarJsonSinFiltros"/>
+    <testcase name="Cuerpo es array JSON no truncado con eventos generados" time="2.382" classname="03TcM03338ExportacionJson07TcM03338ExportarJsonSinFiltros"/>
+    <testcase name="Estructura de cada evento exportado cumple esquema sin componente_origen" time="2.382" classname="03TcM03338ExportacionJson07TcM03338ExportarJsonSinFiltros"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-338-Exportacion-JSON / 08-TC-M03-338-Exportar-JSON-Con-Filtro-Clasificacion" id="0bdc8cfc-42f5-42d6-8e8c-adeeb8fe32b1" timestamp="2026-10-24T23:12:12.859Z" tests="2" failures="0" errors="0" time="2.410">
+    <testcase name="Status 200 - Exportación JSON filtrada por NIC41 exitosa" time="2.410" classname="03TcM03338ExportacionJson08TcM03338ExportarJsonConFiltroClasificacion"/>
+    <testcase name="Todos los eventos exportados respetan el filtro clasificacion_registro=NIC41" time="2.410" classname="03TcM03338ExportacionJson08TcM03338ExportarJsonConFiltroClasificacion"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-338-Exportacion-JSON / 09-TC-M03-338-SLA-10000-Registros" id="8e9efb13-5dfa-401e-bd4f-5f1f44f7b08f" timestamp="2026-10-24T23:12:12.859Z" tests="2" failures="0" errors="0" time="2.006">
+    <testcase name="09 - SLA JSON: 200, application/json, &lt;=10000ms" time="2.006" classname="03TcM03338ExportacionJson09TcM03338Sla10000Registros"/>
+    <testcase name="09 - SLA JSON: respuesta con eventos" time="2.006" classname="03TcM03338ExportacionJson09TcM03338Sla10000Registros"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-339-Exportacion-CSV / 10-TC-M03-339-Exportar-CSV-Sin-Filtros" id="a475c6fc-a65c-44b5-9c03-ffdc8e56ef0c" timestamp="2026-10-24T23:12:12.859Z" tests="6" failures="0" errors="0" time="1.530">
+    <testcase name="Status 200 - Exportación CSV exitosa" time="1.530" classname="04TcM03339ExportacionCsv10TcM03339ExportarCsvSinFiltros"/>
+    <testcase name="Cabeceras Content-Type y Content-Disposition correctas para CSV" time="1.530" classname="04TcM03339ExportacionCsv10TcM03339ExportarCsvSinFiltros"/>
+    <testcase name="CSV contiene al menos cabecera y una fila de datos" time="1.530" classname="04TcM03339ExportacionCsv10TcM03339ExportarCsvSinFiltros"/>
+    <testcase name="Cabecera CSV contiene nombres de columnas del esquema" time="1.530" classname="04TcM03339ExportacionCsv10TcM03339ExportarCsvSinFiltros"/>
+    <testcase name="Invariante de seguridad: componente_origen NO aparece en la cabecera CSV" time="1.530" classname="04TcM03339ExportacionCsv10TcM03339ExportarCsvSinFiltros"/>
+    <testcase name="Validación de parseo de filas CSV (filas de datos = total líneas - 1)" time="1.530" classname="04TcM03339ExportacionCsv10TcM03339ExportarCsvSinFiltros"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-339-Exportacion-CSV / 11-TC-M03-339-Exportar-CSV-Con-Filtro-Clasificacion" id="10ecc2cb-31e1-4a60-aa75-9101aecf36da" timestamp="2026-10-24T23:12:12.859Z" tests="2" failures="0" errors="0" time="2.316">
+    <testcase name="Status 200 - Exportación CSV filtrada por TECNICO exitosa" time="2.316" classname="04TcM03339ExportacionCsv11TcM03339ExportarCsvConFiltroClasificacion"/>
+    <testcase name="CSV filtrado por TECNICO tiene filas y respeta cabecera" time="2.316" classname="04TcM03339ExportacionCsv11TcM03339ExportarCsvConFiltroClasificacion"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-339-Exportacion-CSV / 12-TC-M03-339-SLA-10000-Registros-CSV" id="d7e22d14-cfab-4dbd-8909-17da27a43d0b" timestamp="2026-10-24T23:12:12.859Z" tests="2" failures="0" errors="0" time="2.054">
+    <testcase name="12 - SLA CSV: 200, text/csv, &lt;=10000ms" time="2.054" classname="04TcM03339ExportacionCsv12TcM03339Sla10000RegistrosCsv"/>
+    <testcase name="12 - SLA CSV: al menos 10001 lineas (header + 10000 eventos)" time="2.054" classname="04TcM03339ExportacionCsv12TcM03339Sla10000RegistrosCsv"/>
+  </testsuite>
+  <testsuite name="99-Teardown-Rollback / 99-Teardown-Rollback-Sandbox" id="bec7c019-dd91-4085-9ba8-f10fdc4c911e" timestamp="2026-10-24T23:12:12.859Z" tests="1" failures="0" errors="0" time="0.206">
+    <testcase name="Status 200 - Rollback exitoso" time="0.206" classname="99TeardownRollback99TeardownRollbackSandbox"/>
+  </testsuite>
+</testsuites>

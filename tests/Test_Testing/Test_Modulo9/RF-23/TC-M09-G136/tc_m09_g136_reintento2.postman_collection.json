@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "TC-M09-G136 - Reintento 2 (2026-10-09, TEST) - DESBLOQUEADO: fps ya existe en ConfigurarRemotamenteDTO",
+    "description": "Hallazgo que desbloquea este TC: `ConfigurarRemotamenteDTO` (openapi.json en vivo) ahora declara `fps` (1-60) junto a `frecuencia_captura`/`intervalo_transmision`, con `additionalProperties: false`. El use case decide que juego de parametros aplica segun la categoria del tipo de dispositivo (SENSOR usa frecuencia/intervalo; CAMARA usa fps) y rechaza con codigos propios (PARAMETRO_NO_APLICA_A_CAMARA / PARAMETRO_NO_APLICA_A_SENSOR) si se envia el juego equivocado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('login 200', function () { pm.response.to.have.status(200); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "if (r && r.token) { pm.collectionVariables.set('token', r.token); } else { postman.setNextRequest(null); }"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+      }
+    },
+    {
+      "name": "Setup 1/2 - Registrar camara",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial_camara', 'QA-G136R2-cam-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "console.log(pm.response.text());",
+          "pm.test('camara registrada (HTTP 201)', function () { pm.response.to.have.status(201); });",
+          "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+          "if (r) { pm.collectionVariables.set('id_camara', r.id_dispositivo_iot); } else { postman.setNextRequest(null); }"
+        ]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial_camara}}\",\n  \"descripcion\": \"QA camara G136 reintento2\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": 25.5\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Setup 2/2 - Registrar sensor ambiental de control (para probar el cruce inverso)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial_sensor', 'QA-G136R2-sensor-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "console.log(pm.response.text());",
+          "pm.test('sensor registrado (HTTP 201)', function () { pm.response.to.have.status(201); });",
+          "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+          "if (r) { pm.collectionVariables.set('id_sensor_dispositivo', r.id_dispositivo_iot); } else { postman.setNextRequest(null); }"
+        ]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial_sensor}}\",\n  \"descripcion\": \"QA sensor control G136 reintento2\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_sensor_ambiental}}\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 1 - CORREGIDO: configurar fps en camara dentro de rango (1-60) -> 202 PENDIENTE",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('aceptado (HTTP 202)', function () { pm.response.to.have.status(202); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('fps persistido correctamente', function () { pm.expect(r && r.fps).to.equal(45); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"fps\": 45\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_camara}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_camara}}", "configurar"]}
+      }
+    },
+    {
+      "name": "Caso 2 - fps fuera de rango (61) -> 400 VAL_ENTRADA",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado (HTTP 400)', function () { pm.response.to.have.status(400); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code VAL_ENTRADA', function () { pm.expect(r && r.error_code).to.equal('VAL_ENTRADA'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"fps\": 61\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_camara}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_camara}}", "configurar"]}
+      }
+    },
+    {
+      "name": "Caso 3 - fps=0 -> 400 VAL_ENTRADA (limite inferior)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado (HTTP 400)', function () { pm.response.to.have.status(400); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"fps\": 0\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_camara}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_camara}}", "configurar"]}
+      }
+    },
+    {
+      "name": "Caso 4 - enviar frecuencia_captura a una CAMARA -> 400 PARAMETRO_NO_APLICA_A_CAMARA",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado (HTTP 400)', function () { pm.response.to.have.status(400); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code PARAMETRO_NO_APLICA_A_CAMARA', function () { pm.expect(r && r.error_code).to.equal('PARAMETRO_NO_APLICA_A_CAMARA'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_camara}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_camara}}", "configurar"]}
+      }
+    },
+    {
+      "name": "Caso 5 (cruce inverso) - enviar fps a un SENSOR -> 400 PARAMETRO_NO_APLICA_A_SENSOR",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado (HTTP 400)', function () { pm.response.to.have.status(400); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code PARAMETRO_NO_APLICA_A_SENSOR', function () { pm.expect(r && r.error_code).to.equal('PARAMETRO_NO_APLICA_A_SENSOR'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 10,\n  \"fps\": 30\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_sensor_dispositivo}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_sensor_dispositivo}}", "configurar"]}
+      }
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "admin_correo", "value": "admin@pecuaria.co"},
+    {"key": "admin_contrasena", "value": "Test1234!"},
+    {"key": "token", "value": ""},
+    {"key": "id_infraestructura", "value": "277"},
+    {"key": "id_tipo_camara", "value": "5"},
+    {"key": "id_tipo_sensor_ambiental", "value": "3"},
+    {"key": "serial_camara", "value": ""},
+    {"key": "id_camara", "value": ""},
+    {"key": "serial_sensor", "value": ""},
+    {"key": "id_sensor_dispositivo", "value": ""}
+  ]
+}

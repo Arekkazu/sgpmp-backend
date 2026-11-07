@@ -1,0 +1,89 @@
+{
+  "grupo": "TC-M09-G79",
+  "caso": "TC-M09-150",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rol": "Ingeniero de campo",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T05:49:42.459994+00:00",
+  "tipoDeEvidencia": "integracion transaccional controlada (harness Pytest en proceso). No es E2E contra el backend desplegado.",
+  "actor": {
+    "rol": "Ingeniero de campo",
+    "id_usuario": 4,
+    "permisosRecurso12": [
+      1,
+      2,
+      3
+    ]
+  },
+  "dispositivo": {
+    "id": 3,
+    "serial": "IOT-ALE01-HLA-003",
+    "es_activo": true
+  },
+  "sensor": {
+    "id": 7,
+    "nombre": "Sensor oxígeno disuelto alevinera-01",
+    "categoria": "OXIGENO",
+    "es_activo": true,
+    "id_dispositivo_iot": 3
+  },
+  "area": {
+    "id_infraestructura": 3,
+    "punto_instalacion": "Zona de alevinaje, profundidad 20 cm",
+    "fecha_finalizacion": null
+  },
+  "rangoTecnico": {
+    "categoria": "OXIGENO",
+    "min": "0.0000",
+    "max": "20.0000",
+    "fuente": "GET /configuracion/sensores/rangos-calibracion"
+  },
+  "valor": "10.0000",
+  "faultPoint": {
+    "mecanismo": "doble de AuditoriaCalibracionRepository que lanza la excepcion",
+    "puntoExacto": "auditoria_repo.registrar(), despues del flush de la calibracion y antes del commit",
+    "excepcion": "sqlalchemy.exc.OperationalError",
+    "modificoInfraestructura": false,
+    "modificoProducto": false,
+    "alcanzado": true
+  },
+  "transaccion": {
+    "commits": 0,
+    "rollbacks": 1,
+    "calibracionesGuardadas": 1
+  },
+  "respuesta": {
+    "excepcion": "InfrastructureError",
+    "codigo": "AUDITORIA_CALIBRACION_FALLIDA",
+    "statusHttp": 500,
+    "mensaje": "Error de integridad: No se pudo garantizar la trazabilidad de la calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
+  },
+  "before": {
+    "calibracionesHarness": 0,
+    "auditoriaHarness": 0,
+    "historialTest": {
+      "total": 0,
+      "items": []
+    }
+  },
+  "after": {
+    "calibracionesHarness": 0,
+    "auditoriaHarness": 0,
+    "historialTest": {
+      "total": 0,
+      "ids": [],
+      "items": []
+    }
+  },
+  "persistenciaParcial": {
+    "calibracionSinAuditoria": false,
+    "auditoriaSinCalibracion": false,
+    "registroHuerfano": false,
+    "historicoAlterado": false,
+    "rollbackCompleto": true
+  }
+}

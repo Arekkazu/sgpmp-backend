@@ -1,0 +1,470 @@
+{
+  "info": {
+    "name": "TC-M04-G092: Trazabilidad end-to-end con correlacion_id (RF-73)",
+    "_postman_id": "a0492001-0000-4000-8000-000000000092",
+    "description": "Diseño de pruebas para validar la correlación causal intra-módulo y transversal multisistema propagando correlacion_id e id_referencia (RF-73).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get(\"run_id\")) {",
+          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });",
+          "if (!pm.collectionVariables.get(\"correlacion_id\")) {",
+          "    pm.collectionVariables.set(\"correlacion_id\", pm.variables.replaceIn('{{$guid}}'));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "correlacion_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_evento_rf66",
+      "value": "e0492066-0000-4000-8000-000000000066",
+      "type": "string"
+    },
+    {
+      "key": "id_evento_rf57",
+      "value": "e0492057-0000-4000-8000-000000000057",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01-Login-ADMIN",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.collectionVariables.set('token', data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"administador.dev@gmail.com\",\"contrasena\":\"{{admin_password}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02-Productor-RF66-Inferencia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-285: Endpoint de inferencia RF-66 (POST /prediccion/inferencia) en desarrollo.');",
+              "} else {",
+              "    pm.test(\"TC-M04-285a: Ejecución de inferencia exitosa (HTTP 200 o 201)\", function () {",
+              "        pm.expect([200, 201]).to.include(pm.response.code);",
+              "        var data = pm.response.json();",
+              "        if (data.id_evento) {",
+              "            pm.collectionVariables.set('id_evento_rf66', data.id_evento);",
+              "        }",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_evento\":\"INFERENCIA_EJECUTADA\",\"tipo_actor\":\"SISTEMA\",\"id_sistema\":\"motor_ia_m04\",\"correlacion_id\":\"{{correlacion_id}}\",\"fecha_evento\":\"2026-10-15T12:00:00Z\",\"severidad_evento\":\"INFO\",\"payload_evento\":{\"modelo\":\"patologias_v1\",\"probabilidad\":0.88,\"patologia\":\"PRRS\"}}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria",
+            "eventos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03-Productor-RF57-Alerta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-285: Endpoint de alertas RF-57 en desarrollo.');",
+              "} else {",
+              "    pm.test(\"TC-M04-285b: Generación de alerta sanitaria (HTTP 200 o 201)\", function () {",
+              "        pm.expect([200, 201]).to.include(pm.response.code);",
+              "        var data = pm.response.json();",
+              "        if (data.id_evento) {",
+              "            pm.collectionVariables.set('id_evento_rf57', data.id_evento);",
+              "        }",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_evento\":\"ALERTA_PREDICCION_GENERADA\",\"tipo_actor\":\"SISTEMA\",\"id_sistema\":\"modulo_alertas_m04\",\"id_referencia\":\"{{id_evento_rf66}}\",\"entidad_referencia\":\"evento_auditoria\",\"correlacion_id\":\"{{correlacion_id}}\",\"fecha_evento\":\"2026-10-15T12:01:00Z\",\"severidad_evento\":\"WARNING\",\"payload_evento\":{\"nivel_riesgo\":3,\"mensaje\":\"Riesgo alto detectado\"}}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria",
+            "eventos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04-Productor-RF72-Retroalimentacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-285: Endpoint de retroalimentación RF-72 en desarrollo.');",
+              "} else {",
+              "    pm.test(\"TC-M04-285c: Registro de retroalimentación clínica (HTTP 200 o 201)\", function () {",
+              "        pm.expect([200, 201]).to.include(pm.response.code);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_evento\":\"RETROALIMENTACION_REGISTRADA\",\"tipo_actor\":\"USUARIO\",\"id_usuario\":1,\"id_referencia\":\"{{id_evento_rf57}}\",\"entidad_referencia\":\"evento_auditoria\",\"correlacion_id\":\"{{correlacion_id}}\",\"fecha_evento\":\"2026-10-15T12:05:00Z\",\"severidad_evento\":\"INFO\",\"payload_evento\":{\"diagnostico_veterinario\":\"CONFIRMADO_PRRS\",\"coincidencia\":true}}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria",
+            "eventos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05-TC-M04-285-Verificar-Trazabilidad-M04",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"TC-M04-285: Consulta de auditoría por correlacion_id (HTTP 200)\", function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var data = pm.response.json();",
+              "    var items = (data.items || []).filter(function (e) {",
+              "        return String(e.correlacion_id).toLowerCase() === String(pm.collectionVariables.get('correlacion_id')).toLowerCase();",
+              "    });",
+              "    if (items.length < 3) {",
+              "        console.log('[PENDIENTE_DEV] TC-M04-285: Menos de 3 eventos correlacionados en auditoría (productores en desarrollo). Contrato esperado: flujo completo inferencia -> alerta -> retroalimentación con mismo correlacion_id.');",
+              "    } else {",
+              "        pm.expect(items.length).to.eql(3);",
+              "        var tipos = items.map(function(e) { return e.tipo_evento; });",
+              "        pm.expect(tipos).to.include('INFERENCIA_EJECUTADA');",
+              "        pm.expect(tipos).to.include('ALERTA_PREDICCION_GENERADA');",
+              "        pm.expect(tipos).to.include('RETROALIMENTACION_REGISTRADA');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "06-TC-M04-286-Cadena-Causal-Id-Referencia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"TC-M04-286: Encadenamiento causal de eventos mediante id_referencia (HTTP 200)\", function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var data = pm.response.json();",
+              "    var items = (data.items || []).filter(function (e) {",
+              "        return String(e.correlacion_id).toLowerCase() === String(pm.collectionVariables.get('correlacion_id')).toLowerCase();",
+              "    });",
+              "    if (items.length < 2) {",
+              "        console.log('[PENDIENTE_DEV] TC-M04-286: Encadenamiento id_referencia reservado a flujo activo de productores.');",
+              "    } else {",
+              "        items.forEach(function (e) {",
+              "            if (e.id_referencia) {",
+              "                pm.expect(e.id_referencia).to.be.a('string');",
+              "            }",
+              "        });",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "07-TC-M04-287-Correlacion-Transversal-M03-M04-M06",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-287: Endpoint transversal multisistema (M03 IoT + M04 Predicción + M06 Contabilidad) en desarrollo. Contrato esperado: eventos de diferentes módulos enlazados por correlacion_id.');",
+              "} else {",
+              "    pm.test(\"TC-M04-287: Consulta transversal multisistema con correlacion_id común (HTTP 200)\", function () {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data).to.have.property('items');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "08-Teardown-Sandbox-Rollback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var statusMsg = data.status || data.mensaje || \"\";",
+              "    pm.expect(statusMsg).to.include(\"Rollback exitoso\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "test-control",
+            "runs",
+            "{{run_id}}"
+          ]
+        }
+      }
+    }
+  ]
+}

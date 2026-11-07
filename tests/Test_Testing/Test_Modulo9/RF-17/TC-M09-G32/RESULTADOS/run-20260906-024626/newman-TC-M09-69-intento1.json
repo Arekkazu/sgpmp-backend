@@ -1,0 +1,182 @@
+{
+  "caso": "TC-M09-69",
+  "grupo": "TC-M09-G32",
+  "intento": 1,
+  "ejecucion": "discovery-read-only",
+  "actor": {
+    "correo": "admin@pecuaria.co",
+    "rol": "Administrador",
+    "autenticacion": "HTTP 200"
+  },
+  "configuracion_before": {
+    "id_umbral_ambiental": 11,
+    "id_especie": 4,
+    "especie": "Cachama Blanca",
+    "id_variable_ambiental": 3,
+    "unidad_medida": "mg/L",
+    "valor_min": "0.00",
+    "valor_max": "100.00",
+    "es_activo": true,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "4.00",
+        "limite_superior": "12.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "2.00",
+        "limite_superior": "4.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "0.00",
+        "limite_superior": "2.00"
+      }
+    ]
+  },
+  "configuraciones_activas_descubiertas": 10,
+  "monitoring_before": {
+    "dashboard_status": 200,
+    "dashboard_sensor_fields": [
+      "calidad_senal_rssi",
+      "calidad_senal_snr",
+      "categoria_variable",
+      "dato_desactualizado",
+      "estado_calidad",
+      "estado_conectividad",
+      "estado_desviacion",
+      "estado_semaforo",
+      "id_alerta",
+      "id_dispositivo_iot",
+      "id_finca",
+      "id_infraestructura",
+      "id_sensor",
+      "nivel_bateria_pct",
+      "nombre_finca",
+      "nombre_infraestructura",
+      "nombre_sensor",
+      "severidad_alerta",
+      "tendencia",
+      "tiempo_sin_reporte_min",
+      "tipo_variable",
+      "ultima_unidad",
+      "ultimo_timestamp_captura",
+      "ultimo_valor"
+    ],
+    "dashboard_sensors": [
+      {
+        "id_sensor": 1,
+        "id_dispositivo_iot": 1,
+        "tipo_variable": "Temperatura del agua",
+        "estado_semaforo": "GRIS",
+        "ultimo_valor": "48.5000",
+        "ultima_unidad": "mg/L",
+        "ultimo_timestamp_captura": "2026-05-12T10:00:00Z"
+      },
+      {
+        "id_sensor": 2,
+        "id_dispositivo_iot": 1,
+        "tipo_variable": "pH del agua",
+        "estado_semaforo": "GRIS",
+        "ultimo_valor": "62.1000",
+        "ultima_unidad": "%",
+        "ultimo_timestamp_captura": "2024-06-01T08:05:00Z"
+      },
+      {
+        "id_sensor": 3,
+        "id_dispositivo_iot": 1,
+        "tipo_variable": "Oxígeno disuelto",
+        "estado_semaforo": "GRIS",
+        "ultimo_valor": "16.5000",
+        "ultima_unidad": "mg/L",
+        "ultimo_timestamp_captura": "2026-09-06T01:40:17.091000Z"
+      },
+      {
+        "id_sensor": 4,
+        "id_dispositivo_iot": 2,
+        "tipo_variable": "Amoniaco total",
+        "estado_semaforo": "GRIS",
+        "ultimo_valor": "1248.5000",
+        "ultima_unidad": "ppm",
+        "ultimo_timestamp_captura": "2024-06-01T08:15:00Z"
+      },
+      {
+        "id_sensor": 5,
+        "id_dispositivo_iot": 3,
+        "tipo_variable": "Nitrito",
+        "estado_semaforo": "GRIS",
+        "ultimo_valor": "18.4700",
+        "ultima_unidad": "%",
+        "ultimo_timestamp_captura": "2024-06-01T08:20:00Z"
+      }
+    ],
+    "historial_status": 200,
+    "historial_lecturas": [
+      {
+        "id_telemetria": 47,
+        "id_sensor": 7,
+        "id_variable": 3,
+        "tipo_variable": "Oxígeno disuelto",
+        "id_activo_biologico": null,
+        "especie": null,
+        "estado_semaforo_historico": "GRIS"
+      },
+      {
+        "id_telemetria": 46,
+        "id_sensor": 7,
+        "id_variable": 3,
+        "tipo_variable": "Oxígeno disuelto",
+        "id_activo_biologico": null,
+        "especie": null,
+        "estado_semaforo_historico": "GRIS"
+      },
+      {
+        "id_telemetria": 45,
+        "id_sensor": 7,
+        "id_variable": 3,
+        "tipo_variable": "Oxígeno disuelto",
+        "id_activo_biologico": null,
+        "especie": null,
+        "estado_semaforo_historico": "GRIS"
+      },
+      {
+        "id_telemetria": 44,
+        "id_sensor": 3,
+        "id_variable": 3,
+        "tipo_variable": "Oxígeno disuelto",
+        "id_activo_biologico": null,
+        "especie": null,
+        "estado_semaforo_historico": "GRIS"
+      },
+      {
+        "id_telemetria": 43,
+        "id_sensor": 31,
+        "id_variable": 9,
+        "tipo_variable": "Temperatura Ambiental",
+        "id_activo_biologico": null,
+        "especie": null,
+        "estado_semaforo_historico": "GRIS"
+      }
+    ]
+  },
+  "correlacion_before": {
+    "demostrada": false,
+    "motivo": "Monitoreo no expone id_umbral_ambiental, rango efectivo ni especie/activo para relacionar una configuración RF-17 concreta."
+  },
+  "modificacion": {
+    "metodo": "PATCH",
+    "endpoint": "/configuracion/umbrales/{id_umbral_ambiental}",
+    "ejecutada": false,
+    "motivo": "Precondición de correlación BEFORE no demostrable."
+  },
+  "configuracion_after": null,
+  "monitoring_after": null,
+  "propagacion_comprobada": false,
+  "assertions": {
+    "total": 5,
+    "failed": 0,
+    "failures": []
+  },
+  "resultado": "BLOCKED_CONFIGURACION_EFECTIVA_MONITOREO_NO_VERIFICABLE_EN_TEST"
+}

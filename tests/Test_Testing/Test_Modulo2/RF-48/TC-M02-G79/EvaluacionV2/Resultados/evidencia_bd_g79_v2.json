@@ -1,0 +1,1537 @@
+{
+ "descripcion": "Capturas SQL read-only (member_qa, default_transaction_read_only=on) inmediatamente antes y despues de cada POST oficial de TC-M02-G79 V2, y evaluacion V1-V17/H2.",
+ "gate": {
+  "292": {
+   "etiqueta": "gate_292",
+   "ts_utc": "2026-09-19T21:28:31.601877+00:00",
+   "sesion": [
+    {
+     "current_user": "member_qa",
+     "current_database": "sgpmp_test",
+     "ro": "on",
+     "hoy": "2026-09-19"
+    }
+   ],
+   "activo": [
+    {
+     "id_activo_biologico": 292,
+     "identificador": "QAJE-TRF-OK",
+     "tipo": "INDIVIDUAL",
+     "id_especie": 40,
+     "id_estado": 1,
+     "estado": "ACTIVO",
+     "id_infraestructura": 48
+    }
+   ],
+   "infras": [
+    {
+     "id_infraestructura": 48,
+     "nombre": "Corral QA JE Origen",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": null,
+     "capacidad_maxima": 1000,
+     "es_activo": true
+    },
+    {
+     "id_infraestructura": 51,
+     "nombre": "Corral QA JE Destino OK",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": 40,
+     "capacidad_maxima": 200,
+     "es_activo": true
+    }
+   ],
+   "ocupacion": {
+    "origen": 251,
+    "destino": 1
+   },
+   "historial": [
+    {
+     "id_historial": 239,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-06-01 08:00:00+00:00",
+     "fecha_fin": "2026-09-10 09:47:24.706824+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 284,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 09:47:24.706824+00:00",
+     "fecha_fin": "2026-09-10 20:03:44.015034+00:00",
+     "id_usuario_registro": 35
+    },
+    {
+     "id_historial": 290,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-09-10 20:03:44.015034+00:00",
+     "fecha_fin": null,
+     "id_usuario_registro": 35
+    }
+   ],
+   "movimientos": [
+    {
+     "id_movimiento": 23,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 09:47:24.712253+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 Productor transferencia individual compatible"
+    },
+    {
+     "id_movimiento": 29,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 48,
+     "fecha_registro": "2026-09-10 20:03:44.021739+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 productor ejecucion 20260910T20 individual compatible"
+    }
+   ],
+   "auditoria_rf48": [
+    {
+     "id_bitacora": 990,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 Productor transferencia individual compatible\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-10 09:47:24.720554+00:00"
+    },
+    {
+     "id_bitacora": 1079,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Origen",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 productor ejecucion 20260910T20 individual compatible\", \"origen\": 51, \"destino\": 48}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-10 20:03:44.026706+00:00"
+    },
+    {
+     "id_bitacora": 2895,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Estanque QA JE Piscicola (tipo Estanque) no es compatible con la especie del activo. Seleccione una infraestructura de un tipo compatible.\", \"error_code\": \"INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:40.065212+00:00"
+    },
+    {
+     "id_bitacora": 2915,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: FECHA_TRANSFERENCIA_FUTURA",
+     "detalle_tecnico": "{\"campo\": \"fecha_transferencia\", \"causa\": \"La fecha de transferencia no puede ser posterior a la fecha actual.\", \"error_code\": \"FECHA_TRANSFERENCIA_FUTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:27:10.405743+00:00"
+    },
+    {
+     "id_bitacora": 2935,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: FECHA_TRANSFERENCIA_FUTURA",
+     "detalle_tecnico": "{\"campo\": \"fecha_transferencia\", \"causa\": \"La fecha de transferencia no puede ser posterior a la fecha actual.\", \"error_code\": \"FECHA_TRANSFERENCIA_FUTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 09:02:23.350605+00:00"
+    }
+   ],
+   "locks_activos": [],
+   "global": {
+    "activos_biologicos": {
+     "filas": 380,
+     "sha256": "06328dd42ddc6b23",
+     "max_id": 473
+    },
+    "historial_infraestructura_activo": {
+     "filas": 383,
+     "sha256": "549c137cd48427c1",
+     "max_id": 421
+    },
+    "movimientos": {
+     "filas": 32,
+     "sha256": "a03a722a58dc949d",
+     "max_id": 36
+    },
+    "infraestructuras": {
+     "filas": 64,
+     "sha256": "21c84cd24435615c",
+     "max_id": 81
+    },
+    "detalles_poblacionales": {
+     "filas": 114,
+     "sha256": "572f789b32eb13af",
+     "max_id": 123
+    }
+   },
+   "audit_rf48_global": [
+    {
+     "n": 47,
+     "max_id": 3019
+    }
+   ]
+  },
+  "294": {
+   "etiqueta": "gate_294",
+   "ts_utc": "2026-09-19T21:28:34.503377+00:00",
+   "sesion": [
+    {
+     "current_user": "member_qa",
+     "current_database": "sgpmp_test",
+     "ro": "on",
+     "hoy": "2026-09-19"
+    }
+   ],
+   "activo": [
+    {
+     "id_activo_biologico": 294,
+     "identificador": "QAJE-TRF-REGLAS",
+     "tipo": "INDIVIDUAL",
+     "id_especie": 40,
+     "id_estado": 1,
+     "estado": "ACTIVO",
+     "id_infraestructura": 51
+    }
+   ],
+   "infras": [
+    {
+     "id_infraestructura": 48,
+     "nombre": "Corral QA JE Origen",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": null,
+     "capacidad_maxima": 1000,
+     "es_activo": true
+    },
+    {
+     "id_infraestructura": 51,
+     "nombre": "Corral QA JE Destino OK",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": 40,
+     "capacidad_maxima": 200,
+     "es_activo": true
+    }
+   ],
+   "ocupacion": {
+    "origen": 1,
+    "destino": 251
+   },
+   "historial": [
+    {
+     "id_historial": 241,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-06-01 08:00:00+00:00",
+     "fecha_fin": "2026-09-10 09:47:28.975964+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 285,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 09:47:28.975964+00:00",
+     "fecha_fin": "2026-09-10 10:36:34.786394+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 289,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 47,
+     "fecha_inicio": "2026-09-10 10:36:34.786394+00:00",
+     "fecha_fin": "2026-09-10 20:03:49.983125+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 291,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 20:03:49.983125+00:00",
+     "fecha_fin": null,
+     "id_usuario_registro": 1
+    }
+   ],
+   "movimientos": [
+    {
+     "id_movimiento": 24,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 09:47:28.980645+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 Administrador transferencia individual compatible"
+    },
+    {
+     "id_movimiento": 28,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 47,
+     "fecha_registro": "2026-09-10 10:36:34.791548+00:00",
+     "motivo_transferencia": "TC-M02-142 concurrencia B"
+    },
+    {
+     "id_movimiento": 30,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 47,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 20:03:49.988314+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 admin ejecucion 20260910T20 individual compatible"
+    }
+   ],
+   "auditoria_rf48": [
+    {
+     "id_bitacora": 995,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 Administrador transferencia individual compatible\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 09:47:28.983591+00:00"
+    },
+    {
+     "id_bitacora": 1045,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Capacidad",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-142 concurrencia B\", \"origen\": 51, \"destino\": 47}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 10:36:34.794321+00:00"
+    },
+    {
+     "id_bitacora": 1086,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Capacidad → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 admin ejecucion 20260910T20 individual compatible\", \"origen\": 47, \"destino\": 51}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 20:03:49.991208+00:00"
+    },
+    {
+     "id_bitacora": 2891,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: DESTINO_IGUAL_ORIGEN",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura destino debe ser diferente a la infraestructura origen del activo.\", \"error_code\": \"DESTINO_IGUAL_ORIGEN\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:39.172466+00:00"
+    },
+    {
+     "id_bitacora": 2893,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_ESPECIE",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Galpon QA JE Aves no está habilitada para la especie del activo. Seleccione una infraestructura compatible con la especie.\", \"error_code\": \"INCOMPATIBILIDAD_ESPECIE\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:39.620900+00:00"
+    },
+    {
+     "id_bitacora": 2901,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: DESTINO_IGUAL_ORIGEN",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura destino debe ser diferente a la infraestructura origen del activo.\", \"error_code\": \"DESTINO_IGUAL_ORIGEN\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 08:11:41.417586+00:00"
+    },
+    {
+     "id_bitacora": 2903,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_ESPECIE",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Galpon QA JE Aves no está habilitada para la especie del activo. Seleccione una infraestructura compatible con la especie.\", \"error_code\": \"INCOMPATIBILIDAD_ESPECIE\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 08:11:41.843285+00:00"
+    }
+   ],
+   "locks_activos": [],
+   "global": {
+    "activos_biologicos": {
+     "filas": 380,
+     "sha256": "06328dd42ddc6b23",
+     "max_id": 473
+    },
+    "historial_infraestructura_activo": {
+     "filas": 383,
+     "sha256": "549c137cd48427c1",
+     "max_id": 421
+    },
+    "movimientos": {
+     "filas": 32,
+     "sha256": "a03a722a58dc949d",
+     "max_id": 36
+    },
+    "infraestructuras": {
+     "filas": 64,
+     "sha256": "21c84cd24435615c",
+     "max_id": 81
+    },
+    "detalles_poblacionales": {
+     "filas": 114,
+     "sha256": "572f789b32eb13af",
+     "max_id": 123
+    }
+   },
+   "audit_rf48_global": [
+    {
+     "n": 47,
+     "max_id": 3019
+    }
+   ]
+  }
+ },
+ "capturas": {
+  "productor_pre": {
+   "etiqueta": "productor_pre",
+   "ts_utc": "2026-09-19T21:31:43.383016+00:00",
+   "sesion": [
+    {
+     "current_user": "member_qa",
+     "current_database": "sgpmp_test",
+     "ro": "on",
+     "hoy": "2026-09-19"
+    }
+   ],
+   "activo": [
+    {
+     "id_activo_biologico": 292,
+     "identificador": "QAJE-TRF-OK",
+     "tipo": "INDIVIDUAL",
+     "id_especie": 40,
+     "id_estado": 1,
+     "estado": "ACTIVO",
+     "id_infraestructura": 48
+    }
+   ],
+   "infras": [
+    {
+     "id_infraestructura": 48,
+     "nombre": "Corral QA JE Origen",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": null,
+     "capacidad_maxima": 1000,
+     "es_activo": true
+    },
+    {
+     "id_infraestructura": 51,
+     "nombre": "Corral QA JE Destino OK",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": 40,
+     "capacidad_maxima": 200,
+     "es_activo": true
+    }
+   ],
+   "ocupacion": {
+    "origen": 251,
+    "destino": 1
+   },
+   "historial": [
+    {
+     "id_historial": 239,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-06-01 08:00:00+00:00",
+     "fecha_fin": "2026-09-10 09:47:24.706824+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 284,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 09:47:24.706824+00:00",
+     "fecha_fin": "2026-09-10 20:03:44.015034+00:00",
+     "id_usuario_registro": 35
+    },
+    {
+     "id_historial": 290,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-09-10 20:03:44.015034+00:00",
+     "fecha_fin": null,
+     "id_usuario_registro": 35
+    }
+   ],
+   "movimientos": [
+    {
+     "id_movimiento": 23,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 09:47:24.712253+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 Productor transferencia individual compatible"
+    },
+    {
+     "id_movimiento": 29,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 48,
+     "fecha_registro": "2026-09-10 20:03:44.021739+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 productor ejecucion 20260910T20 individual compatible"
+    }
+   ],
+   "auditoria_rf48": [
+    {
+     "id_bitacora": 990,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 Productor transferencia individual compatible\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-10 09:47:24.720554+00:00"
+    },
+    {
+     "id_bitacora": 1079,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Origen",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 productor ejecucion 20260910T20 individual compatible\", \"origen\": 51, \"destino\": 48}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-10 20:03:44.026706+00:00"
+    },
+    {
+     "id_bitacora": 2895,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Estanque QA JE Piscicola (tipo Estanque) no es compatible con la especie del activo. Seleccione una infraestructura de un tipo compatible.\", \"error_code\": \"INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:40.065212+00:00"
+    },
+    {
+     "id_bitacora": 2915,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: FECHA_TRANSFERENCIA_FUTURA",
+     "detalle_tecnico": "{\"campo\": \"fecha_transferencia\", \"causa\": \"La fecha de transferencia no puede ser posterior a la fecha actual.\", \"error_code\": \"FECHA_TRANSFERENCIA_FUTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:27:10.405743+00:00"
+    },
+    {
+     "id_bitacora": 2935,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: FECHA_TRANSFERENCIA_FUTURA",
+     "detalle_tecnico": "{\"campo\": \"fecha_transferencia\", \"causa\": \"La fecha de transferencia no puede ser posterior a la fecha actual.\", \"error_code\": \"FECHA_TRANSFERENCIA_FUTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 09:02:23.350605+00:00"
+    }
+   ],
+   "locks_activos": [],
+   "global": {
+    "activos_biologicos": {
+     "filas": 380,
+     "sha256": "06328dd42ddc6b23",
+     "max_id": 473
+    },
+    "historial_infraestructura_activo": {
+     "filas": 383,
+     "sha256": "549c137cd48427c1",
+     "max_id": 421
+    },
+    "movimientos": {
+     "filas": 32,
+     "sha256": "a03a722a58dc949d",
+     "max_id": 36
+    },
+    "infraestructuras": {
+     "filas": 64,
+     "sha256": "21c84cd24435615c",
+     "max_id": 81
+    },
+    "detalles_poblacionales": {
+     "filas": 114,
+     "sha256": "572f789b32eb13af",
+     "max_id": 123
+    }
+   },
+   "audit_rf48_global": [
+    {
+     "n": 47,
+     "max_id": 3019
+    }
+   ]
+  },
+  "productor_post": {
+   "etiqueta": "productor_post",
+   "ts_utc": "2026-09-19T21:31:46.266491+00:00",
+   "sesion": [
+    {
+     "current_user": "member_qa",
+     "current_database": "sgpmp_test",
+     "ro": "on",
+     "hoy": "2026-09-19"
+    }
+   ],
+   "activo": [
+    {
+     "id_activo_biologico": 292,
+     "identificador": "QAJE-TRF-OK",
+     "tipo": "INDIVIDUAL",
+     "id_especie": 40,
+     "id_estado": 1,
+     "estado": "ACTIVO",
+     "id_infraestructura": 51
+    }
+   ],
+   "infras": [
+    {
+     "id_infraestructura": 48,
+     "nombre": "Corral QA JE Origen",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": null,
+     "capacidad_maxima": 1000,
+     "es_activo": true
+    },
+    {
+     "id_infraestructura": 51,
+     "nombre": "Corral QA JE Destino OK",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": 40,
+     "capacidad_maxima": 200,
+     "es_activo": true
+    }
+   ],
+   "ocupacion": {
+    "origen": 250,
+    "destino": 2
+   },
+   "historial": [
+    {
+     "id_historial": 239,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-06-01 08:00:00+00:00",
+     "fecha_fin": "2026-09-10 09:47:24.706824+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 284,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 09:47:24.706824+00:00",
+     "fecha_fin": "2026-09-10 20:03:44.015034+00:00",
+     "id_usuario_registro": 35
+    },
+    {
+     "id_historial": 290,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-09-10 20:03:44.015034+00:00",
+     "fecha_fin": "2026-09-19 21:31:45.872661+00:00",
+     "id_usuario_registro": 35
+    },
+    {
+     "id_historial": 422,
+     "id_activo_biologico": 292,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-19 21:31:45.872661+00:00",
+     "fecha_fin": null,
+     "id_usuario_registro": 35
+    }
+   ],
+   "movimientos": [
+    {
+     "id_movimiento": 23,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 09:47:24.712253+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 Productor transferencia individual compatible"
+    },
+    {
+     "id_movimiento": 29,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 48,
+     "fecha_registro": "2026-09-10 20:03:44.021739+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 productor ejecucion 20260910T20 individual compatible"
+    },
+    {
+     "id_movimiento": 37,
+     "id_usuario": 35,
+     "fecha_transferencia": "2026-09-19 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 292,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-19 21:31:45.878184+00:00",
+     "motivo_transferencia": "TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51"
+    }
+   ],
+   "auditoria_rf48": [
+    {
+     "id_bitacora": 990,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 Productor transferencia individual compatible\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-10 09:47:24.720554+00:00"
+    },
+    {
+     "id_bitacora": 1079,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Origen",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 productor ejecucion 20260910T20 individual compatible\", \"origen\": 51, \"destino\": 48}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-10 20:03:44.026706+00:00"
+    },
+    {
+     "id_bitacora": 2895,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Estanque QA JE Piscicola (tipo Estanque) no es compatible con la especie del activo. Seleccione una infraestructura de un tipo compatible.\", \"error_code\": \"INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:40.065212+00:00"
+    },
+    {
+     "id_bitacora": 2915,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: FECHA_TRANSFERENCIA_FUTURA",
+     "detalle_tecnico": "{\"campo\": \"fecha_transferencia\", \"causa\": \"La fecha de transferencia no puede ser posterior a la fecha actual.\", \"error_code\": \"FECHA_TRANSFERENCIA_FUTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:27:10.405743+00:00"
+    },
+    {
+     "id_bitacora": 2935,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: FECHA_TRANSFERENCIA_FUTURA",
+     "detalle_tecnico": "{\"campo\": \"fecha_transferencia\", \"causa\": \"La fecha de transferencia no puede ser posterior a la fecha actual.\", \"error_code\": \"FECHA_TRANSFERENCIA_FUTURA\", \"id_activo_solicitado\": 292}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 09:02:23.350605+00:00"
+    },
+    {
+     "id_bitacora": 3337,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 292,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 21:31:45.881357+00:00"
+    }
+   ],
+   "locks_activos": [],
+   "global": {
+    "activos_biologicos": {
+     "filas": 380,
+     "sha256": "b965a9c27dd71bff",
+     "max_id": 473
+    },
+    "historial_infraestructura_activo": {
+     "filas": 384,
+     "sha256": "7f4a5ea54c2df57d",
+     "max_id": 422
+    },
+    "movimientos": {
+     "filas": 33,
+     "sha256": "4a74d6c52b34b6e7",
+     "max_id": 37
+    },
+    "infraestructuras": {
+     "filas": 64,
+     "sha256": "21c84cd24435615c",
+     "max_id": 81
+    },
+    "detalles_poblacionales": {
+     "filas": 114,
+     "sha256": "572f789b32eb13af",
+     "max_id": 123
+    }
+   },
+   "audit_rf48_global": [
+    {
+     "n": 48,
+     "max_id": 3337
+    }
+   ]
+  },
+  "admin_pre": {
+   "etiqueta": "admin_pre",
+   "ts_utc": "2026-09-19T21:31:51.677482+00:00",
+   "sesion": [
+    {
+     "current_user": "member_qa",
+     "current_database": "sgpmp_test",
+     "ro": "on",
+     "hoy": "2026-09-19"
+    }
+   ],
+   "activo": [
+    {
+     "id_activo_biologico": 294,
+     "identificador": "QAJE-TRF-REGLAS",
+     "tipo": "INDIVIDUAL",
+     "id_especie": 40,
+     "id_estado": 1,
+     "estado": "ACTIVO",
+     "id_infraestructura": 51
+    }
+   ],
+   "infras": [
+    {
+     "id_infraestructura": 48,
+     "nombre": "Corral QA JE Origen",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": null,
+     "capacidad_maxima": 1000,
+     "es_activo": true
+    },
+    {
+     "id_infraestructura": 51,
+     "nombre": "Corral QA JE Destino OK",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": 40,
+     "capacidad_maxima": 200,
+     "es_activo": true
+    }
+   ],
+   "ocupacion": {
+    "origen": 2,
+    "destino": 250
+   },
+   "historial": [
+    {
+     "id_historial": 241,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-06-01 08:00:00+00:00",
+     "fecha_fin": "2026-09-10 09:47:28.975964+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 285,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 09:47:28.975964+00:00",
+     "fecha_fin": "2026-09-10 10:36:34.786394+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 289,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 47,
+     "fecha_inicio": "2026-09-10 10:36:34.786394+00:00",
+     "fecha_fin": "2026-09-10 20:03:49.983125+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 291,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 20:03:49.983125+00:00",
+     "fecha_fin": null,
+     "id_usuario_registro": 1
+    }
+   ],
+   "movimientos": [
+    {
+     "id_movimiento": 24,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 09:47:28.980645+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 Administrador transferencia individual compatible"
+    },
+    {
+     "id_movimiento": 28,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 47,
+     "fecha_registro": "2026-09-10 10:36:34.791548+00:00",
+     "motivo_transferencia": "TC-M02-142 concurrencia B"
+    },
+    {
+     "id_movimiento": 30,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 47,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 20:03:49.988314+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 admin ejecucion 20260910T20 individual compatible"
+    }
+   ],
+   "auditoria_rf48": [
+    {
+     "id_bitacora": 995,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 Administrador transferencia individual compatible\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 09:47:28.983591+00:00"
+    },
+    {
+     "id_bitacora": 1045,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Capacidad",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-142 concurrencia B\", \"origen\": 51, \"destino\": 47}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 10:36:34.794321+00:00"
+    },
+    {
+     "id_bitacora": 1086,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Capacidad → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 admin ejecucion 20260910T20 individual compatible\", \"origen\": 47, \"destino\": 51}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 20:03:49.991208+00:00"
+    },
+    {
+     "id_bitacora": 2891,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: DESTINO_IGUAL_ORIGEN",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura destino debe ser diferente a la infraestructura origen del activo.\", \"error_code\": \"DESTINO_IGUAL_ORIGEN\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:39.172466+00:00"
+    },
+    {
+     "id_bitacora": 2893,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_ESPECIE",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Galpon QA JE Aves no está habilitada para la especie del activo. Seleccione una infraestructura compatible con la especie.\", \"error_code\": \"INCOMPATIBILIDAD_ESPECIE\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:39.620900+00:00"
+    },
+    {
+     "id_bitacora": 2901,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: DESTINO_IGUAL_ORIGEN",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura destino debe ser diferente a la infraestructura origen del activo.\", \"error_code\": \"DESTINO_IGUAL_ORIGEN\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 08:11:41.417586+00:00"
+    },
+    {
+     "id_bitacora": 2903,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_ESPECIE",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Galpon QA JE Aves no está habilitada para la especie del activo. Seleccione una infraestructura compatible con la especie.\", \"error_code\": \"INCOMPATIBILIDAD_ESPECIE\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 08:11:41.843285+00:00"
+    }
+   ],
+   "locks_activos": [],
+   "global": {
+    "activos_biologicos": {
+     "filas": 380,
+     "sha256": "b965a9c27dd71bff",
+     "max_id": 473
+    },
+    "historial_infraestructura_activo": {
+     "filas": 384,
+     "sha256": "7f4a5ea54c2df57d",
+     "max_id": 422
+    },
+    "movimientos": {
+     "filas": 33,
+     "sha256": "4a74d6c52b34b6e7",
+     "max_id": 37
+    },
+    "infraestructuras": {
+     "filas": 64,
+     "sha256": "21c84cd24435615c",
+     "max_id": 81
+    },
+    "detalles_poblacionales": {
+     "filas": 114,
+     "sha256": "572f789b32eb13af",
+     "max_id": 123
+    }
+   },
+   "audit_rf48_global": [
+    {
+     "n": 48,
+     "max_id": 3337
+    }
+   ]
+  },
+  "admin_post": {
+   "etiqueta": "admin_post",
+   "ts_utc": "2026-09-19T21:31:55.402971+00:00",
+   "sesion": [
+    {
+     "current_user": "member_qa",
+     "current_database": "sgpmp_test",
+     "ro": "on",
+     "hoy": "2026-09-19"
+    }
+   ],
+   "activo": [
+    {
+     "id_activo_biologico": 294,
+     "identificador": "QAJE-TRF-REGLAS",
+     "tipo": "INDIVIDUAL",
+     "id_especie": 40,
+     "id_estado": 1,
+     "estado": "ACTIVO",
+     "id_infraestructura": 48
+    }
+   ],
+   "infras": [
+    {
+     "id_infraestructura": 48,
+     "nombre": "Corral QA JE Origen",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": null,
+     "capacidad_maxima": 1000,
+     "es_activo": true
+    },
+    {
+     "id_infraestructura": 51,
+     "nombre": "Corral QA JE Destino OK",
+     "id_finca": 57,
+     "tipo": "Corral",
+     "id_especie": 40,
+     "capacidad_maxima": 200,
+     "es_activo": true
+    }
+   ],
+   "ocupacion": {
+    "origen": 1,
+    "destino": 251
+   },
+   "historial": [
+    {
+     "id_historial": 241,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-06-01 08:00:00+00:00",
+     "fecha_fin": "2026-09-10 09:47:28.975964+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 285,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 09:47:28.975964+00:00",
+     "fecha_fin": "2026-09-10 10:36:34.786394+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 289,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 47,
+     "fecha_inicio": "2026-09-10 10:36:34.786394+00:00",
+     "fecha_fin": "2026-09-10 20:03:49.983125+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 291,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 51,
+     "fecha_inicio": "2026-09-10 20:03:49.983125+00:00",
+     "fecha_fin": "2026-09-19 21:31:55.007125+00:00",
+     "id_usuario_registro": 1
+    },
+    {
+     "id_historial": 423,
+     "id_activo_biologico": 294,
+     "id_infraestructura": 48,
+     "fecha_inicio": "2026-09-19 21:31:55.007125+00:00",
+     "fecha_fin": null,
+     "id_usuario_registro": 1
+    }
+   ],
+   "movimientos": [
+    {
+     "id_movimiento": 24,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 48,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 09:47:28.980645+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 Administrador transferencia individual compatible"
+    },
+    {
+     "id_movimiento": 28,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 47,
+     "fecha_registro": "2026-09-10 10:36:34.791548+00:00",
+     "motivo_transferencia": "TC-M02-142 concurrencia B"
+    },
+    {
+     "id_movimiento": 30,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-10 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 47,
+     "id_infraestructura_destino": 51,
+     "fecha_registro": "2026-09-10 20:03:49.988314+00:00",
+     "motivo_transferencia": "TC-M02-G79 TC-M02-133 admin ejecucion 20260910T20 individual compatible"
+    },
+    {
+     "id_movimiento": 38,
+     "id_usuario": 1,
+     "fecha_transferencia": "2026-09-19 00:00:00+00:00",
+     "fecha_fin": null,
+     "tipo": "salida",
+     "id_activo_biologico": 294,
+     "id_infraestructura_origen": 51,
+     "id_infraestructura_destino": 48,
+     "fecha_registro": "2026-09-19 21:31:55.011311+00:00",
+     "motivo_transferencia": "TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48"
+    }
+   ],
+   "auditoria_rf48": [
+    {
+     "id_bitacora": 995,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Origen → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 Administrador transferencia individual compatible\", \"origen\": 48, \"destino\": 51}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 09:47:28.983591+00:00"
+    },
+    {
+     "id_bitacora": 1045,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Capacidad",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-142 concurrencia B\", \"origen\": 51, \"destino\": 47}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 10:36:34.794321+00:00"
+    },
+    {
+     "id_bitacora": 1086,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Capacidad → Corral QA JE Destino OK",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 TC-M02-133 admin ejecucion 20260910T20 individual compatible\", \"origen\": 47, \"destino\": 51}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-10 20:03:49.991208+00:00"
+    },
+    {
+     "id_bitacora": 2891,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: DESTINO_IGUAL_ORIGEN",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura destino debe ser diferente a la infraestructura origen del activo.\", \"error_code\": \"DESTINO_IGUAL_ORIGEN\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:39.172466+00:00"
+    },
+    {
+     "id_bitacora": 2893,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_ESPECIE",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Galpon QA JE Aves no está habilitada para la especie del activo. Seleccione una infraestructura compatible con la especie.\", \"error_code\": \"INCOMPATIBILIDAD_ESPECIE\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 35,
+     "timestamp_evento": "2026-09-19 08:11:39.620900+00:00"
+    },
+    {
+     "id_bitacora": 2901,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: DESTINO_IGUAL_ORIGEN",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura destino debe ser diferente a la infraestructura origen del activo.\", \"error_code\": \"DESTINO_IGUAL_ORIGEN\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 08:11:41.417586+00:00"
+    },
+    {
+     "id_bitacora": 2903,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_RECHAZADA",
+     "resultado": "RECHAZADO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Operación rechazada: INCOMPATIBILIDAD_ESPECIE",
+     "detalle_tecnico": "{\"campo\": \"infraestructura_destino_id\", \"causa\": \"La infraestructura Galpon QA JE Aves no está habilitada para la especie del activo. Seleccione una infraestructura compatible con la especie.\", \"error_code\": \"INCOMPATIBILIDAD_ESPECIE\", \"id_activo_solicitado\": 294}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 08:11:41.843285+00:00"
+    },
+    {
+     "id_bitacora": 3344,
+     "rf_origen": "RF48",
+     "tipo_evento": "TRANSFERENCIA_REGISTRADA",
+     "resultado": "EXITOSO",
+     "id_activo_biologico": 294,
+     "tipo_activo": "INDIVIDUAL",
+     "descripcion": "Transferencia: Corral QA JE Destino OK → Corral QA JE Origen",
+     "detalle_tecnico": "{\"motivo\": \"TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48\", \"origen\": 51, \"destino\": 48}",
+     "id_usuario_responsable": 1,
+     "timestamp_evento": "2026-09-19 21:31:55.014135+00:00"
+    }
+   ],
+   "locks_activos": [],
+   "global": {
+    "activos_biologicos": {
+     "filas": 380,
+     "sha256": "8f7bfc9d3fc3ed35",
+     "max_id": 473
+    },
+    "historial_infraestructura_activo": {
+     "filas": 385,
+     "sha256": "eebe4aeacfa02864",
+     "max_id": 423
+    },
+    "movimientos": {
+     "filas": 34,
+     "sha256": "de020a6de44864ec",
+     "max_id": 38
+    },
+    "infraestructuras": {
+     "filas": 64,
+     "sha256": "21c84cd24435615c",
+     "max_id": 81
+    },
+    "detalles_poblacionales": {
+     "filas": 114,
+     "sha256": "572f789b32eb13af",
+     "max_id": 123
+    }
+   },
+   "audit_rf48_global": [
+    {
+     "n": 49,
+     "max_id": 3344
+    }
+   ]
+  }
+ },
+ "evaluacion": {
+  "productor": {
+   "V": {
+    "V1 HTTP 201": true,
+    "V2 id_activo": true,
+    "V3 id_movimiento en BD": true,
+    "V4 mensaje": true,
+    "V5 motivo (API y BD)": true,
+    "V6 origen/destino BD": true,
+    "V7 activo en destino": true,
+    "V8 asociacion anterior cerrada": true,
+    "V9 nueva asociacion vigente unica": true,
+    "V10 movimientos +1": true,
+    "V11 historial previo conservado": true,
+    "V12 evento nuevo trazable": true,
+    "V13 auditoria RF48 nueva": true,
+    "V14 usuario responsable": true,
+    "V15 ocupacion origen -1": true,
+    "V16 ocupacion destino +1": true,
+    "V17 sin inconsistencia parcial": true
+   },
+   "mov": 37,
+   "hist_nuevo": 422,
+   "asoc_cerrada": 290,
+   "aud": [
+    [
+     3337,
+     "TRANSFERENCIA_REGISTRADA",
+     35
+    ]
+   ],
+   "ocup": [
+    {
+     "origen": 251,
+     "destino": 1
+    },
+    {
+     "origen": 250,
+     "destino": 2
+    }
+   ],
+   "ts": [
+    "2026-09-19T21:31:43.383016+00:00",
+    "2026-09-19T21:31:46.266491+00:00"
+   ],
+   "disp": [
+    [
+     47,
+     "Corral",
+     40,
+     50,
+     [
+      true,
+      true,
+      true,
+      true
+     ]
+    ],
+    [
+     51,
+     "Corral",
+     40,
+     200,
+     [
+      true,
+      true,
+      true,
+      true
+     ]
+    ]
+   ],
+   "locks_pre": [],
+   "post": {
+    "id_movimiento": 37,
+    "id_activo_biologico": 292,
+    "infraestructura_origen": "Corral QA JE Origen",
+    "infraestructura_destino": "Corral QA JE Destino OK",
+    "fecha_transferencia": "2026-09-19T00:00:00Z",
+    "motivo_transferencia": "TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51",
+    "mensaje": "Transferencia registrada exitosamente. El activo fue transferido a Corral QA JE Destino OK en fecha 2026-09-19."
+   }
+  },
+  "admin": {
+   "V": {
+    "V1 HTTP 201": true,
+    "V2 id_activo": true,
+    "V3 id_movimiento en BD": true,
+    "V4 mensaje": true,
+    "V5 motivo (API y BD)": true,
+    "V6 origen/destino BD": true,
+    "V7 activo en destino": true,
+    "V8 asociacion anterior cerrada": true,
+    "V9 nueva asociacion vigente unica": true,
+    "V10 movimientos +1": true,
+    "V11 historial previo conservado": true,
+    "V12 evento nuevo trazable": true,
+    "V13 auditoria RF48 nueva": true,
+    "V14 usuario responsable": true,
+    "V15 ocupacion origen -1": true,
+    "V16 ocupacion destino +1": true,
+    "V17 sin inconsistencia parcial": true
+   },
+   "mov": 38,
+   "hist_nuevo": 423,
+   "asoc_cerrada": 291,
+   "aud": [
+    [
+     3344,
+     "TRANSFERENCIA_REGISTRADA",
+     1
+    ]
+   ],
+   "ocup": [
+    {
+     "origen": 2,
+     "destino": 250
+    },
+    {
+     "origen": 1,
+     "destino": 251
+    }
+   ],
+   "ts": [
+    "2026-09-19T21:31:51.677482+00:00",
+    "2026-09-19T21:31:55.402971+00:00"
+   ],
+   "disp": [
+    [
+     47,
+     "Corral",
+     40,
+     50,
+     [
+      true,
+      true,
+      true,
+      true
+     ]
+    ],
+    [
+     48,
+     "Corral",
+     null,
+     1000,
+     [
+      true,
+      true,
+      true,
+      true
+     ]
+    ]
+   ],
+   "locks_pre": [],
+   "post": {
+    "id_movimiento": 38,
+    "id_activo_biologico": 294,
+    "infraestructura_origen": "Corral QA JE Destino OK",
+    "infraestructura_destino": "Corral QA JE Origen",
+    "fecha_transferencia": "2026-09-19T00:00:00Z",
+    "motivo_transferencia": "TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48",
+    "mensaje": "Transferencia registrada exitosamente. El activo fue transferido a Corral QA JE Origen en fecha 2026-09-19."
+   }
+  }
+ }
+}

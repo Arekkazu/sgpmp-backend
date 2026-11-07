@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77 E6c: error 413                      |
 """Jerarquía de errores de dominio compartida.
 
 Todos los errores de negocio e infraestructura heredan de ``AppError``.
@@ -154,6 +157,16 @@ class GoneError(AppError):
     """
 
     status_code = 410
+
+
+class PayloadTooLargeError(AppError):
+    """El archivo a entregar supera el tamaño máximo permitido (HTTP 413).
+
+    Caso de referencia: la exportación CSV de RF-77 (E6c), que no puede pasar de
+    50 MB; nunca se entrega un archivo parcial.
+    """
+
+    status_code = 413
 
 
 class UnsupportedMediaTypeError(AppError):

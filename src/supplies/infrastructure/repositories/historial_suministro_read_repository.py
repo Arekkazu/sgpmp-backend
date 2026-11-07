@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: tipo real del ledger y ciclo exacto |
+# | 2026-10-23 | Arekkazu | PR-667: SAST Bearer (timeout parametrizado y candados con nombre fijo) |
 """Implementación de :class:`HistorialSuministroReadPort` (RF-81).
 
 SQL propio con ``text()`` sobre ``modulo5.registro_suministro`` (no la vista
@@ -20,7 +24,9 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
+from psycopg2 import errors as pg_errors
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from src.supplies.domain.entities.historial_suministro import (
@@ -28,7 +34,10 @@ from src.supplies.domain.entities.historial_suministro import (
     LineaHistorialSuministro,
     ResultadoHistorialSuministro,
 )
-from src.supplies.domain.repositories.historial_suministro_read_port import HistorialSuministroReadPort
+from src.supplies.domain.repositories.historial_suministro_read_port import (
+    ConsultaExcedioTiempo,
+    HistorialSuministroReadPort,
+)
 from src.supplies.domain.value_objects.historial_suministro_enums import TipoSuministroFiltro
 
 _JOINS = """
@@ -38,11 +47,7 @@ _JOINS = """
     JOIN modulo9.ciclos_productivos cp ON cp.id_ciclo_productivo = rs.id_ciclo_productivo
     LEFT JOIN modulo5.registros_consumo_alimentos rca ON rca.id_registro_rf75 = rs.id_registro_rf75
     LEFT JOIN modulo5.registros_medicamentos rm ON rm.id_registro_rf76 = rs.id_registro_rf76
-    LEFT JOIN LATERAL (
-        SELECT es_activa FROM modulo2.gestiones_fases
-        WHERE id_activo_biologico = rs.id_activo_biologico AND id_ciclo_productiva = rs.id_ciclo_productivo
-        ORDER BY es_activa DESC, fecha_inicio DESC LIMIT 1
-    ) gf ON true
+    LEFT JOIN modulo2.gestiones_fases gf ON gf.id_gestion_fases = rs.id_gestion_fases
 """
 
 _WHERE = """
@@ -50,11 +55,7 @@ _WHERE = """
       AND (:id_ciclo_productivo IS NULL OR rs.id_ciclo_productivo = :id_ciclo_productivo)
       AND (:fecha_inicio IS NULL OR rs.fecha_aplicacion >= :fecha_inicio)
       AND (:fecha_fin IS NULL OR rs.fecha_aplicacion <= :fecha_fin)
-      AND (
-          :tipo_suministro IS NULL
-          OR (:tipo_suministro = 'ALIMENTO' AND rs.id_registro_rf75 IS NOT NULL)
-          OR (:tipo_suministro = 'MEDICAMENTO' AND rs.id_registro_rf76 IS NOT NULL)
-      )
+      AND (CAST(:tipo_suministro AS varchar) IS NULL OR rs.tipo_suministro = :tipo_suministro)
       AND (:origen_precio IS NULL OR rs.origen_precio = :origen_precio)
       AND (:costo_min IS NULL OR rs.costo_registro >= :costo_min)
       AND (:costo_max IS NULL OR rs.costo_registro <= :costo_max)
@@ -64,8 +65,8 @@ _WHERE = """
 _SQL_PAGINA = text(
     f"""
     SELECT rs.id_registro_suministro, rs.id_activo_biologico, rs.id_ciclo_productivo,
-           CASE WHEN rs.id_registro_rf75 IS NOT NULL THEN 'ALIMENTO' ELSE 'MEDICAMENTO' END AS tipo_suministro,
-           COALESCE(rca.tipo_alimento, rm.nombre_medicamento, '') AS descripcion,
+           rs.tipo_suministro,
+           COALESCE(rca.tipo_alimento, rm.nombre_medicamento, rs.observacion, '') AS descripcion,
            rs.fecha_aplicacion, rs.cantidad, rs.unidad_medida,
            rs.precio_unitario_resuelto AS precio_unitario, rs.costo_registro, rs.origen_precio,
            rs.tipo_operacion, rs.observacion, rs.fecha_registro,
@@ -82,7 +83,7 @@ _SQL_TOTAL = text(f"SELECT COUNT(*) AS total, COALESCE(SUM(rs.costo_registro), 0
 
 _SQL_POR_TIPO = text(
     f"""
-    SELECT CASE WHEN rs.id_registro_rf75 IS NOT NULL THEN 'ALIMENTO' ELSE 'MEDICAMENTO' END AS tipo,
+    SELECT rs.tipo_suministro AS tipo,
            COUNT(*) AS total, COALESCE(SUM(rs.costo_registro), 0) AS monto
     {_JOINS} {_WHERE}
     GROUP BY 1
@@ -91,9 +92,10 @@ _SQL_POR_TIPO = text(
 
 _SQL_POR_CICLO = text(
     f"""
-    SELECT cp.nombre AS ciclo, COUNT(*) AS total, COALESCE(SUM(rs.costo_registro), 0) AS monto
+    SELECT cp.nombre || ' #' || COALESCE(rs.id_gestion_fases::text, '-') AS ciclo,
+           COUNT(*) AS total, COALESCE(SUM(rs.costo_registro), 0) AS monto
     {_JOINS} {_WHERE}
-    GROUP BY cp.nombre
+    GROUP BY cp.nombre, rs.id_gestion_fases
     """
 )
 
@@ -148,16 +150,31 @@ class SqlAlchemyHistorialSuministroReadRepository(HistorialSuministroReadPort):
         self,
         filtros: FiltrosHistorialSuministro,
         ids_activos_permitidos: Optional[list[int]],
+        tiempo_limite_segundos: Optional[int] = None,
+    ) -> ResultadoHistorialSuministro:
+        if tiempo_limite_segundos is None:
+            return self._consultar(filtros, ids_activos_permitidos)
+        try:
+            # Igual que SET LOCAL (`true` = solo esta transacción), pero con el valor como parámetro.
+            self.db.execute(
+                text("SELECT set_config('statement_timeout', :limite, true)"),
+                {"limite": f"{int(tiempo_limite_segundos)}s"},
+            )
+            resultado = self._consultar(filtros, ids_activos_permitidos)
+            self.db.execute(text("SET LOCAL statement_timeout = 0"))
+            return resultado
+        except OperationalError as exc:
+            if isinstance(exc.orig, pg_errors.QueryCanceled):
+                self.db.rollback()
+                raise ConsultaExcedioTiempo() from exc
+            raise
+
+    def _consultar(
+        self,
+        filtros: FiltrosHistorialSuministro,
+        ids_activos_permitidos: Optional[list[int]],
     ) -> ResultadoHistorialSuministro:
         params = _params(filtros, ids_activos_permitidos)
-
-        # Tipos SERVICIO_VETERINARIO/INSEMINACION no tienen tabla origen en modulo5 (gap doc):
-        # cortocircuita a resultado vacío en vez de ejecutar una consulta que nunca puede matchear.
-        if filtros.tipo_suministro_filtro in (
-            TipoSuministroFiltro.SERVICIO_VETERINARIO.value,
-            TipoSuministroFiltro.INSEMINACION.value,
-        ):
-            return ResultadoHistorialSuministro()
 
         offset = (filtros.pagina - 1) * filtros.registros_por_pagina
         filas_pagina = self.db.execute(

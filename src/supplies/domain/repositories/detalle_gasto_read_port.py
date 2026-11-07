@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, existencia y bajas RF-45  |
 """Puerto de lectura de las líneas de gasto fuente del reporte (RF-77).
 
 Consolida los registros VALIDADOS de RF-75 (consumo de alimento) y RF-76
@@ -24,6 +27,23 @@ class DetalleGastoReadPort(ABC):
         id_infraestructura: Optional[int] = None,
         id_especie: Optional[int] = None,
         categorias: Optional[list[str]] = None,
+        ids_permitidos: Optional[list[int]] = None,
     ) -> list[LineaGasto]:
-        """Líneas VALIDADO de ALIMENTACION/MEDICACION en el rango y filtros dados."""
+        """Líneas VALIDADO de ALIMENTACION/MEDICACION en el rango y filtros dados.
+
+        ``ids_permitidos`` limita a los activos que el usuario puede ver (``None`` = sin límite).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def existe_infraestructura(self, id_infraestructura: int) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def existe_especie(self, id_especie: int) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar_bajas(self, id_activo_biologico: int, fecha_inicio: date, fecha_fin: date) -> int:
+        """Individuos dados de baja (RF-45) en el período, para la nota del promedio (RF-77 R6)."""
         raise NotImplementedError

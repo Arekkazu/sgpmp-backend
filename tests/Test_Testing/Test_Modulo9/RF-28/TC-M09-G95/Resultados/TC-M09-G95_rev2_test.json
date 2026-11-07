@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-09-25T07:32:15.596Z",
+    "end": "2026-09-25T07:32:24.759Z",
+    "duration": 9163,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "b98019f8-ef1b-4c0f-a766-f804d5f7be5e",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-28\\TC-M09-G95\\tc_m09_g95_rev2_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-28\\TC-M09-G95\\tc_m09_g95_rev2_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "51b6452d-0b61-4385-8cee-3d0adc1dd4f0",
+          "title": "TC-M09-G95 rev2 TEST - Personalización del dashboard con widgets válidos",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-180 - Personalización del dashboard con widgets válidos (TEST)",
+              "fullTitle": "TC-M09-G95 rev2 TEST - Personalización del dashboard con widgets válidos TC-M09-180 - Personalización del dashboard con widgets válidos (TEST)",
+              "timedOut": null,
+              "duration": 8928,
+              "state": "passed",
+              "speed": "medium",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const correo = Cypress.env('correo') || 'contador@pecuaria.co';\nconst contrasena = Cypress.env('contrasena');\nexpect(contrasena, 'contrasena via Cypress.env (no hardcodear)').to.be.a('string').and.not.empty;\nnotas.usuario = correo;\ncy.intercept({\n  method: 'POST',\n  url: POST_LOGIN\n}).as('login');\ncy.intercept({\n  method: 'POST',\n  url: POST_REFRESH\n}).as('refreshSesion');\ncy.intercept({\n  method: 'GET',\n  url: GET_LAYOUT\n}).as('getLayout');\ncy.intercept({\n  method: 'PATCH',\n  url: PATCH_LAYOUT\n}).as('patchLayout');\ncy.intercept({\n  method: 'GET',\n  url: GET_WIDGETS\n}).as('getWidgets');\ncy.intercept({\n  method: 'POST',\n  url: POST_RESTAURAR\n}).as('postRestaurar');\ncy.intercept({\n  method: 'GET',\n  url: GET_CONTEXTO\n}).as('getContexto');\nregistrarPaso('Abrir login TEST');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').should('be.visible').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@login').then(interception => {\n  const status = interception.response && interception.response.statusCode;\n  notas.loginHttp = status;\n  registrarPaso(`Login POST /sesiones status=${status}`);\n  if (status === 401) {\n    fallar('BLOQUEADO', 'Login HTTP 401. Un solo intento; no se reintenta.');\n  }\n  expect(status, 'login HTTP').to.eq(200);\n  const body = interception.response.body || {};\n  tokenSesion = body.token || body.data && body.data.token || null;\n  notas.pasos.push(`token de sesión presente=${Boolean(tokenSesion)} (no se registra el valor)`);\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.url().should('not.include', '/login');\nregistrarPaso('Dashboard accesible');\ncy.screenshot('G95-01-dashboard');\nregistrarPaso('Ir a /configuracion (misma navegación que G90/G95 DEV, para observar refresh)');\ncy.intercept({\n  method: 'POST',\n  url: POST_REFRESH\n}).as('refreshSesion');\ncy.visit(`${TEST_FRONT}/configuracion`);\ncy.wait(2000);\ncy.url({\n  timeout: 20000\n}).then(url => {\n  if (url.includes('/login')) {\n    fallar('BLOQUEADO', `Tras Configuración la URL volvió a /login (${url}).`);\n  }\n});\ncy.get('@refreshSesion.all').then(calls => {\n  notas.refreshLlamadas = (calls || []).map(c => ({\n    status: c.response && c.response.statusCode,\n    url: c.request && c.request.url,\n    momento: 'tras-navegacion-configuracion',\n    requestBodyKeys: c.request && c.request.body ? Object.keys(c.request.body) : []\n  }));\n  registrarPaso(`POST /sesiones/refresh n=${notas.refreshLlamadas.length} ${JSON.stringify(notas.refreshLlamadas)}`);\n  const fail500 = notas.refreshLlamadas.find(x => x.status === 500);\n  if (fail500) {\n    registrarPaso('POST /sesiones/refresh HTTP 500 observado; no se clasifica RF-28 aún');\n  }\n});\ncy.url().then(url => {\n  if (url.includes('/login')) {\n    fallar('ERROR DE AMBIENTE', `Sesión perdida (URL ${url}) tras Configuración. Refresh=${JSON.stringify(notas.refreshLlamadas)}`);\n  }\n});\ncy.get('@getContexto.all').then(calls => {\n  if (calls && calls.length) {\n    notas.getContexto = resumenIntercept(calls[calls.length - 1]);\n  }\n});\ncy.contains('h1, h2, button', /Configuración/i, {\n  timeout: 15000\n}).should('exist');\ncy.contains('button', /^Personalización$/i).click({\n  force: true\n});\nregistrarPaso('Pestaña Personalización; desplazar hasta Dashboard Personalizable');\ncy.contains(/Dashboard Personalizable/i, {\n  timeout: 20000\n}).scrollIntoView();\ncy.contains('h2', /Dashboard Personalizable/i).should('be.visible');\ncy.contains('h2', /Dashboard Personalizable/i, {\n  timeout: 15000\n}).should('exist');\ncy.contains(/Grilla del dashboard \\(4 columnas × 3 filas\\)/i).should('exist');\ncy.contains(/Catálogo de Widgets/i).should('exist');\ncy.wait(['@getLayout', '@getWidgets'], {\n  timeout: 20000\n});\ncy.get('@getLayout.all').then(calls => {\n  const interception = calls[calls.length - 1];\n  notas.getLayout = resumenIntercept(interception);\n  const status = notas.getLayout.status;\n  registrarPaso(`GET /configuracion/personalizacion/dashboard status=${status} (última de ${calls.length})`);\n  if (status !== 200) {\n    fallar('RECHAZADO', `GET layout HTTP ${status}. Distribución inicial no disponible.`);\n  }\n  notas.layoutInicial = cuerpoSinSecretos(interception.response.body);\n  snapshotInicial = interception.response.body;\n});\ncy.get('@getWidgets.all').then(calls => {\n  const interception = calls[calls.length - 1];\n  notas.getWidgets = resumenIntercept(interception);\n  const status = notas.getWidgets.status;\n  registrarPaso(`GET widgets status=${status} (última de ${calls.length})`);\n  if (status !== 200) {\n    fallar('BLOQUEADO', `GET catálogo widgets HTTP ${status}.`);\n  }\n  const lista = interception.response.body;\n  if (!Array.isArray(lista) || lista.length === 0) {\n    fallar('BLOQUEADO', 'El catálogo de widgets del ambiente está vacío.');\n  }\n});\ncy.screenshot('G95-02-personalizacion-inicial');\ncy.get('body').then($body => {\n  const celdasVacias = [...$body.find('button[aria-label^=\"Celda vacía\"], button[aria-label^=\"Colocar \"]')];\n  const celdasOcupadas = [...$body.find('button[aria-label^=\"Quitar \"]')];\n  registrarPaso(`Grilla: vacías=${celdasVacias.length} ocupadas=${celdasOcupadas.length}`);\n  const catalogo = notas.getWidgets.responseBody || [];\n  const visibles = (notas.layoutInicial.grid || []).filter(w => w.visible);\n  const idsEnGrid = visibles.map(w => w.id_widget);\n  let candidato = catalogo.find(w => !idsEnGrid.includes(w.id_widget));\n  if (!candidato && catalogo.length) {\n    candidato = catalogo.find(w => w.clave === 'hist_hum') || catalogo[catalogo.length - 1];\n    registrarPaso(`Catálogo ya está en la grilla; se reubica widget válido ${candidato.nombre} (id=${candidato.id_widget}) a celda vacía`);\n  }\n  if (!candidato) {\n    fallar('BLOQUEADO', 'No hay widget válido en el catálogo.');\n  }\n  notas.widgetColocado = candidato.nombre;\n  notas.widgetId = candidato.id_widget;\n  if (idsEnGrid.includes(candidato.id_widget)) {\n    const ariaQuitar = `Quitar ${candidato.nombre}`;\n    const btn = [...$body.find(`button[aria-label=\"${ariaQuitar}\"]`)][0];\n    if (!btn) {\n      fallar('ERROR DE PRUEBA', `No se encontró ${ariaQuitar} para liberar y reubicar.`);\n    }\n    cy.wrap(btn).click({\n      force: true\n    });\n    registrarPaso(`Liberar posición actual: ${ariaQuitar}`);\n  }\n});\ncy.window().then(win => {\n  win.__g95DocMarker = 'tc-m09-180-rev2';\n  notas.markerAntes = win.__g95DocMarker;\n  const nav = win.performance.getEntriesByType('navigation')[0];\n  notas.navTypeAntes = nav ? nav.type : String(win.performance.navigation && win.performance.navigation.type);\n});\ncy.url().then(url => {\n  notas.urlAntesAccion = url;\n});\ncy.then(() => {\n  const nombre = notas.widgetColocado;\n  registrarPaso(`Seleccionar widget del catálogo: ${nombre}`);\n  cy.get('button[type=\"button\"]').filter((_, el) => !el.getAttribute('aria-label') && el.innerText.includes(nombre)).filter(':visible').first().should('not.be.disabled').click({\n    force: true\n  });\n  cy.contains(/Widget seleccionado:/i, {\n    timeout: 10000\n  }).should('exist');\n});\ncy.get('button[aria-label^=\"Celda vacía\"], button[aria-label^=\"Colocar \"]').filter(':visible').then($btns => {\n  const dest = [...$btns].find(el => /fila 2 columna 1/i.test(el.getAttribute('aria-label') || '')) || $btns.get(2) || $btns.get(0);\n  const aria = dest.getAttribute('aria-label');\n  notas.celdaUsada = aria;\n  registrarPaso(`Colocar en celda índice destino: ${aria} (evitar el hueco original de F1)`);\n  cy.wrap(dest).click({\n    force: true\n  });\n});\ncy.then(() => {\n  const nombre = notas.widgetColocado;\n  cy.get(`button[aria-label=\"Quitar ${nombre}\"]`, {\n    timeout: 10000\n  }).should('exist');\n  registrarPaso(`La grilla muestra Quitar ${nombre} sin recargar`);\n});\nregistrarPaso('Guardar configuración → PATCH');\ncy.contains('button', /^Guardar configuración$/i).click({\n  force: true\n});\ncy.wait('@patchLayout', {\n  timeout: 20000\n}).then(interception => {\n  notas.patchGuardar = resumenIntercept(interception);\n  const status = notas.patchGuardar.status;\n  registrarPaso(`PATCH /configuracion/personalizacion/dashboard status=${status}`);\n  expect(status, 'PATCH guardar layout').to.be.oneOf([200, 201]);\n  sePersisted = true;\n  notas.layoutTrasColocar = cuerpoSinSecretos(interception.response.body);\n  const idsAntes = firmaVisible(snapshotInicial);\n  const idsDespues = firmaVisible(interception.response.body);\n  expect(idsDespues, 'distribución cambió respecto al snapshot').to.not.deep.eq(idsAntes);\n  const colocado = (interception.response.body.grid || []).find(w => w.id_widget === notas.widgetId && w.visible);\n  expect(colocado, 'widget reubicado visible en respuesta PATCH').to.exist;\n  expect(colocado.posicion_fila, 'fila destino 1–3').to.be.within(1, 3);\n  expect(colocado.posicion_columna, 'columna destino 1–4').to.be.within(1, 4);\n});\ncy.contains(/El layout del dashboard se actualizó correctamente/i, {\n  timeout: 10000\n}).should('exist');\ncy.url().then(url => {\n  notas.urlDespuesAccion = url;\n  expect(url, 'URL tras guardar').to.include('/configuracion');\n  expect(url, 'no redirige a login').to.not.include('/login');\n  expect(url, 'URL estable').to.eq(notas.urlAntesAccion);\n});\ncy.window().then(win => {\n  const nav = win.performance.getEntriesByType('navigation')[0];\n  notas.navTypeDespues = nav ? nav.type : null;\n  notas.recargaDetectada = win.__g95DocMarker !== 'tc-m09-180-rev2';\n  expect(win.__g95DocMarker, 'mismo documento (sin recarga)').to.eq('tc-m09-180-rev2');\n  expect(notas.navTypeDespues, 'navigation entry type no cambió a reload').to.eq(notas.navTypeAntes);\n});\ncy.screenshot('G95-03-tras-guardar');\ncy.get('@postRestaurar.all').then(calls => {\n  notas.postRestaurarUi = calls && calls.length ? calls.map(resumenIntercept) : {\n    presente: false\n  };\n});\nrestaurarSiAplica();\ncy.then(() => {\n  if (notas.restauracion && notas.restauracion.startsWith('NO')) {\n    notas.clasificacion = 'RECHAZADO';\n    fallar('RECHAZADO', notas.restauracion);\n  }\n  notas.clasificacion = 'APROBADO';\n  registrarPaso('Camino feliz + restauración snapshot');\n});\ncy.screenshot('G95-04-tras-restaurar');",
+              "err": {},
+              "uuid": "47855573-cc8d-44ec-a319-7109fc8f56a9",
+              "parentUUID": "51b6452d-0b61-4385-8cee-3d0adc1dd4f0",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "47855573-cc8d-44ec-a319-7109fc8f56a9"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 8928,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G95_rev2_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-28\\TC-M09-G95\\Resultados",
+        "reportFilename": "TC-M09-G95_rev2_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

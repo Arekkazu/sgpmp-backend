@@ -1,0 +1,227 @@
+{
+  "info": {
+    "name": "RF-19 - TC-M09-G45 Reglas de desactivacion de finca (con y sin dependencias)",
+    "description": "Automatiza TC-M09-92 (finca sin dependencias se desactiva correctamente) y TC-M09-93 (finca con dependencias activas -infraestructura/dispositivos IoT/activos biologicos- se rechaza con 422). Para TC-M09-93 usa una finca real del entorno de test que ya tiene dependencias activas segun modulo9.vw_rf19_dependencias_fincas, en vez de construir toda la cadena infraestructura->dispositivo->sensor->activo desde cero; para TC-M09-92 registra una finca nueva (garantiza cero dependencias por construccion).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_finca_sin_dependencias", "value": "" },
+    { "key": "id_finca_con_dependencias", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Registrar finca sin dependencias (estado 'antes')",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Estado ANTES: ' + JSON.stringify(json));",
+              "pm.test('Nace activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_finca_sin_dependencias', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Sin Dependencias {{sufijo_unico}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-92 - Desactiva correctamente una finca sin dependencias activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado DESPUES: ' + JSON.stringify(json));",
+              "pm.test('Cambio a estado inactivo', function () { pm.expect(json.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_sin_dependencias}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_sin_dependencias}}", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Confirmar con relectura independiente que quedo inactiva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('es_activo=false persiste tras una relectura independiente', function () {",
+              "    pm.expect(json.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_sin_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_sin_dependencias}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5 - Confirmar que la finca de control SI tiene dependencias activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Finca de control (con dependencias): ' + JSON.stringify(json));",
+              "pm.test('Esta activa antes del intento de desactivacion', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_con_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_con_dependencias}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-93 - Rechaza desactivar una finca con dependencias activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por regla de negocio (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo FINCA_CON_DEPENDENCIAS', function () {",
+              "    pm.expect(json.error_code).to.eql('FINCA_CON_DEPENDENCIAS');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_con_dependencias}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_con_dependencias}}", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 7 - Confirmar que la finca de control sigue activa (la operacion rechazada no la altero)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Sigue activa: el intento rechazado no cambio nada', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_con_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_con_dependencias}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

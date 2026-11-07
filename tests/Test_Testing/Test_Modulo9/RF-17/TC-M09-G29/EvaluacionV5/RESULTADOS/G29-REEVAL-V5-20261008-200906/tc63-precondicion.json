@@ -1,0 +1,67 @@
+{
+  "runId": "G29-REEVAL-V5-20261008-200906",
+  "caso": "TC-M09-63",
+  "fase": "diagnostico de precondicion OFFLINE",
+  "tipo": "SOLO LECTURA",
+  "escriturasFuncionales": 0,
+  "momento": "2026-10-08T20:29:49.748053+00:00",
+  "resultado": "PRECONDICION_TC63_NO_ALCANZADA",
+  "1_conectadaEsEstadoActualDelBroker": {
+    "valor": true,
+    "estable": "tres lecturas en vivo separadas 10 s, las tres conectada=true",
+    "esEnVivo": true,
+    "justificacion": "MqttHttpAdapter.consultar_credencial consulta GET {MQTT_BROKER_URL}/v1/devices/{serial}/credential en cada peticion y devuelve cuerpo[\"conectada\"] sin cache ni persistencia. El valor lo reporta el broker, no la BD del backend: no es un dato stale del lado backend."
+  },
+  "2_idUltimoHeartbeatCongelado": {
+    "gateway138": {
+      "id_ultimo_heartbeat": 300,
+      "fecha_ultimo_contacto": "2026-10-08T20:19:55.802292Z",
+      "congelado": true
+    },
+    "nodo139": {
+      "id_ultimo_heartbeat": 301,
+      "fecha_ultimo_contacto": "2026-10-08T20:19:55.895959Z",
+      "congelado": true
+    },
+    "observacion": "Los dos seriales dejaron de emitir en el MISMO segundo (20:19:55), coherente con la detencion de un unico servicio que reportaba por ambos."
+  },
+  "3_marcaDeDesconexion": {
+    "transicion": "ACTIVO -> SIN_SENAL",
+    "momento": "2026-10-08T20:25:50.176369Z",
+    "causa_primaria": "FALLO_CONECTIVIDAD",
+    "notas": "Transicion automatica por evaluacion periodica (sin heartbeat)",
+    "detectadoTrasSegundos": 354.4,
+    "nota": "La plataforma SI detecto la desconexion por ausencia de heartbeat, dentro de una ventana coherente con los ~90 s indicados por Desarrollo mas su ciclo de evaluacion periodica. Lo que no cambio es la sesion MQTT reportada por el broker."
+  },
+  "4_sesionMqttRealOStale": {
+    "desdeElBackend": "no hay valor cacheado: cada lectura pregunta al broker",
+    "tiempoSinHeartbeatRealEnLaObservacion": 593.9,
+    "observacionSobreElCampo": "tiempo_sin_contacto se mantuvo en 354 en las tres lecturas: es el valor calculado y almacenado en la evaluacion periodica de 20:25:50, no un transcurrido recalculado al leer. El tiempo real sin heartbeat en el momento de la observacion era ~594 s, no 354 s.",
+    "conclusionPosible": "El broker mantiene abierta una sesion del usuario MQTT. No es determinable desde QA si se debe a un cliente que sigue conectado o a que el broker aun no ha expirado la sesion; ningun endpoint del producto expone la lista de sesiones/clientes del broker. ~10 min sin heartbeat es mucho para un keepalive tipico, lo que inclina hacia una sesion viva, pero no lo demuestra.",
+    "determinableDesdeQa": false
+  },
+  "5y6_quienPuedeSostenerLaConexion": {
+    "credencialDelGateway138": {
+      "emitida": true,
+      "habilitada": true,
+      "conectada": true,
+      "usuario": "SERBY-TAX-FIRMWARE",
+      "seriales": [
+        "SERBY-TAX-FIRMWARE",
+        "TEST-AMBIENTAL"
+      ]
+    },
+    "credencialDelNodo139": {
+      "emitida": false,
+      "habilitada": false,
+      "conectada": false,
+      "usuario": null,
+      "seriales": []
+    },
+    "hallazgo": "Existe UN SOLO usuario MQTT, \"SERBY-TAX-FIRMWARE\", cuya credencial cubre los dos seriales. TEST-AMBIENTAL no tiene credencial propia: habla por la compartida o a traves de su Gateway. Por tanto \"conectada\" describe la sesion de ESE usuario compartido, no la del proceso edge-agent en concreto: cualquier cliente autenticado como ese usuario la mantiene en true.",
+    "otraTelemetriaEnElArea22": "dashboard del area 22: 0 sensores, 0 registros",
+    "nodo139TambienSinSenal": true
+  },
+  "porQueNoSeEjecutaTc63": "Con conectada=true el broker intentaria publicar y esperar el ACK_UMBRAL. Al estar detenido el agente que atiende comandos, nadie confirmaria y, agotados los 30 s, el resultado seria NO_CONF + HTTP 500, no el PENDIENTE que exige TC-M09-63. Ejecutar ahora produciria un resultado que no corresponde al escenario del caso.",
+  "evidenciaQueDebeSolicitarse": "Confirmacion de AIoT de si, ademas del servicio edge-agent, sigue corriendo en el Raspberry algun proceso o cliente MQTT autenticado como el usuario \"SERBY-TAX-FIRMWARE\" (bridge, mosquitto_sub/pub, otro servicio); y, si es posible, la lista de sesiones activas de ese usuario en el broker."
+}

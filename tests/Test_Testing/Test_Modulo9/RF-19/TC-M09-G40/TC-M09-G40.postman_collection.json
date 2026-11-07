@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "RF-19 - TC-M09-G40 Registro exitoso de finca con datos validos",
+    "description": "Automatiza TC-M09-82 (camino feliz): registra una finca con nombre valido, ubicacion completa, coordenadas dentro de rango y tamano positivo, y confirma que la respuesta refleja exactamente esos datos (creacion validada por respuesta API).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_finca", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-82 - Registrar finca con datos validos (camino feliz)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "",
+              "const json = pm.response.json();",
+              "console.log('Respuesta completa: ' + JSON.stringify(json));",
+              "",
+              "pm.test('id_finca generado', function () {",
+              "    pm.expect(json.id_finca).to.be.a('number');",
+              "});",
+              "pm.test('nombre almacenado tal cual se envio', function () {",
+              "    pm.expect(json.nombre).to.eql('Finca Automatizada ' + pm.variables.get('sufijo_unico'));",
+              "});",
+              "pm.test('ubicacion completa reflejada correctamente', function () {",
+              "    pm.expect(json.ubicacion.departamento).to.eql('Antioquia');",
+              "    pm.expect(json.ubicacion.municipio).to.eql('Medellin');",
+              "    pm.expect(json.ubicacion.vereda).to.eql('La Estrella');",
+              "    pm.expect(json.ubicacion.latitud).to.eql('6.25');",
+              "    pm.expect(json.ubicacion.longitud).to.eql('-75.56');",
+              "});",
+              "pm.test('tamano_h positivo almacenado correctamente', function () {",
+              "    pm.expect(parseFloat(json.tamano_h)).to.eql(100.5);",
+              "});",
+              "pm.test('la finca queda activa por defecto', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});",
+              "pm.test('trae fecha_creacion y fecha_actualizacion', function () {",
+              "    pm.expect(json.fecha_creacion).to.be.a('string').and.not.empty;",
+              "    pm.expect(json.fecha_actualizacion).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.collectionVariables.set('id_finca', json.id_finca);"
+            ]
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sufijo unico por corrida (solo letras, FA-10 no permite digitos en",
+              "// el nombre) para no chocar con la unicidad global case-insensitive",
+              "// de fincas (FA-07) en el entorno de test compartido.",
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.variables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Automatizada {{sufijo_unico}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"100.5\",\n  \"id_usuario\": 2\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Confirmar almacenamiento con una relectura independiente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle de finca disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Los datos persisten identicos tras un GET independiente', function () {",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "    pm.expect(parseFloat(json.tamano_h)).to.eql(100.5);",
+              "    pm.expect(json.ubicacion.departamento).to.eql('Antioquia');",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

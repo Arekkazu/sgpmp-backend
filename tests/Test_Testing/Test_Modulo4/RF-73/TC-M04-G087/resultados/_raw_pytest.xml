@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="6.663" timestamp="2026-10-25T17:38:22.251857-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo4.RF-73.TC-M04-G087.test_tc_m04_g087" name="test_tc_m04_016_tipo_evento_fuera_catalogo" time="2.442"><failure message="sqlalchemy.exc.DataError: (psycopg2.errors.InvalidTextRepresentation) invalid input value for enum modulo4.enum_tipo_evento_auditoria_m04: &quot;EVENTO_INVENTADO&quot;&#10;LINE 1: ...modulo4.eventos_auditoria_m04 WHERE tipo_evento = 'EVENTO_IN...&#10;                                                             ^&#10;&#10;[SQL: SELECT COUNT(*) FROM modulo4.eventos_auditoria_m04 WHERE tipo_evento = %(t)s]&#10;[parameters: {'t': 'EVENTO_INVENTADO'}]&#10;(Background on this error at: https://sqlalche.me/e/20/9h9h)">.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   psycopg2.errors.InvalidTextRepresentation: invalid input value for enum modulo4.enum_tipo_evento_auditoria_m04: "EVENTO_INVENTADO"
+E   LINE 1: ...modulo4.eventos_auditoria_m04 WHERE tipo_evento = 'EVENTO_IN...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087\test_tc_m04_g087.py:44: in test_tc_m04_016_tipo_evento_fuera_catalogo
+    n_antes_inv = _count(db_session, "EVENTO_INVENTADO")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087\test_tc_m04_g087.py:25: in _count
+    return db.execute(
+.venv\Lib\site-packages\sqlalchemy\orm\session.py:2372: in execute
+    return self._execute_internal(
+.venv\Lib\site-packages\sqlalchemy\orm\session.py:2279: in _execute_internal
+    result = conn.execute(
+.venv\Lib\site-packages\sqlalchemy\engine\base.py:1421: in execute
+    return meth(
+.venv\Lib\site-packages\sqlalchemy\sql\elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+.venv\Lib\site-packages\sqlalchemy\engine\base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+.venv\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+.venv\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+.venv\Lib\site-packages\sqlalchemy\engine\base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+.venv\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.DataError: (psycopg2.errors.InvalidTextRepresentation) invalid input value for enum modulo4.enum_tipo_evento_auditoria_m04: "EVENTO_INVENTADO"
+E   LINE 1: ...modulo4.eventos_auditoria_m04 WHERE tipo_evento = 'EVENTO_IN...
+E                                                                ^
+E   
+E   [SQL: SELECT COUNT(*) FROM modulo4.eventos_auditoria_m04 WHERE tipo_evento = %(t)s]
+E   [parameters: {'t': 'EVENTO_INVENTADO'}]
+E   (Background on this error at: https://sqlalche.me/e/20/9h9h)</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo4.RF-73.TC-M04-G087.test_tc_m04_g087" name="test_tc_m04_017_sistema_sin_id_sistema" time="1.410"><failure message="AssertionError: RF-73 E1: exclusividad violada debe generar AUDITORIA_EVENTO_INVALIDO. Se crearon 0 fila(s).&#10;assert 28 == (28 + 1)">tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087\test_tc_m04_g087.py:99: in test_tc_m04_017_sistema_sin_id_sistema
+    assert n_despues_audinv == n_antes_audinv + 1, (
+E   AssertionError: RF-73 E1: exclusividad violada debe generar AUDITORIA_EVENTO_INVALIDO. Se crearon 0 fila(s).
+E   assert 28 == (28 + 1)</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo4.RF-73.TC-M04-G087.test_tc_m04_g087" name="test_tc_m04_018_usuario_con_id_sistema" time="1.387"><failure message="AssertionError: RF-73 E1: exclusividad violada debe generar AUDITORIA_EVENTO_INVALIDO. Se crearon 0 fila(s).&#10;assert 28 == (28 + 1)">tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087\test_tc_m04_g087.py:133: in test_tc_m04_018_usuario_con_id_sistema
+    assert n_despues_audinv == n_antes_audinv + 1, (
+E   AssertionError: RF-73 E1: exclusividad violada debe generar AUDITORIA_EVENTO_INVALIDO. Se crearon 0 fila(s).
+E   assert 28 == (28 + 1)</failure></testcase></testsuite></testsuites>

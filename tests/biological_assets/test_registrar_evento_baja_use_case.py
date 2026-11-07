@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-45: el registro de baja delega el cambio de estado en el componente centralizado.
 
 En una baja total (individual o lote que llega a cero) el use case delega la
@@ -9,7 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import (
     RegistrarEventoBajaUseCase,
@@ -233,7 +236,7 @@ def test_baja_mismo_dia_utc_usa_la_hora_real_no_medianoche() -> None:
 
     antes = datetime.now(timezone.utc)
     dto = RegistrarEventoBajaDTO(
-        tipo_baja='venta', fecha_baja=hoy_colombia(), motivo_baja='motivo de baja',
+        tipo_baja='venta', fecha_baja=hoy_usuario(), motivo_baja='motivo de baja',
     )
     uc.execute(10, dto, _usuario())
     despues = datetime.now(timezone.utc)

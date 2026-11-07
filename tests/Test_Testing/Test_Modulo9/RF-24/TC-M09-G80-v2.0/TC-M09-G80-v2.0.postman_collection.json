@@ -1,0 +1,435 @@
+{
+  "info": {
+    "name": "TC-M09-G80-v2.0 — RF-24 v2.0 — Auditoría RF-10 de la calibración",
+    "description": "Verifica que una calibración SENSOR exitosa quede registrada en el historial inmutable de RF-10 consultable por GET /auditoria/. El Ingeniero ejecuta la calibración (un único POST, sin reintentos) y el Administrador consulta la auditoría dentro de una ventana construida con los tiempos reales de la operación. El evento solo cuenta como match si contiene simultáneamente el sensor, el dispositivo y el valor de la calibración: un login o cualquier otro evento del mismo usuario en la ventana no satisface el caso. Una fila en modulo9.auditorias_calibraciones no sustituye al registro RF-10.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login Ingeniero",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{ing_email}}\",\n  \"contrasena\": \"{{ing_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login del Ingeniero es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.environment.set('ing_session', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identidad Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Perfil del Ingeniero responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El actor es Ingeniero de Campo', () => pm.expect(b.nombre_rol).to.eql('Ingeniero de Campo'));",
+              "pm.test('La cuenta del Ingeniero esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+              "// id_usuario se descubre dinámicamente: nunca se hardcodea.",
+              "pm.environment.set('ing_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permisos Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Permisos del Ingeniero responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const it = pm.response.json().permisos || [];",
+              "pm.test('El Ingeniero puede registrar calibraciones', () => pm.expect(it.some(p => p.id_recurso === 12 && p.id_accion === 1)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El Administrador SOLO consulta auditoría y GET de fixture. No crea la calibración.",
+              "pm.test('Login del Administrador es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.environment.set('admin_session', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identidad Administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Perfil del Administrador responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El actor de auditoria es Administrador', () => pm.expect(b.nombre_rol).to.eql('Administrador'));",
+              "pm.environment.set('admin_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture dispositivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dispositivo responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El dispositivo del fixture existe', () => pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))));",
+              "pm.test('El dispositivo esta activo', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture sensores del dispositivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sensores responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_id')));",
+              "pm.test('El sensor pertenece al dispositivo', () => { pm.expect(row).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))); });",
+              "pm.test('El sensor esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+              "pm.test('La categoria del sensor es la esperada', () => pm.expect(row.categoria).to.eql(pm.environment.get('categoria')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture asociación vigente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Asociaciones responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined) && sid(x) === Number(pm.environment.get('sensor_id')) && x.id_dispositivo_iot === Number(pm.environment.get('device_id')) && x.id_infraestructura === Number(pm.environment.get('area_id')));",
+              "pm.test('La asociacion sensor-dispositivo-area esta vigente', () => pm.expect(row).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture rango de la categoría",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/rangos-calibracion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rangos responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const row = (pm.response.json().items || []).find(x => x.categoria === pm.environment.get('categoria'));",
+              "pm.test('La categoria tiene rango publicado', () => pm.expect(row).to.exist);",
+              "pm.test('El valor esta dentro del rango vigente', () => { const v = Number(pm.environment.get('valor')); pm.expect(v).to.be.above(Number(row.valor_min)); pm.expect(v).to.be.below(Number(row.valor_max)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Historial PRE",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Historial PRE responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_total', String(b.total));",
+              "pm.environment.set('pre_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST calibrar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibrar",
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Se capturan los tiempos reales alrededor del POST: la ventana de auditoría se",
+              "// construye con ellos, nunca con fechas fijas.",
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_calibracion', iso);",
+              "pm.environment.set('t_request_before', iso);",
+              "pm.environment.set('body_sent', pm.environment.get('body_calibracion').replace('__FECHA__', iso));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('t_response_after', new Date().toISOString());",
+              "pm.test('La calibracion de setup se crea (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('Devuelve un id_calibracion valido', () => pm.expect(b.id_calibracion).to.be.a('number').and.above(0));",
+              "const pre = JSON.parse(pm.environment.get('pre_ids') || '[]');",
+              "pm.test('El id_calibracion es nuevo', () => pm.expect(pre).to.not.include(b.id_calibracion));",
+              "pm.test('La calibracion queda a nombre del Ingeniero', () => pm.expect(b.id_usuario).to.eql(Number(pm.environment.get('ing_id'))));",
+              "pm.test('El sensor y el dispositivo son los del fixture', () => { pm.expect(b.id_sensor).to.eql(Number(pm.environment.get('sensor_id'))); pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))); });",
+              "pm.test('El valor de referencia es el efectivo', () => pm.expect(Number(b.valor_referencia)).to.eql(Number(pm.environment.get('valor'))));",
+              "pm.environment.set('id_calibracion', String(b.id_calibracion));",
+              "pm.environment.set('fecha_persistida', String(b.fecha_calibracion));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Historial POST",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Historial POST responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const creado = Number(pm.environment.get('id_calibracion'));",
+              "const row = (b.items || []).find(x => x.id_calibracion === creado);",
+              "// Se correlaciona por ID, no por total+1, para tolerar concurrencia de otros testers.",
+              "pm.test('La calibracion creada aparece en el historial', () => pm.expect(row, 'id ' + creado).to.exist);",
+              "pm.test('El registro persistido conserva los datos de la operacion', () => {",
+              "  pm.expect(row.id_sensor).to.eql(Number(pm.environment.get('sensor_id')));",
+              "  pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id')));",
+              "  pm.expect(row.id_usuario).to.eql(Number(pm.environment.get('ing_id')));",
+              "  pm.expect(Number(row.valor_referencia)).to.eql(Number(pm.environment.get('valor')));",
+              "  pm.expect(row.observaciones).to.eql(pm.environment.get('observaciones'));",
+              "});",
+              "pm.environment.set('post_total', String(b.total));",
+              "pm.environment.set('post_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auditoría RF-10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/auditoria/?id_usuario={{ing_id}}&fecha_desde={{ventana_desde}}&fecha_hasta={{ventana_hasta}}&tamano=50&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Ventana construida con el tiempo REAL de la calibración: fecha persistida si existe,",
+              "// y si no el instante del request, ±1 minuto.",
+              "const persistida = pm.environment.get('fecha_persistida');",
+              "const central = persistida && persistida !== 'undefined' ? new Date(persistida) : new Date(pm.environment.get('t_request_before'));",
+              "pm.environment.set('ventana_desde', new Date(central.getTime() - 60000).toISOString());",
+              "pm.environment.set('ventana_hasta', new Date(central.getTime() + 60000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('La consulta de auditoria RF-10 responde (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));",
+              "const b = pm.response.json();",
+              "pm.environment.set('auditoria_total', String(b.total));",
+              "pm.environment.set('auditoria_pagina1', JSON.stringify(b.items || []));",
+              "console.log('eventos del Ingeniero en la ventana (pagina 1): ' + (b.items || []).length + ' de ' + b.total);",
+              "// La correlación estricta la hace el runner: un evento solo cuenta si contiene a la vez",
+              "// sensor, dispositivo y valor de la operación. Un login o una consulta del mismo usuario",
+              "// dentro de la ventana NO satisface el caso.",
+              "const sensor = String(pm.environment.get('sensor_id'));",
+              "const disp = String(pm.environment.get('device_id'));",
+              "const valor = Number(pm.environment.get('valor'));",
+              "const contiene = (ev) => { const t = JSON.stringify(ev.detalle || {}) + ' ' + (ev.descripcion || '');",
+              "  const tieneValor = t.includes(String(valor)) || t.includes(valor.toFixed(4));",
+              "  return t.includes(sensor) && t.includes(disp) && tieneValor; };",
+              "const candidatos = (b.items || []).filter(contiene);",
+              "pm.environment.set('auditoria_candidatos_p1', JSON.stringify(candidatos));",
+              "console.log('candidatos correlacionables en pagina 1: ' + candidatos.length);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

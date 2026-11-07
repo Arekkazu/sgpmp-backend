@@ -1,0 +1,25 @@
+{
+  "info": {
+    "name": "TC-M09-G134 — RF-24 v2.0",
+    "description": "Newman envía los dos POST; el runner realiza GET y SELECT PRE/POST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [{
+    "name": "Calibración válida seleccionada por el runner",
+    "request": {
+      "method": "POST",
+      "header": [
+        {"key":"Content-Type","value":"application/json"},
+        {"key":"Authorization","value":"Bearer {{token}}"}
+      ],
+      "body": {"mode":"raw","raw":"{{body_json}}","options":{"raw":{"language":"json"}}},
+      "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibrar"
+    },
+    "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+      "pm.test('Calibración válida: 2xx e ID', function () {",
+      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+      "  pm.expect(pm.response.json().id_calibracion).to.be.a('number');",
+      "});"
+    ]}}]
+  }]
+}

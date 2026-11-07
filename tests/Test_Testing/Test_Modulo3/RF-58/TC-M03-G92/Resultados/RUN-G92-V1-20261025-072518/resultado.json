@@ -1,0 +1,167 @@
+{
+  "grupo": "G92",
+  "rf": "RF-58",
+  "run_id": "RUN-G92-V1-20261025-072518",
+  "version": 1,
+  "autorizacion": "AUT-G92-V1-20261025",
+  "commit": "NO_VERIFICADO",
+  "oficial": false,
+  "consume_version": false,
+  "estado": "NO_CONCLUYENTE",
+  "casos": {
+    "TC-M03-181": {
+      "estado": "NO_CONCLUYENTE",
+      "veredicto": null,
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "comprobaciones": [],
+      "observado": null
+    },
+    "TC-M03-182": {
+      "estado": "NO_CONCLUYENTE",
+      "veredicto": null,
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "comprobaciones": [],
+      "observado": null
+    },
+    "TC-M03-183": {
+      "estado": "NO_CONCLUYENTE",
+      "veredicto": null,
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "comprobaciones": [],
+      "observado": null
+    }
+  },
+  "comprobaciones": [],
+  "datos": {
+    "ids_telemetria": [],
+    "ids_alerta": [],
+    "inventario": [],
+    "areas_creadas": [],
+    "dispositivos_creados": [],
+    "sensores_creados": []
+  },
+  "newman": [],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 1104
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 617
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 154,
+      "respuesta": {
+        "id_usuario": "[REDACTADO]",
+        "nombre": "[REDACTADO]",
+        "apellidos": "[REDACTADO]",
+        "correo_electronico": "[REDACTADO]",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "[REDACTADO]",
+        "fecha_nacimiento": "[REDACTADO]",
+        "fecha_registro": "2026-08-08T20:35:36.387305Z",
+        "telefono": "[REDACTADO]",
+        "direccion": "[REDACTADO]",
+        "nombre_rol": "[REDACTADO]",
+        "estado_cuenta": "Activo",
+        "ultimo_acceso": "2026-10-25T07:25:20.671489Z",
+        "version": 3,
+        "fincas": [
+          {
+            "id_finca": 1,
+            "nombre": "[REDACTADO]"
+          },
+          {
+            "id_finca": 80,
+            "nombre": "[REDACTADO]"
+          },
+          {
+            "id_finca": 184,
+            "nombre": "[REDACTADO]"
+          },
+          {
+            "id_finca": 57,
+            "nombre": "[REDACTADO]"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?pagina=1&por_pagina=50",
+      "en_run": true,
+      "error": "The operation was aborted due to timeout",
+      "ms": 30019
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G92-V1-20261025-072518",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 521,
+      "respuesta": {
+        "status": "Rollback exitoso"
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 391
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 402
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?pagina=1&por_pagina=50",
+      "en_run": false,
+      "error": "The operation was aborted due to timeout",
+      "ms": 30009
+    }
+  ],
+  "problemas_tecnicos": [
+    "The operation was aborted due to timeout"
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": false,
+      "semilla_intacta": false,
+      "comprobaciones": [],
+      "riesgos_residuales": [
+        "No hay GET público de sensor independiente del dispositivo ni GET directo de estado actual."
+      ]
+    },
+    "motivo": "The operation was aborted due to timeout"
+  },
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M03-G92_resultado.md"
+  ]
+}

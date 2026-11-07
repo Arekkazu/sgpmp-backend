@@ -1,0 +1,509 @@
+{
+  "grupo": "G98",
+  "run_id": "RUN-G98-V3-20261031-185044",
+  "version": 3,
+  "intento": 6,
+  "operacion": "reevaluar",
+  "autorizacion": "AUT-G98-V3-20261031",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M03-191": {
+      "estado": "APROBADO",
+      "motivo": "Comprobaciones acreditadas"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-191",
+      "fuente": "API",
+      "id": "API-191-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Panel, total, estados, alcance, campos y orden acreditados",
+      "evidencia": "newman/newman-G98.json"
+    },
+    {
+      "caso": "TC-M03-191",
+      "fuente": "API",
+      "id": "API-191-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Tres severidades RF-57 ACTIVA y sensores distintos; área segura",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M03-191",
+      "fuente": "API",
+      "id": "API-191-03",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Cada alerta del panel tiene id_activo_biologico e identificador_activo",
+      "evidencia": "newman/newman-G98.json"
+    },
+    {
+      "caso": "TC-M03-191",
+      "fuente": "API",
+      "id": "API-191-04",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Sensores con id_alerta tienen severidad_alerta",
+      "evidencia": "newman/newman-G98.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G98.json",
+    "newman/newman-G98.html",
+    "resultado.json",
+    "TC-M03-G98_reevaluacion_V3.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=184&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas?solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=80&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=702&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=3&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=390&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=1&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=2&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=389&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=184&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas?solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=113&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=115&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=702&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot?solo_activos=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos?id_infraestructura=702&pagina=1&page_size=100",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/789/sensores",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-08-03&fecha_fin=2026-10-31&sensor_id=1211&pagina=1&por_pagina=100",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-08-03&fecha_fin=2026-10-31&sensor_id=1210&pagina=1&por_pagina=100",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-08-03&fecha_fin=2026-10-31&sensor_id=1212&pagina=1&por_pagina=100",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/702?pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/alertas",
+      "http": 201,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/1388",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/alertas",
+      "http": 201,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/1389",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/alertas",
+      "http": 201,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/1390",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?estado=ACTIVA&id_infraestructura=702&pagina=1&por_pagina=200",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/702?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G98-V3-20261031-185044",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/1388",
+      "http": 404,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/1389",
+      "http": 404,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/1390",
+      "http": 404,
+      "en_run": false,
+      "eco": null
+    }
+  ],
+  "paginas": [
+    {
+      "unidad": 702,
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total_sensores": 3,
+      "sensores_en_pagina": 3,
+      "sensores_alerta": [
+        {
+          "id_sensor": 1210,
+          "id_alerta": 1389,
+          "severidad_alerta": "MODERADO"
+        },
+        {
+          "id_sensor": 1211,
+          "id_alerta": 1388,
+          "severidad_alerta": "CRITICO"
+        },
+        {
+          "id_sensor": 1212,
+          "id_alerta": 1390,
+          "severidad_alerta": "LEVE"
+        }
+      ],
+      "activos_panel": [
+        {
+          "id_alerta": 1388,
+          "id_activo_biologico": 928,
+          "identificador_activo_presente": true
+        },
+        {
+          "id_alerta": 1389,
+          "id_activo_biologico": 928,
+          "identificador_activo_presente": true
+        },
+        {
+          "id_alerta": 1390,
+          "id_activo_biologico": 928,
+          "identificador_activo_presente": true
+        }
+      ],
+      "conteo_semaforo": {
+        "ROJO": 1,
+        "AMARILLO": 2
+      },
+      "alertas_detectadas": true,
+      "estructura": [
+        "total",
+        "pagina",
+        "por_pagina",
+        "resumen_unidades",
+        "sensores",
+        "conteo_semaforo",
+        "alertas_vencidas_sin_atencion",
+        "panel_alertas_activas"
+      ],
+      "conteos_unidad": [
+        {
+          "id_infraestructura": 702,
+          "alertas_activas_count": 3
+        }
+      ],
+      "severidades_sensor": [
+        "MODERADO",
+        "CRITICO",
+        "LEVE"
+      ],
+      "panel": {
+        "estado": "APROBADO",
+        "motivo": "Panel, total, estados, alcance, campos y orden acreditados",
+        "observaciones": [
+          "Alerta 1388: minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición",
+          "Alerta 1389: minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición",
+          "Alerta 1390: minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición"
+        ],
+        "panel": {
+          "presente": true,
+          "total": 3,
+          "largo_lista": 3,
+          "ids": [
+            1388,
+            1389,
+            1390
+          ]
+        }
+      }
+    }
+  ],
+  "unidades": [
+    702,
+    3,
+    390,
+    1,
+    2,
+    389
+  ],
+  "ids_creados": [
+    1388,
+    1389,
+    1390
+  ],
+  "observaciones": [
+    "Área 702: faltan tres severidades ACTIVA en sensores distintos",
+    "Área 3: faltan tres severidades ACTIVA en sensores distintos",
+    "Área 390: faltan tres severidades ACTIVA en sensores distintos",
+    "Área 1: faltan tres severidades ACTIVA en sensores distintos",
+    "Área 2: faltan tres severidades ACTIVA en sensores distintos",
+    "Área 389: faltan tres severidades ACTIVA en sensores distintos",
+    "Área 702: faltan tres severidades ACTIVA en sensores distintos",
+    "Semilla: 3 alertas ACTIVA comprobadas por detalle y listado público",
+    "Alerta 1388: minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición",
+    "Alerta 1389: minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición",
+    "Alerta 1390: minutos negativos por now() fijo del sandbox (indicadores_alertas_repository.py:70); en producción now() es por petición"
+  ],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "3 IDs ausentes o no ACTIVOS tras DELETE 200",
+      "alertas": [
+        {
+          "id_alerta": 1388,
+          "http": 404,
+          "estado": null,
+          "revertida": true
+        },
+        {
+          "id_alerta": 1389,
+          "http": 404,
+          "estado": null,
+          "revertida": true
+        },
+        {
+          "id_alerta": 1390,
+          "http": 404,
+          "estado": null,
+          "revertida": true
+        }
+      ]
+    }
+  },
+  "inicio": "2026-10-31T18:50:44.192Z",
+  "historial_http": {
+    "consultas": 3,
+    "errores": 0
+  },
+  "precondicion": {
+    "via": "CREACION_SANDBOX",
+    "rol": "Productor",
+    "unidad": 702,
+    "total": 3,
+    "ids": [
+      1390,
+      1389,
+      1388
+    ],
+    "alertas": [
+      {
+        "id_alerta": 1390,
+        "id_sensor": 1212,
+        "id_activo_biologico": 928,
+        "severidad": "LEVE"
+      },
+      {
+        "id_alerta": 1389,
+        "id_sensor": 1210,
+        "id_activo_biologico": 928,
+        "severidad": "MODERADO"
+      },
+      {
+        "id_alerta": 1388,
+        "id_sensor": 1211,
+        "id_activo_biologico": 928,
+        "severidad": "CRITICO"
+      }
+    ],
+    "activo_vinculado": true
+  },
+  "fin": "2026-10-31T18:50:57.405Z"
+}

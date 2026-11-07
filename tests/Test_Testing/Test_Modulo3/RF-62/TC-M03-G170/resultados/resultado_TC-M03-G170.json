@@ -1,0 +1,31 @@
+{
+  "tc": "TC-M03-G170",
+  "corrida": "V1 (canonica)",
+  "nota_historico": "V0 (bloqueada por INC-M03-123-G167) conservada en evidencias/run-20261023/",
+  "summary": {
+    "total": 20,
+    "ok": 18,
+    "falla": 2,
+    "veredicto": "RECHAZADO",
+    "bloqueo_externo": {
+      "inc_m03_g170_creadas": "POST /iot/calidad/reevaluar retorna evaluaciones_creadas=0. El criterio de aceptación TC-324 exige crear nuevas evaluaciones con motivo_reevaluacion. Superadas=6 OK, creadas=0 FALLA.",
+      "inc_m03_g167_sensor": "00.07-Crear-Sensor falla (400, no 500, verificar). Preflight no afecta TC-324/325/326 por --no-bail.",
+      "tc_326b_comportamiento": "fecha_desde==fecha_hasta retorna 422. CSV dice 'supuesto' (no definido en requerimiento). Documentado como observación, no blocking."
+    }
+  },
+  "checkpoints": [
+    {"paso": "Preflight (finca, area, dispositivo)", "esperado": "PASSED", "obtenido": "PASSED", "estado": "OK"},
+    {"paso": "Crear sensor", "esperado": "PASSED", "obtenido": "400 Bad Request", "estado": "FALLA"},
+    {"paso": "324.01 Reevaluación HTTP 200", "esperado": "PASSED", "obtenido": "PASSED", "estado": "OK"},
+    {"paso": "324.02 Superadas >= 5", "esperado": "PASSED", "obtenido": "PASSED (6)", "estado": "OK"},
+    {"paso": "324.03 Creadas = 5 (CSV exige nuevas ACTIVA)", "esperado": "PASSED", "obtenido": "FALLA (creadas=0)", "estado": "FALLA"},
+    {"paso": "324.04 SUPERADA en BD", "esperado": "PASSED", "obtenido": "PASSED", "estado": "OK"},
+    {"paso": "325a Sin causa", "esperado": "422", "obtenido": "400", "estado": "OK"},
+    {"paso": "325b Causa vacía", "esperado": "422", "obtenido": "400", "estado": "OK"},
+    {"paso": "325c Causa corta", "esperado": "422", "obtenido": "400", "estado": "OK"},
+    {"paso": "325d Causa preferencia (CA-17)", "esperado": "422", "obtenido": "422", "estado": "OK"},
+    {"paso": "326a Fechas invertidas", "esperado": "422", "obtenido": "422", "estado": "OK"},
+    {"paso": "326b Fechas iguales", "esperado": "200 (supuesto)", "obtenido": "422", "estado": "OK"},
+    {"paso": "Teardown rollback", "esperado": "200", "obtenido": "200", "estado": "OK"}
+  ]
+}
