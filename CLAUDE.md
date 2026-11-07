@@ -56,6 +56,28 @@ al terminar el cambio, antes del commit:
 
 ---
 
+## Textos visibles, vacíos y filtros (obligatorio desde 2026-11-05)
+
+Aplica a todo lo que el usuario final llega a leer: `message` de los errores, avisos y advertencias de una
+respuesta, notificaciones, correos, PDF/Excel generados y textos que el sistema guarda para mostrarse después
+(justificaciones automáticas, descripciones legibles de auditoría).
+
+1. **Nunca un código interno del proyecto.** Ningún texto visible dice `RF-xx`, `RFC-xxx`, `Módulo N`, `M01`…`M09`,
+   el nombre de una tabla o columna, ni un valor de enum crudo (`INICIAL_RF82`, `PENDIENTE_CUENTA`). Se nombra lo
+   que el usuario ve en el software: «Suministros», «Activos biológicos», «el módulo financiero», «la exportación
+   contable». Las referencias normativas que el usuario sí reconoce (NIC 41 ¶12, NIIF 13) están permitidas. Los
+   códigos siguen siendo válidos en docstrings, comentarios, logs y `tags`/`summary` de Swagger, que no ve el usuario final.
+2. **Nada de vacíos ni códigos para mostrar.** Un texto pensado para mostrarse nunca se arma con un `None`
+   interpolado («Factura None», «M05 None») ni sale como `null`. Un dato opcional puede ser `null` en el JSON, pero
+   el frontend lo traduce a lo que significa («Sin vencimiento», «Sin calcular»); el backend no devuelve tablas,
+   columnas ni listas cuyo único contenido sea un código o un id interno para que el front lo muestre tal cual.
+3. **Filtros completos y validados.** Todo listado que el frontend filtra acepta esos filtros en el endpoint, con
+   el valor validado en el parámetro (`Literal[...]`, enum o `pattern`): un valor fuera del catálogo responde
+   `400 VAL_ENTRADA`, nunca un `500` por un `CAST` a enum ni una lista vacía silenciosa. Los filtros se combinan
+   con AND y un parámetro omitido no filtra. Si el filtro existe en el repositorio pero no en el router, no existe.
+
+---
+
 ## Stack
 
 | Componente   | Tecnología                        |

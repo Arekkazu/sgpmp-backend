@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | M07 RF-101: SGPMP_ENTORNO; credenciales de AgroFusion pasan al registro de clientes |
 # ==============================================================
 # SGPMP - Backend - Ambiente PROD
 # ==============================================================
@@ -146,8 +149,7 @@ services:
       AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH:-}
       AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE:-}
       AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
-      AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID:-}
-      AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET:-}
+      SGPMP_ENTORNO: ${SGPMP_ENTORNO:-PROD}
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL:-}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:-}

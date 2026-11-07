@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para las cuentas creadas por AgroFusion |
 """Router FastAPI para el módulo de usuarios (`/usuarios`).
 
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
@@ -288,8 +289,8 @@ def activar_cuenta(
         ),
     )
 
-    use_case.execute(token, ip, user_agent)
-
+    if use_case.execute(token, ip, user_agent):  # RFC-019 D-19.6: cuenta creada por AgroFusion
+        return {"message": "La cuenta ya está activa."}
     return {
         "message": "Cuenta activada exitosamente. Ya puedes iniciar sesión."
     }

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para los tokens de cuentas creadas por AgroFusion |
 """Caso de uso: activación de cuenta mediante token de correo electrónico.
 
 El token fue generado al crear la cuenta o al reenviar el correo de activación.
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
-from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token, es_token_m2m
 from src.shared.errors import GoneError, ValidationError
 from src.shared.fechas import en_zona_usuario
 
@@ -48,13 +49,17 @@ class ActivarCuentaUseCase:
         token: str,
         ip: str,
         user_agent: str,
-    ) -> None:
+    ) -> bool:
         """Activa la cuenta asociada al token recibido.
 
         Args:
             token: Token de activación enviado al correo del usuario.
             ip: Dirección IP asociada a la solicitud.
             user_agent: Cliente o navegador desde el cual se realiza la solicitud.
+
+        Returns:
+            ``True`` si la cuenta ya estaba activa con un token de AgroFusion (RFC-019 D-19.6:
+            200 idempotente); ``False`` si se activó ahora.
 
         Raises:
             ValidationError: Si el token no existe o la cuenta ya fue activada
@@ -82,6 +87,8 @@ class ActivarCuentaUseCase:
         # caso de flujo alterno (HTTP 400): desde el cliente son el mismo enlace
         # inservible. Un FlowError -> 422 partía ese caso en dos códigos.
         if cuenta.esta_activa():
+            if es_token_m2m(token) and cuenta.token_usado:  # RFC-019 D-19.6
+                return True
             raise ValidationError(
                 code="TOKEN_INVALIDO",
                 message=(
@@ -121,3 +128,4 @@ class ActivarCuentaUseCase:
                 id_usuario=cuenta.id_usuario,
                 resolver_correo_destino=True,
             )
+        return False

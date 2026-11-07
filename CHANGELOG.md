@@ -1,3 +1,52 @@
+## [1.4.0-rc.51](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.50...v1.4.0-rc.51) (2026-11-07)
+
+### Bug Fixes
+
+* **db:** USAGE sobre public para los roles de la app (pgcrypto en triggers de hash M05/M06) ([35f17c2](https://github.com/Arekkazu/sgpmp-backend/commit/35f17c29d5408be0938c36b68e0813342720fcf2))
+
+## [1.4.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.49...v1.4.0-rc.50) (2026-11-06)
+
+### Bug Fixes
+
+* **rf-sso02-mod7:** contrato real de AgroFusion en la sincronizacion de usuarios ([07cdc3c](https://github.com/Arekkazu/sgpmp-backend/commit/07cdc3c01b63912929fd5662e601bac168ea770c))
+* **rf-sso02-mod7:** nombres de campo de AgroFusion en la sincronizacion de usuarios ([f0cb5a9](https://github.com/Arekkazu/sgpmp-backend/commit/f0cb5a9e92c5c6722a152f75d8caf6d0d98375f8))
+
+## [1.4.0-rc.49](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.48...v1.4.0-rc.49) (2026-11-06)
+
+### Features
+
+* **rf-sso02-mod7:** UPDATE_USER, activacion idempotente RFC-019 D-19.6 y comprobante 06 apagado ([0962ce1](https://github.com/Arekkazu/sgpmp-backend/commit/0962ce1034dff70d1b95a1d195a2e05e719535ba))
+* **rf95-rf101-mod7:** consulta AAEF de AgroFusion con token de canal, contratos y auditoria ([b2b9097](https://github.com/Arekkazu/sgpmp-backend/commit/b2b9097bfe50598810aa9e56df6aa1dee16ef23b))
+* **rf95-rf102-mod7:** esquema modulo7 alineado a RFC-017/019 para la consulta AAEF ([268054c](https://github.com/Arekkazu/sgpmp-backend/commit/268054c44b57071f8e8f26ff2c17afbbf30ac674))
+* **rf96-rf97-mod7:** mappers de compras y comprobante NIC 41 y envelope AAEF ([ba3be7a](https://github.com/Arekkazu/sgpmp-backend/commit/ba3be7a6a1f07d51699c3f7012d3f549a3a0628e))
+
+## [1.4.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.47...v1.4.0-rc.48) (2026-11-06)
+
+### Features
+
+* **rf82-rf94-mod6:** listados del periodo y filtros validados para las vistas del prototipo ([a391352](https://github.com/Arekkazu/sgpmp-backend/commit/a391352192f86a0407cd8a5f38ce5003ffd5f1ae))
+
+## [1.4.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.46...v1.4.0-rc.47) (2026-11-05)
+
+### Features
+
+* **rf19-mod9:** titular tributario de la finca con digito de verificacion DIAN ([38add00](https://github.com/Arekkazu/sgpmp-backend/commit/38add00261b47f67b9a206199eedd44152615022))
+* **rf82-rf94-mod6:** esquema modulo6 alineado a RFC-018 para la valoracion NIC 41 ([f179c83](https://github.com/Arekkazu/sgpmp-backend/commit/f179c837f0692c7a39c9f23388040dd1aaaf21c2))
+* **rf82-rf94-mod6:** modulo financiero NIC 41 con cierre de periodo y comprobante ([198c523](https://github.com/Arekkazu/sgpmp-backend/commit/198c5233e31c827701b40a8fbce823bb69e915ff))
+* **rf83-rf86-mod6:** nucleo de calculo NIC 41 en dominio puro ([1ed524a](https://github.com/Arekkazu/sgpmp-backend/commit/1ed524ac9a45074213cb925ac1acbc228974ac93))
+
+### Bug Fixes
+
+* **rf79-mod5:** la provision incremental a M06 lleva la fecha del consumo ([1294770](https://github.com/Arekkazu/sgpmp-backend/commit/1294770e830d13c3aa54347da35ed7d9ba40b0b2))
+* **rf82-mod6:** Bearer sin hallazgos criticos en las ayudas SQL de M06 (CWE-89) ([5e19939](https://github.com/Arekkazu/sgpmp-backend/commit/5e199397534d9fc85a66ed0882ce4469057d5fbf))
+* **rf92-mod6:** los precios de referencia del informe citan NIIF 13 parr. 93, no el parr. 48 derogado ([27f0dce](https://github.com/Arekkazu/sgpmp-backend/commit/27f0dce90cd697e79214f1c68f0e54b491174cbd))
+
+## [1.4.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.45...v1.4.0-rc.46) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-69:** la versión de modelo trae el identificador del animal además del id ([e863e22](https://github.com/Arekkazu/sgpmp-backend/commit/e863e225c6298444f8ef595129e0532591e41b70))
+
 ## [1.4.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.44...v1.4.0-rc.45) (2026-11-03)
 
 ### Bug Fixes

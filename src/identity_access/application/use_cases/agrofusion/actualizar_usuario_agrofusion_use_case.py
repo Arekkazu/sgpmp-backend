@@ -1,0 +1,47 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | RF-SSO02: UPDATE_USER de AgroFusion sobre la edición administrativa de perfil |
+# | 2026-11-06 | Arekkazu | RF-SSO02: usuario por id o correo y roles como lista de ids |
+"""Caso de uso: actualización de un usuario pedida por AgroFusion (`UPDATE_USER`, RF-SSO02).
+
+Reutiliza la edición administrativa de perfil (RF-05) con el usuario del token de canal como
+quien edita: mismas reglas (formato de nombre y teléfono, no cambiar el propio rol, rol protegido)
+y misma auditoría. AgroFusion no conoce la ``version`` del usuario en SGPMP, así que se toma la
+vigente; los campos que no envía se conservan. El correo no se cambia por esta vía (es la llave
+con la que AgroFusion identifica al usuario)."""
+from __future__ import annotations
+
+from pydantic import ValidationError as ErrorPydantic
+
+from src.identity_access.application.use_cases.agrofusion.comun import rol_solicitado, usuario_por_identificador
+from src.identity_access.application.use_cases.perfil.editar_perfil_use_case import EditarPerfilUseCase
+from src.identity_access.domain.entities.usuario import Usuario
+from src.identity_access.domain.repositories.rol_repository import RolRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
+from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.identity_access.infrastructure.dto.agrofusion_dto import AgroFusionUpdateUserDTO
+from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
+from src.shared.errors import ValidationError
+
+
+class ActualizarUsuarioAgroFusionUseCase:
+    def __init__(self, usuarios_repo: UsuarioRepository, roles_repo: RolRepository, editar_perfil: EditarPerfilUseCase):
+        self.usuarios_repo = usuarios_repo
+        self.roles_repo = roles_repo
+        self.editar_perfil = editar_perfil
+
+    def execute(self, identificador: str, dto: AgroFusionUpdateUserDTO, usuario_actual: UsuarioActual) -> Usuario:
+        """``identificador``: el id de SGPMP que AgroFusion pone en ``{user_id}``, o el correo."""
+        usuario = usuario_por_identificador(self.usuarios_repo, identificador)
+        id_rol = rol_solicitado(self.roles_repo, dto.roles, dto.rol_codigo)
+        if id_rol == usuario.id_rol:
+            id_rol = None  # sin cambio de rol
+        try:
+            cambios = EditarPerfilAdminDTO(
+                nombre=dto.nombre or usuario.nombre, apellidos=dto.apellidos or usuario.apellidos,
+                telefono=dto.telefono, direccion=dto.direccion, id_rol=id_rol, version=usuario.version)
+        except ErrorPydantic as exc:
+            error = exc.errors()[0]
+            raise ValidationError(code="VAL_ENTRADA", field=str(error["loc"][-1]),
+                                  message=str(error["msg"]).removeprefix("Value error, ")) from exc
+        return self.editar_perfil.execute(usuario.id_usuario, cambios, usuario_actual)
