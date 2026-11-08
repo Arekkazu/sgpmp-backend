@@ -1,0 +1,381 @@
+{
+  "caso": "TC-M06-G83",
+  "rf": [
+    "RF-90",
+    "RF-87"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T09:26:08.767585+00:00",
+  "contrato": "POST /finanzas/costos y POST /finanzas/periodos/{id}/cierre están publicados. El Contador registra y clasifica costos y puede ejecutar el cierre. El Administrador y el Revisor Fiscal consultan el cierre. Una fecha que cae en un período CERRADO no se guarda allí: el sistema busca el primer período ABIERTO posterior y, como esa fecha no le pertenece, responde 422 PERIODO_CONTABLE_CERRADO antes del INSERT. Si no hubiera un período abierto posterior, la búsqueda podría crear uno; por eso este script no envía el costo en ese caso. Un subtipo OTRO sin naturaleza queda PENDIENTE_CLASIFICACION. GET /finanzas/periodos/{id}/prevalidacion informa COSTOS_PENDIENTE_CLASIFICACION. El POST de cierre, si hay bloqueos, responde 422 CIERRE_BLOQUEADO antes de pasar el período a EN_CIERRE. Si no hay bloqueos, el cierre sí cambia el período. Esa operación no se envía. La clasificación es POST /finanzas/costos/{id}/clasificacion y tampoco se envía.",
+  "periodos": [
+    {
+      "id": 8,
+      "estado": "ABIERTO",
+      "inicio": "2026-12-01",
+      "fin": "2026-12-31"
+    },
+    {
+      "id": 7,
+      "estado": "CERRADO",
+      "inicio": "2026-11-01",
+      "fin": "2026-11-30"
+    },
+    {
+      "id": 1,
+      "estado": "ABIERTO",
+      "inicio": "2026-05-10",
+      "fin": "2026-05-11"
+    },
+    {
+      "id": 2,
+      "estado": "CERRADO",
+      "inicio": "2026-05-10",
+      "fin": "2026-06-10"
+    },
+    {
+      "id": 6,
+      "estado": "ABIERTO",
+      "inicio": "2024-10-01",
+      "fin": "2024-12-31"
+    },
+    {
+      "id": 5,
+      "estado": "CERRADO",
+      "inicio": "2024-07-01",
+      "fin": "2024-09-30"
+    },
+    {
+      "id": 4,
+      "estado": "CERRADO",
+      "inicio": "2024-04-01",
+      "fin": "2024-06-30"
+    },
+    {
+      "id": 3,
+      "estado": "CERRADO",
+      "inicio": "2024-01-01",
+      "fin": "2024-03-31"
+    }
+  ],
+  "costos": {
+    "total": 2,
+    "estados": {
+      "REGISTRADO": 2
+    },
+    "subtipos": {
+      "MEDICAMENTO": 1,
+      "ALIMENTO": 1
+    },
+    "otro_pendiente": 0
+  },
+  "prevalidaciones": [
+    {
+      "puede_cerrar": true,
+      "codigos": [],
+      "activos_sin_precio": 0,
+      "lineas_sin_trazabilidad": 1,
+      "id_periodo": 8
+    },
+    {
+      "puede_cerrar": true,
+      "codigos": [],
+      "activos_sin_precio": 0,
+      "lineas_sin_trazabilidad": 0,
+      "id_periodo": 1
+    },
+    {
+      "puede_cerrar": true,
+      "codigos": [],
+      "activos_sin_precio": 0,
+      "lineas_sin_trazabilidad": 0,
+      "id_periodo": 6
+    }
+  ],
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-37",
+      "estado": "APROBADO",
+      "motivo": "La fecha 2026-11-01 pertenece al período cerrado 7. El registro respondió 422 PERIODO_CONTABLE_CERRADO. Los costos, la auditoría y el valor en libros quedaron iguales.",
+      "post": {
+        "http": 422,
+        "code": "PERIODO_CONTABLE_CERRADO",
+        "periodo": 7,
+        "fecha": "2026-11-01"
+      },
+      "sin_persistencia": true
+    },
+    {
+      "subcaso": "TC-M06-41",
+      "estado": "BLOQUEADO",
+      "cierre_ejecutado": false,
+      "otro_pendiente": 0,
+      "motivo": "No se envió el cierre. No existe un costo OTRO pendiente en un período aislado. La prevalidación de los períodos abiertos se consultó sin modificarlos."
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 775,
+      "escritura": false,
+      "en": "2026-11-08T09:26:09.542513+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "duracion_ms": 1244,
+      "escritura": false,
+      "en": "2026-11-08T09:26:10.787023+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "/finanzas/costos": [
+          "get",
+          "post"
+        ],
+        "/finanzas/periodos/{id_periodo_contable}/cierre": [
+          "post"
+        ],
+        "/finanzas/periodos/{id_periodo_contable}/prevalidacion": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "duracion_ms": 405,
+      "escritura": false,
+      "en": "2026-11-08T09:26:11.192515+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 8,
+        "estados": {
+          "ABIERTO": 3,
+          "CERRADO": 5
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 429,
+      "escritura": false,
+      "en": "2026-11-08T09:26:11.622000+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "estados": {
+          "REGISTRADO": 2
+        },
+        "subtipos": {
+          "MEDICAMENTO": 1,
+          "ALIMENTO": 1
+        },
+        "otro_pendiente": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?subtipo_costo=OTRO",
+      "codigo": 200,
+      "duracion_ms": 384,
+      "escritura": false,
+      "en": "2026-11-08T09:26:12.005638+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 0,
+        "estados": {},
+        "subtipos": {},
+        "otro_pendiente": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?estado=PENDIENTE_CLASIFICACION",
+      "codigo": 200,
+      "duracion_ms": 406,
+      "escritura": false,
+      "en": "2026-11-08T09:26:12.411553+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 0,
+        "estados": {},
+        "subtipos": {},
+        "otro_pendiente": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 417,
+      "escritura": false,
+      "en": "2026-11-08T09:26:12.828535+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951",
+      "codigo": 200,
+      "duracion_ms": 407,
+      "escritura": false,
+      "en": "2026-11-08T09:26:13.235776+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "valor_contable_por_costo": "4200000.0000"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos/8/prevalidacion",
+      "codigo": 200,
+      "duracion_ms": 510,
+      "escritura": false,
+      "en": "2026-11-08T09:26:13.746132+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "puede_cerrar": true,
+        "codigos": [],
+        "activos_sin_precio": 0,
+        "lineas_sin_trazabilidad": 1,
+        "id_periodo": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos/1/prevalidacion",
+      "codigo": 200,
+      "duracion_ms": 443,
+      "escritura": false,
+      "en": "2026-11-08T09:26:14.189137+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "puede_cerrar": true,
+        "codigos": [],
+        "activos_sin_precio": 0,
+        "lineas_sin_trazabilidad": 0,
+        "id_periodo": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos/6/prevalidacion",
+      "codigo": 200,
+      "duracion_ms": 395,
+      "escritura": false,
+      "en": "2026-11-08T09:26:14.583934+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "puede_cerrar": true,
+        "codigos": [],
+        "activos_sin_precio": 0,
+        "lineas_sin_trazabilidad": 0,
+        "id_periodo": 6
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 422,
+      "duracion_ms": 404,
+      "escritura": false,
+      "en": "2026-11-08T09:26:14.987963+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": 100,
+        "fecha_costo": "2026-11-01",
+        "id_activo_biologico": 951
+      },
+      "respuesta": {
+        "error_code": "PERIODO_CONTABLE_CERRADO",
+        "message": "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto.",
+        "fields": [
+          {
+            "field": "fecha_costo",
+            "message": "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto."
+          }
+        ],
+        "timestamp": "2026-11-08T09:26:14.738926+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 394,
+      "escritura": false,
+      "en": "2026-11-08T09:26:15.381936+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "estados": {
+          "REGISTRADO": 2
+        },
+        "subtipos": {
+          "MEDICAMENTO": 1,
+          "ALIMENTO": 1
+        },
+        "otro_pendiente": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 402,
+      "escritura": false,
+      "en": "2026-11-08T09:26:15.783716+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951",
+      "codigo": 200,
+      "duracion_ms": 430,
+      "escritura": false,
+      "en": "2026-11-08T09:26:16.214264+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "valor_contable_por_costo": "4200000.0000"
+      }
+    }
+  ],
+  "hallazgos": [
+    "BLOQUEO DE PRUEBA: no hay un período aislado con un costo OTRO pendiente, y el cierre de un período compartido puede dejarlo EN_CIERRE."
+  ],
+  "aprobados": 1,
+  "rechazados": 0,
+  "bloqueados": 1,
+  "porcentaje_aprobacion": 50,
+  "rutas": {
+    "/finanzas/costos": [
+      "get",
+      "post"
+    ],
+    "/finanzas/periodos/{id_periodo_contable}/cierre": [
+      "post"
+    ],
+    "/finanzas/periodos/{id_periodo_contable}/prevalidacion": true
+  },
+  "analisis": "# TC-M06-G83\n\nNo se usó SQL local.\n\n- TC-M06-37: APROBADO. La fecha 2026-11-01 pertenece al período cerrado 7. El registro respondió 422 PERIODO_CONTABLE_CERRADO. Los costos, la auditoría y el valor en libros quedaron iguales.\n- TC-M06-41: BLOQUEADO. Costos OTRO pendientes leídos: 0. El cierre no se ejecutó.\n",
+  "duracion_ms": 7447
+}
