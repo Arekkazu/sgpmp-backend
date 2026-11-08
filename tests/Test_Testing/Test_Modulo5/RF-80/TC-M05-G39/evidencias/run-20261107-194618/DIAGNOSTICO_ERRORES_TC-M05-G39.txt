@@ -1,0 +1,153 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES: TC-M05-G39
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnostico: 2026-11-07 20:10:00 (America/Bogota)
+Casos Afectados: TC-M05-092, TC-M05-093, TC-M05-094 (Agrupados: 028, 029, 030)
+
+--------------------------------------------------------------------------------
+ERROR 1: G39-A02 (TC-M05-092 / 028) - Eventos Incompletos con detalle_causa Nulo
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Consulta directa en base de datos:
+     SELECT id_auditoria_suministro, tipo_operacion, entidad_afectada, fecha_evento, 
+            registro_incompleto, detalle_causa
+     FROM modulo5.auditorias_suministros WHERE id_auditoria_suministro IN (87, 88, 89);
+   - Registros obtenidos:
+     * Id 87: CICLO_CONSOLIDADO | provision_nic41 | fecha: 2026-07-31 | registro_incompleto=true | detalle_causa=null
+     * Id 88: REPORTE_COSTOS_GENERADO | provision_nic41 | fecha: 2026-07-31 | registro_incompleto=true | detalle_causa=null
+     * Id 89: REPORTE_COSTOS_GENERADO | provision_nic41 | fecha: 2026-07-31 | registro_incompleto=true | detalle_causa=null
+   - Conteo global: Existen exactamente 3 registros incompletos en toda la tabla; 0 posteriores al 89.
+   - Peticion API: GET /suministros/auditoria/87 devuelve {"registro_incompleto": true, "detalle_causa": null}.
+   - Comparacion BD vs API: Son exactamente identicos. La API no pierde el dato; la columna en BD es null.
+2. Ruta de codigo completa (Inferencia contrastada):
+   - Caso de Uso Emisor: src/supplies/application/use_cases/provision_nic41/consolidar_ciclo_use_case.py:146-154
+     self.auditoria_port.registrar(EventoAuditoriaSuministro(
+         entidad_afectada="provision_nic41",
+         tipo_operacion=TipoEventoAuditoriaSuministro.CICLO_CONSOLIDADO.value,
+         ...
+         registro_incompleto=guardada.es_reporte_potencialmente_incompleto
+         # NOTA: no se pasa detalle_causa, por lo que toma el valor por defecto None
+     ))
+   - Puerto DTO: src/supplies/domain/repositories/auditoria_suministro_port.py:35 (detalle_causa: Optional[str] = None)
+   - Adaptador Repositorio: src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:45
+     AuditoriaSuministroModel(detalle_causa=evento.detalle_causa, ...) -> inserta NULL.
+   - Modelo ORM: src/supplies/infrastructure/models/auditoria_suministro_model.py:67 (detalle_causa: Mapped[Optional[str]])
+   - Router Consulta: src/supplies/infrastructure/routers/auditoria_suministros_router.py:86
+   - Schema Pydantic: src/supplies/infrastructure/schema/auditoria_suministro_schema.py:35
+3. Hipotesis y contrastacion:
+   - H1: Error de mapeo en el DTO/Schema de respuesta de la API. DESCARTADA: La BD tiene NULL fisico en la columna.
+   - H2: Datos historicos sembrados en julio 2026 con codigo anterior. CONFIRMADA PARCIALMENTE: Las filas son de 2026-07-31.
+   - H3: El codigo actual continua omitiendo detalle_causa al marcar incompletitud. CONFIRMADA: En consolidar_ciclo_use_case.py:152
+     se pasa registro_incompleto sin asignar detalle_causa.
+4. Causa mas probable, clasificacion y causa raiz compartida:
+   - Causa Mas Probable: Omision en la llamada al puerto de auditoria dentro de consolidar_ciclo_use_case.py,
+     dejando detalle_causa nulo cuando es_reporte_potencialmente_incompleto es True.
+   - Clasificacion: Defecto de Producto combinado con Datos Historicos.
+   - Causa Raiz Compartida: Omision de texto explicativo en constructores de EventoAuditoriaSuministro.
+5. Posible solucion (Desarrollo):
+   - En consolidar_ciclo_use_case.py:
+     detalle_causa = (
+         f"Campos faltantes: {guardada.motivo_incompletitud}"
+         if guardada.es_reporte_potencialmente_incompleto else None
+     )
+     y pasarlo explicitamente al instanciar EventoAuditoriaSuministro.
+6. Criterio de re-prueba:
+   - Consolidar un ciclo con datos parciales y verificar que el evento generado en modulo5.auditorias_suministros
+     tenga registro_incompleto=true y detalle_causa con texto descriptivo no vacio.
+
+--------------------------------------------------------------------------------
+ERROR 2: G39-B02 (TC-M05-093 / 029) - 405 sin Evento de Seguridad en Bitacora
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Peticiones de prueba: PUT, PATCH, DELETE sobre /suministros/auditoria y /suministros/auditoria/{id}.
+   - Respuesta HTTP: 405 Method Not Allowed con cuerpo {"detail": "Method Not Allowed"}.
+   - Fila evaluada y hash_integridad: Permanecieron intactos (inmutabilidad preservada a nivel HTTP).
+   - Consulta de seguridad: SELECT count(*) FROM modulo5.auditorias_suministros WHERE resultado = 'RECHAZADO';
+   - Resultado: 0 eventos registrados. Tampoco se registraron eventos en modulo1.eventos.
+2. Ruta de codigo completa (Inferencia contrastada):
+   - Capa de Enrutamiento: Starlette Routing Engine (starlette.routing.Router.matches).
+   - Al encontrar coincidencia de ruta pero verbo no registrado, Starlette lanza:
+     starlette.exceptions.HTTPException(status_code=405, detail="Method Not Allowed")
+   - Handlers globales: src/shared/error_handlers.py:register_error_handlers:386-399.
+     No existe un exception handler registrado para HTTPException ni para codigo 405.
+   - La peticion es abortada por el framework antes de que se instancie ningun router, use case ni sesion de BD.
+3. Hipotesis y contrastacion:
+   - H1: Un middleware de auditoria intercepta y audita el 405 pero la BD falla. DESCARTADA: No existe tal middleware
+     en src/shared/middlewares.py.
+   - H2: El 405 lo emite Starlette de forma nativa sin pasar por el codigo de la aplicacion. CONFIRMADA: Starlette
+     resuelve el ruteo a nivel de framework ASGI antes de invocar las dependencias de FastAPI.
+4. Causa mas probable, clasificacion y causa raiz compartida:
+   - Causa Mas Probable: Inexistencia de un manejador de excepciones para HTTP 405 que capture y audite intentos
+     de mutacion en endpoints protegidos.
+   - Clasificacion: Defecto de Producto / Brecha de Auditoria de Seguridad.
+   - Causa Raiz Compartida: Ausencia de auditoria transversal de seguridad para eventos HTTP 403 y 405
+     (compartida con G38-C02).
+5. Posible solucion (Desarrollo):
+   - En src/shared/error_handlers.py: Registrar un handler para HTTPException de Starlette:
+     @app.exception_handler(HTTPException)
+     async def http_exception_handler(request: Request, exc: HTTPException):
+         if exc.status_code == 405 and request.url.path.startswith("/suministros/auditoria"):
+             _auditar_intento_mutacion_seguridad(request)
+         return JSONResponse(status_code=exc.status_code, content={"error_code": "METODO_NO_PERMITIDO", "message": exc.detail})
+6. Criterio de re-prueba:
+   - Enviar PUT /suministros/auditoria y verificar que la respuesta sea 405 y se inserte 1 evento en la bitacora
+     con resultado='RECHAZADO' y tipo_operacion='INTENTO_MODIFICACION_NO_PERMITIDO'.
+
+--------------------------------------------------------------------------------
+ERROR 3: G39-C01 (TC-M05-094 / 030) - Ausencia de id_evento_m05 (Deduplicacion)
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Consulta a information_schema.columns en la base de datos viva:
+     SELECT column_name, data_type FROM information_schema.columns 
+     WHERE table_schema = 'modulo5' AND table_name = 'auditorias_suministros';
+   - Resultado: 23 columnas encontradas. La columna id_evento_m05 NO existe.
+   - Consulta a indices:
+     SELECT indexname, indexdef FROM pg_indexes 
+     WHERE schemaname = 'modulo5' AND tablename = 'auditorias_suministros';
+   - Resultado: Unicamente la PK serial auditorias_suministros_pkey y 5 indices no unicos (por entidad, fecha,
+     gestion_fases, usuario, tipo_operacion). No hay ningun indice UNIQUE de deduplicacion ni tabla dedup.
+   - Peticion API: GET /suministros/auditoria/{id} retorna el objeto sin la propiedad id_evento_m05.
+2. Ruta de codigo completa (Inferencia contrastada):
+   - Base de Datos / DDL: alembic/baseline/esquema_baseline.sql:25595-25619 (tabla sin columna UUID)
+   - Modelo ORM: src/supplies/infrastructure/models/auditoria_suministro_model.py:48-70
+   - Entidad Dominio: src/supplies/domain/entities/evento_auditoria_suministro.py:16-40
+   - DTO / Schema: src/supplies/infrastructure/schema/auditoria_suministro_schema.py:13-38
+3. Hipotesis y contrastacion:
+   - H1: El campo se llama diferente (ej. id_idempotencia). DESCARTADA: id_idempotencia pertenece a registro_suministro,
+     pero no se propaga a la tabla modulo5.auditorias_suministros.
+   - H2: id_evento_m05 nunca fue modelado ni migrado. CONFIRMADA: Ni en alembic, ni en los modelos, ni en los puertos
+     existe referencia a este UUID. La arquitectura actual confia unicamente en id_auditoria_suministro (entero secuencial).
+4. Causa mas probable, clasificacion y causa raiz compartida:
+   - Causa Mas Probable: Omision arquitectonica del mecanismo de deduplicacion at-least-once hacia M12.
+   - Clasificacion: Defecto de Producto.
+   - Causa Raiz Compartida: Inexistencia de la capa y protocolo de integracion asincrona con M12
+     (compartida con G40-A01).
+5. Posible solucion (Desarrollo):
+   - Migracion Alembic: ALTER TABLE modulo5.auditorias_suministros ADD COLUMN id_evento_m05 UUID NOT NULL DEFAULT gen_random_uuid();
+   - Crear restriccion UNIQUE: CREATE UNIQUE INDEX uq_auditorias_suministros_evento_m05 ON modulo5.auditorias_suministros (id_evento_m05);
+   - Actualizar AuditoriaSuministroModel, EventoAuditoriaSuministro y EventoAuditoriaSuministroResponse.
+6. Criterio de re-prueba:
+   - Consultar GET /suministros/auditoria/{id} y verificar que id_evento_m05 este presente y contenga un UUID valido.
+
+--------------------------------------------------------------------------------
+ASPECTO ADICIONAL: G39-B03 (TC-M05-093 / 029) - Formula de Hash y Campos Excluidos
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Definicion de la funcion en catalogo pg_proc:
+     NEW.hash_integridad := encode(digest((
+       SELECT string_agg(format('%I=%L', key, value), ' & ' ORDER BY key)
+       FROM jsonb_each_text(to_jsonb(NEW) - 'hash_integridad' - 'creado_en' - 'id_registro_suministro')
+     ), 'sha256'), 'hex');
+   - Consulta a columnas de modulo5.auditorias_suministros:
+     Las columnas 'creado_en' e 'id_registro_suministro' NO existen en la tabla.
+2. Analisis de impacto:
+   - En PostgreSQL, restar claves inexistentes a un objeto JSONB (to_jsonb(NEW) - 'creado_en') es una operacion inocua (no-op).
+   - Por tanto, la funcion incluye TODOS los campos reales existentes en la fila ordenados alfabeticamente.
+   - La inclusion en la definicion obedece a copia de plantilla de trigger de otra tabla (ej. registro_suministro).
+   - Verificacion de integridad: Se comprobo que recalcular el SHA-256 en Python sobre los campos reales coincide al 100%
+     con el valor almacenado en BD.
+   - Inexistencia de verificacion periodica: No existe en catalogo de BD ni en el backend ningun cron, job ni funcion
+     programada para recalcular periodicamente los hashes (CA-9, RNF-06).
+   - Clasificacion: Deuda tecnica menor en DDL (inocua para el calculo del hash actual).
+

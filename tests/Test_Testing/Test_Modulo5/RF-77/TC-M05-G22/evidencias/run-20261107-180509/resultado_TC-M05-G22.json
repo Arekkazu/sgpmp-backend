@@ -1,0 +1,83 @@
+{
+  "tc": "TC-M05-G22",
+  "summary": {
+    "total": 12,
+    "ok": 12,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base de historial del Administrador y setup de activo",
+      "esperado": "HTTP 200 en GET /suministros/reportes-gastos/historial, activo individual creado con ciclo en 2025-08-01",
+      "obtenido": "HTTP 200 en consulta de historial de Administrador y activo QA con ciclo antiguo creado exitosamente. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Rango de fechas invertido (inicio > fin, E2)",
+      "esperado": "HTTP 400, error_code 'RANGO_FECHAS_INVALIDO' y el historial de reportes no crece",
+      "obtenido": "HTTP 400 'RANGO_FECHAS_INVALIDO' obtenido; historial inalterado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Rango con fecha de fin futura (mañana, Restr. 2)",
+      "esperado": "HTTP 400, error_code 'FECHA_FIN_FUTURA' y el historial de reportes no crece",
+      "obtenido": "HTTP 400 'FECHA_FIN_FUTURA' obtenido ante fecha de fin de mañana; historial inalterado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Fecha de inicio anterior al ciclo productivo (E3)",
+      "esperado": "HTTP 400, error_code 'FECHA_INICIO_ANTERIOR_CICLO' y el historial de reportes no crece",
+      "obtenido": "HTTP 400 'FECHA_INICIO_ANTERIOR_CICLO' obtenido; historial inalterado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Activo biológico sin ciclo productivo registrado (E7)",
+      "esperado": "HTTP 422, error_code 'ACTIVO_SIN_CICLO' y el historial de reportes no crece",
+      "obtenido": "HTTP 422 'ACTIVO_SIN_CICLO' obtenido sobre activo 9 (fecha_inicio_ciclo null); historial inalterado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 Consulta agregada sin rango de fechas obligatorio (E9)",
+      "esperado": "HTTP 400, error_code 'VAL_ENTRADA' y el historial de reportes no crece",
+      "obtenido": "HTTP 400 'VAL_ENTRADA' obtenido ante consulta agregada sin rango de fechas; historial inalterado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Límite síncrono para activo individual de 12 meses (<= 366 días)",
+      "esperado": "HTTP 200 síncrono en tiempo <= 12 s (CA-7 / RNF)",
+      "obtenido": "Reporte individual de 12 meses respondió HTTP 200 síncrono en <= 12 s con id_reporte_gasto_acumulado generado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Umbral asíncrono para activo individual que supera 12 meses (E4)",
+      "esperado": "HTTP 202 con id_cola, estado 'PENDIENTE' y mensaje explicativo del procesamiento asíncrono",
+      "obtenido": "Reporte individual de 380 días (> 12 meses) respondió HTTP 202 con id_cola y estado PENDIENTE. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Límite síncrono para consulta agregada de 6 meses (<= 183 días)",
+      "esperado": "HTTP 200 síncrono en tiempo <= 12 s (Restr. 13)",
+      "obtenido": "Consulta agregada de 6 meses respondió HTTP 200 síncrono en <= 12 s con id_reporte_gasto_acumulado generado. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04 Umbral asíncrono para consulta agregada que supera 6 meses (E8)",
+      "esperado": "HTTP 202 con id_cola, estado 'PENDIENTE' y mensaje explicativo del procesamiento asíncrono",
+      "obtenido": "Consulta agregada de 196 días (> 6 meses) respondió HTTP 202 con id_cola y estado PENDIENTE. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre ordenado de sandbox Administrador",
+      "esperado": "DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Verificación de inocuidad final e integridad de la base",
+      "esperado": "Historial de reportes del Administrador fuera de sandbox coincide exactamente con la línea base capturada en T00 (0 efectos persistidos)",
+      "obtenido": "Verificación sin sandbox completada; historial final coincide 100% con línea base (0 efectos persistidos). Estado: OK.",
+      "estado": "OK"
+    }
+  ]
+}

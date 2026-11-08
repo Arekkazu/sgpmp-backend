@@ -1,0 +1,97 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES (v2): TC-M05-G40
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnóstico: 2026-11-07 20:59:00 (America/Bogota)
+Caso Evaluado: TC-M05-095 (Plano) / TC-M05-031 (Agrupado)
+Subcaso Afectado: G40-A01 — Resiliencia ante Caída del Repositorio de Auditoría, Cola y Latencia
+
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+--------------------------------------------------------------------------------
+- Consulta al catálogo relacional PostgreSQL (information_schema.tables):
+  SELECT table_schema, table_name FROM information_schema.tables 
+  WHERE table_schema = 'modulo5' AND table_name IN ('cola_auditoria', 'buffer_auditoria', 'cola_eventos_m12', 'outbox_auditorias');
+  Resultado observado: 0 filas (ninguna tabla de buffer, outbox ni cola persistente).
+- Inspección de dependencias y código fuente Python:
+  No existen clientes ni configuración de brokers externos de mensajería (RabbitMQ, Kafka, Celery o Redis) en el backend para la auditoría de M05.
+- Muestreo de latencia en 20 llamadas secuenciales a POST /suministros/costeo-directo:
+  * Total de muestras: 20 peticiones
+  * Latencia mínima: 128.68 ms
+  * Latencia mediana (p50): 140.09 ms
+  * Latencia percentil 95 (p95): 250.02 ms
+  * Latencia máxima: 250.02 ms
+- Criterio normativo (Precondición 3, Restricción 6, Restricción 7, RNF-02, RNF-07 / TC-M05-095 / 031):
+  La especificación exige la existencia de una cola persistente o buffer de desacoplamiento entre M05 y M12 con capacidad configurable de hasta 100.000 eventos para garantizar la resiliencia operativa y evitar que una indisponibilidad o degradación del repositorio de auditoría afecte el registro de suministros.
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+--------------------------------------------------------------------------------
+- Router HTTP:
+  [INFERENCIA] src/supplies/infrastructure/routers/costeo_suministros_router.py:48-69.
+- Caso de Uso:
+  [INFERENCIA] src/supplies/application/use_cases/costeo_suministros/registrar_suministro_directo_use_case.py:253-262:
+  * Línea 259: `guardado = self.registro_repo.guardar(entidad)`
+  * Línea 260: `self.movimiento.registrar(...)`
+  * Línea 261: `self.db.commit()`
+- Módulo Ledger:
+  [INFERENCIA] src/supplies/application/use_cases/costeo_suministros/movimiento_ledger.py:53-73.
+  Invoca sincrónicamente `self.auditoria_port.registrar(EventoAuditoriaSuministro(...))`.
+- Adaptador de Auditoría:
+  [INFERENCIA] src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:33-56:
+  * Línea 54: `self.db.add(orm)`
+  * Línea 55: `self.db.flush()`
+- Acoplamiento Arquitectónico Transaccional:
+  La auditoría se ejecuta sincrónicamente en la MISMA sesión SQLAlchemy y en la MISMA transacción de PostgreSQL que la operación de suministro. No existe desacoplamiento asíncrono ni cola intermedia; un fallo en la persistencia de auditoría revierte el registro de suministro completo.
+
+3. HIPOTESIS Y CONTRASTACION
+--------------------------------------------------------------------------------
+- Hipótesis 1: La cola de 100.000 eventos está soportada en memoria de proceso (ej. asyncio.Queue).
+  [DESCARTADA]: No existe cola en memoria en los use cases; además, una cola en memoria no cumpliría la exigencia de persistencia ante reinicio del contenedor o fallo de proceso.
+- Hipótesis 2: Existe un broker externo configurado vía variables de entorno.
+  [DESCARTADA]: No existen variables de entorno ni librerías de conexión (pika, confluent-kafka, celery, redis) utilizadas en la persistencia de auditoría de M05.
+- Hipótesis 3: La arquitectura implementada es monolítica sincrónica directa hacia PostgreSQL.
+  [CONFIRMADA]: M05 escribe directamente en `modulo5.auditorias_suministros` mediante SQLAlchemy dentro de la transacción principal.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ COMPARTIDA
+--------------------------------------------------------------------------------
+- Causa Más Probable: Inexistencia de la infraestructura de colas y desacoplamiento asíncrono para eventos de auditoría hacia M12.
+- Clasificación: Defecto de Producto (Arquitectura Incompleta).
+- Causa Raíz Compartida: Inexistencia de la capa de mensajería y eventos distribuidos para M12 (compartida con G39-C01 sobre id_evento_m05).
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+--------------------------------------------------------------------------------
+- Implementar el patrón Transactional Outbox:
+  1. Crear la tabla `modulo5.outbox_auditorias_m12` (id_evento UUID, payload JSONB, estado, fecha_creacion, reintentos).
+  2. En el use case de costeo de suministros, persistir el registro de negocio y escribir el evento en el outbox dentro de la misma transacción local de BD (garantía ACID sin bloqueo externo).
+  3. Desplegar un proceso worker desacoplado (servicio en segundo plano o daemon) que lea eventos de `modulo5.outbox_auditorias_m12` y los envíe al bus de auditoría hacia M12, implementando:
+     * Capacidad configurable para retener hasta 100.000 eventos pendientes.
+     * Retención FIFO de 48 horas.
+     * Alertas de monitoreo al alcanzar el 90% (90.000 eventos) y 100% de saturación.
+
+6. CRITERIO DE RE-PRUEBA
+--------------------------------------------------------------------------------
+- Verificar la existencia de la tabla o cola persistente con capacidad para 100.000 eventos.
+- Simular la caída del receptor de auditoría o de la conexión hacia M12.
+- Registrar un suministro y comprobar que la llamada responda HTTP 200 en tiempo normal, persistiendo el evento en el buffer persistente con estado PENDIENTE sin abortar la transacción de suministro.
+
+================================================================================
+BORRADOR DE INCIDENTE FORMAL
+================================================================================
+INC-ID: INC-M05-G40-01
+Título: Inexistencia de cola persistente / buffer de desacoplamiento para auditoría hacia M12
+Módulo: Módulo 5 (Suministros y Alimentación)
+Categoría: INFRAESTRUC
+Severidad: Critico
+Casos Afectados: TC-M05-095 (Plano) / TC-M05-031 (Agrupado)
+Normativa: RF-80 Precondición 3, Restricción 6, Restricción 7, RNF-02, RNF-07
+Descripción:
+El backend carece de una cola persistente, buffer outbox o broker de mensajería (RabbitMQ, Kafka o Celery) con capacidad configurable para 100.000 eventos entre M05 y M12. La auditoría se realiza de forma directa y sincrónica en la tabla modulo5.auditorias_suministros dentro de la misma transacción de negocio, generando un acoplamiento crítico donde una caída o degradación del subsistema de auditoría bloquea o revierte las operaciones operativas de registro de suministros.
+Pasos para Reproducir:
+1. Inspeccionar las tablas del esquema modulo5 en PostgreSQL.
+2. Comprobar que no existe ninguna tabla de cola persistente ni outbox.
+3. Inspeccionar el flujo en registrar_suministro_directo_use_case.py y movimiento_ledger.py.
+4. Constatar que la llamada a auditoria_port.registrar ejecuta flush() en la misma sesión y transacción de base de datos.
+Resultado Esperado: Existencia de cola persistente con capacidad para 100.000 eventos y desacoplamiento de auditoría.
+Resultado Obtenido: Total ausencia de cola persistente y dependencia sincrónica en memoria.
+Impacto: Vulnerabilidad crítica de disponibilidad; una degradación en la persistencia de auditoría paraliza inmediatamente el registro operativo de suministros en campo.
+================================================================================
+
