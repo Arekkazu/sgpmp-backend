@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: fases, códigos y efectos del RF    |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: auditar rechazos de negocio sin conservar escrituras parciales. |
 """Caso de uso: registrar un suministro en el ledger de RF-78.
 
 Orden (RF-78): Fase 3 idempotencia (E8 → 200 YA_PROCESADO) → tipo de
@@ -23,6 +24,7 @@ RF-79) los emite :class:`RegistradorMovimientoLedger`.
 """
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from datetime import date
@@ -42,11 +44,12 @@ from src.shared.errors import (
 from src.shared.fechas import fecha_usuario, hoy_usuario
 from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
 from src.supplies.domain.entities.registro_suministro_directo import RegistroSuministroDirecto
+from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
 from src.supplies.domain.repositories.auditoria_suministro_port import (
     AuditoriaSuministroPort,
     EventoAuditoriaSuministro,
 )
-from src.supplies.domain.repositories.ciclo_abierto_port import CicloAbiertoPort
+from src.supplies.domain.repositories.ciclo_abierto_port import CicloAbierto, CicloAbiertoPort
 from src.supplies.domain.repositories.registro_suministro_repository import RegistroSuministroRepository
 from src.supplies.domain.services.politica_naturaleza_costo import resolver_naturaleza_costo
 from src.supplies.domain.value_objects.eventos_auditoria_suministro_enums import (
@@ -66,6 +69,20 @@ _ESCALA_PRECIO = Decimal("0.01")
 # vez de InfrastructureError, así que el reintento tiene que cubrir ambos.
 _ERRORES_REINTENTABLES = (InfrastructureError, ServiceUnavailableError)
 _TIPOS_CON_FUENTE = {TipoSuministro.ALIMENTO.value: "rf75", TipoSuministro.MEDICAMENTO.value: "rf76"}
+_LOGGER = logging.getLogger(__name__)
+_MOTIVOS_RECHAZO = {
+    "CICLO_NO_ACTIVO": "El activo no tiene un ciclo productivo abierto.",
+    "TIPO_SUMINISTRO_NO_CONFIGURADO": "El tipo de suministro no está habilitado.",
+    "DATOS_SUMINISTRO_INCOMPLETOS": "Faltan datos obligatorios del suministro.",
+    "FECHA_FUERA_DE_RANGO": "La fecha está fuera del período permitido del ciclo.",
+    "SUMINISTRO_DUPLICADO": "Ya existe un suministro con el mismo contenido.",
+    "RECURSO_DUPLICADO": "El suministro coincide con un registro ya existente.",
+    "JUSTIFICACION_PRECIO_REQUERIDA": "Falta una justificación válida del precio manual.",
+    "JUSTIFICACION_PRECIO_MUY_LARGA": "La justificación del precio supera la longitud permitida.",
+    "COSTO_REGISTRO_INVALIDO": "La cantidad y el precio deben producir un costo mayor que cero.",
+    "REGISTRO_RF75_INVALIDO": "El consumo de alimento de origen no es válido para el activo.",
+    "REGISTRO_RF76_INVALIDO": "La aplicación de medicamento de origen no es válida para el activo.",
+}
 
 
 @dataclass(frozen=True)
@@ -104,15 +121,30 @@ class RegistrarSuministroDirectoUseCase:
         ciclo_port: CicloAbiertoPort,
         auditoria_port: AuditoriaSuministroPort,
         movimiento: RegistradorMovimientoLedger,
+        activo_port: ActivoConsultaPort,
     ) -> None:
         self.db = db
         self.registro_repo = registro_repo
         self.ciclo_port = ciclo_port
         self.auditoria_port = auditoria_port
         self.movimiento = movimiento
+        self.activo_port = activo_port
 
     def execute(
         self, dto: RegistrarSuministroDirectoDTO, usuario_actual: UsuarioActual
+    ) -> ResultadoRegistroDirecto:
+        contexto: dict[str, Optional[CicloAbierto]] = {}
+        try:
+            return self._ejecutar(dto, usuario_actual, contexto)
+        except (BusinessRuleError, ConflictError) as exc:
+            self._registrar_rechazo(dto, usuario_actual, exc, contexto.get("ciclo"))
+            raise
+
+    def _ejecutar(
+        self,
+        dto: RegistrarSuministroDirectoDTO,
+        usuario_actual: UsuarioActual,
+        contexto: dict[str, Optional[CicloAbierto]],
     ) -> ResultadoRegistroDirecto:
         # Fase 3 — idempotencia, ANTES de cualquier otra validación (E8).
         existente = self.registro_repo.existe_idempotente(dto.id_idempotencia)
@@ -132,6 +164,7 @@ class RegistrarSuministroDirectoUseCase:
 
         # Fase 1 — ciclo productivo activo (E1).
         ciclo = self.ciclo_port.obtener_abierto(dto.id_activo_biologico)
+        contexto["ciclo"] = ciclo
         if ciclo is None or ciclo.id_gestion_fases is None:
             raise ConflictError(
                 code="CICLO_NO_ACTIVO",
@@ -272,6 +305,57 @@ class RegistrarSuministroDirectoUseCase:
                 self.db.rollback()
                 raise
         raise ultimo_error  # pragma: no cover — inalcanzable, el loop siempre retorna o lanza
+
+    def _registrar_rechazo(
+        self,
+        dto: RegistrarSuministroDirectoDTO,
+        usuario_actual: UsuarioActual,
+        error: AppError,
+        ciclo: Optional[CicloAbierto],
+    ) -> None:
+        """Revierte el intento y confirma solo su evidencia en una nueva transacción.
+
+        La consulta del activo conserva la identidad/RLS de la sesión. No se
+        enlazan claves ajenas, inexistentes ni una fase inferida tras el rechazo.
+        Si la auditoría no está disponible se conserva el error de negocio y se
+        registra un diagnóstico seguro, sin afirmar una persistencia inexistente.
+        """
+        try:
+            self.db.rollback()
+            activo = self.activo_port.obtener(dto.id_activo_biologico)
+            ciclo_verificado = ciclo if activo is not None else None
+            motivo = _MOTIVOS_RECHAZO.get(error.code, "La operación incumple una regla de negocio.")
+            detalle = (
+                f"Registro de suministro rechazado: {motivo} "
+                f"Activo solicitado: {dto.id_activo_biologico}. Solicitud: {dto.id_idempotencia}."
+            )
+            incompleto = ciclo_verificado is None or ciclo_verificado.id_gestion_fases is None
+            if incompleto:
+                detalle += " No se pudo acreditar una fase productiva abierta para el intento."
+            self.auditoria_port.registrar(
+                EventoAuditoriaSuministro(
+                    entidad_afectada="registro_suministro",
+                    tipo_operacion=TipoEventoAuditoriaSuministro.REGISTRO_FALLIDO.value,
+                    id_usuario=usuario_actual.id_usuario,
+                    resultado=ResultadoAuditoriaSuministro.RECHAZADO.value,
+                    id_activo_biologico=activo.id_activo_biologico if activo is not None else None,
+                    id_ciclo_productivo=ciclo_verificado.id_ciclo_productivo if ciclo_verificado else None,
+                    id_gestion_fases=ciclo_verificado.id_gestion_fases if ciclo_verificado else None,
+                    detalle_causa=detalle,
+                    numero_reintentos=0,
+                    registro_incompleto=incompleto,
+                )
+            )
+            self.db.commit()
+        except Exception:
+            _LOGGER.error(
+                "No se pudo auditar el rechazo de suministro: usuario=%s solicitud=%s codigo=%s",
+                usuario_actual.id_usuario, dto.id_idempotencia, error.code,
+            )
+            try:
+                self.db.rollback()
+            except Exception:
+                _LOGGER.error("No se pudo revertir la transacción de auditoría de rechazo.")
 
     def _registrar_fallo(
         self, entidad: RegistroSuministroDirecto, usuario_actual: UsuarioActual, causa: str
