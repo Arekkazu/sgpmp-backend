@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88 A: propuesta de reconocimiento inicial (NIC 41 ¶10, ¶12, ¶26-27, ¶30) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
+# | 2026-11-08 | destroyerban | INC-M06-307-G11 RF-82: hecho menor a 0,01 se reconoce sin línea de asiento |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -15,7 +16,10 @@ Hechos que produce (RFC-018, catálogo cerrado de RF-86):
 - DONACION → ``RECONOCIMIENTO_NACIMIENTO`` (ingreso por reconocimiento inicial, sin factura).
 - TRANSFERENCIA_INTERNA → ``RECONOCIMIENTO_NACIMIENTO`` con sentido TRASLADO (activo contra la
   cuenta de traslado interno: no es un ingreso de la entidad).
-Sin precio de mercado y con costo documentado se aplica el modelo de costo (¶30, RF-88 escenario A)."""
+Sin precio de mercado y con costo documentado se aplica el modelo de costo (¶30, RF-88 escenario A).
+
+El valor de cada hecho se trunca a 2 decimales (RF-86); el que queda en 0,00 no genera línea, pero
+el reconocimiento se registra con su valor de 4 decimales."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -29,7 +33,7 @@ from src.financial_valuation.domain.entities.valoracion import CalculoValor
 from src.financial_valuation.domain.repositories.configuracion_contable_repository import (
     ConfiguracionContableRepository,
 )
-from src.financial_valuation.domain.services.nic41 import CERO, sentido_por_signo
+from src.financial_valuation.domain.services.nic41 import CERO, sentido_por_signo, truncar2
 from src.financial_valuation.domain.services.precios import Precio
 from src.financial_valuation.domain.value_objects.nic41 import IndicadorValoracion, Sentido, TipoHecho, estado_legible
 from src.shared.fechas import hoy_usuario
@@ -60,6 +64,12 @@ class Propuesta:
 
     def bloquear(self, codigo: str, mensaje: str) -> None:
         self.bloqueos.append({"codigo": codigo, "mensaje": mensaje})
+
+
+def _hecho(tipo_hecho: str, sentido: str, valor: Decimal) -> list[tuple[str, str, Decimal]]:
+    """Hecho con su valor de línea truncado; sin hecho si trunca a 0,00 (nada que asentar)."""
+    linea = truncar2(valor)
+    return [(tipo_hecho, sentido, linea)] if linea > 0 else []
 
 
 class ProponedorReconocimiento:
@@ -129,7 +139,7 @@ class ProponedorReconocimiento:
             signo = sentido_por_signo(valor - (costo or CERO))
             return [(TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, signo[0].value, signo[1])] if signo else []
         sentido = Sentido.TRASLADO.value if origen == "transferencia_interna" else Sentido.UNICO.value
-        return [(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, sentido, valor)]
+        return _hecho(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, sentido, valor)
 
     def _modelo_costo(self, propuesta: Propuesta, origen: str) -> None:
         """RF-82 paso 3 b / RF-88 escenario A (¶30): sin precio, el costo documentado es la medida."""
@@ -150,6 +160,7 @@ class ProponedorReconocimiento:
                                       f"{activo.especie} (NIC 41 ¶30).")
         # La compra ya entra al activo por su factura; la donación y el traslado se asientan al costo.
         if origen == "donacion":
-            propuesta.hechos = [(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.UNICO.value, propuesta.valor_inicial)]
+            propuesta.hechos = _hecho(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.UNICO.value, propuesta.valor_inicial)
         elif origen == "transferencia_interna":
-            propuesta.hechos = [(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.TRASLADO.value, propuesta.valor_inicial)]
+            propuesta.hechos = _hecho(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.TRASLADO.value,
+                                      propuesta.valor_inicial)

@@ -1,12 +1,17 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/86: medición posterior, variaciones y líneas de asiento |
+# | 2026-11-08 | destroyerban | INC-M06-307-G11 RF-83: una variación menor a 0,01 se mide sin asiento |
 """Servicio de aplicación: medición posterior de un activo (RF-83) y su registro en resultados
 (RF-86). Lo usan el procesador de eventos de M02 y el cierre del período (RF-87). No hace commit.
 
 La variación se mide contra el último cálculo registrado del activo, no contra el valor al inicio
 del período: así el cierre no vuelve a registrar lo que ya registraron los eventos (contradicción
-C-3 de RF-87 pasos 4-5)."""
+C-3 de RF-87 pasos 4-5).
+
+El cálculo y la medición guardan 4 decimales; la variación y su línea, 2 (RF-86 trunca). Un
+componente que trunca a 0,00 no tiene nada que asentar y se omite solo (CA-14), pero la medición
+se registra igual: sin eso el valor vigente no avanza y nunca acumula los cambios pequeños."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -73,7 +78,7 @@ class Medidor:
                                           anterior.magnitud if comparable else None, nuevo.magnitud,
                                           hubo_evento_biologico=hubo_evento)
         tb, pm = sentido_por_signo(variacion.transformacion), sentido_por_signo(variacion.precio)
-        if tb is None and pm is None:
+        if variacion.transformacion == CERO and variacion.precio == CERO:
             self.contabilizador.auditar(EventoAuditoria(
                 tipo_evento="MEDICION_SIN_VARIACION", severidad=Severidad.INFO.value,
                 payload={"valor_neto": str(nuevo.valor_neto), "id_evento": id_evento, "origen": origen},
@@ -101,8 +106,11 @@ class Medidor:
             (tb, variacion.transformacion, "TRANSFORMACION_BIOLOGICA", tipo_hecho_tb, tipo_evidencia_tb),
             (pm, variacion.precio, "PRECIO_MERCADO", TipoHecho.VARIACION_VR_PM.value, tipo_evidencia_pm),
         )
+        sin_asiento = []
         for signo, monto, nombre, tipo_hecho, evidencia in componentes:
             if signo is None:
+                if monto != CERO:
+                    sin_asiento.append({"componente": nombre, "monto": str(monto)})
                 continue
             sentido, valor = signo
             es_tb = nombre == "TRANSFORMACION_BIOLOGICA"
@@ -136,7 +144,8 @@ class Medidor:
             tipo_evento="MEDICION_CON_ESTIMACION" if nuevo.tiene_valor_estimado else "MEDICION_POSTERIOR",
             severidad=Severidad.WARNING.value if nuevo.tiene_valor_estimado else Severidad.INFO.value,
             payload={"origen": origen, "valor_anterior": str(anterior.valor_neto), "valor_actual": str(nuevo.valor_neto),
-                     "transformacion": str(variacion.transformacion), "precio": str(variacion.precio)},
+                     "transformacion": str(variacion.transformacion), "precio": str(variacion.precio),
+                     "componentes_sin_asiento": sin_asiento},
             id_usuario=id_usuario_auditoria, id_sistema=None if id_usuario_auditoria else ID_SISTEMA,
             id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
             id_referencia=medicion.id_medicion_posterior, monto_afectado=variacion.total,
