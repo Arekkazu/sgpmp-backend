@@ -1,0 +1,597 @@
+{
+  "info": {
+    "name": "TC-M06-G10 - RF-92 Versionado, archivado automático, aprobación y rechazo (CA-7, FA-4, Restricciones 3 y 4, F",
+    "description": "RF-92 TCG-10 (TC-92-056 a TC-92-063), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login cont",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_cont', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_cont}}\",\n  \"contrasena\": \"{{clave_cont}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Descubrir periodos contables (Contador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const arr = Array.isArray(j) ? j : [];",
+              "const de = (e) => arr.filter(x => x.estado === e).map(x => String(x.id_periodo_contable));",
+              "// Si QA indica el período con --env-var periodo_abierto_qa / periodo_cerrado_qa / periodo_en_cierre_qa, se usa ese en vez del primero que aparezca.",
+              "const qa = (k) => String(pm.environment.get(k) || '');",
+              "pm.collectionVariables.set('id_abierto', qa('periodo_abierto_qa') || de('ABIERTO')[0] || '');",
+              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || de('EN_CIERRE')[0] || '');",
+              "pm.collectionVariables.set('id_cerrado', qa('periodo_cerrado_qa') || de('CERRADO')[0] || '');",
+              "pm.collectionVariables.set('cerrados', JSON.stringify(de('CERRADO')));",
+              "pm.collectionVariables.set('id_periodo_lineas', pm.collectionVariables.get('id_abierto') || pm.collectionVariables.get('id_cerrado') || '');",
+              "console.log('PERIODOS', JSON.stringify({ total: arr.length, abiertos: de('ABIERTO'), en_cierre: de('EN_CIERRE'), cerrados: de('CERRADO') }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Descubrir informes de revelaciones (Contador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const cerrados = JSON.parse(pm.collectionVariables.get('cerrados') || '[]');",
+              "const hallados = {};",
+              "let pend = cerrados.length;",
+              "const fin = () => { ['BORRADOR','APROBADO','ARCHIVADO','RECHAZADO'].forEach(e => pm.collectionVariables.set('inf_' + e, hallados[e] ? String(hallados[e].id_informe) : ''));",
+              "  pm.collectionVariables.set('inf_periodo_aprobado', hallados.APROBADO ? String(hallados.APROBADO.p) : '');",
+              "  console.log('INFORMES', JSON.stringify(hallados)); };",
+              "if (!pend) fin();",
+              "cerrados.forEach(p => pm.sendRequest({ url: pm.variables.get('base_url') + '/finanzas/periodos/' + p + '/revelaciones', method: 'GET',",
+              "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') } }, (e, r) => {",
+              "  let l = []; try { l = r.json(); } catch (x) {}",
+              "  (Array.isArray(l) ? l : []).forEach(i => { if (!hallados[i.estado] || i.id_informe > hallados[i.estado].id_informe) hallados[i.estado] = { id_informe: i.id_informe, p: p, version: i.version_informe }; });",
+              "  if (--pend === 0) fin(); }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-056..058 Formato de version de todos los informes",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.test(\"formato {AAAA}-{M##|Q#|A}-V{n}\", () => { (Array.isArray(j) ? j : []).forEach(i => pm.expect(i.version_informe).to.match(/^\\d{4}-(M(0[1-9]|1[0-2])|Q[1-4]|A)-V\\d+$/)); });",
+              "pm.test(\"TC-92-059 a lo sumo un APROBADO por periodo\", () => pm.expect((Array.isArray(j) ? j : []).filter(i => i.estado === 'APROBADO').length).to.be.at.most(1));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-060 El APROBADO registra aprobador y fecha",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_APROBADO')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe APROBADO en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const k = j.contenido || {};",
+              "pm.test(\"aprobador y fecha\", () => { pm.expect(j.id_contador_aprobador).to.be.ok; pm.expect(j.fecha_aprobacion).to.be.ok; pm.expect(j.estado).to.eql('APROBADO'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_APROBADO}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_APROBADO}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-061 INFORME_REVELACIONES_APROBADO en la auditoria",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_periodo_aprobado')) { console.log('PRECONDICION NO DISPONIBLE: no se encontro el dato inf_periodo_aprobado en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const ev = Array.isArray(j.eventos) ? j.eventos : [];",
+              "console.log('AUDITORIA', 'INFORME_REVELACIONES_APROBADO', j.total_registros);",
+              "if (!pm.collectionVariables.get('inf_APROBADO')) pm.test.skip(\"evento de aprobacion (PRECONDICION: no hay informe APROBADO)\", () => {});",
+              "else pm.test(\"el evento referencia al informe aprobado\", () => pm.expect(ev.map(e => String(e.id_referencia))).to.include(pm.collectionVariables.get('inf_APROBADO')));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/auditoria?tipo_evento=INFORME_REVELACIONES_APROBADO&id_periodo_contable={{inf_periodo_aprobado}}&formato=TECNICO&orden=DESC&tamano=100",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "INFORME_REVELACIONES_APROBADO"
+            },
+            {
+              "key": "id_periodo_contable",
+              "value": "{{inf_periodo_aprobado}}"
+            },
+            {
+              "key": "formato",
+              "value": "TECNICO"
+            },
+            {
+              "key": "orden",
+              "value": "DESC"
+            },
+            {
+              "key": "tamano",
+              "value": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-062 El RECHAZADO guarda su razon",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_RECHAZADO')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe RECHAZADO en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const k = j.contenido || {};",
+              "pm.test(\"razon de rechazo >= 20 caracteres\", () => pm.expect(String(j.razon_rechazo || '').trim().length).to.be.at.least(20));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_RECHAZADO}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_RECHAZADO}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-063 Rechazar sin razon -> 422 (no escribe)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code RAZON_RECHAZO_OBLIGATORIA\", () => { pm.expect(j.error_code).to.eql('RAZON_RECHAZO_OBLIGATORIA'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}/resolucion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_BORRADOR}}",
+            "resolucion"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"aprobar\":false,\"razon_rechazo\":\"\"}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-063 Rechazar con razon de 1 caracter -> 422 (no escribe)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code RAZON_RECHAZO_OBLIGATORIA\", () => { pm.expect(j.error_code).to.eql('RAZON_RECHAZO_OBLIGATORIA'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}/resolucion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_BORRADOR}}",
+            "resolucion"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"aprobar\":false,\"razon_rechazo\":\"x\"}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-059/060 Aprobar el BORRADOR y archivar el anterior [escritura]",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR'); pm.execution.skipRequest(); }",
+              "if (pm.variables.get('permitir_escritura') !== 'SI') { console.log('ESCRITURA NO AUTORIZADA: ejecutar con --env-var permitir_escritura=SI'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.test(\"queda APROBADO con aprobador\", () => { pm.expect(j.estado).to.eql('APROBADO'); pm.expect(j.id_contador_aprobador).to.be.ok; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}/resolucion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_BORRADOR}}",
+            "resolucion"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"aprobar\":true}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "permitir_escritura",
+      "value": "NO"
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "correo_cont",
+      "value": ""
+    },
+    {
+      "key": "clave_cont",
+      "value": ""
+    }
+  ]
+}

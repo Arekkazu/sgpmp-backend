@@ -1,0 +1,368 @@
+{
+  "info": {
+    "name": "TC-M06-G01 - RF-92 Generación del informe en estado BORRADOR con todas las secciones obligatorias (CA-1, CA-5",
+    "description": "RF-92 TCG-01 (TC-92-001 a TC-92-007), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login cont",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_cont', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_cont}}\",\n  \"contrasena\": \"{{clave_cont}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Descubrir periodos contables (Contador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const arr = Array.isArray(j) ? j : [];",
+              "const de = (e) => arr.filter(x => x.estado === e).map(x => String(x.id_periodo_contable));",
+              "// Si QA indica el período con --env-var periodo_abierto_qa / periodo_cerrado_qa / periodo_en_cierre_qa, se usa ese en vez del primero que aparezca.",
+              "const qa = (k) => String(pm.environment.get(k) || '');",
+              "pm.collectionVariables.set('id_abierto', qa('periodo_abierto_qa') || de('ABIERTO')[0] || '');",
+              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || de('EN_CIERRE')[0] || '');",
+              "pm.collectionVariables.set('id_cerrado', qa('periodo_cerrado_qa') || de('CERRADO')[0] || '');",
+              "pm.collectionVariables.set('cerrados', JSON.stringify(de('CERRADO')));",
+              "pm.collectionVariables.set('id_periodo_lineas', pm.collectionVariables.get('id_abierto') || pm.collectionVariables.get('id_cerrado') || '');",
+              "console.log('PERIODOS', JSON.stringify({ total: arr.length, abiertos: de('ABIERTO'), en_cierre: de('EN_CIERRE'), cerrados: de('CERRADO') }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Descubrir informes de revelaciones (Contador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const cerrados = JSON.parse(pm.collectionVariables.get('cerrados') || '[]');",
+              "const hallados = {};",
+              "let pend = cerrados.length;",
+              "const fin = () => { ['BORRADOR','APROBADO','ARCHIVADO','RECHAZADO'].forEach(e => pm.collectionVariables.set('inf_' + e, hallados[e] ? String(hallados[e].id_informe) : ''));",
+              "  pm.collectionVariables.set('inf_periodo_aprobado', hallados.APROBADO ? String(hallados.APROBADO.p) : '');",
+              "  console.log('INFORMES', JSON.stringify(hallados)); };",
+              "if (!pend) fin();",
+              "cerrados.forEach(p => pm.sendRequest({ url: pm.variables.get('base_url') + '/finanzas/periodos/' + p + '/revelaciones', method: 'GET',",
+              "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') } }, (e, r) => {",
+              "  let l = []; try { l = r.json(); } catch (x) {}",
+              "  (Array.isArray(l) ? l : []).forEach(i => { if (!hallados[i.estado] || i.id_informe > hallados[i.estado].id_informe) hallados[i.estado] = { id_informe: i.id_informe, p: p, version: i.version_informe }; });",
+              "  if (--pend === 0) fin(); }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-001 Generar informe sobre el periodo CERRADO [escritura]",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO'); pm.execution.skipRequest(); }",
+              "if (pm.variables.get('permitir_escritura') !== 'SI') { console.log('ESCRITURA NO AUTORIZADA: ejecutar con --env-var permitir_escritura=SI'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.test(\"version asignada\", () => pm.expect(j.version_informe).to.be.a('string').and.not.empty);",
+              "pm.collectionVariables.set('inf_BORRADOR', String(j.id_informe || ''));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true,\"justificacion_inconsistencias\":\"Justificacion QA M06: inconsistencias revisadas, se continua para la prueba de revelaciones.\"}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-001/004/007 Informe BORRADOR con las 9 secciones",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const k = j.contenido || {};",
+              "pm.test(\"estado BORRADOR\", () => pm.expect(j.estado).to.eql('BORRADOR'));",
+              "pm.test(\"las 9 secciones de los parrafos 40 a 57\", () => { ['parr_41_43_descripcion','parr_40_ganancias_perdidas','parr_51_separacion_precio_transformacion','niif13_93_metodos_y_supuestos','niif13_93_precios_referencia','parr_50_conciliacion','parr_54_56_activos_al_costo','parr_49_restricciones_compromisos','parr_53_riesgos'].forEach(s => pm.expect(k, 'falta ' + s).to.have.property(s)); });",
+              "pm.test(\"TC-92-002 descripcion por especie con cantidad y clasificacion\", () => { (k.parr_41_43_descripcion || []).forEach(e => { pm.expect(e.especie).to.be.ok; pm.expect(e.cantidad_activos).to.be.a('number'); pm.expect(e.clasificacion).to.be.an('array'); }); });",
+              "pm.test(\"TC-92-003 precios con especie, fecha y fuente\", () => { (k.niif13_93_precios_referencia || []).forEach(p => { pm.expect(p.especie).to.be.ok; pm.expect(p.fecha_vigencia).to.be.ok; pm.expect(p.fuente).to.be.ok; }); });",
+              "pm.test(\"TC-92-006 seccion de riesgos presente\", () => pm.expect(k.parr_53_riesgos).to.be.an('array'));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_BORRADOR}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-007 Un BORRADOR no se descarga",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code INFORME_NO_APROBADO\", () => { pm.expect(j.error_code).to.eql('INFORME_NO_APROBADO'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}/descarga?formato=pdf",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_BORRADOR}}",
+            "descarga"
+          ],
+          "query": [
+            {
+              "key": "formato",
+              "value": "pdf"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "permitir_escritura",
+      "value": "NO"
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "correo_cont",
+      "value": ""
+    },
+    {
+      "key": "clave_cont",
+      "value": ""
+    }
+  ]
+}
