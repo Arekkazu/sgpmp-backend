@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06 RF-83..86: listados del período para las vistas del prototipo |
+# | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
 """Puerto de la valoración NIC 41: cálculos (RF-84), reconocimientos (RF-82), mediciones y
 variaciones (RF-83/86), productos agrícolas (RF-85) y valoración por costo (RF-88)."""
 from __future__ import annotations
@@ -73,7 +74,8 @@ class ValoracionRepository(ABC):
     def historial_activo(self, id_activo_biologico: int) -> dict: ...
 
     @abstractmethod
-    def mediciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+    def mediciones_del_periodo(self, id_periodo_contable: int, id_evento: Optional[int] = None,
+                               tiene_valor_estimado: Optional[bool] = None) -> list[dict]:
         """RF-83: mediciones posteriores del período con el activo que midieron."""
 
     @abstractmethod

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
+# | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83 / INC-M06-330-G86 RF-94: filtros de mediciones y de auditoría |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -233,9 +234,11 @@ def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[Estad
 
 @router.get("/periodos/{id_periodo_contable}/mediciones", tags=[TAG_VALOR],
             dependencies=[Depends(permiso("valoracion_activos", R))],
-            summary="Mediciones posteriores del período con el activo medido")
-def mediciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
-    return m.valoraciones.mediciones_del_periodo(id_periodo_contable)
+            summary="Mediciones posteriores del período con el activo medido (filtrables por evento y estimación)")
+def mediciones_del_periodo(id_periodo_contable: int, id_evento: Optional[int] = Query(None, gt=0),
+                           tiene_valor_estimado: Optional[bool] = None, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.mediciones_del_periodo(id_periodo_contable, id_evento=id_evento,
+                                                 tiene_valor_estimado=tiene_valor_estimado)
 
 
 @router.get("/periodos/{id_periodo_contable}/variaciones", tags=[TAG_VALOR],
@@ -500,9 +503,12 @@ def descargar_informe(id_informe: int, formato: str = Query("pdf", pattern="^(pd
 def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
                         id_periodo_contable: Optional[int] = Query(None, gt=0),
                         id_activo_biologico: Optional[int] = Query(None, gt=0), severidad: Optional[Severidad] = None,
+                        id_usuario: Optional[int] = Query(None, gt=0), id_referencia: Optional[int] = Query(None, gt=0),
+                        origen_registro: Optional[Literal["REPOSITORIO", "FALLBACK"]] = None,
                         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = Query(1, ge=1),
                         tamano: int = Query(100, ge=1, le=500), formato: str = Query("LEGIBLE", pattern="^(LEGIBLE|TECNICO)$"),
                         orden: Literal["ASC", "DESC"] = "ASC", m: M06 = Depends(_m06)) -> dict:
     filtros = {"tipo_evento": tipo_evento, "id_periodo_contable": id_periodo_contable,
-               "id_activo_biologico": id_activo_biologico, "severidad": severidad, "desde": desde, "hasta": hasta}
+               "id_activo_biologico": id_activo_biologico, "severidad": severidad, "id_usuario": id_usuario,
+               "id_referencia": id_referencia, "origen_registro": origen_registro, "desde": desde, "hasta": hasta}
     return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE", orden == "DESC")
