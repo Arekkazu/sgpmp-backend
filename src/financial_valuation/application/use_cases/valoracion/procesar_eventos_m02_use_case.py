@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/86: medición por evento, productos agrícolas y bajas desde M02 |
+# | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta al Contador de mediciones estimadas o pendientes |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -11,7 +12,8 @@
 - Reproductivos, sanitarios y otros no cambian el valor razonable.
 Un activo valorado por costo (¶30) no genera variaciones de valor razonable (RF-88 CA-4).
 
-Cada evento va en su propia transacción: un fallo no detiene los demás (se reintenta hasta 3 veces)."""
+Cada evento va en su propia transacción: un fallo no detiene los demás (se reintenta hasta 3 veces).
+Las alertas de medición estimada o pendiente (RF-83) se envían al Contador después del ``commit()``."""
 from __future__ import annotations
 
 import logging
@@ -28,6 +30,7 @@ from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.entities.valoracion import CalculoValor
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.domain.repositories.evento_m02_port import EventoM02, EventoM02Port
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.nic41 import CERO, costos_venta, q4, truncar2, valor_neto
@@ -52,7 +55,7 @@ _UNIDADES_KG = ("kg", "kgs", "kilogramo", "kilogramos")
 class ProcesarEventosM02UseCase:
     def __init__(self, db: Session, eventos: EventoM02Port, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, precios: PrecioRepository, medidor: Medidor,
-                 contabilizador: Contabilizador, id_usuario_servicio: int) -> None:
+                 contabilizador: Contabilizador, id_usuario_servicio: int, notificador: NotificacionFinancieraPort) -> None:
         self.db = db
         self.eventos = eventos
         self.activos = activos
@@ -61,6 +64,7 @@ class ProcesarEventosM02UseCase:
         self.medidor = medidor
         self.contabilizador = contabilizador
         self.id_servicio = id_usuario_servicio
+        self.notificador = notificador
 
     def execute(self, limite: int = 200) -> dict:
         conteo: dict[str, int] = {}
@@ -69,8 +73,11 @@ class ProcesarEventosM02UseCase:
                 resultado, detalle = self._procesar(evento)
                 self.eventos.registrar_procesamiento(evento.id_evento, resultado, detalle)
                 self.db.commit()
+                for alerta in self.medidor.tomar_alertas():
+                    self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", alerta.mensaje, alerta.detalle, alerta.id_finca)
             except Exception as exc:  # un evento fallido no detiene la cola
                 self.db.rollback()
+                self.medidor.tomar_alertas()  # lo revertido no se avisa
                 logger.exception("M06: no se pudo procesar el evento %s de M02.", evento.id_evento)
                 resultado = "ERROR"
                 try:

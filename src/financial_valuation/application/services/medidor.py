@@ -1,8 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/86: medición posterior, variaciones y líneas de asiento |
+# | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta MEDICION_PENDIENTE al Contador si la medición es estimada |
 """Servicio de aplicación: medición posterior de un activo (RF-83) y su registro en resultados
 (RF-86). Lo usan el procesador de eventos de M02 y el cierre del período (RF-87). No hace commit.
+
+Sin precio vigente (medición estimada o pendiente) RF-83 exige alertar al Contador (restricción 3,
+salida 4). Como el medidor no confirma la transacción, deja la alerta en cola y el caso de uso la
+envía con ``tomar_alertas`` después de su ``commit()``; si revierte, la descarta.
 
 La variación se mide contra el último cálculo registrado del activo, no contra el valor al inicio
 del período: así el cierre no vuelve a registrar lo que ya registraron los eventos (contradicción
@@ -26,6 +31,13 @@ from src.financial_valuation.domain.value_objects.nic41 import Sentido, Severida
 
 
 @dataclass(frozen=True)
+class AlertaMedicion:
+    mensaje: str
+    detalle: dict
+    id_finca: Optional[int]
+
+
+@dataclass(frozen=True)
 class ResultadoMedicion:
     estado: str  # MEDIDO | SIN_VARIACION | PENDIENTE
     motivo: Optional[str] = None
@@ -40,6 +52,12 @@ class Medidor:
         self.valorador = valorador
         self.valoraciones = valoraciones
         self.contabilizador = contabilizador
+        self._alertas: list[AlertaMedicion] = []
+
+    def tomar_alertas(self) -> list[AlertaMedicion]:
+        """Alertas para el Contador acumuladas desde la última llamada (se vacía la cola)."""
+        alertas, self._alertas = self._alertas, []
+        return alertas
 
     def medir(
         self,
@@ -141,16 +159,33 @@ class Medidor:
             id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
             id_referencia=medicion.id_medicion_posterior, monto_afectado=variacion.total,
         ))
+        if nuevo.tiene_valor_estimado:  # RF-83 restricción 3 y salida 4
+            self._alertar_pendiente(activo, periodo, dia, id_evento, id_usuario_auditoria, "PRECIO_ESTIMADO", (
+                f"El activo {activo.identificador} se midió el {dia:%Y-%m-%d} con un precio estimado porque la especie "
+                f"{activo.especie} no tiene precio de mercado vigente. Revise la medición y registre el precio vigente."),
+                id_medicion=medicion.id_medicion_posterior)
         return ResultadoMedicion("MEDIDO", calculo=nuevo, id_medicion=medicion.id_medicion_posterior,
                                  variacion_total=variacion.total)
 
     def _pendiente(self, activo, periodo, id_evento, id_usuario_auditoria, motivo, mensaje) -> ResultadoMedicion:
         """RF-86 FA-3 / RF-83 FA-2: la medición queda pendiente y se alerta al Contador."""
+        self._alertar_pendiente(activo, periodo, None, id_evento, id_usuario_auditoria, motivo, (
+            f"La medición del activo {activo.identificador} quedó pendiente: {mensaje}"), detalle_auditoria=mensaje)
+        return ResultadoMedicion("PENDIENTE", motivo=motivo, mensaje=mensaje)
+
+    def _alertar_pendiente(self, activo, periodo, dia, id_evento, id_usuario_auditoria, motivo, mensaje, *,
+                           id_medicion=None, detalle_auditoria=None) -> None:
+        """Evento ``MEDICION_PENDIENTE`` en RF-94 y alerta en cola para el Contador de la finca."""
         self.contabilizador.auditar(EventoAuditoria(
             tipo_evento="MEDICION_PENDIENTE", severidad=Severidad.WARNING.value,
-            payload={"motivo": motivo, "mensaje": mensaje, "id_evento": id_evento},
+            payload={"motivo": motivo, "mensaje": detalle_auditoria or mensaje, "id_evento": id_evento,
+                     "id_medicion": id_medicion},
             id_usuario=id_usuario_auditoria, id_sistema=None if id_usuario_auditoria else ID_SISTEMA,
             id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
-            id_referencia=id_evento,
+            id_referencia=id_medicion or id_evento,
         ))
-        return ResultadoMedicion("PENDIENTE", motivo=motivo, mensaje=mensaje)
+        self._alertas.append(AlertaMedicion(mensaje, {
+            "motivo": motivo, "id_activo_biologico": activo.id_activo_biologico, "id_evento": id_evento,
+            "id_medicion": id_medicion, "id_periodo_contable": periodo.id_periodo_contable,
+            "fecha": dia.isoformat() if dia else None,
+        }, activo.id_finca))
