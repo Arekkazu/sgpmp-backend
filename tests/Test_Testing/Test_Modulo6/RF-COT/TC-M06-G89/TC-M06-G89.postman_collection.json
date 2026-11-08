@@ -1,0 +1,37 @@
+{
+  "info": {
+    "name": "TC-M06-G89",
+    "description": "Rechazos de valor y de vencimiento anterior. No incluye un alta sin fecha de vencimiento sobre un activo con valor razonable: esa solicitud se guardaría.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Valor cero",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {"mode": "raw", "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": 0\n}"}
+      }
+    },
+    {
+      "name": "Valor negativo",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {"mode": "raw", "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": -1\n}"}
+      }
+    },
+    {
+      "name": "Vencimiento anterior",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {"mode": "raw", "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\",\n  \"fecha_vencimiento\": \"{{ayer}}\"\n}"}
+      }
+    }
+  ],
+  "variable": [{"key": "base", "value": "https://api.inmero.co/api-sgpmp-test"}]
+}

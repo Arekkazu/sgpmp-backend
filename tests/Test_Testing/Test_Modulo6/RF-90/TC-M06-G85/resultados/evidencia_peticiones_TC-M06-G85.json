@@ -1,0 +1,163 @@
+{
+  "caso": "TC-M06-G85",
+  "generado_en": "2026-11-08T15:39:53.829000+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 1042,
+      "escritura": false,
+      "en": "2026-11-08T15:39:54.870881+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 423,
+      "escritura": false,
+      "en": "2026-11-08T15:39:55.293883+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "con_grupo": 0,
+        "grupos": 0,
+        "metodos": {}
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 604,
+      "escritura": false,
+      "en": "2026-11-08T15:39:55.897633+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 400,
+      "duracion_ms": 612,
+      "escritura": false,
+      "en": "2026-11-08T15:39:56.509746+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "fecha_costo": "2026-11-08",
+        "metodo_reparto": "POR_BIOMASA",
+        "monto_costo": 0,
+        "activos_reparto": [
+          951,
+          943
+        ]
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "monto_costo",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T15:39:55.479077+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 400,
+      "duracion_ms": 487,
+      "escritura": false,
+      "en": "2026-11-08T15:39:56.996712+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "fecha_costo": "2026-11-08",
+        "metodo_reparto": "POR_BIOMASA",
+        "monto_costo": -100,
+        "activos_reparto": [
+          951,
+          943
+        ]
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "monto_costo",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T15:39:56.021532+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 422,
+      "duracion_ms": 390,
+      "escritura": false,
+      "en": "2026-11-08T15:39:57.386888+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "fecha_costo": "2026-11-08",
+        "metodo_reparto": "POR_BIOMASA",
+        "monto_costo": 100,
+        "activos_reparto": [
+          951,
+          951
+        ]
+      },
+      "respuesta": {
+        "error_code": "REPARTO_INVALIDO",
+        "message": "La lista de reparto tiene activos repetidos.",
+        "fields": [],
+        "timestamp": "2026-11-08T15:39:56.411166+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 368,
+      "escritura": false,
+      "en": "2026-11-08T15:39:57.754774+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "con_grupo": 0,
+        "grupos": 0,
+        "metodos": {}
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 401,
+      "escritura": false,
+      "en": "2026-11-08T15:39:58.155579+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    }
+  ]
+}

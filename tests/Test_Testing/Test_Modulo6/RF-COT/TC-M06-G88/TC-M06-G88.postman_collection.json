@@ -1,0 +1,38 @@
+{
+  "info": {
+    "name": "TC-M06-G88",
+    "description": "Rechazos previos al período. No incluye una cotización con activo y valor razonable válidos: esa solicitud se guardaría aunque el período de la fecha esté cerrado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base", "value": "https://api.inmero.co/api-sgpmp-test"}
+  ],
+  "item": [
+    {
+      "name": "Activo entero ausente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {"mode": "raw", "raw": "{\n  \"activos_cotizados\": [{{id_ausente}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\"\n}"}
+      }
+    },
+    {
+      "name": "Activo sin valor razonable",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {"mode": "raw", "raw": "{\n  \"activos_cotizados\": [{{id_sin_valor}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\"\n}"}
+      }
+    }
+  ]
+}
