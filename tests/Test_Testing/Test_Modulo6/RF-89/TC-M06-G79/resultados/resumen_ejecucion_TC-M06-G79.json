@@ -1,0 +1,360 @@
+{
+  "caso": "TC-M06-G79",
+  "subcaso": "TC-M06-31",
+  "rf": [
+    "RF-89",
+    "M07"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T08:47:18.503358+00:00",
+  "contrato": "M07 publica la consulta AAEF y la administración de clientes, contratos y su propia auditoría. Ninguna ruta de /integracion recibe ni confirma precios. M06 solo publica GET y POST /finanzas/precios. El POST guarda el origen MANUAL y el estado PROGRAMADO o ACTIVO. La base declara el origen API_M07 y el comentario de la columna menciona PENDIENTE_CONFIRMACION, pero el enumerado de estado del precio solo admite ACTIVO, PROGRAMADO, VENCIDO y SUPERADO. No hay caso de uso que asigne API_M07 ni un endpoint para confirmar un precio externo. El selector usa la fuente y las fechas. No conoce un estado pendiente. DESVIACION_PRECIO_REQUIERE_CONFIRMACION es la confirmación de una desviación de un precio manual, no la aprobación de M07. La auditoría de precios contempla PRECIO_REGISTRADO, PRECIO_MARCADO_REEMPLAZADO y PRECIO_REFERENCIA_VENCIDO. La auditoría de M07 no tiene eventos de recepción ni de confirmación de precios.",
+  "escritura_ejecutada": false,
+  "total_precios": 11,
+  "pendientes": 0,
+  "estados": {
+    "ACTIVO": 4,
+    "SUPERADO": 2,
+    "VENCIDO": 5
+  },
+  "campos_respuesta": [
+    "categoria",
+    "es_aplicado",
+    "estado",
+    "evidencia",
+    "fecha_vencimiento",
+    "fecha_vigencia",
+    "fuente",
+    "id_especie",
+    "id_metrica_produccion",
+    "id_precio_corregido",
+    "id_precio_mercado",
+    "justificacion",
+    "precio_unitario",
+    "unidad_medida"
+  ],
+  "rutas": [
+    {
+      "ruta": "/integraciones/agrofusion/roles",
+      "metodos": [
+        "get"
+      ]
+    },
+    {
+      "ruta": "/integraciones/agrofusion/token",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integraciones/agrofusion/usuarios",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integraciones/agrofusion/tipos-documento",
+      "metodos": [
+        "get"
+      ]
+    },
+    {
+      "ruta": "/integraciones/agrofusion/usuarios/{email}",
+      "metodos": [
+        "get"
+      ]
+    },
+    {
+      "ruta": "/integraciones/agrofusion/usuarios/{usuario}/estado",
+      "metodos": [
+        "patch"
+      ]
+    },
+    {
+      "ruta": "/integraciones/agrofusion/usuarios/{usuario}",
+      "metodos": [
+        "put"
+      ]
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "metodos": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/aaef/productores/{nit}",
+      "metodos": [
+        "get"
+      ]
+    },
+    {
+      "ruta": "/integracion/aaef/vista-previa/productores/{nit}",
+      "metodos": [
+        "get"
+      ]
+    },
+    {
+      "ruta": "/integracion/clientes",
+      "metodos": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/clientes/{id_cliente_externo}",
+      "metodos": [
+        "patch"
+      ]
+    },
+    {
+      "ruta": "/integracion/clientes/{id_cliente_externo}/suspender",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/clientes/{id_cliente_externo}/reactivar",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/clientes/{id_cliente_externo}/revocar",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/clientes/{id_cliente_externo}/rotar",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/anexos",
+      "metodos": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/anexos/{id_mapeo_anexo_aaef}/revision",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/anexos/{id_mapeo_anexo_aaef}/aprobar",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/contratos",
+      "metodos": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/contratos/{id_version_contrato_aaef}/activar",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/contratos/{id_version_contrato_aaef}/deprecar",
+      "metodos": [
+        "post"
+      ]
+    },
+    {
+      "ruta": "/integracion/auditoria",
+      "metodos": [
+        "get"
+      ]
+    },
+    {
+      "ruta": "/integracion/auditoria/exportar",
+      "metodos": [
+        "get"
+      ]
+    }
+  ],
+  "auditoria": {
+    "PRECIO_REGISTRADO": {
+      "http": 200,
+      "total": 5
+    },
+    "PRECIO_MARCADO_REEMPLAZADO": {
+      "http": 200,
+      "total": 2
+    },
+    "PRECIO_REFERENCIA_VENCIDO": {
+      "http": 200,
+      "total": 0
+    },
+    "integracion": {
+      "http": 200,
+      "total": 0
+    }
+  },
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-31",
+      "estado": "REQUIERE ACLARACION",
+      "motivo": "No se puede ejecutar la recepción ni la confirmación. El contrato publicado no define el endpoint, el estado persistible PENDIENTE_CONFIRMACION ni el evento de auditoría de ese flujo. GET /finanzas/precios tampoco informa el origen del registro. Confirmar o insertar un precio en el catálogo compartido cambiaría las valoraciones, y no hay un precio externo aislado.",
+      "recepcion_ejecutada": false,
+      "confirmacion_ejecutada": false
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "duracion_ms": 1309,
+      "escritura": false,
+      "en": "2026-11-08T08:47:19.813365+00:00",
+      "respuesta": {
+        "rutas_relevantes": 24,
+        "rutas_precio": [
+          {
+            "ruta": "/finanzas/precios",
+            "metodos": [
+              "get",
+              "post"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 675,
+      "escritura": false,
+      "en": "2026-11-08T08:47:20.488964+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 395,
+      "escritura": false,
+      "en": "2026-11-08T08:47:20.884322+00:00",
+      "respuesta": {
+        "total": 11,
+        "estados": {
+          "ACTIVO": 4,
+          "SUPERADO": 2,
+          "VENCIDO": 5
+        },
+        "campos": [
+          "categoria",
+          "es_aplicado",
+          "estado",
+          "evidencia",
+          "fecha_vencimiento",
+          "fecha_vigencia",
+          "fuente",
+          "id_especie",
+          "id_metrica_produccion",
+          "id_precio_corregido",
+          "id_precio_mercado",
+          "justificacion",
+          "precio_unitario",
+          "unidad_medida"
+        ],
+        "pendientes": 0,
+        "con_origen": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 412,
+      "escritura": false,
+      "en": "2026-11-08T08:47:21.296039+00:00",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_MARCADO_REEMPLAZADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 393,
+      "escritura": false,
+      "en": "2026-11-08T08:47:21.688764+00:00",
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REFERENCIA_VENCIDO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 418,
+      "escritura": false,
+      "en": "2026-11-08T08:47:22.106949+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 647,
+      "escritura": false,
+      "en": "2026-11-08T08:47:22.753674+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/integracion/auditoria?pagina=1&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 387,
+      "escritura": false,
+      "en": "2026-11-08T08:47:23.140819+00:00",
+      "respuesta": {
+        "total": 0
+      }
+    }
+  ],
+  "hallazgos": [
+    "QUESTION-M06-G79-01: el comentario de precios_mercado describe la recepción por API_M07 en estado PENDIENTE_CONFIRMACION, pero ese valor no existe en el enumerado de estado y ningún caso de uso lo utiliza.",
+    "QUESTION-M06-G79-02: M07 publicado intercambia el documento AAEF. No publica la entrega ni la confirmación de precios.",
+    "BLOQUEO DE PRUEBA: no hay un precio externo aislado ni un endpoint real sobre el cual completar TC-M06-31 sin modificar el catálogo compartido."
+  ],
+  "aprobados": 0,
+  "rechazados": 0,
+  "bloqueados": 0,
+  "requiere_aclaracion": 1,
+  "porcentaje_aprobacion": 0,
+  "con_origen": 0,
+  "duracion_ms": 4637
+}

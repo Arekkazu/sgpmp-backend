@@ -1,0 +1,353 @@
+{
+  "caso": "TC-M06-G75",
+  "rf": "RF-89",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T07:53:40.110728+00:00",
+  "fecha_referencia": "2026-11-08",
+  "reglas": "La antigüedad se calcula como (hoy_usuario - fecha_vigencia).days > 365. hoy_usuario es el día calendario de la zona enviada en X-Zona-Horaria; sin esa cabecera, el día es UTC. Exactamente 365 días no entra en la condición y la validación continúa. fecha_vencimiento es opcional. Si viene informada, debe ser posterior a fecha_vigencia: igual o anterior responde FECHA_VENCIMIENTO_INVALIDA. Ambas reglas lanzan ValidationError HTTP 400 dentro de _validar, antes del INSERT y del commit. Un rechazo de estas reglas no registra PRECIO_REGISTRADO.",
+  "antes": {
+    "total": 11,
+    "ids": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "muestra": [
+      {
+        "id": 19,
+        "id_especie": 39,
+        "fuente": "ESTIMADA",
+        "estado": "ACTIVO",
+        "fecha_vigencia": "2026-11-07",
+        "fecha_vencimiento": "2026-12-31",
+        "es_aplicado": false
+      },
+      {
+        "id": 18,
+        "id_especie": 39,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "ACTIVO",
+        "fecha_vigencia": "2026-11-07",
+        "fecha_vencimiento": "2026-12-31",
+        "es_aplicado": true
+      },
+      {
+        "id": 17,
+        "id_especie": 39,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "SUPERADO",
+        "fecha_vigencia": "2026-11-07",
+        "fecha_vencimiento": "2026-12-31",
+        "es_aplicado": false
+      },
+      {
+        "id": 16,
+        "id_especie": 421,
+        "fuente": "UPRA",
+        "estado": "ACTIVO",
+        "fecha_vigencia": "2026-11-01",
+        "fecha_vencimiento": "2026-12-31",
+        "es_aplicado": true
+      },
+      {
+        "id": 15,
+        "id_especie": 39,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "SUPERADO",
+        "fecha_vigencia": "2026-11-01",
+        "fecha_vencimiento": "2026-12-31",
+        "es_aplicado": false
+      },
+      {
+        "id": 5,
+        "id_especie": 1,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "ACTIVO",
+        "fecha_vigencia": "2026-05-10",
+        "fecha_vencimiento": null,
+        "es_aplicado": true
+      },
+      {
+        "id": 9,
+        "id_especie": 3,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "VENCIDO",
+        "fecha_vigencia": "2026-04-01",
+        "fecha_vencimiento": "2026-06-30",
+        "es_aplicado": false
+      },
+      {
+        "id": 8,
+        "id_especie": 2,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "VENCIDO",
+        "fecha_vigencia": "2026-04-01",
+        "fecha_vencimiento": "2026-06-30",
+        "es_aplicado": false
+      },
+      {
+        "id": 7,
+        "id_especie": 1,
+        "fuente": "UPRA",
+        "estado": "VENCIDO",
+        "fecha_vigencia": "2026-04-01",
+        "fecha_vencimiento": "2026-06-30",
+        "es_aplicado": false
+      },
+      {
+        "id": 6,
+        "id_especie": 1,
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "VENCIDO",
+        "fecha_vigencia": "2026-04-01",
+        "fecha_vencimiento": "2026-06-30",
+        "es_aplicado": false
+      },
+      {
+        "id": 10,
+        "id_especie": 1,
+        "fuente": "ESTIMADA",
+        "estado": "VENCIDO",
+        "fecha_vigencia": "2026-01-01",
+        "fecha_vencimiento": "2026-03-31",
+        "es_aplicado": false
+      }
+    ]
+  },
+  "despues": {
+    "total": 11,
+    "ids": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "auditoria_antes": 5,
+  "auditoria_despues": 5,
+  "registros_nuevos": [],
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-22",
+      "objetivo": "Rechazar vigencia de 366 días antes de hoy.",
+      "endpoint": "POST /finanzas/precios",
+      "post_ejecutado": true,
+      "http": 400,
+      "codigo_negocio": "FECHA_VIGENCIA_FUERA_DE_RANGO",
+      "mensaje": "La fecha de vigencia no puede ser anterior en más de 365 días a hoy.",
+      "estado": "APROBADO",
+      "motivo": "El backend rechazó la fecha antes de crear un precio.",
+      "campo": "fecha_vigencia"
+    },
+    {
+      "subcaso": "TC-M06-23",
+      "objetivo": "Aceptar vigencia de exactamente 365 días antes de hoy.",
+      "endpoint": "POST /finanzas/precios",
+      "post_ejecutado": false,
+      "http": null,
+      "codigo_negocio": null,
+      "mensaje": null,
+      "estado": "BLOQUEADO",
+      "motivo": "No se envió el POST. Una vigencia de exactamente 365 días supera la validación de antigüedad. Con el resto del cuerpo válido, el caso de uso inserta el precio, confirma la transacción y puede dejarlo ACTIVO en el catálogo compartido. Hace falta un catálogo aislado o autorización expresa para comprobar la aceptación."
+    },
+    {
+      "subcaso": "TC-M06-24",
+      "objetivo": "Rechazar vencimiento anterior a la vigencia.",
+      "endpoint": "POST /finanzas/precios",
+      "post_ejecutado": true,
+      "http": 400,
+      "codigo_negocio": "FECHA_VENCIMIENTO_INVALIDA",
+      "mensaje": "El vencimiento debe ser posterior a la fecha de vigencia.",
+      "estado": "APROBADO",
+      "motivo": "El backend rechazó la fecha antes de crear un precio.",
+      "campo": "fecha_vencimiento"
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 870,
+      "escritura": true,
+      "en": "2026-11-08T07:53:40.981263+00:00",
+      "cuerpo": {
+        "correo_electronico": "omitido"
+      },
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 410,
+      "escritura": false,
+      "en": "2026-11-08T07:53:41.391532+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "puede_registrar": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 561,
+      "escritura": false,
+      "en": "2026-11-08T07:53:41.952367+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11,
+        "ids": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 522,
+      "escritura": false,
+      "en": "2026-11-08T07:53:42.473986+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 407,
+      "escritura": true,
+      "en": "2026-11-08T07:53:42.881082+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "precio_unitario": "100.00",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "texto de validacion de fechas no persistido",
+        "fecha_vigencia": "2025-11-07"
+      },
+      "respuesta": {
+        "error_code": "FECHA_VIGENCIA_FUERA_DE_RANGO",
+        "message": "La fecha de vigencia no puede ser anterior en más de 365 días a hoy.",
+        "fields": [
+          {
+            "field": "fecha_vigencia",
+            "message": "La fecha de vigencia no puede ser anterior en más de 365 días a hoy."
+          }
+        ],
+        "timestamp": "2026-11-08T07:53:42.818173+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 487,
+      "escritura": true,
+      "en": "2026-11-08T07:53:43.367926+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "precio_unitario": "100.00",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "texto de validacion de fechas no persistido",
+        "fecha_vigencia": "2026-11-08",
+        "fecha_vencimiento": "2026-11-07"
+      },
+      "respuesta": {
+        "error_code": "FECHA_VENCIMIENTO_INVALIDA",
+        "message": "El vencimiento debe ser posterior a la fecha de vigencia.",
+        "fields": [
+          {
+            "field": "fecha_vencimiento",
+            "message": "El vencimiento debe ser posterior a la fecha de vigencia."
+          }
+        ],
+        "timestamp": "2026-11-08T07:53:43.220810+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 422,
+      "escritura": false,
+      "en": "2026-11-08T07:53:43.790319+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11,
+        "ids": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 395,
+      "escritura": false,
+      "en": "2026-11-08T07:53:44.185540+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    }
+  ],
+  "hallazgos": [
+    "QUESTION-M06-G75-01: el código también rechaza una fecha de vencimiento igual a la vigencia. El subcaso 24 solo pide el caso anterior.",
+    "No hay una prueba unitaria del límite de 365 días en el repositorio. La aceptación de ese límite no se comprobó contra el API porque el POST guardaría el precio."
+  ],
+  "aprobados": 2,
+  "rechazados": 0,
+  "bloqueados": 1,
+  "porcentaje_aprobacion": 67,
+  "duracion_ms": 4075
+}

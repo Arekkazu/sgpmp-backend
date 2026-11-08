@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G76</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}.b{font-weight:700}
+pre{white-space:pre-wrap;background:#fafafa;padding:.8rem}</style></head><body>
+<h1>Módulo 6 — RF-89 / RF-88 — TC-M06-G76</h1>
+<p>Ciclo de vida de precios. Generado: 2026-11-08T08:06:27.847291+00:00. Escrituras: False.</p>
+<table>
+<tr><th>Aprobados</th><td>0</td></tr>
+<tr><th>Rechazados</th><td>0</td></tr>
+<tr><th>Bloqueados</th><td>2</td></tr>
+<tr><th>Requieren aclaración</th><td>1</td></tr>
+<tr><th>Porcentaje</th><td class="b">0 %</td></tr>
+<tr><th>Precios</th><td>11</td></tr>
+</table>
+<h2>Subcasos</h2><table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-25</td><td class='b'>BLOQUEADO</td><td>No se registró un precio futuro. Ese POST lo dejaría en el catálogo compartido. La consulta actual muestra 0 precios en estado PROGRAMADO.</td></tr><tr><td>TC-M06-26</td><td class='b'>BLOQUEADO</td><td>No hay un precio PROGRAMADO cuya vigencia ya haya llegado para comprobar la transición con una consulta. No se adelantó ninguna fecha ni se ejecutó el proceso diario.</td></tr><tr><td>TC-M06-29</td><td class='b'>REQUIERE ACLARACION</td><td>Las especies sin precio aplicado tienen precios VENCIDO y la simulación responde SIN_PRECIO. No existe el estado SIN_PRECIO_VIGENTE. La auditoría PRECIO_REFERENCIA_VENCIDO no tiene eventos y no se observó una activación automática de RF-88.</td></tr></table>
+<h2>Estados</h2><pre>{
+  &quot;ACTIVO&quot;: 4,
+  &quot;SUPERADO&quot;: 2,
+  &quot;VENCIDO&quot;: 5
+}</pre>
+<h2>Especies</h2><pre>{
+  &quot;39&quot;: {
+    &quot;total&quot;: 4,
+    &quot;aplicados&quot;: 1,
+    &quot;estados&quot;: {
+      &quot;ACTIVO&quot;: 2,
+      &quot;SUPERADO&quot;: 2
+    }
+  },
+  &quot;421&quot;: {
+    &quot;total&quot;: 1,
+    &quot;aplicados&quot;: 1,
+    &quot;estados&quot;: {
+      &quot;ACTIVO&quot;: 1
+    }
+  },
+  &quot;1&quot;: {
+    &quot;total&quot;: 4,
+    &quot;aplicados&quot;: 1,
+    &quot;estados&quot;: {
+      &quot;ACTIVO&quot;: 1,
+      &quot;VENCIDO&quot;: 3
+    }
+  },
+  &quot;3&quot;: {
+    &quot;total&quot;: 1,
+    &quot;aplicados&quot;: 0,
+    &quot;estados&quot;: {
+      &quot;VENCIDO&quot;: 1
+    }
+  },
+  &quot;2&quot;: {
+    &quot;total&quot;: 1,
+    &quot;aplicados&quot;: 0,
+    &quot;estados&quot;: {
+      &quot;VENCIDO&quot;: 1
+    }
+  }
+}</pre>
+<h2>Hallazgos</h2><ul><li>El estado que devuelve GET /finanzas/precios se calcula en la consulta con la fecha de hoy. No hay un proceso que actualice la fila de PROGRAMADO a ACTIVO ni de ACTIVO a VENCIDO.</li><li>El proceso diario avisa a los contadores los precios que vencen en la ventana configurada y los que vencieron dentro del último día sin otro precio vigente. No cambia el método de valoración ni escribe PRECIO_REFERENCIA_VENCIDO.</li><li>QUESTION-M06-G76-01: el caso espera el estado SIN_PRECIO_VIGENTE. El valorador responde el motivo SIN_PRECIO y el paso a valor razonable responde SIN_PRECIO_PARA_VALOR_RAZONABLE.</li><li>QUESTION-M06-G76-02: RF-88 no se activa solo cuando un precio vence. La ausencia de precio se evalúa al simular, al reconocer o al intentar pasar de costo a valor razonable.</li></ul>
+</body></html>
