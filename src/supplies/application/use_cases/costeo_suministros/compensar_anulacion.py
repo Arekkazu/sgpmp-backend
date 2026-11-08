@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75/76/78: anulación revierte el ledger |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Compensación en el ledger de RF-78 al anular un consumo (RF-75) o medicamento (RF-76).
 
 Un registro ANULADO queda excluido de los cálculos (RF-75 postcondición 4,
@@ -48,8 +49,8 @@ class CompensadorAnulacion:
             raise ConflictError(
                 code="CICLO_CERRADO",
                 message=(
-                    "El ciclo productivo del registro está cerrado y su inversión ya fue consolidada "
-                    "(RF-78). No es posible anularlo; solicite la corrección del reporte consolidado."
+                    "El ciclo productivo del registro está cerrado y su inversión ya fue consolidada. "
+                    "No es posible anularlo; solicite la corrección del reporte consolidado."
                 ),
             )
         return ledger

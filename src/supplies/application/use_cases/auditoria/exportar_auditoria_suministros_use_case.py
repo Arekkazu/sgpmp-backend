@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: exportar la bitácora de auditoría de M05 en CSV/Excel/PDF (RF-80, CU-06).
 
 Formatos elegidos por el usuario (no solo CSV, a diferencia del precedente de
@@ -140,7 +143,7 @@ class ExportarAuditoriaSuministrosUseCase:
         doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
         styles = getSampleStyleSheet()
         elementos = [
-            Paragraph("Bitácora de Auditoría — Módulo de Suministros (RF-80)", styles["Title"]),
+            Paragraph("Bitácora de Auditoría — Suministros", styles["Title"]),
             Paragraph(f"Generado: {datetime.now(timezone.utc).isoformat()}", styles["Normal"]),
             Paragraph(f"Total de registros: {len(items)}", styles["Normal"]),
             Spacer(1, 12),

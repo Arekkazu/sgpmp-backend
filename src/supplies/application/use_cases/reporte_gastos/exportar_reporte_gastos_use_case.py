@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: exportación PDF/CSV y descarga     |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Casos de uso: exportar un reporte de gastos a PDF/CSV y descargarlo (RF-77 pasos 8, E6).
 
 La exportación trabaja sobre un reporte ya generado: si se rechaza, el reporte
@@ -223,7 +224,7 @@ class ExportarReporteGastosUseCase:
                     id_usuario=id_usuario,
                     resultado="FALLIDO",
                     id_activo_biologico=reporte.id_activo_biologico,
-                    detalle_causa=f"Fallo del motor PDF (RF-77 E6a): {exc}"[:1000],
+                    detalle_causa=f"Fallo al generar el PDF: {exc}"[:1000],
                 )
             )
             self.db.commit()

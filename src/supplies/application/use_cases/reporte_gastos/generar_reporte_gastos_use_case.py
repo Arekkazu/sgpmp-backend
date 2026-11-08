@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, 429 compartido, bajas     |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: generar el reporte de gastos acumulados (RF-77).
 
 Decide síncrono vs. asíncrono según el rango solicitado (R8/R13: > 12 meses
@@ -142,8 +143,8 @@ class GenerarReporteGastosUseCase:
                 raise ValidationError(
                     code="REPORTE_SIN_ALCANCE",
                     message=(
-                        "Las consultas agregadas requieren id_infraestructura o id_especie, "
-                        "o especificar activo_biologico_id para un reporte individual."
+                        "Indique una infraestructura o una especie para el reporte agregado, "
+                        "o un activo biológico para el reporte individual."
                     ),
                     field="activo_biologico_id",
                 )
@@ -184,7 +185,7 @@ class GenerarReporteGastosUseCase:
                 message=(
                     f"El activo {filtros.id_activo_biologico} no tiene un ciclo productivo registrado. "
                     "No es posible generar el reporte de gastos sin una referencia temporal del ciclo. "
-                    "Registre el inicio del ciclo (RF-37) antes de continuar."
+                    "Registre el inicio del ciclo productivo antes de continuar."
                 ),
                 field="activo_biologico_id",
             )

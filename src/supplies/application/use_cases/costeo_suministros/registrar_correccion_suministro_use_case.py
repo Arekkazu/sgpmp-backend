@@ -1,6 +1,8 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: corrección aditiva y códigos del RF |
+# | 2026-11-08 | Arekkazu | INC-M05-264-G31 RF-78: 3 reintentos tras el intento inicial (esperas de 1, 3 y 5 s) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: corregir un registro de suministro existente (RF-78, tipo_operacion=CORRECCION).
 
 A diferencia del registro directo (que delega la concurrencia al lock de fila
@@ -104,8 +106,8 @@ class RegistrarCorreccionSuministroUseCase:
             raise BusinessRuleError(
                 code="REGISTRO_ORIGINAL_INVALIDO",
                 message=(
-                    "Las correcciones requieren id_registro_original válido que referencie el registro que se "
-                    f"ajusta. El registro {id_registro_original} no existe."
+                    "La corrección debe indicar el registro de suministro que ajusta. "
+                    f"El registro {id_registro_original} no existe."
                 ),
                 field="id_registro_original",
             )
@@ -125,7 +127,7 @@ class RegistrarCorreccionSuministroUseCase:
                 code="CICLO_NO_ACTIVO",
                 message=(
                     f"No existe un ciclo productivo activo para el activo {original.id_activo_biologico}. "
-                    "Verifique el estado del ciclo en M02 antes de registrar suministros."
+                    "Verifique el estado del ciclo en Activos biológicos antes de registrar suministros."
                 ),
             )
 
@@ -159,7 +161,8 @@ class RegistrarCorreccionSuministroUseCase:
         usuario_actual: UsuarioActual,
     ) -> ResultadoRegistroDirecto:
         ultimo_error: Optional[AppError] = None
-        for intento in range(1, _MAX_REINTENTOS + 1):
+        # Restricción 9: intento inicial + 3 reintentos, con esperas de 1 s, 3 s y 5 s antes de cada uno.
+        for intento in range(1, _MAX_REINTENTOS + 2):
             try:
                 acumulado = self.acumulado_repo.obtener_bloqueando(original.id_gestion_fases)
                 if acumulado is None:
@@ -185,7 +188,7 @@ class RegistrarCorreccionSuministroUseCase:
             except _ERRORES_REINTENTABLES as exc:
                 self.db.rollback()
                 ultimo_error = exc
-                if intento < _MAX_REINTENTOS:
+                if intento <= _MAX_REINTENTOS:
                     time.sleep(_BACKOFF_SEGUNDOS[intento - 1])
                     continue
                 if self._es_conflicto_concurrencia(exc):

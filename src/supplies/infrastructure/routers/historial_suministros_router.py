@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: 202 automático, PDF/Excel, 72 h    |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Router FastAPI de RF-81 — Historial/Trazabilidad de Suministros.
 
   GET  /suministros/historial                           — Consulta paginada (200, o 202 en niveles 3-4)
@@ -182,7 +183,7 @@ def exportar_historial(
             estado=resultado.estado.value,
             mensaje=(
                 "La exportación supera 10.000 registros y se procesará de forma asíncrona. Recibirá una "
-                f"notificación al finalizar; el archivo estará disponible 72 horas (id_exportacion={resultado.id_cola})."
+                f"notificación al finalizar; el archivo estará disponible 72 horas (exportación n.º {resultado.id_cola})."
             ),
         )
     return StreamingResponse(
