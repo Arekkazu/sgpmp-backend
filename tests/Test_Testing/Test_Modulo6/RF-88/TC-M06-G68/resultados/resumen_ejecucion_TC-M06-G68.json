@@ -1,0 +1,176 @@
+{
+  "caso": "TC-M06-G68",
+  "modulo": 6,
+  "rf": "RF-88",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T03:13:30.585321+00:00",
+  "login_http": 200,
+  "login": {
+    "tipo": "Bearer",
+    "expira_en": 28799,
+    "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+    "perfil_incompleto": false
+  },
+  "escrituras_financieras": false,
+  "datos_prueba_creados": [],
+  "panorama": {
+    "activos": 13,
+    "fincas": 3,
+    "nits": 1,
+    "periodos": 8,
+    "estados_periodo": {
+      "ABIERTO": 3,
+      "CERRADO": 5
+    },
+    "propuestas": 526,
+    "valoraciones_por_costo": 2,
+    "costo_10000000": 0,
+    "propuestas_costo_10000000": 0,
+    "deterioros_auditados": 1,
+    "depreciaciones_auditadas": 0,
+    "configuracion_http": 200,
+    "aislado": false
+  },
+  "http": [
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "consulta": "/finanzas/configuracion",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "claves": [
+          "general",
+          "especies",
+          "costos_venta",
+          "matriz",
+          "lineas_pendientes_cuenta"
+        ],
+        "especies": 312,
+        "matriz": 55,
+        "lineas_pendientes_cuenta": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "registros": 13
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "registros": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "consulta": "/finanzas/reconocimientos/propuestas",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "registros": 526
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 400,
+      "resumen": {
+        "codigo": 400,
+        "error_code": "FILTRO_OBLIGATORIO",
+        "message": "Indique al menos un filtro: tipo de evento, período contable o activo."
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria?tipo_evento=DETERIORO_REGISTRADO",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "total_registros": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria?tipo_evento=DEPRECIACION_REGISTRADA",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "total_registros": 0
+      }
+    }
+  ],
+  "subcasos": [
+    {
+      "id": "TC-M06-05",
+      "entrada": "10000000, depreciacion 2000000, deterioro 1000000",
+      "esperado": "7000000",
+      "obtenido": null,
+      "estado": "BLOQUEADO",
+      "persistido": false,
+      "motivo": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro."
+    },
+    {
+      "id": "TC-M06-06",
+      "entrada": "10000000, depreciacion 10000000, deterioro 0",
+      "esperado": "0",
+      "obtenido": null,
+      "estado": "BLOQUEADO",
+      "persistido": false,
+      "motivo": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro."
+    },
+    {
+      "id": "TC-M06-07",
+      "entrada": "10000000, depreciacion 7000000, deterioro 5000000",
+      "esperado": "0 y alerta persistente consultable",
+      "obtenido": null,
+      "estado": "BLOQUEADO",
+      "persistido": false,
+      "motivo": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro. GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento genérico."
+    }
+  ],
+  "hallazgos": [
+    {
+      "id": "QUESTION-M06-003",
+      "titulo": "No hay titular aislado para el costo de 10000000",
+      "descripcion": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro.",
+      "rf": "RF-88",
+      "categoria": "Capacidad de prueba",
+      "tipo": "QUESTION",
+      "equipo": "QA, con un titular nuevo preparado por DBA si el NIT actual no puede segregarse",
+      "severidad": "Medio",
+      "tiempo_maximo": "2 días hábiles",
+      "correccion": "Disponer de una finca, un NIT, un activo de costo 10000000 y un período que no compartan los 13 reconocimientos ni los 8 períodos actuales."
+    },
+    {
+      "id": "HALL-M06-G68-02",
+      "titulo": "No hay alerta persistente cuando el valor en libros se lleva a cero",
+      "descripcion": "GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento genérico.",
+      "rf": "RF-88",
+      "categoria": "FLUJO",
+      "tipo": "BUG",
+      "equipo": "Desarrollo Backend",
+      "severidad": "Medio",
+      "tiempo_maximo": "2 días hábiles",
+      "correccion": "Guardar una alerta consultable por activo, distinta de DETERIORO_REGISTRADO y del texto aviso de la respuesta."
+    }
+  ],
+  "aprobados": 0,
+  "rechazados": 0,
+  "bloqueados": 3,
+  "total": 3,
+  "porcentaje_aprobacion": 0
+}
