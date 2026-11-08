@@ -1,0 +1,95 @@
+{
+  "caso": "TC-M06-G72",
+  "subcaso": "TC-M06-13",
+  "rf": "RF-88",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T05:51:24.759254+00:00",
+  "activo": 10,
+  "login_http": 200,
+  "login": {
+    "tipo": "Bearer",
+    "expira_en": 28799,
+    "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+    "perfil_incompleto": false
+  },
+  "post_ejecutado": false,
+  "persistio": false,
+  "antes": {
+    "financiero_http": 404,
+    "propuesta_http": 404,
+    "estado": null,
+    "id_especie": null,
+    "reconocimientos": null,
+    "valoracion_costo": false,
+    "lineas": null,
+    "es_confirmable": null,
+    "indicador_valoracion": null,
+    "bloqueos": [],
+    "auditoria": 0
+  },
+  "despues": null,
+  "respuesta": null,
+  "http": [
+    {
+      "metodo": "GET",
+      "consulta": "/activos-biologicos/10",
+      "codigo": 403,
+      "lectura": true,
+      "escritura": false,
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T05:51:26.629640+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/10",
+      "codigo": 404,
+      "lectura": true,
+      "escritura": false,
+      "respuesta": {
+        "error_code": "ACTIVO_NO_ENCONTRADO",
+        "message": "El activo biológico no existe.",
+        "fields": [],
+        "timestamp": "2026-11-08T05:51:27.245820+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/reconocimientos/propuestas/10",
+      "codigo": 404,
+      "lectura": true,
+      "escritura": false,
+      "respuesta": {
+        "error_code": "ACTIVO_NO_ENCONTRADO",
+        "message": "El activo biológico no existe.",
+        "fields": [],
+        "timestamp": "2026-11-08T05:51:27.859511+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?id_activo_biologico=10&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "lectura": true,
+      "escritura": false,
+      "respuesta": {
+        "total_registros": 0
+      }
+    }
+  ],
+  "http_obtenido": null,
+  "codigo_negocio": null,
+  "estado": "BLOQUEADO",
+  "porcentaje_aprobacion": 0,
+  "motivo": "La cuenta que puede confirmar el reconocimiento no ve el activo: el historial y la propuesta responden ACTIVO_NO_ENCONTRADO. El POST no llegaría a ACTIVO_NO_VALORABLE. No se envió el POST.",
+  "visibles": {
+    "http": 200,
+    "reconocidos": 9,
+    "baja": [
+      948
+    ]
+  }
+}
