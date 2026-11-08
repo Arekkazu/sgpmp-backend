@@ -1,0 +1,53 @@
+{
+  "tc": "TC-M05-G17",
+  "summary": {
+    "total": 7,
+    "ok": 7,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Setup de activo QA dedicado y fase productiva",
+      "esperado": "HTTP 201 en creación de activo individual QA (Mojarra Plateada, infra 389) y apertura de fase con ciclo 5; estado inicial ACTIVO (id_estado: 1)",
+      "obtenido": "Activo QA ID 957 ('QA-M05-G17-261107-154501') creado exitosamente (HTTP 201), fase ciclo 5 abierta (HTTP 201), estado inicial ACTIVO (1). Status HTTP: 201, 201, 200.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Primer tratamiento con período de retiro (5 días)",
+      "esperado": "HTTP 201/200, fecha_fin_retiro_vigente = hoy + 5 días, tratamientos_activos = 1, activo transiciona a estado EN_TRATAMIENTO (id_estado: 3)",
+      "obtenido": "HTTP 201/200; retiro vigente registrado hoy+5 días, 1 tratamiento activo; activo pasó a estado EN_TRATAMIENTO (3). Status HTTP: 201, 200.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Segundo tratamiento con retiro mayor (10 días)",
+      "esperado": "HTTP 200 (E11), fecha_fin_retiro_vigente = hoy + 10 días, tratamientos_activos = 2, mensaje descriptivo E11, activo se mantiene EN_TRATAMIENTO",
+      "obtenido": "HTTP 200 (E11); retiro extendido a hoy+10 días; 2 tratamientos activos; mensaje E11 confirmó tratamientos y fecha; activo se mantuvo EN_TRATAMIENTO. Status HTTP: 200, 200.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Tercer tratamiento con retiro menor (3 días)",
+      "esperado": "HTTP 200 (E11), fecha_fin_retiro_vigente mantiene MAX (hoy + 10 días), tratamientos_activos = 3, activo se mantiene EN_TRATAMIENTO",
+      "obtenido": "HTTP 200 (E11); retiro vigente mantuvo MAX hoy+10 días; 3 tratamientos activos; activo se mantuvo EN_TRATAMIENTO. Status HTTP: 200, 200.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Cuarto tratamiento mayor (15 días) y reversibilidad",
+      "esperado": "HTTP 200 (E11), retiro vigente = hoy + 15 días, tratamientos_activos = 4; GET confirma 4 tratamientos VALIDADOS; anulación de los 4 restaura activo a ACTIVO (id_estado: 1)",
+      "obtenido": "HTTP 200 (E11); retiro extendido a hoy+15 días (4 tratamientos activos); GET validó 4 tratamientos VALIDADOS; anulación de los 4 restauró activo a ACTIVO (1). Status HTTP: 200, 200, 200, 200, 200 ... (7 peticiones).",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Concurrencia real (20 rondas de 5 hilos con Barrier)",
+      "esperado": "20 rondas consecutivas; 100% de peticiones (100 de 100) responden HTTP 2xx sin colisiones 409 ni 500; fecha_fin_retiro_vigente = hoy + 10 días; anulación limpia restaura ACTIVO en cada ronda",
+      "obtenido": "20 rondas exitosas de 5 hilos concurrentes sincronizados con Barrier(5) (100 peticiones POST exitosas 2xx, 0 colisiones 409, 0 errores 500); retiro MAX verificado en hoy+10 días; anulación limpia restauró ACTIVO en cada ronda. Total peticiones: 280.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Limpieza final y certificación de estado de activo QA",
+      "esperado": "0 tratamientos activos pendientes; activo QA en estado ACTIVO (id_estado: 1)",
+      "obtenido": "Verificación de inocuidad completada: 0 tratamientos activos en activo QA 957; estado final confirmado ACTIVO (1). Status HTTP: 200, 200.",
+      "estado": "OK"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "run_id": "tc-m05-g25-diag-1fe499f3",
+  "linea_base": {
+    "total_m05_ini": 52725,
+    "total_m01_ini": -1,
+    "cnt_db_m05_ini": 52725,
+    "cnt_db_dml": "FALLO_PERMISOS: (psycopg2.errors.InsufficientPrivilege) permission denied for schema auditoria\nLINE 1: SELECT count(*) FROM auditoria.logs_dml\n                             ^\n\n[SQL: SELECT count(*) FROM auditoria.logs_dml]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  "control_positivo_rf76": {
+    "id_activo": 962,
+    "id_medicamento": null,
+    "total_m05_post_med": 52728,
+    "cnt_db_m05_post_med": 52725,
+    "observable_en_api_sandbox": false,
+    "evento_detalle": null
+  },
+  "rf77_reporte_y_exportacion": {
+    "id_reporte": 185,
+    "id_archivo": "dc40fe31-1a38-46d5-883c-69e1be6be195"
+  },
+  "muestreos_temporales": [
+    {
+      "tiempo_s": 0.0,
+      "total_m05": 52728,
+      "cnt_filtro_ent": 0,
+      "cnt_filtro_arch": 0,
+      "evento_rf77_m05": null,
+      "total_m01": -1,
+      "evento_rf77_m01": null,
+      "cnt_db_m05": 52725
+    },
+    {
+      "tiempo_s": 5.0,
+      "total_m05": 52728,
+      "cnt_filtro_ent": 0,
+      "cnt_filtro_arch": 0,
+      "evento_rf77_m05": null,
+      "total_m01": -1,
+      "evento_rf77_m01": null,
+      "cnt_db_m05": 52725
+    },
+    {
+      "tiempo_s": 15.0,
+      "total_m05": 52728,
+      "cnt_filtro_ent": 0,
+      "cnt_filtro_arch": 0,
+      "evento_rf77_m05": null,
+      "total_m01": -1,
+      "evento_rf77_m01": null,
+      "cnt_db_m05": 52725
+    },
+    {
+      "tiempo_s": 60.0,
+      "total_m05": 52728,
+      "cnt_filtro_ent": 0,
+      "cnt_filtro_arch": 0,
+      "evento_rf77_m05": null,
+      "total_m01": -1,
+      "evento_rf77_m01": null,
+      "cnt_db_m05": 52725
+    }
+  ],
+  "inocuidad_post_sandbox": {
+    "cnt_post_rollback": 52725,
+    "rollback_exitoso": true
+  }
+}

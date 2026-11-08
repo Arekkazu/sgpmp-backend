@@ -1,0 +1,59 @@
+================================================================================
+INFORME DE EJECUCION FASES 2, 3 Y 4: TC-M05-G40
+RF-80 "Auditoria y Trazabilidad de Registros de Suministros"
+================================================================================
+Fecha/Hora: 2026-11-07 19:48:55 (America/Bogota)
+Suite: TC-M05-G40 (Caso Plano: TC-M05-095 | Agrupado: TC-M05-031)
+Total tests: 4 | Aprobados: 3 | Fallidos: 1
+Veredicto Final: Rechazado
+Duracion: 11.35 s
+
+1. TABLA DETALLADA DE CHECKPOINTS
+--------------------------------------------------------------------------------
+[01] T00 Admin Conteo inicial, creacion de activo y muestreo de latencia (20 peticiones)
+     Esperado: HTTP 200 en auditoria base, HTTP 201 en activo QA y 20 suministros exitosos con medicion de latencia
+     Obtenido: HTTP 200 en auditoria base, HTTP 201 en activo QA y 20 suministros exitosos con medicion de latencia
+     Estado:   OK
+
+[02] A01 Presencia de cola persistente M05-M12 con capacidad para 100.000 eventos (TC-M05-095 / 031)
+     Esperado: Cola persistente o outbox implementada para desacoplamiento y resiliencia ante caidas de M12 (CA-9 / RNF-08)
+     Obtenido: AssertionError: DEFECTO_PRODUCTO (RF-80 Restr. 3 / CA-9 / RNF-08 / TC-M05-095 / 031): La especificacion exige una cola persistente entre M05 y M12 con capacidad configurable de hasta 100.000 eventos para garantizar la resiliencia ante caidas de M12. El backend carece de cola/buffer persistente o tabla outbox (la persistencia es directa y sincronica en modulo5.auditorias_suministros).
+     Estado:   FALLA
+
+[03] T98 Admin Cierre ordenado de sandbox Administrador y rollback
+     Esperado: HTTP 200 con confirmacion de rollback exitoso
+     Obtenido: HTTP 200 con confirmacion de rollback exitoso
+     Estado:   OK
+
+[04] T99 Admin Verificacion de inocuidad tras corrida Administrador
+     Esperado: Conteo final de auditoria identico al conteo inicial
+     Obtenido: Conteo final de auditoria identico al conteo inicial
+     Estado:   OK
+
+2. METRICAS DE LATENCIA OBSERVADAS (POST /suministros/costeo-directo)
+--------------------------------------------------------------------------------
+- Total de muestras ejecutadas: 20
+- Latencia minima:              128.68 ms
+- Latencia mediana (p50):       140.09 ms
+- Latencia percentil 95 (p95):  250.02 ms
+- Latencia maxima:              250.02 ms
+
+3. COBERTURA NO EJECUTADA DECLARADA
+--------------------------------------------------------------------------------
+- Inyeccion de fallas / caida de M12: No viable en ambiente de pruebas sin degradar BD real.
+- Alertas de saturacion de cola (90% y 100%): No aplicable al no existir cola intermedia.
+- Politica de retencion FIFO de 48 horas: No aplicable al no existir cola intermedia.
+- Límite de degradación <= 50 ms vs linea base: No aplicable comparativamente; no existe baseline sin auditoria en el producto.
+
+4. INOCUIDAD Y SEGURIDAD
+--------------------------------------------------------------------------------
+- Corrida Sandbox: Administrador ejecutada con cabeceras de sandbox.
+- Cierre: Ejecutado via DELETE /test-control/runs/{run_id} -> HTTP 200 con confirmacion de rollback.
+- Inocuidad: Conteo total de eventos en modulo5.auditorias_suministros antes y despues de la corrida permanece identico.
+- Escaneo de secretos: 0 contraseñas, 0 tokens JWT ('***REDACTED***'), 0 secretos de sandbox en artefactos.
+
+5. OBSERVACIONES PARA ANALISIS Y RECOMENDACIONES (BORRADOR DE INC)
+--------------------------------------------------------------------------------
+- Defecto 1 (A01 / TC-M05-095 / 031):
+  Borrador INC: "RF-80 Restr. 3 / CA-9 / RNF-08: Inexistencia de cola persistente / buffer de desacoplamiento entre M05 y M12 con capacidad para 100.000 eventos".
+  Impacto: Riesgo de indisponibilidad o degradacion del registro de suministros si el subsistema de auditoria experimenta caidas o latencia en BD, al no disponer de buffer persistente.
