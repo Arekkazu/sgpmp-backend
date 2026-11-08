@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: exportación PDF/CSV y descarga     |
+# | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar la exportacion exitosa en la misma transaccion del archivo. |
 """Casos de uso: exportar un reporte de gastos a PDF/CSV y descargarlo (RF-77 pasos 8, E6).
 
 La exportación trabaja sobre un reporte ya generado: si se rechaza, el reporte
@@ -132,6 +133,23 @@ class ExportarReporteGastosUseCase:
         )
         try:
             guardado = self.archivo_repo.guardar(archivo)
+            self.auditoria_port.registrar(
+                EventoAuditoriaSuministro(
+                    entidad_afectada="archivos_exportacion_suministros",
+                    tipo_operacion="INSERT",
+                    id_usuario=id_usuario,
+                    resultado="EXITOSO",
+                    id_activo_biologico=reporte.id_activo_biologico,
+                    detalle_causa="Reporte de gastos exportado correctamente.",
+                    datos_nuevos={
+                        "accion": "EXPORTACION",
+                        "id_reporte_gasto_acumulado": reporte.id_reporte_gasto_acumulado,
+                        "id_archivo": str(guardado.id_archivo),
+                        "formato": guardado.formato,
+                        "total_registros": guardado.total_registros,
+                    },
+                )
+            )
             self.db.commit()
         except Exception:
             self.db.rollback()

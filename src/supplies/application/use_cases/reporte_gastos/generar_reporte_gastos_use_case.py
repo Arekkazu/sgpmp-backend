@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, 429 compartido, bajas     |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar cada reporte persistido antes del commit, incluido el worker. |
 """Caso de uso: generar el reporte de gastos acumulados (RF-77).
 
 Decide síncrono vs. asíncrono según el rango solicitado (R8/R13: > 12 meses
@@ -42,6 +43,10 @@ from src.shared.errors import (
 from src.shared.fechas import hoy_usuario
 from src.supplies.domain.entities.reporte_gasto import FiltrosReporteGasto, ReporteGasto
 from src.supplies.domain.entities.trabajo_reporte_gasto import TrabajoReporteGasto
+from src.supplies.domain.repositories.auditoria_suministro_port import (
+    AuditoriaSuministroPort,
+    EventoAuditoriaSuministro,
+)
 from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
 from src.supplies.domain.repositories.alcance_activo_port import AlcanceActivoPort
 from src.supplies.domain.repositories.configuracion_batch_reporte_gasto_repository import (
@@ -73,6 +78,7 @@ class GenerarReporteGastosUseCase:
         trabajo_repo: TrabajoReporteGastoRepository,
         config_repo: ConfiguracionBatchReporteGastoRepository,
         alcance_port: AlcanceActivoPort,
+        auditoria_port: AuditoriaSuministroPort,
         calculadora: Optional[CalculadoraReporteGasto] = None,
     ) -> None:
         self.db = db
@@ -82,6 +88,7 @@ class GenerarReporteGastosUseCase:
         self.trabajo_repo = trabajo_repo
         self.config_repo = config_repo
         self.alcance_port = alcance_port
+        self.auditoria_port = auditoria_port
         self.calculadora = calculadora or CalculadoraReporteGasto()
 
     def execute(
@@ -311,6 +318,22 @@ class GenerarReporteGastosUseCase:
     def _persistir(self, reporte: ReporteGasto) -> ReporteGasto:
         try:
             reporte = self.reporte_repo.guardar(reporte)
+            self.auditoria_port.registrar(
+                EventoAuditoriaSuministro(
+                    entidad_afectada="reporte_gastos_acumulados",
+                    tipo_operacion="INSERT",
+                    id_usuario=reporte.id_usuario,
+                    resultado="EXITOSO",
+                    id_activo_biologico=reporte.id_activo_biologico,
+                    detalle_causa="Reporte de gastos generado.",
+                    datos_nuevos={
+                        "accion": "GENERACION",
+                        "id_reporte_gasto_acumulado": reporte.id_reporte_gasto_acumulado,
+                        "parametros": reporte.parametros,
+                        "gasto_total_acumulado": str(reporte.gasto_total_acumulado),
+                    },
+                )
+            )
             self.db.commit()
         except Exception:
             self.db.rollback()
