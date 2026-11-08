@@ -25,6 +25,7 @@
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: router /finanzas y proceso de fondo NIC 41 |
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: routers de integración AAEF y transiciones de contratos |
+# | 2026-11-08 | Arekkazu | INC-M06-333-G89 RF-60: la evaluación de dispositivos corre en un hilo y no congela la API |
 import asyncio
 import logging
 import os
@@ -151,7 +152,9 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
                 parametros_port=ParametrosHeartbeatMLOpsAdapter(db),
             )
-            n = use_case.execute()
+            # En un hilo, como las demás tareas: si la consulta espera un bloqueo de la BD no congela
+            # el event loop (con la llamada directa, toda la API dejaba de responder).
+            n = await asyncio.to_thread(use_case.execute)
             if n > 0:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
