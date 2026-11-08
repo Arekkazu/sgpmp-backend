@@ -1,0 +1,140 @@
+{
+  "caso": "TC-M06-G79",
+  "generado_en": "2026-11-08T08:47:18.503358+00:00",
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "duracion_ms": 1309,
+      "escritura": false,
+      "en": "2026-11-08T08:47:19.813365+00:00",
+      "respuesta": {
+        "rutas_relevantes": 24,
+        "rutas_precio": [
+          {
+            "ruta": "/finanzas/precios",
+            "metodos": [
+              "get",
+              "post"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 675,
+      "escritura": false,
+      "en": "2026-11-08T08:47:20.488964+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 395,
+      "escritura": false,
+      "en": "2026-11-08T08:47:20.884322+00:00",
+      "respuesta": {
+        "total": 11,
+        "estados": {
+          "ACTIVO": 4,
+          "SUPERADO": 2,
+          "VENCIDO": 5
+        },
+        "campos": [
+          "categoria",
+          "es_aplicado",
+          "estado",
+          "evidencia",
+          "fecha_vencimiento",
+          "fecha_vigencia",
+          "fuente",
+          "id_especie",
+          "id_metrica_produccion",
+          "id_precio_corregido",
+          "id_precio_mercado",
+          "justificacion",
+          "precio_unitario",
+          "unidad_medida"
+        ],
+        "pendientes": 0,
+        "con_origen": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 412,
+      "escritura": false,
+      "en": "2026-11-08T08:47:21.296039+00:00",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_MARCADO_REEMPLAZADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 393,
+      "escritura": false,
+      "en": "2026-11-08T08:47:21.688764+00:00",
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REFERENCIA_VENCIDO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 418,
+      "escritura": false,
+      "en": "2026-11-08T08:47:22.106949+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 647,
+      "escritura": false,
+      "en": "2026-11-08T08:47:22.753674+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/integracion/auditoria?pagina=1&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 387,
+      "escritura": false,
+      "en": "2026-11-08T08:47:23.140819+00:00",
+      "respuesta": {
+        "total": 0
+      }
+    }
+  ]
+}

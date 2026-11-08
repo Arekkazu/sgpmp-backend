@@ -1,0 +1,167 @@
+{
+  "caso": "TC-M06-G75",
+  "generado_en": "2026-11-08T07:53:40.110728+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 870,
+      "escritura": true,
+      "en": "2026-11-08T07:53:40.981263+00:00",
+      "cuerpo": {
+        "correo_electronico": "omitido"
+      },
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 410,
+      "escritura": false,
+      "en": "2026-11-08T07:53:41.391532+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "puede_registrar": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 561,
+      "escritura": false,
+      "en": "2026-11-08T07:53:41.952367+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11,
+        "ids": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 522,
+      "escritura": false,
+      "en": "2026-11-08T07:53:42.473986+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 407,
+      "escritura": true,
+      "en": "2026-11-08T07:53:42.881082+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "precio_unitario": "100.00",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "texto de validacion de fechas no persistido",
+        "fecha_vigencia": "2025-11-07"
+      },
+      "respuesta": {
+        "error_code": "FECHA_VIGENCIA_FUERA_DE_RANGO",
+        "message": "La fecha de vigencia no puede ser anterior en más de 365 días a hoy.",
+        "fields": [
+          {
+            "field": "fecha_vigencia",
+            "message": "La fecha de vigencia no puede ser anterior en más de 365 días a hoy."
+          }
+        ],
+        "timestamp": "2026-11-08T07:53:42.818173+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 487,
+      "escritura": true,
+      "en": "2026-11-08T07:53:43.367926+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "precio_unitario": "100.00",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "texto de validacion de fechas no persistido",
+        "fecha_vigencia": "2026-11-08",
+        "fecha_vencimiento": "2026-11-07"
+      },
+      "respuesta": {
+        "error_code": "FECHA_VENCIMIENTO_INVALIDA",
+        "message": "El vencimiento debe ser posterior a la fecha de vigencia.",
+        "fields": [
+          {
+            "field": "fecha_vencimiento",
+            "message": "El vencimiento debe ser posterior a la fecha de vigencia."
+          }
+        ],
+        "timestamp": "2026-11-08T07:53:43.220810+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 422,
+      "escritura": false,
+      "en": "2026-11-08T07:53:43.790319+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11,
+        "ids": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 395,
+      "escritura": false,
+      "en": "2026-11-08T07:53:44.185540+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    }
+  ]
+}

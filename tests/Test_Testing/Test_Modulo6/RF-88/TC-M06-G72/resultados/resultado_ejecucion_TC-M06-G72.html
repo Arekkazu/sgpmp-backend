@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G72</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem; line-height: 1.45; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; vertical-align: top; text-align: left; }
+    th { background: #f3f3f3; }
+    .b { font-weight: 700; }
+    code { font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <h1>Módulo 6 — RF-88 — TC-M06-G72</h1>
+  <p>Subcaso TC-M06-13. Fecha: 2026-11-08T05:51:24.759254+00:00. Ambiente: https://api.inmero.co/api-sgpmp-test.</p>
+  <p>Activo 10. POST ejecutado: False. Escrituras financieras persistidas: False.</p>
+  <h2>Resumen</h2>
+  <table>
+    <tr><th>Estado</th><td class="b">BLOQUEADO</td></tr>
+    <tr><th>Porcentaje</th><td>0 %</td></tr>
+    <tr><th>HTTP esperado</th><td>422 ACTIVO_NO_VALORABLE</td></tr>
+    <tr><th>HTTP obtenido</th><td>None </td></tr>
+  </table>
+  <h2>Antes</h2>
+  <pre>{
+  &quot;financiero_http&quot;: 404,
+  &quot;propuesta_http&quot;: 404,
+  &quot;estado&quot;: null,
+  &quot;id_especie&quot;: null,
+  &quot;reconocimientos&quot;: null,
+  &quot;valoracion_costo&quot;: false,
+  &quot;lineas&quot;: null,
+  &quot;es_confirmable&quot;: null,
+  &quot;indicador_valoracion&quot;: null,
+  &quot;bloqueos&quot;: [],
+  &quot;auditoria&quot;: 0
+}</pre>
+  <h2>Respuesta</h2>
+  <pre>{}</pre>
+  <h2>Después</h2>
+  <pre>{}</pre>
+  <p>La cuenta que puede confirmar el reconocimiento no ve el activo: el historial y la propuesta responden ACTIVO_NO_ENCONTRADO. El POST no llegaría a ACTIVO_NO_VALORABLE. No se envió el POST.</p>
+</body>
+</html>

@@ -1,0 +1,368 @@
+{
+  "caso": "TC-M06-G74",
+  "generado_en": "2026-11-08T07:28:55.555517+00:00",
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "duracion_ms": 1607,
+      "escritura": false,
+      "en": "2026-11-08T07:28:57.163126+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "encontrado": true,
+        "get": true,
+        "post": true,
+        "post_status": "Successful Response",
+        "esquema": "#/components/schemas/PrecioDTO",
+        "permiso_resumen": "Registrar un precio de mercado de referencia (append-only)"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 704,
+      "escritura": true,
+      "en": "2026-11-08T07:28:57.867376+00:00",
+      "cuerpo": {
+        "correo_electronico": "omitido"
+      },
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 389,
+      "escritura": false,
+      "en": "2026-11-08T07:28:58.256210+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "puede_registrar_precios": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 372,
+      "escritura": false,
+      "en": "2026-11-08T07:28:58.628106+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11,
+        "ids": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "por_fuente": {
+          "ESTIMADA": 2,
+          "MERCADO_ACTIVO": 7,
+          "UPRA": 2
+        },
+        "por_especie": {
+          "39": 4,
+          "421": 1,
+          "1": 4,
+          "3": 1,
+          "2": 1
+        },
+        "aplicados": [
+          {
+            "id": 18,
+            "id_especie": 39,
+            "fuente": "MERCADO_ACTIVO",
+            "precio_unitario": "9600.00",
+            "estado": "ACTIVO",
+            "fecha_vigencia": "2026-11-07",
+            "evidencia_presente": true
+          },
+          {
+            "id": 16,
+            "id_especie": 421,
+            "fuente": "UPRA",
+            "precio_unitario": "14500.00",
+            "estado": "ACTIVO",
+            "fecha_vigencia": "2026-11-01",
+            "evidencia_presente": true
+          },
+          {
+            "id": 5,
+            "id_especie": 1,
+            "fuente": "MERCADO_ACTIVO",
+            "precio_unitario": "1.00",
+            "estado": "ACTIVO",
+            "fecha_vigencia": "2026-05-10",
+            "evidencia_presente": true
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 375,
+      "escritura": false,
+      "en": "2026-11-08T07:28:59.003444+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 370,
+      "escritura": true,
+      "en": "2026-11-08T07:28:59.373943+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "fecha_vigencia": "2026-11-08",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "texto de validacion no persistido",
+        "precio_unitario": "0"
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "precio_unitario",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T07:28:59.415527+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 390,
+      "escritura": true,
+      "en": "2026-11-08T07:28:59.764368+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "fecha_vigencia": "2026-11-08",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "texto de validacion no persistido",
+        "precio_unitario": "-1"
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "precio_unitario",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T07:28:59.808082+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 397,
+      "escritura": false,
+      "en": "2026-11-08T07:29:00.161151+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 400,
+      "escritura": false,
+      "en": "2026-11-08T07:29:00.561055+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 384,
+      "escritura": true,
+      "en": "2026-11-08T07:29:00.945038+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "fecha_vigencia": "2026-11-08",
+        "fuente": "MERCADO_ACTIVO",
+        "precio_unitario": "100"
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "evidencia_documental",
+            "message": "Este campo es obligatorio."
+          }
+        ],
+        "timestamp": "2026-11-08T07:29:00.978666+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 385,
+      "escritura": true,
+      "en": "2026-11-08T07:29:01.330512+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "fecha_vigencia": "2026-11-08",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "",
+        "precio_unitario": "100"
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "evidencia_documental",
+            "message": "String should have at least 1 character"
+          }
+        ],
+        "timestamp": "2026-11-08T07:29:01.363665+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 397,
+      "escritura": true,
+      "en": "2026-11-08T07:29:01.727815+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "fecha_vigencia": "2026-11-08",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "   ",
+        "precio_unitario": "100"
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "evidencia_documental",
+            "message": "String should have at least 1 character"
+          }
+        ],
+        "timestamp": "2026-11-08T07:29:01.759173+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 391,
+      "escritura": false,
+      "en": "2026-11-08T07:29:02.119388+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 396,
+      "escritura": false,
+      "en": "2026-11-08T07:29:02.515214+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/precios",
+      "codigo": 400,
+      "duracion_ms": 400,
+      "escritura": true,
+      "en": "2026-11-08T07:29:02.914880+00:00",
+      "cuerpo": {
+        "id_especie": 39,
+        "categoria": "PESO_KG",
+        "fecha_vigencia": "2026-11-08",
+        "fuente": "OTRA",
+        "evidencia_documental": "texto de validacion no persistido",
+        "precio_unitario": "100"
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "fuente",
+            "message": "El valor ingresado no es una de las opciones permitidas."
+          }
+        ],
+        "timestamp": "2026-11-08T07:29:02.946090+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 384,
+      "escritura": false,
+      "en": "2026-11-08T07:29:03.299246+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 11
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 422,
+      "escritura": false,
+      "en": "2026-11-08T07:29:03.721659+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 5
+      }
+    }
+  ]
+}

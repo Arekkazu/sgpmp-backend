@@ -1,0 +1,246 @@
+{
+  "caso": "TC-M06-G81",
+  "subcaso": "TC-M06-34",
+  "rf": [
+    "RF-89"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T09:01:36.801714+00:00",
+  "hoy_utc": "2026-11-08",
+  "contrato": "No hay endpoint para disparar el aviso. main.py ejecuta _procesar_m06_periodicamente cada 60 segundos. El aviso de precios corre una vez por día UTC mientras el proceso sigue vivo; la marca ultimo_diario está en memoria. AlertarVencimientoPreciosUseCase lee dias_alerta_vencimiento_precio, un solo valor 7, 15 o 30 guardado en modulo6.configuraciones_contables. El valor inicial es 30. Busca vencimientos entre ayer y hoy más esa ventana. Avisa si los días restantes son la ventana configurada, 7, 0 y, solo cuando la ventana es mayor que 15, también 15. Un vencimiento ya pasado solo se avisa si cayó dentro de ese rango y la especie no tiene otro precio vigente. El mensaje va a todos los usuarios con rol Contador, tipo ALERTA_FINANCIERA_NIC41, tabla modulo1.notificaciones. Ese mismo tipo se usa al registrar un precio activo. No hay un evento de auditoría financiera propio del aviso. a_contadores no llama verificar_anti_spam y la tabla no tiene una clave única por precio, plazo y destinatario. Un reinicio del proceso el mismo día UTC puede volver a notificar. La bandeja se consulta con GET /notificaciones y cada usuario solo ve la suya.",
+  "proceso_ejecutado": false,
+  "dias_alerta": 30,
+  "marcas": [
+    30,
+    15,
+    7,
+    0
+  ],
+  "precios": [
+    {
+      "id": 19,
+      "id_especie": 39,
+      "categoria": "PESO_KG",
+      "fuente": "ESTIMADA",
+      "precio_unitario": "9500.00",
+      "fecha_vigencia": "2026-11-07",
+      "fecha_vencimiento": "2026-12-31",
+      "estado": "ACTIVO",
+      "dias_para_vencer": 53
+    },
+    {
+      "id": 18,
+      "id_especie": 39,
+      "categoria": "PESO_KG",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "9600.00",
+      "fecha_vigencia": "2026-11-07",
+      "fecha_vencimiento": "2026-12-31",
+      "estado": "ACTIVO",
+      "dias_para_vencer": 53
+    },
+    {
+      "id": 17,
+      "id_especie": 39,
+      "categoria": "PESO_KG",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "9300.00",
+      "fecha_vigencia": "2026-11-07",
+      "fecha_vencimiento": "2026-12-31",
+      "estado": "SUPERADO",
+      "dias_para_vencer": 53
+    },
+    {
+      "id": 16,
+      "id_especie": 421,
+      "categoria": "POR_CABEZA",
+      "fuente": "UPRA",
+      "precio_unitario": "14500.00",
+      "fecha_vigencia": "2026-11-01",
+      "fecha_vencimiento": "2026-12-31",
+      "estado": "ACTIVO",
+      "dias_para_vencer": 53
+    },
+    {
+      "id": 15,
+      "id_especie": 39,
+      "categoria": "PESO_KG",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "9800.00",
+      "fecha_vigencia": "2026-11-01",
+      "fecha_vencimiento": "2026-12-31",
+      "estado": "SUPERADO",
+      "dias_para_vencer": 53
+    },
+    {
+      "id": 5,
+      "id_especie": 1,
+      "categoria": "PESO_KG",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "1.00",
+      "fecha_vigencia": "2026-05-10",
+      "fecha_vencimiento": null,
+      "estado": "ACTIVO",
+      "dias_para_vencer": null
+    },
+    {
+      "id": 9,
+      "id_especie": 3,
+      "categoria": "PESO_KG",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "8500.00",
+      "fecha_vigencia": "2026-04-01",
+      "fecha_vencimiento": "2026-06-30",
+      "estado": "VENCIDO",
+      "dias_para_vencer": -131
+    },
+    {
+      "id": 8,
+      "id_especie": 2,
+      "categoria": "PESO_KG",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "5200.00",
+      "fecha_vigencia": "2026-04-01",
+      "fecha_vencimiento": "2026-06-30",
+      "estado": "VENCIDO",
+      "dias_para_vencer": -131
+    },
+    {
+      "id": 7,
+      "id_especie": 1,
+      "categoria": "PESO_KG",
+      "fuente": "UPRA",
+      "precio_unitario": "9800.00",
+      "fecha_vigencia": "2026-04-01",
+      "fecha_vencimiento": "2026-06-30",
+      "estado": "VENCIDO",
+      "dias_para_vencer": -131
+    },
+    {
+      "id": 6,
+      "id_especie": 1,
+      "categoria": "POR_CABEZA",
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "4500000.00",
+      "fecha_vigencia": "2026-04-01",
+      "fecha_vencimiento": "2026-06-30",
+      "estado": "VENCIDO",
+      "dias_para_vencer": -131
+    },
+    {
+      "id": 10,
+      "id_especie": 1,
+      "categoria": "PESO_KG",
+      "fuente": "ESTIMADA",
+      "precio_unitario": "9500.00",
+      "fecha_vigencia": "2026-01-01",
+      "fecha_vencimiento": "2026-03-31",
+      "estado": "VENCIDO",
+      "dias_para_vencer": -222
+    }
+  ],
+  "precios_en_marca": 0,
+  "avisos": [],
+  "avisos_precio": 0,
+  "auditoria_precio_vencido": 0,
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-34",
+      "escenario": "Alertas a 7, 15 y 30 días y prevención de duplicados",
+      "estado": "BLOQUEADO",
+      "motivo": "No se ejecutó el proceso. No existe un endpoint público, no hay precios aislados en las marcas de 7, 15 y 30 días y repetir el proceso sobre el catálogo compartido podría crear avisos en las cuentas reales de los contadores. La bandeja consultada no demuestra la generación de esas tres alertas ni la ausencia de duplicados.",
+      "proceso_ejecutado": false
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 709,
+      "escritura": false,
+      "en": "2026-11-08T09:01:37.510629+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/configuracion",
+      "codigo": 200,
+      "duracion_ms": 571,
+      "escritura": false,
+      "en": "2026-11-08T09:01:38.081723+00:00",
+      "respuesta": {
+        "dias_alerta_vencimiento_precio": 30
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 385,
+      "escritura": false,
+      "en": "2026-11-08T09:01:38.466806+00:00",
+      "respuesta": {
+        "total": 11,
+        "en_7": 0,
+        "en_15": 0,
+        "en_30": 0,
+        "en_marca": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/notificaciones?pagina=1&tamano=50",
+      "codigo": 200,
+      "duracion_ms": 359,
+      "escritura": false,
+      "en": "2026-11-08T09:01:38.825612+00:00",
+      "respuesta": {
+        "total": 40,
+        "coincidencias": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REFERENCIA_VENCIDO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 363,
+      "escritura": false,
+      "en": "2026-11-08T09:01:39.188852+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    }
+  ],
+  "hallazgos": [
+    "QUESTION-M06-G81-01: el caso espera plazos configurados de 7, 15 y 30 días a la vez. El sistema guarda un solo plazo y solo incluye 15 cuando ese plazo es mayor que 15.",
+    "BLOQUEO DE PRUEBA: no hay datos aislados ni un endpoint para ejecutar el aviso sin notificar sobre el catálogo compartido."
+  ],
+  "aprobados": 0,
+  "rechazados": 0,
+  "bloqueados": 1,
+  "requiere_aclaracion": 0,
+  "porcentaje_aprobacion": 0,
+  "por_dias": {
+    "53": 5,
+    "sin_vencimiento": 1,
+    "-131": 4,
+    "-222": 1
+  },
+  "en_7": [],
+  "en_15": [],
+  "en_30": [],
+  "en_marca": [],
+  "total_bandeja": 40,
+  "mensajes_repetidos": [],
+  "duracion_ms": 2387
+}
