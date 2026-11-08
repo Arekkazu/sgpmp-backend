@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/84/86/88/90: núcleo de cálculo NIC 41 (Python puro) |
+# | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
 """Núcleo de cálculo NIC 41 de M06. Python puro: lo usan todos los casos de uso.
 
 - RF-84 (¶12, ¶5): ``valor_neto = magnitud × precio − costos de venta``. Los costos de M05 son
@@ -187,6 +188,26 @@ def valor_por_costo(
     depreciacion = q4(min(Decimal(costo_adquisicion), Decimal(costo_adquisicion) * meses / vida_util_meses))
     contable = max(CERO, q4(Decimal(costo_adquisicion) - depreciacion - Decimal(deterioro_acumulado)))
     return ValorPorCosto(Decimal(costo_adquisicion), depreciacion, Decimal(deterioro_acumulado), contable)
+
+
+# --- RF-85 precondición 7: conversión de unidades del sistema ---------------------------------
+
+# El activo de consumo se mide en kg (categoría de precio por peso): una cosecha en otra unidad de
+# masa se convierte con estas reglas fijas. Volumen o unidades no tienen regla hacia kg (sin densidad
+# ni peso unitario) y el reconocimiento queda bloqueado, como pide RF-85 restricción 6.
+_KG_POR_UNIDAD = {
+    **dict.fromkeys(("kg", "kgs", "kilo", "kilos", "kilogramo", "kilogramos"), Decimal(1)),
+    **dict.fromkeys(("g", "gr", "grs", "gramo", "gramos"), Decimal("0.001")),
+    **dict.fromkeys(("t", "ton", "tonelada", "toneladas"), Decimal(1000)),
+    **dict.fromkeys(("lb", "lbs", "libra", "libras"), Decimal("0.45359237")),
+    **dict.fromkeys(("@", "arroba", "arrobas"), Decimal("12.5")),  # arroba colombiana: 25 libras
+}
+
+
+def a_kg(cantidad: Decimal, unidad: Optional[str]) -> Optional[Decimal]:
+    """``cantidad`` en kg, o ``None`` si la unidad no tiene regla de conversión."""
+    factor = _KG_POR_UNIDAD.get((unidad or "").strip().lower())
+    return None if factor is None else q4(Decimal(cantidad) * factor)
 
 
 # --- RF-90 5.8: reparto -----------------------------------------------------------------------
