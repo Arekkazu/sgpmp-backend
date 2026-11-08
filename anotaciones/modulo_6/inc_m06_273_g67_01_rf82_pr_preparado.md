@@ -75,4 +75,6 @@ Propuesta de cinco archivos: migración, pruebas de integración, diagnóstico, 
 
 ## Revisión contra dev
 
+Rama: `fix/inc-m06-273-g67-01-rf82-acceso-contable`.
+
 Comparar exclusivamente los cinco archivos de esta corrección contra origin/dev. La migración parte del head b7e2d94c1a68; revisar posibles heads adicionales si dev cambia antes de integrar. No se publicó un PR ni se hizo commit/push durante la implementación.

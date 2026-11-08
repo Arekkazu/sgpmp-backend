@@ -14,7 +14,7 @@ Las cinco estructuras reportadas están implementadas en la migración existente
 | test | e5d6934d3e68a20c26a8fdfea759f71d7c2828b6 |
 | laura | 4d7f337dad6c8fe462aaaf9fa8016f47c74a7627 |
 
-La rama `codex/inc-m06-273-g67-01-rf82-acceso-contable` parte del `dev` actualizado indicado arriba. Se añade la migración `e957a82c1107`, hija de `b7e2d94c1a68`.
+La rama `fix/inc-m06-273-g67-01-rf82-acceso-contable` parte del `dev` actualizado indicado arriba. Se añade la migración `e957a82c1107`, hija de `b7e2d94c1a68`.
 
 La migración contable está en `dev` y `test`; no está en el árbol actual de `origin/laura`. El caso de uso unificado `reconocimiento/confirmar_reconocimiento_use_case.py` tiene el mismo blob en `dev` y `test`: `55016f65b1d6f38a945af1c9163303156022a41f`. La versión actual de `laura` no contiene ese archivo. Esto caracteriza las referencias actuales; no permite reconstruir qué SHA revisó QA.
 
