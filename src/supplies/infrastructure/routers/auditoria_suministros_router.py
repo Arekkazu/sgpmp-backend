@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: documentar rechazo 400 por filtros temporales inválidos. |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
@@ -44,6 +45,7 @@ _RECURSO = 57
     status_code=200,
     dependencies=[Depends(require_permission(_RECURSO, 2))],
     responses={
+        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
