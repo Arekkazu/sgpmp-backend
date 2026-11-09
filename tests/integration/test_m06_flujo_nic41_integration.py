@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: flujo NIC 41 de punta a punta contra PostgreSQL |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período, resumen de auditoría y filtros inválidos |
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 / INC-M06-332-G88: filtros de mediciones y cotización en período cerrado |
+# | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0 / RF-89 v1.1: aviso del cierre por activos al costo con precio y 400 en la justificación |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -350,3 +351,25 @@ def test_aviso_de_vencimiento_queda_marcado_en_la_bandeja(db_session, contador):
     adaptador.a_contadores("ALERTA_FINANCIERA_NIC41", "El precio de mercado vence pronto.", marca)
     assert adaptador.ya_notificado("ALERTA_FINANCIERA_NIC41", marca)
     assert not adaptador.ya_notificado("ALERTA_FINANCIERA_NIC41", {**marca, "aviso": "7_DIAS"})
+
+
+def test_cierre_avisa_activos_al_costo_con_precio_y_justificacion_corta_es_400(db_session, m06, contador):
+    """RFC-024: RF-88 v2.0 (aviso de cierre) y RF-89 v1.1 CA-5 (justificación de estimación < 50 → 400)."""
+    uid = contador["id_usuario"]
+    especie = 3  # sin precios: el activo entra al costo
+    finca = _finca(db_session, uid, nit="830095213", dv="0")
+    _configurar(m06, uid, especie, vida=24)
+    _matriz(m06, uid)
+    comprado = _activo(db_session, finca, uid, especie=especie, origen="compra", costo=D("1200000"))
+    assert m06.confirmar_reconocimiento().execute(comprado, uid)["indicador_valoracion"] == "VALORACION_POR_COSTO"
+
+    with pytest.raises(AppError) as corta:
+        _precio(m06, uid, especie, "50000", HOY, fuente="ESTIMADA")  # sin justificación
+    assert (corta.value.status_code, corta.value.code) == (400, "JUSTIFICACION_ESTIMACION_INSUFICIENTE")
+
+    _precio(m06, uid, especie, "50000", HOY)
+    periodo = m06.periodos.que_contiene("830095213", HOY)
+    cierre = m06.cierre().execute(periodo.id_periodo_contable, uid)
+    identificador = f"M06-{comprado}"
+    assert cierre["activos_al_costo_con_precio"] == [identificador]
+    assert any(identificador in aviso and "valor razonable" in aviso for aviso in m06.notificador.avisos)
