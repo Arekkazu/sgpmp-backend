@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroReadPort` (RF-80, CU-06).
 
 Mismo patrón de paginación que ``evento_auditoria_m04_repository.py``:
-``select()`` + ``func.count()`` sobre subquery, ``order_by(fecha_evento.desc())``.
+``select()`` + ``func.count()`` sobre subquery, orden descendente por ``fecha_evento`` o ``fecha_emision`` (RNF-08).
 Lee ``AuditoriaSuministroModel`` (ya existía, generado con sqlacodegen para
 CU-05) — no crea tabla ni modelo nuevo.
 """
@@ -81,7 +84,8 @@ class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
         offset = (filtros.pagina - 1) * filtros.registros_por_pagina
         items = (
             self.db.execute(
-                q.order_by(AuditoriaSuministroModel.fecha_evento.desc())
+                q.order_by(getattr(AuditoriaSuministroModel, filtros.ordenar_por).desc().nulls_last(),
+                           AuditoriaSuministroModel.id_auditoria_suministro.desc())
                 .offset(offset)
                 .limit(filtros.registros_por_pagina)
             )

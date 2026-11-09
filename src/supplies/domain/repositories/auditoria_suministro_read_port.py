@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
 """Puerto de lectura de la bitácora ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Complementa a ``AuditoriaSuministroPort`` (solo escritura). ``tipo_operacion``
@@ -30,6 +33,7 @@ class FiltrosAuditoriaSuministro:
     clasificacion_registro: Optional[str] = None
     pagina: int = 1
     registros_por_pagina: int = 50
+    ordenar_por: str = "fecha_evento"  # RNF-08: fecha_evento (registro) o fecha_emision (emisión en M05)
 
 
 class AuditoriaSuministroReadPort(ABC):

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
@@ -12,7 +13,7 @@ Contador, Revisor Fiscal), E=5 (mismos roles, exportar).
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -61,6 +62,8 @@ def listar_auditoria(
     clasificacion_registro: Optional[str] = Query(default=None, description="NIC41 | TECNICO"),
     pagina: int = Query(default=1, ge=1),
     registros_por_pagina: int = Query(default=50, ge=1, le=200),
+    ordenar_por: Literal["fecha_evento", "fecha_emision"] = Query(
+        default="fecha_evento", description="Orden descendente por fecha de registro o de emisión (RNF-08)"),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AuditoriaSuministrosListResponse:
@@ -76,6 +79,7 @@ def listar_auditoria(
         clasificacion_registro=clasificacion_registro,
         pagina=pagina,
         registros_por_pagina=registros_por_pagina,
+        ordenar_por=ordenar_por,
     )
     use_case = build_consultar_auditoria_use_case(db)
     items, total = use_case.listar(filtros)
