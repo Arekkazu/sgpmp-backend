@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ensamblado de repositorios, servicios y casos de uso |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-296-G34-01 RF-86: notificador en el procesamiento de eventos |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: notificador en el registro de deterioro |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -158,7 +159,9 @@ class M06:
             self.medidor, self.contabilizador, self.verificador, self.constructor_estado, self.constructor_informe,
             self.notificador, self.procesar_eventos())
     def verificar_trazabilidad(self): return VerificarTrazabilidadUseCase(self.db, self.asientos, self.verificador, self.periodos)
-    def registrar_deterioro(self): return RegistrarDeterioroUseCase(self.db, self.activos, self.valoraciones, self.contabilizador)
+    def registrar_deterioro(self):
+        return RegistrarDeterioroUseCase(self.db, self.activos, self.valoraciones, self.contabilizador,
+                                         notificador=self.notificador)
     def cambiar_a_valor_razonable(self):
         return CambiarAValorRazonableUseCase(self.db, self.activos, self.valoraciones, self.valorador, self.contabilizador)
     def registrar_cotizacion(self):

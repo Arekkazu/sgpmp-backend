@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1: cierre del período contable con comprobante NIC 41 |
 # | 2026-11-05 | Arekkazu | M06 RF-87: el bloqueo por cuentas faltantes nombra hecho, sentido y especie sin códigos |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -33,7 +34,17 @@ from src.financial_valuation.domain.repositories.notificacion_financiera_port im
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.consolidacion import LineaContable, consolidar_comprobantes
-from src.financial_valuation.domain.services.nic41 import hash_sha256, meses_transcurridos, periodo_siguiente, truncar2, valor_por_costo
+from src.financial_valuation.application.use_cases.valoracion_costo.registrar_deterioro_use_case import (
+    evento_valor_libros_cero,
+)
+from src.financial_valuation.domain.services.nic41 import (
+    hash_sha256,
+    meses_transcurridos,
+    periodo_siguiente,
+    truncar2,
+    valor_libros_calculado,
+    valor_por_costo,
+)
 from src.financial_valuation.domain.value_objects.nic41 import (
     ETIQUETA_HECHO,
     ETIQUETA_SENTIDO,
@@ -307,6 +318,12 @@ class EjecutarCierrePeriodoUseCase:
                                 meses_transcurridos(costo.fecha_adquisicion, dia), costo.deterioro_acumulado)
         delta = truncar2(valor.depreciacion_acumulada - costo.depreciacion_acumulada)
         if delta > 0:
+            calculado = valor_libros_calculado(costo.costos_adquisicion, valor.depreciacion_acumulada,
+                                               costo.deterioro_acumulado)
+            if calculado < 0 and costo.valor_contable_por_costo > 0:  # RF-88: el ajuste a cero ocurre en este cierre
+                self.contabilizador.auditar(evento_valor_libros_cero(
+                    costo, calculado, "DEPRECIACION", activo.id_activo_biologico, periodo.id_periodo_contable,
+                    id_cierre, id_usuario))
             costo.depreciacion_acumulada = valor.depreciacion_acumulada
             costo.valor_contable_por_costo = valor.valor_contable
             self.valoraciones.actualizar_valoracion_costo(costo)
