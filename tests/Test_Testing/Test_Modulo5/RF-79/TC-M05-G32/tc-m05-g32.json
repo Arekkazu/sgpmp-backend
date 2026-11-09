@@ -342,14 +342,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Productor",
+          "name": "PRE - Fincas actuales del Productor (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Productor consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Productor consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_prod', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -360,10 +360,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_prod}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_productor}}/detalle"
           }
         },
         {
@@ -374,7 +374,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_prod', JSON.stringify({ ids_fincas: fs }));"
@@ -417,14 +417,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Veterinario",
+          "name": "PRE - Fincas actuales del Veterinario (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Veterinario consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Veterinario consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_vet', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -435,10 +435,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_vet}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_veterinario}}/detalle"
           }
         },
         {
@@ -449,7 +449,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_vet', JSON.stringify({ ids_fincas: fs }));"
@@ -492,14 +492,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Contador",
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Contador consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Contador consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_cont', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -510,10 +510,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_cont}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
           }
         },
         {
@@ -524,7 +524,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_cont', JSON.stringify({ ids_fincas: fs }));"
@@ -662,6 +662,7 @@
                   "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
                   "pm.collectionVariables.set('id_creador', a.id_usuario);",
                   "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "['max_auditoria', 'prev_semanal', 'prev_ciclo', 'vig_semanal', 'vig_ciclo'].forEach(k => pm.collectionVariables.set(k, Number(m5[k] || 0)));",
                   "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
                   "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
                   "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
@@ -674,7 +675,7 @@
                   "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
                   "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
                   "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
-                  "crit(Number(m5.n_resultados) === 0, 'A sin resultados ICA previos; tiene ' + m5.n_resultados);",
+                  "console.log('A tiene ' + m5.n_resultados + ' resultados ICA previos (del batch nocturno); los conteos usan solo los de esta corrida.');",
                   "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
                   "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
                   "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
@@ -701,7 +702,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado\"}",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado, (SELECT coalesce(max(id_auditoria_suministro), 0) FROM modulo5.auditorias_suministros) AS max_auditoria, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL') AS prev_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO') AS prev_ciclo, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL' AND r.es_vigente) AS vig_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO' AND r.es_vigente) AS vig_ciclo\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -715,6 +716,256 @@
     {
       "name": "0b. Referencias",
       "item": [
+        {
+          "name": "PRE - Finca del activo 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - activo consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('infra_2', pm.response.code === 200 ? pm.response.json().id_infraestructura : 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/2"
+          }
+        },
+        {
+          "name": "PRE - Area del activo 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('finca_2', pm.response.code === 200 ? pm.response.json().id_finca : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/infraestructuras/{{infra_2}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_cont_2', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Contador la finca del activo 2 (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont_2') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fx = Number(pm.collectionVariables.get('finca_2'));",
+                  "if (fx && !fs.includes(fx)) fs.push(fx);",
+                  "pm.collectionVariables.set('body_finca_2', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Contador asignado a la finca del activo 2 (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_finca_2}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Finca del activo 57",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - activo consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('infra_57', pm.response.code === 200 ? pm.response.json().id_infraestructura : 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/57"
+          }
+        },
+        {
+          "name": "PRE - Area del activo 57",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('finca_57', pm.response.code === 200 ? pm.response.json().id_finca : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/infraestructuras/{{infra_57}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_cont_57', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Contador la finca del activo 57 (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont_57') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fx = Number(pm.collectionVariables.get('finca_57'));",
+                  "if (fx && !fs.includes(fx)) fs.push(fx);",
+                  "pm.collectionVariables.set('body_finca_57', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Contador asignado a la finca del activo 57 (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_finca_57}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "PRE - Ultima provision NIC-41 (id_v1) y reportes antes",
           "event": [

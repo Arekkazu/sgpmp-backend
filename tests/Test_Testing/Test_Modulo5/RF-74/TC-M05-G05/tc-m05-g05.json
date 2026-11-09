@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-74 - TC-M05-G05 Panel y control del motor batch ICA",
-    "description": "Automatiza TC-M05-014, 015 y 016. Lo que escribe la colección (interrupción de la corrida en curso, reintento, cierre de ciclo) queda dentro del sandbox y se revierte. No se automatiza la reactivación (batch/ejecutar con solo_cola=true) ni un disparo sin corrida en curso: el batch procesa cada activo con sesiones propias que el sandbox no revierte y dejaría resultados reales en TEST. Corre en el sandbox transaccional (todo se revierte al final). El activo A (id_activo_a) debe existir en TEST: el backend no acepta eventos anteriores al registro del activo y P1 va en D-20. Con id_activo_a=0 solo lista candidatos aptos. Los consumos 'de E2' (casos de RF-75) se reemplazan por C0 = 20 kg en D-10, dentro del ciclo y fuera de la semana.",
+    "description": "Automatiza TC-M05-014, 015 y 016. Lo que escribe la colección (interrupción de la corrida en curso, reintento, cierre de ciclo) queda dentro del sandbox y se revierte. La reactivación (batch/ejecutar con solo_cola=true) se ejecutó fuera del sandbox el 2026-11-09 con autorización del DBA (corrida 60), porque el batch procesa cada activo con sesiones propias; aquí se verifica en lectura. Corre en el sandbox transaccional (todo se revierte al final). El activo A (id_activo_a) debe existir en TEST: el backend no acepta eventos anteriores al registro del activo y P1 va en D-20. Con id_activo_a=0 solo lista candidatos aptos. Los consumos 'de E2' (casos de RF-75) se reemplazan por C0 = 20 kg en D-10, dentro del ciclo y fuera de la semana.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -87,6 +87,10 @@
     {
       "key": "tok_cont",
       "value": ""
+    },
+    {
+      "key": "id_reactivacion",
+      "value": "60"
     }
   ],
   "item": [
@@ -260,14 +264,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Productor",
+          "name": "PRE - Fincas actuales del Productor (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Productor consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Productor consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_prod', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -278,10 +282,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_prod}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_productor}}/detalle"
           }
         },
         {
@@ -292,7 +296,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_prod', JSON.stringify({ ids_fincas: fs }));"
@@ -335,14 +339,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Veterinario",
+          "name": "PRE - Fincas actuales del Veterinario (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Veterinario consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Veterinario consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_vet', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -353,10 +357,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_vet}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_veterinario}}/detalle"
           }
         },
         {
@@ -367,7 +371,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_vet', JSON.stringify({ ids_fincas: fs }));"
@@ -505,6 +509,7 @@
                   "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
                   "pm.collectionVariables.set('id_creador', a.id_usuario);",
                   "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "['max_auditoria', 'prev_semanal', 'prev_ciclo', 'vig_semanal', 'vig_ciclo'].forEach(k => pm.collectionVariables.set(k, Number(m5[k] || 0)));",
                   "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
                   "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
                   "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
@@ -517,7 +522,7 @@
                   "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
                   "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
                   "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
-                  "crit(Number(m5.n_resultados) === 0, 'A sin resultados ICA previos; tiene ' + m5.n_resultados);",
+                  "console.log('A tiene ' + m5.n_resultados + ' resultados ICA previos (del batch nocturno); los conteos usan solo los de esta corrida.');",
                   "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
                   "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
                   "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
@@ -544,7 +549,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado\"}",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado, (SELECT coalesce(max(id_auditoria_suministro), 0) FROM modulo5.auditorias_suministros) AS max_auditoria, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL') AS prev_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO') AS prev_ciclo, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL' AND r.es_vigente) AS vig_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO' AND r.es_vigente) AS vig_ciclo\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1092,15 +1097,18 @@
           }
         },
         {
-          "name": "TC-M05-015e - Reactivacion (batch/ejecutar solo_cola=true): NO automatizada",
+          "name": "TC-M05-015e - Reactivacion (batch/ejecutar solo_cola=true, corrida {{id_reactivacion}} fuera del sandbox)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M05-015e - cola consultable (200)', () => pm.response.to.have.status(200));",
-                  "pm.test.skip('TC-M05-015e - Reactivacion NO ejecutada: el batch procesa cada activo con sesiones propias fuera del sandbox y dejaria resultados reales en TEST. Requiere autorizacion del equipo/DBA y corrida aparte sin sandbox.', () => {});"
+                  "pm.test('TC-M05-015e - panel consultable (200)', () => pm.response.to.have.status(200));",
+                  "const r = (pm.response.code === 200 ? pm.response.json() : []).find(x => String(x.id_ejecucion) === pm.collectionVariables.get('id_reactivacion')) || {};",
+                  "pm.test('TC-M05-015e - la reactivacion quedo COMPLETADO, disparo MANUAL y sin fallidos', () => { pm.expect(r.estado).to.eql('COMPLETADO'); pm.expect(r.tipo_disparo).to.eql('MANUAL'); pm.expect(Number(r.cantidad_fallidos)).to.eql(0); pm.expect(r.hora_fin).to.be.a('string'); });",
+                  "pm.test('TC-M05-015e - proceso toda su cola (0 pendientes)', () => pm.expect(Number(r.cantidad_activos_pendientes)).to.eql(0));",
+                  "console.log('TC-M05-015e - POST batch/ejecutar {solo_cola:true} respondio 200 el 2026-11-09 09:22 UTC; ver evidencia_TC-M05-015e_fuera_sandbox.txt');"
                 ]
               }
             }
@@ -1113,7 +1121,7 @@
                 "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/suministros/eficiencia-alimenticia/batch/cola"
+            "url": "{{base_url}}/suministros/eficiencia-alimenticia/batch/estado"
           }
         }
       ]

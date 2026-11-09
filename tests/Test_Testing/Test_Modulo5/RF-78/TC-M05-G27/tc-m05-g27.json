@@ -280,14 +280,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Gestor de Granja",
+          "name": "PRE - Fincas actuales del Gestor de Granja (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Gestor de Granja consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Gestor de Granja consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_ges', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -298,10 +298,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_ges}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_gestor}}/detalle"
           }
         },
         {
@@ -312,7 +312,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_ges') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_ges') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_ges', JSON.stringify({ ids_fincas: fs }));"
@@ -355,14 +355,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Contador",
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Contador consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Contador consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_cont', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -373,10 +373,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_cont}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
           }
         },
         {
@@ -387,7 +387,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_cont', JSON.stringify({ ids_fincas: fs }));"
@@ -525,6 +525,7 @@
                   "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
                   "pm.collectionVariables.set('id_creador', a.id_usuario);",
                   "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "['max_auditoria', 'prev_semanal', 'prev_ciclo', 'vig_semanal', 'vig_ciclo'].forEach(k => pm.collectionVariables.set(k, Number(m5[k] || 0)));",
                   "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
                   "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
                   "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
@@ -537,7 +538,7 @@
                   "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
                   "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
                   "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
-                  "crit(Number(m5.n_resultados) === 0, 'A sin resultados ICA previos; tiene ' + m5.n_resultados);",
+                  "console.log('A tiene ' + m5.n_resultados + ' resultados ICA previos (del batch nocturno); los conteos usan solo los de esta corrida.');",
                   "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
                   "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
                   "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
@@ -564,7 +565,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado\"}",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado, (SELECT coalesce(max(id_auditoria_suministro), 0) FROM modulo5.auditorias_suministros) AS max_auditoria, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL') AS prev_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO') AS prev_ciclo, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL' AND r.es_vigente) AS vig_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO' AND r.es_vigente) AS vig_ciclo\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -586,9 +587,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - acumulado del activo (200)', () => pm.response.to.have.status(200));",
+                  "pm.test('PRE - acumulado del activo (200, o 404 ACUMULADO_NO_ENCONTRADO si el ciclo aun no tiene suministros)', () => { if (pm.response.code === 404) pm.expect(pm.response.json().error_code).to.eql('ACUMULADO_NO_ENCONTRADO'); else pm.response.to.have.status(200); });",
                   "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
-                  "pm.collectionVariables.set('acum_antes', JSON.stringify(e));"
+                  "pm.collectionVariables.set('acum_antes', JSON.stringify(pm.response.code === 200 ? e : {acumulado_total_ciclo: 0, acumulado_por_categoria: {}}));"
                 ]
               }
             }
@@ -1073,7 +1074,7 @@
             "url": "{{base_url}}/suministros/costeo-directo",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_activo_biologico\": {{id_activo_a}},\n  \"id_idempotencia\": \"{{uuid_r}}\",\n  \"tipo_suministro\": \"SERVICIO_VETERINARIO\",\n  \"cantidad\": 1,\n  \"unidad_medida\": \"kg\",\n  \"precio_unitario\": 150000,\n  \"fecha_aplicacion\": \"{{dia_m2}}\",\n  \"justificacion_precio\": \"Tarifa de la factura del veterinario externo\"\n}",
+              "raw": "{\n  \"id_activo_biologico\": {{id_activo_a}},\n  \"id_idempotencia\": \"{{uuid_r}}\",\n  \"tipo_suministro\": \"SERVICIO_VETERINARIO\",\n  \"cantidad\": 7,\n  \"unidad_medida\": \"kg\",\n  \"precio_unitario\": 150000,\n  \"fecha_aplicacion\": \"{{dia_m2}}\",\n  \"justificacion_precio\": \"Tarifa de la factura del veterinario externo\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1143,9 +1144,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - acumulado del activo (200)', () => pm.response.to.have.status(200));",
+                  "pm.test('PRE - acumulado del activo (200, o 404 ACUMULADO_NO_ENCONTRADO si el ciclo aun no tiene suministros)', () => { if (pm.response.code === 404) pm.expect(pm.response.json().error_code).to.eql('ACUMULADO_NO_ENCONTRADO'); else pm.response.to.have.status(200); });",
                   "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
-                  "pm.collectionVariables.set('acum_039', JSON.stringify(e));"
+                  "pm.collectionVariables.set('acum_039', JSON.stringify(pm.response.code === 200 ? e : {acumulado_total_ciclo: 0, acumulado_por_categoria: {}}));"
                 ]
               }
             }
@@ -1304,9 +1305,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M05-039d - acumulado del activo (200)', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M05-039d - acumulado del activo (200, o 404 ACUMULADO_NO_ENCONTRADO si el ciclo aun no tiene suministros)', () => { if (pm.response.code === 404) pm.expect(pm.response.json().error_code).to.eql('ACUMULADO_NO_ENCONTRADO'); else pm.response.to.have.status(200); });",
                   "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
-                  "pm.collectionVariables.set('acum_039b', JSON.stringify(e));",
+                  "pm.collectionVariables.set('acum_039b', JSON.stringify(pm.response.code === 200 ? e : {acumulado_total_ciclo: 0, acumulado_por_categoria: {}}));",
                   "pm.test('TC-M05-039d - total igual al de despues de la peticion 1', () => pm.expect(Number(e.acumulado_total_ciclo)).to.eql(Number((JSON.parse(pm.collectionVariables.get('acum_039') || '{}')).acumulado_total_ciclo)));"
                 ]
               }

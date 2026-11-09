@@ -260,14 +260,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Productor",
+          "name": "PRE - Fincas actuales del Productor (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Productor consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Productor consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_prod', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -278,10 +278,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_prod}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_productor}}/detalle"
           }
         },
         {
@@ -292,7 +292,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_prod', JSON.stringify({ ids_fincas: fs }));"
@@ -335,14 +335,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Veterinario",
+          "name": "PRE - Fincas actuales del Veterinario (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Veterinario consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Veterinario consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_vet', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -353,10 +353,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_vet}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_veterinario}}/detalle"
           }
         },
         {
@@ -367,7 +367,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_vet', JSON.stringify({ ids_fincas: fs }));"
@@ -505,6 +505,7 @@
                   "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
                   "pm.collectionVariables.set('id_creador', a.id_usuario);",
                   "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "['max_auditoria', 'prev_semanal', 'prev_ciclo', 'vig_semanal', 'vig_ciclo'].forEach(k => pm.collectionVariables.set(k, Number(m5[k] || 0)));",
                   "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
                   "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
                   "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
@@ -517,7 +518,7 @@
                   "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
                   "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
                   "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
-                  "crit(Number(m5.n_resultados) === 0, 'A sin resultados ICA previos; tiene ' + m5.n_resultados);",
+                  "console.log('A tiene ' + m5.n_resultados + ' resultados ICA previos (del batch nocturno); los conteos usan solo los de esta corrida.');",
                   "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
                   "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
                   "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
@@ -544,7 +545,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado\"}",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado, (SELECT coalesce(max(id_auditoria_suministro), 0) FROM modulo5.auditorias_suministros) AS max_auditoria, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL') AS prev_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO') AS prev_ciclo, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL' AND r.es_vigente) AS vig_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO' AND r.es_vigente) AS vig_ciclo\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1448,7 +1449,8 @@
                 "exec": [
                   "pm.test('TC-M05-009a - HTTP 200', () => pm.response.to.have.status(200));",
                   "const h = pm.response.json(); const it = h.items || [];",
-                  "pm.test('TC-M05-009a - todos los calculos SEMANAL (11; minimo 10)', () => { pm.expect(h.total).to.eql(11); pm.expect(it.length).to.eql(11); });",
+                  "const esp = 11 + Number(pm.collectionVariables.get('prev_semanal'));",
+                  "pm.test('TC-M05-009a - todos los calculos SEMANAL: 11 de la corrida + ' + pm.collectionVariables.get('prev_semanal') + ' previos del batch', () => pm.expect(h.total).to.eql(esp));",
                   "pm.test('TC-M05-009a - del mas reciente al mas antiguo (fecha_calculo desc, id desc)', () => {",
                   "  for (let i = 1; i < it.length; i++) {",
                   "    const a = new Date(it[i-1].fecha_calculo), b = new Date(it[i].fecha_calculo);",
@@ -1484,8 +1486,9 @@
                   "console.log(JSON.stringify(filas));",
                   "const p = Object.fromEntries(filas.map(f => [f.periodo, f]));",
                   "pm.test('TC-M05-009b - exactamente 1 vigente en cada periodo', () => filas.forEach(f => pm.expect(Number(f.vigentes), f.periodo).to.eql(1)));",
-                  "pm.test('TC-M05-009b - SEMANAL conserva los 11 calculos (CA-5, FA-08)', () => pm.expect(Number((p.SEMANAL || {}).total)).to.eql(11));",
-                  "pm.test('TC-M05-009b - POR_CICLO conserva su calculo', () => pm.expect(Number((p.POR_CICLO || {}).total)).to.eql(1));"
+                  "const ps = Number(pm.collectionVariables.get('prev_semanal')), pc = Number(pm.collectionVariables.get('prev_ciclo'));",
+                  "pm.test('TC-M05-009b - SEMANAL conserva los 11 calculos + ' + ps + ' previos (CA-5, FA-08)', () => pm.expect(Number((p.SEMANAL || {}).total)).to.eql(11 + ps));",
+                  "pm.test('TC-M05-009b - POR_CICLO conserva su calculo + ' + pc + ' previos', () => pm.expect(Number((p.POR_CICLO || {}).total)).to.eql(1 + pc));"
                 ]
               }
             }
@@ -1528,8 +1531,9 @@
                   "console.log(JSON.stringify(filas));",
                   "const ins = filas.filter(f => f.tipo_operacion === 'INSERT'), upd = filas.filter(f => f.tipo_operacion === 'UPDATE');",
                   "const actores = [String(pm.collectionVariables.get('id_admin'))];",
+                  "const vs = Number(pm.collectionVariables.get('vig_semanal')), vc = Number(pm.collectionVariables.get('vig_ciclo'));",
                   "pm.test('TC-M05-012 - 1 INSERT por cada calculo (12)', () => pm.expect(ins.length).to.eql(12));",
-                  "pm.test('TC-M05-012 - 1 UPDATE por cada vigente desmarcado (10, todos SEMANAL)', () => pm.expect(upd.length).to.eql(10));",
+                  "pm.test('TC-M05-012 - 1 UPDATE por cada vigente desmarcado (10 SEMANAL propios + ' + (vs + vc) + ' vigentes previos del batch)', () => pm.expect(upd.length).to.eql(10 + vs + vc));",
                   "pm.test('TC-M05-012 - los INSERT llevan el id_usuario del actor (Administrador)', () => ins.forEach((f, i) => pm.expect(actores, 'INSERT ' + i + ' id_usuario=' + f.id_usuario).to.include(String(f.id_usuario))));",
                   "pm.test('TC-M05-012 - los INSERT traen datos_nuevos con ca, clasificacion, causa y periodo', () => ins.forEach(f => { const d = typeof f.datos_nuevos === 'string' ? JSON.parse(f.datos_nuevos) : f.datos_nuevos; ['ca_calculado', 'clasificacion_ca', 'causa_no_calculo', 'periodo_evaluacion'].forEach(k => pm.expect(d).to.have.property(k)); }));",
                   "pm.test('TC-M05-012 - los UPDATE pasan es_vigente de true a false', () => upd.forEach(f => { const a = typeof f.datos_anteriores === 'string' ? JSON.parse(f.datos_anteriores) : f.datos_anteriores; const n = typeof f.datos_nuevos === 'string' ? JSON.parse(f.datos_nuevos) : f.datos_nuevos; pm.expect(a.es_vigente).to.eql(true); pm.expect(n.es_vigente).to.eql(false); }));",
@@ -1550,7 +1554,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT tipo_operacion::text AS tipo_operacion, id_usuario, datos_anteriores, datos_nuevos, hash_integridad, resultado::text AS resultado FROM modulo5.auditorias_suministros WHERE entidad_afectada = 'resultado_ica' AND id_activo_biologico = {{id_activo_a}} ORDER BY fecha_evento, id_auditoria_suministro\"}",
+              "raw": "{\"query\": \"SELECT tipo_operacion::text AS tipo_operacion, id_usuario, datos_anteriores, datos_nuevos, hash_integridad, resultado::text AS resultado FROM modulo5.auditorias_suministros WHERE entidad_afectada = 'resultado_ica' AND id_activo_biologico = {{id_activo_a}} AND id_auditoria_suministro > {{max_auditoria}} ORDER BY fecha_evento, id_auditoria_suministro\"}",
               "options": {
                 "raw": {
                   "language": "json"
