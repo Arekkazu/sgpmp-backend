@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88 A: propuesta de reconocimiento inicial (NIC 41 ¶10, ¶12, ¶26-27, ¶30) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -69,7 +70,7 @@ class ProponedorReconocimiento:
 
     def proponer(self, activo: DatosActivo, id_usuario: int, id_periodo: int = 0, *,
                  costos_manuales: Optional[dict] = None, justificacion: Optional[str] = None,
-                 clasificacion: Optional[str] = None) -> Propuesta:
+                 clasificacion: Optional[str] = None, referencia_documental: Optional[str] = None) -> Propuesta:
         configuracion = self.config.obtener()
         # Activos que ya estaban en M02 antes de M06: reconocimiento de apertura al precio del día en que
         # se reconocen (D-5); RF-82 R5 prohíbe valores retroactivos y no hay precio de su fecha de ingreso.
@@ -99,7 +100,7 @@ class ProponedorReconocimiento:
                                                               "adquisición documentado en Activos biológicos.")
 
         resultado = self.valorador.valorar(activo, dia, id_periodo, id_usuario, costos_manuales=costos_manuales,
-                                           justificacion=justificacion)
+                                           justificacion=justificacion, referencia_documental=referencia_documental)
         if resultado.es_valido:
             propuesta.indicador_valoracion = IndicadorValoracion.VALOR_RAZONABLE.value
             propuesta.calculo, propuesta.precio = resultado.calculo, resultado.precio

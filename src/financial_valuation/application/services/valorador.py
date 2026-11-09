@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/89: valor razonable menos costos de venta de un activo |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
@@ -77,6 +78,7 @@ class Valorador:
         costos_manuales: Optional[dict] = None,
         justificacion: Optional[str] = None,
         aceptar_no_positivo: bool = False,
+        referencia_documental: Optional[str] = None,
     ) -> ResultadoValoracion:
         textos = {"especie": activo.especie, "activo": activo.identificador}
         if precio_congelado is not None:
@@ -111,7 +113,8 @@ class Valorador:
             costo_impuestos_transaccion=costos.impuestos, otros_costos_disposicion=costos.otros,
             valor_neto=vn.neto, metodo_costo=costos.metodo_global,
             json_metodo_costo={**costos.metodos, "categoria": precio.categoria, "fuente_precio": precio.fuente,
-                               "cabezas": activo.cabezas},
+                               "cabezas": activo.cabezas,
+                               **({"referencia_documental": referencia_documental} if costos.tiene_manuales else {})},
             id_usuario=id_usuario, estado="REVISION_REQUERIDA" if vn.requiere_revision else "CALCULADO",
             justificacion=justificacion if costos.tiene_manuales or vn.requiere_revision else None,
             id_parametro_costo_venta=parametro.id_parametro_costo_venta if parametro else None,

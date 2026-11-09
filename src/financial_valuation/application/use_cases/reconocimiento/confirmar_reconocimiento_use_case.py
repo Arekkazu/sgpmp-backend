@@ -1,7 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82: confirmar el reconocimiento inicial y generar sus líneas de asiento |
-"""Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable."""
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+"""Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable.
+
+Los costos de venta manuales exigen una referencia documental (RF-84 R4), que queda en el cálculo y en la
+auditoría del reconocimiento junto con la justificación (R2, R5)."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -20,7 +24,7 @@ from src.financial_valuation.domain.entities.valoracion import ValoracionCosto
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.value_objects.nic41 import IndicadorValoracion, Severidad, TipoEvidencia
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 TABLA = "reconocimientos_iniciales"
 
@@ -35,7 +39,14 @@ class ConfirmarReconocimientoUseCase:
         self.contabilizador = contabilizador
 
     def execute(self, id_activo_biologico: int, id_usuario: int, *, clasificacion: Optional[str] = None,
-                costos_manuales: Optional[dict] = None, justificacion: Optional[str] = None) -> dict:
+                costos_manuales: Optional[dict] = None, justificacion: Optional[str] = None,
+                referencia_documental: Optional[str] = None) -> dict:
+        manuales = {k: v for k, v in (costos_manuales or {}).items() if v is not None}
+        referencia = (referencia_documental or "").strip() or None
+        if manuales and referencia is None:  # RF-84 R4
+            raise ValidationError(code="REFERENCIA_DOCUMENTAL_REQUERIDA", field="referencia_documental", message=(
+                "Los costos de venta ingresados a mano necesitan la referencia del documento que los respalda "
+                "(factura, cotización o contrato y su número)."))
         activo = self.activos.obtener(id_activo_biologico)
         if activo is None:
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe.")
@@ -45,20 +56,22 @@ class ConfirmarReconocimientoUseCase:
                 f"El activo ya fue reconocido el {existente.fecha_reconocimiento:%Y-%m-%d} por "
                 f"{existente.valor_razonable_neto_inicial:,.2f} COP."))
         propuesta = self.proponedor.proponer(activo, id_usuario, costos_manuales=costos_manuales,
-                                             justificacion=justificacion, clasificacion=clasificacion)
+                                             justificacion=justificacion, clasificacion=clasificacion,
+                                             referencia_documental=referencia)
         if not propuesta.es_confirmable:
             self._auditar_bloqueo(propuesta, id_usuario)
             bloqueo = propuesta.bloqueos[0]
             raise BusinessRuleError(code=bloqueo["codigo"], message=bloqueo["mensaje"])
         try:
-            resultado = self._registrar(propuesta, id_usuario, justificacion)
+            resultado = self._registrar(propuesta, id_usuario, justificacion, manuales, referencia)
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
         return resultado
 
-    def _registrar(self, propuesta: Propuesta, id_usuario: int, justificacion: Optional[str]) -> dict:
+    def _registrar(self, propuesta: Propuesta, id_usuario: int, justificacion: Optional[str],
+                   manuales: dict, referencia: Optional[str]) -> dict:
         activo = propuesta.activo
         periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, propuesta.fecha_reconocimiento, id_usuario)
         id_calculo = id_valoracion = None
@@ -103,7 +116,9 @@ class ConfirmarReconocimientoUseCase:
                      "id_precio_mercado": propuesta.precio.id_precio_mercado if propuesta.precio else None,
                      "origen_financiero": activo.origen_financiero, "es_apertura": propuesta.es_apertura,
                      "clasificacion": propuesta.clasificacion, "advertencias": propuesta.advertencias,
-                     "lineas": [ln.id_linea_asiento_nic41 for ln in lineas]},
+                     "lineas": [ln.id_linea_asiento_nic41 for ln in lineas],
+                     **({"costos_manuales": {k: str(v) for k, v in manuales.items()}, "justificacion": justificacion,
+                         "referencia_documental": referencia} if manuales else {})},
             id_usuario=id_usuario, id_activo_biologico=activo.id_activo_biologico,
             id_periodo_contable=periodo.id_periodo_contable, id_referencia=id_reconocimiento,
             monto_afectado=propuesta.valor_inicial, metodo_nuevo=propuesta.indicador_valoracion,

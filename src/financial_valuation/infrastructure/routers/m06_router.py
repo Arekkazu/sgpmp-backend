@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -171,7 +172,8 @@ def confirmar_reconocimiento(id_activo_biologico: int, dto: ConfirmarReconocimie
                              usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     manuales = dto.costos_manuales.model_dump() if dto.costos_manuales else None
     return m.confirmar_reconocimiento().execute(id_activo_biologico, usuario.id_usuario, clasificacion=dto.clasificacion,
-                                                costos_manuales=manuales, justificacion=dto.justificacion)
+                                                costos_manuales=manuales, justificacion=dto.justificacion,
+                                                referencia_documental=dto.referencia_documental)
 
 
 @router.post("/reconocimientos/{id_activo_biologico}/reversion", tags=[TAG_RECON],
