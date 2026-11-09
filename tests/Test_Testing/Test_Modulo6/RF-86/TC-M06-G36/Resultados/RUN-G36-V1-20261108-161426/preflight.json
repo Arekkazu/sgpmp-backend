@@ -1,0 +1,28 @@
+{
+  "grupo": "G36",
+  "run_id": "RUN-G36-V1-20261108-161426",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 80,
+    "duracion_segundos": 900,
+    "logins_fuera_run": 2,
+    "eventos_m02": 2,
+    "procesamientos": 2,
+    "intentos_modificacion": 9,
+    "precios": 0,
+    "configuracion": 0,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos_externos": [
+    "M02 puede registrar bitácora RF-52 fuera de la transacción del RUN.",
+    "Procesar eventos M06 puede incluir backlog ajeno; comprobar antes de autorizar TEST.",
+    "DELETE del sandbox requiere lecturas poscierre; no prueba reversión de archivos o notificaciones externas."
+  ]
+}
