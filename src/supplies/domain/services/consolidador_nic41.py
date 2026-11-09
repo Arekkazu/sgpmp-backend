@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79 R7/R11: monto = Σ costo_registro    |
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: explicar las causas verificadas de conciliación pendiente. |
 """Servicio de dominio: construcción del reporte consolidado NIC-41 (RF-79).
 
 **Puro**: no toca BD. Recibe todos los registros (``REGISTRO`` y ``CORRECCION``)
@@ -32,6 +33,7 @@ class ResultadoConsolidacion:
     desglose_categoria: dict[str, Decimal]
     lista_registros: list[dict]
     es_reporte_potencialmente_incompleto: bool
+    causas_incompletitud: tuple[str, ...] = ()
 
 
 def construir_consolidado(
@@ -56,11 +58,14 @@ def construir_consolidado(
             desglose_categoria.get(registro.tipo_suministro, Decimal("0")) + registro.costo_registro
         )
 
-    es_incompleto = (
-        monto_provision != acumulado.acumulado_total_ciclo
-        or (suma_incremental is not None and suma_incremental != monto_provision)
-        or eventos_sin_entregar > 0
-    )
+    causas = []
+    if monto_provision != acumulado.acumulado_total_ciclo:
+        causas.append("El costo de los registros difiere del acumulado del ciclo.")
+    if suma_incremental is not None and suma_incremental != monto_provision:
+        causas.append("El costo difiere del importe provisionado incrementalmente.")
+    if eventos_sin_entregar > 0:
+        causas.append(f"Hay {eventos_sin_entregar} eventos pendientes de entrega al módulo financiero.")
+    es_incompleto = bool(causas)
 
     lista_registros = [_a_dict(registro) for registro in registros]
 
@@ -69,6 +74,7 @@ def construir_consolidado(
         desglose_categoria=desglose_categoria,
         lista_registros=lista_registros,
         es_reporte_potencialmente_incompleto=es_incompleto,
+        causas_incompletitud=tuple(causas),
     )
 
 
