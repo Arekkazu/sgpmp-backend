@@ -272,7 +272,7 @@ def informes(login_codigo: int, login_publico: dict, evidencias: list[dict], dat
         },
     ]
     hallazgos = [{
-        "id": "QUESTION-M06-G71-01",
+        "id": "QUESTION-M06-G99-01",
         "titulo": "No hay un período abierto aislado para cerrar",
         "descripcion": motivo,
         "rf": "RF-87 / RF-88 / RF-93",

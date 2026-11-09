@@ -161,7 +161,7 @@ def main() -> int:
                         "estado": "BLOQUEADO", "motivo": motivo, "proceso_ejecutado": False}],
         "peticiones": peticiones,
         "hallazgos": [
-            "QUESTION-M06-G81-01: el caso espera plazos configurados de 7, 15 y 30 días a la vez. El sistema guarda un solo plazo y solo incluye 15 cuando ese plazo es mayor que 15.",
+            "QUESTION-M06-G109-01: el caso espera plazos configurados de 7, 15 y 30 días a la vez. El sistema guarda un solo plazo y solo incluye 15 cuando ese plazo es mayor que 15.",
             "BLOQUEO DE PRUEBA: no hay datos aislados ni un endpoint para ejecutar el aviso sin notificar sobre el catálogo compartido.",
         ],
         "aprobados": 0, "rechazados": 0, "bloqueados": 1, "requiere_aclaracion": 0, "porcentaje_aprobacion": 0,

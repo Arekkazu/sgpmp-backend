@@ -49,7 +49,7 @@ python -m pytest tests/Test_Testing/Test_Modulo6/RF-88/TC-M06-G96/test_tc_m06_g9
 
 `--noconftest` evita el `conftest.py` de `tests/`, que prepara base de datos. Esta prueba no la usa.
 
-`.\correr_newman.ps1 -Caso G68 -Modulo 6 -Rf RF-88` sigue leyendo solo `openapi.json`. Esa corrida no aplica los montos de los subcasos.
+`.\correr_newman.ps1 -Caso G96 -Modulo 6 -Rf RF-88` sigue leyendo solo `openapi.json`. Esa corrida no aplica los montos de los subcasos.
 
 ## Intento funcional
 

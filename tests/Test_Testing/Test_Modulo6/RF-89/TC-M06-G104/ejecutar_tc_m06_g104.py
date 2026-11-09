@@ -145,8 +145,8 @@ def main() -> int:
     hallazgos = [
         "El estado que devuelve GET /finanzas/precios se calcula en la consulta con la fecha de hoy. No hay un proceso que actualice la fila de PROGRAMADO a ACTIVO ni de ACTIVO a VENCIDO.",
         "El proceso diario avisa a los contadores los precios que vencen en la ventana configurada y los que vencieron dentro del último día sin otro precio vigente. No cambia el método de valoración ni escribe PRECIO_REFERENCIA_VENCIDO.",
-        "QUESTION-M06-G76-01: el caso espera el estado SIN_PRECIO_VIGENTE. El valorador responde el motivo SIN_PRECIO y el paso a valor razonable responde SIN_PRECIO_PARA_VALOR_RAZONABLE.",
-        "QUESTION-M06-G76-02: RF-88 no se activa solo cuando un precio vence. La ausencia de precio se evalúa al simular, al reconocer o al intentar pasar de costo a valor razonable.",
+        "QUESTION-M06-G104-01: el caso espera el estado SIN_PRECIO_VIGENTE. El valorador responde el motivo SIN_PRECIO y el paso a valor razonable responde SIN_PRECIO_PARA_VALOR_RAZONABLE.",
+        "QUESTION-M06-G104-02: RF-88 no se activa solo cuando un precio vence. La ausencia de precio se evalúa al simular, al reconocer o al intentar pasar de costo a valor razonable.",
     ]
     informe = {
         "caso": "TC-M06-G104", "rf": ["RF-89", "RF-88"], "ambiente": BASE_API,

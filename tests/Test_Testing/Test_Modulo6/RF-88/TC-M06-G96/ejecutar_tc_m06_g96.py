@@ -198,7 +198,7 @@ def informes(login_codigo: int, login_publico: dict, evidencias: list[dict], pan
             "correccion": "Disponer de una finca, un NIT, un activo de costo 10000000 y un período que no compartan los 13 reconocimientos ni los 8 períodos actuales.",
         },
         {
-            "id": "HALL-M06-G68-02",
+            "id": "HALL-M06-G96-02",
             "titulo": "No hay alerta persistente cuando el valor en libros se lleva a cero",
             "descripcion": alerta,
             "rf": "RF-88",

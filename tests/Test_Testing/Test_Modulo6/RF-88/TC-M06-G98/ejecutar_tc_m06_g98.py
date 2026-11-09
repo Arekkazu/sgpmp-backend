@@ -377,7 +377,7 @@ def clasificar(datos: dict, panorama: dict) -> tuple[list[dict], list[dict]]:
     hallazgos = []
     if sub_10["estado"] == "BLOQUEADO" or sub_11["estado"] == "BLOQUEADO":
         hallazgos.append({
-            "id": "QUESTION-M06-G70-01",
+            "id": "QUESTION-M06-G98-01",
             "titulo": "No hay un par aislado de evento sanitario con y sin impacto económico",
             "descripcion": compartido + " El monto no viaja en el evento de RF-41; se informa al registrar el deterioro de RF-88.",
             "rf": "RF-88 / RF-41",
@@ -392,7 +392,7 @@ def clasificar(datos: dict, panorama: dict) -> tuple[list[dict], list[dict]]:
         })
     if sub_10["estado"] == "RECHAZADO":
         hallazgos.append({
-            "id": "BUG-M06-G70-01",
+            "id": "BUG-M06-G98-01",
             "titulo": "El deterioro auditado no queda reflejado en el valor en libros",
             "descripcion": sub_10["motivo"],
             "rf": "RF-88",
@@ -534,7 +534,7 @@ def main() -> int:
                 {"id": "TC-M06-11", "esperado": "Evento clínico sin deterioro monetario", "obtenido": None, "estado": "BLOQUEADO", "motivo": f"POST /sesiones/ respondió {codigo}."},
             ],
             "hallazgos": [{
-                "id": "QUESTION-M06-G70-02", "titulo": "La autenticación no entregó token",
+                "id": "QUESTION-M06-G98-02", "titulo": "La autenticación no entregó token",
                 "descripcion": f"HTTP {codigo}.", "rf": "RF-88 / RF-41", "categoria": "Seguridad",
                 "tipo": "QUESTION", "equipo": "QA / Implementación", "severidad": "Severo",
                 "tiempo_maximo": "1 día hábil", "estado": "Abierto",

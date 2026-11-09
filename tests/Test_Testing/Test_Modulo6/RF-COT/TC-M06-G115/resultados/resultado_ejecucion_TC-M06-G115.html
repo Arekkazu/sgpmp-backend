@@ -1,0 +1,13 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G115</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}
+pre{white-space:pre-wrap}</style></head><body>
+<h1>Módulo 6 — RF-COT — TC-M06-G115</h1>
+<p>Generado: 2026-11-08T16:17:12.835391+00:00. No se registró una cotización válida.</p>
+<p>Aprobación: 50 %.</p>
+<h2>Permisos de cotizaciones</h2>
+<table><tr><th>Rol</th><th>Nombre en el perfil</th><th>Acciones</th><th>Puede crear</th></tr><tr><td>Contador</td><td>Contador</td><td>crear, leer, actualizar, desactivar</td><td>True</td></tr><tr><td>Administrador</td><td>Administrador</td><td>crear, leer, desactivar</td><td>True</td></tr><tr><td>Productor</td><td>Productor</td><td>leer</td><td>False</td></tr></table>
+<h2>Subcasos</h2><table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-44</td><td>BLOQUEADO</td><td>No se registró la cotización. El alta inserta la fila, el evento COTIZACION_REGISTRADA y la asocia al período abierto compartido.</td></tr><tr><td>TC-M06-45</td><td>APROBADO</td><td>El Productor autenticado recibió 403 ACCESO_DENEGADO. No aumentaron las cotizaciones ni los eventos, y el valor razonable leído no cambió.</td></tr></table>
+<h2>Contrato</h2><pre>POST /finanzas/cotizaciones responde 201. El cuerpo exige activos_cotizados y valor_cotizacion_propuesto mayor que cero. La referencia no se envía: es la suma del último valor razonable neto de los activos. El estado guardado es COTIZADO. No cambia el valor del activo ni crea asientos. Sí inserta la cotización y el evento COTIZACION_REGISTRADA, y resuelve el período abierto de la fecha de emisión. Hoy cae en un período cerrado, así que el caso de uso usaría el primer período abierto posterior. El recurso es cotizaciones. Crear es la acción 1. Contador: crear, leer, actualizar y desactivar. Administrador: crear, leer y desactivar. Productor: solo leer. La negación es HTTP 403 ACCESO_DENEGADO y ocurre antes del caso de uso.</pre>
+<h2>Hallazgos</h2><ul><li>BLOQUEO DE PRUEBA: no hay un activo aislado y autorizado para registrar una cotización de Contador o Administrador.</li><li>Las cotizaciones ya existentes no traen valor de referencia y no hay eventos COTIZACION_REGISTRADA. Sus fechas son anteriores a la implementación actual. Esta prueba no las creó.</li><li>TC-M06-45 se comprobó con el POST del Productor. La dependencia de permiso responde antes del caso de uso.</li></ul>
+</body></html>

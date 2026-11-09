@@ -243,8 +243,8 @@ def main() -> int:
     inicio = time.perf_counter()
     peticiones: list[dict] = []
     hallazgos = [
-        "QUESTION-M06-G74-01: el caso pide evidencia documental adjunta. El contrato implementado guarda un texto evidencia_documental de 1 a 500 caracteres, no un archivo.",
-        "QUESTION-M06-G74-02: ESTIMADA exige, además de la evidencia, una justificacion_estimacion de al menos 50 caracteres. El subcaso 18 no contempla ese campo.",
+        "QUESTION-M06-G102-01: el caso pide evidencia documental adjunta. El contrato implementado guarda un texto evidencia_documental de 1 a 500 caracteres, no un archivo.",
+        "QUESTION-M06-G102-02: ESTIMADA exige, además de la evidencia, una justificacion_estimacion de al menos 50 caracteres. El subcaso 18 no contempla ese campo.",
         "El catálogo de precios es global por especie. Un precio ACTIVO nuevo se confirma, puede avisar a los contadores y cambia el precio aplicado de las valoraciones de esa especie.",
     ]
     escenarios = [
@@ -358,7 +358,7 @@ def main() -> int:
     informe["porcentaje_aprobacion"] = round(informe["aprobados"] / 6 * 100)
     informe["duracion_ms"] = round((time.perf_counter() - inicio) * 1000)
     if any(e["estado"] == "RECHAZADO" for e in escenarios[3:]):
-        hallazgos.append("BUG-M06-G74-01: un rechazo de validación no cumplió el contrato o dejó un registro.")
+        hallazgos.append("BUG-M06-G102-01: un rechazo de validación no cumplió el contrato o dejó un registro.")
     guardar(informe)
     print(
         " ".join(f"{e['subcaso']} {e['estado']}" for e in escenarios)

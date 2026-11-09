@@ -26,7 +26,7 @@ Aprobación global prevista al ejecutar: `(0 / 4) * 100 = 0`. Un BLOQUEADO no es
 Desde `tests/Test_Testing`:
 
 ```powershell
-.\correr_newman.ps1 -Caso G67 -Modulo 6 -Rf RF-88
+.\correr_newman.ps1 -Caso G95 -Modulo 6 -Rf RF-88
 ```
 
 El runner oficial resuelve `Test_Modulo6/RF-88/TC-M06-G95/tc-m06-g95.json` y escribe `resultados/resultado_TC-M06-G95.html`. No hace falta otro script.

@@ -131,7 +131,7 @@ def main() -> int:
     )
     hallazgos = [
         "BLOQUEO DE PRUEBA: el catálogo de precios de TEST es compartido y la corrección no puede ejecutarse sin aislamiento o autorización.",
-        "QUESTION-M06-G78-01: el mensaje del trigger todavía nombra la columna id_precio_coregido. El contrato actual del DTO usa id_precio_corregido.",
+        "QUESTION-M06-G106-01: el mensaje del trigger todavía nombra la columna id_precio_coregido. El contrato actual del DTO usa id_precio_corregido.",
     ]
     informe = {
         "caso": "TC-M06-G106", "subcaso": "TC-M06-30", "rf": ["RF-89", "RF-94"], "ambiente": BASE_API,

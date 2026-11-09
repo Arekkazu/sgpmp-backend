@@ -1,0 +1,264 @@
+{
+  "caso": "TC-M06-G113",
+  "subcaso": "TC-M06-42",
+  "rf": [
+    "RF-90"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T15:39:53.829000+00:00",
+  "contrato": "POST /finanzas/costos reparte cuando activos_reparto trae más de un activo. El método POR_BIOMASA usa peso_kg por cabezas solo si todos los activos tienen peso. Si falta el peso de alguno, el reparto usa la cantidad de cabezas. El peso es el último pesaje o, si no hay, el peso promedio actual. No es un corte a la fecha del costo. repartir trunca cada parte a 2 decimales con ROUND_DOWN. El residuo se suma al de mayor participación; si empatan, al de menor id. La suma queda igual al monto. Los activos repetidos responden 422 REPARTO_INVALIDO antes de consultar el período. Un monto 0 o negativo responde 400 VAL_ENTRADA en el DTO. Una participación total no positiva levanta ValueError dentro del caso de uso, después de resolver el período. Ese camino no se ejecutó.",
+  "calculos": [
+    {
+      "nombre": "900000 entre 100, 200 y 300",
+      "origen": "inspeccion de codigo, no ejecutado en TEST",
+      "monto": "900000",
+      "participaciones": {
+        "1": "100",
+        "2": "200",
+        "3": "300"
+      },
+      "importes": {
+        "1": "150000.00",
+        "2": "300000.00",
+        "3": "450000.00"
+      },
+      "suma": "900000.00",
+      "cuadra": true
+    },
+    {
+      "nombre": "100 entre tres partes iguales",
+      "origen": "inspeccion de codigo, no ejecutado en TEST",
+      "monto": "100",
+      "participaciones": {
+        "3": "1",
+        "4": "1",
+        "5": "1"
+      },
+      "importes": {
+        "3": "33.34",
+        "4": "33.33",
+        "5": "33.33"
+      },
+      "suma": "100.00",
+      "cuadra": true
+    },
+    {
+      "nombre": "100000 entre tres partes iguales",
+      "origen": "inspeccion de codigo, no ejecutado en TEST",
+      "monto": "100000",
+      "participaciones": {
+        "3": "1",
+        "4": "1",
+        "5": "1"
+      },
+      "importes": {
+        "3": "33333.34",
+        "4": "33333.33",
+        "5": "33333.33"
+      },
+      "suma": "100000.00",
+      "cuadra": true
+    }
+  ],
+  "costos": {
+    "total": 2,
+    "con_grupo": 0,
+    "grupos": 0,
+    "metodos": {}
+  },
+  "rechazos": [
+    {
+      "nombre": "monto_cero",
+      "http": 400,
+      "code": "VAL_ENTRADA"
+    },
+    {
+      "nombre": "monto_negativo",
+      "http": 400,
+      "code": "VAL_ENTRADA"
+    },
+    {
+      "nombre": "activos_repetidos",
+      "http": 422,
+      "code": "REPARTO_INVALIDO"
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 1042,
+      "escritura": false,
+      "en": "2026-11-08T15:39:54.870881+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 423,
+      "escritura": false,
+      "en": "2026-11-08T15:39:55.293883+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "con_grupo": 0,
+        "grupos": 0,
+        "metodos": {}
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 604,
+      "escritura": false,
+      "en": "2026-11-08T15:39:55.897633+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 400,
+      "duracion_ms": 612,
+      "escritura": false,
+      "en": "2026-11-08T15:39:56.509746+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "fecha_costo": "2026-11-08",
+        "metodo_reparto": "POR_BIOMASA",
+        "monto_costo": 0,
+        "activos_reparto": [
+          951,
+          943
+        ]
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "monto_costo",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T15:39:55.479077+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 400,
+      "duracion_ms": 487,
+      "escritura": false,
+      "en": "2026-11-08T15:39:56.996712+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "fecha_costo": "2026-11-08",
+        "metodo_reparto": "POR_BIOMASA",
+        "monto_costo": -100,
+        "activos_reparto": [
+          951,
+          943
+        ]
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "monto_costo",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T15:39:56.021532+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 422,
+      "duracion_ms": 390,
+      "escritura": false,
+      "en": "2026-11-08T15:39:57.386888+00:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "fecha_costo": "2026-11-08",
+        "metodo_reparto": "POR_BIOMASA",
+        "monto_costo": 100,
+        "activos_reparto": [
+          951,
+          951
+        ]
+      },
+      "respuesta": {
+        "error_code": "REPARTO_INVALIDO",
+        "message": "La lista de reparto tiene activos repetidos.",
+        "fields": [],
+        "timestamp": "2026-11-08T15:39:56.411166+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 368,
+      "escritura": false,
+      "en": "2026-11-08T15:39:57.754774+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "con_grupo": 0,
+        "grupos": 0,
+        "metodos": {}
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 401,
+      "escritura": false,
+      "en": "2026-11-08T15:39:58.155579+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    }
+  ],
+  "hallazgos": [
+    "BLOQUEO DE PRUEBA: no hay tres activos aislados con biomasa de 100, 200 y 300 kg ni autorización para registrar 900.000 en el catálogo compartido."
+  ],
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-42",
+      "estado": "BLOQUEADO",
+      "registro_ejecutado": false,
+      "motivo": "No se registró el costo de 900.000. Crear el reparto insertaría un costo en cada activo compartido y podría generar asientos. No hay tres activos aislados con esas biomasas."
+    }
+  ],
+  "aprobados": 0,
+  "rechazados": 0,
+  "bloqueados": 1,
+  "requiere_aclaracion": 0,
+  "porcentaje_aprobacion": 0,
+  "sin_persistencia": true,
+  "analisis": "# TC-M06-G113\n\nNo se usó SQL local. El reparto de 900.000 no se ejecutó en TEST.\n\nLa regla del código trunca a 2 decimales y asigna el residuo al de mayor participación, con empate por el menor id.\nAplicada a 100, 200 y 300 sobre 900.000 da 150.000, 300.000 y 450.000, y la suma cuadra.\nAplicada a 100 entre tres partes iguales da 33.34 al id menor y 33.33 a los otros.\nPersistencia intacta tras los rechazos: True.\n",
+  "duracion_ms": 4328
+}

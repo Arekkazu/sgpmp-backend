@@ -163,7 +163,7 @@ def main() -> int:
         subcaso("TC-M06-24", "Rechazar vencimiento anterior a la vigencia."),
     ]
     hallazgos = [
-        "QUESTION-M06-G75-01: el código también rechaza una fecha de vencimiento igual a la vigencia. El subcaso 24 solo pide el caso anterior.",
+        "QUESTION-M06-G103-01: el código también rechaza una fecha de vencimiento igual a la vigencia. El subcaso 24 solo pide el caso anterior.",
         "No hay una prueba unitaria del límite de 365 días en el repositorio. La aceptación de ese límite no se comprobó contra el API porque el POST guardaría el precio.",
     ]
     informe = {
@@ -258,7 +258,7 @@ def main() -> int:
             if esc["post_ejecutado"] and esc["estado"] == "APROBADO":
                 esc["estado"] = "RECHAZADO"
                 esc["motivo"] = "El rechazo dejó un precio o un evento PRECIO_REGISTRADO nuevo."
-        hallazgos.append("BUG-M06-G75-01: una validación de fechas modificó el catálogo o la auditoría.")
+        hallazgos.append("BUG-M06-G103-01: una validación de fechas modificó el catálogo o la auditoría.")
 
     informe["aprobados"] = sum(e["estado"] == "APROBADO" for e in escenarios)
     informe["rechazados"] = sum(e["estado"] == "RECHAZADO" for e in escenarios)
