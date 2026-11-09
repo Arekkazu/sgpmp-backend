@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82/RF-84: costos manuales con máximo 4 decimales |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ Clasificacion = Literal["PRODUCCION", "CONSUMO"]
 CategoriaActivo = Literal["PESO_KG", "POR_CABEZA"]
 Categoria = Literal["PESO_KG", "POR_CABEZA", "PRODUCTO"]
 Fuente = Literal["MERCADO_ACTIVO", "UPRA", "ESTIMADA"]
-TipoHecho = Literal["RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_TB", "VARIACION_VR_PM",
+TipoHecho = Literal["RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_TB", "VARIACION_VR_PM",
                     "PRODUCTO_AGRICOLA", "CONSUMO_INSUMO", "MANO_OBRA_PROPIA", "BAJA_ACTIVO", "AJUSTE_PERIODO_ANTERIOR",
                     "DEPRECIACION_ACTIVO_COSTO", "DETERIORO_ACTIVO_COSTO"]
 Sentido = Literal["GANANCIA", "PERDIDA", "UNICO", "TRASLADO", "CAPITALIZACION"]

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88 A: propuesta de reconocimiento inicial (NIC 41 ¶10, ¶12, ¶26-27, ¶30) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -12,7 +13,7 @@ Hechos que produce (RFC-018, catálogo cerrado de RF-86):
 - NACIMIENTO → ``RECONOCIMIENTO_NACIMIENTO`` por el valor neto completo (¶27: la cría genera ganancia).
 - COMPRA → la compra entra por su factura (RF-90 ``COMPRA_PROVEEDOR``); M06 solo registra
   ``RECONOCIMIENTO_DIFERENCIA = valor neto − costo`` (¶26-27; el RF cita ¶28, que es de productos).
-- DONACION → ``RECONOCIMIENTO_NACIMIENTO`` (ingreso por reconocimiento inicial, sin factura).
+- DONACION → ``RECONOCIMIENTO_DONACION`` (ingreso por donación, sin factura; cuenta propia en la matriz).
 - TRANSFERENCIA_INTERNA → ``RECONOCIMIENTO_NACIMIENTO`` con sentido TRASLADO (activo contra la
   cuenta de traslado interno: no es un ingreso de la entidad).
 Sin precio de mercado y con costo documentado se aplica el modelo de costo (¶30, RF-88 escenario A)."""
@@ -128,6 +129,8 @@ class ProponedorReconocimiento:
         if origen == "compra":
             signo = sentido_por_signo(valor - (costo or CERO))
             return [(TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, signo[0].value, signo[1])] if signo else []
+        if origen == "donacion":
+            return [(TipoHecho.RECONOCIMIENTO_DONACION.value, Sentido.UNICO.value, valor)]
         sentido = Sentido.TRASLADO.value if origen == "transferencia_interna" else Sentido.UNICO.value
         return [(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, sentido, valor)]
 
@@ -150,6 +153,6 @@ class ProponedorReconocimiento:
                                       f"{activo.especie} (NIC 41 ¶30).")
         # La compra ya entra al activo por su factura; la donación y el traslado se asientan al costo.
         if origen == "donacion":
-            propuesta.hechos = [(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.UNICO.value, propuesta.valor_inicial)]
+            propuesta.hechos = [(TipoHecho.RECONOCIMIENTO_DONACION.value, Sentido.UNICO.value, propuesta.valor_inicial)]
         elif origen == "transferencia_interna":
             propuesta.hechos = [(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.TRASLADO.value, propuesta.valor_inicial)]

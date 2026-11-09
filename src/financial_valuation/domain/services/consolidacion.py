@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1 / RF-93: comprobante NIC 41 y estado de resultados desde las líneas |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 """Consolidaciones del cierre (RF-87 v1.1) y del estado de resultados (RF-93). Python puro."""
 from __future__ import annotations
 
@@ -76,6 +77,7 @@ _COMPONENTE_LINEA = {
     (TipoHecho.VARIACION_VR_PM.value, Sentido.GANANCIA.value): "ganancia_precio_mercado",
     (TipoHecho.VARIACION_VR_PM.value, Sentido.PERDIDA.value): "perdida_precio_mercado",
     (TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, Sentido.UNICO.value): "ganancia_reconocimiento_inicial",
+    (TipoHecho.RECONOCIMIENTO_DONACION.value, Sentido.UNICO.value): "ganancia_reconocimiento_inicial",
     (TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, Sentido.GANANCIA.value): "ganancia_reconocimiento_inicial",
     (TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, Sentido.PERDIDA.value): "perdida_reconocimiento_inicial",
     (TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.UNICO.value): "ingresos_productos_agricolas",
