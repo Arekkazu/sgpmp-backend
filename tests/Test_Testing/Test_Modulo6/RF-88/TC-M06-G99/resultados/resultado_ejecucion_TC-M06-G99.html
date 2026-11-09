@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G99 — ejecución</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem; line-height: 1.45; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; vertical-align: top; text-align: left; }
+    th { background: #f3f3f3; }
+    .b { font-weight: 700; }
+    code { font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <h1>Módulo 6 — RF-87 / RF-88 / RF-93 — TC-M06-G99</h1>
+  <p>Fecha: 2026-11-08T04:35:32.114643+00:00. Ambiente: https://api.inmero.co/api-sgpmp-test.</p>
+  <p>Objetivo: comprobar el asiento de depreciación al cerrar un período y que un segundo cierre no lo duplique.</p>
+  <p>Autenticación POST /sesiones/: HTTP 200. Escrituras: ninguna. Cierre ejecutado: no.</p>
+  <h2>Resumen</h2>
+  <table>
+    <tr><th>Total</th><td>2</td></tr>
+    <tr><th>Aprobados</th><td>0</td></tr>
+    <tr><th>Rechazados</th><td>0</td></tr>
+    <tr><th>Bloqueados</th><td>2</td></tr>
+    <tr><th>Porcentaje de aprobación</th><td>0 %</td></tr>
+  </table>
+  <h2>Contrato identificado</h2>
+  <pre>{
+  &quot;cierre&quot;: &quot;POST /finanzas/periodos/{id_periodo_contable}/cierre&quot;,
+  &quot;cuerpo&quot;: {
+    &quot;autorizar_exclusiones&quot;: false,
+    &quot;incluir_activos_sin_precio&quot;: false
+  },
+  &quot;permiso_cierre&quot;: &quot;cierre_periodo ejecutar&quot;,
+  &quot;depreciacion&quot;: &quot;Dentro del cierre, hecho DEPRECIACION_ACTIVO_COSTO, por el delta del período&quot;,
+  &quot;estado_resultados&quot;: &quot;GET y POST /finanzas/periodos/{id}/estados-resultados; el cierre también intenta generarlo&quot;,
+  &quot;segundo_cierre&quot;: &quot;409 PERIODO_CERRADO; el período cerrado no se reabre ni se vuelve a depreciar&quot;,
+  &quot;alcance&quot;: &quot;Todos los activos reconocidos del mismo NIT&quot;
+}</pre>
+  <h2>Validaciones</h2>
+  <table>
+    <thead><tr><th>Subcaso</th><th>Validación</th><th>Esperado</th><th>Obtenido</th><th>Estado</th><th>Detalle</th></tr></thead>
+    <tbody><tr><td>TC-M06-12</td><td>Registro del gasto por depreciación al cerrar el período</td><td>El cierre pasa el período a CERRADO y deja el asiento DEPRECIACION_ACTIVO_COSTO por el importe del período.</td><td>No ejecutado</td><td class="b">BLOQUEADO</td><td>La cuenta leyó 9 activos reconocidos, 1 a costo, 1 fincas, 1 NIT, 3 períodos abiertos y 5 cerrados. Líneas DEPRECIACION_ACTIVO_COSTO ya visibles: 0. Ese conjunto es compartido. No se ejecutó POST /finanzas/periodos/{{id}}/cierre.</td></tr><tr><td>TC-M06-12</td><td>Un segundo cierre del mismo período no duplica el asiento</td><td>Un período CERRADO rechaza otro cierre con 409 PERIODO_CERRADO y no vuelve a depreciar.</td><td>No ejecutado</td><td class="b">BLOQUEADO</td><td>La cuenta leyó 9 activos reconocidos, 1 a costo, 1 fincas, 1 NIT, 3 períodos abiertos y 5 cerrados. Líneas DEPRECIACION_ACTIVO_COSTO ya visibles: 0. Ese conjunto es compartido. No se ejecutó POST /finanzas/periodos/{{id}}/cierre. La regla está en el cierre, pero no se provocó un segundo intento.</td></tr></tbody>
+  </table>
+  <h2>Panorama</h2>
+  <pre>{
+  &quot;activos_reconocidos&quot;: 9,
+  &quot;activos_costo&quot;: [
+    {
+      &quot;id_activo_biologico&quot;: 951,
+      &quot;costo_base&quot;: &quot;4500000.0000&quot;,
+      &quot;depreciacion_acumulada&quot;: &quot;0.0000&quot;,
+      &quot;deterioro_acumulado&quot;: &quot;300000.0000&quot;,
+      &quot;valor_contable_por_costo&quot;: &quot;4200000.0000&quot;,
+      &quot;vida_util_meses&quot;: 240
+    }
+  ],
+  &quot;fincas&quot;: 1,
+  &quot;nits&quot;: 1,
+  &quot;periodos&quot;: [
+    {
+      &quot;id_periodo_contable&quot;: 8,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-12-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-12-31&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    },
+    {
+      &quot;id_periodo_contable&quot;: 7,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;,
+      &quot;ultimo_cierre_estado&quot;: &quot;COMPLETADO&quot;
+    },
+    {
+      &quot;id_periodo_contable&quot;: 1,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-05-10&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-05-11&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    },
+    {
+      &quot;id_periodo_contable&quot;: 2,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-05-10&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-06-10&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    },
+    {
+      &quot;id_periodo_contable&quot;: 6,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2024-10-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2024-12-31&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    },
+    {
+      &quot;id_periodo_contable&quot;: 5,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2024-07-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2024-09-30&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    },
+    {
+      &quot;id_periodo_contable&quot;: 4,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2024-04-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2024-06-30&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    },
+    {
+      &quot;id_periodo_contable&quot;: 3,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2024-01-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2024-03-31&quot;,
+      &quot;ultimo_cierre_estado&quot;: null
+    }
+  ],
+  &quot;abiertos&quot;: 3,
+  &quot;cerrados&quot;: 5,
+  &quot;lineas_depreciacion&quot;: 0,
+  &quot;auditoria&quot;: {
+    &quot;DEPRECIACION_REGISTRADA&quot;: 0,
+    &quot;CIERRE_PERIODO_COMPLETADO&quot;: 1,
+    &quot;CIERRE_PERIODO_FALLIDO&quot;: 0
+  },
+  &quot;aislado&quot;: false
+}</pre>
+  <h2>Períodos consultados</h2>
+  <pre>[
+  {
+    &quot;id_periodo_contable&quot;: 8,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;prevalidacion&quot;: {
+      &quot;puede_cerrar&quot;: true,
+      &quot;bloqueos&quot;: 0,
+      &quot;activos_sin_precio&quot;: 0,
+      &quot;lineas_sin_trazabilidad&quot;: 1
+    },
+    &quot;lineas&quot;: 8,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  },
+  {
+    &quot;id_periodo_contable&quot;: 7,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;lineas&quot;: 14,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 5,
+    &quot;estados_resultados&quot;: 1
+  },
+  {
+    &quot;id_periodo_contable&quot;: 1,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;prevalidacion&quot;: {
+      &quot;puede_cerrar&quot;: true,
+      &quot;bloqueos&quot;: 0,
+      &quot;activos_sin_precio&quot;: 0,
+      &quot;lineas_sin_trazabilidad&quot;: 0
+    },
+    &quot;lineas&quot;: 0,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  },
+  {
+    &quot;id_periodo_contable&quot;: 2,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;lineas&quot;: 0,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  },
+  {
+    &quot;id_periodo_contable&quot;: 6,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;prevalidacion&quot;: {
+      &quot;puede_cerrar&quot;: true,
+      &quot;bloqueos&quot;: 0,
+      &quot;activos_sin_precio&quot;: 0,
+      &quot;lineas_sin_trazabilidad&quot;: 0
+    },
+    &quot;lineas&quot;: 0,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  },
+  {
+    &quot;id_periodo_contable&quot;: 5,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;lineas&quot;: 0,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  },
+  {
+    &quot;id_periodo_contable&quot;: 4,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;lineas&quot;: 0,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  },
+  {
+    &quot;id_periodo_contable&quot;: 3,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;lineas&quot;: 0,
+    &quot;depreciaciones&quot;: [],
+    &quot;comprobantes&quot;: 0,
+    &quot;estados_resultados&quot;: 0
+  }
+]</pre>
+  <h2>Respuestas HTTP</h2>
+  <table>
+    <thead><tr><th>Solicitud</th><th>Código</th><th>Validación</th><th>Resumen sin secretos</th></tr></thead>
+    <tbody><tr><td>GET /finanzas/activos</td><td>200</td><td>LEIDO</td><td><code>{&quot;registros&quot;: 9, &quot;por_costo&quot;: 1}</code></td></tr><tr><td>GET /finanzas/periodos</td><td>200</td><td>LEIDO</td><td><code>{&quot;registros&quot;: 8, &quot;nits&quot;: 1}</code></td></tr><tr><td>GET /finanzas/periodos/8/prevalidacion</td><td>200</td><td>LEIDO</td><td><code>{&quot;puede_cerrar&quot;: true, &quot;bloqueos&quot;: 0, &quot;activos_sin_precio&quot;: 0, &quot;lineas_sin_trazabilidad&quot;: 1}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=8</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 8, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/8/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/8/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=7</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 14, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/7/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 5}</code></td></tr><tr><td>GET /finanzas/periodos/7/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 1}</code></td></tr><tr><td>GET /finanzas/periodos/1/prevalidacion</td><td>200</td><td>LEIDO</td><td><code>{&quot;puede_cerrar&quot;: true, &quot;bloqueos&quot;: 0, &quot;activos_sin_precio&quot;: 0, &quot;lineas_sin_trazabilidad&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=1</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 0, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/1/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/1/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=2</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 0, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/2/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/2/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/6/prevalidacion</td><td>200</td><td>LEIDO</td><td><code>{&quot;puede_cerrar&quot;: true, &quot;bloqueos&quot;: 0, &quot;activos_sin_precio&quot;: 0, &quot;lineas_sin_trazabilidad&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=6</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 0, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/6/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/6/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=5</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 0, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/5/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/5/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=4</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 0, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/4/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/4/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/lineas?id_periodo_contable=3</td><td>200</td><td>LEIDO</td><td><code>{&quot;lineas&quot;: 0, &quot;depreciacion_activo_costo&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/3/comprobantes</td><td>200</td><td>LEIDO</td><td><code>{&quot;comprobantes&quot;: 0}</code></td></tr><tr><td>GET /finanzas/periodos/3/estados-resultados</td><td>200</td><td>LEIDO</td><td><code>{&quot;versiones&quot;: 0}</code></td></tr><tr><td>GET /finanzas/auditoria?tipo_evento=DEPRECIACION_REGISTRADA&amp;formato=TECNICO&amp;tamano=100</td><td>200</td><td>LEIDO</td><td><code>{&quot;total_registros&quot;: 0}</code></td></tr><tr><td>GET /finanzas/auditoria?tipo_evento=CIERRE_PERIODO_COMPLETADO&amp;formato=TECNICO&amp;tamano=100</td><td>200</td><td>LEIDO</td><td><code>{&quot;total_registros&quot;: 1}</code></td></tr><tr><td>GET /finanzas/auditoria?tipo_evento=CIERRE_PERIODO_FALLIDO&amp;formato=TECNICO&amp;tamano=100</td><td>200</td><td>LEIDO</td><td><code>{&quot;total_registros&quot;: 0}</code></td></tr></tbody>
+  </table>
+  <h2>Hallazgos</h2>
+  <ul><li><strong>QUESTION-M06-G71-01</strong> No hay un período abierto aislado para cerrar. QUESTION, Capacidad de prueba, QA, con un titular nuevo preparado por DBA si el NIT actual no puede segregarse, Medio, 2 días hábiles. Impide ejecutar el cierre. No evidencia un asiento duplicado ni un cálculo incorrecto. Cerrar ahora procesaría todos los activos reconocidos del mismo NIT.</li></ul>
+</body>
+</html>

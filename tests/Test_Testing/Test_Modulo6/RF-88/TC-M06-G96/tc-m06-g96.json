@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "TC-M06-G96 — RF-88 valor en libros",
+    "description": "Caso TC-M06-G96 (RF-88, CU07) sobre la rama laura en e5d6934d. Tres subcasos del valor en libros: cálculo ordinario 10.000.000 − 2.000.000 − 1.000.000 = 7.000.000; depreciación igual al costo con resultado 0; depreciación 7.000.000 y deterioro 5.000.000, cuyo resultado matemático es −2.000.000 y cuyo resultado exigido es valor en libros 0 más la alerta de esa condición. La fórmula valor_por_costo y el trigger tgr_m06_12_valor_contable_no_negativo existen, pero no hay una operación HTTP que reciba los tres montos. La colección hace un único GET público a /openapi.json para inventariar el contrato. No autentica, no envía cuerpo de negocio, no llama deterioros, cierre ni reconocimiento, y no usa /test-control. Un subcaso solo puede quedar APROBADO si la operación real se ejecutó y cumplió el RF. BLOQUEADO permanece en el denominador: aprobación = (APROBADOS / 3) * 100. La existencia de la fórmula no aprueba el subcaso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "TC-M06-05_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-05_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "TC-M06-06_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-06_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "TC-M06-07_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-07_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "porcentaje_aprobacion",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M06-G96 — inventario del contrato y clasificación",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Única solicitud HTTP del caso. Lee el OpenAPI público del backend de pruebas. No calcula el valor en libros, no envía costo ni depreciación ni deterioro, y no escribe en TEST.",
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": ["{{base_url}}"],
+          "path": ["openapi.json"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const base = String(pm.collectionVariables.get('base_url') || '');",
+              "const ids = ['TC-M06-05', 'TC-M06-06', 'TC-M06-07'];",
+              "",
+              "function registrar(id, estado, operacionEjecutada, detalle) {",
+              "  if (estado === 'APROBADO' && operacionEjecutada !== true) {",
+              "    estado = 'BLOQUEADO';",
+              "    detalle = 'No se promueve a APROBADO sin operacion real ejecutada. ' + detalle;",
+              "  }",
+              "  if (estado === 'RECHAZADO' && operacionEjecutada !== true) {",
+              "    estado = 'BLOQUEADO';",
+              "    detalle = 'No se clasifica RECHAZADO si la operacion real no se ejecuto. ' + detalle;",
+              "  }",
+              "  pm.collectionVariables.set(id + '_estado', estado);",
+              "  pm.collectionVariables.set(id + '_operacion_ejecutada', operacionEjecutada === true ? 'true' : 'false');",
+              "  pm.collectionVariables.set(id + '_detalle', detalle);",
+              "  return estado;",
+              "}",
+              "",
+              "pm.test('La base apunta al backend de pruebas', function () {",
+              "  pm.expect(base, 'base_url').to.eql('https://api.inmero.co/api-sgpmp-test');",
+              "  pm.expect(base, 'no usar el frontend').to.not.include('/sigab-test');",
+              "});",
+              "",
+              "let paths = {};",
+              "let schemas = {};",
+              "let contratoLegible = false;",
+              "if (pm.response.code === 200) {",
+              "  try {",
+              "    const api = pm.response.json();",
+              "    paths = api.paths || {};",
+              "    schemas = ((api.components || {}).schemas) || {};",
+              "    contratoLegible = Object.keys(paths).length > 0;",
+              "  } catch (error) {",
+              "    contratoLegible = false;",
+              "  }",
+              "}",
+              "",
+              "function propiedadesDe(schema, vistos) {",
+              "  if (!schema || typeof schema !== 'object') { return []; }",
+              "  if (schema.$ref) {",
+              "    const nombre = String(schema.$ref).split('/').pop();",
+              "    if (vistos[nombre]) { return []; }",
+              "    vistos[nombre] = true;",
+              "    return propiedadesDe(schemas[nombre] || {}, vistos);",
+              "  }",
+              "  let props = Object.keys(schema.properties || {});",
+              "  (schema.allOf || []).forEach(function (parte) {",
+              "    props = props.concat(propiedadesDe(parte, vistos));",
+              "  });",
+              "  return props;",
+              "}",
+              "",
+              "function cuerpoDe(operacion) {",
+              "  const contenido = (((operacion.requestBody || {}).content) || {})['application/json'] || {};",
+              "  return propiedadesDe(contenido.schema || {}, {});",
+              "}",
+              "",
+              "const calculadoras = [];",
+              "const consultas = [];",
+              "const escriturasRelacionadas = [];",
+              "Object.entries(paths).forEach(function (entrada) {",
+              "  const ruta = entrada[0];",
+              "  const ops = entrada[1] || {};",
+              "  const rutaMin = String(ruta).toLowerCase();",
+              "  if (rutaMin.indexOf('/suministros/nic41') === 0) { return; }",
+              "  Object.keys(ops).forEach(function (metodo) {",
+              "    if (['get', 'post', 'put', 'patch', 'delete'].indexOf(metodo) < 0) { return; }",
+              "    const firma = metodo.toUpperCase() + ' ' + ruta;",
+              "    const props = cuerpoDe(ops[metodo] || {});",
+              "    const tieneCosto = props.some(function (p) { return /^(costos?_adquisicion|costo)$/i.test(p); });",
+              "    const tieneDepreciacion = props.some(function (p) { return p === 'depreciacion_acumulada'; });",
+              "    const tieneDeterioro = props.some(function (p) { return p === 'deterioro_acumulado'; });",
+              "    if (tieneCosto && tieneDepreciacion && tieneDeterioro) {",
+              "      calculadoras.push(firma + ' [' + props.join(', ') + ']');",
+              "    }",
+              "    const relacionada = /deterioro|cierre|valor-razonable|valoraciones?-por-costo|valor_contable/.test(rutaMin);",
+              "    if (!relacionada) { return; }",
+              "    if (metodo === 'get') { consultas.push(firma); }",
+              "    else { escriturasRelacionadas.push(firma); }",
+              "  });",
+              "});",
+              "pm.collectionVariables.set('operaciones_calculadora', JSON.stringify(calculadoras));",
+              "pm.collectionVariables.set('consultas_relacionadas', JSON.stringify(consultas));",
+              "pm.collectionVariables.set('escrituras_no_invocadas', JSON.stringify(escriturasRelacionadas));",
+              "",
+              "pm.test('Inventario OpenAPI leido; este resultado no aprueba subcasos', function () {",
+              "  pm.expect(pm.response.code, 'GET /openapi.json').to.eql(200);",
+              "  pm.expect(contratoLegible, 'el contrato trae rutas').to.eql(true);",
+              "});",
+              "",
+              "function causaEjecucion() {",
+              "  if (!contratoLegible) {",
+              "    return 'No se pudo leer el contrato del backend. No se invoca ninguna operacion de negocio.';",
+              "  }",
+              "  if (calculadoras.length > 0) {",
+              "    return 'El contrato muestra una operacion que recibe costo, depreciacion acumulada y deterioro acumulado (' + calculadoras.join(', ') + '). Esta coleccion no la invoca: persistir el valor en libros seria una escritura y no esta autorizada. El subcaso sigue BLOQUEADO hasta una corrida funcional.';",
+              "  }",
+              "  const visto = escriturasRelacionadas.concat(consultas);",
+              "  const inventario = visto.length ? ' El contrato muestra operaciones vecinas que no reciben los tres montos y no se invocan: ' + visto.join(', ') + '.' : '';",
+              "  return 'No hay endpoint cuyo cuerpo reciba costo, depreciacion acumulada y deterioro acumulado.' + inventario + ' GET de activos solo lee un valor ya guardado. POST de deterioros registra un impacto sobre un evento sanitario. El cierre calcula la depreciacion desde la vida util. La formula valor_por_costo y el trigger tgr_m06_12 existen, pero consultar OpenAPI no ejecuta 10000000, 2000000 y 1000000 ni las otras combinaciones. En TEST faltan configuraciones_contables, parametros_contables_especies, asignaciones_cuentas_contables y lineas_asiento_nic41, asi que deterioro y cierre tampoco pueden persistir.';",
+              "}",
+              "",
+              "const bloqueo = causaEjecucion();",
+              "const motivos = {",
+              "  'TC-M06-05': 'TC-M06-05: bloqueo de ejecucion. Datos 10000000, depreciacion 2000000, deterioro 1000000; esperado 7000000. ' + bloqueo,",
+              "  'TC-M06-06': 'TC-M06-06: bloqueo de ejecucion. Datos 10000000, depreciacion 10000000, deterioro 0; esperado 0. ' + bloqueo,",
+              "  'TC-M06-07': 'TC-M06-07: bloqueo de ejecucion, distinto de la ausencia de la alerta. Datos 10000000, depreciacion 7000000, deterioro 5000000; matematico -2000000; esperado valor en libros 0. ' + bloqueo + ' Ausencia funcional aparte: la alerta exigida cuando el resultado es negativo no esta implementada. El trigger ajusta el valor a 0 y no registra aviso. El campo aviso de POST deterioros y el evento de auditoria DETERIORO_REGISTRADO no son esa alerta; este inventario no los trata como cumplimiento.'",
+              "};",
+              "",
+              "ids.forEach(function (id) {",
+              "  registrar(id, 'BLOQUEADO', false, motivos[id]);",
+              "});",
+              "",
+              "ids.forEach(function (id) {",
+              "  pm.test(id + ' no queda APROBADO sin operacion real', function () {",
+              "    const estado = pm.collectionVariables.get(id + '_estado');",
+              "    const operacion = pm.collectionVariables.get(id + '_operacion_ejecutada');",
+              "    const detalle = pm.collectionVariables.get(id + '_detalle');",
+              "    console.log(id + ': ' + estado + ' | operacion=' + operacion + ' | ' + detalle);",
+              "    if (estado !== 'APROBADO' || operacion !== 'true') {",
+              "      throw new Error(estado + ' — ' + detalle);",
+              "    }",
+              "  });",
+              "});",
+              "",
+              "pm.test('Porcentaje global (APROBADOS / 3) * 100', function () {",
+              "  const aprobados = ids.filter(function (id) {",
+              "    return pm.collectionVariables.get(id + '_estado') === 'APROBADO' && pm.collectionVariables.get(id + '_operacion_ejecutada') === 'true';",
+              "  }).length;",
+              "  const porcentaje = (aprobados / 3) * 100;",
+              "  pm.collectionVariables.set('porcentaje_aprobacion', String(porcentaje));",
+              "  const resumen = ids.map(function (id) {",
+              "    return id + '=' + pm.collectionVariables.get(id + '_estado');",
+              "  }).join(', ');",
+              "  console.log('Aprobacion global: ' + porcentaje + '% (' + aprobados + '/3). ' + resumen);",
+              "  if (porcentaje !== 100) {",
+              "    throw new Error('Aprobacion ' + porcentaje + '% (' + aprobados + '/3). ' + resumen + '. BLOQUEADO permanece en el denominador y no equivale a APROBADO ni a RECHAZADO.');",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
