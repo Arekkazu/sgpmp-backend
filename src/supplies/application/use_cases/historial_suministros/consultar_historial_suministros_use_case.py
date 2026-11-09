@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: niveles de volumen y 202 automático |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 """Caso de uso: consultar el historial/trazabilidad de suministros (RF-81).
 
 Solo lectura. Aplica el alcance por fincas vía :class:`AlcanceActivoPort` (E2,
@@ -183,10 +184,18 @@ class ConsultarHistorialSuministrosUseCase:
                 f"{filtros.id_activo_biologico}."
             ),
         )
-        self._auditar_consulta(filtros, id_usuario)
+        self._auditar_consulta(filtros, id_usuario, resultado)
         return ResultadoConsultaHistorial(lineas=resultado.lineas, resumen=resumen)
 
-    def _auditar_consulta(self, filtros: FiltrosHistorialSuministro, id_usuario: int) -> None:
+    def _auditar_consulta(self, filtros: FiltrosHistorialSuministro, id_usuario: int, resultado) -> None:
+        # RF-81 Fase 7 / CA-8: filtros y total retornado, también cuando la consulta no trae registros (0).
+        datos = {
+            "filtros_aplicados": filtros.para_auditoria(),
+            "pagina": filtros.pagina,
+            "registros_por_pagina": filtros.registros_por_pagina,
+            "total_registros_retornados": len(resultado.lineas),
+            "total_registros_filtrados": resultado.total_registros_filtrados,
+        }
         try:
             self.auditoria_port.registrar(
                 EventoAuditoriaSuministro(
@@ -196,6 +205,7 @@ class ConsultarHistorialSuministrosUseCase:
                     resultado="EXITOSO",
                     id_activo_biologico=filtros.id_activo_biologico,
                     id_ciclo_productivo=filtros.id_ciclo_productivo,
+                    datos_nuevos=datos,
                 )
             )
             self.db.commit()

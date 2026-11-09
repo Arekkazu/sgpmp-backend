@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-80: retención por tipo e intentos      |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroPort` (RF-78/79, CU-05).
 
 Usa ``flush()`` (nunca ``commit()``) y traduce errores de BD con
@@ -47,6 +48,7 @@ class SqlAlchemyAuditoriaSuministroRepository(AuditoriaSuministroPort):
             registro_incompleto=evento.registro_incompleto,
             fecha_intentos=evento.fecha_intentos or None,
             fecha_emision=evento.fecha_emision or datetime.now(timezone.utc),
+            datos_nuevos=evento.datos_nuevos,
             clasificacion_registro=clasificacion,
             retencion_aplicable=retencion,
         )

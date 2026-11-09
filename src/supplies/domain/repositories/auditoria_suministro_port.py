@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-80: emisión, reintentos y sus fechas   |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 """Puerto de auditoría de eventos de negocio RF-78/RF-79 (CU-05).
 
 Puerto angosto de escritura (patrón ``NotificacionMedicamentoPort``): el use
@@ -37,6 +38,8 @@ class EventoAuditoriaSuministro:
     registro_incompleto: bool = False
     fecha_intentos: list[datetime] = field(default_factory=list)
     fecha_emision: Optional[datetime] = None
+    # RF-81 CA-8: filtros aplicados y total retornado de la consulta/exportación del historial.
+    datos_nuevos: Optional[dict] = None
 
 
 class AuditoriaSuministroPort(ABC):

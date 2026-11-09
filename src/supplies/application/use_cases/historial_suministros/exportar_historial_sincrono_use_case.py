@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: PDF/Excel, 202 > 10.000, firma     |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 """Caso de uso: exportar el historial de suministros a PDF o Excel (RF-81 Fase 6).
 
 - ≤ 10.000 registros: archivo síncrono (≤ 10 s).
@@ -183,13 +184,17 @@ class ExportarHistorialSincronoUseCase:
             f"Historial_Suministros_{filtros.id_activo_biologico}_"
             f"{filtros.fecha_inicio_filtro or 'inicio'}_{filtros.fecha_fin_filtro or 'fin'}{FORMATOS[formato]}"
         )
-        self._auditar_exportacion(filtros, id_usuario)
+        self._auditar_exportacion(filtros, id_usuario, formato, resultado.total_registros_filtrados)
         return ArchivoHistorial(
             contenido=contenido, nombre_archivo=nombre, formato=formato,
             total_registros=resultado.total_registros_filtrados,
         )
 
-    def _auditar_exportacion(self, filtros: FiltrosHistorialSuministro, id_usuario: int) -> None:
+    def _auditar_exportacion(self, filtros: FiltrosHistorialSuministro, id_usuario: int, formato: str,
+                             total: int) -> None:
+        # RF-81 Fase 7 / CA-8 / Postcondición 2: filtros aplicados y total de registros exportados.
+        datos = {"filtros_aplicados": filtros.para_auditoria(), "formato_exportacion": formato,
+                 "total_registros_retornados": total}
         try:
             self.auditoria_port.registrar(
                 EventoAuditoriaSuministro(
@@ -199,6 +204,7 @@ class ExportarHistorialSincronoUseCase:
                     resultado="EXITOSO",
                     id_activo_biologico=filtros.id_activo_biologico,
                     id_ciclo_productivo=filtros.id_ciclo_productivo,
+                    datos_nuevos=datos,
                 )
             )
             self.db.commit()
