@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-79 - TC-M05-G33 Provision incremental hacia M06",
-    "description": "Automatiza TC-M05-050 y deja documentados TC-M05-051 (el despacho es un proceso de fondo fuera del sandbox) y TC-M05-060 (brecha conocida de M06). El outbox se lee con /test-control/query.",
+    "description": "Automatiza TC-M05-050 dentro del sandbox. TC-M05-051 y 060 se verifican en solo lectura sobre los eventos reales de TEST, porque el despachador a M06 no ve la transaccion del sandbox. Activo de referencia de M06: 943 (QA-M06-BOV-01, con periodo contable). El outbox se lee con /test-control/query.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -106,6 +106,14 @@
     },
     {
       "key": "id_reg_serv",
+      "value": ""
+    },
+    {
+      "key": "id_activo_ref_m06",
+      "value": "943"
+    },
+    {
+      "key": "eventos_ref_m06",
       "value": ""
     }
   ],
@@ -280,14 +288,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Gestor de Granja",
+          "name": "PRE - Fincas actuales del Gestor de Granja (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Gestor de Granja consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Gestor de Granja consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_ges', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -298,10 +306,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_ges}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_gestor}}/detalle"
           }
         },
         {
@@ -312,7 +320,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_ges') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_ges') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_ges', JSON.stringify({ ids_fincas: fs }));"
@@ -355,14 +363,14 @@
           }
         },
         {
-          "name": "PRE - Fincas actuales del Contador",
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - fincas del Contador consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.test('PRE - detalle del Contador consultado (200)', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('fincas_tok_cont', pm.response.code === 200 ? pm.response.text() : '');"
                 ]
               }
@@ -373,10 +381,10 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_cont}}"
+                "value": "Bearer {{tok_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/fincas"
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
           }
         },
         {
@@ -387,7 +395,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
                   "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
                   "if (fa && !fs.includes(fa)) fs.push(fa);",
                   "pm.collectionVariables.set('body_fincas_tok_cont', JSON.stringify({ ids_fincas: fs }));"
@@ -525,6 +533,7 @@
                   "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
                   "pm.collectionVariables.set('id_creador', a.id_usuario);",
                   "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "['max_auditoria', 'prev_semanal', 'prev_ciclo', 'vig_semanal', 'vig_ciclo'].forEach(k => pm.collectionVariables.set(k, Number(m5[k] || 0)));",
                   "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
                   "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
                   "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
@@ -537,7 +546,7 @@
                   "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
                   "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
                   "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
-                  "crit(Number(m5.n_resultados) === 0, 'A sin resultados ICA previos; tiene ' + m5.n_resultados);",
+                  "console.log('A tiene ' + m5.n_resultados + ' resultados ICA previos (del batch nocturno); los conteos usan solo los de esta corrida.');",
                   "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
                   "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
                   "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
@@ -564,7 +573,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado\"}",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado, (SELECT coalesce(max(id_auditoria_suministro), 0) FROM modulo5.auditorias_suministros) AS max_auditoria, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL') AS prev_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO') AS prev_ciclo, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL' AND r.es_vigente) AS vig_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO' AND r.es_vigente) AS vig_ciclo\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -729,7 +738,7 @@
                   "const inc = filas.filter(f => f.modalidad === 'INCREMENTAL');",
                   "pm.test('TC-M05-050 - 1 evento INCREMENTAL por movimiento del ledger (' + pm.collectionVariables.get('n_movimientos') + ')', () => { pm.expect(Number(pm.collectionVariables.get('n_movimientos')), 'movimientos de A').to.be.above(0); pm.expect(inc.length).to.eql(Number(pm.collectionVariables.get('n_movimientos'))); });",
                   "pm.test('TC-M05-050 - id_evento_provision distinto en cada evento', () => pm.expect(new Set(inc.map(f => f.id_evento)).size).to.eql(inc.length));",
-                  "pm.test('TC-M05-050 - el evento trae schema_version, activo, ciclo, tipo, costo y acumulados', () => inc.forEach(f => { const c = j(f.json_contenido); ['schema_version', 'id_activo_biologico', 'id_ciclo_productivo', 'tipo_suministro', 'costo_registro', 'acumulado_total_ciclo', 'acumulado_por_categoria'].forEach(k => pm.expect(c, k).to.have.property(k)); }));",
+                  "pm.test('TC-M05-050 - el evento trae schema_version, activo, ciclo, tipo, costo y acumulados', () => inc.forEach(f => { const c = j(f.json_contenido); ['schema_version', 'id_activo', 'id_ciclo', 'id_tipo_suministro', 'costo_registro', 'acumulado_total_ciclo', 'acumulado_por_categoria'].forEach(k => pm.expect(c, k).to.have.property(k)); }));",
                   "pm.test('TC-M05-050 - el evento trae la fecha del consumo/aplicacion (schema 1.1; la nota del equipo dice que no)', () => inc.forEach(f => pm.expect(j(f.json_contenido)).to.have.property('fecha_aplicacion')));"
                 ]
               }
@@ -761,43 +770,21 @@
       "name": "3. TC-M05-051 y TC-M05-060 Entrega a M06 y conversion contable",
       "item": [
         {
-          "name": "TC-M05-051 - Entrega a M06: NO verificable en el sandbox",
+          "name": "TC-M05-051 - Entrega a M06 en <= 5 s y ACK, medido en los eventos reales de TEST (fuera del sandbox)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test.skip('TC-M05-051 - BLOQUEADO: el despacho a M06 lo hace un proceso de fondo con su propia conexion, que no ve los eventos de la transaccion del sandbox; ademas hoy el costo no se puede registrar (500). Requiere una corrida fuera del sandbox acordada con el DBA.', () => {});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tok_cont}}"
-              }
-            ],
-            "url": "{{base_url}}/suministros/costeo-directo/acumulado/ciclo/33"
-          }
-        },
-        {
-          "name": "TC-M05-060 - Costos de A en M06 (registros_costos) frente a los eventos del outbox",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('TC-M05-060 - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M05-051 - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
                   "const filas = (pm.response.json() || {}).data || [];",
                   "console.log(JSON.stringify(filas));",
-                  "const f = filas[0] || {};",
-                  "if (Number(f.eventos) === 0) pm.test.skip('TC-M05-060 - BLOQUEADO: no hay eventos INCREMENTAL de A que comparar (el costo no se puede registrar hoy)', () => {});",
-                  "else pm.test('TC-M05-060 - un costo en M06 por cada evento (brecha conocida: se espera FALLA)', () => pm.expect(Number(f.costos_m06)).to.eql(Number(f.eventos)));"
+                  "const f = filas[0] || {}, pct = Number(f.en_5s) * 100 / Math.max(Number(f.entregados), 1);",
+                  "console.log('TC-M05-051 - reales: ' + f.entregados + '/' + f.total + ' entregados, ' + f.en_5s + ' en <= 5 s (' + pct.toFixed(1) + '%), maximo ' + f.seg_max + ' s, ' + f.acks + ' ACK');",
+                  "pm.test('TC-M05-051 - hay eventos reales y todos quedaron ENTREGADO', () => { pm.expect(Number(f.total)).to.be.above(0); pm.expect(Number(f.entregados)).to.eql(Number(f.total)); });",
+                  "pm.test('TC-M05-051 - cada evento entregado tiene su ACK PROVISION_INCREMENTAL_ENTREGADA', () => pm.expect(Number(f.acks)).to.be.at.least(Number(f.entregados)));",
+                  "pm.test('TC-M05-051 - al menos el 99% entregado en <= 5 s (CA-1); el tiempo se mide desde el inicio de la transaccion del registro, no desde su commit', () => pm.expect(pct).to.be.at.least(99));"
                 ]
               }
             }
@@ -813,13 +800,77 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo6.registros_costos WHERE id_activo_biologico = {{id_activo_a}}) AS costos_m06, (SELECT count(*) FROM modulo5.outbox_provisiones_m06 WHERE id_gestion_fases = {{id_fase_activa}} AND modalidad::text = 'INCREMENTAL') AS eventos\"}",
+              "raw": "{\"query\": \"SELECT count(*) AS total, count(*) FILTER (WHERE estado::text = 'ENTREGADO') AS entregados, count(*) FILTER (WHERE estado::text = 'ENTREGADO' AND fecha_entrega - fecha_creacion <= interval '5 seconds') AS en_5s, round(max(extract(epoch FROM fecha_entrega - fecha_creacion))::numeric, 2) AS seg_max, (SELECT count(*) FROM modulo5.auditorias_suministros a WHERE a.tipo_operacion::text = 'PROVISION_INCREMENTAL_ENTREGADA' AND a.id_auditoria_suministro <= {{max_auditoria}}) AS acks FROM modulo5.outbox_provisiones_m06 WHERE modalidad::text = 'INCREMENTAL' AND id_gestion_fases IS DISTINCT FROM {{id_fase_activa}}\"}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             }
+          }
+        },
+        {
+          "name": "PREP - Eventos INCREMENTAL reales del activo de referencia de M06 ({{id_activo_ref_m06}})",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PREP - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "pm.collectionVariables.set('eventos_ref_m06', JSON.stringify(filas));",
+                  "pm.test('PREP - el activo de referencia tiene eventos entregados', () => pm.expect(filas.length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT id_outbox_provision_m06::text AS id_evento, costo_registro, json_contenido->>'fecha_aplicacion' AS fecha FROM modulo5.outbox_provisiones_m06 WHERE id_activo_biologico = {{id_activo_ref_m06}} AND modalidad::text = 'INCREMENTAL' AND estado::text = 'ENTREGADO'\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M05-060 - M06 convirtio cada evento real en un costo con su fecha y su linea contable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-060 - HTTP 200', () => pm.response.to.have.status(200));",
+                  "const costos = pm.response.json() || [], eventos = JSON.parse(pm.collectionVariables.get('eventos_ref_m06') || '[]');",
+                  "console.log('TC-M05-060 - ' + eventos.length + ' eventos del activo ' + pm.collectionVariables.get('id_activo_ref_m06') + ' y ' + costos.length + ' costos en M06');",
+                  "eventos.forEach(ev => { const c = costos.find(x => x.id_origen_m05 === ev.id_evento) || {}; pm.test('TC-M05-060 - evento ' + ev.id_evento.slice(0, 8) + ': costo en M06 con el mismo monto, la fecha de aplicacion y ASIENTO_NIC41', () => { pm.expect(c.id_registro_costo, 'costo con id_origen_m05').to.not.be.undefined; pm.expect(Number(c.monto_costo)).to.eql(Math.abs(Number(ev.costo_registro))); pm.expect(c.fecha_costo).to.eql(ev.fecha); pm.expect(c.vehiculo_contable).to.eql('ASIENTO_NIC41'); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/finanzas/costos?id_activo_biologico={{id_activo_ref_m06}}"
           }
         }
       ]
