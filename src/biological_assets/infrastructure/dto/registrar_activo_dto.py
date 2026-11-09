@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-33/RF-82: costo_adquisicion con máximo 4 decimales (se rechaza, no se redondea) |
 """DTO de entrada de ``POST /activos-biologicos`` (RF-33)."""
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from src.shared.base_dto import BaseDTO
 from src.shared.fechas import hoy_usuario
@@ -30,7 +31,9 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
     fecha_inicio_ciclo: date
     detalles_procedencia: Optional[str] = None
     origen_financiero: str
-    costo_adquisicion: Optional[Decimal] = None
+    # numeric(18,4) en modulo2.activos_biologicos: con un 5.º decimal PostgreSQL redondeaba en
+    # silencio y M06 heredaba el valor redondeado (INC-M06-303-G04).
+    costo_adquisicion: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
     soporte_documental: Optional[str] = None
     id_infraestructura: int
     atributos_dinamicos: Optional[dict] = None
