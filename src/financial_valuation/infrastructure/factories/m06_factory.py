@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ensamblado de repositorios, servicios y casos de uso |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-296-G34-01 RF-86: notificador en el procesamiento de eventos |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -144,7 +145,8 @@ class M06:
         return RevertirReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.contabilizador)
     def procesar_eventos(self):
         return ProcesarEventosM02UseCase(self.db, self.eventos, self.activos, self.valoraciones, self.precios,
-                                         self.medidor, self.contabilizador, id_usuario_servicio(self.db))
+                                         self.medidor, self.contabilizador, id_usuario_servicio(self.db),
+                                         notificador=self.notificador)
     def procesar_provisiones(self):
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):

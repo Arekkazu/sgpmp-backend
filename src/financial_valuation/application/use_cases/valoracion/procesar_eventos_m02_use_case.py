@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/86: medición por evento, productos agrícolas y bajas desde M02 |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-296-G34-01 RF-86: aviso al Contador cuando la medición queda suspendida |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -11,7 +12,11 @@
 - Reproductivos, sanitarios y otros no cambian el valor razonable.
 Un activo valorado por costo (¶30) no genera variaciones de valor razonable (RF-88 CA-4).
 
-Cada evento va en su propia transacción: un fallo no detiene los demás (se reintenta hasta 3 veces)."""
+Cada evento va en su propia transacción: un fallo no detiene los demás (se reintenta hasta 3 veces).
+
+RF-86 paso 1a / CA-15: si la medición (RF-83) o el reconocimiento del producto (RF-85) no se completa, el
+evento queda ``MEDICION_PENDIENTE`` sin registros financieros parciales y, después del ``commit``, se avisa a
+los Contadores de la finca con la causa, el activo y el evento."""
 from __future__ import annotations
 
 import logging
@@ -28,6 +33,7 @@ from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.entities.valoracion import CalculoValor
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.domain.repositories.evento_m02_port import EventoM02, EventoM02Port
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.nic41 import CERO, costos_venta, q4, truncar2, valor_neto
@@ -46,13 +52,17 @@ from src.shared.fechas import fecha_usuario
 logger = logging.getLogger(__name__)
 
 _BAJAS_DE_VENTA = ("venta", "sacrificio")
+# Causa del aviso al Contador (va en el detalle del evento, no en el texto que lee el usuario).
+CAUSA_MEDICION = "RF_83_NO_COMPLETADO"
+CAUSA_PRODUCTO = "RF_85_NO_COMPLETADO"
 _UNIDADES_KG = ("kg", "kgs", "kilogramo", "kilogramos")
 
 
 class ProcesarEventosM02UseCase:
     def __init__(self, db: Session, eventos: EventoM02Port, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, precios: PrecioRepository, medidor: Medidor,
-                 contabilizador: Contabilizador, id_usuario_servicio: int) -> None:
+                 contabilizador: Contabilizador, id_usuario_servicio: int,
+                 notificador: Optional[NotificacionFinancieraPort] = None) -> None:
         self.db = db
         self.eventos = eventos
         self.activos = activos
@@ -61,14 +71,21 @@ class ProcesarEventosM02UseCase:
         self.medidor = medidor
         self.contabilizador = contabilizador
         self.id_servicio = id_usuario_servicio
+        self.notificador = notificador
+        self._activo: Optional[DatosActivo] = None
+        self._causa = CAUSA_MEDICION
+        self._motivo: Optional[str] = None
 
     def execute(self, limite: int = 200) -> dict:
         conteo: dict[str, int] = {}
         for evento in self.eventos.pendientes(limite):
+            self._activo, self._causa, self._motivo = None, CAUSA_MEDICION, None
             try:
                 resultado, detalle = self._procesar(evento)
                 self.eventos.registrar_procesamiento(evento.id_evento, resultado, detalle)
                 self.db.commit()
+                if resultado == "MEDICION_PENDIENTE":
+                    self._avisar_suspension(evento, detalle)
             except Exception as exc:  # un evento fallido no detiene la cola
                 self.db.rollback()
                 logger.exception("M06: no se pudo procesar el evento %s de M02.", evento.id_evento)
@@ -87,6 +104,7 @@ class ProcesarEventosM02UseCase:
         activo = self.activos.obtener(evento.id_activo_biologico)
         if activo is None:
             return "SIN_EFECTO", "Activo no encontrado"
+        self._activo = activo
         dia = fecha_usuario(evento.fecha)
         try:
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, dia, self.id_servicio)
@@ -108,6 +126,7 @@ class ProcesarEventosM02UseCase:
         medicion = self.medidor.medir(activo, periodo, dia, origen="EVENTO", id_usuario=self.id_servicio,
                                       id_usuario_auditoria=None, id_evento=evento.id_evento,
                                       tipo_evidencia_tb=evidencia, tipo_hecho_tb=tipo_hecho)
+        self._motivo = medicion.motivo
         return {"MEDIDO": "PROCESADO", "SIN_VARIACION": "SIN_EFECTO"}.get(medicion.estado, "MEDICION_PENDIENTE"), medicion.mensaje
 
     # --- Ingreso sin costo en el evento ---------------------------------------------------------
@@ -250,9 +269,28 @@ class ProcesarEventosM02UseCase:
 
     def _producto_pendiente(self, activo, periodo, evento, mensaje) -> tuple[str, str]:
         """RF-85 FA-1/FA-2: el reconocimiento queda pendiente y se alerta al Contador."""
+        self._causa = CAUSA_PRODUCTO
         self._auditar("RECONOCIMIENTO_PRODUCTO_PENDIENTE", Severidad.WARNING, activo, periodo, evento.id_evento,
                       {"mensaje": mensaje})
         return "MEDICION_PENDIENTE", mensaje
+
+    def _avisar_suspension(self, evento: EventoM02, detalle: Optional[str]) -> None:
+        """RF-86 CA-15: aviso al Contador, después del commit (un fallo del aviso no deshace nada)."""
+        activo = self._activo
+        if self.notificador is None or activo is None:
+            return
+        que = "el reconocimiento del producto agrícola" if self._causa == CAUSA_PRODUCTO else "la medición"
+        mensaje = (f"No se pudo completar {que} del activo {activo.identificador} por el evento biológico del "
+                   f"{fecha_usuario(evento.fecha):%d/%m/%Y}; el registro financiero quedó suspendido.")
+        if detalle:
+            mensaje += f" Motivo: {detalle}"
+        try:
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", mensaje, {
+                "causa": self._causa, "motivo": self._motivo, "id_activo_biologico": activo.id_activo_biologico,
+                "id_evento": evento.id_evento,
+            }, id_finca=activo.id_finca)
+        except Exception:  # el puerto ya no propaga errores; esto cubre adaptadores que sí lo hagan
+            logger.exception("M06: no se pudo avisar la suspensión del evento %s.", evento.id_evento)
 
     def _auditar(self, tipo, severidad, activo, periodo, id_referencia, payload, monto=None) -> None:
         self.contabilizador.auditar(EventoAuditoria(
