@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-86/87/94: período del hecho, cuentas de la matriz y auditoría |
+# | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 """Servicio de aplicación compartido: ubica el período de un hecho, crea su línea de asiento con
 las cuentas de la matriz (RF-86 v2.0, RF-109) y registra la auditoría (RF-94). No hace commit."""
 from __future__ import annotations
@@ -64,6 +65,13 @@ class Contabilizador:
             return abierto
         inicio, fin = periodo_siguiente(desde, tipo)
         return self.periodos.crear(numero_id_tributaria, tipo, inicio, fin, id_usuario)
+
+    def periodo_cerrado_en(self, numero_id_tributaria: Optional[str], dia: date) -> Optional[Periodo]:
+        """Período CERRADO que contiene ``dia``, si lo hay (RF-83 restricción 2, RF-86 paso 1 c)."""
+        if not numero_id_tributaria:
+            return None
+        periodo = self.periodos.que_contiene(numero_id_tributaria, dia)
+        return periodo if periodo is not None and periodo.estado == EstadoPeriodo.CERRADO.value else None
 
     # --- Líneas --------------------------------------------------------------------------------
 

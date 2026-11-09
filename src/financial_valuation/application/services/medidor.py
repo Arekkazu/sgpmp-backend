@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/86: medición posterior, variaciones y líneas de asiento |
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta MEDICION_PENDIENTE al Contador si la medición es estimada |
+# | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 """Servicio de aplicación: medición posterior de un activo (RF-83) y su registro en resultados
 (RF-86). Lo usan el procesador de eventos de M02 y el cierre del período (RF-87). No hace commit.
 
@@ -160,7 +161,7 @@ class Medidor:
             id_referencia=medicion.id_medicion_posterior, monto_afectado=variacion.total,
         ))
         if nuevo.tiene_valor_estimado:  # RF-83 restricción 3 y salida 4
-            self._alertar_pendiente(activo, periodo, dia, id_evento, id_usuario_auditoria, "PRECIO_ESTIMADO", (
+            self.alertar_pendiente(activo, periodo, dia, id_evento, id_usuario_auditoria, "PRECIO_ESTIMADO", (
                 f"El activo {activo.identificador} se midió el {dia:%Y-%m-%d} con un precio estimado porque la especie "
                 f"{activo.especie} no tiene precio de mercado vigente. Revise la medición y registre el precio vigente."),
                 id_medicion=medicion.id_medicion_posterior)
@@ -169,11 +170,11 @@ class Medidor:
 
     def _pendiente(self, activo, periodo, id_evento, id_usuario_auditoria, motivo, mensaje) -> ResultadoMedicion:
         """RF-86 FA-3 / RF-83 FA-2: la medición queda pendiente y se alerta al Contador."""
-        self._alertar_pendiente(activo, periodo, None, id_evento, id_usuario_auditoria, motivo, (
+        self.alertar_pendiente(activo, periodo, None, id_evento, id_usuario_auditoria, motivo, (
             f"La medición del activo {activo.identificador} quedó pendiente: {mensaje}"), detalle_auditoria=mensaje)
         return ResultadoMedicion("PENDIENTE", motivo=motivo, mensaje=mensaje)
 
-    def _alertar_pendiente(self, activo, periodo, dia, id_evento, id_usuario_auditoria, motivo, mensaje, *,
+    def alertar_pendiente(self, activo, periodo, dia, id_evento, id_usuario_auditoria, motivo, mensaje, *,
                            id_medicion=None, detalle_auditoria=None) -> None:
         """Evento ``MEDICION_PENDIENTE`` en RF-94 y alerta en cola para el Contador de la finca."""
         self.contabilizador.auditar(EventoAuditoria(
