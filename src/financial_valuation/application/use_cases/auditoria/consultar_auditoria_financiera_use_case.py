@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-94 Fase 7: consulta técnica y legible de la auditoría financiera |
 # | 2026-11-05 | Arekkazu | M06 RF-94: resumen por severidad, orden y activo por su identificador |
+# | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
 filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13)."""
 from __future__ import annotations
@@ -20,6 +21,7 @@ DESCRIPCIONES = {
     "MEDICION_CON_ESTIMACION": "Medición con precio estimado",
     "MEDICION_SIN_VARIACION": "Medición sin variación de valor",
     "MEDICION_PENDIENTE": "Medición pendiente de revisión",
+    "MEDICION_EXCLUIDA": "Evento sin medición: activo no elegible",
     "VARIACION_REGISTRADA": "Variación de valor razonable registrada",
     "LINEA_ASIENTO_PENDIENTE_CUENTA": "Línea de asiento sin cuenta contable configurada",
     "LINEA_ASIENTO_REGISTRADA": "Línea de asiento registrada",

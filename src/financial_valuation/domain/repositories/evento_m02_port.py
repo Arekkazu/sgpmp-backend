@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
+# | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 """Puerto de los eventos biológicos de M02 que disparan la medición por evento (RF-83, RF-85)."""
 from __future__ import annotations
 
@@ -16,6 +17,8 @@ class EventoM02:
     fecha: datetime
     tipo: str  # CRECIMIENTO | PRODUCTIVO | BAJA | INGRESO | REPRODUCTIVO | SANITARIO | OTRO
     datos: dict = field(default_factory=dict)
+    # Sin reconocimiento CONFIRMADO: se revirtió y el evento es posterior (PENDIENTE_RECONOCIMIENTO).
+    sin_reconocimiento: bool = False
 
 
 class EventoM02Port(ABC):
