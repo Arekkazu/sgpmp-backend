@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G90</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}
+pre{white-space:pre-wrap}</style></head><body>
+<h1>Módulo 6 — RF-COT — TC-M06-G90</h1>
+<p>Generado: 2026-11-08T12:09:34.541655-05:00. No se registró la cotización.</p>
+<table><tr><th>Subcaso</th><td>TC-M06-50</td></tr>
+<tr><th>Estado</th><td>BLOQUEADO</td></tr>
+<tr><th>Porcentaje</th><td>0 %</td></tr></table>
+<h2>Activo leído</h2><pre>{
+  &quot;id_activo_biologico&quot;: 943,
+  &quot;estado&quot;: &quot;ACTIVO&quot;,
+  &quot;especie&quot;: &quot;Bovino&quot;,
+  &quot;valor_razonable_neto&quot;: &quot;3015990.0000&quot;,
+  &quot;fecha_calculo&quot;: &quot;2026-11-07T20:16:42.872378Z&quot;,
+  &quot;valorado_por_costo&quot;: false
+}</pre>
+<h2>Contrato</h2><pre>POST /finanzas/cotizaciones responde 201 con estado COTIZADO. No llama al contabilizador de asientos ni a M07. Inserta la cotización y el evento COTIZACION_REGISTRADA. El valor razonable se lee y se copia como referencia; no se actualiza. periodo_para puede crear un período si no hay uno abierto posterior. GET /integracion/auditoria, usado sin permiso, escribe ACCESO_AUDITORIA_DENEGADO, así que no se consultó. La vista AAEF del productor exige el NIT y un token de canal. No se llamó.</pre>
+<h2>Hallazgos</h2><ul><li>BLOQUEO DE PRUEBA: el activo con valor razonable pertenece al catálogo compartido. Registrar la cotización insertaría la fila y el evento de auditoría.</li><li>La ausencia de asientos y de exportaciones AAEF se ve en el código del caso de uso. No se comprobó con un alta real.</li></ul>
+</body></html>

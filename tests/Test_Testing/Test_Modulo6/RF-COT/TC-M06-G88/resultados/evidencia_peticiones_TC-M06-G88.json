@@ -1,0 +1,327 @@
+{
+  "caso": "TC-M06-G88",
+  "generado_en": "2026-11-08T16:33:58.487370+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 958,
+      "escritura": false,
+      "en": "2026-11-08T16:33:59.445941+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 434,
+      "escritura": false,
+      "en": "2026-11-08T16:33:59.879848+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "nombre_rol": "Contador",
+        "estado_cuenta": "Activo"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 397,
+      "escritura": false,
+      "en": "2026-11-08T16:34:00.276560+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 9,
+        "activos": [
+          {
+            "id_activo_biologico": 943,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "3015990.0000"
+          },
+          {
+            "id_activo_biologico": 944,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2779956.0000"
+          },
+          {
+            "id_activo_biologico": 945,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2761344.0000"
+          },
+          {
+            "id_activo_biologico": 946,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2884860.0000"
+          },
+          {
+            "id_activo_biologico": 947,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "305970.0000"
+          },
+          {
+            "id_activo_biologico": 948,
+            "estado": "BAJA",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2671480.0000"
+          },
+          {
+            "id_activo_biologico": 951,
+            "estado": "ACTIVO",
+            "especie": "Equino",
+            "valorado_por_costo": true,
+            "valor_razonable_neto": null
+          },
+          {
+            "id_activo_biologico": 949,
+            "estado": "ACTIVO",
+            "especie": "Pollo De Engorde Qa Mseis",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "6960000.0000"
+          },
+          {
+            "id_activo_biologico": 950,
+            "estado": "ACTIVO",
+            "especie": "Pollo De Engorde Qa Mseis",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "6960000.0000"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "duracion_ms": 432,
+      "escritura": false,
+      "en": "2026-11-08T16:34:00.708353+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "ids": [
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "duracion_ms": 579,
+      "escritura": false,
+      "en": "2026-11-08T16:34:01.287238+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 200,
+      "duracion_ms": 575,
+      "escritura": false,
+      "en": "2026-11-08T16:34:01.862260+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/999999999",
+      "codigo": 404,
+      "duracion_ms": 587,
+      "escritura": false,
+      "en": "2026-11-08T16:34:02.449380+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 404,
+        "code": "ACTIVO_NO_ENCONTRADO"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 404,
+      "duracion_ms": 430,
+      "escritura": false,
+      "en": "2026-11-08T16:34:02.879443+00:00",
+      "cuerpo": {
+        "activos_cotizados": [
+          999999999
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "ACTIVO_NO_ENCONTRADO",
+        "message": "El activo 999999999 no existe.",
+        "fields": [],
+        "timestamp": "2026-11-08T16:34:01.833915+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 422,
+      "duracion_ms": 411,
+      "escritura": false,
+      "en": "2026-11-08T16:34:03.290799+00:00",
+      "cuerpo": {
+        "activos_cotizados": [
+          951
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "VALOR_RAZONABLE_NO_DISPONIBLE",
+        "message": "El activo [identificador omitido] no tiene valor razonable vigente.",
+        "fields": [],
+        "timestamp": "2026-11-08T16:34:02.251044+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 687,
+      "escritura": false,
+      "en": "2026-11-08T16:34:03.978430+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/activos-biologicos",
+      "codigo": 200,
+      "duracion_ms": 666,
+      "escritura": false,
+      "en": "2026-11-08T16:34:04.645145+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "pagina": 1,
+        "total": 803,
+        "vistos": 100,
+        "id_activo_biologico": 948,
+        "nombre_estado": "BAJA"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/948",
+      "codigo": 200,
+      "duracion_ms": 437,
+      "escritura": false,
+      "en": "2026-11-08T16:34:05.082049+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "code": null,
+        "estado": "BAJA"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 422,
+      "duracion_ms": 415,
+      "escritura": false,
+      "en": "2026-11-08T16:34:05.496846+00:00",
+      "cuerpo": {
+        "activos_cotizados": [
+          948
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "ACTIVO_NO_DISPONIBLE",
+        "message": "El activo [identificador omitido] no está ACTIVO o no tiene reconocimiento inicial.",
+        "fields": [],
+        "timestamp": "2026-11-08T16:34:04.458904+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "duracion_ms": 421,
+      "escritura": false,
+      "en": "2026-11-08T16:34:05.918290+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "ids": [
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 200,
+      "duracion_ms": 408,
+      "escritura": false,
+      "en": "2026-11-08T16:34:06.326553+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 415,
+      "escritura": false,
+      "en": "2026-11-08T16:34:06.741983+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 9
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "duracion_ms": 383,
+      "escritura": false,
+      "en": "2026-11-08T16:34:07.124717+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 8
+      }
+    }
+  ]
+}

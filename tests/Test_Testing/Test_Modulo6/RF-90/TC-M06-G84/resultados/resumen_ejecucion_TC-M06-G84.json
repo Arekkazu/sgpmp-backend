@@ -1,0 +1,652 @@
+{
+  "caso": "TC-M06-G84",
+  "rf": [
+    "RF-90",
+    "RF-109",
+    "RF-93"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T15:23:02.160330+00:00",
+  "contrato": "La inversión directa es el subtipo INVERSION_DIRECTA y su naturaleza es INVERSION. No hay una política global CAPITALIZAR o GASTO. La política sale de la solicitud: confirmar_capitalizacion en true capitaliza solo si el activo tiene valoración por costo activa; en un activo a valor razonable responde CAPITALIZACION_NO_PERMITIDA. Sin esa confirmación, la política es GASTO. Capitalizar suma el monto a costos_adquisicion y valor_contable_por_costo. No modifica el valor razonable. El asiento, cuando el origen es mano de obra propia, usa el hecho MANO_OBRA_PROPIA y el sentido CAPITALIZACION o UNICO. Una compra a proveedor no genera línea: viaja como factura. La justificación de una inversión debe tener al menos 10 caracteres y se exige antes de consultar el período. El monto debe ser mayor que cero en el DTO. RF-109 es la matriz de cuentas en la configuración contable. RF-93, al armar el estado de resultados, trata como gasto la inversión con política GASTO y excluye la capitalizada. El estado de resultados se genera sobre períodos cerrados.",
+  "activos": [
+    {
+      "id_activo_biologico": 943,
+      "especie": "Bovino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "3015990.0000",
+      "fecha_calculo": "2026-11-07T20:16:42.872378Z"
+    },
+    {
+      "id_activo_biologico": 944,
+      "especie": "Bovino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "2779956.0000",
+      "fecha_calculo": "2026-11-07T20:16:46.196438Z"
+    },
+    {
+      "id_activo_biologico": 945,
+      "especie": "Bovino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "2761344.0000",
+      "fecha_calculo": "2026-11-07T20:17:13.389832Z"
+    },
+    {
+      "id_activo_biologico": 946,
+      "especie": "Bovino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "2884860.0000",
+      "fecha_calculo": "2026-11-07T20:11:44.408365Z"
+    },
+    {
+      "id_activo_biologico": 947,
+      "especie": "Bovino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "305970.0000",
+      "fecha_calculo": "2026-11-07T20:11:44.408365Z"
+    },
+    {
+      "id_activo_biologico": 948,
+      "especie": "Bovino",
+      "estado": "BAJA",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "2671480.0000",
+      "fecha_calculo": "2026-11-07T20:07:47.146055Z"
+    },
+    {
+      "id_activo_biologico": 951,
+      "especie": "Equino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALORACION_POR_COSTO",
+      "valorado_por_costo": true,
+      "costo_base": "4500000.0000",
+      "valor_contable_por_costo": "4200000.0000",
+      "depreciacion_acumulada": "0.0000",
+      "deterioro_acumulado": "300000.0000",
+      "valor_razonable_neto": null,
+      "fecha_calculo": null
+    },
+    {
+      "id_activo_biologico": 949,
+      "especie": "Pollo De Engorde Qa Mseis",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "6960000.0000",
+      "fecha_calculo": "2026-11-07T20:07:49.937755Z"
+    },
+    {
+      "id_activo_biologico": 950,
+      "especie": "Pollo De Engorde Qa Mseis",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALOR_RAZONABLE",
+      "valorado_por_costo": false,
+      "costo_base": null,
+      "valor_contable_por_costo": null,
+      "depreciacion_acumulada": null,
+      "deterioro_acumulado": null,
+      "valor_razonable_neto": "6960000.0000",
+      "fecha_calculo": "2026-11-07T20:07:52.658112Z"
+    }
+  ],
+  "inversiones": {
+    "total": 0,
+    "subtipos": {},
+    "politicas": {}
+  },
+  "matriz": [
+    {
+      "tipo_hecho": "AJUSTE_PERIODO_ANTERIOR",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "BAJA_ACTIVO",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "CONSUMO_INSUMO",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "DEPRECIACION_ACTIVO_COSTO",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "DETERIORO_ACTIVO_COSTO",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "MANO_OBRA_PROPIA",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "250505"
+    },
+    {
+      "tipo_hecho": "MANO_OBRA_PROPIA",
+      "sentido": "GANANCIA",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "424805"
+    },
+    {
+      "tipo_hecho": "MANO_OBRA_PROPIA",
+      "sentido": "PERDIDA",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "539505",
+      "cuenta_credito": "158405"
+    },
+    {
+      "tipo_hecho": "MANO_OBRA_PROPIA",
+      "sentido": "TRASLADO",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "143005",
+      "cuenta_credito": "158405"
+    },
+    {
+      "tipo_hecho": "MANO_OBRA_PROPIA",
+      "sentido": "UNICO",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "250505"
+    },
+    {
+      "tipo_hecho": "PRODUCTO_AGRICOLA",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "RECONOCIMIENTO_NACIMIENTO",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "VARIACION_VR_PM",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    },
+    {
+      "tipo_hecho": "VARIACION_VR_TB",
+      "sentido": "CAPITALIZACION",
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "220505"
+    }
+  ],
+  "complementos": [
+    {
+      "nombre": "monto_cero",
+      "http": 400,
+      "code": "VAL_ENTRADA"
+    },
+    {
+      "nombre": "monto_negativo",
+      "http": 400,
+      "code": "VAL_ENTRADA"
+    },
+    {
+      "nombre": "sin_justificacion",
+      "http": 422,
+      "code": "JUSTIFICACION_OBLIGATORIA"
+    },
+    {
+      "nombre": "justificacion_vacia",
+      "http": 422,
+      "code": "JUSTIFICACION_OBLIGATORIA"
+    },
+    {
+      "nombre": "justificacion_corta",
+      "http": 422,
+      "code": "JUSTIFICACION_OBLIGATORIA"
+    }
+  ],
+  "activo_951": {
+    "antes": {
+      "id_activo_biologico": 951,
+      "especie": "Equino",
+      "estado": "ACTIVO",
+      "indicador_reconocimiento": "VALORACION_POR_COSTO",
+      "valorado_por_costo": true,
+      "costo_base": "4500000.0000",
+      "valor_contable_por_costo": "4200000.0000",
+      "depreciacion_acumulada": "0.0000",
+      "deterioro_acumulado": "300000.0000",
+      "valor_razonable_neto": null,
+      "fecha_calculo": null
+    },
+    "despues": {
+      "costos_adquisicion": "4500000.0000",
+      "valor_contable_por_costo": "4200000.0000",
+      "depreciacion_acumulada": "0.0000",
+      "deterioro_acumulado": "300000.0000"
+    }
+  },
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-39",
+      "estado": "BLOQUEADO",
+      "post_valido": false,
+      "motivo": "Registrar la inversión con justificación válida y confirmación sumaría el monto al costo del activo compartido 951. Sin confirmación la dejaría como gasto y crearía el asiento en el período compartido. No hay un activo aislado. El período que contiene hoy está cerrado y el abierto siguiente empieza en diciembre."
+    },
+    {
+      "subcaso": "TC-M06-40",
+      "estado": "BLOQUEADO",
+      "post_valido": false,
+      "motivo": "Registrar la inversión con justificación válida y confirmación sumaría el monto al costo del activo compartido 951. Sin confirmación la dejaría como gasto y crearía el asiento en el período compartido. No hay un activo aislado. El período que contiene hoy está cerrado y el abierto siguiente empieza en diciembre."
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 1059,
+      "escritura": false,
+      "en": "2026-11-08T15:23:03.219362+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "duracion_ms": 1480,
+      "escritura": false,
+      "en": "2026-11-08T15:23:04.699475+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "/finanzas/costos": [
+          "get",
+          "post"
+        ],
+        "/finanzas/configuracion/matriz": [
+          "post"
+        ],
+        "/finanzas/periodos/{id_periodo_contable}/estados-resultados": [
+          "get",
+          "post"
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/configuracion",
+      "codigo": 200,
+      "duracion_ms": 574,
+      "escritura": false,
+      "en": "2026-11-08T15:23:05.273964+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "matriz_relevante": 15
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 387,
+      "escritura": false,
+      "en": "2026-11-08T15:23:05.661308+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 9,
+        "a_costo": 1,
+        "activo_951": {
+          "id_activo_biologico": 951,
+          "especie": "Equino",
+          "estado": "ACTIVO",
+          "indicador_reconocimiento": "VALORACION_POR_COSTO",
+          "valorado_por_costo": true,
+          "costo_base": "4500000.0000",
+          "valor_contable_por_costo": "4200000.0000",
+          "depreciacion_acumulada": "0.0000",
+          "deterioro_acumulado": "300000.0000",
+          "valor_razonable_neto": null,
+          "fecha_calculo": null
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?subtipo_costo=INVERSION_DIRECTA",
+      "codigo": 200,
+      "duracion_ms": 380,
+      "escritura": false,
+      "en": "2026-11-08T15:23:06.041939+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 0,
+        "subtipos": {},
+        "politicas": {}
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 410,
+      "escritura": false,
+      "en": "2026-11-08T15:23:06.452261+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "subtipos": {
+          "MEDICAMENTO": 1,
+          "ALIMENTO": 1
+        },
+        "politicas": {
+          "GASTO": 2
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 382,
+      "escritura": false,
+      "en": "2026-11-08T15:23:06.834308+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 400,
+      "duracion_ms": 364,
+      "escritura": false,
+      "en": "2026-11-08T15:23:07.198428+00:00",
+      "cuerpo": {
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": 0,
+        "fecha_costo": "2026-11-08",
+        "id_activo_biologico": 951,
+        "confirmar_capitalizacion": true,
+        "justificacion": "Justificacion de prueba suficiente."
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "monto_costo",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T15:23:06.234168+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 400,
+      "duracion_ms": 387,
+      "escritura": false,
+      "en": "2026-11-08T15:23:07.585561+00:00",
+      "cuerpo": {
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": -100,
+        "fecha_costo": "2026-11-08",
+        "id_activo_biologico": 951,
+        "confirmar_capitalizacion": true,
+        "justificacion": "Justificacion de prueba suficiente."
+      },
+      "respuesta": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "fields": [
+          {
+            "field": "monto_costo",
+            "message": "Input should be greater than 0"
+          }
+        ],
+        "timestamp": "2026-11-08T15:23:06.622528+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 422,
+      "duracion_ms": 358,
+      "escritura": false,
+      "en": "2026-11-08T15:23:07.943220+00:00",
+      "cuerpo": {
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": 100,
+        "fecha_costo": "2026-11-08",
+        "id_activo_biologico": 951,
+        "confirmar_capitalizacion": true
+      },
+      "respuesta": {
+        "error_code": "JUSTIFICACION_OBLIGATORIA",
+        "message": "Este costo requiere una justificación (mínimo 10 caracteres).",
+        "fields": [
+          {
+            "field": "justificacion",
+            "message": "Este costo requiere una justificación (mínimo 10 caracteres)."
+          }
+        ],
+        "timestamp": "2026-11-08T15:23:06.979844+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 422,
+      "duracion_ms": 388,
+      "escritura": false,
+      "en": "2026-11-08T15:23:08.331106+00:00",
+      "cuerpo": {
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": 100,
+        "fecha_costo": "2026-11-08",
+        "id_activo_biologico": 951,
+        "confirmar_capitalizacion": true,
+        "justificacion": ""
+      },
+      "respuesta": {
+        "error_code": "JUSTIFICACION_OBLIGATORIA",
+        "message": "Este costo requiere una justificación (mínimo 10 caracteres).",
+        "fields": [
+          {
+            "field": "justificacion",
+            "message": "Este costo requiere una justificación (mínimo 10 caracteres)."
+          }
+        ],
+        "timestamp": "2026-11-08T15:23:07.357277+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 422,
+      "duracion_ms": 408,
+      "escritura": false,
+      "en": "2026-11-08T15:23:08.739324+00:00",
+      "cuerpo": {
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": 100,
+        "fecha_costo": "2026-11-08",
+        "id_activo_biologico": 951,
+        "confirmar_capitalizacion": true,
+        "justificacion": "corta"
+      },
+      "respuesta": {
+        "error_code": "JUSTIFICACION_OBLIGATORIA",
+        "message": "Este costo requiere una justificación (mínimo 10 caracteres).",
+        "fields": [
+          {
+            "field": "justificacion",
+            "message": "Este costo requiere una justificación (mínimo 10 caracteres)."
+          }
+        ],
+        "timestamp": "2026-11-08T15:23:07.766707+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos",
+      "codigo": 200,
+      "duracion_ms": 410,
+      "escritura": false,
+      "en": "2026-11-08T15:23:09.149303+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "subtipos": {
+          "MEDICAMENTO": 1,
+          "ALIMENTO": 1
+        },
+        "politicas": {
+          "GASTO": 2
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 409,
+      "escritura": false,
+      "en": "2026-11-08T15:23:09.558365+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951",
+      "codigo": 200,
+      "duracion_ms": 410,
+      "escritura": false,
+      "en": "2026-11-08T15:23:09.968380+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "costos_adquisicion": "4500000.0000",
+        "valor_contable_por_costo": "4200000.0000",
+        "depreciacion_acumulada": "0.0000",
+        "deterioro_acumulado": "300000.0000"
+      }
+    }
+  ],
+  "hallazgos": [
+    "BLOQUEO DE PRUEBA: no hay un activo ni un período aislados para registrar una inversión. Capitalizar cambia el costo del activo 951 y el gasto crea un asiento en el período compartido."
+  ],
+  "aprobados": 0,
+  "rechazados": 0,
+  "bloqueados": 2,
+  "porcentaje_aprobacion": 0,
+  "rutas": {
+    "/finanzas/costos": [
+      "get",
+      "post"
+    ],
+    "/finanzas/configuracion/matriz": [
+      "post"
+    ],
+    "/finanzas/periodos/{id_periodo_contable}/estados-resultados": [
+      "get",
+      "post"
+    ]
+  },
+  "sin_persistencia": true,
+  "analisis": "# TC-M06-G84\n\nNo se usó SQL local. No se registró una inversión válida.\n\n- TC-M06-39 CAPITALIZAR: BLOQUEADO.\n- TC-M06-40 GASTO: BLOQUEADO.\n\nLos complementos de monto y justificación se rechazaron antes de insertar.\n- monto_cero: 400 VAL_ENTRADA\n- monto_negativo: 400 VAL_ENTRADA\n- sin_justificacion: 422 JUSTIFICACION_OBLIGATORIA\n- justificacion_vacia: 422 JUSTIFICACION_OBLIGATORIA\n- justificacion_corta: 422 JUSTIFICACION_OBLIGATORIA\n\nPersistencia intacta: True.\n",
+  "duracion_ms": 7808
+}
