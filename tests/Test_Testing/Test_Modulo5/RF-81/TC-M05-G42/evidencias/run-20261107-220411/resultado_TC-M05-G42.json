@@ -1,0 +1,47 @@
+{
+  "tc": "TC-M05-G42",
+  "summary": {
+    "total": 6,
+    "ok": 3,
+    "falla": 3,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Setup de activos y línea base",
+      "esperado": "Creación exitosa de activos A y B con fase productiva abierta y 3 registros de suministros en A (HTTP 201)",
+      "obtenido": "Activos A y B creados (HTTP 201), fases abiertas, 3 suministros en A. Estado: FALLA.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "A01 Combinaciones inválidas de filtros (100 / 035)",
+      "esperado": "HTTP 422 para cada combinación (fecha_fin < fecha_inicio, costo_max < costo_min, ciclo ajeno) con mensajes descriptivos específicos que difieren entre sí; sin items ni resumen",
+      "obtenido": "HTTP 422 para fecha_fin < fecha_inicio, costo_max < costo_min y ciclo ajeno; mensajes descriptivos y específicos; 0 datos devueltos. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Validación de fecha futura y anterior al ciclo (100 / 035, caso CU04 FA-02)",
+      "esperado": "HTTP 422 para fecha_fin_filtro futura (hoy+1) y fecha_inicio_filtro anterior al ciclo, con mensaje del conflicto específico",
+      "obtenido": "AssertionError: Defecto de producto / omisión en spec: la API respondió HTTP 200 en lugar de 422 al filtrar por fecha futura (hoy+1) y fecha anterior al ciclo. (Para decisión de Análisis: RF-81 no define estas validaciones).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B01 Paginación sobre activo con >= 205 registros (101 / 036)",
+      "esperado": "HTTP 200 con 200 items (param 200); param 201 aplica tope máximo retornando 200 items; metadatos coherentes; orden fecha_aplicacion DESC; suma de costo_registro igual a monto_total_filtrado; pág 2 sin duplicados de pág 1",
+      "obtenido": "Paginación sobre activo 1042 (263 registros): param=200 devolvió 200 items; param=201 aplicó tope devolviendo 200 items; metadatos coherentes; orden DESC; suma calculada coincide con monto_total_filtrado; pág 2 sin duplicados. Estado: FALLA.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "T98 Cierre estricto de corrida sandbox",
+      "esperado": "DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad final fuera de sandbox",
+      "esperado": "Verificación fuera de sandbox: activo propio responde HTTP 404 (0 efectos persistidos)",
+      "obtenido": "Verificación sin sandbox completada; activo A responde HTTP 404 (0 efectos persistidos). Estado: OK.",
+      "estado": "OK"
+    }
+  ]
+}

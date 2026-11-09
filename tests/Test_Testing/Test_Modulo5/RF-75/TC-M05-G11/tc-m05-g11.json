@@ -1,0 +1,745 @@
+{
+  "info": {
+    "name": "RF-75 - TC-M05-G11 Consumo POBLACIONAL",
+    "description": "Automatiza TC-M05-027. B (id_activo_b, por defecto 328, 100 individuos) para el consumo por individuo; el activo id_activo_pob_cero (por defecto 462, POBLACIONAL ACTIVO con cantidad 0/NULL y sin fase) para el E7: dentro del sandbox se le abre una fase para que el rechazo sea el del E7 y no CICLO_NO_ABIERTO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar:  newman run <coleccion> --env-var \"sandbox_secret=<secreto>\"",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "// 'Hoy' del backend sale de esta cabecera (hoy_usuario); sin ella seria el dia UTC.",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ' (login fallido): se omite ' + pm.info.requestName); pm.execution.skipRequest(); }",
+          "// Fechas relativas a D (hoy en Bogota, UTC-05:00 sin horario de verano), calculadas una vez por corrida.",
+          "if (!pm.collectionVariables.get('dia_m0')) {",
+          "  const bog = new Date(Date.now() - 5 * 3600 * 1000);",
+          "  const dia = n => new Date(bog.getTime() - n * 86400000).toISOString().slice(0, 10);",
+          "  [0, 1, 2, 3, 4, 5, 6, 10, 20].forEach(n => pm.collectionVariables.set('dia_m' + n, dia(n)));",
+          "  pm.collectionVariables.set('dia_p1', dia(-1));",
+          "  pm.collectionVariables.set('dia_mes', bog.toISOString().slice(0, 8) + '01');",
+          "  // P3/P4 van en D a las 08:00 y 09:00; si todavia no son las 09:05 en Bogota serian fechas futuras",
+          "  // (FECHA_FUTURA), asi que se usan hace 4 y 2 minutos, manteniendo P4 despues de P3.",
+          "  const hhmmss = bog.toISOString().slice(11, 19);",
+          "  if (hhmmss >= '09:05:00') { pm.collectionVariables.set('hora_p3', '08:00:00'); pm.collectionVariables.set('hora_p4', '09:00:00'); }",
+          "  else {",
+          "    pm.collectionVariables.set('hora_p3', new Date(bog.getTime() - 240000).toISOString().slice(11, 19));",
+          "    pm.collectionVariables.set('hora_p4', new Date(bog.getTime() - 120000).toISOString().slice(11, 19));",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "id_activo_b",
+      "value": "825"
+    },
+    {
+      "key": "id_tipo_alimento",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_inactivo",
+      "value": "2"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "id_consumo_021",
+      "value": ""
+    },
+    {
+      "key": "id_consumo_existente",
+      "value": ""
+    },
+    {
+      "key": "id_activo_b",
+      "value": "328"
+    },
+    {
+      "key": "id_activo_pob_cero",
+      "value": "462"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins y activo B apto)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Activo A: detalle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_activo', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}"
+          }
+        },
+        {
+          "name": "PRE - Area de A (finca)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let a = {}; try { a = JSON.parse(pm.collectionVariables.get('pre_activo') || '{}'); } catch (e) {}",
+                  "pm.collectionVariables.set('id_infra_a', a.id_infraestructura || 0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('id_finca_a', pm.response.code === 200 ? pm.response.json().id_finca : '');",
+                  "pm.collectionVariables.set('vet_en_finca', 1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/infraestructuras/{{id_infra_a}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - fincas del Productor consultadas (200; 403 si el rol no tiene permiso de fincas)', () => pm.expect(pm.response.code).to.be.oneOf([200, 403]));",
+                  "pm.collectionVariables.set('fincas_tok_prod', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/fincas"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Productor la finca de A (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').items || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
+                  "if (fa && !fs.includes(fa)) fs.push(fa);",
+                  "pm.collectionVariables.set('body_fincas_tok_prod', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Productor asignado a la finca de A (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_productor}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_fincas_tok_prod}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Activo A: fases",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_fases', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/fases"
+          }
+        },
+        {
+          "name": "PRE - Activo A: eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_eventos', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/eventos"
+          }
+        },
+        {
+          "name": "PRE - Activo A: alertas de conversion alimenticia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_alertas', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_activo_biologico={{id_activo_b}}&tipo_alerta=CONVERSION_ALIMENTICIA"
+          }
+        },
+        {
+          "name": "PRE - Aptitud del activo B para los casos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "const m5 = filas[0] || {};",
+                  "const j = k => { try { return JSON.parse(pm.collectionVariables.get(k) || 'null'); } catch (e) { return null; } };",
+                  "const a = j('pre_activo') || {};",
+                  "const fallos = [];",
+                  "const crit = (ok, txt) => { pm.test('PRE - ' + txt, () => pm.expect(ok, txt).to.eql(true)); if (!ok) fallos.push(txt); };",
+                  "crit(String(pm.variables.get('id_activo_b')) !== '0', 'Se indico id_activo_b (correr con --env-var id_activo_b=<id>)');",
+                  "crit(a.id_activo_biologico !== undefined, 'El activo B (' + pm.variables.get('id_activo_b') + ') existe');",
+                  "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
+                  "pm.collectionVariables.set('id_creador', a.id_usuario);",
+                  "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
+                  "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
+                  "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
+                  "const evs = (j('pre_eventos') || {}).eventos || [];",
+                  "const pes = evs.filter(e => e.crecimiento && ['PESO', 'PESO_VIVO'].includes(String(e.crecimiento.tipo_medicion).toUpperCase()));",
+                  "const ult = evs.map(e => new Date(e.fecha)).sort((x, y) => y - x)[0];",
+                  "const alertas = ((j('pre_alertas') || {}).items || []).filter(x => ['ACTIVA', 'EN_ATENCION'].includes(x.estado_alerta));",
+                  "crit(a.tipo === 'POBLACIONAL', 'A es POBLACIONAL (los valores esperados dependen del tipo); actual ' + a.tipo);",
+                  "crit(new Date(a.fecha_creacion) <= tsP1, 'A registrado antes de P1 (D-20 08:00); registrado ' + a.fecha_creacion);",
+                  "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
+                  "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
+                  "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
+                  "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
+                  "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
+                  "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
+                  "pm.collectionVariables.set('cantidad_actual_a', ((a.detalle_poblacional || {}).cantidad_actual) || '');",
+                  "// F = dia (Bogota) de inicio de la fase activa: es la cota inferior de la fecha de consumo (RF-75 E3).",
+                  "if (fase.fecha_inicio) {",
+                  "  const f0 = new Date(new Date(fase.fecha_inicio).getTime() - 5 * 3600 * 1000);",
+                  "  const df = n => new Date(f0.getTime() + n * 86400000).toISOString().slice(0, 10);",
+                  "  [['dia_Fm1', -1], ['dia_F', 0], ['dia_Fp1', 1], ['dia_Fp2', 2], ['dia_Fp3', 3]].forEach(([k, n]) => pm.collectionVariables.set(k, df(n)));",
+                  "}",
+                  "if (fallos.length) { console.error('A no es apto: ' + fallos.join(' | ')); pm.execution.setNextRequest('ROLLBACK - Revertir la transacción de la corrida'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_b}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_b}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M05-027a Consumo sobre B: consumo por individuo",
+      "item": [
+        {
+          "name": "TC-M05-027a - 25 kg sobre B -> 201 con consumo_por_individuo_kg",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = [200, 201].includes(pm.response.code) ? pm.response.json() : {};",
+                  "const e = pm.response.code >= 400 ? (() => { try { return pm.response.json(); } catch (x) { return {}; } })() : {};",
+                  "console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-027a - HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('TC-M05-027a - estado_registro = VALIDADO', () => pm.expect(c.estado_registro).to.eql('VALIDADO'));",
+                  "const n = Number(pm.collectionVariables.get('cantidad_actual_a'));",
+                  "pm.test('TC-M05-027a - consumo_por_individuo_kg = 25 / ' + n + ' (4 decimales; 0.2500 con 100) (CA-2)', () => pm.expect(Number(c.consumo_por_individuo_kg)).to.eql(Math.round(25 / n * 10000) / 10000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/consumo-alimentos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_activo_biologico\": {{id_activo_b}},\n  \"id_tipo_alimento\": {{id_tipo_alimento}},\n  \"fecha_consumo\": \"{{dia_m1}}\",\n  \"hora_suministro\": \"07:00:00\",\n  \"cantidad_alimento\": 25,\n  \"costo_unitario\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M05-027b POBLACIONAL sin individuos -> 422 (E7)",
+      "item": [
+        {
+          "name": "PRE - Activo POBLACIONAL con cantidad 0/NULL ({{id_activo_pob_cero}})",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consultado (200)', () => pm.response.to.have.status(200));",
+                  "const a = pm.response.code === 200 ? pm.response.json() : {}; const n = (a.detalle_poblacional || {}).cantidad_actual;",
+                  "pm.test('PRE - es POBLACIONAL, ACTIVO y con cantidad_actual 0 o NULL (actual ' + n + ')', () => { pm.expect(a.tipo).to.eql('POBLACIONAL'); pm.expect(a.id_estado).to.eql(1); pm.expect(!n).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_pob_cero}}"
+          }
+        },
+        {
+          "name": "PRE - Ciclos productivos asignables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - ciclos (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('id_ciclo_pob_cero', ((pm.response.json().items || [])[0] || {}).id_ciclo_productivo || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_pob_cero}}/ciclos-productivos"
+          }
+        },
+        {
+          "name": "PRE - Abrir fase (solo dentro del sandbox: hoy no tiene y responderia CICLO_NO_ABIERTO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - fase abierta (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_pob_cero}}/fases",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_pob_cero}},\n  \"fecha_inicio\": \"{{dia_m10}}T08:00:00-05:00\",\n  \"motivo_cambio\": \"QA TC-M05-027 (se revierte)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Consumos del activo sin individuos antes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "pm.collectionVariables.set('n_pob_cero', filas[0].n);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT count(*) AS n FROM modulo5.registros_consumo_alimentos WHERE id_activo_biologico = {{id_activo_pob_cero}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M05-027b - Consumo sobre POBLACIONAL sin individuos -> 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = [200, 201].includes(pm.response.code) ? pm.response.json() : {};",
+                  "const e = pm.response.code >= 400 ? (() => { try { return pm.response.json(); } catch (x) { return {}; } })() : {};",
+                  "console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-027b - HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('TC-M05-027b - code = POBLACIONAL_SIN_CANTIDAD', () => pm.expect(e.error_code || e.code).to.eql('POBLACIONAL_SIN_CANTIDAD'));",
+                  "pm.test('TC-M05-027b - mensaje del E7', () => pm.expect(String(e.message)).to.include('su cantidad actual de individuos es cero o no está definida'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/consumo-alimentos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_activo_biologico\": {{id_activo_pob_cero}},\n  \"id_tipo_alimento\": {{id_tipo_alimento}},\n  \"fecha_consumo\": \"{{dia_m1}}\",\n  \"hora_suministro\": \"07:00:00\",\n  \"cantidad_alimento\": 25,\n  \"costo_unitario\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M05-027c - No se persiste",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-027c - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "pm.test('TC-M05-027c - mismos consumos que antes', () => pm.expect(String(filas[0].n)).to.eql(String(pm.collectionVariables.get('n_pob_cero'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT count(*) AS n FROM modulo5.registros_consumo_alimentos WHERE id_activo_biologico = {{id_activo_pob_cero}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

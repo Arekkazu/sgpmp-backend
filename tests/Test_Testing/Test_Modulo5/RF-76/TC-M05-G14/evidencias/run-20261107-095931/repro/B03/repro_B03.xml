@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.593" timestamp="2026-11-07T10:05:11.678381-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G14.test_tc_m05_g14" name="test_zz_b03_dosis_minima[B03-dosis_0.0001]" time="2.916"><failure message="AssertionError: [dosis_aplicada=0.0001] esperado HTTP 201; recibido 500, error_code=ERROR_INTERNO: {&quot;error_code&quot;:&quot;ERROR_INTERNO&quot;,&quot;message&quot;:&quot;Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-07T15:05:13.767085+00:00&quot;}&#10;assert 500 == 201&#10; +  where 500 = &lt;Response [500]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G14\test_tc_m05_g14.py:750: in test_zz_b03_dosis_minima
+    medicamento = _assert_registro_valido(c, resp, enviado, antes, id_activo)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G14\test_tc_m05_g14.py:479: in _assert_registro_valido
+    assert resp.status_code == 201, (
+E   AssertionError: [dosis_aplicada=0.0001] esperado HTTP 201; recibido 500, error_code=ERROR_INTERNO: {"error_code":"ERROR_INTERNO","message":"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.","fields":[],"timestamp":"2026-11-07T15:05:13.767085+00:00"}
+E   assert 500 == 201
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase></testsuite></testsuites>

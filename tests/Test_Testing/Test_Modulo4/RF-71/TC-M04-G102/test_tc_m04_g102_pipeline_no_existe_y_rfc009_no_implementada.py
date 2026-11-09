@@ -11,102 +11,65 @@ alembic/baseline/esquema_baseline.sql, y
 src/prediction/application/use_cases/versiones_modelo/
 registrar_version_modelo_use_case.py + domain/entities/version_modelo.py.
 
-REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE (origin/test, merges
-`5217e98b` 2026-10-29 + `d5d1488e` 2026-10-30). El hallazgo raíz se
-mantiene en su forma estricta (no existe un endpoint que orqueste un
-*reentrenamiento* de extremo a extremo), pero la premisa de que "RFC-009
-no está implementada en absoluto" queda PARCIALMENTE INVERTIDA: el
-merge del 2026-10-29 (ya presente, nunca revisado hasta ahora para
-RF-71) trajo `src/shared/tipo_modelo.py` (RFC-009, autoría de los
-commits `21e161c2`/`32229040`, "RF-15 v1.1"/"RF-20"), que SÍ implementa
-el concepto central de "tres paradigmas" que pedía la ficha -- solo que
-con nombres distintos a los que ésta anticipaba.
+HALLAZGO PRINCIPAL, RAÍZ, SIN CAMBIOS RESPECTO A LA RONDA ANTERIOR: el
+pipeline de reentrenamiento que la ficha asume
+(`POST /api/v1/m04/retrainings`, `GET /api/v1/m04/retrainings/{id_proceso}`,
+etc. -- nótese que la v2.0 incluso cambió el nombre de la ruta de
+`/retraining` a `/retrainings` y de `/models` a `/model-versions`, sin que
+ninguna de las dos formas exista) sigue sin existir en ningún lugar
+alcanzable por HTTP. `main.py` registra los mismos 7 routers de M04 que
+en la ronda anterior; ninguno expone "retrainings". La infraestructura
+SQL huérfana (`ciclos_entrenamientos`, `sp_iniciar_ciclo_reentrenamiento`)
+tampoco cambió.
 
-HALLAZGO RAÍZ, VIGENTE PERO MÁS PRECISO: no existe
-`POST /api/v1/m04/retrainings` ni `/model-versions` -- `main.py` solo
-registra `version_modelo_router` bajo el prefijo real
-`/prediccion/modelos`. Pero a diferencia de la ronda anterior, ese router
-SÍ es alcanzable por HTTP para el tramo de REGISTRO (no de orquestación):
-expone `POST /prediccion/modelos` (registrar una versión ya entrenada,
-multipart/form-data), 2×`GET` (listar/detalle) y `PATCH`
-(activar/transicionar). Lo que sigue sin existir es el disparo/monitoreo
-asíncrono de un *proceso de entrenamiento* (no hay `id_proceso` que
-consultar, ni cancelación, ni reanudación -- eso se confirma TC a TC en
-G113-G117/G122).
-
-HALLAZGO INVERTIDO (taxonomía RFC-009): el enumerado de `tipo_modelo`
-real (`TIPOS_MODELO` en `src/shared/tipo_modelo.py`) SÍ tiene 6 valores
--- `MODELO_AVES`, `MODELO_PORCINOS`, `MODELO_ACUICULTURA`,
-`MODELO_ESPECIES_MEDIANAS`, `MODELO_ESPECIES_GRANDES`,
-`MODELO_RIESGO_CONTAGIO` -- organizados en exactamente 3 paradigmas
-(`POBLACIONAL`/`INDIVIDUAL`/`META`, vía `PARADIGMA_POR_TIPO_MODELO` y
-`es_poblacional()`). La vieja constante `_TIPOS_VALIDOS` (4 valores,
-clasificados por tamaño del animal) YA NO EXISTE en
-`registrar_version_modelo_use_case.py` -- fue reemplazada por este
-import: `from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL,
-TIPOS_MODELO, es_poblacional`. Los modelos `POBLACIONAL` (AVES/PORCINOS/
-ACUICULTURA) ahora exigen un campo `componente` obligatorio
-(`DETECTOR`/`SEGUIMIENTO`/`METRICAS`/`ANOMALIAS`, validado por
-`_validar_componente()`), que es, en esencia, el mismo rol que la ficha
-le pedía a `modo_generacion`/`CALIBRACION_EN_SITIO` -- organizar la
-versión por "modo"/parte -- solo que resuelto para el problema de
-reentrenamiento POBLACIONAL por componente, no para el de disparo de
-reentrenamiento en sí.
-
-HALLAZGOS QUE SE MANTIENEN VIGENTES, SIN CAMBIO, TRAS VERIFICAR CONTRA
-EL CÓDIGO ACTUAL:
-  - `modo_generacion` (el campo específico que la ficha pide para
-    distinguir REENTRENAMIENTO de CALIBRACION_EN_SITIO): 0 coincidencias
-    reales en `src/` ni en el DDL baseline. Sigue sin existir como campo
-    de ningún DTO ni columna.
-  - `CALIBRACION_EN_SITIO`: 0 coincidencias como valor reconocido en
-    ningún punto del sistema (confirmado también contra
-    `sp_iniciar_ciclo_reentrenamiento`, que solo acepta
-    PROGRAMADO/MANUAL/DEGRADACION, ver G106/G115/G122).
-  - `calibration_readiness`: 0 coincidencias (no existe ningún endpoint
-    de verificación previa de auditorías, ver G123).
+HALLAZGO NUEVO, ESPECÍFICO DE ESTA RONDA (RFC-009 no implementada en
+absoluto): ninguno de los conceptos que la RFC-009 introduce existe en
+el código real:
+  - `modo_generacion`: 0 coincidencias en todo `src/` (ni como campo de
+    DTO, ni como columna de modelo, ni en el DDL baseline).
+  - `CALIBRACION_EN_SITIO`: 0 coincidencias.
+  - `score_anomalia` / `calibration_readiness`: 0 coincidencias.
+  - El enumerado de `tipo_modelo` sigue teniendo 4 valores, no 6:
+    `_TIPOS_VALIDOS = {"ESPECIES_PEQUEÑAS", "ESPECIES_MEDIANAS",
+    "ESPECIES_GRANDES", "CONTAGIO"}` -- sin `POBLACIONAL` ni ningún otro
+    valor nuevo.
   - La dependencia que la ficha declara en "RF-24" para habilitar
-    `CALIBRACION_EN_SITIO` ("las tres auditorías de M09") sigue sin
-    corresponder a nada real: el RF-24 real
-    (`src/configuration/domain/entities/calibracion.py`, sin cambios en
-    este pull) es calibración de GANANCIA/OFFSET de un sensor individual
-    -- sin ningún concepto de "auditoría" ni "72 horas de datos limpios".
-  - `score_anomalia`: SÍ existe en el código real, pero NO en el
-    contrato de RF-71/RF-69 que esta ficha evalúa -- vive en
-    `src/prediction/domain/entities/riesgo_contagio.py` (RF-68, modelo
-    de riesgo de contagio, un concepto distinto). No se incorporó a
-    `VersionModelo` ni a `_METRICAS_REQUERIDAS` (ver G109).
+    `CALIBRACION_EN_SITIO` ("las tres auditorías de M09") no corresponde
+    a nada real: el RF-24 que existe de verdad en este backend
+    (`src/configuration/domain/entities/calibracion.py`) es calibración
+    de GANANCIA/OFFSET de un sensor individual -- no tiene ningún
+    concepto de "auditoría", "tercera auditoría" ni "72 horas de datos
+    limpios". La ficha construye un caso sobre una dependencia que no
+    existe con ese significado en el sistema real.
 
-(a)/(b)/(c) -- NO EJECUTABLES: sigue sin existir ningún endpoint que
-    DISPARE un proceso de reentrenamiento (solo existe el REGISTRO de un
-    modelo ya entrenado externamente).
-(d) "estado EN_VALIDACION y nunca APROBADO" -- HALLAZGO VIGENTE, CON
-    MECANISMO ACTUALIZADO: `VersionModelo.validar_y_asignar_estado()`
-    ahora se bifurca por paradigma -- para `POBLACIONAL` exige
-    `metricas_poblacionales['calibracion_completada'] is True`; para
-    `INDIVIDUAL`/`META` sigue exigiendo `f1_score >= 0.80` y
-    `recall_clase_riesgo_alto >= 0.85` -- pero en AMBAS ramas, si se
-    cumple la condición, el modelo queda `APROBADO` en el mismo método,
-    sin ninguna intervención humana. El hallazgo de fondo (auto-
-    aprobación sin revisión) no cambió, solo el criterio que la activa.
+Esto significa que absolutamente ninguno de los subescenarios que
+mencionan `modo_generacion`/RFC-009 en el resto del lote (G103-G123)
+tiene ningún código que ejecutar -- no es solo que falte la orquestación
+del reentrenamiento (ya sabíamos eso); es que la extensión completa que
+motiva esta segunda ronda de pruebas no se escribió.
+
+(a)/(b)/(c) -- NO EJECUTABLES: no existe ningún endpoint que inicie un
+    proceso de reentrenamiento (idéntico hallazgo a la ronda anterior).
+(d) "estado EN_VALIDACION y nunca APROBADO" -- HALLAZGO VIGENTE (mismo
+    que la ronda anterior): `RegistrarVersionModeloUseCase.execute()`
+    sigue llamando a `validar_y_asignar_estado()`, que puede dejar el
+    modelo en APROBADO automáticamente, sin revisión humana, si
+    `f1_score_global >= 0.80` y `recall_clase_riesgo_alto >= 0.85`.
 (e) "Repetir con un Veterinario como iniciador" -- NO EVALUABLE: sigue
-    sin existir ningún "iniciador" vía API de usuario (el endpoint real
-    se autentica con `X-RF71-Internal-Key`, no con RBAC de usuario, ver
-    G119).
+    sin existir ningún "iniciador" vía API de usuario.
 (f) Trazabilidad end-to-end -- NO EVALUABLE más allá del único tramo real
     (registro → RF-69), igual que antes.
 (g) RFC-009: "modo_generacion viaja en el payload, queda persistido... una
     versión registrada sin modo_generacion es un defecto bloqueante" --
-    HALLAZGO DIRECTO, VIGENTE: el defecto que la propia ficha declara
-    bloqueante se sigue cumpliendo, de la forma más completa posible --
-    el campo nunca llegó a existir. `RegistrarVersionModeloDTO` no lo
-    declara (aunque SÍ declara `componente`, el análogo para
-    POBLACIONAL); `VersionModelo` no lo almacena; ninguna versión, de
-    ningún tipo, tiene jamás este metadato específico.
+    HALLAZGO DIRECTO: el defecto que la propia ficha declara bloqueante
+    ya se cumple hoy, de la forma más completa posible -- no es que
+    `modo_generacion` se pierda alguna vez, es que el campo NUNCA llegó
+    a existir. `RegistrarVersionModeloDTO` no lo declara;
+    `VersionModelo` no lo almacena; ninguna versión, de ningún tipo,
+    tiene jamás este metadato.
 
 Cómo se prueba: grep exhaustivo sobre src/ y el DDL baseline + inspección
-directa de `TIPOS_MODELO`/`es_poblacional`/`COMPONENTES_POBLACIONAL` (en
-`src/shared/tipo_modelo.py`) y de `Calibracion` (RF-24 real).
+directa de `_TIPOS_VALIDOS` y de `Calibracion` (RF-24 real).
 
 Como correrlo (Windows necesita el stub de fcntl):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
@@ -126,7 +89,6 @@ import pytest
 
 from src.prediction.domain.entities.version_modelo import VersionModelo
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
-from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, TIPOS_MODELO, es_poblacional
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
@@ -138,77 +100,38 @@ def _grep_src(termino: str) -> list[str]:
     ]
 
 
-class TestHallazgoRaizMatizadoRegistroSiEsAlcanzablePeroNoElDisparo:
+class TestHallazgoRaizVigenteNoHayEndpointDeRetraining:
     def test_main_sigue_sin_registrar_ningun_router_de_retrainings(self):
         texto_main = (REPO_ROOT / 'main.py').read_text(encoding='utf-8')
         pytest.fail(
-            "HALLAZGO RAIZ (vigente en su forma estricta): main.py no registra ningun router "
-            "'retrainings' ni 'model-versions' -- los nombres de ruta que la ficha v2.0 asume "
-            "tampoco existen."
+            "HALLAZGO RAIZ (vigente): main.py no registra ningun router 'retrainings' ni "
+            "'model-versions' -- los nombres de ruta que introduce la ficha v2.0 tampoco "
+            "existen, igual que las rutas de la v1.x."
         ) if 'retrainings' not in texto_main.lower() else None
 
-    def test_pero_si_registra_version_modelo_router_para_el_tramo_de_registro(self):
-        texto_main = (REPO_ROOT / 'main.py').read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO INVERTIDO DE ALCANCE: main.py SI registra 'version_modelo_router' "
-            "(prefijo real /prediccion/modelos) -- a diferencia de 'no existe en ningun lugar "
-            "alcanzable por HTTP', el tramo de REGISTRO de una version ya entrenada SI es "
-            "alcanzable (POST/GET/PATCH). Lo que sigue sin existir es el DISPARO/monitoreo "
-            "asincrono de un proceso de entrenamiento en si (ver G113-G117/G122)."
-        ) if 'version_modelo_router' in texto_main else None
 
-
-class TestHallazgoInvertidoTaxonomiaRfc009SiExisteConOtrosNombres:
-    def test_tipos_modelo_real_tiene_6_valores_no_4(self):
-        pytest.fail(
-            f"HALLAZGO INVERTIDO: TIPOS_MODELO (src/shared/tipo_modelo.py) SI tiene 6 valores "
-            f"-- {sorted(TIPOS_MODELO)!r} -- organizados en 3 paradigmas via "
-            f"PARADIGMA_POR_TIPO_MODELO. La vieja _TIPOS_VALIDOS de 4 valores "
-            f"(ESPECIES_PEQUEÑAS/MEDIANAS/GRANDES/CONTAGIO) ya no existe en "
-            f"registrar_version_modelo_use_case.py."
-        ) if len(TIPOS_MODELO) == 6 else None
-
-    def test_es_poblacional_y_componentes_poblacional_si_existen(self):
-        pytest.fail(
-            f"HALLAZGO INVERTIDO: el paradigma POBLACIONAL SI existe (es_poblacional('MODELO_AVES')"
-            f"={es_poblacional('MODELO_AVES')!r}), con 4 componentes obligatorios "
-            f"{sorted(COMPONENTES_POBLACIONAL)!r} -- el concepto de 'tipos que se versionan de "
-            f"forma distinta' que pide la RFC-009 si se implemento, aunque no con los nombres "
-            f"literales que la ficha anticipaba (POBLACIONAL/INDIVIDUAL/META, no 'modo_generacion')."
-        ) if COMPONENTES_POBLACIONAL else None
-
-    def test_dto_de_registro_si_declara_componente_el_analogo_de_modo_generacion(self):
-        firma = inspect.signature(RegistrarVersionModeloDTO.__init__)
-        parametros = set(firma.parameters)
-        pytest.fail(
-            f"HALLAZGO INVERTIDO DE ALCANCE: RegistrarVersionModeloDTO SI declara 'componente' "
-            f"(obligatorio para POBLACIONAL) -- parametros reales: {sorted(parametros)!r}. No es "
-            f"'modo_generacion', pero cumple un rol de encuadre similar para el caso POBLACIONAL."
-        ) if 'componente' in parametros else None
-
-
-class TestHallazgoVigenteRfc009DeReentrenamientoNoImplementada:
+class TestHallazgoNuevoRfc009NoImplementadaEnAbsoluto:
     @pytest.mark.parametrize('termino', [
-        'modo_generacion', 'CALIBRACION_EN_SITIO', 'calibration_readiness',
+        'modo_generacion', 'CALIBRACION_EN_SITIO', 'score_anomalia', 'calibration_readiness',
     ])
-    def test_concepto_de_reentrenamiento_rfc009_no_existe_en_ningun_lado(self, termino):
+    def test_concepto_de_rfc009_no_existe_en_ningun_lado(self, termino):
         archivos = _grep_src(termino)
         texto_ddl = (REPO_ROOT / 'alembic/baseline/esquema_baseline.sql').read_text(
             encoding='utf-8', errors='ignore')
         pytest.fail(
-            f"HALLAZGO VIGENTE: '{termino}' (especifico del disparo de reentrenamiento/"
-            f"calibracion-en-sitio de la RFC-009) sigue sin existir en ningun archivo de src/ "
-            f"(encontrados: {archivos or 'ninguno'}) ni en el DDL baseline."
+            f"HALLAZGO (g): '{termino}' (concepto central de la RFC-009) no existe en ningun "
+            f"archivo de src/ (encontrados: {archivos or 'ninguno'}) ni en el DDL baseline. La "
+            f"extension completa que motiva esta ronda de pruebas no fue implementada."
         ) if not archivos and termino not in texto_ddl else None
 
-    def test_score_anomalia_existe_pero_en_otro_rf_no_en_el_contrato_de_rf71(self):
-        archivos_prediction_version = _grep_src('score_anomalia')
+    def test_tipo_modelo_sigue_teniendo_4_valores_no_6(self):
+        archivo = REPO_ROOT / 'src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py'
+        texto = archivo.read_text(encoding='utf-8')
         pytest.fail(
-            f"MATIZ: 'score_anomalia' SI existe en el codigo real ({archivos_prediction_version}), "
-            f"pero en riesgo_contagio.py (RF-68), no en VersionModelo/_METRICAS_REQUERIDAS "
-            f"(RF-69/RF-71, ver G109). No se incorporo al contrato de metricas que evalua esta "
-            f"ficha."
-        ) if any('version_modelo' not in a and 'registrar_version_modelo' not in a for a in archivos_prediction_version) else None
+            "HALLAZGO: _TIPOS_VALIDOS sigue siendo "
+            "{'ESPECIES_PEQUEÑAS','ESPECIES_MEDIANAS','ESPECIES_GRANDES','CONTAGIO'} -- 4 "
+            "valores, no el enumerado de 6 que la RFC-009 asume (incluido POBLACIONAL)."
+        ) if '_TIPOS_VALIDOS = {"ESPECIES_PEQUEÑAS", "ESPECIES_MEDIANAS", "ESPECIES_GRANDES", "CONTAGIO"}' in texto else None
 
     def test_rf24_real_es_calibracion_de_sensor_no_auditorias_de_m09(self):
         archivo = REPO_ROOT / 'src/configuration/domain/entities/calibracion.py'
@@ -234,9 +157,9 @@ class TestHallazgoVigenteRfc009DeReentrenamientoNoImplementada:
 
 
 class TestHallazgoVigenteAutoAprobacionSinRevisionHumana:
-    def test_validar_y_asignar_estado_puede_producir_aprobado_sin_intervencion_humana_individual(self):
+    def test_validar_y_asignar_estado_puede_producir_aprobado_sin_intervencion_humana(self):
         modelo = VersionModelo.crear(
-            tipo_modelo='MODELO_ESPECIES_MEDIANAS', formato_artefacto='ONNX', ruta_artefacto='/tmp/x.onnx',
+            tipo_modelo='ESPECIES_MEDIANAS', formato_artefacto='ONNX', ruta_artefacto='/tmp/x.onnx',
             tamanio_artefacto_bytes=100, hash_artefacto_sha256='a' * 64, dataset_entrenamiento_hash='b' * 64,
             id_proceso_rf71=__import__('uuid').uuid4(), f1_score=Decimal('0.85'),
             recall_clase_riesgo_alto=Decimal('0.90'), precision_modelo=Decimal('0.85'),
@@ -247,30 +170,8 @@ class TestHallazgoVigenteAutoAprobacionSinRevisionHumana:
         modelo.validar_y_asignar_estado()
         assert modelo.estado_version == 'APROBADO'
         pytest.fail(
-            "HALLAZGO (d), VIGENTE CON MECANISMO ACTUALIZADO: para un modelo INDIVIDUAL con "
-            "metricas que superan los umbrales, validar_y_asignar_estado() lo deja en APROBADO "
-            "en el mismo registro, sin intervencion humana -- exactamente lo que (d) pide "
-            "verificar que nunca ocurre."
+            "HALLAZGO (d), vigente desde la ronda anterior: con metricas que superan los "
+            "umbrales, validar_y_asignar_estado() deja el modelo en APROBADO en el mismo "
+            "registro, sin intervencion humana -- exactamente lo que (d) pide verificar que "
+            "nunca ocurre."
         )
-
-    def test_validar_y_asignar_estado_tambien_auto_aprueba_poblacional_por_calibracion_completada(self):
-        """HALLAZGO NUEVO: la rama POBLACIONAL (RFC-009) tiene su propio
-        criterio de auto-aprobacion (calibracion_completada=True), pero
-        sigue siendo auto-aprobacion sin revision humana -- el defecto de
-        (d) se extiende tambien a la rama nueva."""
-        modelo = VersionModelo.crear(
-            tipo_modelo='MODELO_AVES', formato_artefacto='ONNX', ruta_artefacto='/tmp/x.onnx',
-            tamanio_artefacto_bytes=100, hash_artefacto_sha256='a' * 64, dataset_entrenamiento_hash='b' * 64,
-            id_proceso_rf71=__import__('uuid').uuid4(), f1_score=None,
-            recall_clase_riesgo_alto=None, precision_modelo=None,
-            accuracy=None, roc_auc_score=None,
-            recall_por_clase={}, matriz_confusion={}, compatibilidad_variables=[],
-            fecha_entrenamiento=datetime(2026, 10, 20, tzinfo=timezone.utc),
-            componente='DETECTOR', metricas_poblacionales={'calibracion_completada': True},
-        )
-        modelo.validar_y_asignar_estado()
-        pytest.fail(
-            f"HALLAZGO NUEVO: con calibracion_completada=True, un modelo POBLACIONAL tambien "
-            f"queda '{modelo.estado_version}' sin intervencion humana -- la auto-aprobacion de "
-            f"(d) no se corrigio, solo se extendio con un segundo criterio automatico."
-        ) if modelo.estado_version == 'APROBADO' else None

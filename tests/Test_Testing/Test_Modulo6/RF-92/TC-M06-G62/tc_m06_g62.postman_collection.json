@@ -1,0 +1,312 @@
+{
+  "info": {
+    "name": "TC-M06-G62 - RF-92 Cuadre matemático del rollforward por activo individual y agregado (CA-4, Párr. 50)",
+    "description": "RF-92 TCG-04 (TC-92-018 a TC-92-024), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login cont",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_cont', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_cont}}\",\n  \"contrasena\": \"{{clave_cont}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Descubrir periodos contables (Contador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const arr = Array.isArray(j) ? j : [];",
+              "const de = (e) => arr.filter(x => x.estado === e).map(x => String(x.id_periodo_contable));",
+              "// Si QA indica el período con --env-var periodo_abierto_qa / periodo_cerrado_qa / periodo_en_cierre_qa, se usa ese en vez del primero que aparezca.",
+              "const qa = (k) => String(pm.environment.get(k) || '');",
+              "pm.collectionVariables.set('id_abierto', qa('periodo_abierto_qa') || de('ABIERTO')[0] || '');",
+              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || de('EN_CIERRE')[0] || '');",
+              "pm.collectionVariables.set('id_cerrado', qa('periodo_cerrado_qa') || de('CERRADO')[0] || '');",
+              "pm.collectionVariables.set('cerrados', JSON.stringify(de('CERRADO')));",
+              "pm.collectionVariables.set('id_periodo_lineas', pm.collectionVariables.get('id_abierto') || pm.collectionVariables.get('id_cerrado') || '');",
+              "console.log('PERIODOS', JSON.stringify({ total: arr.length, abiertos: de('ABIERTO'), en_cierre: de('EN_CIERRE'), cerrados: de('CERRADO') }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Descubrir informes de revelaciones (Contador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const cerrados = JSON.parse(pm.collectionVariables.get('cerrados') || '[]');",
+              "const hallados = {};",
+              "let pend = cerrados.length;",
+              "const fin = () => { ['BORRADOR','APROBADO','ARCHIVADO','RECHAZADO'].forEach(e => pm.collectionVariables.set('inf_' + e, hallados[e] ? String(hallados[e].id_informe) : ''));",
+              "  pm.collectionVariables.set('inf_periodo_aprobado', hallados.APROBADO ? String(hallados.APROBADO.p) : '');",
+              "  console.log('INFORMES', JSON.stringify(hallados)); };",
+              "if (!pend) fin();",
+              "cerrados.forEach(p => pm.sendRequest({ url: pm.variables.get('base_url') + '/finanzas/periodos/' + p + '/revelaciones', method: 'GET',",
+              "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') } }, (e, r) => {",
+              "  let l = []; try { l = r.json(); } catch (x) {}",
+              "  (Array.isArray(l) ? l : []).forEach(i => { if (!hallados[i.estado] || i.id_informe > hallados[i.estado].id_informe) hallados[i.estado] = { id_informe: i.id_informe, p: p, version: i.version_informe }; });",
+              "  if (--pend === 0) fin(); }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-018..024 Cuadre del rollforward (APROBADO)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_APROBADO')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe APROBADO en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const k = j.contenido || {};",
+              "const n = (v) => Number(v || 0);",
+              "const rf = k.parr_50_conciliacion || [];",
+              "pm.test(\"TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas = cierre\", () => { rf.forEach(r => { const c = n(r.valor_inicio) + n(r.compras) + n(r.nacimientos_y_otros_ingresos) + n(r.transformacion_biologica) + n(r.precio_mercado) - n(r.cosechas) - n(r.bajas) - n(r.depreciacion_y_deterioro);",
+              "  pm.expect(Math.abs(c - n(r.valor_cierre)), 'activo ' + r.identificador + ': ' + c.toFixed(2) + ' vs ' + n(r.valor_cierre)).to.be.at.most(0.01); }); });",
+              "const porEsp = {}; rf.forEach(r => { porEsp[r.especie] = porEsp[r.especie] || { n: 0, v: 0 }; porEsp[r.especie].n++; porEsp[r.especie].v += n(r.valor_cierre); });",
+              "pm.test(\"TC-92-022/023 la suma individual coincide con la agregacion por especie\", () => { (k.parr_41_43_descripcion || []).forEach(d => { const p = porEsp[d.especie] || { n: 0, v: 0 }; pm.expect(d.cantidad_activos, d.especie).to.eql(p.n); pm.expect(Math.abs(n(d.valor_cierre) - p.v), d.especie).to.be.at.most(0.01); }); });",
+              "pm.test(\"TC-92-024 agregacion por categoria\", () => { (k.parr_41_43_descripcion || []).forEach(d => pm.expect(d, d.especie).to.have.property('categoria')); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_APROBADO}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_APROBADO}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-018..024 Cuadre del rollforward (BORRADOR)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const k = j.contenido || {};",
+              "const n = (v) => Number(v || 0);",
+              "const rf = k.parr_50_conciliacion || [];",
+              "pm.test(\"TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas = cierre\", () => { rf.forEach(r => { const c = n(r.valor_inicio) + n(r.compras) + n(r.nacimientos_y_otros_ingresos) + n(r.transformacion_biologica) + n(r.precio_mercado) - n(r.cosechas) - n(r.bajas) - n(r.depreciacion_y_deterioro);",
+              "  pm.expect(Math.abs(c - n(r.valor_cierre)), 'activo ' + r.identificador + ': ' + c.toFixed(2) + ' vs ' + n(r.valor_cierre)).to.be.at.most(0.01); }); });",
+              "const porEsp = {}; rf.forEach(r => { porEsp[r.especie] = porEsp[r.especie] || { n: 0, v: 0 }; porEsp[r.especie].n++; porEsp[r.especie].v += n(r.valor_cierre); });",
+              "pm.test(\"TC-92-022/023 la suma individual coincide con la agregacion por especie\", () => { (k.parr_41_43_descripcion || []).forEach(d => { const p = porEsp[d.especie] || { n: 0, v: 0 }; pm.expect(d.cantidad_activos, d.especie).to.eql(p.n); pm.expect(Math.abs(n(d.valor_cierre) - p.v), d.especie).to.be.at.most(0.01); }); });",
+              "pm.test(\"TC-92-024 agregacion por categoria\", () => { (k.parr_41_43_descripcion || []).forEach(d => pm.expect(d, d.especie).to.have.property('categoria')); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_BORRADOR}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "permitir_escritura",
+      "value": "NO"
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "correo_cont",
+      "value": ""
+    },
+    {
+      "key": "clave_cont",
+      "value": ""
+    }
+  ]
+}

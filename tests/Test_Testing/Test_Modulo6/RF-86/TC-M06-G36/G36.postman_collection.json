@@ -1,0 +1,29 @@
+{
+  "info": { "name": "TC-M06-G36 RF-86 API", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    { "name": "G36-API-009-01", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" },
+      { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/periodos/{{periodo_id}}/variaciones" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('HTTP 200 y eco', () => { pm.expect(pm.response.code).to.equal(200); pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')); });",
+        "pm.test('Listado de variaciones', () => pm.expect(pm.response.json()).to.be.an('array'));"
+      ] } }] },
+    { "name": "G36-API-009-02", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" },
+      { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/lineas?id_periodo_contable={{periodo_id}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('HTTP 200 y eco', () => { pm.expect(pm.response.code).to.equal(200); pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')); });",
+        "pm.test('Listado de líneas', () => pm.expect(pm.response.json()).to.be.an('array'));"
+      ] } }] },
+    { "name": "G36-API-010-01", "request": { "method": "GET", "header": [],
+      "url": "{{base_url}}/openapi.json" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Contrato OpenAPI 200', () => pm.expect(pm.response.code).to.equal(200));",
+        "pm.test('Contrato con paths', () => pm.expect(pm.response.json().paths).to.be.an('object'));"
+      ] } }] }
+  ]
+}

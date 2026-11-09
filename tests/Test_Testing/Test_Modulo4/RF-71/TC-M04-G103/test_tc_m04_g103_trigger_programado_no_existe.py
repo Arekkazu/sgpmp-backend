@@ -1,23 +1,29 @@
-# | Fecha      | Nombre           | Que se hizo                                                        |
-# |------------|------------------|--------------------------------------------------------------------|
-# | 2026-11-03 | HulkyZeus        | TC-M04-G103 RF-71: reconstruye el test desde su reporte HTML       |
 """
-TC-M04-G103 (RF-71) - Trigger PROGRAMADO del pipeline de reentrenamiento.
+TC-M04-G103 (RF-71 v2.0 Fase 1/Restricción 6/RFC-009, CU-01) - "Activación
+por trigger PROGRAMADO." Reintento sobre la ficha v2.0 (añade
+modo_generacion por defecto y colisión entre modos distintos).
 
-Verifica por inspeccion estatica del codigo que:
-  (a) no existe ningun mecanismo que dispare procesos de forma
-      periodica/automatica (scheduler), y
-  (d) el concepto `modo_generacion` no existe, por lo que no puede evaluarse
-      una colision entre modos de generacion distintos.
+RELACIÓN CON TC-M04-G102 (hallazgo raíz, vigente): no existe ningún
+endpoint ni scheduler que dispare nada automáticamente; `modo_generacion`
+no existe en ningún archivo de `src/` ni en el DDL (confirmado en G102).
 
-NOTA DE PROCEDENCIA (2026-11-03): el archivo original nunca se versiono en el
-repositorio; solo se subio su reporte (resultados/resultado_TC-M04-G103.html).
-Este archivo se RECONSTRUYO a partir del codigo y los mensajes que figuran en
-ese reporte (5 tests: 4 parametrizados de (a) + 1 de (d)). Si Juan Pablo
-conserva el original, debe prevalecer sobre este.
+(a) Disparo semestral sin intervención humana, con `modo_generacion =
+    REENTRENAMIENTO` por defecto -- HALLAZGO: no existe ningún scheduler
+    (APScheduler/Celery/pg_cron) en todo el repositorio; y como
+    `modo_generacion` no existe, tampoco puede tener "un valor por
+    defecto".
+(b)/(c)/(e) -- NO EJECUTABLES, mismo motivo que (a).
+(d) Colisión también entre `modo_generacion` distintos (REENTRENAMIENTO
+    en curso vs. ventana que dispararía CALIBRACION_EN_SITIO) -- NO
+    EVALUABLE: ninguno de los dos conceptos existe, por lo que no puede
+    haber colisión entre ellos.
 
-Estilo: igual que TC-M04-G102 -- el test FALLA ("HALLAZGO") mientras el
-mecanismo no exista, y pasa cuando se implemente.
+Cómo se prueba: grep exhaustivo de schedulers y de `modo_generacion` en
+el repositorio.
+
+Como correrlo:
+    python -m pytest <ruta>\\test_tc_m04_g103_trigger_programado_no_existe.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M04-G103.html --self-contained-html
 """
 from __future__ import annotations
 

@@ -6,57 +6,35 @@ TC-M03-G161 (RF-61 v1.2 Dependencias de integración Fase 2/Restricción
 Código bajo prueba:
     src/telemetry/application/use_cases/ingesta/ingerir_telemetria_use_case.py
         (clases `IngerirTelemetriaUseCase` y `SincronizarBufferUseCase`)
-    src/telemetry/application/use_cases/ingesta/procesar_lectura_confirmada_use_case.py
     src/telemetry/application/use_cases/inferencia/recibir_evento_edge_use_case.py
     src/telemetry/domain/entities/vinculacion_lectura.py
-    src/telemetry/infrastructure/workers/postcommit_worker.py
-    src/telemetry/infrastructure/repositories/postcommit_repository.py
 
-REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE (origin/test, 2026-10-29,
-DEV-44 Leandro) -- este TC nunca se había reverificado. HALLAZGO
-PRINCIPAL (e) COMPLETAMENTE INVERTIDO por un cambio arquitectónico de
-fondo: la vinculación ya NO vive dentro de `IngerirTelemetriaUseCase.execute()`
-(esa clase ya ni siquiera recibe un `vincular_use_case` por constructor:
-sus únicos parámetros son `db, ingesta_port, dispositivo_port,
-bitacora_repo, catalogo_port`). La vinculación se movió a una etapa
-genérica del worker post-commit, `EtapaPostcommit.RF61`
-(`ProcesarLecturaConfirmadaUseCase.vincular_lectura()`), que se dispara
-para CUALQUIER fila de `TelemetriaModel` ya confirmada --
-`postcommit_repository.py::_fuente()` resuelve la fuente de la etapa RF61
-como `TelemetriaModel, 'id_telemetria'` sin distinguir cómo llegó esa
-fila. El propio módulo lo dice explícitamente en su docstring:
-"Progreso durable por responsabilidad, INDEPENDIENTE DEL CANAL DE
-ENTRADA".
+HALLAZGO PRINCIPAL (e), el más grave del grupo: `SincronizarBufferUseCase`
+(la vía que procesa datos de `BUFFER_LOCAL`, RF-53 Flujo C / RF-54) NUNCA
+invoca `vincular_use_case` -- ninguna lectura sincronizada desde buffer
+queda jamás vinculada a ningún activo biológico. Solo
+`IngerirTelemetriaUseCase.execute()` (la vía de tiempo real) llama a
+`self.vincular_use_case.execute(...)`, inmediatamente después de
+persistir la telemetría, sin condicionarlo a `estado_calidad`. Esto no es
+"TIEMPO_REAL y BUFFER_LOCAL se distinguen correctamente" (e) -- es que
+BUFFER_LOCAL no se vincula EN ABSOLUTO, mientras que TIEMPO_REAL sí. Y
+ninguno de los dos casos puede distinguirse después, porque
+`VinculacionLectura` no tiene ningún campo `origen_dato`.
 
-Y la razón por la que esto aplica también a BUFFER_LOCAL: `SincronizarBufferUseCase.execute()`
-(Flujo C) no tiene una vía de persistencia propia -- por cada registro del
-lote llama literalmente a `self._factory()` (que construye un
-`IngerirTelemetriaUseCase` nuevo) y luego `use_case.execute(registro, gateway_id)`,
-exactamente la MISMA función que usa la vía de tiempo real. No hay dos
-caminos de persistencia: hay uno solo, reutilizado en bucle. Por lo tanto
-toda fila de `BUFFER_LOCAL` queda en la misma tabla `TelemetriaModel` que
-una fila de tiempo real, y la etapa `RF61` del worker post-commit la
-recoge exactamente igual.
+HALLAZGO (b): `RecibirEventoEdgeUseCase` (RF-55) tampoco invoca nunca
+`vincular_use_case` ni ningún repositorio de vinculación -- los eventos
+generados en el procesamiento edge no quedan vinculados a ningún activo
+biológico, ni con el mismo mecanismo que RF-53 ni con ninguno.
 
 (a) RF-62, lectura con calidad insuficiente no debe alimentar M06 aunque
-    CONFIRMADA -- HALLAZGO ACTUALIZADO (el mecanismo cambió de lugar, la
-    conclusión práctica no): `ProcesarLecturaConfirmadaUseCase.vincular_lectura()`
-    no mira `estado_calidad` en absoluto, solo evita duplicar la
-    vinculación (`if self.lecturas.vinculacion(identificador) is None`).
-    Más aún: `_ESTADOS_PERSISTIDOS = {'LECTURA_VALIDA', 'FUERA_DE_RANGO',
-    'ERROR_CALIBRACION'}` en `ingerir_telemetria_use_case.py` confirma que
-    incluso una lectura con calidad degradada (`FUERA_DE_RANGO`,
-    `ERROR_CALIBRACION`) SÍ se persiste y por lo tanto SÍ se vincula --
-    no solo falta el filtro en la vinculación, el propio punto de entrada
-    no distingue "válida" de "degradada" para este propósito. Sigue sin
-    poder materializarse el escenario completo "M06 recibe una CONFIRMADA
-    de mala calidad" porque, como ya confirmó TC-M03-G155, M06 no tiene
-    ningún consumidor real.
-(b) RF-55, eventos edge vinculados con el mismo mecanismo -- HALLAZGO
-    VIGENTE SIN CAMBIOS: `RecibirEventoEdgeUseCase` persiste a través de
-    `EventoEdgeRepository` (una tabla distinta a `TelemetriaModel`), por
-    lo que la etapa genérica `RF61` del worker nunca se dispara para
-    estos eventos -- siguen sin vincularse a ningún activo biológico.
+    CONFIRMADA -- NO EVALUABLE / HALLAZGO COMPUESTO: `IngerirTelemetriaUseCase`
+    invoca la vinculación sin mirar `estado_calidad` en absoluto (no hay
+    ningún filtro combinado); y, como ya confirmó TC-M03-G155, M06 no
+    tiene ningún consumidor real que pudiera aplicar ese filtro de
+    todos modos -- el escenario que (a) pide probar no tiene en qué
+    materializarse en ninguno de los dos extremos de la cadena.
+(b) RF-55, eventos edge vinculados con el mismo mecanismo -- HALLAZGO:
+    ver arriba -- no se vinculan en absoluto.
 (c) RF-60, periodos de inactividad considerados en la resolución
     retrospectiva -- NO EVALUABLE: no existe ninguna "resolución
     retrospectiva" (Subcomponente B, ya confirmado inexistente en
@@ -65,18 +43,12 @@ recoge exactamente igual.
 (d) Cambio de calidad post-vinculación no debe alterar la vinculación
     pero sí el filtrado de M06 -- NO EVALUABLE: mismo motivo que (a), M06
     no filtra nada porque no consume nada.
-(e) origen_dato TIEMPO_REAL/BUFFER_LOCAL distinguidos -- HALLAZGO
-    INVERTIDO EN LA MITAD QUE IMPORTA: ya no es cierto que BUFFER_LOCAL
-    "no se vincula en absoluto" -- SÍ se vincula, por el mismo camino que
-    tiempo real (ver arriba). Lo que sigue sin existir es el campo
-    `origen_dato` en `VinculacionLectura` -- pero como ambos orígenes
-    ahora reciben exactamente el mismo tratamiento, la ausencia de ese
-    campo ya no oculta una diferencia de comportamiento real entre ellos
-    (antes sí la ocultaba).
+(e) origen_dato TIEMPO_REAL/BUFFER_LOCAL distinguidos -- HALLAZGO: ver
+    arriba -- no hay distinción porque BUFFER_LOCAL simplemente no se
+    vincula, y el campo que debería registrar el origen no existe.
 
 Cómo se prueba: inspección directa de las tres rutas de ingesta
-(tiempo real, buffer, edge), del worker post-commit y de
-`postcommit_repository.py` + inspección de los campos de
+(tiempo real, buffer, edge) + inspección de los campos de
 `VinculacionLectura`.
 
 Como correrlo (Windows necesita el stub de fcntl):
@@ -88,77 +60,43 @@ Como correrlo (Windows necesita el stub de fcntl):
 """
 from __future__ import annotations
 
-import inspect
 from dataclasses import fields
 from pathlib import Path
 
 import pytest
 
-from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import (
-    IngerirTelemetriaUseCase,
-    SincronizarBufferUseCase,
-)
 from src.telemetry.domain.entities.vinculacion_lectura import VinculacionLectura
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 ARCHIVO_INGESTA = REPO_ROOT / 'src/telemetry/application/use_cases/ingesta/ingerir_telemetria_use_case.py'
-ARCHIVO_LECTURA_CONFIRMADA = REPO_ROOT / 'src/telemetry/application/use_cases/ingesta/procesar_lectura_confirmada_use_case.py'
-ARCHIVO_WORKER = REPO_ROOT / 'src/telemetry/infrastructure/workers/postcommit_worker.py'
-ARCHIVO_POSTCOMMIT_REPO = REPO_ROOT / 'src/telemetry/infrastructure/repositories/postcommit_repository.py'
 
 
-class TestSubCasoEBufferLocalAhoraSiSeVinculaIgualQueTiempoReal:
-    def test_ingerir_telemetria_ya_no_recibe_vincular_use_case_por_constructor(self):
-        """La vinculacion ya no vive dentro de IngerirTelemetriaUseCase."""
-        firma = inspect.signature(IngerirTelemetriaUseCase.__init__)
+def _bloque_clase(nombre_clase: str, siguiente_clase: str | None) -> str:
+    texto = ARCHIVO_INGESTA.read_text(encoding='utf-8')
+    inicio = texto.index(f'class {nombre_clase}')
+    fin = texto.index(f'class {siguiente_clase}', inicio) if siguiente_clase else len(texto)
+    return texto[inicio:fin]
+
+
+class TestSubCasoEBufferLocalNuncaSeVinculaTiempoRealSi:
+    def test_ingerir_telemetria_tiempo_real_si_invoca_vinculacion(self):
+        bloque = _bloque_clase('IngerirTelemetriaUseCase', 'SincronizarBufferUseCase')
+        assert 'self.vincular_use_case.execute(' in bloque
+
+    def test_sincronizar_buffer_nunca_invoca_vinculacion(self):
+        bloque = _bloque_clase('SincronizarBufferUseCase', None)
         pytest.fail(
-            f"HALLAZGO INVERTIDO (cambio de arquitectura): IngerirTelemetriaUseCase.__init__ ya "
-            f"NO declara ningun parametro de vinculacion -- parametros reales: "
-            f"{sorted(firma.parameters)!r}. La ronda anterior asumia que la vinculacion vivia "
-            f"aqui."
-        ) if not any('vincul' in p.lower() for p in firma.parameters) else None
+            "HALLAZGO (e): SincronizarBufferUseCase (la via de BUFFER_LOCAL) no invoca "
+            "vincular_use_case en ningun punto -- las lecturas sincronizadas desde buffer nunca "
+            "quedan vinculadas a ningun activo biologico, a diferencia de la via de tiempo real."
+        ) if 'vincular' not in bloque.lower() else None
 
-    def test_sincronizar_buffer_reutiliza_la_misma_funcion_de_ingesta_que_tiempo_real(self):
-        """HALLAZGO (e) INVERTIDO: no hay dos caminos de persistencia -- hay
-        uno solo, reutilizado en bucle por el Flujo C."""
-        fuente = ARCHIVO_INGESTA.read_text(encoding='utf-8')
-        bloque = fuente[fuente.index('class SincronizarBufferUseCase'):]
-        pytest.fail(
-            "HALLAZGO (e) INVERTIDO: SincronizarBufferUseCase.execute() SI reutiliza "
-            "IngerirTelemetriaUseCase (via self._factory()/use_case.execute(registro, "
-            "gateway_id)) para cada registro del lote -- BUFFER_LOCAL ya NO es un camino "
-            "separado sin vinculacion; es literalmente el mismo camino que TIEMPO_REAL."
-        ) if '_factory()' in bloque and 'use_case.execute(' in bloque else None
-
-    def test_la_etapa_rf61_del_worker_postcommit_es_generica_por_tabla_no_por_canal(self):
-        """Confirma el mecanismo real que hace posible la inversion de (e):
-        la etapa RF61 se resuelve por TelemetriaModel/id_telemetria para
-        cualquier fila que no sea heartbeat/vision/auditoria/transicion,
-        sin mirar que caso de uso la inserto."""
-        texto = ARCHIVO_POSTCOMMIT_REPO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO INVERTIDO, MECANISMO CONFIRMADO: postcommit_repository.py::_fuente() "
-            "resuelve el valor por defecto como (TelemetriaModel, 'id_telemetria', 'LECTURA') "
-            "para la etapa RF61 -- independiente del canal de entrada, tal como dice el propio "
-            "docstring del modulo ('independiente del canal de entrada')."
-        ) if "return TelemetriaModel.__table__, 'id_telemetria', 'LECTURA'" in texto else None
-
-    def test_el_worker_si_invoca_vincular_lectura_como_etapa_rf61(self):
-        texto = ARCHIVO_WORKER.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO INVERTIDO: postcommit_worker.py SI mapea EtapaPostcommit.RF61 a "
-            "_lectura(db).vincular_lectura(i), construyendo VincularLecturaActivoUseCase con "
-            "el adaptador real ActivoBiologicoM02Adapter."
-        ) if 'EtapaPostcommit.RF61:' in texto and 'vincular_lectura' in texto else None
-
-    def test_vinculacion_lectura_sigue_sin_tener_campo_origen_dato(self):
-        """La mitad del hallazgo (e) que SI sigue vigente: el campo no
-        existe -- pero ya no oculta una diferencia real de comportamiento,
-        porque ambos origenes se tratan igual (ver tests de arriba)."""
+    def test_vinculacion_lectura_no_tiene_campo_origen_dato(self):
         nombres_campos = {f.name for f in fields(VinculacionLectura)}
         pytest.fail(
-            f"HALLAZGO (e) VIGENTE (pero ya no oculta nada): VinculacionLectura declara "
-            f"{sorted(nombres_campos)!r} -- sigue sin existir 'origen_dato'."
+            f"HALLAZGO (e): VinculacionLectura declara {sorted(nombres_campos)!r} -- ningun "
+            f"campo 'origen_dato'. Aunque existiera la distincion de comportamiento (que no "
+            f"existe, ver arriba), no habria donde registrarla."
         ) if 'origen_dato' not in nombres_campos else None
 
 
@@ -172,32 +110,22 @@ class TestSubCasoBEventosEdgeNuncaSeVinculan:
             "vinculados a ningun activo biologico, ni con el mecanismo de RF-53 ni con ninguno."
         ) if 'vinculacion' not in texto.lower() else None
 
-    def test_recibir_evento_edge_persiste_en_una_tabla_distinta_a_telemetria(self):
-        archivo = REPO_ROOT / 'src/telemetry/application/use_cases/inferencia/recibir_evento_edge_use_case.py'
-        texto = archivo.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO (b) VIGENTE, RAZON ESTRUCTURAL CONFIRMADA: recibir_evento_edge_use_case.py "
-            "persiste via EventoEdgeRepository (no TelemetriaModel) -- por eso la etapa generica "
-            "RF61 del worker post-commit nunca se dispara para estos eventos, a diferencia de "
-            "BUFFER_LOCAL/TIEMPO_REAL."
-        ) if 'EventoEdgeRepository' in texto and 'TelemetriaModel' not in texto else None
 
-
-class TestSubCasoAyDSinFiltroDeCalidadEnLaVinculacionMismaRazonNuevoLugar:
-    def test_vincular_lectura_no_filtra_por_estado_calidad_solo_evita_duplicar(self):
-        texto = ARCHIVO_LECTURA_CONFIRMADA.read_text(encoding='utf-8')
-        bloque = texto[texto.index('def vincular_lectura'):texto.index('def evaluar_lectura')]
+class TestSubCasoAyDSinFiltroCombinadoDeCalidadYVinculacion:
+    def test_la_vinculacion_en_tiempo_real_no_depende_del_estado_de_calidad(self):
+        bloque = _bloque_clase('IngerirTelemetriaUseCase', 'SincronizarBufferUseCase')
+        # Busca especificamente un 'if' que condicione la llamada a vincular_use_case
+        # usando estado_calidad -- no basta con que la palabra aparezca cerca (p. ej.
+        # el parametro de bitacora_repo.registrar_exito aparece justo antes, sin
+        # relacion con si se vincula o no).
+        bloque_antes_de_vincular = bloque.split('self.vincular_use_case.execute(')[0]
+        ultimo_if = bloque_antes_de_vincular.rfind('if ')
+        condicion_del_ultimo_if = bloque_antes_de_vincular[ultimo_if:ultimo_if + 120] if ultimo_if != -1 else ''
         pytest.fail(
-            f"HALLAZGO (a)/(d) ACTUALIZADO (mecanismo nuevo, conclusion similar): "
-            f"vincular_lectura() no menciona estado_calidad -- su unico guardia es evitar "
-            f"duplicar la vinculacion si ya existe. Bloque real: {bloque.strip()!r}."
-        ) if 'estado_calidad' not in bloque else None
-
-    def test_incluso_lecturas_de_calidad_degradada_se_persisten_y_por_tanto_se_vinculan(self):
-        fuente = ARCHIVO_INGESTA.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO (a)/(d) ACTUALIZADO: _ESTADOS_PERSISTIDOS incluye 'FUERA_DE_RANGO' y "
-            "'ERROR_CALIBRACION' junto a 'LECTURA_VALIDA' -- hasta una lectura de calidad "
-            "degradada se persiste (y por tanto se vincula via la etapa RF61 generica); el "
-            "filtro de calidad no discrimina en ningun punto de esta cadena."
-        ) if "_ESTADOS_PERSISTIDOS = {'LECTURA_VALIDA', 'FUERA_DE_RANGO', 'ERROR_CALIBRACION'}" in fuente else None
+            f"HALLAZGO (a)/(d): la condicion 'if' mas cercana antes de "
+            f"vincular_use_case.execute() es {condicion_del_ultimo_if!r} -- no menciona "
+            f"estado_calidad. La vinculacion se ejecuta siempre tras persistir la telemetria, "
+            f"sin ningun filtro de calidad. Como M06 tampoco consume nada (TC-M03-G155), el "
+            f"escenario de 'calidad insuficiente pero CONFIRMADA' no tiene ningun punto real "
+            f"donde materializarse."
+        ) if 'estado_calidad' not in condicion_del_ultimo_if else None

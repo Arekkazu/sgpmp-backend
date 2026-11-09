@@ -1,0 +1,74 @@
+================================================================================
+INFORME DE EJECUCION FASE 2, 3 Y 4 — TC-M05-G21
+RF-77: Reporte de Gastos Acumulados por Activo (Sin Costo, Sin Datos y Tendencia)
+================================================================================
+
+1. RESUMEN EJECUTIVO
+--------------------
+- Caso de Prueba: TC-M05-G21
+- Requerimiento: RF-77 (CU04)
+- Subcasos Evaluados: TC-M05-016 (sin datos E1), TC-M05-018 (tendencia a, b, c, d)
+- Cobertura No Ejecutada: TC-M05-016 A01 (rechazo de suministros sin costo por contrato de API)
+- Ambiente: API Staging (https://www.api.inmero.co/api-sgpmp-test)
+- Fecha y Hora de Ejecución: 2026-11-07 18:02:08
+- Total de Checkpoints: 8
+- Checkpoints Aprobados: 8
+- Checkpoints Fallidos: 0
+- Veredicto Global: APROBADO
+
+2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
+-----------------------------------------
+[OK] T00 Línea base de historial del Administrador
+  - Esperado: HTTP 200 en GET /suministros/reportes-gastos/historial, captura del total inicial de reportes
+  - Obtenido: HTTP 200 en consulta de historial de Administrador. Estado: OK.
+
+[OK] A02 Rango de fechas sin registros con costo (E1)
+  - Esperado: HTTP 200; estado 'SIN_DATOS', sin_datos=True, gasto_total_acumulado = 0 COP y mensaje de RF-77 E1
+  - Obtenido: Reporte en rango sin gastos retornó HTTP 200; estado = 'SIN_DATOS', sin_datos = True, total = 0 COP y mensaje explicativo E1 presente. Estado: OK.
+
+[OK] B01 Tendencia escenario (a): anterior > 0 y actual > 0
+  - Esperado: HTTP 200; estado 'CALCULADA', variación porcentual calculada exactamente según la fórmula (+50.00%)
+  - Obtenido: Reporte con anterior=20.000 COP y actual=30.000 COP retornó HTTP 200; estado = 'CALCULADA', variacion_porcentual = +50.00% exacto según fórmula. Estado: OK.
+
+[OK] B02 Tendencia escenario (b): anterior = 0 y actual > 0
+  - Esperado: HTTP 200; estado 'SIN_BASE_COMPARATIVA', variacion_porcentual=None y nota de ausencia de gastos en período anterior
+  - Obtenido: Reporte con anterior=0 y actual=25.000 COP retornó HTTP 200; estado = 'SIN_BASE_COMPARATIVA', variacion_porcentual = None y nota normativa presente. Estado: OK.
+
+[OK] B03 Tendencia escenario (c): anterior = 0 y actual = 0
+  - Esperado: HTTP 200; estado 'SIN_MOVIMIENTO' y variacion_porcentual=None
+  - Obtenido: Reporte con anterior=0 y actual=0 retornó HTTP 200; estado = 'SIN_MOVIMIENTO' y variacion_porcentual = None. Estado: OK.
+
+[OK] B04 Tendencia escenario (d): período anterior recortado al ciclo
+  - Esperado: HTTP 200; estado 'CALCULADA', período recortado al inicio del ciclo y nota informativa con la fecha del ciclo
+  - Obtenido: Reporte con período anterior recortado al ciclo (2026-08-10) retornó HTTP 200; estado = 'CALCULADA', anterior=10.000 COP, actual=15.000 COP (+50.00%) y nota de recorte presente. Estado: OK.
+
+[OK] T98 Cierre ordenado de sandbox Administrador
+  - Esperado: DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'
+  - Obtenido: DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.
+
+[OK] T99 Verificación de inocuidad final e integridad de la base
+  - Esperado: Historial de reportes del Administrador fuera de sandbox coincide exactamente con la línea base capturada en T00 (0 efectos persistidos)
+  - Obtenido: Verificación sin sandbox completada; historial final coincide 100% con línea base (0 efectos persistidos). Estado: OK.
+
+3. DETALLE DE OBSERVACIONES Y ARQUITECTURA
+-----------------------------------------
+- Comportamiento validado conforme a RF-77 E1, Restricción 10 (Tendencia).
+- Los 4 estados de tendencia (CALCULADA, SIN_BASE_COMPARATIVA, SIN_MOVIMIENTO y RECORTADA AL CICLO)
+  fueron comprobados con 4 activos independientes en la misma sesión sandbox.
+- Limitación contractual de insumos sin costo documentada formalmente.
+
+4. INTEGRIDAD DE ARCHIVOS Y HASHES SHA-256
+------------------------------------------
+- TC-M05-G21 Script: 4f90a333eb7589feddadce6851bc3e4cdb0c7ea8b6831367b030c636fb0e146b
+- TC-M05-G20 Script: bcb674ef267b6c45d7df2be8b0718589213395f9359d50dd5c6fb7fa4d969f61
+- TC-M05-G25 Script: 6c58e9b4963b0aaa93b55be903117957afe6d235a2252f8ce3eefdb473127cbe
+- TC-M05-G24 Script: 03c5b78f5de799e5afb83f8ebb81702fe0248e5f349953a9183e089238e6a9ea
+- TC-M05-G19 Script: 6a4496f457d044721a2bb2b19b7e348c467e142c49c333ca1259c7f0b049a92e
+- TC-M05-G17 Script: 1aa0483d04df67e1f3e4339492cbcbd3537fd23c800e594531202931b91d4043
+- TC-M05-G16 Script: ecbc14e9eedd17ea1cf29a4ab97476055dd47b7e2bf0dc2f3ded552ae8801112
+- TC-M05-G15 Script: 8f4040b7c431305dcad8b46f59dbf7dcedb4bbc73fdfa6ed24fb2788992bf480
+- TC-M05-G14 Script: a693e2df2229eb52501079e9bc9365b39e084c52c2c87699067db2f8079b680d
+
+================================================================================
+FIN DEL INFORME TC-M05-G21
+================================================================================

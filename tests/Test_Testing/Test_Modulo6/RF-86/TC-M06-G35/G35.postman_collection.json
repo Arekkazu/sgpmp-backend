@@ -1,0 +1,29 @@
+{
+  "info": { "name": "TC-M06-G35 RF-86/RF-45", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    { "name": "G35-API-008-01", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/lineas?id_periodo_contable={{periodo_id}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('HTTP 200 y eco', () => { pm.expect(pm.response.code).to.equal(200); pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')); });",
+        "pm.test('BAJA_ACTIVO ligada al evento RF-45 y por valor en libros', () => { const j = pm.response.json(); pm.expect(j.some(x => String(x.id_activo_biologico) === pm.environment.get('activo_id') && x.tipo_hecho === 'BAJA_ACTIVO' && String(x.id_origen) === pm.environment.get('evento_id') && Math.abs(Number(x.valor) - Number(pm.environment.get('valor_baja'))) < 0.005)).to.equal(true); });"
+      ] } }] },
+    { "name": "G35-API-008-02", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token_m02}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/activos-biologicos/{{activo_id}}/ficha-integral" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('HTTP 200 y eco', () => { pm.expect(pm.response.code).to.equal(200); pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')); });",
+        "pm.test('Activo en BAJA', () => pm.expect(pm.response.json().estado_actual).to.equal('BAJA'));"
+      ] } }] },
+    { "name": "G35-API-008-03", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/periodos/{{periodo_id}}/variaciones" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('HTTP 200 y eco', () => { pm.expect(pm.response.code).to.equal(200); pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')); });",
+        "pm.test('Respuesta de variaciones es arreglo', () => pm.expect(pm.response.json()).to.be.an('array'));"
+      ] } }] }
+  ]
+}
