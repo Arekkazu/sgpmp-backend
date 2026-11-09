@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-91: eslabones de la cadena telemetría → evento → valoración → línea |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-288-G32 RF-91: una cadena de período cerrado no aborta la verificación |
 """Implementación SQL de :class:`TrazabilidadRepository`.
 
 Nivel 1 (IoT): lecturas del dispositivo del activo marcadas ``apto_para_nic41`` en RF-62, en las
@@ -46,6 +47,9 @@ class SqlAlchemyTrazabilidadRepository(TrazabilidadRepository):
                            "precio_documentado": None, "cierre": None, "evento_sanitario": None, "ids": {}}
         if origen is None:
             return resultado
+        if linea.tabla_origen == "variaciones_valor_razonable":
+            # Navegación al origen aunque la cadena no lo vincule por FK (línea arrastrada de un período cerrado).
+            resultado["ids"]["id_variacion_valor_razonable"] = linea.id_origen
         id_evento = origen.get(col_evento) if col_evento else None
         if linea.tabla_origen == "procesamientos_eventos_m02":
             id_evento = linea.id_origen
@@ -89,15 +93,32 @@ class SqlAlchemyTrazabilidadRepository(TrazabilidadRepository):
         return resultado
 
     def registrar_verificacion(self, id_linea, estado, tipo_evidencia, eslabones, id_usuario) -> None:
+        """Una cadena nueva por verificación, en su propio savepoint.
+
+        INC-M06-288-G32: el cierre (RF-87 paso 3) pasa al período siguiente las líneas con la trazabilidad
+        incompleta, pero su variación se queda en el período CERRADO. TGR-M06-26 (RF-91 R4) prohíbe
+        escribir cadenas vinculadas a esa variación, así que la cadena nueva de la línea arrastrada se
+        vincula solo a la línea (el id de la variación queda en ``json_eslabones``). El savepoint hace que
+        un rechazo de la BD deshaga solo esta línea y no la verificación entera del período.
+        """
         nivel = eslabones.get("nivel_fallo")
+        with self.db.begin_nested():
+            self._insertar_cadena(id_linea, estado, tipo_evidencia, eslabones, id_usuario, nivel)
+
+    def _insertar_cadena(self, id_linea, estado, tipo_evidencia, eslabones, id_usuario, nivel) -> None:
         escribir(self.db, """
             INSERT INTO modulo6.cadenas_trazabilidad_contable (id_variacion_valor_razonable, id_evento, id_precio_mercado,
                 estado_verificacion, nivel_fallo, fecha_verificacion, verificado_por, justificacion_verificacion,
                 id_linea_asiento_nic41, tipo_evidencia_origen, json_eslabones)
-            SELECT CASE WHEN l.tabla_origen = 'variaciones_valor_razonable' THEN l.id_origen END, :e, :p,
+            SELECT CASE WHEN l.tabla_origen = 'variaciones_valor_razonable'
+                         AND pc.estado IS DISTINCT FROM 'CERRADO' THEN l.id_origen END, :e, :p,
                    CAST(:estado AS modulo6.enum_estado_verificacion), :nivel, now(), :u, :j, l.id_linea_asiento_nic41, :t,
                    CAST(:es AS jsonb)
-            FROM modulo6.lineas_asiento_nic41 l WHERE l.id_linea_asiento_nic41 = :id
+            FROM modulo6.lineas_asiento_nic41 l
+            LEFT JOIN modulo6.variaciones_valor_razonable v
+                   ON l.tabla_origen = 'variaciones_valor_razonable' AND v.id_variacion_valor_razonable = l.id_origen
+            LEFT JOIN modulo6.periodos_contables pc ON pc.id_periodo_contable = v.id_periodo_contable
+            WHERE l.id_linea_asiento_nic41 = :id
         """, {"id": id_linea, "e": eslabones.get("ids", {}).get("id_evento"),
               "p": eslabones.get("ids", {}).get("id_precio_mercado"), "estado": _ESTADO_VERIFICACION.get(nivel, "PENDIENTE"),
               "nivel": nivel, "u": id_usuario, "j": ", ".join(eslabones.get("faltantes", [])) or None, "t": tipo_evidencia,
