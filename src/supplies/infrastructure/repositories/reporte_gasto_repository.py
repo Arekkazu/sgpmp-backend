@@ -1,9 +1,10 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: guarda y relee los parámetros      |
+# | 2026-11-08 | Leandro | INC-M05-277-G20 RF-77: conservar promedio y causa del reporte en el snapshot JSON existente. |
 """Implementación SQLAlchemy de :class:`ReporteGastoRepository` (RF-77).
 
-Persiste únicamente el snapshot (encabezado + totales) en
+Persiste el snapshot (encabezado, totales y resumen del promedio) en
 ``modulo5.reporte_gastos_acumulados`` — el desglose temporal, la tendencia y
 los registros sin costo no tienen columnas propias en esa tabla; se guardan
 en ``resultado_json`` de ``ejecuciones_generacion_reportes_gastos`` (ver
@@ -12,6 +13,7 @@ persistir aparte en el flujo síncrono.
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -28,6 +30,7 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
 
     @staticmethod
     def _a_entidad(orm: ReporteGastoAcumuladoModel) -> ReporteGasto:
+        promedio = (orm.json_parametros or {}).get("resumen_promedio", {})
         return ReporteGasto(
             id_reporte_gasto_acumulado=orm.id_reporte_gasto_acumulado,
             id_activo_biologico=orm.id_activo_biologico,
@@ -40,6 +43,11 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
             fecha_generacion=orm.fecha_generacion,
             id_especie=(orm.json_parametros or {}).get("id_especie"),
             parametros=orm.json_parametros,
+            gasto_promedio_individuo=(
+                Decimal(promedio["gasto_promedio_individuo"])
+                if promedio.get("gasto_promedio_individuo") is not None else None
+            ),
+            causa_no_calculable_promedio=promedio.get("causa_no_calculable_promedio"),
         )
 
     def guardar(self, reporte: ReporteGasto) -> ReporteGasto:
@@ -60,7 +68,16 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
                 ),
                 total_costo_directo=reporte.gasto_total_acumulado,
                 id_usuario=reporte.id_usuario,
-                json_parametros=reporte.parametros,
+                json_parametros={
+                    **(reporte.parametros or {}),
+                    "resumen_promedio": {
+                        "gasto_promedio_individuo": (
+                            str(reporte.gasto_promedio_individuo)
+                            if reporte.gasto_promedio_individuo is not None else None
+                        ),
+                        "causa_no_calculable_promedio": reporte.causa_no_calculable_promedio,
+                    },
+                },
             )
             self.db.add(orm)
             self.db.flush()
