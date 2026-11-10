@@ -30,6 +30,12 @@
   - Índice único parcial `uq_solicitud_correctivo_variacion_vigente`: una sola solicitud PENDIENTE o APROBADA por
     variación.
   - Permisos para los roles de la app.
+  - Trigger `trg_antes_modificar_solicitud_correctivo_variacion`: la solicitud no se elimina; una PENDIENTE solo
+    admite su resolución (estado y campos de resolución), y una APROBADA o RECHAZADA es inmutable. Es el mismo
+    criterio de M06 para los registros en estado final (TGR-M06-01 reconocimiento, línea de asiento).
+  - Dos nombres de FK pasan de 63 caracteres y PostgreSQL los trunca
+    (`…_id_variacion_valor_razonabl`, `…_id_variacion_correctiva_fke`). Se dejan así por el precedente ya mergeado
+    de `ampliaciones_ventana_retroalimentacion` (RF-72, `6bd01d026ac4`), que tiene el mismo caso.
 - Tipos de auditoría: `CORRECTIVO_VARIACION_SOLICITADO`, `CORRECTIVO_VARIACION_APROBADO` y
   `CORRECTIVO_VARIACION_RECHAZADO`.
 - `down_revision = b7e2d94c1a68`, la misma de las migraciones de #993 y #1000. Al mergear las tres habrá que agregar

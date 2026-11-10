@@ -19,6 +19,9 @@ aprobarla.
 - ``modulo6.solicitudes_correctivos_variaciones``: una solicitud por intento, con estado
   PENDIENTE / APROBADA / RECHAZADA, solicitante y quien la resuelve (doble control: distintos).
   Una sola solicitud PENDIENTE o APROBADA por variación (``uq_solicitud_correctivo_variacion_vigente``).
+  ``trg_antes_modificar_solicitud_correctivo_variacion``: no se elimina; resuelta, es inmutable.
+- Los nombres de dos FK pasan de 63 caracteres y PostgreSQL los trunca, como ya pasa con las de
+  ``ampliaciones_ventana_retroalimentacion`` (RF-72, 6bd01d026ac4).
 - Tres tipos de evento de auditoría para la solicitud, la aprobación y el rechazo.
 
 downgrade: borra la tabla. Los valores agregados al ENUM se dejan (PostgreSQL no permite quitarlos
@@ -92,6 +95,32 @@ def upgrade() -> None:
         'append-only: al aprobarse la solicitud se inserta la variación correctiva (monto opuesto, '
         'id_variacion_corregida) y sus líneas inversas. Doble control: quien resuelve es distinto de quien solicita.'
     """)
+    # Mismo criterio que TGR-M06-01 (reconocimiento) y la línea de asiento: la solicitud resuelta es rastro
+    # de auditoría. Solo se permite la resolución de una PENDIENTE, sin tocar lo que el solicitante registró.
+    op.execute("""
+        CREATE OR REPLACE FUNCTION modulo6.fn_proteger_solicitud_correctivo_variacion()
+        RETURNS trigger LANGUAGE plpgsql AS $$
+        DECLARE
+            v_mutables text[] := ARRAY['estado', 'id_usuario_resolutor', 'fecha_resolucion', 'motivo_rechazo',
+                                       'id_variacion_correctiva'];
+        BEGIN
+            IF TG_OP = 'DELETE' THEN
+                RAISE EXCEPTION 'La solicitud de correctivo id=% no puede eliminarse (RF-86 CA-13).',
+                    OLD.id_solicitud_correctivo_variacion USING ERRCODE = 'P0001';
+            END IF;
+            IF OLD.estado <> 'PENDIENTE' OR (to_jsonb(NEW) - v_mutables) <> (to_jsonb(OLD) - v_mutables) THEN
+                RAISE EXCEPTION 'La solicitud de correctivo id=% tiene estado % y es inmutable (RF-86 CA-13).',
+                    OLD.id_solicitud_correctivo_variacion, OLD.estado USING ERRCODE = 'P0001';
+            END IF;
+            RETURN NEW;
+        END;
+        $$
+    """)
+    op.execute("""
+        CREATE TRIGGER trg_antes_modificar_solicitud_correctivo_variacion
+            BEFORE UPDATE OR DELETE ON modulo6.solicitudes_correctivos_variaciones
+            FOR EACH ROW EXECUTE FUNCTION modulo6.fn_proteger_solicitud_correctivo_variacion()
+    """)
     op.execute(f"""
         DO $$
         DECLARE r text;
@@ -108,3 +137,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS modulo6.solicitudes_correctivos_variaciones")
+    op.execute("DROP FUNCTION IF EXISTS modulo6.fn_proteger_solicitud_correctivo_variacion()")
