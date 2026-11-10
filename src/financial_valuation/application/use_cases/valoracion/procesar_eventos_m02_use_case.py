@@ -6,12 +6,14 @@
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-296-G34-01 RF-86: aviso al Contador cuando la medición queda suspendida |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
 - Ingreso a un POBLACIONAL por nacimiento: las crías se reconocen (¶27). Por compra, donación o
   traslado, sin costo en el evento, solo se actualiza la base de valoración y se alerta al Contador.
-- Producción (RF-43): reconocimiento del producto agrícola (RF-85, ¶13 y ¶28).
+- Producción (RF-43): reconocimiento del producto agrícola (RF-85, ¶13 y ¶28). Si la cosecha consume el 100 %
+  del activo (FA-4), su valor queda en cero y, después del commit, se registra su baja en M02 (RF-45).
 - Baja (RF-45): ``BAJA_ACTIVO`` por el valor en libros (RFC-018); no se registra el ingreso de la venta.
 - Reproductivos, sanitarios y otros no cambian el valor razonable.
 Un activo valorado por costo (¶30) no genera variaciones de valor razonable (RF-88 CA-4).
@@ -45,6 +47,7 @@ from src.financial_valuation.domain.entities.activo_financiero import DatosActiv
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento, Periodo
 from src.financial_valuation.domain.entities.valoracion import CalculoValor
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
+from src.financial_valuation.domain.repositories.baja_activo_port import BajaActivoPort
 from src.financial_valuation.domain.repositories.evento_m02_port import EventoM02, EventoM02Port
 from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
@@ -88,7 +91,8 @@ class ProcesarEventosM02UseCase:
     def __init__(self, db: Session, eventos: EventoM02Port, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, precios: PrecioRepository, medidor: Medidor,
                  contabilizador: Contabilizador, id_usuario_servicio: int,
-                 notificador: Optional[NotificacionFinancieraPort] = None) -> None:
+                 notificador: Optional[NotificacionFinancieraPort] = None,
+                 bajas: Optional[BajaActivoPort] = None) -> None:
         self.db = db
         self.eventos = eventos
         self.activos = activos
@@ -101,15 +105,19 @@ class ProcesarEventosM02UseCase:
         self._activo: Optional[DatosActivo] = None
         self._causa = CAUSA_MEDICION
         self._motivo: Optional[str] = None
+        self.bajas = bajas
+        self._bajas_pendientes: list[tuple] = []  # (activo, periodo, id_evento, dia): se ejecutan tras el commit
 
     def execute(self, limite: int = 200) -> dict:
         conteo: dict[str, int] = {}
         for evento in self.eventos.pendientes(limite):
             self._activo, self._causa, self._motivo = None, CAUSA_MEDICION, None
+            self._bajas_pendientes = []
             try:
                 resultado, detalle = self._procesar(evento)
                 self.eventos.registrar_procesamiento(evento.id_evento, resultado, detalle)
                 self.db.commit()
+                self._iniciar_bajas()
                 alertas = self.medidor.tomar_alertas()
                 if self.notificador is not None:
                     for alerta in alertas:
@@ -295,10 +303,35 @@ class ProcesarEventosM02UseCase:
                                              None if kg == cantidad else f"Cantidad convertida: {cantidad} {metrica['unidad_medida']} = {kg} kg.")
         if proporcion < 1:
             self.valoraciones.agregar_calculo(base.escalado(Decimal(1) - proporcion, periodo.id_periodo_contable))
-        else:  # FA-4: cosechado por completo; la baja se registra en M02 (RF-45)
-            self._auditar("MEDICION_PENDIENTE", Severidad.WARNING, activo, periodo, evento.id_evento,
-                          {"mensaje": f"El activo {activo.identificador} quedó cosechado completamente: registre su baja."})
+        else:  # FA-4: el producto enlaza este cálculo con proporción 1, que deja de ser valor vigente (queda en 0)
+            self._auditar("MEDICION_POSTERIOR", Severidad.INFO, activo, periodo, evento.id_evento, {
+                "estado_activo": "COSECHADO_COMPLETAMENTE", "valor_anterior": str(base.valor_neto),
+                "valor_actual": "0", "valor_reduccion": str(valor_reduccion),
+                "id_calculo_consumido": base.id_calculo_valor_razonable,
+                "mensaje": (f"El activo {activo.identificador} quedó cosechado completamente: su valor pasó a "
+                            "inventario y queda en cero. Se inicia su baja en Activos biológicos.")}, monto=valor_reduccion)
+            self._bajas_pendientes.append((activo, periodo, evento.id_evento, dia))
         return resultado
+
+    def _iniciar_bajas(self) -> None:
+        """RF-85 FA-4 / postcondición 6: baja en M02 (RF-45) de los activos cosechados por completo.
+
+        Va después del commit de M06: si M02 la rechaza, el reconocimiento ya quedó y se alerta al Contador."""
+        pendientes, self._bajas_pendientes = self._bajas_pendientes, []
+        for activo, periodo, id_evento, dia in pendientes:
+            motivo = f"Cosechado completamente: la cosecha del {dia:%Y-%m-%d} consumió todo el activo."
+            rechazo = (self.bajas.dar_de_baja_por_cosecha(activo.id_activo_biologico, dia, motivo) if self.bajas
+                       else "La baja automática no está disponible.")
+            if rechazo is None:
+                continue
+            try:
+                self._auditar("MEDICION_PENDIENTE", Severidad.WARNING, activo, periodo, id_evento, {
+                    "mensaje": (f"El activo {activo.identificador} quedó cosechado completamente, pero no se pudo "
+                                f"registrar su baja: {rechazo} Regístrela en Activos biológicos.")})
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                logger.exception("M06: no se pudo alertar la baja pendiente del activo %s.", activo.id_activo_biologico)
 
     def _registrar_producto(self, evento, activo, periodo, dia, metrica, cantidad, precio_unitario, costo_unitario,
                             valor, proporcion, valor_reduccion, id_calculo, id_medicion, tipo, sentido, justificacion=None):
