@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | RFC-021: script de la demostración de contagio entre áreas en DEV |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: cámara de la Porqueriza 1 (finca 2) con video   |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: cámaras de cerdos, pollos y peces (La florida)  |
+# | 2026-11-02 | Arekkazu | RF-66: foco en Potrero 2 (BOV-003 tiene modelo por el catálogo automático) |
 """Demostración del contagio entre áreas en DEV (finca 1), operando los Edge simulados de oracle-server.
 
 Escenario, áreas y aristas: anotaciones/modulo_4/plan_implementacion_modelos_ia_dev.md §9. Solo toca los
@@ -10,6 +11,7 @@ contenedores `edge-sim-*`; el Estanque Checho (área 1, sensores reales) no se t
 
     python scripts/demo_contagio_dev.py foco pot1    # BOV-001 (Potrero 1) con fiebre
     python scripts/demo_contagio_dev.py foco cor1    # TER-001 (Corral 1) con fiebre
+    python scripts/demo_contagio_dev.py foco pot2    # BOV-003 (Potrero 2) con fiebre
     python scripts/demo_contagio_dev.py calor pot2   # 33–36 °C y 85–95 % en el área (pot1, cor1, pot2)
     python scripts/demo_contagio_dev.py normal       # los tres simuladores a valores normales y 5 min
     python scripts/demo_contagio_dev.py estado       # última predicción y contagio de cada área
@@ -41,9 +43,11 @@ IMAGEN = "edge-sim-bov:2dd79e7-ntp"
 #: clave → (contenedor, id_infraestructura, nombre del área)
 AREAS = {"pot1": ("edge-sim-bov", 2, "Potrero 1"), "cor1": ("edge-sim-ter", 3, "Corral 1"),
          "pot2": ("edge-sim-pot2", 4, "Potrero 2")}
-#: Rangos de EDGE_FAKE_VARIABLES ("variable:unidad" → "min:max"). Potrero 2 no tiene modelo: no hace foco.
+#: Rangos de EDGE_FAKE_VARIABLES ("variable:unidad" → "min:max"). BOV-003 (Potrero 2) tiene modelo
+#: desde el catálogo automático del motor (copia de la versión de BOV-001, plan §11).
 FIEBRE = {"pot1": {"Frecuencia Cardiaca:bpm": "90:100", "Temperatura Corporal:°C": "40.2:40.8"},
-          "cor1": {"Frecuencia Cardiaca:bpm": "118:128", "Temperatura Corporal:°C": "40.8:41.3"}}
+          "cor1": {"Frecuencia Cardiaca:bpm": "118:128", "Temperatura Corporal:°C": "40.8:41.3"},
+          "pot2": {"Frecuencia Cardiaca:bpm": "90:100", "Temperatura Corporal:°C": "40.2:40.8"}}
 CALOR = {"Temperatura Ambiental:°C": "33:36", "Humedad Relativa:%": "85:95"}
 RAPIDO = ("s/^EDGE_FRECUENCIA_CAPTURA_MIN=.*/EDGE_FRECUENCIA_CAPTURA_MIN=1/;"
           "s/^EDGE_INTERVALO_TRANSMISION_MIN=.*/EDGE_INTERVALO_TRANSMISION_MIN=1/")
