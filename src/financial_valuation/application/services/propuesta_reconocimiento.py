@@ -7,6 +7,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82: la donación por valor razonable también omite el hecho menor a 0,01 (#1027 + #1036) |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -148,7 +149,7 @@ class ProponedorReconocimiento:
             signo = sentido_por_signo(valor - (costo or CERO))
             return [(TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, signo[0].value, signo[1])] if signo else []
         if origen == "donacion":
-            return [(TipoHecho.RECONOCIMIENTO_DONACION.value, Sentido.UNICO.value, valor)]
+            return _hecho(TipoHecho.RECONOCIMIENTO_DONACION.value, Sentido.UNICO.value, valor)
         sentido = Sentido.TRASLADO.value if origen == "transferencia_interna" else Sentido.UNICO.value
         return _hecho(TipoHecho.RECONOCIMIENTO_NACIMIENTO.value, sentido, valor)
 
