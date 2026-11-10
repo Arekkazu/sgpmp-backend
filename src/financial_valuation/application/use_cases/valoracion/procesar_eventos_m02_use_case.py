@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/86: medición por evento, productos agrícolas y bajas desde M02 |
+# | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -30,7 +31,14 @@ from src.financial_valuation.domain.repositories.activo_financiero_port import A
 from src.financial_valuation.domain.repositories.evento_m02_port import EventoM02, EventoM02Port
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.domain.services.nic41 import CERO, costos_venta, q4, truncar2, valor_neto
+from src.financial_valuation.domain.services.nic41 import (
+    CERO,
+    costos_venta,
+    proporcion_registrada,
+    q4,
+    truncar2,
+    valor_neto,
+)
 from src.financial_valuation.domain.services.precios import precio_vigente
 from src.financial_valuation.domain.value_objects.nic41 import (
     CategoriaPrecio,
@@ -214,7 +222,7 @@ class ProcesarEventosM02UseCase:
         precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
         costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
         resultado = self._registrar_producto(evento, activo, periodo, dia, metrica, cantidad, precio_unitario,
-                                             costo_unitario, valor_reduccion, q4(proporcion), valor_reduccion,
+                                             costo_unitario, valor_reduccion, proporcion_registrada(proporcion), valor_reduccion,
                                              base.id_calculo_valor_razonable, medicion.id_medicion,
                                              "PRODUCTO_DE_CONSUMO", Sentido.TRASLADO.value)
         if proporcion < 1:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/84/86/88/90: núcleo de cálculo NIC 41 (Python puro) |
+# | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 """Núcleo de cálculo NIC 41 de M06. Python puro: lo usan todos los casos de uso.
 
 - RF-84 (¶12, ¶5): ``valor_neto = magnitud × precio − costos de venta``. Los costos de M05 son
@@ -28,11 +29,24 @@ from src.financial_valuation.domain.value_objects.nic41 import Sentido, TipoCier
 
 Q4 = Decimal("0.0001")
 Q2 = Decimal("0.01")
+Q6 = Decimal("0.000001")  # proporcion_cosechada NUMERIC(8,6)
 CERO = Decimal("0")
 
 
 def q4(valor: Decimal) -> Decimal:
     return Decimal(valor).quantize(Q4, rounding=ROUND_HALF_UP)
+
+
+def proporcion_registrada(proporcion: Decimal) -> Decimal:
+    """RF-85: proporción cosechada a la precisión de su columna (6 decimales).
+
+    Una cosecha positiva nunca se guarda en 0 (``chk_prod_agricola_proporcion_rango`` exige > 0): por debajo de
+    0,0000005 se registra el mínimo representable. Una parcial tampoco se redondea a 1, que marca la cosecha
+    total (FA-4). El valor de la reducción se calcula con la proporción exacta."""
+    if proporcion <= 0:
+        return CERO
+    registrada = max(Decimal(proporcion).quantize(Q6, rounding=ROUND_HALF_UP), Q6)
+    return min(registrada, 1 - Q6) if proporcion < 1 else registrada
 
 
 def truncar2(valor: Decimal) -> Decimal:
