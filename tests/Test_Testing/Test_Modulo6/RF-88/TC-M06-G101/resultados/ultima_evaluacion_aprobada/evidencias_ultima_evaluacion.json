@@ -1,0 +1,53 @@
+{
+  "caso": "TC-M06-G101",
+  "ejecutor": "ejecutar_retorno_activo_1572.py",
+  "post_repetido": false,
+  "cierre_enviado": false,
+  "activo_951_consultado": false,
+  "antes": {
+    "diferencias": [],
+    "valor_costo": "4200000.0000",
+    "valor_neto_simulado": "4042000.0000",
+    "costos_venta_general": {"transporte": "0.0200", "comisiones": "0.0300", "impuestos": "0.0100"},
+    "periodo_220": "ABIERTO",
+    "eventos_cambio_metodo_antes": 0
+  },
+  "post": {
+    "metodo": "POST",
+    "ruta": "/finanzas/activos/1572/valor-razonable",
+    "cuerpo": null,
+    "http": 200,
+    "respuesta": {
+      "id_activo_biologico": 1572,
+      "valor_razonable": "4042000.0000",
+      "valor_por_costo": "4200000.0000",
+      "diferencia": "-158000.0000"
+    }
+  },
+  "despues": {
+    "activo_1572": {
+      "identificador": "QA-M06O-COSTO-01",
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "nit": "900000003",
+      "valoracion_costo": {"id": 25, "es_activa": false, "valor_contable_por_costo": "4200000.0000"}
+    },
+    "calculo": {"id": 874, "valor_neto": "4042000.0000", "precio_unitario": "4300000.0000", "magnitud": "1.0000", "estado": "CALCULADO", "id_periodo_contable": 220},
+    "lineas": [
+      {"id": 2665, "tipo_hecho": "VARIACION_VR_PM", "sentido": "PERDIDA", "valor": "158000.00", "fecha_hecho": "2026-11-10", "estado": "REGISTRADA"}
+    ],
+    "auditoria": {
+      "total": 1,
+      "id_evento": 9660,
+      "tipo_evento": "METODO_VALORACION_CAMBIADO",
+      "id_activo_biologico": 1572,
+      "id_periodo_contable": 220,
+      "timestamp_evento": "2026-11-10T06:53:06.972356Z",
+      "monto_afectado": "-158000.0000",
+      "id_referencia": 25,
+      "payload_evento": {"diferencia": "-158000.0000", "valor_por_costo": "4200000.0000", "valor_razonable": "4042000.0000", "id_calculo_valor_razonable": 874}
+    },
+    "activo_1573": {"identificador": "QA-M06O-COSTO-02", "estado": "ACTIVO", "valoracion_activa": true, "id_valoracion": 26, "valor": "4000000.0000"},
+    "periodo_220": {"estado": "ABIERTO", "inicio": "2026-11-01", "fin": "2026-11-30"}
+  }
+}
