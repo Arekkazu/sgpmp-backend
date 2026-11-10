@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06 RF-83..86: listados del período para las vistas del prototipo |
+# | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 """Puerto de la valoración NIC 41: cálculos (RF-84), reconocimientos (RF-82), mediciones y
 variaciones (RF-83/86), productos agrícolas (RF-85) y valoración por costo (RF-88)."""
 from __future__ import annotations
@@ -85,5 +86,6 @@ class ValoracionRepository(ABC):
         """RF-84: cálculos del valor razonable menos costos de venta registrados en el período."""
 
     @abstractmethod
-    def productos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
-        """RF-85: productos agrícolas reconocidos en el período."""
+    def productos_agricolas(self, filtros: dict) -> list[dict]:
+        """RF-85 RNF-85-05: productos agrícolas reconocidos, filtrables por período, activo, tipo de producto,
+        especie, producto y rango de valores, con su evento productivo y el usuario que lo registró."""

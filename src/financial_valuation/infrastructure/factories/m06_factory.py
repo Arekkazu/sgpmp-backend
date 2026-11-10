@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ensamblado de repositorios, servicios y casos de uso |
+# | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -53,6 +54,9 @@ from src.financial_valuation.application.use_cases.reportes.generar_informe_reve
 from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazabilidad_use_case import (
     VerificadorTrazabilidad,
     VerificarTrazabilidadUseCase,
+)
+from src.financial_valuation.application.use_cases.valoracion.consultar_productos_agricolas_use_case import (
+    ConsultarProductosAgricolasUseCase,
 )
 from src.financial_valuation.application.use_cases.valoracion.procesar_eventos_m02_use_case import ProcesarEventosM02UseCase
 from src.financial_valuation.application.use_cases.valoracion_costo.cambiar_a_valor_razonable_use_case import (
@@ -168,3 +172,4 @@ class M06:
         return GenerarInformeRevelacionesUseCase(self.db, self.periodos, self.reportes, self.constructor_informe, self.auditoria)
     def exportar(self): return ExportarReporteUseCase(self.periodos, self.reportes)
     def consultar_auditoria(self): return ConsultarAuditoriaFinancieraUseCase(self.auditoria)
+    def consultar_productos(self): return ConsultarProductosAgricolasUseCase(self.valoraciones)
