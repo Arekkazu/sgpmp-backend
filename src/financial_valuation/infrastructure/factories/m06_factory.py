@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ensamblado de repositorios, servicios y casos de uso |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -55,6 +56,9 @@ from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazab
     VerificarTrazabilidadUseCase,
 )
 from src.financial_valuation.application.use_cases.valoracion.procesar_eventos_m02_use_case import ProcesarEventosM02UseCase
+from src.financial_valuation.application.use_cases.valoracion.validar_calculo_no_positivo_use_case import (
+    ValidarCalculoNoPositivoUseCase,
+)
 from src.financial_valuation.application.use_cases.valoracion_costo.cambiar_a_valor_razonable_use_case import (
     CambiarAValorRazonableUseCase,
 )
@@ -139,7 +143,10 @@ class M06:
     def listar_precios(self): return ListarPreciosUseCase(self.precios)
     def propuestas(self): return ListarPropuestasReconocimientoUseCase(self.activos, self.proponedor)
     def confirmar_reconocimiento(self):
-        return ConfirmarReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.proponedor, self.contabilizador)
+        return ConfirmarReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.proponedor, self.contabilizador,
+                                              self.notificador)
+    def validar_calculo(self):
+        return ValidarCalculoNoPositivoUseCase(self.db, self.valoraciones, self.contabilizador)
     def revertir_reconocimiento(self):
         return RevertirReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.contabilizador)
     def procesar_eventos(self):

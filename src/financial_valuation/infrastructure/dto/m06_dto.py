@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -94,6 +95,12 @@ class ConfirmarReconocimientoDTO(BaseDTO):
                 and len((self.justificacion or "").strip()) < 20:
             raise ValueError("Los costos de venta manuales requieren una justificación con su soporte documental (mín. 20).")
         return self
+
+
+class ValidarCalculoDTO(BaseDTO):
+    # Opcional en el formato: ausente, vacía o en blanco responde el mismo 400 desde el caso de uso.
+    justificacion: Optional[str] = Field(default=None, max_length=2000,
+                                         description="Por qué se acepta un valor neto menor o igual a cero (mín. 20).")
 
 
 class RevertirReconocimientoDTO(BaseDTO):

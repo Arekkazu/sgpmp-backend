@@ -1,11 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/89: valor razonable menos costos de venta de un activo |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
 de venta de M09. No persiste nada: devuelve el cálculo listo para guardar o el motivo por el que
-no se puede valorar."""
+no se puede valorar. Con un valor neto ≤ 0 devuelve el motivo y, además, el cálculo en
+REVISION_REQUERIDA para que quien llama pueda dejarlo registrado (RF-84 FA-2)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -100,9 +102,6 @@ class Valorador:
             costos_manuales,
         )
         vn = valor_neto(magnitud, precio.precio_unitario, costos)
-        if vn.requiere_revision and not aceptar_no_positivo:
-            return ResultadoValoracion(None, precio, "VALOR_NETO_NO_POSITIVO",
-                                       MOTIVOS["VALOR_NETO_NO_POSITIVO"].format(**textos))
         calculo = CalculoValor(
             id_activo_biologico=activo.id_activo_biologico, id_precio_mercado=precio.id_precio_mercado,
             id_periodo_contable=id_periodo_contable, magnitud=magnitud, unidad_magnitud=unidad,
@@ -118,4 +117,7 @@ class Valorador:
             id_evento_magnitud=activo.id_evento_peso if precio.categoria == CategoriaPrecio.PESO_KG.value else None,
             tiene_valor_estimado=estimado,
         )
+        if vn.requiere_revision and not aceptar_no_positivo:
+            return ResultadoValoracion(calculo, precio, "VALOR_NETO_NO_POSITIVO",
+                                       MOTIVOS["VALOR_NETO_NO_POSITIVO"].format(**textos))
         return ResultadoValoracion(calculo, precio)

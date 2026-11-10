@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -36,6 +37,7 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     PrecioDTO,
     ResolverInformeDTO,
     RevertirReconocimientoDTO,
+    ValidarCalculoDTO,
 )
 from src.financial_valuation.infrastructure.factories.m06_factory import M06
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -214,6 +216,14 @@ def simular_valor(id_activo_biologico: int, m: M06 = Depends(_m06), usuario: Usu
     return {"es_valido": resultado.es_valido, "motivo": resultado.motivo, "mensaje": resultado.mensaje,
             "calculo": resultado.calculo.__dict__ if resultado.calculo else None,
             "precio": resultado.precio.__dict__ if resultado.precio else None}
+
+
+@router.post("/calculos/{id_calculo_valor_razonable}/validacion", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Validar con justificación un cálculo con valor neto ≤ 0 (REVISION_REQUERIDA → CALCULADO)")
+def validar_calculo(id_calculo_valor_razonable: int, dto: ValidarCalculoDTO, m: M06 = Depends(_m06),
+                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.validar_calculo().execute(id_calculo_valor_razonable, dto.justificacion, usuario.id_usuario)
 
 
 @router.post("/eventos/procesar", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", E))],

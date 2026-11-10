@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88 A: propuesta de reconocimiento inicial (NIC 41 ¶10, ¶12, ¶26-27, ¶30) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -53,6 +54,7 @@ class Propuesta:
     advertencias: list[str] = field(default_factory=list)
     requiere_costos_manuales: bool = False
     vida_util_meses: Optional[int] = None
+    calculo_revision: Optional[CalculoValor] = None  # valor neto ≤ 0: queda en revisión (RF-84 FA-2)
 
     @property
     def es_confirmable(self) -> bool:
@@ -120,6 +122,8 @@ class ProponedorReconocimiento:
             else:
                 self._modelo_costo(propuesta, origen)
         else:
+            if resultado.motivo == "VALOR_NETO_NO_POSITIVO":
+                propuesta.calculo_revision = resultado.calculo
             propuesta.bloquear(resultado.motivo, resultado.mensaje)
         return propuesta
 
