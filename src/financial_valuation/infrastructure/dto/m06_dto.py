@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82/RF-84: costos manuales con máximo 4 decimales |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -102,6 +103,12 @@ class ConfirmarReconocimientoDTO(BaseDTO):
                 and len((self.justificacion or "").strip()) < 20:
             raise ValueError("Los costos de venta manuales requieren una justificación (mín. 20 caracteres).")
         return self
+
+
+class ValidarCalculoDTO(BaseDTO):
+    # Opcional en el formato: ausente, vacía o en blanco responde el mismo 400 desde el caso de uso.
+    justificacion: Optional[str] = Field(default=None, max_length=2000,
+                                         description="Por qué se acepta un valor neto menor o igual a cero (mín. 20).")
 
 
 class RevertirReconocimientoDTO(BaseDTO):

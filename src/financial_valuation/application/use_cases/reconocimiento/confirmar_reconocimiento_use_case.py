@@ -2,10 +2,15 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82: confirmar el reconocimiento inicial y generar sus líneas de asiento |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable.
 
 Los costos de venta manuales exigen una referencia documental (RF-84 R4), que queda en el cálculo y en la
-auditoría del reconocimiento junto con la justificación (R2, R5)."""
+auditoría del reconocimiento junto con la justificación (R2, R5).
+
+Con un valor neto ≤ 0 el reconocimiento no se confirma (la BD exige un valor inicial positivo), pero el
+cálculo queda registrado en REVISION_REQUERIDA con una alerta crítica para que el Contador corrija los
+costos o lo valide con justificación (RF-84 R3 / FA-2)."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -22,6 +27,7 @@ from src.financial_valuation.application.services.propuesta_reconocimiento impor
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento
 from src.financial_valuation.domain.entities.valoracion import ValoracionCosto
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.value_objects.nic41 import IndicadorValoracion, Severidad, TipoEvidencia
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
@@ -31,12 +37,14 @@ TABLA = "reconocimientos_iniciales"
 
 class ConfirmarReconocimientoUseCase:
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
-                 proponedor: ProponedorReconocimiento, contabilizador: Contabilizador) -> None:
+                 proponedor: ProponedorReconocimiento, contabilizador: Contabilizador,
+                 notificador: Optional[NotificacionFinancieraPort] = None) -> None:
         self.db = db
         self.activos = activos
         self.valoraciones = valoraciones
         self.proponedor = proponedor
         self.contabilizador = contabilizador
+        self.notificador = notificador
 
     def execute(self, id_activo_biologico: int, id_usuario: int, *, clasificacion: Optional[str] = None,
                 costos_manuales: Optional[dict] = None, justificacion: Optional[str] = None,
@@ -60,6 +68,8 @@ class ConfirmarReconocimientoUseCase:
                                              referencia_documental=referencia)
         if not propuesta.es_confirmable:
             self._auditar_bloqueo(propuesta, id_usuario)
+            if [b["codigo"] for b in propuesta.bloqueos] == ["VALOR_NETO_NO_POSITIVO"]:
+                self._dejar_en_revision(propuesta, id_usuario)
             bloqueo = propuesta.bloqueos[0]
             raise BusinessRuleError(code=bloqueo["codigo"], message=bloqueo["mensaje"])
         try:
@@ -144,3 +154,41 @@ class ConfirmarReconocimientoUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+    def _dejar_en_revision(self, propuesta: Propuesta, id_usuario: int) -> None:
+        """RF-84 paso 6 / FA-2: el cálculo con valor neto ≤ 0 queda en REVISION_REQUERIDA con alerta crítica.
+
+        Reemplaza el mensaje del bloqueo por uno con las cifras y lo que puede hacer el Contador."""
+        activo, calculo = propuesta.activo, propuesta.calculo_revision
+        costos = calculo.valor_razonable_bruto - calculo.valor_neto
+        mensaje = (f"Los costos de venta del activo {activo.identificador} ({costos:,.2f} COP) igualan o superan su "
+                   f"valor de mercado ({calculo.valor_razonable_bruto:,.2f} COP): el valor neto es "
+                   f"{calculo.valor_neto:,.2f} COP. El cálculo quedó en revisión. Corrija los costos de venta o valide "
+                   "el cálculo con una justificación; un activo con valor neto menor o igual a cero no se puede reconocer.")
+        try:
+            periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, propuesta.fecha_reconocimiento,
+                                                       id_usuario)
+            calculo.id_periodo_contable = periodo.id_periodo_contable
+            id_calculo = self.valoraciones.agregar_calculo(calculo)
+            self.contabilizador.auditar(EventoAuditoria(
+                tipo_evento="CALCULO_VALOR_RAZONABLE", severidad=Severidad.CRITICAL.value,
+                payload={"estado": calculo.estado, "motivo": "VALOR_NETO_NO_POSITIVO", "mensaje": mensaje,
+                         "valor_razonable_bruto": str(calculo.valor_razonable_bruto),
+                         "costos_venta": {"transporte": str(calculo.costo_transporte),
+                                          "comisiones": str(calculo.costo_comisiones),
+                                          "impuestos": str(calculo.costo_impuestos_transaccion),
+                                          "otros": str(calculo.otros_costos_disposicion)},
+                         "metodos": calculo.json_metodo_costo, "valor_neto": str(calculo.valor_neto)},
+                id_usuario=id_usuario, id_activo_biologico=activo.id_activo_biologico,
+                id_periodo_contable=periodo.id_periodo_contable, id_referencia=id_calculo,
+                monto_afectado=calculo.valor_neto,
+            ))
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        propuesta.bloqueos[0]["mensaje"] = mensaje
+        if self.notificador is not None:  # después del commit
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", mensaje,
+                                          {"id_calculo_valor_razonable": id_calculo,
+                                           "id_activo_biologico": activo.id_activo_biologico}, activo.id_finca)

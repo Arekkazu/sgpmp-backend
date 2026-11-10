@@ -5,6 +5,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-307-G11 RF-82: hecho menor a 0,01 se reconoce sin línea de asiento |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -59,6 +60,7 @@ class Propuesta:
     advertencias: list[str] = field(default_factory=list)
     requiere_costos_manuales: bool = False
     vida_util_meses: Optional[int] = None
+    calculo_revision: Optional[CalculoValor] = None  # valor neto ≤ 0: queda en revisión (RF-84 FA-2)
 
     @property
     def es_confirmable(self) -> bool:
@@ -132,6 +134,8 @@ class ProponedorReconocimiento:
             else:
                 self._modelo_costo(propuesta, origen)
         else:
+            if resultado.motivo == "VALOR_NETO_NO_POSITIVO":
+                propuesta.calculo_revision = resultado.calculo
             propuesta.bloquear(resultado.motivo, resultado.mensaje)
         return propuesta
 

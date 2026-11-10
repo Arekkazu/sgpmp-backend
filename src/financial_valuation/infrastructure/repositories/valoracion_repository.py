@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculos, reconocimientos, mediciones, variaciones y valoración por costo |
 # | 2026-11-05 | Arekkazu | M06 RF-83..88: listados del período y datos del modelo de costo por activo |
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -79,6 +80,20 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             "valor_neto", "metodo_costo", "justificacion", "estado", "id_usuario", "id_periodo_contable", "magnitud",
             "unidad_magnitud", "precio_unitario", "id_evento_magnitud", "tiene_valor_estimado")},
             "json_metodo_costo": a_json(calculo.json_metodo_costo)})
+
+    def obtener_calculo(self, id_calculo_valor_razonable: int) -> Optional[CalculoValor]:
+        f = fila(self.db, f"""SELECT {_COLUMNAS_CALCULO} FROM modulo6.calculos_valor_razonable
+                              WHERE id_calculo_valor_razonable = :id""", {"id": id_calculo_valor_razonable})
+        return _calculo(f) if f else None
+
+    def validar_calculo(self, id_calculo_valor_razonable: int, validacion: dict) -> None:
+        escribir(self.db, """
+            UPDATE modulo6.calculos_valor_razonable
+               SET estado = 'CALCULADO',
+                   json_metodo_costo = COALESCE(json_metodo_costo, '{}'::jsonb)
+                       || jsonb_build_object('validacion_valor_no_positivo', CAST(:validacion AS jsonb))
+             WHERE id_calculo_valor_razonable = :id AND estado = 'REVISION_REQUERIDA'
+        """, {"id": id_calculo_valor_razonable, "validacion": a_json(validacion)})
 
     def ultimo_calculo(self, id_activo_biologico: int, hasta: Optional[date] = None) -> Optional[CalculoValor]:
         """Último cálculo CALCULADO del activo (base de la siguiente medición)."""

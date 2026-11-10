@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06 RF-83..86: listados del período para las vistas del prototipo |
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 """Puerto de la valoración NIC 41: cálculos (RF-84), reconocimientos (RF-82), mediciones y
 variaciones (RF-83/86), productos agrícolas (RF-85) y valoración por costo (RF-88)."""
 from __future__ import annotations
@@ -24,6 +25,13 @@ from src.financial_valuation.domain.entities.valoracion import (
 class ValoracionRepository(ABC):
     @abstractmethod
     def agregar_calculo(self, calculo: CalculoValor) -> int: ...
+
+    @abstractmethod
+    def obtener_calculo(self, id_calculo_valor_razonable: int) -> Optional[CalculoValor]: ...
+
+    @abstractmethod
+    def validar_calculo(self, id_calculo_valor_razonable: int, validacion: dict) -> None:
+        """Pasa un cálculo en REVISION_REQUERIDA a CALCULADO y guarda la validación en ``json_metodo_costo``."""
 
     @abstractmethod
     def ultimo_calculo(self, id_activo_biologico: int, hasta: Optional[date] = None) -> Optional[CalculoValor]: ...
