@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta MEDICION_PENDIENTE al Contador por medición estimada |
+# | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: fakes con período abierto y evento no encolado |
 """INC-M06-308-G12 / RF-83 restricción 3 y salida 4: una medición estimada (sin precio vigente, con el último
 precio conocido) registra ``MEDICION_CON_ESTIMACION`` y además alerta al Contador con ``MEDICION_PENDIENTE``.
 La alerta sale después del ``commit()`` y no sale si la transacción se revierte."""
@@ -61,6 +62,9 @@ class ContabilizadorFake:
 
     def periodo_para(self, *_a):
         return PERIODO
+
+    def periodo_cerrado_en(self, *_a):
+        return None
 
     def asentar(self, linea, _id_usuario):
         return linea
@@ -149,7 +153,7 @@ class EventosFake:
 
     def pendientes(self, _limite):
         return [SimpleNamespace(id_evento=55, tipo="CRECIMIENTO", id_activo_biologico=7, datos={},
-                                fecha=datetime(2026, 11, 8, 15, tzinfo=timezone.utc))]
+                                fecha=datetime(2026, 11, 8, 15, tzinfo=timezone.utc), encolado_en_cierre=False)]
 
     def registrar_procesamiento(self, _id, resultado, _detalle):
         if self.falla_registro and resultado != "ERROR":

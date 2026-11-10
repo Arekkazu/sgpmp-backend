@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/86: medición por evento, productos agrícolas y bajas desde M02 |
 # | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta al Contador de mediciones estimadas o pendientes |
+# | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -14,7 +15,11 @@
 Un activo valorado por costo (¶30) no genera variaciones de valor razonable (RF-88 CA-4).
 
 Cada evento va en su propia transacción: un fallo no detiene los demás (se reintenta hasta 3 veces).
-Las alertas de medición estimada o pendiente (RF-83) se envían al Contador después del ``commit()``."""
+Las alertas de medición estimada o pendiente (RF-83) se envían al Contador después del ``commit()``.
+
+Un evento cuya fecha cae en un período CERRADO no se valora (RF-83 restricción 2, RF-86 paso 1 c y
+FA-2): queda MEDICION_PENDIENTE, se audita y se alerta al Contador. Los encolados mientras su período
+estaba EN_CIERRE sí van al período siguiente (RF-87)."""
 from __future__ import annotations
 
 import logging
@@ -95,6 +100,10 @@ class ProcesarEventosM02UseCase:
         if activo is None:
             return "SIN_EFECTO", "Activo no encontrado"
         dia = fecha_usuario(evento.fecha)
+        if not evento.encolado_en_cierre:
+            cerrado = self.contabilizador.periodo_cerrado_en(activo.numero_id_tributaria, dia)
+            if cerrado is not None:
+                return self._en_periodo_cerrado(evento, activo, cerrado, dia)
         try:
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, dia, self.id_servicio)
         except PeriodoEnCierreError as exc:
@@ -116,6 +125,13 @@ class ProcesarEventosM02UseCase:
                                       id_usuario_auditoria=None, id_evento=evento.id_evento,
                                       tipo_evidencia_tb=evidencia, tipo_hecho_tb=tipo_hecho)
         return {"MEDIDO": "PROCESADO", "SIN_VARIACION": "SIN_EFECTO"}.get(medicion.estado, "MEDICION_PENDIENTE"), medicion.mensaje
+
+    def _en_periodo_cerrado(self, evento, activo, cerrado: Periodo, dia: date) -> tuple[str, str]:
+        mensaje = (f"El evento del {dia:%Y-%m-%d} del activo {activo.identificador} no se valoró: su fecha cae en el "
+                   f"período contable del {cerrado.fecha_inicio:%Y-%m-%d} al {cerrado.fecha_fin:%Y-%m-%d}, que ya está "
+                   "cerrado. Si el hecho debe reconocerse, regístrelo como ajuste en el período abierto.")
+        self.medidor.alertar_pendiente(activo, cerrado, dia, evento.id_evento, None, "PERIODO_CERRADO", mensaje)
+        return "MEDICION_PENDIENTE", mensaje
 
     # --- Ingreso sin costo en el evento ---------------------------------------------------------
 

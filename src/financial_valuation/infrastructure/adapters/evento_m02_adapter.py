@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/87: cola de eventos de M02 para la medición por evento |
+# | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 """Adaptador de :class:`EventoM02Port`.
 
 Solo entran los eventos de activos con reconocimiento CONFIRMADO y posteriores a él: los
@@ -24,7 +25,7 @@ SELECT ea.id_eventos AS id_evento, ea.id_activo_biologico, ea.fecha,
             ELSE 'OTRO' END AS tipo,
        upper(ec.tipo_medicion) AS tipo_medicion, eb.tipo::text AS tipo_baja, eb.cantidad_afectada,
        ep.cantidad AS cantidad_producida, ep.id_metrica_produccion, ei.tipo::text AS tipo_ingreso,
-       ei.cantidad_ingresada
+       ei.cantidad_ingresada, coalesce(pr.resultado = 'ENCOLADO_CIERRE', false) AS encolado_en_cierre
 FROM modulo2.eventos_activos ea
 JOIN modulo6.reconocimientos_iniciales ri
   ON ri.id_activo_biologico = ea.id_activo_biologico AND ri.estado = 'CONFIRMADO' AND ea.fecha >= ri.fecha_creacion
@@ -50,7 +51,8 @@ class EventoM02Adapter(EventoM02Port):
         for f in filas(self.db, _PENDIENTES, {"limite": limite}):
             datos = {k: f[k] for k in ("tipo_medicion", "tipo_baja", "cantidad_afectada", "cantidad_producida",
                                        "id_metrica_produccion", "tipo_ingreso", "cantidad_ingresada")}
-            eventos.append(EventoM02(f["id_evento"], f["id_activo_biologico"], f["fecha"], f["tipo"], datos))
+            eventos.append(EventoM02(f["id_evento"], f["id_activo_biologico"], f["fecha"], f["tipo"], datos,
+                                     encolado_en_cierre=f["encolado_en_cierre"]))
         return eventos
 
     def registrar_procesamiento(self, id_evento: int, resultado: str, detalle: str | None) -> None:
