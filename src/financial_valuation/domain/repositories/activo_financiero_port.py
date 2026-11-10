@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
+# | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
 """Puerto de lectura de M02/M09 para M06: el activo, su finca y su titular."""
 from __future__ import annotations
 
@@ -36,3 +37,7 @@ class ActivoFinancieroPort(ABC):
     @abstractmethod
     def eventos_sanitarios_del_activo(self, id_activo_biologico: int) -> list[dict]:
         """Eventos sanitarios del activo (fecha, tipo y diagnóstico), para elegir el que sustenta un deterioro."""
+
+    @abstractmethod
+    def fincas_sin_titular_del_periodo(self, id_periodo_contable: int, numero_id_tributaria: str) -> list[str]:
+        """Fincas con líneas en el período cuyo titular tributario ya no es el del período (o no tiene)."""

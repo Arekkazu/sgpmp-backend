@@ -8,6 +8,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
+# | 2026-11-10 | Arekkazu | INC-M06-342/351 RF-86/87: avisos de cuenta faltante y ajuste de período anterior |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -24,6 +25,9 @@ from src.financial_valuation.application.use_cases.auditoria.consultar_auditoria
     ConsultarAuditoriaFinancieraUseCase,
 )
 from src.financial_valuation.application.use_cases.cierre.ejecutar_cierre_periodo_use_case import EjecutarCierrePeriodoUseCase
+from src.financial_valuation.application.use_cases.cierre.registrar_ajuste_periodo_anterior_use_case import (
+    RegistrarAjustePeriodoAnteriorUseCase,
+)
 from src.financial_valuation.application.use_cases.configuracion.actualizar_configuracion_contable_use_case import (
     ActualizarConfiguracionContableUseCase,
 )
@@ -132,7 +136,8 @@ class M06:
 
     # --- Servicios ---
     @cached_property
-    def contabilizador(self): return Contabilizador(self.config, self.periodos, self.asientos, self.auditoria)
+    def contabilizador(self):
+        return Contabilizador(self.config, self.periodos, self.asientos, self.auditoria, self.notificador, self.activos)
     @cached_property
     def valorador(self): return Valorador(self.precios, self.config)
     @cached_property
@@ -178,6 +183,7 @@ class M06:
             self.db, self.periodos, self.activos, self.valoraciones, self.costos, self.cotizaciones, self.eventos,
             self.medidor, self.contabilizador, self.verificador, self.constructor_estado, self.constructor_informe,
             self.notificador, self.procesar_eventos())
+    def ajuste_periodo_anterior(self): return RegistrarAjustePeriodoAnteriorUseCase(self.db, self.contabilizador)
     def verificar_trazabilidad(self): return VerificarTrazabilidadUseCase(self.db, self.asientos, self.verificador, self.periodos)
     def registrar_deterioro(self):
         return RegistrarDeterioroUseCase(self.db, self.activos, self.valoraciones, self.contabilizador,

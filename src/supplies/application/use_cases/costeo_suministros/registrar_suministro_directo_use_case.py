@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-264-G31 RF-78: 3 reintentos tras el intento inicial (esperas de 1, 3 y 5 s) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: auditar rechazos de negocio sin conservar escrituras parciales. |
+# | 2026-11-10 | Arekkazu | INC-M05-340-G27/341-G30 RF-78: unidad del tipo (CA-13) y réplicas simultáneas → YA_PROCESADO (CA-15) |
 """Caso de uso: registrar un suministro en el ledger de RF-78.
 
 Orden (RF-78): Fase 3 idempotencia (E8 → 200 YA_PROCESADO) → tipo de
@@ -59,7 +60,7 @@ from src.supplies.domain.value_objects.eventos_auditoria_suministro_enums import
     TipoEventoAuditoriaSuministro,
 )
 from src.supplies.domain.value_objects.justificacion_precio import JustificacionPrecio
-from src.supplies.domain.value_objects.tipo_suministro import TipoSuministro
+from src.supplies.domain.value_objects.tipo_suministro import ETIQUETA_TIPO, UNIDAD_POR_TIPO, TipoSuministro
 from src.supplies.infrastructure.dto.registrar_suministro_directo_dto import RegistrarSuministroDirectoDTO
 
 _MAX_REINTENTOS = 3
@@ -189,6 +190,16 @@ class RegistrarSuministroDirectoUseCase:
                 ),
             )
         self._validar_fecha_aplicacion(dto.fecha_aplicacion, ciclo.fecha_inicio)
+        unidad = UNIDAD_POR_TIPO.get(dto.tipo_suministro)
+        if unidad is not None and dto.unidad_medida != unidad:  # Restricción 11 / CA-13
+            raise BusinessRuleError(
+                code="UNIDAD_MEDIDA_NO_COINCIDE",
+                message=(
+                    f"La unidad de medida «{dto.unidad_medida}» no coincide con la configurada para "
+                    f"{ETIQUETA_TIPO.get(dto.tipo_suministro, 'este tipo de suministro')}: «{unidad}»."
+                ),
+                field="unidad_medida",
+            )
 
         cantidad = dto.cantidad.quantize(_ESCALA_CANTIDAD)
         precio = dto.precio_unitario.quantize(_ESCALA_PRECIO)
@@ -302,6 +313,14 @@ class RegistrarSuministroDirectoUseCase:
                     time.sleep(_BACKOFF_SEGUNDOS[intento - 1])
                     continue
                 self._registrar_fallo(entidad, usuario_actual, str(exc.message))
+                raise
+            except ConflictError:
+                self.db.rollback()
+                # CA-15: una réplica simultánea pasó la consulta previa y chocó con la unicidad de
+                # id_idempotencia; la que ganó ya está guardada, así que se responde con ella.
+                existente = self.registro_repo.existe_idempotente(entidad.id_idempotencia)
+                if existente is not None:
+                    return ResultadoRegistroDirecto(registro=existente, estado="YA_PROCESADO")
                 raise
             except AppError:
                 self.db.rollback()

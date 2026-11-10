@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: RBAC de M06 que audita el rechazo 403 |
+# | 2026-11-10 | Arekkazu | INC-M06-351 RF-87: el 403 auditado también nombra el rol del usuario |
 """Dependencia RBAC de M06 que registra en RF-94 cada rechazo 403 (RNF-82-05).
 
 La autorización sigue siendo ``require_permission_sobre``; esta capa solo agrega el evento
@@ -34,8 +35,8 @@ def _id_de_ruta(request: Request, nombre: str) -> Optional[int]:
     return valor if valor > 0 else None
 
 
-def require_permission_m06(nombre_recurso: str, id_accion: int) -> Callable:
-    verificar_permiso = require_permission_sobre(nombre_recurso, id_accion)
+def require_permission_m06(nombre_recurso: str, id_accion: int, *, mensaje_denegado: Optional[str] = None) -> Callable:
+    verificar_permiso = require_permission_sobre(nombre_recurso, id_accion, mensaje_denegado=mensaje_denegado)
 
     def dependency(
         request: Request,

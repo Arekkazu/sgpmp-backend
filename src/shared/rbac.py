@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: require_permission_sobre ubica el recurso por nombre |
+# | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87 FA-4: el 403 puede nombrar el rol del usuario |
 """Control de acceso basado en roles (RBAC) para endpoints FastAPI.
 
 Provee la dependencia ``require_permission`` que verifica en tiempo de
@@ -16,6 +17,7 @@ from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.models.permisos_model import Permisos
 from src.identity_access.infrastructure.models.recursos_model import Recursos
+from src.identity_access.infrastructure.models.roles_model import Roles
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 
@@ -114,11 +116,13 @@ def require_permission(
     return dependency
 
 
-def require_permission_sobre(nombre_recurso: str, id_accion: int) -> Callable:
+def require_permission_sobre(nombre_recurso: str, id_accion: int, *, mensaje_denegado: Optional[str] = None) -> Callable:
     """Como ``require_permission``, pero ubica el recurso por ``nombre_recurso``.
 
     Para recursos sembrados por migraciones recientes, cuyo ``id_recurso`` sale
     de la secuencia y no coincide entre bases (ver ``tiene_permiso_sobre``).
+    ``mensaje_denegado`` admite ``{rol}``, que se reemplaza por el nombre del rol
+    del usuario (RF-87 FA-4).
     """
     def dependency(
         db: Session = Depends(get_db),
@@ -127,7 +131,8 @@ def require_permission_sobre(nombre_recurso: str, id_accion: int) -> Callable:
         _exigir_permiso(
             usuario_actual,
             lambda: tiene_permiso_sobre(db, usuario_actual.id_rol, nombre_recurso, id_accion),
-            None,
+            mensaje_denegado,
+            db,
         )
 
     return dependency
@@ -137,6 +142,7 @@ def _exigir_permiso(
     usuario_actual: UsuarioActual,
     tiene: Callable[[], bool],
     mensaje_denegado: Optional[str],
+    db: Optional[Session] = None,
 ) -> None:
     # RF-04: "Los permisos asociados a un rol solo serán efectivos para
     # usuarios que se encuentren en estado activo dentro del sistema."
@@ -153,6 +159,9 @@ def _exigir_permiso(
             ),
         )
     if not tiene():
+        if mensaje_denegado and "{rol}" in mensaje_denegado and db is not None:
+            rol = db.query(Roles.nombre_rol).filter(Roles.id_rol == usuario_actual.id_rol).scalar()
+            mensaje_denegado = mensaje_denegado.replace("{rol}", rol or "sin rol asignado")
         raise AuthorizationError(
             code="ACCESO_DENEGADO",
             message=(

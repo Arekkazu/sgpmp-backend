@@ -2,11 +2,12 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1 / RF-93: comprobante NIC 41 y estado de resultados desde las líneas |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
+# | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
 """Consolidaciones del cierre (RF-87 v1.1) y del estado de resultados (RF-93). Python puro."""
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Iterable, Optional
@@ -71,6 +72,8 @@ GASTOS = ("perdida_transformacion_biologica", "perdida_precio_mercado", "perdida
           "costos_mantenimiento", "inversiones_llevadas_a_gasto", "bajas_activos", "depreciacion_activos_costo",
           "deterioro_activos_costo", "perdida_ajustes_periodos_anteriores")
 
+SUBTIPOS_MANTENIMIENTO = ("ALIMENTO", "MEDICAMENTO", "MANO_OBRA", "VETERINARIO")
+
 _COMPONENTE_LINEA = {
     (TipoHecho.VARIACION_VR_TB.value, Sentido.GANANCIA.value): "ganancia_transformacion_biologica",
     (TipoHecho.VARIACION_VR_TB.value, Sentido.PERDIDA.value): "perdida_transformacion_biologica",
@@ -105,11 +108,13 @@ class CostoPeriodo:
     politica: Optional[str]
     monto: Decimal
     es_reverso: bool = False
+    subtipo: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class EstadoResultados:
     componentes: dict[str, Decimal]
+    desglose_mantenimiento: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def total_ingresos(self) -> Decimal:
@@ -129,6 +134,7 @@ def estado_resultados(movimientos: Iterable[MovimientoResultado], costos: Iterab
     viajan como factura), no de las líneas ``CONSUMO_INSUMO``, para no contarlos dos veces. Las
     inversiones capitalizadas y los costos de venta no son gasto (RF-84, RF-90 CA-10/CA-11)."""
     comp = {c: CERO for c in INGRESOS + GASTOS}
+    desglose = {s: CERO for s in SUBTIPOS_MANTENIMIENTO}  # RF-87 paso 7: por tipo, aunque alguno sea 0
     for m in movimientos:
         nombre = _COMPONENTE_LINEA.get((m.tipo_hecho, m.sentido))
         if nombre is not None:
@@ -137,6 +143,7 @@ def estado_resultados(movimientos: Iterable[MovimientoResultado], costos: Iterab
         monto = -c.monto if c.es_reverso else c.monto
         if c.naturaleza == "MANTENIMIENTO":
             comp["costos_mantenimiento"] += monto
+            desglose[c.subtipo or "OTRO"] = desglose.get(c.subtipo or "OTRO", CERO) + monto
         elif c.naturaleza == "INVERSION" and c.politica == "GASTO":
             comp["inversiones_llevadas_a_gasto"] += monto
-    return EstadoResultados(comp)
+    return EstadoResultados(comp, desglose)

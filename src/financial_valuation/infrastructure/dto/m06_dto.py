@@ -7,6 +7,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-319-G20 RF-84: la confirmación rechaza campos desconocidos (método por componente) |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: ajuste de un hecho de un período cerrado |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -158,6 +159,12 @@ class CostoDTO(BaseDTO):
 class ClasificarCostoDTO(BaseDTO):
     naturaleza_costo: Literal["MANTENIMIENTO", "INVERSION", "VENTA"]
     justificacion: str = Field(min_length=10, max_length=2000)
+
+
+class AjustePeriodoAnteriorDTO(BaseDTO):
+    tipo_ajuste: Literal["AUMENTAR", "DISMINUIR"]
+    valor: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
+    justificacion: str = Field(min_length=20, max_length=1000)
 
 
 class CierreDTO(BaseDTO):
