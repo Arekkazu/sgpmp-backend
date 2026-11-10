@@ -10,6 +10,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | Arekkazu | INC-M06-337/345/350/351 RF-86/87: acumulado, cancelar cierre, ajuste y 403 con el rol |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82/87: el 403 nombra el rol y queda en la auditoría financiera (#1025 + #1068) |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía

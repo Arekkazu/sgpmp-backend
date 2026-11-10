@@ -10,6 +10,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-321-G25 RF-85: no se reconoce una cosecha mayor que lo disponible del activo |
 # | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-83/86: un solo aviso por evento suspendido; el del período cerrado se conserva (#1029 + #1032 + #1036) |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -33,8 +34,9 @@ estaba EN_CIERRE sí van al período siguiente (RF-87).
 
 RF-86 paso 1a / CA-15: si la medición (RF-83) o el reconocimiento del producto (RF-85) no se completa, el
 evento queda ``MEDICION_PENDIENTE`` sin registros financieros parciales y, después del ``commit``, se avisa a
-los Contadores de la finca con la causa, el activo y el evento. Es un solo aviso: si el medidor ya dejó su
-alerta (RF-83), no se repite."""
+los Contadores de la finca con la causa, el activo y el evento. Es un solo aviso por evento: reemplaza la
+alerta de medición pendiente del medidor (RF-83); la de precio estimado sí se envía, y un evento en un
+período cerrado lleva solo su propio aviso."""
 from __future__ import annotations
 
 import logging
@@ -130,11 +132,14 @@ class ProcesarEventosM02UseCase:
                 self.db.commit()
                 self._iniciar_bajas()
                 alertas = self.medidor.tomar_alertas()
+                suspendido = resultado == "MEDICION_PENDIENTE" and self._causa is not None
+                if suspendido:  # un solo aviso por evento: el de suspensión reemplaza el de medición pendiente
+                    alertas = [a for a in alertas if a.detalle.get("motivo") == "PRECIO_ESTIMADO"]
                 if self.notificador is not None:
                     for alerta in alertas:
                         self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", alerta.mensaje, alerta.detalle,
                                                       alerta.id_finca)
-                if resultado == "MEDICION_PENDIENTE" and not alertas:
+                if suspendido:
                     self._avisar_suspension(evento, detalle)
             except Exception as exc:  # un evento fallido no detiene la cola
                 self.db.rollback()
@@ -199,6 +204,7 @@ class ProcesarEventosM02UseCase:
                    f"período contable del {cerrado.fecha_inicio:%Y-%m-%d} al {cerrado.fecha_fin:%Y-%m-%d}, que ya está "
                    "cerrado. Si el hecho debe reconocerse, regístrelo como ajuste en el período abierto.")
         self.medidor.alertar_pendiente(activo, cerrado, dia, evento.id_evento, None, "PERIODO_CERRADO", mensaje)
+        self._causa = None  # su aviso es el del período cerrado, no el de suspensión (RF-86 CA-15)
         return "MEDICION_PENDIENTE", mensaje
 
     def _excluir(self, evento, activo, dia, motivo: str, mensaje: str) -> tuple[str, str]:
