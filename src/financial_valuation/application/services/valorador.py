@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/89: valor razonable menos costos de venta de un activo |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
@@ -38,6 +39,8 @@ class ResultadoValoracion:
     precio: Optional[Precio]
     motivo: Optional[str] = None
     mensaje: Optional[str] = None
+    # Componentes sobrescritos a mano: {item, valor_original, valor_manual} (RF-84 salida 3).
+    ajustes_manuales: tuple = ()
 
     @property
     def es_valido(self) -> bool:
@@ -118,4 +121,6 @@ class Valorador:
             id_evento_magnitud=activo.id_evento_peso if precio.categoria == CategoriaPrecio.PESO_KG.value else None,
             tiene_valor_estimado=estimado,
         )
-        return ResultadoValoracion(calculo, precio)
+        ajustes = tuple({"item": c, "valor_original": costos.originales[c], "valor_manual": getattr(costos, c)}
+                        for c in costos.originales)
+        return ResultadoValoracion(calculo, precio, ajustes_manuales=ajustes)

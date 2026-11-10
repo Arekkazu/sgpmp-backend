@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88 A: propuesta de reconocimiento inicial (NIC 41 ¶10, ¶12, ¶26-27, ¶30) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -53,6 +54,7 @@ class Propuesta:
     advertencias: list[str] = field(default_factory=list)
     requiere_costos_manuales: bool = False
     vida_util_meses: Optional[int] = None
+    ajustes_manuales: tuple = ()  # costos sobrescritos a mano, para su log de auditoría (RF-84 salida 3)
 
     @property
     def es_confirmable(self) -> bool:
@@ -103,6 +105,7 @@ class ProponedorReconocimiento:
         if resultado.es_valido:
             propuesta.indicador_valoracion = IndicadorValoracion.VALOR_RAZONABLE.value
             propuesta.calculo, propuesta.precio = resultado.calculo, resultado.precio
+            propuesta.ajustes_manuales = resultado.ajustes_manuales
             propuesta.valor_inicial = resultado.calculo.valor_neto
             propuesta.costos_venta = resultado.calculo.valor_razonable_bruto - resultado.calculo.valor_neto
             if resultado.calculo.tiene_valor_estimado:
