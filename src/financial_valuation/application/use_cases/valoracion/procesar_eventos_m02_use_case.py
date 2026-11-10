@@ -7,6 +7,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-296-G34-01 RF-86: aviso al Contador cuando la medición queda suspendida |
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
+# | 2026-11-09 | destroyerban | INC-M06-321-G25 RF-85: no se reconoce una cosecha mayor que lo disponible del activo |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -292,7 +293,14 @@ class ProcesarEventosM02UseCase:
         if medicion.estado == "PENDIENTE":
             return "MEDICION_PENDIENTE", medicion.mensaje
         base = self.valoraciones.ultimo_calculo(activo.id_activo_biologico)
-        proporcion = min(Decimal(1), kg / base.magnitud)
+        if kg > base.magnitud:  # R2: no se reduce más de lo que el activo tiene
+            convertida = "" if kg == cantidad else f" = {kg.normalize():f} kg"
+            return self._producto_pendiente(activo, periodo, evento, (
+                f"La cantidad cosechada ({cantidad.normalize():f} {metrica['unidad_medida']}{convertida}) supera la cantidad "
+                f"disponible del activo {activo.identificador} ({base.magnitud.normalize():f} {base.unidad_magnitud}). El "
+                "producto no se reconoció: corrija la cantidad del evento productivo o el último pesaje del activo en "
+                "Activos biológicos."))
+        proporcion = kg / base.magnitud
         valor_reduccion = truncar2(base.valor_neto * proporcion)
         precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
         costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
