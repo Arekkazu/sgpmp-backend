@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {ejecutar,CAPACIDADES} from '../g43.mjs';
 import {CASOS,hoyBogota} from '../lib/g43_core.mjs';
 import {validarError} from '../lib/contrato.mjs';
-import {clasificarRegistro} from './registro_qa.mjs';
+import {clasificarRegistro} from '../lib/infra.mjs';
 import {ejecutar as ejecutarNewman} from './newman_hijo.mjs';
 
 const DIR=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -94,6 +94,7 @@ for(const [nombre,esperados,oficial] of escenarios)for(const extra of [false,tru
  if(nombre!=='rollback_fallido')assert(f.stats.postReads>0);
  const saved=JSON.parse(fs.readFileSync(path.join(dir,'resultado.json'))),md=fs.readFileSync(path.join(dir,'TC-M06-G43_resultado.md'),'utf8');assert.deepEqual(CASOS.map(c=>saved.casos[c].estado),estados);assert.equal(saved.oficial,r.oficial);for(const c of CASOS)assert(md.includes(c)&&md.includes(r.casos[c].estado));for(const x of r.incidencias)assert(md.includes(x.id));assert(md.includes(r.rollback.verificado?'Rollback verificado: si':'Rollback verificado: no'));assert(!/\u00C3|(?<=\p{L})\?(?=\p{L})/u.test(md));assert(!/local@example|Bearer LOCAL/i.test(md+JSON.stringify(saved)));
  const presentes=new Set(fs.readdirSync(dir,{recursive:true,withFileTypes:true}).filter(x=>x.isFile()).map(x=>path.relative(dir,path.join(x.parentPath,x.name)).replaceAll('\\','/')));assert.equal(clasificarRegistro(CAPACIDADES,r,presentes,{runId:RUN,version:1,referencia:'AUT-LOCAL'}),oficial);
+ if(process.env.QA_VERIFICAR_SALIDAS){const destino=path.join(process.env.QA_VERIFICAR_SALIDAS,`${nombre}${extra?'_inyectado':''}`);fs.cpSync(dir,destino,{recursive:true});}
  for(const archivo of presentes)if(/\.(json|html|md)$/.test(archivo)){const contenido=fs.readFileSync(path.join(dir,archivo),'utf8');assert(!/local@example\.invalid|Bearer LOCAL|LOCAL_FAKE|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\./i.test(contenido),archivo);}
  console.log(`OK escenario_${nombre}${extra?'_inyectado':''}: 024=${estados[0]} 025=${estados[1]} 026=${estados[2]} 027=${estados[3]} oficial=${oficial} solicitudes=${f.stats.total}/240`);
  }finally{await new Promise(ok=>f.server.close(ok));fs.rmSync(tmp,{recursive:true,force:true});}

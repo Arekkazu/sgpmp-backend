@@ -1,11 +1,13 @@
+// Copiado de TC-M06-G42/pruebas/newman_hijo.mjs; grupo deducido del directorio.
 import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url);
+const grupo=path.basename(path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..')).match(/^TC-M06-(G\d+)$/)?.[1];
 export async function ejecutar(input){
-  const dir=path.resolve(input.salida);if(path.basename(dir)!=='newman'||!dir.includes(`${path.sep}RUN-G43-V`))throw Error('SALIDA_FUERA_RUN');
-  fs.mkdirSync(dir,{recursive:true});const json=path.join(dir,'newman-G43.json'),html=path.join(dir,'newman-G43.html');
+  const dir=path.resolve(input.salida);if(!grupo||path.basename(dir)!=='newman'||!new RegExp(`^RUN-${grupo}-V\\d+-\\d{8}-\\d{6}$`).test(path.basename(path.dirname(dir))))throw Error('SALIDA_FUERA_RUN');
+  fs.mkdirSync(dir,{recursive:true});const json=path.join(dir,`newman-${grupo}.json`),html=path.join(dir,`newman-${grupo}.html`);
   const newman=require(path.join(path.dirname(process.execPath),'node_modules','newman'));
   const {error,summary}=await new Promise(resolve=>newman.run({collection:input.coleccion,environment:input.environment,
     reporters:['json','htmlextra'],reporter:{json:{export:json},htmlextra:{export:html,skipSensitiveData:true}},

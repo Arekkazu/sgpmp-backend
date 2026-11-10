@@ -1,0 +1,1157 @@
+{
+  "grupo": "G44",
+  "rf": "RF-87",
+  "run_id": "RUN-G44-V1-20261110-055212",
+  "version": 1,
+  "autorizacion_referencia": "AUT-G44-V1-R2-20261110",
+  "casos": {
+    "TC-M06-028": {
+      "estado": "RECHAZADO",
+      "motivo": "028_b, 028_c",
+      "comprobaciones": [
+        {
+          "id": "028_a",
+          "esperado": "PENDIENTE_CUENTA y lista de faltantes; 220 ABIERTO sin cierre",
+          "observado": "028_a: HTTP 422, error CIERRE_BLOQUEADO, mensaje 1 líneas no tienen cuentas en la matriz contable: Mano de obra propia (único) de Caprino Qa Aislado. Asígnelas en Configuración contable.; línea pendiente true; bloqueo LINEAS_PENDIENTE_CUENTA; estado ABIERTO",
+          "estado": "APROBADO"
+        },
+        {
+          "id": "028_b",
+          "esperado": "Matriz incompleta informada; 219 ABIERTO sin cierre",
+          "observado": "028_b: HTTP 200, error ausente, mensaje ausente; estado CERRADO",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "028_c",
+          "esperado": "Finca sin titular informada; 219 ABIERTO sin cierre",
+          "observado": "028_c: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-10. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.; prevalidación ; estado CERRADO",
+          "estado": "RECHAZADO"
+        }
+      ]
+    },
+    "TC-M06-029": {
+      "estado": "RECHAZADO",
+      "motivo": "029_mensaje",
+      "comprobaciones": [
+        {
+          "id": "029_acceso",
+          "esperado": "403 y 219 sin cambios para tres roles",
+          "observado": "029.acceso: true,true,true",
+          "estado": "APROBADO"
+        },
+        {
+          "id": "029_mensaje",
+          "esperado": "FA-4 y rol explícito para cada 403",
+          "observado": "029.mensaje: false,false,false",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "029_admin",
+          "esperado": "Administrador consulta estado y prevalidación con 200",
+          "observado": "029.admin: HTTP 200/200",
+          "estado": "APROBADO"
+        }
+      ]
+    },
+    "TC-M06-030": {
+      "estado": "RECHAZADO",
+      "motivo": "030_cerrado, 030_concurrencia",
+      "comprobaciones": [
+        {
+          "id": "030_cerrado",
+          "esperado": "409 Periodo inmutable con fecha y Contador ejecutor; 7 CERRADO",
+          "observado": "030_cerrado: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-07. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.; 7 sin cambios true",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "030_concurrencia",
+          "esperado": "Segundo 409 de concurrencia con hora y usuario del primero",
+          "observado": "030_concurrencia: HTTP 409, error EXCLUSION_REQUIERE_AUTORIZACION, mensaje 1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.; primero 030.primero: HTTP 409, error EXCLUSION_REQUIERE_AUTORIZACION, mensaje 1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "030_sin_segundo",
+          "esperado": "8 ABIERTO sin segundo cierre ni comprobantes nuevos",
+          "observado": "030.sin_segundo: estado ABIERTO; comprobantes 0; líneas 8",
+          "estado": "APROBADO"
+        }
+      ]
+    }
+  },
+  "preflight": {
+    "grupo": "G44",
+    "run_id": "RUN-G44-V1-20261110-055212",
+    "version": 1,
+    "referencia": "AUT-G44-V1-R2-20261110",
+    "ok": true,
+    "barreras": [],
+    "efectos": [
+      "Cuatro logins",
+      "DELETE de asignaciones 34 y 49",
+      "Un costo MANO_OBRA_PROPIA sobre 1569",
+      "PUT titular finca 466",
+      "POST cierre 7, 8 dos veces, 219 cinco veces y 220 una vez",
+      "DELETE del RUN y lecturas sin cabeceras"
+    ]
+  },
+  "solicitudes": [
+    {
+      "id": "G44-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:13.017Z",
+      "eco": false
+    },
+    {
+      "id": "G44-002",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:14.215Z",
+      "eco": false
+    },
+    {
+      "id": "G44-003",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:14.895Z",
+      "eco": false
+    },
+    {
+      "id": "G44-004",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:15.281Z",
+      "eco": false
+    },
+    {
+      "id": "G44-005",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:15.684Z",
+      "eco": true
+    },
+    {
+      "id": "G44-006",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:15.836Z",
+      "eco": true
+    },
+    {
+      "id": "G44-007",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:16.053Z",
+      "eco": true
+    },
+    {
+      "id": "G44-008",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:16.261Z",
+      "eco": true
+    },
+    {
+      "id": "G44-009",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:16.409Z",
+      "eco": true
+    },
+    {
+      "id": "G44-010",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:16.634Z",
+      "eco": true
+    },
+    {
+      "id": "G44-011",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:16.973Z",
+      "eco": true
+    },
+    {
+      "id": "G44-012",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:17.169Z",
+      "eco": true
+    },
+    {
+      "id": "G44-013",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:17.322Z",
+      "eco": true
+    },
+    {
+      "id": "G44-014",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:17.475Z",
+      "eco": true
+    },
+    {
+      "id": "G44-015",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:17.633Z",
+      "eco": true
+    },
+    {
+      "id": "G44-016",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:17.844Z",
+      "eco": true
+    },
+    {
+      "id": "G44-017",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:17.987Z",
+      "eco": true
+    },
+    {
+      "id": "G44-018",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:18.125Z",
+      "eco": true
+    },
+    {
+      "id": "G44-019",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:18.279Z",
+      "eco": true
+    },
+    {
+      "id": "G44-020",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:18.423Z",
+      "eco": true
+    },
+    {
+      "id": "G44-021",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:18.585Z",
+      "eco": true
+    },
+    {
+      "id": "G44-022",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:18.830Z",
+      "eco": true
+    },
+    {
+      "id": "G44-023",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.003Z",
+      "eco": true
+    },
+    {
+      "id": "G44-024",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.138Z",
+      "eco": true
+    },
+    {
+      "id": "G44-025",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.288Z",
+      "eco": true
+    },
+    {
+      "id": "G44-026",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.444Z",
+      "eco": true
+    },
+    {
+      "id": "G44-027",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.604Z",
+      "eco": true
+    },
+    {
+      "id": "G44-028",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.809Z",
+      "eco": true
+    },
+    {
+      "id": "G44-029",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:19.966Z",
+      "eco": true
+    },
+    {
+      "id": "G44-030",
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/466/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:20.097Z",
+      "eco": true
+    },
+    {
+      "id": "G44-031",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/219/cierre",
+      "http": 403,
+      "hora_utc": "2026-11-10T05:52:20.239Z",
+      "eco": true,
+      "error": "ACCESO_DENEGADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-032",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:20.370Z",
+      "eco": true
+    },
+    {
+      "id": "G44-033",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:20.531Z",
+      "eco": true
+    },
+    {
+      "id": "G44-034",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:20.665Z",
+      "eco": true
+    },
+    {
+      "id": "G44-035",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:20.840Z",
+      "eco": true
+    },
+    {
+      "id": "G44-036",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/219/cierre",
+      "http": 403,
+      "hora_utc": "2026-11-10T05:52:20.974Z",
+      "eco": true,
+      "error": "ACCESO_DENEGADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-037",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:21.153Z",
+      "eco": true
+    },
+    {
+      "id": "G44-038",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:21.367Z",
+      "eco": true
+    },
+    {
+      "id": "G44-039",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:21.513Z",
+      "eco": true
+    },
+    {
+      "id": "G44-040",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:21.646Z",
+      "eco": true
+    },
+    {
+      "id": "G44-041",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/219/cierre",
+      "http": 403,
+      "hora_utc": "2026-11-10T05:52:21.809Z",
+      "eco": true,
+      "error": "ACCESO_DENEGADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-042",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:21.940Z",
+      "eco": true
+    },
+    {
+      "id": "G44-043",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:22.102Z",
+      "eco": true
+    },
+    {
+      "id": "G44-044",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:22.247Z",
+      "eco": true
+    },
+    {
+      "id": "G44-045",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:22.390Z",
+      "eco": true
+    },
+    {
+      "id": "G44-046",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:22.527Z",
+      "eco": true
+    },
+    {
+      "id": "G44-047",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:22.683Z",
+      "eco": true
+    },
+    {
+      "id": "G44-048",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:22.833Z",
+      "eco": true
+    },
+    {
+      "id": "G44-049",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/7/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T05:52:22.999Z",
+      "eco": true,
+      "error": "PERIODO_CERRADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-050",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:23.154Z",
+      "eco": true
+    },
+    {
+      "id": "G44-051",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:23.300Z",
+      "eco": true
+    },
+    {
+      "id": "G44-052",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:23.515Z",
+      "eco": true
+    },
+    {
+      "id": "G44-053",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:23.656Z",
+      "eco": true
+    },
+    {
+      "id": "G44-054",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/8/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T05:52:23.808Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-055",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/8/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T05:52:24.008Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-056",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:24.186Z",
+      "eco": true
+    },
+    {
+      "id": "G44-057",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:24.336Z",
+      "eco": true
+    },
+    {
+      "id": "G44-058",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:24.476Z",
+      "eco": true
+    },
+    {
+      "id": "G44-059",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:24.618Z",
+      "eco": true
+    },
+    {
+      "id": "G44-060",
+      "metodo": "DELETE",
+      "ruta": "/finanzas/configuracion/matriz/34",
+      "http": 204,
+      "hora_utc": "2026-11-10T05:52:24.831Z",
+      "eco": true
+    },
+    {
+      "id": "G44-061",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 201,
+      "hora_utc": "2026-11-10T05:52:25.022Z",
+      "eco": true
+    },
+    {
+      "id": "G44-062",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:25.188Z",
+      "eco": true
+    },
+    {
+      "id": "G44-063",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:25.408Z",
+      "eco": true
+    },
+    {
+      "id": "G44-064",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 422,
+      "hora_utc": "2026-11-10T05:52:25.565Z",
+      "eco": true,
+      "error": "CIERRE_BLOQUEADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-065",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:25.733Z",
+      "eco": true
+    },
+    {
+      "id": "G44-066",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:25.905Z",
+      "eco": true
+    },
+    {
+      "id": "G44-067",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:26.128Z",
+      "eco": true
+    },
+    {
+      "id": "G44-068",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:26.260Z",
+      "eco": true
+    },
+    {
+      "id": "G44-069",
+      "metodo": "DELETE",
+      "ruta": "/finanzas/configuracion/matriz/49",
+      "http": 204,
+      "hora_utc": "2026-11-10T05:52:26.408Z",
+      "eco": true
+    },
+    {
+      "id": "G44-070",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/219/cierre",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:26.558Z",
+      "eco": true
+    },
+    {
+      "id": "G44-071",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:26.805Z",
+      "eco": true
+    },
+    {
+      "id": "G44-072",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:27.015Z",
+      "eco": true
+    },
+    {
+      "id": "G44-073",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:27.174Z",
+      "eco": true
+    },
+    {
+      "id": "G44-074",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:27.314Z",
+      "eco": true
+    },
+    {
+      "id": "G44-075",
+      "metodo": "PUT",
+      "ruta": "/configuracion/fincas/466/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:27.454Z",
+      "eco": true
+    },
+    {
+      "id": "G44-076",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:27.597Z",
+      "eco": true
+    },
+    {
+      "id": "G44-077",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/219/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T05:52:27.748Z",
+      "eco": true,
+      "error": "PERIODO_CERRADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-078",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:27.893Z",
+      "eco": true
+    },
+    {
+      "id": "G44-079",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:28.138Z",
+      "eco": true
+    },
+    {
+      "id": "G44-080",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:28.274Z",
+      "eco": true
+    },
+    {
+      "id": "G44-081",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:28.416Z",
+      "eco": true
+    },
+    {
+      "id": "G44-082",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G44-V1-20261110-055212",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:33.135Z",
+      "eco": true
+    },
+    {
+      "id": "G44-083",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:33.510Z",
+      "eco": false
+    },
+    {
+      "id": "G44-084",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:34.014Z",
+      "eco": false
+    },
+    {
+      "id": "G44-085",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:34.248Z",
+      "eco": false
+    },
+    {
+      "id": "G44-086",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:34.396Z",
+      "eco": false
+    },
+    {
+      "id": "G44-087",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:34.548Z",
+      "eco": false
+    },
+    {
+      "id": "G44-088",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:34.718Z",
+      "eco": false
+    },
+    {
+      "id": "G44-089",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:34.862Z",
+      "eco": false
+    },
+    {
+      "id": "G44-090",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.007Z",
+      "eco": false
+    },
+    {
+      "id": "G44-091",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.154Z",
+      "eco": false
+    },
+    {
+      "id": "G44-092",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.381Z",
+      "eco": false
+    },
+    {
+      "id": "G44-093",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.522Z",
+      "eco": false
+    },
+    {
+      "id": "G44-094",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.674Z",
+      "eco": false
+    },
+    {
+      "id": "G44-095",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.816Z",
+      "eco": false
+    },
+    {
+      "id": "G44-096",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:35.964Z",
+      "eco": false
+    },
+    {
+      "id": "G44-097",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:36.169Z",
+      "eco": false
+    },
+    {
+      "id": "G44-098",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:36.308Z",
+      "eco": false
+    },
+    {
+      "id": "G44-099",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:36.446Z",
+      "eco": false
+    },
+    {
+      "id": "G44-100",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:36.631Z",
+      "eco": false
+    },
+    {
+      "id": "G44-101",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:36.945Z",
+      "eco": false
+    },
+    {
+      "id": "G44-102",
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/466/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T05:52:37.087Z",
+      "eco": false
+    }
+  ],
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-028",
+      "id": "028_a",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-028",
+      "id": "028_b",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-028",
+      "id": "028_c",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-029",
+      "id": "029_acceso",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-029",
+      "id": "029_mensaje",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-029",
+      "id": "029_admin",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-030",
+      "id": "030_cerrado",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-030",
+      "id": "030_concurrencia",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-030",
+      "id": "030_sin_segundo",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "precios": [],
+  "activos": [],
+  "lineas": [],
+  "incidencias": [
+    {
+      "id": "INC-M06-G44-01",
+      "casos": [
+        "TC-M06-029"
+      ],
+      "esperado": "403 FA-4 con rol y sin cambios",
+      "obtenido": "029.admin: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+      "evidencia": "resultado.json",
+      "impacto": "Control de acceso o explicación al rol incorrectos.",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "La discrepancia afecta parcialmente el control o la explicación al usuario.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    },
+    {
+      "id": "INC-M06-G44-02",
+      "casos": [
+        "TC-M06-030"
+      ],
+      "esperado": "409 Periodo inmutable con fecha y ejecutor",
+      "obtenido": "030_cerrado: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-07. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.",
+      "evidencia": "resultado.json",
+      "impacto": "El 409 omite información de auditoría requerida.",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "La discrepancia afecta parcialmente el control o la explicación al usuario.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    },
+    {
+      "id": "INC-M06-G44-03",
+      "casos": [
+        "TC-M06-030"
+      ],
+      "esperado": "Segundo cierre rechazado por concurrencia con hora y usuario",
+      "obtenido": "030_concurrencia: HTTP 409, error EXCLUSION_REQUIERE_AUTORIZACION, mensaje 1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+      "evidencia": "resultado.json",
+      "impacto": "El estado de cierre activo no se representa como exige RF-87.",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "La discrepancia afecta parcialmente el control o la explicación al usuario.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": "INC-M06-G43-01"
+    },
+    {
+      "id": "INC-M06-G44-05",
+      "casos": [
+        "TC-M06-028"
+      ],
+      "esperado": "Bloqueo por matriz incompleta con lista",
+      "obtenido": "028_b: HTTP 200, error ausente, mensaje ausente",
+      "evidencia": "resultado.json",
+      "impacto": "Cierre con depreciación sin cuenta no informado como exige RF-87.",
+      "severidad": "ALTA",
+      "justificacion_severidad": "La discrepancia bloquea un control relevante del cierre sin alternativa demostrada.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    },
+    {
+      "id": "INC-M06-G44-06",
+      "casos": [
+        "TC-M06-028"
+      ],
+      "esperado": "Bloqueo por finca sin titular",
+      "obtenido": "028_c: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-10. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.",
+      "evidencia": "resultado.json",
+      "impacto": "Cierre puede completarse o fallar sin informar titular ausente.",
+      "severidad": "ALTA",
+      "justificacion_severidad": "La discrepancia bloquea un control relevante del cierre sin alternativa demostrada.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    }
+  ],
+  "evidencias": [
+    "newman/newman-G44.html",
+    "newman/newman-G44.json"
+  ],
+  "problemas_tecnicos": [],
+  "cypress": {
+    "paneles": {},
+    "total_pruebas": 0,
+    "codigo": 0,
+    "aprobadas": 0,
+    "fallidas": 0
+  },
+  "rollback": {
+    "verificado": true,
+    "motivo": "Lecturas poscierre sin cabeceras: matriz true; costo ausente true; titular true; periodos true; líneas y artefactos true"
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "codigo": 0,
+      "fallos": 0,
+      "solicitudes": 4,
+      "reportes": true
+    },
+    "cypress": {
+      "codigo": 0,
+      "totalTests": 0
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "observado_029_admin": "029.admin: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+  "observado_029_veterinario": "029.veterinario: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+  "observado_029_productor": "029.productor: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lecturas poscierre sin cabeceras: matriz true; costo ausente true; titular true; periodos true; líneas y artefactos true"
+    }
+  },
+  "total_solicitudes_api": 106,
+  "duracion_segundos": 25,
+  "clasificacion_fallo": "PRODUCTO",
+  "sha256": {
+    "ejecutor": "e52c0e6f23397f0d728e949c139b2239bc3c1fbba7b833a6478491bdecbd417c",
+    "infraestructura": {
+      "lib/infra.mjs": "97562a7d9269eee82413be798d116a0e271277381fc3b69ba058199358874238",
+      "lib/contrato.mjs": "bfd07b9e5de3c12ac466c9fe0ff4a4f82afa7c91ffd0d190cb6e529a0b750fff",
+      "lib/informe.mjs": "9b463aba8eda7ea510987fefb7703aea8a8b5ac57b81f66c3af7d215aaae6c62",
+      "pruebas/newman_hijo.mjs": "38ecb80490ff6e8fe05bd86896e01c835f850313c04fca0c91c734d4a7b08455",
+      "pruebas/simulador_base.mjs": "2fbb5ede67c87ab59f62c6630c7b7aac94caf3ca9d7bc6592fdfc7ebdc67470f",
+      "pruebas/verificar.mjs": "b8cfd167b1f44848aa27fb6ab719dd2813fd41e3173693c3cbb31859f4c7d316"
+    }
+  }
+}

@@ -1,0 +1,791 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "e8ed93dc-8e77-4202-995f-c75cb6648b7b",
+        "name": "/finanzas/periodos",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "3d9714dd-a527-4d2a-a08f-7c9265efe900",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+              ],
+              "_lastExecutionId": "e70cbdc7-c516-4c36-914e-81ccc039735b"
+            }
+          }
+        ]
+      },
+      {
+        "id": "f1e7b514-b565-45a3-a55d-bd8acde6a363",
+        "name": "/finanzas/periodos/220/prevalidacion",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "220",
+              "prevalidacion"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "f30e200e-055b-4bf2-abfe-c776a3d1e563",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+              ],
+              "_lastExecutionId": "47d6e937-9d82-4a27-8586-4cdd1b8b35d6"
+            }
+          }
+        ]
+      },
+      {
+        "id": "cacdf9f8-846d-4884-b548-be436e5aa230",
+        "name": "/finanzas/periodos/220/comprobantes",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "220",
+              "comprobantes"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "48bf1229-f93c-4fd5-a795-17ca22a06b81",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+              ],
+              "_lastExecutionId": "7cf5c7f9-49fd-4173-89a7-81a9cea0d1d2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "3a7c5706-7e2b-4937-92df-612998380005",
+        "name": "/finanzas/auditoria?id_periodo_contable=220&formato=TECNICO&tamano=500&pagina=1&orden=DESC",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "auditoria"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "220"
+              },
+              {
+                "key": "formato",
+                "value": "TECNICO"
+              },
+              {
+                "key": "tamano",
+                "value": "500"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "orden",
+                "value": "DESC"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "aeb72dd2-19d3-4b35-9134-938ca68a93f8",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+              ],
+              "_lastExecutionId": "ca2b6557-d1bd-427d-be28-21052be440df"
+            }
+          }
+        ]
+      },
+      {
+        "id": "9540663e-0568-46c7-a50d-adbe34f7a395",
+        "name": "/finanzas/activos/1573",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "activos",
+              "1573"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "be124329-8df2-416e-b7ec-45cfcf7a292d",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+              ],
+              "_lastExecutionId": "fb412307-62e5-41f4-8a49-8ced864579de"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "0dcbca4c-c1e1-4279-93ad-84e1c78a5dab",
+      "name": "TC-M06-G46 RF-87 lecturas finales",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "d8fe7919-59e2-48f2-bbfe-845fcc0fdd2b",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "contador_token"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G46-V1-20261110-084842",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      }
+    ]
+  },
+  "globals": {
+    "id": "a7cb4bfb-9c4f-450e-9d3b-c5935da8b4d6",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 258.8,
+      "responseMin": 140,
+      "responseMax": 598,
+      "responseSd": 174.67844743986018,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794300530778,
+      "completed": 1794300532421
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "9d7746e6-f3e7-4ce0-b2ea-afc3ec1d98c7",
+          "httpRequestId": "53f1cae0-efe3-4e26-b7d1-ab4ea5557901"
+        },
+        "item": {
+          "id": "e8ed93dc-8e77-4202-995f-c75cb6648b7b",
+          "name": "/finanzas/periodos",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3d9714dd-a527-4d2a-a08f-7c9265efe900",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+                ],
+                "_lastExecutionId": "e70cbdc7-c516-4c36-914e-81ccc039735b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "9552e6d3-aa5f-48fa-a66b-3db58568b81e",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 598,
+          "responseSize": 5629
+        },
+        "id": "e8ed93dc-8e77-4202-995f-c75cb6648b7b",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON válido",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "479ee157-3915-44c6-b2e5-fe00bf1ad049",
+          "length": 5,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "174616cf-2941-474f-840f-8bdd175f7d0f"
+        },
+        "item": {
+          "id": "f1e7b514-b565-45a3-a55d-bd8acde6a363",
+          "name": "/finanzas/periodos/220/prevalidacion",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "220",
+                "prevalidacion"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f30e200e-055b-4bf2-abfe-c776a3d1e563",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+                ],
+                "_lastExecutionId": "47d6e937-9d82-4a27-8586-4cdd1b8b35d6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "220",
+              "prevalidacion"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "4bfacfa2-5090-46fe-8e58-761350874a21",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 159,
+          "responseSize": 118
+        },
+        "id": "f1e7b514-b565-45a3-a55d-bd8acde6a363",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON válido",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "396ff916-8ef3-4667-ad61-c2eddab939b8",
+          "length": 5,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e79056b7-1e64-4e61-9b6f-acf1f5fb907a"
+        },
+        "item": {
+          "id": "cacdf9f8-846d-4884-b548-be436e5aa230",
+          "name": "/finanzas/periodos/220/comprobantes",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "220",
+                "comprobantes"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "48bf1229-f93c-4fd5-a795-17ca22a06b81",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+                ],
+                "_lastExecutionId": "7cf5c7f9-49fd-4173-89a7-81a9cea0d1d2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "220",
+              "comprobantes"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "3cf8dddb-2b06-4c12-874f-ee4f6e848335",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 140,
+          "responseSize": 1446
+        },
+        "id": "cacdf9f8-846d-4884-b548-be436e5aa230",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON válido",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "8374c22b-a7dc-46df-a35e-310c8b2c4712",
+          "length": 5,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "24c74215-a985-45f6-8b2d-5994396b5ed3"
+        },
+        "item": {
+          "id": "3a7c5706-7e2b-4937-92df-612998380005",
+          "name": "/finanzas/auditoria?id_periodo_contable=220&formato=TECNICO&tamano=500&pagina=1&orden=DESC",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "auditoria"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "220"
+                },
+                {
+                  "key": "formato",
+                  "value": "TECNICO"
+                },
+                {
+                  "key": "tamano",
+                  "value": "500"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "orden",
+                  "value": "DESC"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "aeb72dd2-19d3-4b35-9134-938ca68a93f8",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+                ],
+                "_lastExecutionId": "ca2b6557-d1bd-427d-be28-21052be440df"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "auditoria"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "220"
+              },
+              {
+                "key": "formato",
+                "value": "TECNICO"
+              },
+              {
+                "key": "tamano",
+                "value": "500"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "orden",
+                "value": "DESC"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "371b5913-b4c8-41f1-9eaa-2bd1ca0a62cb",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 254,
+          "responseSize": 17981
+        },
+        "id": "3a7c5706-7e2b-4937-92df-612998380005",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON válido",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "02aa41cd-1a84-4ede-a0e3-b70f0977e69d",
+          "length": 5,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "425b12ad-b436-418c-96ff-8b549832027b"
+        },
+        "item": {
+          "id": "9540663e-0568-46c7-a50d-adbe34f7a395",
+          "name": "/finanzas/activos/1573",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "activos",
+                "1573"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "be124329-8df2-416e-b7ec-45cfcf7a292d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON válido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+                ],
+                "_lastExecutionId": "fb412307-62e5-41f4-8a49-8ced864579de"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "activos",
+              "1573"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "98dbadfd-c59b-4832-bc2d-0a5b5a6c43d5",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 143,
+          "responseSize": 2242
+        },
+        "id": "9540663e-0568-46c7-a50d-adbe34f7a395",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON válido",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 27416
+    },
+    "failures": [],
+    "error": null
+  }
+}

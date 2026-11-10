@@ -6,59 +6,42 @@ import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {CASOS,LIMITE,hoyBogota,porId,precioVigente,fechaApta,preInicial,sinCambios,evaluar,cierre8CoincideG32,numeroAislado,paresMatrizFaltantes,cuerpoParMatriz,calculosUsanPrecio} from './lib/g43_core.mjs';
 import {contrato,validarLecturas,validarError,esquema} from './lib/contrato.mjs';
+export {informe} from './lib/informe.mjs';
+import {informe} from './lib/informe.mjs';
+import {clasificarFallo,validarFormaResultado,crearSolicitante,lanzarHijo,listarEvidencias,guardarResultado,contexto as contextoInfra,leerEnv as leerEnvInfra,preflight as preflightInfra} from './lib/infra.mjs';
 const DIR=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(DIR,'../../../../..');
 const API='https://www.api.inmero.co/api-sgpmp-test',FRONT='https://api.inmero.co/sigab-test';
-const archivos=['g43.mjs','lib/g43_core.mjs','lib/contrato.mjs','pruebas/contrato_g43.json','G43.postman_collection.json','g43.cy.js','g43.cypress.config.cjs','pruebas/newman_hijo.mjs','pruebas/cypress_hijo.mjs','pruebas/registro_qa.mjs','pruebas/g43_local.test.mjs','pruebas/g43_decisiones.test.mjs','pruebas/g43_escenarios.test.mjs','pruebas/g43_cli.test.mjs','pruebas/g43_dto.test.py','README.md'];
+const archivos=['g43.mjs','lib/g43_core.mjs','lib/infra.mjs','lib/contrato.mjs','lib/informe.mjs','pruebas/contrato_g43.json','pruebas/escenarios_g43.json','G43.postman_collection.json','g43.cy.js','g43.cypress.config.cjs','pruebas/newman_hijo.mjs','pruebas/cypress_hijo.mjs','pruebas/simulador_base.mjs','pruebas/verificar.mjs','pruebas/g43_local.test.mjs','pruebas/g43_decisiones.test.mjs','pruebas/g43_escenarios.test.mjs','pruebas/g43_cli.test.mjs','pruebas/g43_dto.test.py','README.md'];
 const sha=p=>createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const save=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
 const clean=x=>String(x??'').replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+|[\w.+-]+@[\w.-]+/g,'[RESERVADO]').slice(0,240);
 const id=n=>`G43-${String(n).padStart(3,'0')}`;
 export const CAPACIDADES={contrato:'sigab-qa-ejecutor/1',grupo:'G43',casos:CASOS,operaciones:['evaluar','reintentar','reevaluar'],versiones:{min:1,max:99},comprobaciones_obligatorias:Object.fromEntries(CASOS.map(c=>[c,{API:[`G43-API-${c.slice(-3)}-01`],UI:[`G43-UI-${c==='TC-M06-024'?'027':c.slice(-3)}-01`]}])),limite:LIMITE,baja_automatizada:true};
 export function comprobar(){const faltan=archivos.filter(x=>!fs.existsSync(path.join(DIR,x)));const col=fs.existsSync(path.join(DIR,'G43.postman_collection.json'))?JSON.parse(fs.readFileSync(path.join(DIR,'G43.postman_collection.json'))):null;const superior=fs.existsSync(path.join(DIR,'Resultados'))&&fs.readdirSync(path.join(DIR,'Resultados')).some(x=>x.endsWith('.md'));const ok=!faltan.length&&col?.item?.length>=8&&contrato.rutas.every(x=>x.cita?.startsWith('src/'))&&!superior;console.log(JSON.stringify({grupo:'G43',ok,faltan,items:col?.item?.length??0,sha256:Object.fromEntries(archivos.filter(x=>fs.existsSync(path.join(DIR,x))).map(x=>[x,sha(path.join(DIR,x))]))}));return ok?0:2;}
-const arg=(a,k)=>a.includes(k)?a[a.indexOf(k)+1]:null;
-export function contexto(a,prueba=false){const operacion=arg(a,'--operacion'),version=Number(arg(a,'--version')),intento=Number(arg(a,'--intento')),runId=arg(a,'--run-id'),ref=arg(a,'--autorizacion');if(!CAPACIDADES.operaciones.includes(operacion)||!Number.isInteger(version)||version<1||!Number.isInteger(intento)||intento<1||!ref||!new RegExp(`^RUN-G43-V${version}-\\d{8}-\\d{6}$`).test(runId??''))throw Error('CONTEXTO_INCOMPLETO');const archivo=arg(a,'--contexto'),dir=prueba?path.dirname(path.resolve(archivo??'.')):path.join(DIR,...(version===1?['Resultados',runId]:[`EvaluacionV${version}`,'Resultados',runId]));if(prueba&&(path.basename(dir)!==runId||!dir.startsWith(path.resolve(os.tmpdir())+path.sep)))throw Error('PRUEBA_FUERA_TEMPORAL');if(!archivo||path.resolve(archivo)!==path.join(dir,'contexto_operacion.json'))throw Error('CONTEXTO_FUERA_RUN');const c=JSON.parse(fs.readFileSync(archivo));if(c.grupo!=='G43'||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()||c.referencia!==ref||JSON.stringify(c.casos)!==JSON.stringify(CASOS))throw Error('CONTEXTO_INCOHERENTE');return{dir,runId,version,intento,operacion,ref};}
-// Copiada de TC-M06-G42/g42.mjs:23; la ruta alternativa se usa solo en la prueba CLI temporal.
-export function leerEnv(proceso=process.env,archivo=path.join(ROOT,'.env.qa')){const e={};if(proceso.QA_AUTORIZADO==='SI'&&fs.existsSync(archivo))for(const line of fs.readFileSync(archivo,'utf8').split(/\r?\n/)){const m=line.match(/^\s*([A-Z][A-Z0-9_]*)\s*=(.*)$/);if(m)e[m[1]]=m[2].trim().replace(/^(['"])(.*)\1$/,'$2');}Object.assign(e,proceso);e.QA_AUTORIZADO=proceso.QA_AUTORIZADO;return e;}
-export function preflight(c,e=process.env){const falta=['QA_AUTORIZADO','SIGAB_API_TEST_BASE','QA_SANDBOX_SECRET','QA_CONTADOR_EMAIL','QA_CONTADOR_PASSWORD'].filter(k=>!String(e[k]??'').trim());if(e.QA_AUTORIZADO!=='SI'&&!falta.includes('QA_AUTORIZADO'))falta.push('QA_AUTORIZADO');if(String(e.SIGAB_API_TEST_BASE??'').replace(/\/+$/,'')!==API&&!falta.includes('SIGAB_API_TEST_BASE'))falta.push('SIGAB_API_TEST_BASE');if(String(e.SIGAB_FRONT_TEST_BASE??FRONT).replace(/\/+$/,'')!==FRONT)falta.push('SIGAB_FRONT_TEST_BASE');return{grupo:'G43',run_id:c.runId,version:c.version,referencia:c.ref,ok:falta.length===0,barreras:falta,efectos:['POST /finanzas/configuracion/matriz: hasta cuatro pares faltantes','POST /finanzas/precios: hasta tres precios','POST cierre: periodos 8, 219 y 220; ninguno se reintenta','Posibles notificaciones externas no revertidas por el sandbox']};}
-async function hijo(script,input,timeout=300000,env=process.env){return new Promise((resolve,reject)=>{const p=spawn(process.execPath,[path.join(DIR,'pruebas',script)],{stdio:['pipe','pipe','pipe'],windowsHide:true,timeout,env});let out='',err='';p.stdout.on('data',d=>out+=d);p.stderr.on('data',d=>err+=d);p.on('error',reject);p.on('close',code=>{try{resolve({code,data:JSON.parse(out),error:clean(err)});}catch{resolve({code,data:null,error:clean(err||out)});}});p.stdin.end(JSON.stringify(input));});}
+export function contexto(a,prueba=false){
+  return contextoInfra(a,{capacidades:CAPACIDADES,grupo:'G43',casos:CASOS,dir:DIR,prueba});
+}
+// Copiada de TC-M06-G42/g42.mjs:23; ruta alternativa solo para CLI temporal.
+export function leerEnv(proceso=process.env,archivo=path.join(ROOT,'.env.qa')){
+  return leerEnvInfra(proceso,archivo);
+}
+export function preflight(c,e=process.env){
+  return preflightInfra(c,e,{grupo:'G43',api:API,front:FRONT,efectos:[
+    'POST /finanzas/configuracion/matriz: hasta cuatro pares faltantes',
+    'POST /finanzas/precios: hasta tres precios',
+    'POST cierre: periodos 8, 219 y 220; ninguno se reintenta',
+    'Posibles notificaciones externas no revertidas por el sandbox'
+  ]});
+}async function hijo(script,input,timeout=300000,env=process.env){return lanzarHijo({base:DIR,script,input,timeout,env,clean});}
 export const permitidos=[['cierre_periodo',2],['cierre_periodo',5],['configuracion_contable',2],['configuracion_contable',1],['auditoria_financiera',2],['precios_mercado',2],['precios_mercado',1],['valoracion_activos',2],['revelaciones_nic41',2]];
 const snapshot=(periodos,idPeriodo,lineas,comprobantes,variaciones)=>({periodo:{id_periodo_contable:idPeriodo,estado:porId(periodos,'id_periodo_contable',idPeriodo)?.estado},lineas:lineas.map(x=>({id_linea_asiento_nic41:x.id_linea_asiento_nic41,estado:x.estado,estado_trazabilidad:x.estado_trazabilidad,id_periodo_contable:x.id_periodo_contable,tipo_evidencia:x.tipo_evidencia})),comprobantes:comprobantes.map(x=>({id_comprobante_nic41:x.id_comprobante_nic41})),variaciones:variaciones.map(x=>({id_variacion_valor_razonable:x.id_variacion_valor_razonable,tipo_evidencia:x.tipo_evidencia}))});
-export function informe(r){
-  const lines=[
-    `# TC-M06-G43 — ${r.run_id}`,'',
-    `G43 | RF-87 | ${CASOS.join(', ')} | V${r.version} | TEST | autorización ${r.autorizacion_referencia} | commit no consultado (Git prohibido).`,'',
-    '## Resumen','',
-    '| Caso | Estado | Motivo |','|---|---|---|',
-    ...CASOS.map(c=>`| ${c} | ${r.casos[c]?.estado??'NO_CONCLUYENTE'} | ${clean(r.casos[c]?.motivo??'')} |`),'',
-    '## Criterios API y UI','',
-    '| Caso | Criterio | Esperado | Observado | Cumple |','|---|---|---|---|---|',
-  ];
-  for(const c of CASOS)for(const z of r.casos[c]?.comprobaciones??[])lines.push(`| ${c} | ${z.id} | ${clean(z.esperado)} | ${clean(z.observado)} | ${z.estado} |`);
-  lines.push('','## Precios','','| Especie | P_ini id/fecha | P_nuevo id/fecha | Congelado id/fecha |','|---|---|---|---|',
-    ...r.precios.map(x=>`| ${x.especie} | ${x.p_ini??''} / ${x.p_ini_fecha??''} | ${x.p_nuevo??''} / ${x.p_nuevo_fecha??''} | ${x.congelado??''} / ${x.congelado_fecha??''} |`),
-    '','## Activos sin precio','','| Periodo | Prevalidacion | Excluidos | Procesados |','|---|---|---|---|',
-    ...r.activos.map(x=>`| ${x.periodo} | ${x.prevalidacion} | ${x.excluidos} | ${x.procesados} |`),
-    '','## Lineas','','| Linea | Activo | Eslabon faltante | Excluida | Destino |','|---|---|---|---|---|',
-    ...r.lineas.map(x=>`| ${x.id} | ${x.id_activo??''} | ${x.faltantes??''} | ${x.excluida} | ${x.destino} |`),
-    '','## UI','','| Panel | Pruebas ejecutadas | Estado | Acta |','|---|---|---|---|',
-    ...Object.entries(r.cypress?.paneles??{}).map(([k,x])=>`| ${k} | ${x.totalTests??0} | ${x.estado??'NO_CONCLUYENTE'} | ${clean(x.evidencia??'')} |`),
-    '','## Incidencias','',
-    ...r.incidencias.map(x=>`- ${x.id} (casos ${(x.casos??[]).join(',')}): esperado ${x.esperado}; obtenido ${x.obtenido}. Evidencia: ${x.evidencia}. Impacto: ${x.impacto}. Severidad ${x.severidad}: ${x.justificacion_severidad}; certeza ${x.certeza}. Equipo inicial ${x.equipo}: ${x.fundamento}. Hipótesis, sin atribuir causa raíz: ${x.hipotesis}. Acción: ${x.accion}.`),
-    '','## Herramientas y evidencias','',
-    `Node ${r.herramientas.node}; Newman codigo ${r.herramientas.newman?.codigo??'no ejecutado'}; Cypress codigo ${r.herramientas.cypress?.codigo??'no ejecutado'}, pruebas ${r.herramientas.cypress?.totalTests??0}.`,
-    ...r.evidencias.map(x=>`- ${x}`),
-    '','## Problemas tecnicos','',...r.problemas_tecnicos.map(x=>`- ${clean(x)}`),
-    '','## Observaciones','',
-    '- Momento de la decision de 025: observado en la prevalidacion; se registra separado del veredicto.',
-    '- Vida util: el codigo local consultado la configura en M06; RF-88 la ubica en M09.',
-    '- Equinos valorados por costo con precio vigente inicial: fuera del alcance de G43.',
-    '','## Cierre, rollback y accion','',
-    `Registro ${r.oficial?'OFICIAL':'NO OFICIAL'}. Rollback verificado: ${r.rollback.verificado?'si':'no'}. ${clean(r.rollback.motivo??'')}`,
-    'Las incidencias requieren correccion y reevaluacion expresamente autorizada.',''
-  );return lines.join('\n');
-}
 export async function ejecutar(c,e=process.env,opciones={}){const local=opciones.ensayo===true&&/^http:\/\/127\.0\.0\.1:\d+\/api$/.test(opciones.api??'');const api=local?opciones.api:API;const lanzar=local&&typeof opciones.hijo==='function'?opciones.hijo:(script,input,timeout)=>hijo(script,input,timeout,e);const pf=local?{ok:true,barreras:[],efectos:[]}:preflight(c,e);if(!pf.ok)throw Error(`PREFLIGHT_${pf.barreras.join('_')}`);const r={grupo:'G43',run_id:c.runId,version:c.version,autorizacion_referencia:c.ref,casos:Object.fromEntries(CASOS.map(x=>[x,{estado:'NO_CONCLUYENTE',motivo:'No ejecutado',comprobaciones:[]}])),preflight:pf,solicitudes:[],comprobaciones:[],precios:[],activos:[],lineas:[],incidencias:[],evidencias:[],problemas_tecnicos:[],cypress:{paneles:{}},rollback:{verificado:false},herramientas:{node:process.version},oficial:false};let token=null,activo=false,bases=new Map(),inicio=Date.now(),ocupado=false,cuenta=0,datos={},tieneAuditoria=false,creados=[],periodosBase=new Set(),nuevosPeriodos=[];
-   async function req(m,ruta,cuerpo,sinRun=false){if(ocupado)throw Error('PETICION_CONCURRENTE');if(++cuenta>LIMITE.solicitudes_totales||Date.now()-inicio>1800000)throw Error('PRESUPUESTO_AGOTADO');if(!esquema(m,ruta)&&!(m==='GET'&&ruta==='/sesiones/me/permisos'))throw Error(`RUTA_FUERA_CONTRATO_${m}_${ruta}`);ocupado=true;const fila={id:id(cuenta),metodo:m,ruta:ruta.split('?')[0],http:null};r.solicitudes.push(fila);try{const h={...(token?{Authorization:`Bearer ${token}`}:{})};if(!sinRun){h['X-Test-Run-Id']=c.runId;h['X-Sandbox-Secret']=e.QA_SANDBOX_SECRET;}if(cuerpo!==undefined)h['Content-Type']='application/json';fila.hora_utc= new Date().toISOString();const z=await fetch(api+ruta,{method:m,headers:h,...(cuerpo===undefined?{}:{body:JSON.stringify(cuerpo)}),signal:AbortSignal.timeout(120000)});fila.http=z.status;const raw=z.status===204?{}:await z.json().catch(()=>null);if(z.status>=400){fila.error=clean(raw?.error_code);fila.error_contrato=validarError(raw);return{http:z.status,data:raw,hora_utc:fila.hora_utc};}const data=m==='DELETE'?raw:validarLecturas(raw,m,ruta,{estricto:false,camposExtra:new Set()});return{http:z.status,data,hora_utc:fila.hora_utc};}finally{ocupado=false;}}
+   const solicitante=crearSolicitante({
+  api,runId:c.runId,secret:e.QA_SANDBOX_SECRET,limite:LIMITE,solicitudes:r.solicitudes,
+  esquema,validarLecturas,validarError,clean,id,token:()=>token,inicio
+});
+const req=solicitante.req;  r.rf='RF-87';
+  r.observaciones=['Momento de la decisión de 025: observado en la prevalidación; se registra separado del veredicto.','Vida útil: el código local consultado la configura en M06; RF-88 la ubica en M09.','Equinos valorados por costo con precio vigente inicial: fuera del alcance de G43.'];
   const get=async ruta=>{const z=await req('GET',ruta);if(z.http!==200)throw Error(`GET_${z.http}_${ruta}`);return z.data;};
   const ps=()=>get('/finanzas/periodos');const pre=id=>get(`/finanzas/periodos/${id}/prevalidacion`);
   const lineas=id=>get(`/finanzas/lineas?id_periodo_contable=${id}`);
@@ -102,8 +85,10 @@ export async function ejecutar(c,e=process.env,opciones={}){const local=opciones
     if(CASOS.every(x=>['APROBADO','RECHAZADO'].includes(r.casos[x].estado))){const env={values:[{key:'base_url',value:api},{key:'contador_token',value:token},{key:'run_id',value:c.runId},{key:'sandbox_secret',value:e.QA_SANDBOX_SECRET}]};const n=await lanzar('newman_hijo.mjs',{salida:path.join(c.dir,'newman'),coleccion:path.join(DIR,'G43.postman_collection.json'),environment:env});r.herramientas.newman=n.data??{codigo:2};if(n.code)r.problemas_tecnicos.push(`NEWMAN_${n.error}`);}
   }catch(err){r.problemas_tecnicos.push(clean(err.message));for(const c of CASOS)if(r.casos[c].motivo==='No ejecutado')caso(c.slice(-3),'NO_CONCLUYENTE',clean(err.message));}
   finally{
+     r.cierre={run:{cierre_http:null},rollback:r.rollback};
     if(token)try{
       const d=await req('DELETE',`/test-control/runs/${c.runId}`);
+       r.cierre.run.cierre_http=d.http;
       if(d.http!==200)throw Error(`DELETE_${d.http}`);
       const despues=[];for(const i of [8,219,220])despues.push(await estadoSinSandbox(i));
       const z=await req('GET','/finanzas/periodos',undefined,true);if(z.http!==200)throw Error('PERIODOS_POS_ROLLBACK');
@@ -113,19 +98,26 @@ export async function ejecutar(c,e=process.env,opciones={}){const local=opciones
       if(cfgDespues.http!==200)throw Error('MATRIZ_POS_ROLLBACK');
       const matrizBorrada=!(cfgDespues.data.matriz??[]).some(x=>r.matriz?.creados?.includes(Number(x.id_asignacion_cuenta_contable)));
       const periodosBorrados=nuevosPeriodos.every(x=>!periodosActuales.has(x));
-      r.rollback={verificado:despues.every((x,j)=>sinCambios(bases.get([8,219,220][j]),x))&&preciosBorrados&&periodosBorrados&&matrizBorrada,motivo:preciosBorrados&&periodosBorrados&&matrizBorrada?'Lecturas poscierre sin cabeceras RUN':'Precios, matriz o periodos nuevos persisten'};
+       r.rollback={verificado:despues.every((x,j)=>sinCambios(bases.get([8,219,220][j]),x))&&preciosBorrados&&periodosBorrados&&matrizBorrada,motivo:preciosBorrados&&periodosBorrados&&matrizBorrada?'Lecturas poscierre sin cabeceras RUN':'Precios, matriz o periodos nuevos persisten'};
     }catch(err){r.rollback={verificado:false,motivo:clean(err.message)};}
-    r.total_solicitudes_api=cuenta+(r.herramientas.newman?.solicitudes??0)+Object.values(r.cypress.paneles).reduce((n,x)=>n+(x.solicitudes??0),0);
+     r.cierre.rollback=r.rollback;
+    r.total_solicitudes_api=solicitante.total()+(r.herramientas.newman?.solicitudes??0)+Object.values(r.cypress.paneles).reduce((n,x)=>n+(x.solicitudes??0),0);
     r.duracion_segundos=Math.ceil((Date.now()-inicio)/1000);
     r.herramientas.cypress={codigo:Object.values(r.cypress.paneles).every(x=>x.codigo===0)?0:2,totalTests:Object.values(r.cypress.paneles).reduce((n,x)=>n+(x.totalTests??0),0)};
-    const visitar=(dir,rel='')=>{if(!fs.existsSync(dir))return [];const out=[];for(const e of fs.readdirSync(dir,{withFileTypes:true})){const x=path.join(dir,e.name),r=rel?rel+'/'+e.name:e.name;if(e.isDirectory())out.push(...visitar(x,r));else out.push(r);}return out;};
-    r.evidencias=visitar(c.dir).filter(x=>x.startsWith('newman/')||x.startsWith('cypress/'));
+     r.cypress.total_pruebas=r.herramientas.cypress.totalTests;
+     r.cypress.aprobadas=Object.values(r.cypress.paneles).filter(x=>x.estado==='APROBADO'&&x.totalTests>0).length;
+     r.cypress.fallidas=Object.values(r.cypress.paneles).filter(x=>x.estado==='RECHAZADO'&&x.totalTests>0).length;
+     r.cypress.codigo=r.herramientas.cypress.codigo;
+     r.evidencias=listarEvidencias(c.dir).filter(x=>x.startsWith('newman/')||x.startsWith('cypress/'));
     const requerido=['newman/newman-G43.json','newman/newman-G43.html',...['025','026','027'].map(n=>`cypress/${n}/G43-UI-${n}.json`)];
     const artefactos=requerido.every(x=>r.evidencias.includes(x))&&['025','026','027'].every(n=>r.evidencias.some(x=>x.startsWith(`cypress/${n}/screenshots/`)&&x.endsWith('.png')));
     r.oficial=CASOS.every(x=>['APROBADO','RECHAZADO'].includes(r.casos[x].estado))&&r.rollback.verificado&&r.herramientas.newman?.codigo===0&&r.herramientas.newman?.fallos===0&&r.herramientas.newman?.reportes===true&&r.herramientas.cypress.totalTests===3&&Object.values(r.cypress.paneles).every(x=>x.codigo===0&&['APROBADO','RECHAZADO'].includes(x.estado))&&artefactos&&r.problemas_tecnicos.length===0&&r.total_solicitudes_api<=240&&r.duracion_segundos<=1800;
-    r.consume_version=r.oficial;
-    save(path.join(c.dir,'resultado.json'),r);
-    fs.writeFileSync(path.join(c.dir,c.version===1?'TC-M06-G43_resultado.md':`TC-M06-G43_reevaluacion_V${c.version}.md`),informe(r));
+     r.consume_version=solicitante.escrituras()>0;
+     r.clasificacion_fallo=clasificarFallo(r);
+     r.sha256={ejecutor:sha(path.join(DIR,'g43.mjs')),infraestructura:Object.fromEntries(['lib/infra.mjs','lib/contrato.mjs','lib/informe.mjs','pruebas/newman_hijo.mjs','pruebas/cypress_hijo.mjs','pruebas/simulador_base.mjs','pruebas/verificar.mjs'].filter(x=>fs.existsSync(path.join(DIR,x))).map(x=>[x,sha(path.join(DIR,x))]))};
+     const forma=validarFormaResultado(r,CAPACIDADES,c.dir);
+     if(forma.length){r.problemas_tecnicos.push(`RESULTADO_FORMA_${forma.join('_')}`);r.oficial=false;r.clasificacion_fallo='CONTRATO';}
+     guardarResultado(c,r,informe);
   }
   async function estadoSinSandbox(id){const getSin=async u=>{const z=await req('GET',u,undefined,true);if(z.http!==200)throw Error(`POST_ROLLBACK_${u}`);return z.data;};return snapshot(await getSin('/finanzas/periodos'),id,await getSin(`/finanzas/lineas?id_periodo_contable=${id}`),await getSin(`/finanzas/periodos/${id}/comprobantes`),await getSin(`/finanzas/periodos/${id}/variaciones`));}
   return r;}
