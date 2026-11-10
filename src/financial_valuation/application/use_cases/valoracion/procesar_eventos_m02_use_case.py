@@ -4,6 +4,7 @@
 # | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta al Contador de mediciones estimadas o pendientes |
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
+# | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -13,6 +14,9 @@
 - Baja (RF-45): ``BAJA_ACTIVO`` por el valor en libros (RFC-018); no se registra el ingreso de la venta.
 - Reproductivos, sanitarios y otros no cambian el valor razonable.
 Un activo valorado por costo (¶30) no genera variaciones de valor razonable (RF-88 CA-4).
+Un activo no elegible (estado distinto de ACTIVO o EN_TRATAMIENTO en M02, o sin reconocimiento
+confirmado tras una reversión) no se mide: el evento queda SIN_EFECTO y se registra MEDICION_EXCLUIDA.
+La baja es la excepción: M02 deja el activo en BAJA con el mismo evento que M06 valora (RF-83 FA-3).
 
 Cada evento va en su propia transacción: un fallo no detiene los demás (se reintenta hasta 3 veces).
 Las alertas de medición estimada o pendiente (RF-83) se envían al Contador después del ``commit()``.
@@ -48,6 +52,7 @@ from src.financial_valuation.domain.value_objects.nic41 import (
     Severidad,
     TipoEvidencia,
     TipoHecho,
+    estado_legible,
 )
 from src.shared.errors import AppError
 from src.shared.fechas import fecha_usuario
@@ -55,6 +60,19 @@ from src.shared.fechas import fecha_usuario
 logger = logging.getLogger(__name__)
 
 _BAJAS_DE_VENTA = ("venta", "sacrificio")
+
+
+def _motivo_exclusion(evento: EventoM02, activo: DatosActivo) -> Optional[tuple[str, str]]:
+    """``(motivo, mensaje)`` si el activo no es elegible para la medición por evento (RF-83)."""
+    if evento.sin_reconocimiento:
+        return "PENDIENTE_RECONOCIMIENTO", (
+            f"El activo {activo.identificador} no se midió: su reconocimiento inicial fue revertido y está "
+            "pendiente de un nuevo reconocimiento.")
+    if evento.tipo != "BAJA" and not activo.es_valorable:
+        return f"ESTADO_{activo.estado}", (
+            f"El activo {activo.identificador} no se midió: está {estado_legible(activo.estado)} y solo se miden "
+            "los activos activos o en tratamiento.")
+    return None
 
 
 class ProcesarEventosM02UseCase:
@@ -100,6 +118,9 @@ class ProcesarEventosM02UseCase:
         if activo is None:
             return "SIN_EFECTO", "Activo no encontrado"
         dia = fecha_usuario(evento.fecha)
+        exclusion = _motivo_exclusion(evento, activo)
+        if exclusion is not None:
+            return self._excluir(evento, activo, dia, *exclusion)
         if not evento.encolado_en_cierre:
             cerrado = self.contabilizador.periodo_cerrado_en(activo.numero_id_tributaria, dia)
             if cerrado is not None:
@@ -132,6 +153,16 @@ class ProcesarEventosM02UseCase:
                    "cerrado. Si el hecho debe reconocerse, regístrelo como ajuste en el período abierto.")
         self.medidor.alertar_pendiente(activo, cerrado, dia, evento.id_evento, None, "PERIODO_CERRADO", mensaje)
         return "MEDICION_PENDIENTE", mensaje
+
+    def _excluir(self, evento, activo, dia, motivo: str, mensaje: str) -> tuple[str, str]:
+        """RF-83: el activo no es elegible; el evento no se mide y la exclusión queda en RF-94."""
+        self.contabilizador.auditar(EventoAuditoria(
+            tipo_evento="MEDICION_EXCLUIDA", severidad=Severidad.INFO.value, id_sistema=ID_SISTEMA,
+            payload={"motivo": motivo, "estado_activo": activo.estado, "id_evento": evento.id_evento,
+                     "tipo_evento_m02": evento.tipo, "fecha_evento": dia.isoformat(), "mensaje": mensaje},
+            id_activo_biologico=activo.id_activo_biologico, id_referencia=evento.id_evento,
+        ))
+        return "SIN_EFECTO", mensaje
 
     # --- Ingreso sin costo en el evento ---------------------------------------------------------
 
