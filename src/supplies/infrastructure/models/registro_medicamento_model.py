@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: columna observaciones              |
+# | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: mapear cantidad como decimal(10,4), conservando la dosis exacta. |
 """Modelo ORM para la tabla ``modulo5.registros_medicamentos`` (RF-76).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -56,7 +57,7 @@ class RegistroMedicamentoModel(Base):
     nombre_medicamento: Mapped[str] = mapped_column(String(100), nullable=False)
     descripcion_clinica: Mapped[str] = mapped_column(Text, nullable=False)
     unidad_dosis: Mapped[str] = mapped_column(String(20), nullable=False)
-    cantidad: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 3), nullable=False)
+    cantidad: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 4), nullable=False)
     fecha_aplicacion: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     costo_unitario_medicamento: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 4), nullable=False)
     costo_total_medicamento: Mapped[decimal.Decimal] = mapped_column(Numeric(12, 4), nullable=False)
