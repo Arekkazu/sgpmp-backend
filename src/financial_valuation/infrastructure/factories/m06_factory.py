@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ensamblado de repositorios, servicios y casos de uso |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -60,6 +61,7 @@ from src.financial_valuation.application.use_cases.valoracion_costo.cambiar_a_va
 )
 from src.financial_valuation.application.use_cases.valoracion_costo.registrar_deterioro_use_case import RegistrarDeterioroUseCase
 from src.financial_valuation.infrastructure.adapters.activo_financiero_m02_adapter import ActivoFinancieroM02Adapter
+from src.financial_valuation.infrastructure.adapters.baja_activo_m02_adapter import BajaActivoM02Adapter
 from src.financial_valuation.infrastructure.adapters.evento_m02_adapter import EventoM02Adapter
 from src.financial_valuation.infrastructure.adapters.notificacion_financiera_m01_adapter import NotificacionFinancieraM01Adapter
 from src.financial_valuation.infrastructure.repositories.asiento_repository import SqlAlchemyAsientoRepository
@@ -144,7 +146,8 @@ class M06:
         return RevertirReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.contabilizador)
     def procesar_eventos(self):
         return ProcesarEventosM02UseCase(self.db, self.eventos, self.activos, self.valoraciones, self.precios,
-                                         self.medidor, self.contabilizador, id_usuario_servicio(self.db))
+                                         self.medidor, self.contabilizador, id_usuario_servicio(self.db),
+                                         BajaActivoM02Adapter(sesion_sistema))
     def procesar_provisiones(self):
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):

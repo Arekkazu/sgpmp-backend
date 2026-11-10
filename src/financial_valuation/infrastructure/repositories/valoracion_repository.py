@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculos, reconocimientos, mediciones, variaciones y valoración por costo |
 # | 2026-11-05 | Arekkazu | M06 RF-83..88: listados del período y datos del modelo de costo por activo |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from src.financial_valuation.domain.entities.valoracion import (
     VariacionRegistro,
 )
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
 
 _COLUMNAS_CALCULO = """id_calculo_valor_razonable, id_activo_biologico, id_precio_mercado, id_periodo_contable, magnitud,
     unidad_magnitud, precio_unitario, valor_razonable_bruto, costo_transporte, costo_comisiones,
@@ -80,13 +81,20 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             "json_metodo_costo": a_json(calculo.json_metodo_costo)})
 
     def ultimo_calculo(self, id_activo_biologico: int, hasta: Optional[date] = None) -> Optional[CalculoValor]:
-        """Último cálculo CALCULADO del activo (base de la siguiente medición)."""
-        f = fila(self.db, f"""SELECT {_COLUMNAS_CALCULO} FROM modulo6.calculos_valor_razonable
+        """Último cálculo CALCULADO del activo (base de la siguiente medición).
+
+        ``None`` si ese cálculo lo consumió una cosecha del 100 % (RF-85 FA-4): el activo vale cero y una baja
+        posterior no vuelve a asentar su valor."""
+        consumido = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")
+        f = fila(self.db, f"""SELECT {_COLUMNAS_CALCULO}, {consumido} AS consumido_por_cosecha
+                              FROM modulo6.calculos_valor_razonable c
                               WHERE id_activo_biologico = :a AND estado = 'CALCULADO' AND {ES_BASE}
                                 AND (CAST(:h AS date) IS NULL OR fecha_calculo::date <= :h)
                               ORDER BY fecha_calculo DESC, id_calculo_valor_razonable DESC LIMIT 1""",
                  {"a": id_activo_biologico, "h": hasta})
-        return _calculo(f) if f else None
+        if f is None or f.pop("consumido_por_cosecha"):
+            return None
+        return _calculo(f)
 
     # --- RF-83 / RF-86 -------------------------------------------------------------------------
 
@@ -245,7 +253,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     def activos_valorados(self) -> list[dict]:
         """Activos reconocidos con su último valor razonable neto o su valor por costo."""
-        return filas(self.db, """
+        return filas(self.db, f"""
         SELECT a.id_activo_biologico, a.identificador, a.tipo::text AS tipo, e.nombre AS especie, f.nombre AS finca,
                est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento,
                ri.indicador_valoracion::text AS indicador_reconocimiento, ri.es_apertura,
@@ -255,7 +263,8 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                a.id_especie, i.id_finca, a.id_infraestructura, i.nombre AS infraestructura,
                ri.costo_adquisicion, ri.origen_financiero::text AS origen_financiero,
                ri.valor_razonable_neto_inicial AS valor_inicial,
-               c.valor_neto AS valor_razonable_neto, c.fecha_calculo, c.tiene_valor_estimado
+               CASE WHEN c.consumido_por_cosecha THEN 0 ELSE c.valor_neto END AS valor_razonable_neto,
+               c.fecha_calculo, c.tiene_valor_estimado, COALESCE(c.consumido_por_cosecha, false) AS cosechado_completamente
         FROM modulo6.reconocimientos_iniciales ri
         JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = ri.id_activo_biologico
         JOIN modulo9.especies e ON e.id_especie = a.id_especie
@@ -263,7 +272,9 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
         JOIN modulo9.fincas f ON f.id_finca = i.id_finca
         JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = a.id_estado
         LEFT JOIN modulo6.valoraciones_por_costos vc ON vc.id_activo_biologico = a.id_activo_biologico AND vc.es_activa
-        LEFT JOIN LATERAL (SELECT valor_neto, fecha_calculo, tiene_valor_estimado FROM modulo6.calculos_valor_razonable c
+        LEFT JOIN LATERAL (SELECT valor_neto, fecha_calculo, tiene_valor_estimado,
+                                  {CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")} AS consumido_por_cosecha
+                           FROM modulo6.calculos_valor_razonable c
                            WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO'
                              AND COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false
                            ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) c ON true

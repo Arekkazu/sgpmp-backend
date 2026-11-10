@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-92/RF-93: insumos y persistencia de revelaciones y estado de resultados |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -9,9 +10,10 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
 
 ES_BASE_C = "COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false"
+CONSUMIDO_C = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")  # RF-85 FA-4: vale 0
 
 _FILTROS = (("id_especie", "l.id_especie = :id_especie"), ("id_activo_biologico", "l.id_activo_biologico = :id_activo_biologico"),
             ("id_infraestructura", "a.id_infraestructura = :id_infraestructura"), ("id_finca", "l.id_finca = :id_finca"))
@@ -81,10 +83,10 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                    ri.clasificacion::text AS clasificacion, ri.indicador_valoracion::text AS indicador_valoracion,
                    ri.origen_financiero::text AS origen_financiero, ri.costo_adquisicion,
                    ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual,
-                   (SELECT c.valor_neto FROM modulo6.calculos_valor_razonable c
+                   (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date < :i
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_inicio,
-                   (SELECT c.valor_neto FROM modulo6.calculos_valor_razonable c
+                   (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date <= :f
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_cierre,
                    vc.valor_contable_por_costo, vc.razon_sin_mercado, vc.vida_util_meses, vc.depreciacion_acumulada,
