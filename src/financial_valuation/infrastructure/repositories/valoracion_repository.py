@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
+# | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -50,6 +51,18 @@ _JOIN_ACTIVO = """JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = x
     JOIN modulo9.fincas f ON f.id_finca = i.id_finca
     LEFT JOIN modulo6.reconocimientos_iniciales ri
            ON ri.id_activo_biologico = a.id_activo_biologico AND ri.estado = 'CONFIRMADO'"""
+
+
+# Filtros del historial de productos agrícolas (RNF-85-05: activo, período, tipo de producto y rango de valores).
+_FILTROS_PRODUCTOS = (
+    ("id_periodo_contable", "x.id_periodo_contable = :id_periodo_contable"),
+    ("id_activo_biologico", "x.id_activo_biologico = :id_activo_biologico"),
+    ("tipo", "x.tipo::text = :tipo"),
+    ("id_especie", "a.id_especie = :id_especie"),
+    ("producto_agricola", "x.producto_agricola = :producto_agricola"),
+    ("valor_min", "x.valor_producto >= :valor_min"),
+    ("valor_max", "x.valor_producto <= :valor_max"),
+)
 
 
 def _calculo(f: dict) -> CalculoValor:
@@ -363,11 +376,20 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             WHERE x.id_periodo_contable = :p ORDER BY x.fecha_calculo DESC, x.id_calculo_valor_razonable DESC""",
             {"p": id_periodo_contable})
 
-    def productos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+    def productos_agricolas(self, filtros: dict) -> list[dict]:
+        """RF-85 RNF-85-05: historial de productos reconocidos; los filtros se combinan con AND y uno omitido no filtra."""
+        condiciones, params = [], {}
+        for campo, sql in _FILTROS_PRODUCTOS:
+            if filtros.get(campo) not in (None, ""):
+                condiciones.append(sql)
+                params[campo] = filtros[campo]
         return filas(self.db, f"""
-            SELECT x.id_reconocimiento_producto_agricola, x.id_activo_biologico, {_ACTIVO}, x.producto_agricola,
-                   x.cantidad_cosechada, x.unidad_medida, x.precio_mercado_producto, x.costo_venta_producto,
-                   x.valor_producto, x.valor_reduccion_activo, x.tipo::text AS tipo, x.fecha_cosecha
+            SELECT x.id_reconocimiento_producto_agricola, x.id_evento_productivo, x.id_activo_biologico, {_ACTIVO},
+                   x.producto_agricola, x.cantidad_cosechada, x.unidad_medida, x.precio_mercado_producto,
+                   x.costo_venta_producto, x.valor_producto, x.valor_reduccion_activo, x.tipo::text AS tipo,
+                   x.fecha_cosecha, x.id_periodo_contable, x.id_usuario,
+                   NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_usuario
             FROM modulo6.reconocimientos_productos_agricolas x {_JOIN_ACTIVO}
-            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC""",
-            {"p": id_periodo_contable})
+            LEFT JOIN modulo1.usuarios u ON u.id_usuario = x.id_usuario
+            WHERE {" AND ".join(condiciones) or "true"}
+            ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC LIMIT 500""", params)

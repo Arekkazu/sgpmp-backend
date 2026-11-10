@@ -7,6 +7,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -16,6 +17,7 @@ el Administrador, el Productor y el Revisor Fiscal, el que les da la matriz de e
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -65,6 +67,7 @@ SubtipoCosto = Literal["ALIMENTO", "MEDICAMENTO", "MANO_OBRA", "VETERINARIO", "T
                        "IMPUESTO_TRANSACCION", "SACRIFICIO", "INVERSION_DIRECTA", "OTRO"]
 EstadoCotizacion = Literal["COTIZADO", "VENCIDA", "ANULADA", "CONVERTIDA_EN_VENTA"]
 Severidad = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
+TipoProducto = Literal["PRODUCTO_DE_CONSUMO", "PRODUCTO_PERIODICO"]
 _ERRORES = {c: {"model": ErrorResponse} for c in (400, 401, 403, 404, 409, 412, 422, 500)}
 
 router = APIRouter(prefix="/finanzas", responses=_ERRORES)
@@ -286,11 +289,28 @@ def calculos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> li
     return m.valoraciones.calculos_del_periodo(id_periodo_contable)
 
 
+def _filtros_productos(tipo: Optional[TipoProducto] = None, id_activo_biologico: Optional[int] = Query(None, gt=0),
+                       id_especie: Optional[int] = Query(None, gt=0),
+                       producto_agricola: Optional[str] = Query(None, min_length=1, max_length=100),
+                       valor_min: Optional[Decimal] = Query(None, ge=0, max_digits=18, decimal_places=4),
+                       valor_max: Optional[Decimal] = Query(None, ge=0, max_digits=18, decimal_places=4)) -> dict:
+    return {"tipo": tipo, "id_activo_biologico": id_activo_biologico, "id_especie": id_especie,
+            "producto_agricola": producto_agricola, "valor_min": valor_min, "valor_max": valor_max}
+
+
 @router.get("/periodos/{id_periodo_contable}/productos", tags=[TAG_VALOR],
             dependencies=[Depends(permiso("valoracion_activos", R))],
-            summary="Productos agrícolas reconocidos en el período")
-def productos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
-    return m.valoraciones.productos_del_periodo(id_periodo_contable)
+            summary="Productos agrícolas reconocidos en el período (filtrables por tipo, activo, especie, producto y valor)")
+def productos_del_periodo(id_periodo_contable: int, filtros: dict = Depends(_filtros_productos),
+                          m: M06 = Depends(_m06)) -> list[dict]:
+    return m.consultar_productos().execute({**filtros, "id_periodo_contable": id_periodo_contable})
+
+
+@router.get("/productos", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Historial de productos agrícolas reconocidos (RNF-85-05: activo, período, tipo y rango de valores)")
+def historial_productos(id_periodo_contable: Optional[int] = Query(None, gt=0), filtros: dict = Depends(_filtros_productos),
+                        m: M06 = Depends(_m06)) -> list[dict]:
+    return m.consultar_productos().execute({**filtros, "id_periodo_contable": id_periodo_contable})
 
 
 # --- Costos (RF-90) ---------------------------------------------------------------------------------------
