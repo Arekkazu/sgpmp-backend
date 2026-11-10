@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82/RF-84: costos manuales con máximo 4 decimales |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -89,13 +90,17 @@ class ConfirmarReconocimientoDTO(BaseDTO):
     clasificacion: Optional[Clasificacion] = None
     costos_manuales: Optional[CostosManualesDTO] = None
     justificacion: Optional[str] = Field(default=None, max_length=1000,
-                                         description="Obligatoria si se ingresan costos de venta manuales (RF-84 R2/R4).")
+                                         description="Obligatoria si se ingresan costos de venta manuales (RF-84 R2).")
+    referencia_documental: Optional[str] = Field(
+        default=None, min_length=3, max_length=200,
+        description="Documento que respalda los costos de venta manuales: factura, cotización o contrato con su "
+                    "número (RF-84 R4). Obligatoria si se ingresan costos manuales.")
 
     @model_validator(mode="after")
     def _justificar_manuales(self):
         if self.costos_manuales and any(v is not None for v in self.costos_manuales.model_dump().values()) \
                 and len((self.justificacion or "").strip()) < 20:
-            raise ValueError("Los costos de venta manuales requieren una justificación con su soporte documental (mín. 20).")
+            raise ValueError("Los costos de venta manuales requieren una justificación (mín. 20 caracteres).")
         return self
 
 
