@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -94,6 +95,13 @@ class ConfirmarReconocimientoDTO(BaseDTO):
                 and len((self.justificacion or "").strip()) < 20:
             raise ValueError("Los costos de venta manuales requieren una justificación con su soporte documental (mín. 20).")
         return self
+
+
+class ReconocerCosechaDTO(BaseDTO):
+    # RF-85 FA-2: costos de venta del producto ingresados por el Contador. Las reglas (al menos un costo,
+    # justificación de 20 caracteres) van en el caso de uso para responder un solo 400 con su campo.
+    costos_manuales: Optional[CostosManualesDTO] = None
+    justificacion: Optional[str] = Field(default=None, max_length=1000)
 
 
 class RevertirReconocimientoDTO(BaseDTO):

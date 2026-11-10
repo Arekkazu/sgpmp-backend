@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -34,6 +35,7 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     ModificarCotizacionDTO,
     ParametroEspecieDTO,
     PrecioDTO,
+    ReconocerCosechaDTO,
     ResolverInformeDTO,
     RevertirReconocimientoDTO,
 )
@@ -220,6 +222,21 @@ def simular_valor(id_activo_biologico: int, m: M06 = Depends(_m06), usuario: Usu
              summary="Procesar ya los eventos de M02 pendientes (lo hace también el proceso de fondo)")
 def procesar_eventos(m: M06 = Depends(_m06)) -> dict:
     return {"eventos": m.procesar_eventos().execute(500), "provisiones_m05": m.procesar_provisiones().execute(500)}
+
+
+@router.get("/productos/pendientes", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Cosechas cuyo reconocimiento quedó pendiente por falta de precio o de costos de venta (RF-85)")
+def cosechas_pendientes(m: M06 = Depends(_m06)) -> list[dict]:
+    return m.eventos.cosechas_pendientes()
+
+
+@router.post("/productos/pendientes/{id_evento}/reconocimiento", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Reconocer una cosecha pendiente con costos de venta ingresados a mano (RF-85 FA-2)")
+def reconocer_cosecha_pendiente(id_evento: int, dto: ReconocerCosechaDTO, m: M06 = Depends(_m06),
+                                usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    manuales = dto.costos_manuales.model_dump() if dto.costos_manuales else None
+    return m.reconocer_cosecha_pendiente().execute(id_evento, manuales, dto.justificacion, usuario.id_usuario)
 
 
 @router.get("/lineas", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
