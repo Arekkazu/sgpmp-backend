@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-11-09 | DBA    | RNF-05: retira Crear del costeo directo (recurso 55) a Productor y Veterinario (INC-M05-261-G29) |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: RNF-05: el recurso de costeo directo se ubica por nombre, no por id |
 """m05 rbac: solo Administrador, Contador y Gestor de Granja registran costos directos
 
 Revision ID: df80051ec91b
@@ -24,7 +25,7 @@ down_revision: Union[str, Sequence[str], None] = 'b7e2d94c1a68'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-_ID_RECURSO_COSTEO_DIRECTO = 55
+_RECURSO_COSTEO_DIRECTO = 'costeo_directo_suministros'
 _ID_ACCION_CREAR = 1
 _ROLES_SIN_CREAR = "('Productor', 'Veterinario')"
 
@@ -43,10 +44,11 @@ def _cambiar_estado(es_activo: bool) -> None:
               FROM modulo1.roles r
              WHERE r.id_rol = p.id_rol
                AND r.nombre_rol IN {_ROLES_SIN_CREAR}
-               AND p.id_recurso = {_ID_RECURSO_COSTEO_DIRECTO}
+               AND p.id_recurso = (SELECT id_recurso FROM modulo1.recursos
+                                    WHERE nombre_recurso = '{_RECURSO_COSTEO_DIRECTO}')
                AND p.id_accion = {_ID_ACCION_CREAR};
             GET DIAGNOSTICS v_filas = ROW_COUNT;
-            RAISE NOTICE 'RNF-05: % permiso(s) Crear del recurso 55 quedaron con es_activo = %',
+            RAISE NOTICE 'RNF-05: % permiso(s) Crear de costeo directo quedaron con es_activo = %',
                 v_filas, {str(es_activo).upper()};
         END $$;
     """)
