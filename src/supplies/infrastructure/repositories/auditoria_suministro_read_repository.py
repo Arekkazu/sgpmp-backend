@@ -1,6 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: hidratar UUID y versión de integridad en consulta y exportación. |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroReadPort` (RF-80, CU-06).
 
 Mismo patrón de paginación que ``evento_auditoria_m04_repository.py``:
@@ -47,6 +50,8 @@ def _a_entidad(orm: AuditoriaSuministroModel) -> EventoAuditoriaSuministroConsul
         numero_reintentos=orm.numero_reintentos,
         fecha_intentos=orm.fecha_intentos,
         id_gestion_fases=orm.id_gestion_fases,
+        id_evento_m05=orm.id_evento_m05,
+        version_hash_integridad=orm.version_hash_integridad,
     )
 
 

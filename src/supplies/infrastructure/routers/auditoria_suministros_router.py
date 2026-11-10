@@ -3,6 +3,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
 # | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: documentar rechazo 400 por filtros temporales inválidos. |
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: registrar intentos autenticados conservando el rechazo 405. |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
@@ -16,7 +17,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -28,6 +29,7 @@ from src.supplies.domain.repositories.auditoria_suministro_read_port import Filt
 from src.supplies.infrastructure.factories.auditoria_suministros_factory import (
     build_consultar_auditoria_use_case,
     build_exportar_auditoria_use_case,
+    build_registrar_intento_modificacion_auditoria_use_case,
 )
 from src.supplies.infrastructure.schema.auditoria_suministro_schema import (
     AuditoriaSuministrosListResponse,
@@ -158,3 +160,24 @@ def obtener_evento(
     use_case = build_consultar_auditoria_use_case(db)
     entidad = use_case.obtener_por_id(id_auditoria_suministro)
     return EventoAuditoriaSuministroResponse.model_validate(entidad)
+
+
+@router.api_route(
+    "/{id_auditoria_suministro:int}",
+    methods=["PUT", "PATCH", "DELETE", "POST"],
+    include_in_schema=False,
+)
+def rechazar_modificacion_auditoria(
+    id_auditoria_suministro: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> None:
+    # No es una operación de escritura pública: nunca lee ni altera el objetivo.
+    # No exige permiso de edición ni concede lectura al actor que lo intenta.
+    build_registrar_intento_modificacion_auditoria_use_case(db).execute(
+        id_usuario=usuario_actual.id_usuario,
+        id_registro_solicitado=id_auditoria_suministro,
+        metodo=request.method,
+    )
+    raise HTTPException(status_code=405, detail="Method Not Allowed", headers={"Allow": "GET"})
