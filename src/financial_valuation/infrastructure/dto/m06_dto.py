@@ -5,6 +5,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-319-G20 RF-84: la confirmación rechaza campos desconocidos (método por componente) |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -86,6 +87,10 @@ class CostosManualesDTO(BaseDTO):
     impuestos: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
     otros: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
 
+    # INC-M06-319-G20 / RF-84: el método de cada componente se deriva (MANUAL si viene aquí; «otros» siempre es
+    # MANUAL). Un campo de método u otro desconocido (metodo_otros: PARAMETRIZADO) se rechaza en vez de ignorarse.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
 
 class ConfirmarReconocimientoDTO(BaseDTO):
     clasificacion: Optional[Clasificacion] = None
@@ -96,6 +101,9 @@ class ConfirmarReconocimientoDTO(BaseDTO):
         default=None, min_length=3, max_length=200,
         description="Documento que respalda los costos de venta manuales: factura, cotización o contrato con su "
                     "número (RF-84 R4). Obligatoria si se ingresan costos manuales.")
+
+    # INC-M06-319-G20: metodo_costo_otros (u otro campo desconocido) responde 400 en vez de confirmarse con 201.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     @model_validator(mode="after")
     def _justificar_manuales(self):
