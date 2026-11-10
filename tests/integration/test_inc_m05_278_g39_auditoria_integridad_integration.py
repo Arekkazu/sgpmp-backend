@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: validar migración histórica, deduplicación concurrente, hash e inmutabilidad HTTP en PostgreSQL. |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RLS modulo5: bitácora sin UPDATE/DELETE para la API, identidad RLS y fn_ en la función de hash |
 """Regresión de #964 con rol real de API y restricciones activas."""
 from __future__ import annotations
 
@@ -89,7 +90,7 @@ def test_migracion_preserva_columnas_originales_y_hash_legado(db_migracion, pass
     assert nuevo['version_hash_integridad'] == 1 and nuevo['id_evento_m05']
     assert {k: v for k, v in nuevo.items() if k not in ('id_evento_m05', 'version_hash_integridad')} == original
     assert nuevo['detalle_causa'] is None  # No se inventa la evidencia histórica.
-    verificado = db_session.execute(text('SELECT hash_integridad=modulo5.hash_evento_auditoria_m05(to_jsonb(a),version_hash_integridad) FROM modulo5.auditorias_suministros a WHERE id_auditoria_suministro=:i'), {'i': id_antiguo}).scalar_one()
+    verificado = db_session.execute(text('SELECT hash_integridad=modulo5.fn_hash_evento_auditoria_m05(to_jsonb(a),version_hash_integridad) FROM modulo5.auditorias_suministros a WHERE id_auditoria_suministro=:i'), {'i': id_antiguo}).scalar_one()
     assert verificado
     # Si ya se emitieron registros nuevos, el downgrade debe fallar antes de retirar identidad.
     SqlAlchemyAuditoriaSuministroRepository(db_session).registrar(emitir(usuario['id_usuario']))
@@ -171,7 +172,7 @@ def test_hash_nuevo_incluye_todas_las_columnas_y_uuid(db_session, escenario):
          FROM jsonb_each_text(to_jsonb(a)-'hash_integridad')), 'sha256'),'hex')
         FROM modulo5.auditorias_suministros a WHERE id_evento_m05=:i"""), {'i': e['evento'].id_evento_m05}).scalar_one()
     assert validado
-    alterado = db_session.execute(text("SELECT modulo5.hash_evento_auditoria_m05(jsonb_set(to_jsonb(a),'{id_evento_m05}',to_jsonb(CAST(:otro AS text))),2)<>hash_integridad FROM modulo5.auditorias_suministros a WHERE id_evento_m05=:i"), {'i': e['evento'].id_evento_m05, 'otro': str(uuid4())}).scalar_one()
+    alterado = db_session.execute(text("SELECT modulo5.fn_hash_evento_auditoria_m05(jsonb_set(to_jsonb(a),'{id_evento_m05}',to_jsonb(CAST(:otro AS text))),2)<>hash_integridad FROM modulo5.auditorias_suministros a WHERE id_evento_m05=:i"), {'i': e['evento'].id_evento_m05, 'otro': str(uuid4())}).scalar_one()
     assert alterado
 
 
@@ -181,16 +182,21 @@ def test_sql_bajo_rol_api_no_puede_alterar_la_bitacora(db_session, escenario, op
     if rol:
         db_session.execute(text('SET LOCAL ROLE sgpmp_app'))
     try:
-        with pytest.raises(DBAPIError) as rechazo:
+        sql = ('UPDATE modulo5.auditorias_suministros SET detalle_causa=detalle_causa '
+               if operacion == 'UPDATE' else 'DELETE FROM modulo5.auditorias_suministros ')
+        try:
             with db_session.begin_nested():
-                sql = ('UPDATE modulo5.auditorias_suministros SET detalle_causa=detalle_causa '
-                       if operacion == 'UPDATE' else 'DELETE FROM modulo5.auditorias_suministros ')
-                db_session.execute(text(sql + 'WHERE id_evento_m05=:i'), {'i': e['evento'].id_evento_m05})
-        if rechazo.value.orig.pgcode == '42501':
-            assert rol == 'sgpmp_app' and operacion == 'DELETE'
-            assert not db_session.execute(text("SELECT has_table_privilege('sgpmp_app','modulo5.auditorias_suministros','DELETE')")).scalar_one()
+                afectadas = db_session.execute(text(sql + 'WHERE id_evento_m05=:i'), {'i': e['evento'].id_evento_m05}).rowcount
+        except DBAPIError as rechazo:
+            if rechazo.orig.pgcode == '42501':
+                assert rol == 'sgpmp_app' and operacion == 'DELETE'
+                assert not db_session.execute(text("SELECT has_table_privilege('sgpmp_app','modulo5.auditorias_suministros','DELETE')")).scalar_one()
+            else:
+                assert rechazo.orig.pgcode == '55000'
         else:
-            assert rechazo.value.orig.pgcode == '55000'
+            # La RLS de modulo5 no tiene política de UPDATE ni DELETE en la bitácora: para el rol de la API la
+            # fila no existe y la sentencia no toca nada (el trigger queda para quien no está sujeto a RLS).
+            assert rol == 'sgpmp_app' and afectadas == 0
     finally:
         if rol:
             db_session.execute(text('RESET ROLE'))
@@ -254,6 +260,8 @@ def test_deduplicacion_concurrente_en_dos_transacciones_reales(motor_vision_conc
         with Session(integration_engine) as db:
             db.execute(text('SET LOCAL ROLE sgpmp_app'))
             db.execute(text("SELECT set_config('app.usuario_id',:u,true)"), {'u': str(usuario)})
+            # Identidad que leen las políticas RLS (la API la declara en cada request).
+            db.execute(text("SELECT set_config('app.current_user_id',:u,true)"), {'u': str(usuario)})
             barrera.wait(timeout=10)
             SqlAlchemyAuditoriaSuministroRepository(db).registrar(e)
             db.commit()

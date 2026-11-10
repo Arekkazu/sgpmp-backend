@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-11-09 | SamuelPR21    | CA-7: provision_nic41 inmutable salvo GENERADO→SUPERADO y entrega a M06; sin DELETE para la app (INC-M05-262-G35) |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: RF-79 CA-7: triggers con la convención de nombres y SQLSTATE P0501 (P0125 es de modulo9) |
 
 """inmutabilidad_reportes_nic_41
 
@@ -50,12 +51,12 @@ def upgrade() -> None:
                 TG_OP, OLD.id_provision, current_user, current_setting('app.current_user_id', true);
 
             RAISE EXCEPTION '[TGR-M05-NIC41] REPORTE_NIC41_INMUTABLE: el reporte id=% no admite %. CA-7.',
-                OLD.id_provision, TG_OP USING ERRCODE = 'P0125';
+                OLD.id_provision, TG_OP USING ERRCODE = 'P0501';
         END;
         $$
     """)
     op.execute("""
-        CREATE TRIGGER trg_proteger_provision_nic41
+        CREATE TRIGGER trg_antes_modificar_provision_nic41
             BEFORE UPDATE OR DELETE ON modulo5.provision_nic41
             FOR EACH ROW EXECUTE FUNCTION modulo5.fn_proteger_provision_nic41()
     """)
@@ -67,12 +68,12 @@ def upgrade() -> None:
         BEGIN
             RAISE LOG '[SEGURIDAD][M05] Intento de TRUNCATE rechazado sobre provision_nic41 por rol=%', current_user;
             RAISE EXCEPTION '[TGR-M05-NIC41] REPORTE_NIC41_INMUTABLE: provision_nic41 no admite TRUNCATE. CA-7.'
-                USING ERRCODE = 'P0125';
+                USING ERRCODE = 'P0501';
         END;
         $$
     """)
     op.execute("""
-        CREATE TRIGGER trg_bloquear_truncate_provision_nic41
+        CREATE TRIGGER trg_antes_truncar_provision_nic41
             BEFORE TRUNCATE ON modulo5.provision_nic41
             FOR EACH STATEMENT EXECUTE FUNCTION modulo5.fn_bloquear_truncate_provision_nic41()
     """)
@@ -90,8 +91,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("DROP TRIGGER IF EXISTS trg_bloquear_truncate_provision_nic41 ON modulo5.provision_nic41")
-    op.execute("DROP TRIGGER IF EXISTS trg_proteger_provision_nic41 ON modulo5.provision_nic41")
+    op.execute("DROP TRIGGER IF EXISTS trg_antes_truncar_provision_nic41 ON modulo5.provision_nic41")
+    op.execute("DROP TRIGGER IF EXISTS trg_antes_modificar_provision_nic41 ON modulo5.provision_nic41")
     op.execute("DROP FUNCTION IF EXISTS modulo5.fn_bloquear_truncate_provision_nic41()")
     op.execute("DROP FUNCTION IF EXISTS modulo5.fn_proteger_provision_nic41()")
     op.execute(f"""

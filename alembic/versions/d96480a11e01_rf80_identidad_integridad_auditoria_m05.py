@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: agregar UUID deduplicable, proteger nuevos registros y preservar hashes históricos. |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: RF-80: funciones con prefijo fn_ y trigger con la convención de nombres |
 """RF-80: identidad de emisión, completitud e integridad de la bitácora.
 
 Revision ID: d96480a11e01
@@ -29,7 +30,7 @@ def upgrade() -> None:
             CHECK(registro_incompleto IS NOT TRUE OR NULLIF(btrim(detalle_causa),'') IS NOT NULL) NOT VALID;
     """)
     op.execute("""
-        CREATE FUNCTION modulo5.hash_evento_auditoria_m05(datos jsonb, version integer)
+        CREATE FUNCTION modulo5.fn_hash_evento_auditoria_m05(datos jsonb, version integer)
         RETURNS text LANGUAGE sql IMMUTABLE STRICT AS $$
           SELECT encode(public.digest((SELECT string_agg(format('%I=%L',key,value),' & ' ORDER BY key)
             FROM jsonb_each_text(CASE WHEN version=1 THEN
@@ -37,24 +38,24 @@ def upgrade() -> None:
                     - 'id_evento_m05' - 'version_hash_integridad'
               ELSE datos - 'hash_integridad' END)), 'sha256'), 'hex');
         $$;
-        CREATE FUNCTION modulo5.sellar_auditoria_m05() RETURNS trigger LANGUAGE plpgsql AS $$
+        CREATE FUNCTION modulo5.fn_sellar_auditoria_m05() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN
           NEW.version_hash_integridad := 2;
-          NEW.hash_integridad := modulo5.hash_evento_auditoria_m05(to_jsonb(NEW),2);
+          NEW.hash_integridad := modulo5.fn_hash_evento_auditoria_m05(to_jsonb(NEW),2);
           RETURN NEW;
         END;
         $$;
         DROP TRIGGER trg_audit_hash ON modulo5.auditorias_suministros;
         CREATE TRIGGER trg_audit_hash BEFORE INSERT ON modulo5.auditorias_suministros
-          FOR EACH ROW EXECUTE FUNCTION modulo5.sellar_auditoria_m05();
-        CREATE FUNCTION modulo5.impedir_modificacion_auditoria_m05() RETURNS trigger LANGUAGE plpgsql AS $$
+          FOR EACH ROW EXECUTE FUNCTION modulo5.fn_sellar_auditoria_m05();
+        CREATE FUNCTION modulo5.fn_impedir_modificacion_auditoria_m05() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN
           RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='La bitácora es de solo lectura.';
         END;
         $$;
-        CREATE TRIGGER trg_auditoria_m05_inmutable BEFORE UPDATE OR DELETE
+        CREATE TRIGGER trg_antes_modificar_auditoria_suministro BEFORE UPDATE OR DELETE
           ON modulo5.auditorias_suministros FOR EACH ROW
-          EXECUTE FUNCTION modulo5.impedir_modificacion_auditoria_m05();
+          EXECUTE FUNCTION modulo5.fn_impedir_modificacion_auditoria_m05();
     """)
 
 
@@ -66,13 +67,13 @@ def downgrade() -> None:
             RAISE EXCEPTION 'No se puede retirar la identidad de eventos ya emitidos.';
           END IF;
         END $$;
-        DROP TRIGGER trg_auditoria_m05_inmutable ON modulo5.auditorias_suministros;
+        DROP TRIGGER trg_antes_modificar_auditoria_suministro ON modulo5.auditorias_suministros;
         DROP TRIGGER trg_audit_hash ON modulo5.auditorias_suministros;
         CREATE TRIGGER trg_audit_hash BEFORE INSERT OR UPDATE ON modulo5.auditorias_suministros
           FOR EACH ROW EXECUTE FUNCTION modulo5.calcular_hash_integridad();
-        DROP FUNCTION modulo5.impedir_modificacion_auditoria_m05();
-        DROP FUNCTION modulo5.sellar_auditoria_m05();
-        DROP FUNCTION modulo5.hash_evento_auditoria_m05(jsonb,integer);
+        DROP FUNCTION modulo5.fn_impedir_modificacion_auditoria_m05();
+        DROP FUNCTION modulo5.fn_sellar_auditoria_m05();
+        DROP FUNCTION modulo5.fn_hash_evento_auditoria_m05(jsonb,integer);
         ALTER TABLE modulo5.auditorias_suministros
           DROP CONSTRAINT ck_auditorias_suministros_incompleto_causa,
           DROP CONSTRAINT ck_auditorias_suministros_version_hash,
