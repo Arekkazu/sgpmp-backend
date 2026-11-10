@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-09 | destroyerban | INC-M06-319-G20 RF-84: la confirmación rechaza campos desconocidos (método por componente) |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -81,12 +82,19 @@ class CostosManualesDTO(BaseDTO):
     impuestos: Optional[Decimal] = Field(default=None, ge=0)
     otros: Optional[Decimal] = Field(default=None, ge=0)
 
+    # INC-M06-319-G20 / RF-84: el método de cada componente se deriva (MANUAL si viene aquí; «otros» siempre es
+    # MANUAL). Un campo de método u otro desconocido (metodo_otros: PARAMETRIZADO) se rechaza en vez de ignorarse.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
 
 class ConfirmarReconocimientoDTO(BaseDTO):
     clasificacion: Optional[Clasificacion] = None
     costos_manuales: Optional[CostosManualesDTO] = None
     justificacion: Optional[str] = Field(default=None, max_length=1000,
                                          description="Obligatoria si se ingresan costos de venta manuales (RF-84 R2/R4).")
+
+    # INC-M06-319-G20: metodo_costo_otros (u otro campo desconocido) responde 400 en vez de confirmarse con 201.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     @model_validator(mode="after")
     def _justificar_manuales(self):
