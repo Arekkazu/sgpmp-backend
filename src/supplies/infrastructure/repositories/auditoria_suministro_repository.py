@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-80: retención por tipo e intentos      |
+# | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: persistir el contexto del evento mediante la columna JSON existente. |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroPort` (RF-78/79, CU-05).
 
 Usa ``flush()`` (nunca ``commit()``) y traduce errores de BD con
@@ -37,6 +38,7 @@ class SqlAlchemyAuditoriaSuministroRepository(AuditoriaSuministroPort):
             tipo_operacion=evento.tipo_operacion,
             id_usuario=evento.id_usuario,
             resultado=evento.resultado,
+            datos_nuevos=evento.datos_nuevos,
             id_activo_biologico=evento.id_activo_biologico,
             id_ciclo_productivo=evento.id_ciclo_productivo,
             id_gestion_fases=evento.id_gestion_fases,

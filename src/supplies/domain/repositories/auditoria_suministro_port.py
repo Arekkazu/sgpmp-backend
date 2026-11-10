@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-80: emisión, reintentos y sus fechas   |
+# | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: admitir contexto estructurado del reporte o archivo auditado. |
 """Puerto de auditoría de eventos de negocio RF-78/RF-79 (CU-05).
 
 Puerto angosto de escritura (patrón ``NotificacionMedicamentoPort``): el use
@@ -37,6 +38,7 @@ class EventoAuditoriaSuministro:
     registro_incompleto: bool = False
     fecha_intentos: list[datetime] = field(default_factory=list)
     fecha_emision: Optional[datetime] = None
+    datos_nuevos: Optional[dict] = None
 
 
 class AuditoriaSuministroPort(ABC):
