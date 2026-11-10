@@ -9,6 +9,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-09 | destroyerban | INC-M06-321-G25 RF-85: no se reconoce una cosecha mayor que lo disponible del activo |
 # | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -148,7 +149,14 @@ class ProcesarEventosM02UseCase:
             conteo[resultado] = conteo.get(resultado, 0) + 1
         return conteo
 
-    def _procesar(self, evento: EventoM02) -> tuple[str, Optional[str]]:
+    def reconocer_cosecha_pendiente(self, evento: EventoM02, costos_manuales: dict, justificacion: str,
+                                    id_usuario: int) -> tuple[str, Optional[str]]:
+        """RF-85 FA-2: reconoce una cosecha pendiente con los costos de venta que ingresa el Contador.
+
+        No hace commit: lo hace el caso de uso que lo llama."""
+        return self._procesar(evento, manual=(costos_manuales, justificacion, id_usuario))
+
+    def _procesar(self, evento: EventoM02, manual: Optional[tuple] = None) -> tuple[str, Optional[str]]:
         if evento.tipo not in ("CRECIMIENTO", "INGRESO", "BAJA", "PRODUCTIVO"):
             return "SIN_EFECTO", None
         activo = self.activos.obtener(evento.id_activo_biologico)
@@ -174,7 +182,7 @@ class ProcesarEventosM02UseCase:
         if self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico) is not None:
             return "SIN_EFECTO", "Activo valorado por costo (NIC 41 ¶30)"
         if evento.tipo == "PRODUCTIVO":
-            return self._producto(evento, activo, periodo, dia)
+            return self._producto(evento, activo, periodo, dia, manual)
         if evento.tipo == "INGRESO" and (evento.datos.get("tipo_ingreso") or "") != "nacimiento":
             return self._nueva_base(evento, activo, periodo, dia)
         evidencia = TipoEvidencia.IOT_DIRECTO.value if activo.id_dispositivo_iot else TipoEvidencia.REGISTRO_MANUAL.value
@@ -256,7 +264,9 @@ class ProcesarEventosM02UseCase:
 
     # --- Producto agrícola (RF-85) -------------------------------------------------------------
 
-    def _producto(self, evento: EventoM02, activo: DatosActivo, periodo: Periodo, dia: date) -> tuple[str, Optional[str]]:
+    def _producto(self, evento: EventoM02, activo: DatosActivo, periodo: Periodo, dia: date,
+                  manual: Optional[tuple] = None) -> tuple[str, Optional[str]]:
+        """``manual`` = (costos_manuales, justificacion, id_usuario) del Contador (RF-85 FA-2); sin él, los de M09."""
         cantidad = Decimal(evento.datos.get("cantidad_producida") or 0)
         metrica = self.activos.metrica_produccion(evento.datos["id_metrica_produccion"]) \
             if evento.datos.get("id_metrica_produccion") else None
@@ -264,15 +274,21 @@ class ProcesarEventosM02UseCase:
             return self._producto_pendiente(activo, periodo, evento, "El evento productivo no trae producto o cantidad.")
         reconocimiento = self.valoraciones.reconocimiento_confirmado(activo.id_activo_biologico)
         if reconocimiento.clasificacion == Clasificacion.CONSUMO.value:
+            if manual is not None:  # se remide con los costos de venta del activo (RF-84), no con los del producto
+                return "MEDICION_PENDIENTE", (
+                    f"La cosecha de {metrica['nombre']} consume el activo {activo.identificador}: su valor sale de la "
+                    "medición del activo con sus costos de venta y no admite costos manuales del producto.")
             return self._cosecha_consumo(evento, activo, periodo, dia, cantidad, metrica)
+        manuales, justificacion, id_usuario = manual or (None, None, self.id_servicio)
         precio = precio_vigente(self.precios.de_especie(activo.id_especie, CategoriaPrecio.PRODUCTO.value,
                                                         metrica["id_metrica_produccion"]), dia)
         parametro = self.medidor.valorador.config.costos_venta_vigentes(activo.id_especie)
-        if precio is None or parametro is None:
+        if precio is None or (parametro is None and not manuales):
             falta = "precio de mercado" if precio is None else "costos de venta"
             return self._producto_pendiente(activo, periodo, evento, f"Falta {falta} para el producto {metrica['nombre']}.")
-        costos = costos_venta(cantidad * precio.precio_unitario, parametro.pct_transporte, parametro.pct_comisiones,
-                              parametro.pct_impuestos)
+        costos = costos_venta(cantidad * precio.precio_unitario, parametro.pct_transporte if parametro else None,
+                              parametro.pct_comisiones if parametro else None,
+                              parametro.pct_impuestos if parametro else None, manuales)
         vn = valor_neto(cantidad, precio.precio_unitario, costos)
         if vn.requiere_revision:
             return self._producto_pendiente(activo, periodo, evento, "Los costos de venta igualan o superan el valor del producto.")
@@ -283,12 +299,15 @@ class ProcesarEventosM02UseCase:
             costo_comisiones=costos.comisiones, costo_impuestos_transaccion=costos.impuestos,
             otros_costos_disposicion=costos.otros, valor_neto=vn.neto, metodo_costo=costos.metodo_global,
             json_metodo_costo={**costos.metodos, "es_producto": True, "producto": metrica["nombre"]},
-            id_usuario=self.id_servicio, id_parametro_costo_venta=parametro.id_parametro_costo_venta,
+            id_usuario=id_usuario, id_parametro_costo_venta=parametro.id_parametro_costo_venta if parametro else None,
             tiene_valor_estimado=precio.fuente == "ESTIMADA",
+            justificacion=justificacion if costos.tiene_manuales else None,
         ))
         return self._registrar_producto(evento, activo, periodo, dia, metrica, cantidad, precio.precio_unitario,
                                         q4(costos.total / cantidad), truncar2(vn.neto), None, None, id_calculo, None,
-                                        "PRODUCTO_PERIODICO", Sentido.UNICO.value)
+                                        "PRODUCTO_PERIODICO", Sentido.UNICO.value,
+                                        justificacion=justificacion if costos.tiene_manuales else None,
+                                        id_usuario=id_usuario)
 
     def _cosecha_consumo(self, evento, activo, periodo, dia, cantidad, metrica) -> tuple[str, Optional[str]]:
         """Cosecha que consume el activo (peces, biomasa): se remide y se traslada a inventario por el
@@ -351,14 +370,15 @@ class ProcesarEventosM02UseCase:
                 logger.exception("M06: no se pudo alertar la baja pendiente del activo %s.", activo.id_activo_biologico)
 
     def _registrar_producto(self, evento, activo, periodo, dia, metrica, cantidad, precio_unitario, costo_unitario,
-                            valor, proporcion, valor_reduccion, id_calculo, id_medicion, tipo, sentido, justificacion=None):
+                            valor, proporcion, valor_reduccion, id_calculo, id_medicion, tipo, sentido,
+                            justificacion=None, id_usuario=None):
         id_producto = self.valoraciones.agregar_producto({
             "id_evento_productivo": evento.id_evento, "id_activo_biologico": activo.id_activo_biologico,
             "producto_agricola": metrica["nombre"], "cantidad_cosechada": cantidad, "unidad_medida": metrica["unidad_medida"],
             "precio_mercado_producto": precio_unitario, "costo_venta_producto": costo_unitario, "valor_producto": valor,
             "proporcion_cosechada": proporcion, "valor_reduccion_activo": valor_reduccion,
             "id_calculo_valor_razonable": id_calculo, "id_periodo_contable": periodo.id_periodo_contable,
-            "justificacion": justificacion, "fecha_cosecha": dia, "id_usuario": self.id_servicio, "tipo": tipo,
+            "justificacion": justificacion, "fecha_cosecha": dia, "id_usuario": id_usuario or self.id_servicio, "tipo": tipo,
             "id_medicion_posterior": id_medicion,
         })
         if valor > 0:
@@ -370,8 +390,9 @@ class ProcesarEventosM02UseCase:
                 tipo_evidencia=TipoEvidencia.REGISTRO_MANUAL.value,
             ), None)
         self._auditar("PRODUCTO_AGRICOLA_RECONOCIDO", Severidad.INFO, activo, periodo, id_producto,
-                      {"producto": metrica["nombre"], "cantidad": str(cantidad), "valor_producto": str(valor), "tipo": tipo},
-                      monto=valor)
+                      {"producto": metrica["nombre"], "cantidad": str(cantidad), "valor_producto": str(valor), "tipo": tipo,
+                       **({"justificacion_costos_manual": justificacion} if justificacion else {})},
+                      monto=valor, id_usuario=id_usuario if justificacion else None)
         return "PROCESADO", None
 
     def _producto_pendiente(self, activo, periodo, evento, mensaje) -> tuple[str, str]:
@@ -399,9 +420,11 @@ class ProcesarEventosM02UseCase:
         except Exception:  # el puerto ya no propaga errores; esto cubre adaptadores que sí lo hagan
             logger.exception("M06: no se pudo avisar la suspensión del evento %s.", evento.id_evento)
 
-    def _auditar(self, tipo, severidad, activo, periodo, id_referencia, payload, monto=None) -> None:
+    def _auditar(self, tipo, severidad, activo, periodo, id_referencia, payload, monto=None, id_usuario=None) -> None:
+        """Actor SISTEMA, salvo cuando lo hace el Contador (``id_usuario``, RF-85 FA-2)."""
         self.contabilizador.auditar(EventoAuditoria(
-            tipo_evento=tipo, severidad=severidad.value, payload=payload, id_sistema=ID_SISTEMA,
+            tipo_evento=tipo, severidad=severidad.value, payload=payload, id_usuario=id_usuario,
+            id_sistema=None if id_usuario else ID_SISTEMA,
             id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
             id_referencia=id_referencia, monto_afectado=monto,
         ))

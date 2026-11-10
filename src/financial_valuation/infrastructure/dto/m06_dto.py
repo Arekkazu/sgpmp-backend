@@ -6,6 +6,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-319-G20 RF-84: la confirmación rechaza campos desconocidos (método por componente) |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -117,6 +118,13 @@ class ValidarCalculoDTO(BaseDTO):
     # Opcional en el formato: ausente, vacía o en blanco responde el mismo 400 desde el caso de uso.
     justificacion: Optional[str] = Field(default=None, max_length=2000,
                                          description="Por qué se acepta un valor neto menor o igual a cero (mín. 20).")
+
+
+class ReconocerCosechaDTO(BaseDTO):
+    # RF-85 FA-2: costos de venta del producto ingresados por el Contador. Las reglas (al menos un costo,
+    # justificación de 20 caracteres) van en el caso de uso para responder un solo 400 con su campo.
+    costos_manuales: Optional[CostosManualesDTO] = None
+    justificacion: Optional[str] = Field(default=None, max_length=1000)
 
 
 class RevertirReconocimientoDTO(BaseDTO):

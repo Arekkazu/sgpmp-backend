@@ -6,6 +6,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: notificador en el registro de deterioro |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -62,6 +63,9 @@ from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazab
 from src.financial_valuation.application.use_cases.valoracion.procesar_eventos_m02_use_case import ProcesarEventosM02UseCase
 from src.financial_valuation.application.use_cases.valoracion.validar_calculo_no_positivo_use_case import (
     ValidarCalculoNoPositivoUseCase,
+)
+from src.financial_valuation.application.use_cases.valoracion.reconocer_cosecha_pendiente_use_case import (
+    ReconocerCosechaPendienteUseCase,
 )
 from src.financial_valuation.application.use_cases.valoracion_costo.cambiar_a_valor_razonable_use_case import (
     CambiarAValorRazonableUseCase,
@@ -158,6 +162,8 @@ class M06:
         return ProcesarEventosM02UseCase(self.db, self.eventos, self.activos, self.valoraciones, self.precios,
                                          self.medidor, self.contabilizador, id_usuario_servicio(self.db),
                                          notificador=self.notificador, bajas=BajaActivoM02Adapter(sesion_sistema))
+    def reconocer_cosecha_pendiente(self):
+        return ReconocerCosechaPendienteUseCase(self.db, self.eventos, self.procesar_eventos())
     def procesar_provisiones(self):
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):
