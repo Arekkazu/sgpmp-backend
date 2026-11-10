@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/86: medición por evento, productos agrícolas y bajas desde M02 |
+# | 2026-11-09 | destroyerban | INC-M06-321-G25 RF-85: no se reconoce una cosecha mayor que lo disponible del activo |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -209,7 +210,12 @@ class ProcesarEventosM02UseCase:
         if medicion.estado == "PENDIENTE":
             return "MEDICION_PENDIENTE", medicion.mensaje
         base = self.valoraciones.ultimo_calculo(activo.id_activo_biologico)
-        proporcion = min(Decimal(1), cantidad / base.magnitud)
+        if cantidad > base.magnitud:  # R2: no se reduce más de lo que el activo tiene
+            return self._producto_pendiente(activo, periodo, evento, (
+                f"La cantidad cosechada ({cantidad.normalize():f} {metrica['unidad_medida']}) supera la cantidad disponible del "
+                f"activo {activo.identificador} ({base.magnitud.normalize():f} {base.unidad_magnitud}). El producto no se reconoció: "
+                "corrija la cantidad del evento productivo o el último pesaje del activo en Activos biológicos."))
+        proporcion = cantidad / base.magnitud
         valor_reduccion = truncar2(base.valor_neto * proporcion)
         precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
         costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
