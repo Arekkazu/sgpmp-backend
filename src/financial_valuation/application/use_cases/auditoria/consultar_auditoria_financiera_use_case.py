@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-94 Fase 7: consulta técnica y legible de la auditoría financiera |
 # | 2026-11-05 | Arekkazu | M06 RF-94: resumen por severidad, orden y activo por su identificador |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
 filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13)."""
 from __future__ import annotations
@@ -48,6 +49,9 @@ DESCRIPCIONES = {
     "ERROR_CONSISTENCIA": "Inconsistencia entre fuentes", "ESTADO_RESULTADOS_GENERADO": "Estado de resultados generado",
     "ESTADO_RESULTADOS_APROBADO": "Estado de resultados aprobado", "ERROR_CONCILIACION": "Error de conciliación",
     "ERROR_TECNICO": "Error técnico",
+    "CORRECTIVO_VARIACION_SOLICITADO": "Correctivo de variación solicitado",
+    "CORRECTIVO_VARIACION_APROBADO": "Correctivo de variación aprobado",
+    "CORRECTIVO_VARIACION_RECHAZADO": "Correctivo de variación rechazado",
 }
 
 

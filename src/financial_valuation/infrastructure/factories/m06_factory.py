@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ensamblado de repositorios, servicios y casos de uso |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -54,6 +55,10 @@ from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazab
     VerificadorTrazabilidad,
     VerificarTrazabilidadUseCase,
 )
+from src.financial_valuation.application.use_cases.valoracion.correctivo_variacion_use_case import (
+    ResolverCorrectivoVariacionUseCase,
+    SolicitarCorrectivoVariacionUseCase,
+)
 from src.financial_valuation.application.use_cases.valoracion.procesar_eventos_m02_use_case import ProcesarEventosM02UseCase
 from src.financial_valuation.application.use_cases.valoracion_costo.cambiar_a_valor_razonable_use_case import (
     CambiarAValorRazonableUseCase,
@@ -68,6 +73,9 @@ from src.financial_valuation.infrastructure.repositories.auditoria_financiera_re
 )
 from src.financial_valuation.infrastructure.repositories.configuracion_contable_repository import (
     SqlAlchemyConfiguracionContableRepository,
+)
+from src.financial_valuation.infrastructure.repositories.correctivo_variacion_repository import (
+    SqlAlchemyCorrectivoVariacionRepository,
 )
 from src.financial_valuation.infrastructure.repositories.costo_repository import SqlAlchemyCostoRepository
 from src.financial_valuation.infrastructure.repositories.cotizacion_repository import SqlAlchemyCotizacionRepository
@@ -102,6 +110,8 @@ class M06:
     def precios(self): return SqlAlchemyPrecioRepository(self.db)
     @cached_property
     def valoraciones(self): return SqlAlchemyValoracionRepository(self.db)
+    @cached_property
+    def correctivos(self): return SqlAlchemyCorrectivoVariacionRepository(self.db)
     @cached_property
     def costos(self): return SqlAlchemyCostoRepository(self.db)
     @cached_property
@@ -145,6 +155,10 @@ class M06:
     def procesar_eventos(self):
         return ProcesarEventosM02UseCase(self.db, self.eventos, self.activos, self.valoraciones, self.precios,
                                          self.medidor, self.contabilizador, id_usuario_servicio(self.db))
+    def solicitar_correctivo(self):
+        return SolicitarCorrectivoVariacionUseCase(self.db, self.correctivos, self.valoraciones, self.contabilizador)
+    def resolver_correctivo(self):
+        return ResolverCorrectivoVariacionUseCase(self.db, self.correctivos, self.valoraciones, self.contabilizador)
     def procesar_provisiones(self):
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculos, reconocimientos, mediciones, variaciones y valoración por costo |
 # | 2026-11-05 | Arekkazu | M06 RF-83..88: listados del período y datos del modelo de costo por activo |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -111,15 +112,16 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             INSERT INTO modulo6.variaciones_valor_razonable (id_activo_biologico, tipo, monto_variacion, variacion_transformacion,
                 variacion_precio_mercado, valor_razonable_anterior, valor_razonable_nuevo, id_evento, id_medicion_posterior,
                 id_periodo_contable, estado_trazabilidad, tiene_estimacion, id_usuario, fecha_registro, id_precio_mercado,
-                id_cierre)
+                id_cierre, id_variacion_corregida)
             VALUES (:a, CAST(:t AS modulo6.enum_variaciones_valor_razonable_tipo), :m, :tb, :pm, :vant, :vnue, :e, :med, :p,
-                'VERIFICACION_PENDIENTE', :est, :u, now(), :precio, :cierre)
+                'VERIFICACION_PENDIENTE', :est, :u, now(), :precio, :cierre, :corregida)
             RETURNING id_variacion_valor_razonable
         """, {"a": variacion.id_activo_biologico, "t": variacion.tipo, "m": variacion.monto_variacion,
               "tb": variacion.variacion_transformacion, "pm": variacion.variacion_precio_mercado,
               "vant": variacion.valor_razonable_anterior, "vnue": variacion.valor_razonable_nuevo, "e": variacion.id_evento,
               "med": variacion.id_medicion_posterior, "p": variacion.id_periodo_contable, "est": variacion.tiene_estimacion,
-              "u": variacion.id_usuario, "precio": variacion.id_precio_mercado, "cierre": variacion.id_cierre})
+              "u": variacion.id_usuario, "precio": variacion.id_precio_mercado, "cierre": variacion.id_cierre,
+              "corregida": variacion.id_variacion_corregida})
 
     # --- RF-82 ---------------------------------------------------------------------------------
 
@@ -310,11 +312,15 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             SELECT x.id_variacion_valor_razonable, x.id_activo_biologico, {_ACTIVO}, x.tipo::text AS tipo,
                    x.monto_variacion, x.valor_razonable_anterior, x.valor_razonable_nuevo, x.tiene_estimacion,
                    x.fecha_registro, l.id_linea_asiento_nic41 AS id_linea, l.tipo_evidencia::text AS tipo_evidencia,
-                   COALESCE(l.estado_trazabilidad, x.estado_trazabilidad)::text AS estado_trazabilidad
+                   COALESCE(l.estado_trazabilidad, x.estado_trazabilidad)::text AS estado_trazabilidad,
+                   x.id_variacion_corregida, (x.id_variacion_corregida IS NOT NULL) AS es_correctivo,
+                   sc.id_solicitud_correctivo_variacion AS id_solicitud_correctivo, sc.estado AS estado_correctivo
             FROM modulo6.variaciones_valor_razonable x {_JOIN_ACTIVO}
+            LEFT JOIN modulo6.solicitudes_correctivos_variaciones sc
+                   ON sc.id_variacion_valor_razonable = x.id_variacion_valor_razonable AND sc.estado IN ('PENDIENTE', 'APROBADA')
             LEFT JOIN modulo6.lineas_asiento_nic41 l
                    ON l.tabla_origen = 'variaciones_valor_razonable' AND l.id_origen = x.id_variacion_valor_razonable
-                  AND NOT l.es_reverso
+                  AND l.es_reverso = (x.id_variacion_corregida IS NOT NULL)  -- la del correctivo es la inversa
             WHERE x.id_periodo_contable = :p ORDER BY x.fecha_registro DESC, x.id_variacion_valor_razonable DESC""",
             {"p": id_periodo_contable})
 

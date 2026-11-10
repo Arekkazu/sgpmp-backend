@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -35,12 +36,14 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     ParametroEspecieDTO,
     PrecioDTO,
     ResolverInformeDTO,
+    RechazarCorrectivoDTO,
     RevertirReconocimientoDTO,
+    SolicitarCorrectivoDTO,
 )
 from src.financial_valuation.infrastructure.factories.m06_factory import M06
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
-from src.shared.errors import NotFoundError
+from src.shared.errors import ConflictError, NotFoundError
 from src.shared.fechas import hoy_usuario
 from src.shared.rbac import require_permission_sobre as permiso
 from src.shared.schemas import ErrorResponse
@@ -57,6 +60,7 @@ SubtipoCosto = Literal["ALIMENTO", "MEDICAMENTO", "MANO_OBRA", "VETERINARIO", "T
                        "IMPUESTO_TRANSACCION", "SACRIFICIO", "INVERSION_DIRECTA", "OTRO"]
 EstadoCotizacion = Literal["COTIZADO", "VENCIDA", "ANULADA", "CONVERTIDA_EN_VENTA"]
 Severidad = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
+EstadoCorrectivo = Literal["PENDIENTE", "APROBADA", "RECHAZADA"]
 _ERRORES = {c: {"model": ErrorResponse} for c in (400, 401, 403, 404, 409, 412, 422, 500)}
 
 router = APIRouter(prefix="/finanzas", responses=_ERRORES)
@@ -243,6 +247,63 @@ def mediciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> 
             summary="Variaciones de valor razonable del período con su evidencia y trazabilidad")
 def variaciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
     return m.valoraciones.variaciones_del_periodo(id_periodo_contable)
+
+
+# --- Correctivos de variaciones (RF-86 restricción 5, CA-12, CA-13) ---------------------------------------
+
+_INMUTABLE = ("Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. "
+              "Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia "
+              "el original, y se aplicará cuando otro Contador lo apruebe.")
+
+
+@router.post("/variaciones/{id_variacion}/correctivos", tags=[TAG_VALOR], status_code=201,
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Solicitar el correctivo de una variación (monto opuesto; queda pendiente de aprobación)")
+def solicitar_correctivo(id_variacion: int, dto: SolicitarCorrectivoDTO, m: M06 = Depends(_m06),
+                         usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.solicitar_correctivo().execute(id_variacion, dto.motivo, usuario.id_usuario)
+
+
+@router.get("/correctivos", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Solicitudes de correctivo de variaciones (filtrables por estado, período y activo)")
+def listar_correctivos(estado: Optional[EstadoCorrectivo] = None, id_periodo_contable: Optional[int] = Query(None, gt=0),
+                       id_activo_biologico: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    return m.correctivos.listar({"estado": estado, "id_periodo_contable": id_periodo_contable,
+                                 "id_activo_biologico": id_activo_biologico})
+
+
+@router.post("/correctivos/{id_solicitud}/aprobacion", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Aprobar un correctivo: registra la variación correctiva y sus líneas inversas (otro Contador)")
+def aprobar_correctivo(id_solicitud: int, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.resolver_correctivo().aprobar(id_solicitud, usuario.id_usuario)
+
+
+@router.post("/correctivos/{id_solicitud}/rechazo", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Rechazar un correctivo pendiente con su motivo (otro Contador)")
+def rechazar_correctivo(id_solicitud: int, dto: RechazarCorrectivoDTO, m: M06 = Depends(_m06),
+                        usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.resolver_correctivo().rechazar(id_solicitud, dto.motivo_rechazo, usuario.id_usuario)
+
+
+@router.api_route("/variaciones/{id_variacion}", methods=["PUT", "PATCH", "DELETE"], tags=[TAG_VALOR],
+                  dependencies=[Depends(permiso("valoracion_activos", R))], include_in_schema=False)
+@router.api_route("/periodos/{id_periodo_contable}/variaciones/{id_variacion}", methods=["PUT", "PATCH", "DELETE"],
+                  tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))], include_in_schema=False)
+def variacion_inmutable(id_variacion: int) -> None:
+    """CA-12: la modificación directa se rechaza y orienta al correctivo (``POST /variaciones/{id}/correctivos``)."""
+    raise ConflictError(code="VARIACION_INMUTABLE", message=_INMUTABLE)
+
+
+@router.api_route("/lineas/{id_linea}", methods=["PUT", "PATCH", "DELETE"], tags=[TAG_VALOR],
+                  dependencies=[Depends(permiso("valoracion_activos", R))], include_in_schema=False)
+def linea_inmutable(id_linea: int) -> None:
+    """Las líneas de asiento tampoco se modifican: se corrigen con líneas inversas del correctivo o de la reversión."""
+    raise ConflictError(code="LINEA_ASIENTO_INMUTABLE", message=(
+        "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el "
+        "correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige "
+        "con su reversión."))
 
 
 @router.get("/periodos/{id_periodo_contable}/calculos", tags=[TAG_VALOR],

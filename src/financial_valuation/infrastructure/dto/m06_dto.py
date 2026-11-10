@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -94,6 +95,15 @@ class ConfirmarReconocimientoDTO(BaseDTO):
                 and len((self.justificacion or "").strip()) < 20:
             raise ValueError("Los costos de venta manuales requieren una justificación con su soporte documental (mín. 20).")
         return self
+
+
+class SolicitarCorrectivoDTO(BaseDTO):
+    # RF-86 CA-13. El mínimo de 20 caracteres va en el caso de uso: ausente, vacío o corto responde el mismo 400.
+    motivo: Optional[str] = Field(default=None, max_length=2000)
+
+
+class RechazarCorrectivoDTO(BaseDTO):
+    motivo_rechazo: Optional[str] = Field(default=None, max_length=2000)
 
 
 class RevertirReconocimientoDTO(BaseDTO):
