@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/89: valor razonable menos costos de venta de un activo |
+# | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: el precio congelado vencido también es estimación |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
@@ -19,7 +20,7 @@ from src.financial_valuation.domain.repositories.configuracion_contable_reposito
 )
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.services.nic41 import costos_venta, valor_neto
-from src.financial_valuation.domain.services.precios import Precio, precio_vigente, ultimo_precio_conocido
+from src.financial_valuation.domain.services.precios import Precio, motivo_estimacion, precio_vigente, ultimo_precio_conocido
 from src.financial_valuation.domain.value_objects.nic41 import CategoriaPrecio, FuentePrecio
 
 MOTIVOS = {
@@ -80,7 +81,8 @@ class Valorador:
     ) -> ResultadoValoracion:
         textos = {"especie": activo.especie, "activo": activo.identificador}
         if precio_congelado is not None:
-            precio, estimado = precio_congelado, precio_congelado.fuente == FuentePrecio.ESTIMADA.value
+            # El cierre congela el último precio conocido si se incluyen activos sin precio vigente (RF-87 FA-2).
+            precio, estimado = precio_congelado, motivo_estimacion(precio_congelado, dia) is not None
         else:
             precio, estimado = self.precio_para(activo, dia, permitir_estimado)
         if precio is None:
