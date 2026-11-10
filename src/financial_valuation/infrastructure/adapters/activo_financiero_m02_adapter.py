@@ -2,11 +2,13 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/83/87: lectura del activo en M02 con su finca y titular |
 # | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
+# | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
 usuario. El peso es el último PESAJE de RF-40 (INDIVIDUAL: ``valor_medicion``; POBLACIONAL:
-``nuevo_peso_promedio``, o el peso promedio del detalle si no hay pesaje), en kilogramos."""
+``nuevo_peso_promedio``, o el peso promedio del detalle si no hay pesaje), en kilogramos. Los kg cosechados
+como producto de consumo después de ese pesaje se descuentan de la magnitud (RF-85: la reducción es acumulativa)."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -25,7 +27,7 @@ SELECT a.id_activo_biologico, a.identificador, a.tipo::text AS tipo, a.id_especi
        f.razon_social, (a.fecha_creacion AT TIME ZONE :tz)::date AS fecha_ingreso,
        a.origen_financiero::text AS origen_financiero, a.costo_adquisicion, a.soporte_documental,
        d.cantidad_actual, COALESCE(p.peso, d.peso_promedio) AS peso_kg, p.id_evento AS id_evento_peso,
-       a.id_dispositivo_iot
+       a.id_dispositivo_iot, k.kg_cosechados
 FROM modulo2.activos_biologicos a
 JOIN modulo9.especies e ON e.id_especie = a.id_especie
 JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = a.id_estado
@@ -34,7 +36,7 @@ JOIN modulo9.fincas f ON f.id_finca = i.id_finca
 LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales d ON d.id_activo_biologico = a.id_activo_biologico
 LEFT JOIN LATERAL (
     SELECT CASE WHEN a.tipo = 'POBLACIONAL' THEN ec.nuevo_peso_promedio ELSE ec.valor_medicion END AS peso,
-           ec.id_evento
+           ec.id_evento, ea.fecha
     FROM modulo2.eventos_crecimeinto ec
     JOIN modulo2.eventos_activos ea ON ea.id_eventos = ec.id_evento
     WHERE ea.id_activo_biologico = a.id_activo_biologico
@@ -43,6 +45,13 @@ LEFT JOIN LATERAL (
     ORDER BY ea.fecha DESC, ea.id_eventos DESC
     LIMIT 1
 ) p ON true
+LEFT JOIN LATERAL (
+    SELECT COALESCE(sum(rp.cantidad_cosechada), 0) AS kg_cosechados
+    FROM modulo6.reconocimientos_productos_agricolas rp
+    JOIN modulo2.eventos_activos ev ON ev.id_eventos = rp.id_evento_productivo
+    WHERE rp.id_activo_biologico = a.id_activo_biologico AND rp.tipo = 'PRODUCTO_DE_CONSUMO'
+      AND (p.id_evento IS NULL OR ev.fecha > p.fecha OR (ev.fecha = p.fecha AND ev.id_eventos > p.id_evento))
+) k ON true
 """
 
 _CONFIRMADO = """EXISTS (SELECT 1 FROM modulo6.reconocimientos_iniciales r
@@ -59,7 +68,7 @@ def _activo(f: dict) -> DatosActivo:
         costo_adquisicion=Decimal(f["costo_adquisicion"]) if f["costo_adquisicion"] is not None else None,
         soporte_documental=f["soporte_documental"], cantidad_actual=f["cantidad_actual"],
         peso_kg=Decimal(f["peso_kg"]) if f["peso_kg"] is not None else None, id_evento_peso=f["id_evento_peso"],
-        id_dispositivo_iot=f["id_dispositivo_iot"],
+        id_dispositivo_iot=f["id_dispositivo_iot"], kg_cosechados=Decimal(f["kg_cosechados"] or 0),
     )
 
 
