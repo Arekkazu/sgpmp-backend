@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Primera evaluación — TC-M06-G95</title>
+  <style>
+    :root { --ink:#1c2430; --muted:#5c6778; --line:#d9e0e8; --paper:#f6f8fb; --amber:#8a5a00; --amber-bg:#fff6e5; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", sans-serif; color:var(--ink); background:var(--paper); }
+    header { background:#1c2430; color:#fff; padding:2rem 1.5rem; }
+    header p { margin:0.3rem 0 0; color:#c5d0dc; }
+    main { max-width:920px; margin:0 auto; padding:1.5rem; }
+    h1 { margin:0; font-size:1.7rem; }
+    h2 { margin:1.8rem 0 0.6rem; font-size:1.15rem; }
+    a { color:#1a4f8b; }
+    .pill { display:inline-block; background:var(--amber-bg); color:var(--amber); border:1px solid #efd3a0; border-radius:999px; padding:0.2rem 0.7rem; font-weight:700; }
+    table { width:100%; border-collapse:collapse; background:#fff; margin:0.6rem 0 1rem; }
+    th, td { border:1px solid var(--line); padding:0.45rem 0.6rem; text-align:left; vertical-align:top; }
+    th { background:#eef3f8; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:1rem 1.1rem; }
+    code { font-family: Consolas, monospace; }
+    footer { color:var(--muted); font-size:0.9rem; margin-top:2rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <p>SGPMP · Módulo 6 · RF-88</p>
+    <h1>Primera evaluación · TC-M06-G95</h1>
+    <p>Identificador original TC-M06-G67. Publicada el 2026-11-07, commit 931ee55e.</p>
+  </header>
+  <main>
+    <p><span class="pill">BLOQUEADO</span></p>
+    <p>Esta es la primera evaluación del caso. No es el intento de ejecución del 9 de noviembre. Las fuentes no se modificaron y siguen en la raíz: <code>ficha.md</code> y <code>tc-m06-g95.json</code>.</p>
+    <p><a href="../comparacion_evaluaciones.html">Comparación con la evaluación aprobada</a> · <a href="../ultima_evaluacion_aprobada/resultado_ultima_evaluacion.html">Última evaluación</a></p>
+
+    <h2>Qué se conservó</h2>
+    <div class="card">
+      <p>La publicación del 2026-11-07 dejó la ficha, la colección y <code>resultados/.gitkeep</code>. No hay un informe Newman ni una respuesta HTTP guardada de esa corrida. El cuerpo de <code>GET /openapi.json</code> de aquella ejecución queda como no disponible.</p>
+    </div>
+
+    <h2>Solicitud definida</h2>
+    <table>
+      <tr><th>Método</th><th>URL</th><th>Respuesta guardada</th></tr>
+      <tr><td>GET</td><td>https://api.inmero.co/api-sgpmp-test/openapi.json</td><td>No disponible</td></tr>
+    </table>
+    <p>La colección no autentica, no envía un cuerpo de negocio y no llama la operación de reconocimiento.</p>
+
+    <h2>Resultado documentado en la ficha</h2>
+    <table>
+      <tr><th>Escenario</th><th>Estado</th><th>Motivo registrado</th></tr>
+      <tr><td>TC-M06-01</td><td>BLOQUEADO</td><td>No se encontró router, caso de uso ni DTO de reconocimiento inicial.</td></tr>
+      <tr><td>TC-M06-02</td><td>BLOQUEADO</td><td>No se encontró operación autónoma de costo.</td></tr>
+      <tr><td>TC-M06-03</td><td>BLOQUEADO</td><td>No se encontró excepción a costo sin justificación.</td></tr>
+      <tr><td>TC-M06-04</td><td>BLOQUEADO</td><td>No se encontró excepción a costo con justificación.</td></tr>
+    </table>
+    <p>En esa evaluación el denominador era 4. El resultado registrado es 0/4. No se crearon datos de prueba, no se consultó una propuesta y no se envió confirmación.</p>
+    <p>TC-M06-02, TC-M06-03 y TC-M06-04 se retiraron después por cambio de alcance, según el issue #959. En esta página se conserva el estado que tuvo la primera evaluación. No se reescriben como fallidos ni como aprobados.</p>
+
+    <h2>Validaciones</h2>
+    <table>
+      <tr><th>Validación</th><th>Resultado</th></tr>
+      <tr><td>Operación real de reconocimiento ejecutada</td><td>No</td></tr>
+      <tr><td>Datos QA</td><td>No creados</td></tr>
+      <tr><td>Propuesta VALORACION_POR_COSTO</td><td>No consultada</td></tr>
+      <tr><td>Activo confirmable</td><td>No evaluado</td></tr>
+      <tr><td>Confirmación</td><td>No enviada</td></tr>
+      <tr><td>Reconocimiento persistido</td><td>No</td></tr>
+      <tr><td>Valoración INICIAL_RF82</td><td>No</td></tr>
+    </table>
+    <footer>El resumen estructurado está en <a href="resumen_primera_evaluacion.json">resumen_primera_evaluacion.json</a>.</footer>
+  </main>
+</body>
+</html>

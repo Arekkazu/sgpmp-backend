@@ -1,0 +1,574 @@
+{
+  "caso": "TC-M06-G100",
+  "identificador_vigente": "TC-M06-G100",
+  "identificador_historico": "TC-M06-G72",
+  "issue": "973",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "zona": "America/Bogota",
+  "fecha": "2026-11-10",
+  "usuario": {
+    "id_usuario": 141,
+    "rol": "Contador"
+  },
+  "sql": false,
+  "cierre_de_periodo": false,
+  "activos_no_usados": [
+    1569,
+    1570,
+    1571,
+    1572,
+    1573
+  ],
+  "consultas_previas": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 980,
+      "en": "2026-11-10T06:28:46.925123+00:00",
+      "escritura": true,
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "sesion": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 507,
+      "en": "2026-11-10T06:28:47.432554+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "id_usuario": 141,
+        "id_rol": null,
+        "rol": "Contador"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1574",
+      "codigo": 403,
+      "duracion_ms": 423,
+      "en": "2026-11-10T06:28:47.855169+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-10T06:28:47.614363+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1574",
+      "codigo": 200,
+      "duracion_ms": 413,
+      "en": "2026-11-10T06:28:48.268129+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "activo": {
+          "id_activo_biologico": 1574,
+          "identificador": "QA-M06O-BAJA-01",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 422,
+          "especie": "Caprino Qa Aislado",
+          "estado": "BAJA",
+          "id_infraestructura": 1016,
+          "id_finca": 467,
+          "finca": "Finca Qa Seis Operaciones",
+          "numero_id_tributaria": "900000003",
+          "razon_social": "QA M06 Operaciones SAS",
+          "fecha_ingreso": "2026-10-31",
+          "origen_financiero": "nacimiento",
+          "costo_adquisicion": null,
+          "soporte_documental": null,
+          "cantidad_actual": null,
+          "peso_kg": null,
+          "id_evento_peso": null,
+          "id_dispositivo_iot": null
+        },
+        "reconocimientos": [],
+        "calculos": [],
+        "mediciones": [],
+        "productos": [],
+        "valoracion_costo": null,
+        "lineas": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas/1574",
+      "codigo": 200,
+      "duracion_ms": 393,
+      "en": "2026-11-10T06:28:48.660776+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "id_activo_biologico": 1574,
+        "identificador": "QA-M06O-BAJA-01",
+        "tipo": "INDIVIDUAL",
+        "especie": "Caprino Qa Aislado",
+        "id_especie": 422,
+        "finca": "Finca Qa Seis Operaciones",
+        "estado": "BAJA",
+        "origen_financiero": "nacimiento",
+        "costo_adquisicion": null,
+        "soporte_documental": null,
+        "fecha_reconocimiento": "2026-11-10",
+        "es_apertura": true,
+        "clasificacion": "PRODUCCION",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_inicial": "3760000.0000",
+        "costos_venta": "240000.0000",
+        "magnitud": "1",
+        "unidad_magnitud": "cabeza",
+        "precio": {
+          "id_precio_mercado": 435,
+          "precio_unitario": "4000000.00",
+          "unidad_medida": "cabeza",
+          "fuente": "MERCADO_ACTIVO",
+          "fecha_vigencia": "2026-11-01"
+        },
+        "hechos": [
+          {
+            "tipo_hecho": "RECONOCIMIENTO_NACIMIENTO",
+            "sentido": "UNICO",
+            "valor": "3760000.0000"
+          }
+        ],
+        "bloqueos": [
+          {
+            "codigo": "ACTIVO_NO_VALORABLE",
+            "mensaje": "El activo está baja: solo se reconocen los que están activos o en tratamiento."
+          }
+        ],
+        "advertencias": [],
+        "requiere_costos_manuales": false,
+        "es_confirmable": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1574&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "duracion_ms": 409,
+      "en": "2026-11-10T06:28:49.069506+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0,
+        "pagina_actual": 1,
+        "registros_por_pagina": 100,
+        "resumen_severidad": {
+          "INFO": 0,
+          "WARNING": 0,
+          "ERROR": 0,
+          "CRITICAL": 0
+        },
+        "eventos": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "duracion_ms": 394,
+      "en": "2026-11-10T06:28:49.463895+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": [
+        {
+          "id_periodo_contable": 220,
+          "numero_id_tributaria": "900000003",
+          "tipo_cierre": "MENSUAL",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "estado": "ABIERTO",
+          "fecha_cierre": null,
+          "ultimo_cierre": null
+        }
+      ]
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas",
+      "codigo": 403,
+      "duracion_ms": 419,
+      "en": "2026-11-10T06:28:49.883036+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "total": null,
+        "finca_467": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 513,
+      "en": "2026-11-10T06:28:50.395650+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "finca_467": [
+          {
+            "id_activo_biologico": 1572,
+            "identificador": "QA-M06O-COSTO-01",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALORACION_POR_COSTO",
+            "valorado_por_costo": true
+          },
+          {
+            "id_activo_biologico": 1573,
+            "identificador": "QA-M06O-COSTO-02",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALORACION_POR_COSTO",
+            "valorado_por_costo": true
+          },
+          {
+            "id_activo_biologico": 1569,
+            "identificador": "QA-M06O-VR-01",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALOR_RAZONABLE",
+            "valorado_por_costo": false
+          },
+          {
+            "id_activo_biologico": 1570,
+            "identificador": "QA-M06O-VR-02",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALOR_RAZONABLE",
+            "valorado_por_costo": false
+          },
+          {
+            "id_activo_biologico": 1571,
+            "identificador": "QA-M06O-VR-03",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALOR_RAZONABLE",
+            "valorado_por_costo": false
+          }
+        ]
+      }
+    }
+  ],
+  "ejecucion": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 729,
+      "en": "2026-11-10T06:29:30.237820+00:00",
+      "escritura": true,
+      "cuerpo": null,
+      "respuesta": {
+        "sesion": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1574",
+      "codigo": 200,
+      "duracion_ms": 402,
+      "en": "2026-11-10T06:29:30.639881+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "activo": {
+          "id_activo_biologico": 1574,
+          "identificador": "QA-M06O-BAJA-01",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 422,
+          "especie": "Caprino Qa Aislado",
+          "estado": "BAJA",
+          "id_infraestructura": 1016,
+          "id_finca": 467,
+          "finca": "Finca Qa Seis Operaciones",
+          "numero_id_tributaria": "900000003",
+          "razon_social": "QA M06 Operaciones SAS",
+          "fecha_ingreso": "2026-10-31",
+          "origen_financiero": "nacimiento",
+          "costo_adquisicion": null,
+          "soporte_documental": null,
+          "cantidad_actual": null,
+          "peso_kg": null,
+          "id_evento_peso": null,
+          "id_dispositivo_iot": null
+        },
+        "reconocimientos": [],
+        "calculos": [],
+        "mediciones": [],
+        "productos": [],
+        "valoracion_costo": null,
+        "lineas": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas/1574",
+      "codigo": 200,
+      "duracion_ms": 420,
+      "en": "2026-11-10T06:29:31.060022+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "id_activo_biologico": 1574,
+        "identificador": "QA-M06O-BAJA-01",
+        "tipo": "INDIVIDUAL",
+        "especie": "Caprino Qa Aislado",
+        "id_especie": 422,
+        "finca": "Finca Qa Seis Operaciones",
+        "estado": "BAJA",
+        "origen_financiero": "nacimiento",
+        "costo_adquisicion": null,
+        "soporte_documental": null,
+        "fecha_reconocimiento": "2026-11-10",
+        "es_apertura": true,
+        "clasificacion": "PRODUCCION",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_inicial": "3760000.0000",
+        "costos_venta": "240000.0000",
+        "magnitud": "1",
+        "unidad_magnitud": "cabeza",
+        "precio": {
+          "id_precio_mercado": 435,
+          "precio_unitario": "4000000.00",
+          "unidad_medida": "cabeza",
+          "fuente": "MERCADO_ACTIVO",
+          "fecha_vigencia": "2026-11-01"
+        },
+        "hechos": [
+          {
+            "tipo_hecho": "RECONOCIMIENTO_NACIMIENTO",
+            "sentido": "UNICO",
+            "valor": "3760000.0000"
+          }
+        ],
+        "bloqueos": [
+          {
+            "codigo": "ACTIVO_NO_VALORABLE",
+            "mensaje": "El activo está baja: solo se reconocen los que están activos o en tratamiento."
+          }
+        ],
+        "advertencias": [],
+        "requiere_costos_manuales": false,
+        "es_confirmable": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1574&formato=TECNICO&tamano=20",
+      "codigo": 200,
+      "duracion_ms": 386,
+      "en": "2026-11-10T06:29:31.446076+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0,
+        "pagina_actual": 1,
+        "registros_por_pagina": 20,
+        "resumen_severidad": {
+          "INFO": 0,
+          "WARNING": 0,
+          "ERROR": 0,
+          "CRITICAL": 0
+        },
+        "eventos": []
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/reconocimientos/1574",
+      "codigo": 422,
+      "duracion_ms": 401,
+      "en": "2026-11-10T06:29:31.846892+00:00",
+      "escritura": true,
+      "cuerpo": {},
+      "respuesta": {
+        "error_code": "ACTIVO_NO_VALORABLE",
+        "message": "El activo está baja: solo se reconocen los que están activos o en tratamiento.",
+        "fields": [],
+        "timestamp": "2026-11-10T06:29:31.604660+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1574",
+      "codigo": 200,
+      "duracion_ms": 431,
+      "en": "2026-11-10T06:29:32.278154+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "activo": {
+          "id_activo_biologico": 1574,
+          "identificador": "QA-M06O-BAJA-01",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 422,
+          "especie": "Caprino Qa Aislado",
+          "estado": "BAJA",
+          "id_infraestructura": 1016,
+          "id_finca": 467,
+          "finca": "Finca Qa Seis Operaciones",
+          "numero_id_tributaria": "900000003",
+          "razon_social": "QA M06 Operaciones SAS",
+          "fecha_ingreso": "2026-10-31",
+          "origen_financiero": "nacimiento",
+          "costo_adquisicion": null,
+          "soporte_documental": null,
+          "cantidad_actual": null,
+          "peso_kg": null,
+          "id_evento_peso": null,
+          "id_dispositivo_iot": null
+        },
+        "reconocimientos": [],
+        "calculos": [],
+        "mediciones": [],
+        "productos": [],
+        "valoracion_costo": null,
+        "lineas": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas/1574",
+      "codigo": 200,
+      "duracion_ms": 422,
+      "en": "2026-11-10T06:29:32.699846+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "id_activo_biologico": 1574,
+        "identificador": "QA-M06O-BAJA-01",
+        "tipo": "INDIVIDUAL",
+        "especie": "Caprino Qa Aislado",
+        "id_especie": 422,
+        "finca": "Finca Qa Seis Operaciones",
+        "estado": "BAJA",
+        "origen_financiero": "nacimiento",
+        "costo_adquisicion": null,
+        "soporte_documental": null,
+        "fecha_reconocimiento": "2026-11-10",
+        "es_apertura": true,
+        "clasificacion": "PRODUCCION",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_inicial": "3760000.0000",
+        "costos_venta": "240000.0000",
+        "magnitud": "1",
+        "unidad_magnitud": "cabeza",
+        "precio": {
+          "id_precio_mercado": 435,
+          "precio_unitario": "4000000.00",
+          "unidad_medida": "cabeza",
+          "fuente": "MERCADO_ACTIVO",
+          "fecha_vigencia": "2026-11-01"
+        },
+        "hechos": [
+          {
+            "tipo_hecho": "RECONOCIMIENTO_NACIMIENTO",
+            "sentido": "UNICO",
+            "valor": "3760000.0000"
+          }
+        ],
+        "bloqueos": [
+          {
+            "codigo": "ACTIVO_NO_VALORABLE",
+            "mensaje": "El activo está baja: solo se reconocen los que están activos o en tratamiento."
+          }
+        ],
+        "advertencias": [],
+        "requiere_costos_manuales": false,
+        "es_confirmable": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1574&formato=TECNICO&tamano=20",
+      "codigo": 200,
+      "duracion_ms": 381,
+      "en": "2026-11-10T06:29:33.080621+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0,
+        "pagina_actual": 1,
+        "registros_por_pagina": 20,
+        "resumen_severidad": {
+          "INFO": 0,
+          "WARNING": 0,
+          "ERROR": 0,
+          "CRITICAL": 0
+        },
+        "eventos": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "duracion_ms": 392,
+      "en": "2026-11-10T06:29:33.472886+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": [
+        {
+          "id_periodo_contable": 220,
+          "numero_id_tributaria": "900000003",
+          "tipo_cierre": "MENSUAL",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "estado": "ABIERTO",
+          "fecha_cierre": null,
+          "ultimo_cierre": null
+        }
+      ]
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 499,
+      "en": "2026-11-10T06:29:33.972345+00:00",
+      "escritura": false,
+      "cuerpo": null,
+      "respuesta": {
+        "finca_467": [
+          {
+            "id_activo_biologico": 1572,
+            "identificador": "QA-M06O-COSTO-01",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALORACION_POR_COSTO"
+          },
+          {
+            "id_activo_biologico": 1573,
+            "identificador": "QA-M06O-COSTO-02",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALORACION_POR_COSTO"
+          },
+          {
+            "id_activo_biologico": 1569,
+            "identificador": "QA-M06O-VR-01",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALOR_RAZONABLE"
+          },
+          {
+            "id_activo_biologico": 1570,
+            "identificador": "QA-M06O-VR-02",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALOR_RAZONABLE"
+          },
+          {
+            "id_activo_biologico": 1571,
+            "identificador": "QA-M06O-VR-03",
+            "estado": "ACTIVO",
+            "indicador_reconocimiento": "VALOR_RAZONABLE"
+          }
+        ]
+      }
+    }
+  ]
+}
