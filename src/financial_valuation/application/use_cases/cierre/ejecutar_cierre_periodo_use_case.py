@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1: cierre del período contable con comprobante NIC 41 |
 # | 2026-11-05 | Arekkazu | M06 RF-87: el bloqueo por cuentas faltantes nombra hecho, sentido y especie sin códigos |
 # | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0: el cierre avisa al Contador de los activos al costo que ya tienen precio |
+# | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta al Contador de mediciones estimadas o pendientes |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -142,6 +143,7 @@ class EjecutarCierrePeriodoUseCase:
             self.db.commit()
         except Exception as exc:
             self.db.rollback()
+            self.medidor.tomar_alertas()  # lo revertido no se avisa
             paso = self._paso
             self._fallar(id_periodo_contable, id_cierre, paso, exc, id_usuario)
             if isinstance(exc, AppError):
@@ -157,6 +159,8 @@ class EjecutarCierrePeriodoUseCase:
                 f"Al cerrar el período {resultado['periodo']}, estos activos valorados por costo ya tienen precio de mercado "
                 f"para su especie: {', '.join(resultado['activos_al_costo_con_precio'])}. La NIC 41 ¶30 exige pasarlos a "
                 "valor razonable."), {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
+        for alerta in self.medidor.tomar_alertas():  # RF-83: mediciones estimadas o pendientes del cierre
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", alerta.mensaje, alerta.detalle, alerta.id_finca)
         return resultado
 
     def eventos_pendientes_primero(self) -> None:
