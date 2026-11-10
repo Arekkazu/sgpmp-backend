@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {evaluar,preInicial,precioVigente,sinCambios,cierre8CoincideG32,paresMatrizFaltantes,cuerpoParMatriz,numeroAislado,calculosUsanPrecio} from '../lib/g43_core.mjs';
-import {clasificarRegistro} from './registro_qa.mjs';
+import {clasificarRegistro} from '../lib/infra.mjs';
 import {CAPACIDADES,permitidos} from '../g43.mjs';
 import {esquema} from '../lib/contrato.mjs';
 const conforme={pausaEstado:'EN_CIERRE',pIni:{id_precio_mercado:17,fecha_vigencia:'2026-11-07'},pNuevo:{id_precio_mercado:999},congelado:{id_precio_mercado:17,fecha_vigencia:'2026-11-07'},cierre8:{http:200},medicionesIni:true,aviso25:true,no25:true,si25:true,ui25:true,confirmacion26:true,costo26:true,sinEstimacion26:true,ui26:true,lista27:true,no27:true,si27:true,ui27:true};
@@ -14,6 +14,7 @@ const artefactos=new Set(['resultado.json','TC-M06-G43_resultado.md','newman/new
 const registro={grupo:'G43',run_id:'RUN-G43-V1-20261109-223000',autorizacion_referencia:'QA-LOCAL',version:1,oficial:true,consume_version:true,rollback:{verificado:true},herramientas:{newman:{codigo:0,fallos:0,reportes:true}},total_solicitudes_api:100,casos:Object.fromEntries(CAPACIDADES.casos.map(c=>[c,{estado:'APROBADO',comprobaciones:[{id:'local'}]}])),cypress:{paneles:Object.fromEntries(['025','026','027'].map(n=>[n,{codigo:0,totalTests:1,estado:'APROBADO',evidencia:`cypress/${n}/G43-UI-${n}.json`}]))},evidencias:[...artefactos]};
 registro.comprobaciones=CAPACIDADES.casos.flatMap(c=>[{caso:c,id:`G43-API-${c.slice(-3)}-01`,fuente:'API',tipo:'ASSERT',estado:'APROBADO',evidencia:'resultado.json'},{caso:c,id:`G43-UI-${c==='TC-M06-024'?'027':c.slice(-3)}-01`,fuente:'UI',tipo:'ASSERT',estado:'APROBADO',evidencia:`cypress/${c==='TC-M06-024'?'027':c.slice(-3)}/G43-UI-${c==='TC-M06-024'?'027':c.slice(-3)}.json`}]);
 const ctx={runId:registro.run_id,version:1,referencia:'QA-LOCAL'};
+registro.cierre={run:{cierre_http:200},rollback:{verificado:true}};
 const filas=[
  ['matriz_completa',()=>assert.equal(paresMatrizFaltantes([...matrizBase,...paresMatrizFaltantes(matrizBase).map(([tipo_hecho,sentido])=>({tipo_hecho,sentido,id_especie:null,subtipo_costo:null}))]).length,0)],
  ['matriz_par_faltante_creado',()=>assert.equal(cuerpoParMatriz(matrizBase,['DEPRECIACION_ACTIVO_COSTO','UNICO']).cuenta_debito,'516005')],

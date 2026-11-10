@@ -1,34 +1,33 @@
 # TC-M06-G43 — preparación local de RF-87
 
-Casos `TC-M06-024` a `027`. El oráculo procede de la fila original `TC-M06-G43` de `Casos_Prueba(Modulo6Agrup).csv` (Windows-1252), RF-87 y decisiones de `ORD-G43-001`. El contrato de respuestas procede del código local citado en `pruebas/contrato_g43.json`; no redefine las expectativas.
+La cobertura conserva los oráculos de `TC-M06-024` a `TC-M06-027`, la matriz, la expiración, las ramas 409/500 y la comparación de cierre 8 con el paso 3 observadas en G43. La colección `G43.postman_collection.json`, `g43.cy.js`, `g43.cypress.config.cjs` y `g43.mjs` son las entradas vigentes. Los RUN anteriores permanecen históricos y no forman parte de esta preparación.
 
-## Inventario
+## Verificación local única
 
-G43 estaba vacía. Se revisaron en solo lectura el ejecutor, librería, contrato, colección, pruebas, registro QA y README de G42; estructura de RUN y registro de G41; spec/config y método de lectura del sandbox de G40. No había archivos activos, duplicados ni legado en G43. La colección `G43.postman_collection.json`, el spec `g43.cy.js`, la configuración `g43.cypress.config.cjs` y `g43.mjs` son los únicos vigentes.
+```powershell
+node pruebas/verificar.mjs
+```
 
-## Ejecución
+El procedimiento usa `os.tmpdir()`, ejecuta ocho pasos en orden, bloquea intentos de red externa en los procesos Node que controla y comunica clasificación por paso. En el sandbox de Codex, `spawn EPERM` impide Cypress real, los lanzadores en proceso hijo y Pydantic desde el procedimiento; el responsable QA debe ejecutarlo en un entorno que permita procesos hijos. No requiere acceso a TEST. La validación local en proceso de CLI, escenarios y forma de resultado sí se ejecuta aquí.
 
-`node g43.mjs --capacidades`, `node g43.mjs --comprobar`, `node pruebas/g43_local.test.mjs`, `node pruebas/g43_decisiones.test.mjs`, `node pruebas/g43_escenarios.test.mjs` y `../../../../../.venv/Scripts/python.exe pruebas/g43_dto.test.py` son locales. Los escenarios usan Newman real contra loopback y no crean RUN. El lanzador externo debe suministrar contexto de RUN, autorización particular y variables de entorno; ejecutar `g43.mjs` con `--operacion`, `--version`, `--intento`, `--run-id`, `--autorizacion` y `--contexto`. Esta preparación no crea RUN ni toca TEST.
+## Infraestructura copiable
 
-El ejecutor usa los períodos 8, 219 y 220 una vez cada uno, comprueba permisos (incluida auditoría financiera R) antes de escribir, limita a 240 solicitudes y 1800 s, y envía peticiones en serie. Prepara dentro del RUN hasta cuatro pares de matriz faltantes mediante `POST /finanzas/configuracion/matriz`, tomando cuentas de un par genérico del mismo sentido; si no hay par de origen, termina sin escrituras. `cierre8CoincideG32` está copiada en G43 y cita su origen G42, sin importación entre grupos. El frontend de TEST recibe las cabeceras del RUN mediante interceptación de Cypress; Cypress bloquea escrituras y hosts ajenos. La UI jamás ejecuta cierres. Newman lee datos finales; los reportes, capturas, video, `resultado.json` y un único Markdown oficial se escriben dentro del RUN. Un `DELETE` del RUN va seguido de lecturas sin cabeceras del sandbox, incluidas las asignaciones de matriz creadas.
+Cada archivo deduce el grupo por la carpeta `TC-M06-Gnn` o recibe capacidades y datos específicos. La copia a otro grupo debe incluir sus propios archivos de escenario y contrato, sin importar G43 en tiempo de ejecución.
 
-## Cobertura y riesgos
-
-| Caso | API | UI |
+| Archivo | Origen o función | SHA-256 |
 |---|---|---|
-| 024 | 409, estado EN_CIERRE, P_ini/P_nuevo, precio congelado y cálculos | panel de autorización de 8 |
-| 025 | lista, No con rollback, Sí con exclusión y cierre | panel de 219, lista y decisión |
-| 026 | contrato de confirmación, exclusiones, costo y RF-92 | panel de 220, confirmación por activo |
-| 027 | línea 17 y faltantes, EN_CIERRE, No y Sí | panel de 8, asientos y activos |
+| `lib/infra.mjs` | `g43.mjs` de ORD-G43-008; forma del `resultado.json` oficial de G40 | `9880c8b7c192560bed6875fa33a50bb2cd12d3bd411816f762413978c400d416` |
+| `lib/contrato.mjs` | módulo de contrato existente en G43, sin nombre de grupo fijo | `bfd07b9e5de3c12ac466c9fe0ff4a4f82afa7c91ffd0d190cb6e529a0b750fff` |
+| `lib/informe.mjs` | plantilla extraída del ejecutor G43 | `9b463aba8eda7ea510987fefb7703aea8a8b5ac57b81f66c3af7d215aaae6c62` |
+| `pruebas/newman_hijo.mjs` | `TC-M06-G42/pruebas/newman_hijo.mjs` | `38ecb80490ff6e8fe05bd86896e01c835f850313c04fca0c91c734d4a7b08455` |
+| `pruebas/cypress_hijo.mjs` | `TC-M06-G40/pruebas/cypress_hijo.mjs` | `0ba473fe11ddaed69a9611603af66752447ee368960e97e32d3f7c9692b440f6` |
+| `pruebas/simulador_base.mjs` | nuevo simulador local parametrizado | `7f2c25452a91aced28df47883ff69431aca3a9e7149a35e024d247abc6e1e16c` |
+| `pruebas/verificar.mjs` | nuevo procedimiento local único | `e57b8217888b21ad5200029c0becba49f132ceed3a7342a5e5926e698c439a1e` |
 
-El código revisado sugiere `DEFECTO_FUNCIONAL_CANDIDATO` en la pausa de 024/027, en la confirmación de 026 y en la lista UI de 027. Solo evidencia de un RUN autorizado permite `RECHAZADO`. La cuenta de Contador descrita en la orden carece de `auditoria_financiera R`; si el cierre 8 falla con 500 y ese permiso sigue ausente, el ejecutor no atribuye el error a G32 por conjetura. Los equinos con costo y precio vigente, y la vida útil M06/M09, son observaciones externas al veredicto de G43.
+`g43.cy.js` adapta la base de `TC-M06-G40/g40.cy.js` (validación de entorno, `LOCAL_SMOKE`, sonda, login local, intercepción, acta y captura difuminada). `g43.cypress.config.cjs` adapta la configuración de G40. `pruebas/escenarios_g43.json` contiene únicamente las expectativas de los paneles usadas por el simulador local. Los datos de caso y veredictos siguen en `g43.mjs` y `lib/g43_core.mjs`.
 
-## Corrección de arranque ORD-G43-008
+## Forma del resultado
 
-El CLI carga `.env.qa` del repositorio solo cuando `QA_AUTORIZADO=SI`, con precedencia de `process.env`, igual que G42. Antes de cualquier petición guarda `preflight.json` con identificación, barreras por nombre y efectos. Si falla, termina con código 2 y cero peticiones. `SIGAB_FRONT_TEST_BASE` es opcional y, si existe, debe ser el frontend canónico.
+El ejecutor conserva los campos anteriores y agrega `cierre.run.cierre_http`, `cierre.rollback.verificado`, `cypress.total_pruebas`, `comprobaciones`, `consume_version`, `clasificacion_fallo` y `sha256`. `lib/infra.mjs` contiene la validación de forma y la clasificación local. El informe oficial se genera una sola vez dentro del RUN correspondiente, junto con `resultado.json` y los artefactos reales. La fase de preparación no crea RUN ni informe.
 
-El contexto del RUN mantiene la validación de ruta y contenido. Newman recibe sus variables mediante el entorno de colección; Cypress las recibe en su entrada. Los dos procesos hijos heredan el entorno cargado. `node pruebas/g43_cli.test.mjs` ejercita el punto de entrada CLI sin modo ensayo con `.env.qa` sintético y contexto temporal. Intercepta `fetch` antes de la red y verifica cero conexiones a un servidor espía en loopback. La ruta alternativa de archivo y contexto solo se habilita con `NODE_ENV=test` y `--prueba-cli-local`.
-
-## Rutas de código leídas
-
-`src/financial_valuation/infrastructure/routers/m06_router.py`, `infrastructure/dto/m06_dto.py`, `application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py`, `application/use_cases/precios/registrar_precio_use_case.py`, `domain/services/precios.py`, `infrastructure/repositories/periodo_repository.py`, `infrastructure/repositories/valoracion_repository.py`, `infrastructure/repositories/reporte_repository.py`, `application/services/reportes.py`, y `SGPMP-FRONT-END-PWA/src/financial_valuation/pages/CierreView.tsx` y `components/comunes.tsx` (solo lectura). Las demás citas del contrato copiadas de G42 se indican como derivadas de esa referencia, no como rutas reabiertas en esta orden.
+Las rutas de código de producto consultadas en órdenes anteriores figuran en el historial de G43. Esta corrección leyó la automatización de G43 y las referencias acotadas de G40/G42, sin reabrir código de producto.

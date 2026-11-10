@@ -1,0 +1,1919 @@
+{
+  "grupo": "G44",
+  "rf": "RF-87",
+  "run_id": "RUN-G44-V2-20261110-070559",
+  "version": 2,
+  "autorizacion_referencia": "AUT-G44-V2-R3-20261110",
+  "casos": {
+    "TC-M06-028": {
+      "estado": "RECHAZADO",
+      "motivo": "028_b, 028_c",
+      "comprobaciones": [
+        {
+          "id": "028_a",
+          "esperado": "PENDIENTE_CUENTA y lista de faltantes; 220 ABIERTO sin cierre",
+          "observado": "028_a: HTTP 422, error CIERRE_BLOQUEADO, mensaje 1 líneas no tienen cuentas en la matriz contable: Mano de obra propia (único) de Caprino Qa Aislado. Asígnelas en Configuración contable.; linea pendiente true; bloqueo LINEAS_PENDIENTE_CUENTA; estado ABIERTO",
+          "estado": "APROBADO"
+        },
+        {
+          "id": "028_b",
+          "esperado": "Matriz incompleta informada; 220 ABIERTO sin cierre",
+          "observado": "028_b: HTTP 200, error ausente, mensaje ausente; estado CERRADO",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "028_c",
+          "esperado": "Finca sin titular informada; 260 ABIERTO sin cierre",
+          "observado": "028_c: HTTP 200, error ausente, mensaje ausente; prevalidacion ; estado CERRADO",
+          "estado": "RECHAZADO"
+        }
+      ]
+    },
+    "TC-M06-029": {
+      "estado": "RECHAZADO",
+      "motivo": "029_mensaje",
+      "comprobaciones": [
+        {
+          "id": "029_acceso",
+          "esperado": "403 y 220 sin cambios para tres roles",
+          "observado": "029.acceso: true,true,true",
+          "estado": "APROBADO"
+        },
+        {
+          "id": "029_mensaje",
+          "esperado": "FA-4 y rol explícito para cada 403",
+          "observado": "029.mensaje: false,false,false",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "029_admin",
+          "esperado": "Administrador consulta estado y prevalidación con 200",
+          "observado": "029.admin: HTTP 200/200",
+          "estado": "APROBADO"
+        }
+      ]
+    },
+    "TC-M06-030": {
+      "estado": "RECHAZADO",
+      "motivo": "030_cerrado, 030_concurrencia",
+      "comprobaciones": [
+        {
+          "id": "030_cerrado",
+          "esperado": "409 Periodo inmutable con fecha y Contador ejecutor; 7 CERRADO",
+          "observado": "030_cerrado: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-07. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.; 7 sin cambios true",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "030_concurrencia",
+          "esperado": "Segundo 409 de concurrencia con hora y usuario del primero",
+          "observado": "030_concurrencia: HTTP 409, error EXCLUSION_REQUIERE_AUTORIZACION, mensaje 1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.; primero 030.primero: HTTP 409, error EXCLUSION_REQUIERE_AUTORIZACION, mensaje 1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+          "estado": "RECHAZADO"
+        },
+        {
+          "id": "030_sin_segundo",
+          "esperado": "8 ABIERTO sin segundo cierre ni comprobantes nuevos",
+          "observado": "030.sin_segundo: estado ABIERTO; comprobantes 0; líneas 8",
+          "estado": "APROBADO"
+        }
+      ]
+    }
+  },
+  "preflight": {
+    "grupo": "G44",
+    "run_id": "RUN-G44-V2-20261110-070559",
+    "version": 2,
+    "referencia": "AUT-G44-V2-R3-20261110",
+    "ok": true,
+    "barreras": [],
+    "efectos": [
+      "Cuatro logins",
+      "DELETE de asignaciones 34 y 49",
+      "Un costo MANO_OBRA_PROPIA sobre 1569 en 220",
+      "POST restauración matriz MANO_OBRA_PROPIA",
+      "PUT titular finca 466",
+      "POST cierre 7, 219, 8 dos veces, 220 cinco veces y 260 una vez",
+      "DELETE del RUN y lecturas sin cabeceras"
+    ]
+  },
+  "solicitudes": [
+    {
+      "id": "G44-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:05:59.398Z",
+      "eco": false
+    },
+    {
+      "id": "G44-002",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:00.530Z",
+      "eco": false
+    },
+    {
+      "id": "G44-003",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:01.183Z",
+      "eco": false
+    },
+    {
+      "id": "G44-004",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:01.578Z",
+      "eco": false
+    },
+    {
+      "id": "G44-005",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:01.974Z",
+      "eco": true
+    },
+    {
+      "id": "G44-006",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:02.191Z",
+      "eco": true
+    },
+    {
+      "id": "G44-007",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:02.434Z",
+      "eco": true
+    },
+    {
+      "id": "G44-008",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:02.584Z",
+      "eco": true
+    },
+    {
+      "id": "G44-009",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:02.797Z",
+      "eco": true
+    },
+    {
+      "id": "G44-010",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:03.048Z",
+      "eco": true
+    },
+    {
+      "id": "G44-011",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:03.195Z",
+      "eco": true
+    },
+    {
+      "id": "G44-012",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:03.517Z",
+      "eco": true
+    },
+    {
+      "id": "G44-013",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:03.740Z",
+      "eco": true
+    },
+    {
+      "id": "G44-014",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:03.906Z",
+      "eco": true
+    },
+    {
+      "id": "G44-015",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:04.058Z",
+      "eco": true
+    },
+    {
+      "id": "G44-016",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:04.287Z",
+      "eco": true
+    },
+    {
+      "id": "G44-017",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:04.461Z",
+      "eco": true
+    },
+    {
+      "id": "G44-018",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:04.730Z",
+      "eco": true
+    },
+    {
+      "id": "G44-019",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:04.867Z",
+      "eco": true
+    },
+    {
+      "id": "G44-020",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:05.101Z",
+      "eco": true
+    },
+    {
+      "id": "G44-021",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:05.250Z",
+      "eco": true
+    },
+    {
+      "id": "G44-022",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:05.407Z",
+      "eco": true
+    },
+    {
+      "id": "G44-023",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:05.633Z",
+      "eco": true
+    },
+    {
+      "id": "G44-024",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:05.861Z",
+      "eco": true
+    },
+    {
+      "id": "G44-025",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:05.994Z",
+      "eco": true
+    },
+    {
+      "id": "G44-026",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:06.150Z",
+      "eco": true
+    },
+    {
+      "id": "G44-027",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:06.297Z",
+      "eco": true
+    },
+    {
+      "id": "G44-028",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:06.456Z",
+      "eco": true
+    },
+    {
+      "id": "G44-029",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:06.596Z",
+      "eco": true
+    },
+    {
+      "id": "G44-030",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:06.783Z",
+      "eco": true
+    },
+    {
+      "id": "G44-031",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:06.929Z",
+      "eco": true
+    },
+    {
+      "id": "G44-032",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:07.149Z",
+      "eco": true
+    },
+    {
+      "id": "G44-033",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:07.289Z",
+      "eco": true
+    },
+    {
+      "id": "G44-034",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:07.443Z",
+      "eco": true
+    },
+    {
+      "id": "G44-035",
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/466/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:07.577Z",
+      "eco": true
+    },
+    {
+      "id": "G44-036",
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/467/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:07.724Z",
+      "eco": true
+    },
+    {
+      "id": "G44-037",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 403,
+      "hora_utc": "2026-11-10T07:06:07.871Z",
+      "eco": true,
+      "error": "ACCESO_DENEGADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-038",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:08.016Z",
+      "eco": true
+    },
+    {
+      "id": "G44-039",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:08.171Z",
+      "eco": true
+    },
+    {
+      "id": "G44-040",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:08.462Z",
+      "eco": true
+    },
+    {
+      "id": "G44-041",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:08.601Z",
+      "eco": true
+    },
+    {
+      "id": "G44-042",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 403,
+      "hora_utc": "2026-11-10T07:06:08.742Z",
+      "eco": true,
+      "error": "ACCESO_DENEGADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-043",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:08.894Z",
+      "eco": true
+    },
+    {
+      "id": "G44-044",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:09.295Z",
+      "eco": true
+    },
+    {
+      "id": "G44-045",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:09.515Z",
+      "eco": true
+    },
+    {
+      "id": "G44-046",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:09.659Z",
+      "eco": true
+    },
+    {
+      "id": "G44-047",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 403,
+      "hora_utc": "2026-11-10T07:06:09.793Z",
+      "eco": true,
+      "error": "ACCESO_DENEGADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-048",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:09.938Z",
+      "eco": true
+    },
+    {
+      "id": "G44-049",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:10.082Z",
+      "eco": true
+    },
+    {
+      "id": "G44-050",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:10.319Z",
+      "eco": true
+    },
+    {
+      "id": "G44-051",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:10.452Z",
+      "eco": true
+    },
+    {
+      "id": "G44-052",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:10.598Z",
+      "eco": true
+    },
+    {
+      "id": "G44-053",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:10.744Z",
+      "eco": true
+    },
+    {
+      "id": "G44-054",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:10.911Z",
+      "eco": true
+    },
+    {
+      "id": "G44-055",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/7/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T07:06:11.146Z",
+      "eco": true,
+      "error": "PERIODO_CERRADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-056",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:11.304Z",
+      "eco": true
+    },
+    {
+      "id": "G44-057",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:11.453Z",
+      "eco": true
+    },
+    {
+      "id": "G44-058",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:11.936Z",
+      "eco": true
+    },
+    {
+      "id": "G44-059",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:12.074Z",
+      "eco": true
+    },
+    {
+      "id": "G44-060",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:12.330Z",
+      "eco": true
+    },
+    {
+      "id": "G44-061",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/219/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T07:06:12.483Z",
+      "eco": true,
+      "error": "PERIODO_CERRADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-062",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:12.650Z",
+      "eco": true
+    },
+    {
+      "id": "G44-063",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:12.875Z",
+      "eco": true
+    },
+    {
+      "id": "G44-064",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:13.078Z",
+      "eco": true
+    },
+    {
+      "id": "G44-065",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:13.229Z",
+      "eco": true
+    },
+    {
+      "id": "G44-066",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/8/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T07:06:13.382Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-067",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/8/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T07:06:13.585Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-068",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:13.782Z",
+      "eco": true
+    },
+    {
+      "id": "G44-069",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:13.927Z",
+      "eco": true
+    },
+    {
+      "id": "G44-070",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:14.254Z",
+      "eco": true
+    },
+    {
+      "id": "G44-071",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:14.388Z",
+      "eco": true
+    },
+    {
+      "id": "G44-072",
+      "metodo": "DELETE",
+      "ruta": "/finanzas/configuracion/matriz/34",
+      "http": 204,
+      "hora_utc": "2026-11-10T07:06:14.593Z",
+      "eco": true
+    },
+    {
+      "id": "G44-073",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 201,
+      "hora_utc": "2026-11-10T07:06:14.780Z",
+      "eco": true
+    },
+    {
+      "id": "G44-074",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:15.060Z",
+      "eco": true
+    },
+    {
+      "id": "G44-075",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:15.197Z",
+      "eco": true
+    },
+    {
+      "id": "G44-076",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 422,
+      "hora_utc": "2026-11-10T07:06:15.529Z",
+      "eco": true,
+      "error": "CIERRE_BLOQUEADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G44-077",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:15.687Z",
+      "eco": true
+    },
+    {
+      "id": "G44-078",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:15.980Z",
+      "eco": true
+    },
+    {
+      "id": "G44-079",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:16.117Z",
+      "eco": true
+    },
+    {
+      "id": "G44-080",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:16.294Z",
+      "eco": true
+    },
+    {
+      "id": "G44-081",
+      "metodo": "POST",
+      "ruta": "/finanzas/configuracion/matriz",
+      "http": 201,
+      "hora_utc": "2026-11-10T07:06:16.426Z",
+      "eco": true
+    },
+    {
+      "id": "G44-082",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:16.612Z",
+      "eco": true
+    },
+    {
+      "id": "G44-083",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:16.748Z",
+      "eco": true
+    },
+    {
+      "id": "G44-084",
+      "metodo": "DELETE",
+      "ruta": "/finanzas/configuracion/matriz/49",
+      "http": 204,
+      "hora_utc": "2026-11-10T07:06:16.909Z",
+      "eco": true
+    },
+    {
+      "id": "G44-085",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:17.050Z",
+      "eco": true
+    },
+    {
+      "id": "G44-086",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:17.345Z",
+      "eco": true
+    },
+    {
+      "id": "G44-087",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:17.492Z",
+      "eco": true
+    },
+    {
+      "id": "G44-088",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:17.740Z",
+      "eco": true
+    },
+    {
+      "id": "G44-089",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:17.962Z",
+      "eco": true
+    },
+    {
+      "id": "G44-090",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:18.268Z",
+      "eco": true
+    },
+    {
+      "id": "G44-091",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:18.440Z",
+      "eco": true
+    },
+    {
+      "id": "G44-092",
+      "metodo": "PUT",
+      "ruta": "/configuracion/fincas/466/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:18.588Z",
+      "eco": true
+    },
+    {
+      "id": "G44-093",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:18.726Z",
+      "eco": true
+    },
+    {
+      "id": "G44-094",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/260/cierre",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:18.894Z",
+      "eco": true
+    },
+    {
+      "id": "G44-095",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:19.087Z",
+      "eco": true
+    },
+    {
+      "id": "G44-096",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:19.241Z",
+      "eco": true
+    },
+    {
+      "id": "G44-097",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:19.381Z",
+      "eco": true
+    },
+    {
+      "id": "G44-098",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:19.703Z",
+      "eco": true
+    },
+    {
+      "id": "G44-099",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:19.841Z",
+      "eco": true
+    },
+    {
+      "id": "G44-100",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:19.982Z",
+      "eco": true
+    },
+    {
+      "id": "G44-101",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G44-V2-20261110-070559",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:24.642Z",
+      "eco": true
+    },
+    {
+      "id": "G44-102",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:25.082Z",
+      "eco": false
+    },
+    {
+      "id": "G44-103",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:25.538Z",
+      "eco": false
+    },
+    {
+      "id": "G44-104",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:25.781Z",
+      "eco": false
+    },
+    {
+      "id": "G44-105",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:25.926Z",
+      "eco": false
+    },
+    {
+      "id": "G44-106",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.068Z",
+      "eco": false
+    },
+    {
+      "id": "G44-107",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.295Z",
+      "eco": false
+    },
+    {
+      "id": "G44-108",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.441Z",
+      "eco": false
+    },
+    {
+      "id": "G44-109",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.573Z",
+      "eco": false
+    },
+    {
+      "id": "G44-110",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.706Z",
+      "eco": false
+    },
+    {
+      "id": "G44-111",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.848Z",
+      "eco": false
+    },
+    {
+      "id": "G44-112",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:26.985Z",
+      "eco": false
+    },
+    {
+      "id": "G44-113",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.116Z",
+      "eco": false
+    },
+    {
+      "id": "G44-114",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.252Z",
+      "eco": false
+    },
+    {
+      "id": "G44-115",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.394Z",
+      "eco": false
+    },
+    {
+      "id": "G44-116",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.531Z",
+      "eco": false
+    },
+    {
+      "id": "G44-117",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.689Z",
+      "eco": false
+    },
+    {
+      "id": "G44-118",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.843Z",
+      "eco": false
+    },
+    {
+      "id": "G44-119",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:27.995Z",
+      "eco": false
+    },
+    {
+      "id": "G44-120",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:28.186Z",
+      "eco": false
+    },
+    {
+      "id": "G44-121",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:28.320Z",
+      "eco": false
+    },
+    {
+      "id": "G44-122",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:28.458Z",
+      "eco": false
+    },
+    {
+      "id": "G44-123",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:28.694Z",
+      "eco": false
+    },
+    {
+      "id": "G44-124",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:28.995Z",
+      "eco": false
+    },
+    {
+      "id": "G44-125",
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/466/titular",
+      "http": 200,
+      "hora_utc": "2026-11-10T07:06:29.133Z",
+      "eco": false
+    }
+  ],
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-028",
+      "id": "028_a",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-028",
+      "id": "028_b",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-028",
+      "id": "028_c",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-029",
+      "id": "029_acceso",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-029",
+      "id": "029_mensaje",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-029",
+      "id": "029_admin",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-030",
+      "id": "030_cerrado",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-030",
+      "id": "030_concurrencia",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-030",
+      "id": "030_sin_segundo",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "precios": [],
+  "activos": [],
+  "lineas": [],
+  "incidencias": [
+    {
+      "id": "INC-M06-G44-01",
+      "casos": [
+        "TC-M06-029"
+      ],
+      "esperado": "403 FA-4 con rol y sin cambios",
+      "obtenido": "029.admin: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+      "evidencia": "resultado.json",
+      "impacto": "Control de acceso o explicación al rol incorrectos.",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "La discrepancia afecta parcialmente el control o la explicación al usuario.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    },
+    {
+      "id": "INC-M06-G44-02",
+      "casos": [
+        "TC-M06-030"
+      ],
+      "esperado": "409 Periodo inmutable con fecha y ejecutor",
+      "obtenido": "030_cerrado: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-07. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.",
+      "evidencia": "resultado.json",
+      "impacto": "El 409 omite información de auditoría requerida.",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "La discrepancia afecta parcialmente el control o la explicación al usuario.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    },
+    {
+      "id": "INC-M06-G44-03",
+      "casos": [
+        "TC-M06-030"
+      ],
+      "esperado": "Segundo cierre rechazado por concurrencia con hora y usuario",
+      "obtenido": "030_concurrencia: HTTP 409, error EXCLUSION_REQUIERE_AUTORIZACION, mensaje 1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+      "evidencia": "resultado.json",
+      "impacto": "El estado de cierre activo no se representa como exige RF-87.",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "La discrepancia afecta parcialmente el control o la explicación al usuario.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": "INC-M06-G43-01"
+    },
+    {
+      "id": "INC-M06-G44-05",
+      "casos": [
+        "TC-M06-028"
+      ],
+      "esperado": "Bloqueo por matriz incompleta con lista",
+      "obtenido": "028_b: HTTP 200, error ausente, mensaje ausente",
+      "evidencia": "resultado.json",
+      "impacto": "Cierre con depreciación sin cuenta no informado como exige RF-87.",
+      "severidad": "ALTA",
+      "justificacion_severidad": "La discrepancia bloquea un control relevante del cierre sin alternativa demostrada.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    },
+    {
+      "id": "INC-M06-G44-06",
+      "casos": [
+        "TC-M06-028"
+      ],
+      "esperado": "Bloqueo por finca sin titular",
+      "obtenido": "028_c: HTTP 200, error ausente, mensaje ausente",
+      "evidencia": "resultado.json",
+      "impacto": "Cierre puede completarse o fallar sin informar titular ausente.",
+      "severidad": "ALTA",
+      "justificacion_severidad": "La discrepancia bloquea un control relevante del cierre sin alternativa demostrada.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada en la API pública de cierre.",
+      "hipotesis": "Causa raíz por determinar.",
+      "accion": "Desarrollo revisa el comportamiento y QA repite en RUN autorizado.",
+      "relacion": ""
+    }
+  ],
+  "evidencias": [
+    "newman/newman-G44.html",
+    "newman/newman-G44.json"
+  ],
+  "problemas_tecnicos": [],
+  "cypress": {
+    "paneles": {},
+    "total_pruebas": 0,
+    "codigo": 0,
+    "aprobadas": 0,
+    "fallidas": 0
+  },
+  "rollback": {
+    "verificado": true,
+    "motivo": "Lecturas poscierre sin cabeceras: matriz true; costo ausente true; titular true; periodos true; líneas y artefactos true"
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "codigo": 0,
+      "fallos": 0,
+      "solicitudes": 4,
+      "reportes": true
+    },
+    "cypress": {
+      "codigo": 0,
+      "totalTests": 0
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "activos_por_costo_467": [
+    1573
+  ],
+  "preflight_datos": [
+    {
+      "requisito": "periodo_7_estado",
+      "esperado": "CERRADO",
+      "observado": "CERRADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_8_estado",
+      "esperado": "ABIERTO",
+      "observado": "ABIERTO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_219_estado",
+      "esperado": "CERRADO",
+      "observado": "CERRADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_220_estado",
+      "esperado": "ABIERTO",
+      "observado": "ABIERTO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_260_estado",
+      "esperado": "ABIERTO",
+      "observado": "ABIERTO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_260_mismo_nit_219",
+      "esperado": "NIT-B en ambos",
+      "observado": "900000002 / 900000002",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "linea_17_prevalidacion_8",
+      "esperado": "id_linea 17",
+      "observado": [
+        17
+      ],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_220_sin_bloqueos",
+      "esperado": "[]",
+      "observado": [],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_260_sin_bloqueos",
+      "esperado": "[]",
+      "observado": [],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "titular_466_completo",
+      "esperado": "cuatro campos tributarios completos",
+      "observado": {
+        "tipo_id_tributaria": true,
+        "numero_id_tributaria": true,
+        "dv": true,
+        "razon_social": true
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "titular_467_completo",
+      "esperado": "cuatro campos tributarios completos",
+      "observado": {
+        "tipo_id_tributaria": true,
+        "numero_id_tributaria": true,
+        "dv": true,
+        "razon_social": true
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "matriz_34_generica_activa",
+      "esperado": "MANO_OBRA_PROPIA/UNICO 158405/250505",
+      "observado": true,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "matriz_49_generica_activa",
+      "esperado": "DEPRECIACION_ACTIVO_COSTO/UNICO 516005/159205",
+      "observado": true,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_1572_valorado_por_costo",
+      "esperado": "valorado_por_costo === true y vida_util_meses > 0",
+      "observado": {
+        "valorado_por_costo": false,
+        "vida_util_meses": null
+      },
+      "cumple": false,
+      "bloqueante": false
+    },
+    {
+      "requisito": "activo_1573_valorado_por_costo",
+      "esperado": "valorado_por_costo === true y vida_util_meses > 0",
+      "observado": {
+        "valorado_por_costo": true,
+        "vida_util_meses": 120
+      },
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "finca_467_activo_por_costo",
+      "esperado": "Al menos un activo de finca 467 valorado por costo con vida útil > 0",
+      "observado": [
+        1573
+      ],
+      "cumple": true,
+      "bloqueante": true
+    }
+  ],
+  "respuestas_cierre": {
+    "029_admin": {
+      "periodo": 220,
+      "http": 403,
+      "cuerpo": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:08.483038+00:00"
+      }
+    },
+    "029_veterinario": {
+      "periodo": 220,
+      "http": 403,
+      "cuerpo": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:09.361513+00:00"
+      }
+    },
+    "029_productor": {
+      "periodo": 220,
+      "http": 403,
+      "cuerpo": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:10.402151+00:00"
+      }
+    },
+    "030_cerrado": {
+      "periodo": 7,
+      "http": 409,
+      "cuerpo": {
+        "error_code": "PERIODO_CERRADO",
+        "message": "El período 2026-11 ya fue cerrado el 2026-11-07. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:11.769887+00:00"
+      }
+    },
+    "030_cerrado_219": {
+      "periodo": 219,
+      "http": 409,
+      "cuerpo": {
+        "error_code": "PERIODO_CERRADO",
+        "message": "El período 2026-11 ya fue cerrado el 2026-11-10. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:13.116659+00:00"
+      }
+    },
+    "030_primero": {
+      "periodo": 8,
+      "http": 409,
+      "cuerpo": {
+        "error_code": "EXCLUSION_REQUIERE_AUTORIZACION",
+        "message": "1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:14.051222+00:00"
+      }
+    },
+    "030_segundo": {
+      "periodo": 8,
+      "http": 409,
+      "cuerpo": {
+        "error_code": "EXCLUSION_REQUIERE_AUTORIZACION",
+        "message": "1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:14.249726+00:00"
+      }
+    },
+    "028_a": {
+      "periodo": 220,
+      "http": 422,
+      "cuerpo": {
+        "error_code": "CIERRE_BLOQUEADO",
+        "message": "1 líneas no tienen cuentas en la matriz contable: Mano de obra propia (único) de Caprino Qa Aislado. Asígnelas en Configuración contable.",
+        "fields": [],
+        "timestamp": "2026-11-10T07:06:16.154937+00:00"
+      }
+    },
+    "028_b": {
+      "periodo": 220,
+      "http": 200,
+      "cuerpo": {
+        "id_cierre": 44,
+        "id_periodo_contable": 220,
+        "periodo": "2026-11",
+        "estado": "CERRADO",
+        "activos_procesados": 5,
+        "activos_excluidos": [],
+        "lineas_excluidas": [],
+        "comprobantes": [
+          {
+            "codigo": "NIC-900000003-202611-MANO_OBRA_PROPIA-422",
+            "hash": "6b2060dc5ac6085ff6b0349b18c63b0d5fc9e61704f6daf8c328d0945ce9a377",
+            "valor_total": "103.00"
+          },
+          {
+            "codigo": "NIC-900000003-202611-RECONOCIMIENTO_DIFERENCIA-422",
+            "hash": "88352745e628f1948bbf51eb3d9e45b5c10d5c7936c9e874391a81741e32fde0",
+            "valor_total": "480000.00"
+          },
+          {
+            "codigo": "NIC-900000003-202611-VARIACION_VR_PM-423",
+            "hash": "8a1b7e65970044febab7a8cdb78be5af84f86409520352ec3682deb1e739cf8a",
+            "valor_total": "158000.00"
+          }
+        ],
+        "hash_cierre": "ccb91cd63900a71fe04e73818c1f6341514bdfbd3acda70129e2f58a4a92faa4",
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 39,
+            "resultado_neto": "321897.0000"
+          },
+          "informe_revelaciones": {
+            "id_informe": 42,
+            "version": "2026-M11-V1"
+          }
+        },
+        "id_periodo_siguiente": 261
+      },
+      "comprobantes": [
+        {
+          "id_comprobante_nic41": 81,
+          "codigo": "NIC-900000003-202611-MANO_OBRA_PROPIA-422",
+          "numero_id_tributaria": "[RESERVADO]",
+          "tipo_hecho": "MANO_OBRA_PROPIA",
+          "id_especie": 422,
+          "especie": "Caprino Qa Aislado",
+          "fecha_comprobante": "2026-11-30",
+          "lineas": [
+            {
+              "valor": "103.00",
+              "cuenta_debito": "158405",
+              "cuenta_credito": "250505"
+            }
+          ],
+          "valor_total": "103.00",
+          "hash_integridad": "6b2060dc5ac6085ff6b0349b18c63b0d5fc9e61704f6daf8c328d0945ce9a377",
+          "fecha_creacion": "2026-11-10T07:06:02.574417Z"
+        },
+        {
+          "id_comprobante_nic41": 82,
+          "codigo": "NIC-900000003-202611-RECONOCIMIENTO_DIFERENCIA-422",
+          "numero_id_tributaria": "[RESERVADO]",
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "id_especie": 422,
+          "especie": "Caprino Qa Aislado",
+          "fecha_comprobante": "2026-11-30",
+          "lineas": [
+            {
+              "valor": "480000.00",
+              "cuenta_debito": "158405",
+              "cuenta_credito": "424815"
+            }
+          ],
+          "valor_total": "480000.00",
+          "hash_integridad": "88352745e628f1948bbf51eb3d9e45b5c10d5c7936c9e874391a81741e32fde0",
+          "fecha_creacion": "2026-11-10T07:06:02.574417Z"
+        },
+        {
+          "id_comprobante_nic41": 83,
+          "codigo": "NIC-900000003-202611-VARIACION_VR_PM-423",
+          "numero_id_tributaria": "[RESERVADO]",
+          "tipo_hecho": "VARIACION_VR_PM",
+          "id_especie": 423,
+          "especie": "Equino Qa Aislado",
+          "fecha_comprobante": "2026-11-30",
+          "lineas": [
+            {
+              "valor": "158000.00",
+              "cuenta_debito": "539505",
+              "cuenta_credito": "158405"
+            }
+          ],
+          "valor_total": "158000.00",
+          "hash_integridad": "8a1b7e65970044febab7a8cdb78be5af84f86409520352ec3682deb1e739cf8a",
+          "fecha_creacion": "2026-11-10T07:06:02.574417Z"
+        }
+      ],
+      "lineas": [
+        {
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "sentido": "GANANCIA",
+          "valor": "260000.00",
+          "fecha_hecho": "2026-11-08",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1569,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": "[RESERVADO]",
+          "tabla_origen": "reconocimientos_iniciales",
+          "id_origen": 495,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "424815",
+          "justificacion": null,
+          "id_usuario": 132,
+          "id_linea_asiento_nic41": 894,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICADO",
+            "id_comprobante_nic41": 82
+          },
+          "estado_trazabilidad": "VERIFICADO",
+          "id_comprobante_nic41": 82
+        },
+        {
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "sentido": "GANANCIA",
+          "valor": "160000.00",
+          "fecha_hecho": "2026-11-08",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1570,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": "[RESERVADO]",
+          "tabla_origen": "reconocimientos_iniciales",
+          "id_origen": 496,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "424815",
+          "justificacion": null,
+          "id_usuario": 132,
+          "id_linea_asiento_nic41": 895,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICADO",
+            "id_comprobante_nic41": 82
+          },
+          "estado_trazabilidad": "VERIFICADO",
+          "id_comprobante_nic41": 82
+        },
+        {
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "sentido": "GANANCIA",
+          "valor": "60000.00",
+          "fecha_hecho": "2026-11-08",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1571,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": "[RESERVADO]",
+          "tabla_origen": "reconocimientos_iniciales",
+          "id_origen": 497,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "424815",
+          "justificacion": null,
+          "id_usuario": 132,
+          "id_linea_asiento_nic41": 896,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICADO",
+            "id_comprobante_nic41": 82
+          },
+          "estado_trazabilidad": "VERIFICADO",
+          "id_comprobante_nic41": 82
+        },
+        {
+          "tipo_hecho": "VARIACION_VR_PM",
+          "sentido": "PERDIDA",
+          "valor": "158000.00",
+          "fecha_hecho": "2026-11-10",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1572,
+          "id_especie": 423,
+          "id_finca": 467,
+          "numero_id_tributaria": "[RESERVADO]",
+          "tabla_origen": "valoraciones_por_costos",
+          "id_origen": 25,
+          "tipo_evidencia": "VARIACION_PRECIO",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "539505",
+          "cuenta_credito": "158405",
+          "justificacion": "Cambio del modelo de costo a valor razonable (NIC 41 ¶30)",
+          "id_usuario": 141,
+          "id_linea_asiento_nic41": 2665,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICADO",
+            "id_comprobante_nic41": 83
+          },
+          "estado_trazabilidad": "VERIFICADO",
+          "id_comprobante_nic41": 83
+        },
+        {
+          "tipo_hecho": "MANO_OBRA_PROPIA",
+          "sentido": "UNICO",
+          "valor": "103.00",
+          "fecha_hecho": "2026-11-10",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1569,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": "[RESERVADO]",
+          "tabla_origen": "registros_costos",
+          "id_origen": 1755,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": "MANO_OBRA",
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "250505",
+          "justificacion": null,
+          "id_usuario": 5,
+          "id_linea_asiento_nic41": 2692,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICADO",
+            "id_comprobante_nic41": 81
+          },
+          "estado_trazabilidad": "VERIFICADO",
+          "id_comprobante_nic41": 81
+        },
+        {
+          "tipo_hecho": "DEPRECIACION_ACTIVO_COSTO",
+          "sentido": "UNICO",
+          "valor": "100000.00",
+          "fecha_hecho": "2026-11-10",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1573,
+          "id_especie": 423,
+          "id_finca": 467,
+          "numero_id_tributaria": "[RESERVADO]",
+          "tabla_origen": "valoraciones_por_costos",
+          "id_origen": 26,
+          "tipo_evidencia": "CIERRE_PERIODO",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": null,
+          "cuenta_credito": null,
+          "justificacion": null,
+          "id_usuario": 5,
+          "id_linea_asiento_nic41": 2693,
+          "estado": "PENDIENTE_CUENTA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICADO",
+            "id_comprobante_nic41": null
+          },
+          "estado_trazabilidad": "VERIFICADO",
+          "id_comprobante_nic41": null
+        }
+      ]
+    },
+    "028_c": {
+      "periodo": 260,
+      "http": 200,
+      "cuerpo": {
+        "id_cierre": 45,
+        "id_periodo_contable": 260,
+        "periodo": "2026-12",
+        "estado": "CERRADO",
+        "activos_procesados": 0,
+        "activos_excluidos": [],
+        "lineas_excluidas": [],
+        "comprobantes": [],
+        "hash_cierre": "aad74cfb6aecf631f9a9df62c085f07e0bca8e13ebb526f65e6304d4f08e27a3",
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 40,
+            "resultado_neto": "0"
+          },
+          "informe_revelaciones": {
+            "id_informe": 43,
+            "version": "2026-M12-V1"
+          }
+        },
+        "id_periodo_siguiente": 262
+      },
+      "comprobantes": [],
+      "lineas": []
+    }
+  },
+  "observado_029_admin": "029.admin: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+  "observado_029_veterinario": "029.veterinario: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+  "observado_029_productor": "029.productor: HTTP 403, error ACCESO_DENEGADO, mensaje Acceso denegado. Su rol no tiene permisos para realizar esta operación.; sin cambios true; rol en mensaje false",
+  "observacion_030_219": "030_cerrado_219: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-10. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.; 219 sin cambios true; ejecutor 141",
+  "observaciones": [
+    "030_cerrado_219: HTTP 409, error PERIODO_CERRADO, mensaje El período 2026-11 ya fue cerrado el 2026-11-10. Los períodos cerrados no se reabren: corrija con ajustes en el período abierto.; 219 sin cambios true; ejecutor 141",
+    "Incidencia de V1 INC-M06-G44-01 (TC-M06-029): REPRODUCIDA.",
+    "Incidencia de V1 INC-M06-G44-02 (TC-M06-030): REPRODUCIDA.",
+    "Incidencia de V1 INC-M06-G44-03 (TC-M06-030): REPRODUCIDA.",
+    "Incidencia de V1 INC-M06-G44-05 (TC-M06-028): REPRODUCIDA.",
+    "Incidencia de V1 INC-M06-G44-06 (TC-M06-028): NUEVA_CONFIRMADA_EN_V2."
+  ],
+  "seguimiento_incidencias_v1": [
+    {
+      "id": "INC-M06-G44-01",
+      "caso": "TC-M06-029",
+      "descripcion_v1": "403 sin mensaje FA-4 ni rol",
+      "estado_v2": "REPRODUCIDA"
+    },
+    {
+      "id": "INC-M06-G44-02",
+      "caso": "TC-M06-030",
+      "descripcion_v1": "409 de período CERRADO sin Periodo inmutable ni ejecutor",
+      "estado_v2": "REPRODUCIDA"
+    },
+    {
+      "id": "INC-M06-G44-03",
+      "caso": "TC-M06-030",
+      "descripcion_v1": "segundo POST en EN_CIERRE sin 409 de concurrencia (relacionada con INC-M06-G43-01)",
+      "estado_v2": "REPRODUCIDA"
+    },
+    {
+      "id": "INC-M06-G44-05",
+      "caso": "TC-M06-028",
+      "descripcion_v1": "cierre completado con la matriz de depreciación incompleta",
+      "estado_v2": "REPRODUCIDA"
+    },
+    {
+      "id": "INC-M06-G44-06",
+      "caso": "TC-M06-028",
+      "descripcion_v1": "finca sin titular; retirada en V1 porque 028-c no se evaluó",
+      "estado_v2": "NUEVA_CONFIRMADA_EN_V2"
+    }
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lecturas poscierre sin cabeceras: matriz true; costo ausente true; titular true; periodos true; líneas y artefactos true"
+    }
+  },
+  "total_solicitudes_api": 129,
+  "duracion_segundos": 30,
+  "clasificacion_fallo": "PRODUCTO",
+  "sha256": {
+    "ejecutor": "ac1b2748f0753a4ea7637e888a0c2a159278283ef0796cb5f23342892de07eb6",
+    "infraestructura": {
+      "lib/infra.mjs": "97562a7d9269eee82413be798d116a0e271277381fc3b69ba058199358874238",
+      "lib/contrato.mjs": "bfd07b9e5de3c12ac466c9fe0ff4a4f82afa7c91ffd0d190cb6e529a0b750fff",
+      "lib/informe.mjs": "4128d6a8280614821311ac8ec3f09d278edea0c911167cf8365bb7b9586d67d5",
+      "pruebas/newman_hijo.mjs": "38ecb80490ff6e8fe05bd86896e01c835f850313c04fca0c91c734d4a7b08455",
+      "pruebas/simulador_base.mjs": "c3d14a2ec5a76c25f65fb3920f92d83d0ddbc992596ef729942d93970a05bf1c",
+      "pruebas/verificar.mjs": "b8cfd167b1f44848aa27fb6ab719dd2813fd41e3173693c3cbb31859f4c7d316"
+    }
+  }
+}

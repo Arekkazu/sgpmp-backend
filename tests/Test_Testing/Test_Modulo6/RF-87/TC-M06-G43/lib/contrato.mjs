@@ -1,10 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-const archivo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../pruebas/contrato_g43.json');
+import {grupoDesdeCarpeta} from './infra.mjs';
+const base=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const grupo=grupoDesdeCarpeta(base);
+if(!grupo)throw Error('GRUPO_NO_DEDUCIBLE');
+const archivo=path.join(base,'pruebas',`contrato_${grupo.toLowerCase()}.json`);
 export const contrato=JSON.parse(fs.readFileSync(archivo,'utf8'));
 export function validarError(dato){const forma=contrato.error_respuesta?.cuerpo;if(!forma||!dato||typeof dato!=='object'||Array.isArray(dato))return false;return Object.entries(forma).every(([campo,tipo])=>Object.hasOwn(dato,campo)&&(tipo==='array'?Array.isArray(dato[campo]):typeof dato[campo]===tipo));}
-export function rutaCanonica(ruta){return ruta.replace(/\/RUN-G43-V\d+-\d{8}-\d{6}(?=\/|$)/g,'/{id}').replace(/\/\d+(?=\/|$)/g,'/{id}').replace(/\?.*$/,'');}
+export function rutaCanonica(ruta){return ruta.replace(/\/RUN-G\d+-V\d+-\d{8}-\d{6}(?=\/|$)/g,'/{id}').replace(/\/\d+(?=\/|$)/g,'/{id}').replace(/\?.*$/,'');}
 export function esquema(metodo,ruta){const canonical=rutaCanonica(ruta);return contrato.rutas.find(x=>x.metodo===metodo&&rutaCanonica(x.ruta)===canonical);}
 function tipoValido(valor,tipo){
   if(tipo==='integer')return Number.isInteger(valor);
