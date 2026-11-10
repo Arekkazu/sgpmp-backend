@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-94 Fase 7: consulta técnica y legible de la auditoría financiera |
 # | 2026-11-05 | Arekkazu | M06 RF-94: resumen por severidad, orden y activo por su identificador |
+# | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: descripción del intento de acceso sin permiso |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
 filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13)."""
 from __future__ import annotations
@@ -48,6 +49,7 @@ DESCRIPCIONES = {
     "ERROR_CONSISTENCIA": "Inconsistencia entre fuentes", "ESTADO_RESULTADOS_GENERADO": "Estado de resultados generado",
     "ESTADO_RESULTADOS_APROBADO": "Estado de resultados aprobado", "ERROR_CONCILIACION": "Error de conciliación",
     "ERROR_TECNICO": "Error técnico",
+    "ACCESO_NO_AUTORIZADO": "Intento de operación sin permiso del rol",
 }
 
 

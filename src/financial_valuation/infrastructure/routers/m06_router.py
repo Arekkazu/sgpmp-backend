@@ -3,9 +3,11 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83 / INC-M06-330-G86 RF-94: filtros de mediciones y de auditoría |
+# | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: los 403 de RBAC quedan en la auditoría financiera |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
-Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
+Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
+``require_permission_m06``), recursos por nombre (ids 88-99 de la
 migración ``c4d81e6f2a95``) y acciones C=1, R=2, U=3, D=4, E=5. El Contador tiene acceso completo;
 el Administrador, el Productor y el Revisor Fiscal, el que les da la matriz de esa migración."""
 from __future__ import annotations
@@ -39,11 +41,11 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     RevertirReconocimientoDTO,
 )
 from src.financial_valuation.infrastructure.factories.m06_factory import M06
+from src.financial_valuation.infrastructure.rbac_auditoria import require_permission_m06 as permiso
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.errors import NotFoundError
 from src.shared.fechas import hoy_usuario
-from src.shared.rbac import require_permission_sobre as permiso
 from src.shared.schemas import ErrorResponse
 
 C, R, U, D, E = 1, 2, 3, 4, 5
