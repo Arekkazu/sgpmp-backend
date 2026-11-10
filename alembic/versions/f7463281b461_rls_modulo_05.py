@@ -1,10 +1,11 @@
 # | Fecha      | Nombre     | Que se hizo |
 # |------------|------------|-------------|
 # | 2026-11-07 | SamuelPR21 | RLS modulo5 RF-74..81: politicas pol_* por permiso, alcance por activo y usuario de servicio |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: va despues de la union del lote (6adf6dbab26b) |
 """rls_modulo_05
 
 Revision ID: f7463281b461
-Revises: b7e2d94c1a68
+Revises: 6adf6dbab26b
 Create Date: 2026-11-07
 
 Aplica Row Level Security al esquema modulo5 (suministros y costos, RF-74 a RF-81)
@@ -65,7 +66,7 @@ Tabla de seguimiento
   Tipo:                     Migracion Alembic (RLS)
   Nombre:                   rls_modulo_05
   Responsable:              Samuel
-  Version Alembic:          f7463281b461 (down_revision: b7e2d94c1a68)
+  Version Alembic:          f7463281b461 (down_revision: 6adf6dbab26b)
   Fecha:                    2026-11-07
   Estado:                   Pendiente de prueba en TEST (no aplicada)
   Descripcion:              Habilita y fuerza RLS en las 27 tablas de modulo5
@@ -81,7 +82,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'f7463281b461'
-down_revision: Union[str, Sequence[str], None] = 'b7e2d94c1a68'
+down_revision: Union[str, Sequence[str], None] = '6adf6dbab26b'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
