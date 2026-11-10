@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83 / INC-M06-330-G86 RF-94: filtros de mediciones y de auditoría |
+# | 2026-11-10 | Arekkazu | INC-M06-337/345/350/351 RF-86/87: acumulado, cancelar cierre, ajuste y 403 con el rol |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -20,6 +21,7 @@ from src.financial_valuation.application.use_cases.costos.registrar_costo_use_ca
 from src.financial_valuation.application.use_cases.precios.registrar_precio_use_case import SolicitudPrecio
 from src.financial_valuation.domain.entities.contabilidad import ParametroEspecie
 from src.financial_valuation.infrastructure.dto.m06_dto import (
+    AjustePeriodoAnteriorDTO,
     AnularCotizacionDTO,
     AsignacionCuentaDTO,
     CierreDTO,
@@ -43,10 +45,19 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.shared.database import get_db
 from src.shared.errors import NotFoundError
 from src.shared.fechas import hoy_usuario
-from src.shared.rbac import require_permission_sobre as permiso
+from src.shared.rbac import require_permission_sobre
 from src.shared.schemas import ErrorResponse
 
 C, R, U, D, E = 1, 2, 3, 4, 5
+_DENEGADO = "Acceso denegado: su rol ({rol}) no tiene permiso para esta operación del módulo financiero."
+_DENEGADO_CIERRE = ("Acceso denegado: el cierre del período contable es competencia exclusiva del Contador. "
+                    "Su rol actual ({rol}) no tiene permisos de cierre contable.")
+
+
+def permiso(recurso: str, accion: int, mensaje: str = _DENEGADO):
+    """RBAC por nombre de recurso; el 403 nombra el rol del usuario (RF-87 FA-4)."""
+    return require_permission_sobre(recurso, accion, mensaje_denegado=mensaje)
+
 
 # Catálogos de los filtros: un valor fuera de ellos responde 400 en vez de una lista vacía silenciosa.
 Clasificacion = Literal["PRODUCCION", "CONSUMO"]
@@ -313,12 +324,29 @@ def prevalidar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06)) -> dict:
 
 
 @router.post("/periodos/{id_periodo_contable}/cierre", tags=[TAG_CIERRE],
-             dependencies=[Depends(permiso("cierre_periodo", E))],
+             dependencies=[Depends(permiso("cierre_periodo", E, _DENEGADO_CIERRE))],
              summary="Ejecutar el cierre del período (revaluación, comprobante NIC 41, estado de resultados)")
 def ejecutar_cierre(id_periodo_contable: int, dto: CierreDTO, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     return m.cierre().execute(id_periodo_contable, usuario.id_usuario, autorizar_exclusiones=dto.autorizar_exclusiones,
                               incluir_activos_sin_precio=dto.incluir_activos_sin_precio)
+
+
+@router.post("/periodos/{id_periodo_contable}/cierre/cancelacion", tags=[TAG_CIERRE],
+             dependencies=[Depends(permiso("cierre_periodo", E, _DENEGADO_CIERRE))],
+             summary="Cancelar el cierre que espera autorización de exclusiones (el período vuelve a ABIERTO)")
+def cancelar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06),
+                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.cierre().cancelar(id_periodo_contable, usuario.id_usuario)
+
+
+@router.post("/lineas-asiento/{id_linea}/ajustes", tags=[TAG_CIERRE], status_code=201,
+             dependencies=[Depends(permiso("cierre_periodo", E))],
+             summary="Corregir un hecho de un período cerrado con un ajuste en el período abierto")
+def registrar_ajuste_periodo_anterior(id_linea: int, dto: AjustePeriodoAnteriorDTO, m: M06 = Depends(_m06),
+                                      usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.ajuste_periodo_anterior().execute(id_linea, dto.tipo_ajuste, dto.valor, dto.justificacion,
+                                               usuario.id_usuario)
 
 
 @router.get("/periodos/{id_periodo_contable}/comprobantes", tags=[TAG_CIERRE],
@@ -427,6 +455,13 @@ TAG_REP = "M06 · Revelaciones y estado de resultados"
             dependencies=[Depends(permiso("estado_resultados", R))], summary="Versiones del estado de resultados")
 def listar_estados(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
     return m.reportes.listar_estados(id_periodo_contable)
+
+
+@router.get("/periodos/{id_periodo_contable}/estado-resultados/acumulado", tags=[TAG_REP],
+            dependencies=[Depends(permiso("estado_resultados", R))],
+            summary="Acumulado del período (también abierto): ganancias como ingresos y pérdidas como gastos, sin versión")
+def acumulado_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO = Depends(), m: M06 = Depends(_m06)) -> dict:
+    return m.estado_resultados().acumulado(id_periodo_contable, dto.model_dump())
 
 
 @router.get("/estados-resultados/{id_estado}", tags=[TAG_REP], dependencies=[Depends(permiso("estado_resultados", R))],

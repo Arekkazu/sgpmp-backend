@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87: períodos por titular, ejecuciones de cierre y comprobantes |
+# | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: cierre en espera de autorización y nombre de quien cerró |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -18,6 +19,13 @@ from src.shared.errors import ConflictError
 
 _COLUMNAS = """id_periodo_contable, numero_id_tributaria, tipo_cierre::text AS tipo_cierre, fecha_inicio, fecha_fin,
                estado::text AS estado, fecha_cierre"""
+
+
+# Un cierre EN_PROCESO en el paso 3 espera que el Contador autorice las exclusiones (RF-87 FA-2/FA-3);
+# mientras corre, la ejecución queda en el paso 1 hasta que termina.
+_PASO_ESPERA = 3
+_JOIN_EJECUTOR = "LEFT JOIN modulo1.usuarios u ON u.id_usuario = e.id_usuario_ejecutor"
+_NOMBRE_EJECUTOR = "NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_usuario_ejecutor"
 
 
 class SqlAlchemyPeriodoRepository(PeriodoRepository):
@@ -86,8 +94,18 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         """, {"p": id_periodo_contable, "u": id_usuario, "i": incluir_sin_precio})
 
     def ejecucion_en_proceso(self, id_periodo_contable: int) -> Optional[dict]:
-        return fila(self.db, """SELECT id_cierre, id_usuario_ejecutor, fecha_inicio FROM modulo6.ejecuciones_cierre_periodo
-                                WHERE id_periodo_contable = :p AND estado = 'EN_PROCESO'""", {"p": id_periodo_contable})
+        return fila(self.db, f"""SELECT e.id_cierre, e.id_usuario_ejecutor, e.fecha_inicio,
+                                        e.paso_actual = {_PASO_ESPERA} AS esperando_autorizacion, {_NOMBRE_EJECUTOR}
+                                 FROM modulo6.ejecuciones_cierre_periodo e {_JOIN_EJECUTOR}
+                                 WHERE e.id_periodo_contable = :p AND e.estado = 'EN_PROCESO'""", {"p": id_periodo_contable})
+
+    def esperar_autorizacion(self, id_cierre: int) -> None:
+        escribir(self.db, f"UPDATE modulo6.ejecuciones_cierre_periodo SET paso_actual = {_PASO_ESPERA} WHERE id_cierre = :id",
+                 {"id": id_cierre})
+
+    def reanudar_cierre(self, id_cierre: int, incluir_sin_precio: bool) -> None:
+        escribir(self.db, """UPDATE modulo6.ejecuciones_cierre_periodo SET paso_actual = 1, es_incluir_activos_sin_precio = :i
+                             WHERE id_cierre = :id""", {"id": id_cierre, "i": incluir_sin_precio})
 
     def finalizar_cierre(self, id_cierre: int, estado: str, datos: dict) -> None:
         escribir(self.db, """
@@ -122,9 +140,9 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
             WHERE c.id_periodo_contable = :p ORDER BY c.codigo""", {"p": id_periodo_contable})
 
     def ultima_ejecucion(self, id_periodo_contable: int) -> Optional[dict]:
-        return fila(self.db, """
-            SELECT id_cierre, estado::text AS estado, paso_actual, activos_procesados, activos_pendientes,
-                   activos_excluidos, json_precios_congelados AS precios_congelados, error_detalle, fecha_inicio,
-                   fecha_fin, tiempo_ejecucion_ms, hash_saga AS hash_cierre, id_usuario_ejecutor
-            FROM modulo6.ejecuciones_cierre_periodo WHERE id_periodo_contable = :p
-            ORDER BY id_cierre DESC LIMIT 1""", {"p": id_periodo_contable})
+        return fila(self.db, f"""
+            SELECT e.id_cierre, e.estado::text AS estado, e.paso_actual, e.activos_procesados, e.activos_pendientes,
+                   e.activos_excluidos, e.json_precios_congelados AS precios_congelados, e.error_detalle, e.fecha_inicio,
+                   e.fecha_fin, e.tiempo_ejecucion_ms, e.hash_saga AS hash_cierre, e.id_usuario_ejecutor, {_NOMBRE_EJECUTOR}
+            FROM modulo6.ejecuciones_cierre_periodo e {_JOIN_EJECUTOR} WHERE e.id_periodo_contable = :p
+            ORDER BY e.id_cierre DESC LIMIT 1""", {"p": id_periodo_contable})

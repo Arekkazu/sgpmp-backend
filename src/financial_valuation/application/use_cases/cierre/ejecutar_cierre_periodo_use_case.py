@@ -3,13 +3,15 @@
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1: cierre del período contable con comprobante NIC 41 |
 # | 2026-11-05 | Arekkazu | M06 RF-87: el bloqueo por cuentas faltantes nombra hecho, sentido y especie sin códigos |
 # | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0: el cierre avisa al Contador de los activos al costo que ya tienen precio |
+# | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: EN_CIERRE en espera de autorización, cancelación, matriz y titular |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
 Tres transacciones: (1) el período pasa a EN_CIERRE y queda visible para todos (los hechos nuevos se
 encolan para el período siguiente); (2) los 9 pasos, atómicos — escriben con el período EN_CIERRE
 declarando ``app.cierre_periodo``; (3) si (2) falla, el período vuelve a ABIERTO y el cierre queda
-FALLIDO en RF-94. El paso 3 mide contra el último valor registrado del activo, no contra el valor al
+FALLIDO en RF-94. Si hay exclusiones por autorizar (FA-2/FA-3), el período se queda EN_CIERRE
+esperando la decisión: la autorización continúa el mismo cierre y la cancelación lo devuelve a ABIERTO. El paso 3 mide contra el último valor registrado del activo, no contra el valor al
 inicio del período (C-3), y el paso 7 no vuelve a registrar los costos de M05 como gasto (C-4)."""
 from __future__ import annotations
 
@@ -35,6 +37,7 @@ from src.financial_valuation.domain.repositories.periodo_repository import Perio
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.consolidacion import LineaContable, consolidar_comprobantes
 from src.financial_valuation.domain.services.nic41 import hash_sha256, meses_transcurridos, periodo_siguiente, truncar2, valor_por_costo
+from src.financial_valuation.domain.entities.activo_financiero import DatosActivo
 from src.financial_valuation.domain.value_objects.nic41 import (
     ETIQUETA_HECHO,
     ETIQUETA_SENTIDO,
@@ -45,10 +48,12 @@ from src.financial_valuation.domain.value_objects.nic41 import (
     TipoHecho,
 )
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
-from src.shared.fechas import hoy_usuario
+from src.shared.fechas import en_zona_usuario, hoy_usuario
 
 logger = logging.getLogger(__name__)
 _CIERRE_ABANDONADO = timedelta(minutes=30)
+_VARIACIONES = [(t.value, s.value) for t in (TipoHecho.VARIACION_VR_TB, TipoHecho.VARIACION_VR_PM)
+                for s in (Sentido.GANANCIA, Sentido.PERDIDA)]
 
 
 @dataclass
@@ -115,9 +120,19 @@ class EjecutarCierrePeriodoUseCase:
         if self.costos.recepciones_pendientes_titular(periodo.numero_id_tributaria, periodo.fecha_fin):
             bloqueos.append({"codigo": "ENTREGAS_M05_PENDIENTES",
                              "mensaje": "Hay costos de Suministros por incorporar. Espere a que se procesen e intente de nuevo."})
+        fincas = self.activos.fincas_sin_titular_del_periodo(periodo.id_periodo_contable, periodo.numero_id_tributaria)
+        if fincas:  # RF-19 v1.1: sin titular no hay a quién atribuir los hechos del período
+            bloqueos.append({"codigo": "FINCA_SIN_TITULAR", "mensaje": (
+                f"Las fincas {', '.join(fincas)} tienen movimientos en este período pero ya no tienen su titular "
+                "tributario. Complételo en Configuración → Fincas.")})
         dia = min(periodo.fecha_fin, hoy_usuario())
-        sin_precio = []
-        for activo in self.activos.listar_reconocidos(periodo.numero_id_tributaria):
+        reconocidos = self.activos.listar_reconocidos(periodo.numero_id_tributaria)
+        sin_precio, faltantes = [], self._combinaciones_sin_cuenta(reconocidos)
+        if faltantes:
+            bloqueos.append({"codigo": "MATRIZ_CONTABLE_INCOMPLETA", "mensaje": (
+                f"La matriz contable no cubre lo que registra el cierre: {'; '.join(faltantes[:10])}. "
+                "Asígnelas en Configuración contable.")})
+        for activo in reconocidos:
             if self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico) is not None:
                 continue
             precio, _ = self.medidor.valorador.precio_para(activo, dia, False)
@@ -126,6 +141,22 @@ class EjecutarCierrePeriodoUseCase:
                                    "especie": activo.especie})
         sin_trazabilidad = self.verificador.evaluar(self.contabilizador.asientos.del_periodo(periodo.id_periodo_contable))
         return Prevalidacion(bloqueos, sin_precio, sin_trazabilidad)
+
+    def _combinaciones_sin_cuenta(self, reconocidos: list[DatosActivo]) -> list[str]:
+        """RF-87 v1.1: la matriz debe cubrir los hechos que el cierre registra (variaciones de los activos a
+        valor razonable y depreciación de los activos al costo), no solo los ya pendientes de cuenta."""
+        requeridas: dict[tuple, DatosActivo] = {}
+        for activo in reconocidos:
+            if self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico) is not None:
+                combos = [(TipoHecho.DEPRECIACION_ACTIVO_COSTO.value, Sentido.UNICO.value)]
+            else:
+                combos = _VARIACIONES
+            for tipo, sentido in combos:
+                requeridas.setdefault((tipo, sentido, activo.id_especie), activo)
+        return sorted(
+            f"{ETIQUETA_HECHO.get(tipo, 'Hecho contable')} ({ETIQUETA_SENTIDO.get(sentido, sentido.lower())}) de {activo.especie}"
+            for (tipo, sentido, especie), activo in requeridas.items()
+            if self.contabilizador.config.resolver_cuenta(tipo, sentido, especie, None) is None)
 
     # --- Ejecución -------------------------------------------------------------------------------
 
@@ -142,6 +173,9 @@ class EjecutarCierrePeriodoUseCase:
             self.db.commit()
         except Exception as exc:
             self.db.rollback()
+            if isinstance(exc, ConflictError) and exc.code == "EXCLUSION_REQUIERE_AUTORIZACION":  # FA-3 en el paso 3
+                self._esperar(id_cierre, id_periodo_contable)
+                raise
             paso = self._paso
             self._fallar(id_periodo_contable, id_cierre, paso, exc, id_usuario)
             if isinstance(exc, AppError):
@@ -168,41 +202,99 @@ class EjecutarCierrePeriodoUseCase:
             if periodo is None:
                 raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
             if periodo.estado == EstadoPeriodo.CERRADO.value:  # FA-5
+                quien = (self.periodos.ultima_ejecucion(id_periodo) or {}).get("nombre_usuario_ejecutor")
                 raise ConflictError(code="PERIODO_CERRADO", message=(
-                    f"El período {periodo.fecha_inicio:%Y-%m} ya fue cerrado el {periodo.fecha_cierre:%Y-%m-%d}. "
-                    "Los períodos cerrados no se reabren: corrija con ajustes en el período abierto."))
+                    f"El período {periodo.fecha_inicio:%Y-%m} ya fue cerrado el {periodo.fecha_cierre:%Y-%m-%d}"
+                    f"{f' por {quien}' if quien else ''}. Los períodos cerrados no se reabren: corrija con ajustes "
+                    "en el período abierto."))
+            en_espera = None
             if periodo.estado == EstadoPeriodo.EN_CIERRE.value:
                 en_curso = self.periodos.ejecucion_en_proceso(id_periodo)
-                if en_curso and datetime.now(timezone.utc) - en_curso["fecha_inicio"] < _CIERRE_ABANDONADO:
-                    raise ConflictError(code="CIERRE_EN_EJECUCION", message=(
-                        f"El período está siendo procesado por otro cierre iniciado el {en_curso['fecha_inicio']:%Y-%m-%d %H:%M}."))
-                if en_curso:  # cierre abandonado (caída del servidor): se reinicia sin efectos (RNF Mantenibilidad)
+                vigente = en_curso and datetime.now(timezone.utc) - en_curso["fecha_inicio"] < _CIERRE_ABANDONADO
+                if vigente and en_curso["esperando_autorizacion"] and (autorizar or incluir_sin_precio):
+                    en_espera = en_curso  # el Contador decide sobre el cierre que espera (FA-2/FA-3)
+                elif vigente:
+                    raise ConflictError(code="CIERRE_EN_EJECUCION", message=self._mensaje_concurrencia(en_curso))
+                elif en_curso:  # cierre abandonado (caída del servidor): se reinicia sin efectos (RNF Mantenibilidad)
                     self.periodos.finalizar_cierre(en_curso["id_cierre"], "FALLIDO", {"paso": 1, "error": "Cierre abandonado"})
             prevalidacion = self.prevalidar(periodo)
             if not prevalidacion.puede_cerrar:
                 raise BusinessRuleError(code="CIERRE_BLOQUEADO",
                                         message=" ".join(b["mensaje"] for b in prevalidacion.bloqueos))
+            pendiente = None
             if prevalidacion.lineas_sin_trazabilidad and not autorizar:  # FA-3
-                raise ConflictError(code="EXCLUSION_REQUIERE_AUTORIZACION", message=(
-                    f"{len(prevalidacion.lineas_sin_trazabilidad)} asientos tienen la cadena de trazabilidad incompleta y "
-                    "no pueden entrar al cierre. Autorice su exclusión para continuar."))
-            if prevalidacion.activos_sin_precio and not (autorizar or incluir_sin_precio):  # FA-2
-                raise ConflictError(code="EXCLUSION_REQUIERE_AUTORIZACION", message=(
-                    f"{len(prevalidacion.activos_sin_precio)} activos no tienen precio de mercado vigente. Autorice su "
-                    "exclusión o inclúyalos con el último precio conocido como estimación."))
-            id_cierre = self.periodos.iniciar_cierre(id_periodo, id_usuario, incluir_sin_precio)
-            self.periodos.cambiar_estado(id_periodo, EstadoPeriodo.EN_CIERRE.value)
-            self.contabilizador.auditar(EventoAuditoria(
-                tipo_evento="CIERRE_PERIODO_INICIADO", severidad=Severidad.INFO.value, id_usuario=id_usuario,
-                payload={"autorizar_exclusiones": autorizar, "incluir_activos_sin_precio": incluir_sin_precio,
-                         "advertencias": prevalidacion.a_dict()},
-                id_periodo_contable=id_periodo, id_referencia=id_cierre,
-            ))
+                pendiente = (f"{len(prevalidacion.lineas_sin_trazabilidad)} asientos tienen la cadena de trazabilidad "
+                             "incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.")
+            elif prevalidacion.activos_sin_precio and not (autorizar or incluir_sin_precio):  # FA-2
+                pendiente = (f"{len(prevalidacion.activos_sin_precio)} activos no tienen precio de mercado vigente. "
+                             "Autorice su exclusión o inclúyalos con el último precio conocido como estimación.")
+            if en_espera is not None:
+                id_cierre = en_espera["id_cierre"]
+                if pendiente is None:
+                    self.periodos.reanudar_cierre(id_cierre, incluir_sin_precio)
+            else:
+                id_cierre = self.periodos.iniciar_cierre(id_periodo, id_usuario, incluir_sin_precio)
+                self.periodos.cambiar_estado(id_periodo, EstadoPeriodo.EN_CIERRE.value)
+                self.contabilizador.auditar(EventoAuditoria(
+                    tipo_evento="CIERRE_PERIODO_INICIADO", severidad=Severidad.INFO.value, id_usuario=id_usuario,
+                    payload={"autorizar_exclusiones": autorizar, "incluir_activos_sin_precio": incluir_sin_precio,
+                             "advertencias": prevalidacion.a_dict()},
+                    id_periodo_contable=id_periodo, id_referencia=id_cierre,
+                ))
+                if pendiente is not None:
+                    self.periodos.esperar_autorizacion(id_cierre)
             self.db.commit()
+            if pendiente is not None:
+                raise ConflictError(code="EXCLUSION_REQUIERE_AUTORIZACION", message=(
+                    f"{pendiente} El período queda en cierre hasta que autorice o cancele el cierre."))
             return id_cierre
         except Exception:
             self.db.rollback()
             raise
+
+    @staticmethod
+    def _mensaje_concurrencia(en_curso: dict) -> str:
+        quien = en_curso.get("nombre_usuario_ejecutor") or "otro usuario"
+        cuando = f"{en_zona_usuario(en_curso['fecha_inicio']):%Y-%m-%d %H:%M}"
+        if en_curso["esperando_autorizacion"]:
+            return (f"El período tiene un cierre iniciado el {cuando} por {quien} que espera la autorización de las "
+                    "exclusiones. Autorícelas para continuar ese cierre o cancélelo.")
+        return (f"El período está siendo procesado por otro cierre iniciado el {cuando} por {quien}. Espere a que "
+                "termine antes de intentar un nuevo cierre.")
+
+    def _esperar(self, id_cierre: int, id_periodo: int) -> None:
+        """La transacción de los pasos se revirtió, pero el período sigue EN_CIERRE (paso 1): queda esperando."""
+        try:
+            self.periodos.esperar_autorizacion(id_cierre)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            logger.exception("RF-87 FA-3: no se pudo dejar el cierre del período %s en espera.", id_periodo)
+
+    def cancelar(self, id_periodo_contable: int, id_usuario: int) -> dict:
+        """FA-2/FA-3: el Contador no autoriza las exclusiones; el período vuelve a ABIERTO sin cambios."""
+        try:
+            periodo = self.periodos.obtener(id_periodo_contable, bloquear=True)
+            if periodo is None:
+                raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
+            en_curso = self.periodos.ejecucion_en_proceso(id_periodo_contable)
+            if periodo.estado != EstadoPeriodo.EN_CIERRE.value or not en_curso or not en_curso["esperando_autorizacion"]:
+                raise ConflictError(code="CIERRE_NO_CANCELABLE", message=(
+                    "Solo se puede cancelar un cierre que espera la autorización de exclusiones."))
+            self.periodos.cambiar_estado(id_periodo_contable, EstadoPeriodo.ABIERTO.value)
+            self.periodos.finalizar_cierre(en_curso["id_cierre"], "ROLLBACK",
+                                           {"paso": 3, "error": "El Contador canceló el cierre sin autorizar las exclusiones."})
+            self.contabilizador.auditar(EventoAuditoria(
+                tipo_evento="CIERRE_PERIODO_FALLIDO", severidad=Severidad.WARNING.value, id_usuario=id_usuario,
+                payload={"cancelado": True, "motivo": "El Contador no autorizó las exclusiones."},
+                id_periodo_contable=id_periodo_contable, id_referencia=en_curso["id_cierre"],
+            ))
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return {"id_periodo_contable": id_periodo_contable, "id_cierre": en_curso["id_cierre"],
+                "estado": EstadoPeriodo.ABIERTO.value}
 
     def _pasos(self, periodo: Periodo, id_cierre: int, id_usuario: int, autorizar: bool, incluir_sin_precio: bool):
         dia = min(periodo.fecha_fin, hoy_usuario())
@@ -250,8 +342,9 @@ class EjecutarCierrePeriodoUseCase:
         siguiente = self._abrir_siguiente(periodo, id_usuario)
         if pendientes:
             if not autorizar:
-                raise ConflictError(code="EXCLUSION_REQUIERE_AUTORIZACION",
-                                    message=f"{len(pendientes)} asientos quedaron con la trazabilidad incompleta.")
+                raise ConflictError(code="EXCLUSION_REQUIERE_AUTORIZACION", message=(
+                    f"{len(pendientes)} asientos quedaron con la trazabilidad incompleta. El período queda en cierre "
+                    "hasta que autorice su exclusión o cancele el cierre."))
             self.contabilizador.asientos.mover_a_periodo([p["id_linea"] for p in pendientes], siguiente.id_periodo_contable)
             self.contabilizador.auditar(EventoAuditoria(
                 tipo_evento="EXCLUSION_CIERRE_AUTORIZADA", severidad=Severidad.WARNING.value, id_usuario=id_usuario,

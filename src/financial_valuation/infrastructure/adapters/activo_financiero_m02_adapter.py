@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/83/87: lectura del activo en M02 con su finca y titular |
 # | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
+# | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
@@ -84,6 +85,12 @@ class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
                              " ORDER BY a.id_activo_biologico",
             {"tz": nombre_zona_usuario(), "estados": list(ESTADOS_VALORABLES), "nit": numero_id_tributaria},
         )]
+
+    def fincas_sin_titular_del_periodo(self, id_periodo_contable: int, numero_id_tributaria: str) -> list[str]:
+        return [f["nombre"] for f in filas(self.db, """
+            SELECT DISTINCT f.nombre FROM modulo6.lineas_asiento_nic41 l JOIN modulo9.fincas f ON f.id_finca = l.id_finca
+            WHERE l.id_periodo_contable = :p AND f.numero_id_tributaria IS DISTINCT FROM :nit ORDER BY 1""",
+            {"p": id_periodo_contable, "nit": numero_id_tributaria})]
 
     def especie(self, id_especie: int) -> Optional[dict]:
         return fila(self.db, "SELECT id_especie, nombre, es_activo FROM modulo9.especies WHERE id_especie = :e",

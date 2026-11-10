@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: ajuste de un hecho de un período cerrado |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -127,6 +128,12 @@ class CostoDTO(BaseDTO):
 class ClasificarCostoDTO(BaseDTO):
     naturaleza_costo: Literal["MANTENIMIENTO", "INVERSION", "VENTA"]
     justificacion: str = Field(min_length=10, max_length=2000)
+
+
+class AjustePeriodoAnteriorDTO(BaseDTO):
+    tipo_ajuste: Literal["AUMENTAR", "DISMINUIR"]
+    valor: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
+    justificacion: str = Field(min_length=20, max_length=1000)
 
 
 class CierreDTO(BaseDTO):
