@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-83/84/86/88/90: núcleo de cálculo NIC 41 (Python puro) |
 # | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 """Núcleo de cálculo NIC 41 de M06. Python puro: lo usan todos los casos de uso.
 
 - RF-84 (¶12, ¶5): ``valor_neto = magnitud × precio − costos de venta``. Los costos de M05 son
@@ -55,6 +56,8 @@ class CostosVenta:
     otros: Decimal = CERO
     # Método por componente: PARAMETRIZADO o MANUAL (RF-84 entradas metodo_costo_*).
     metodos: dict = field(default_factory=dict)
+    # Valor parametrizado que reemplazó cada componente MANUAL (None si M09 no lo parametriza): RF-84 salida 3.
+    originales: dict = field(default_factory=dict)
 
     @property
     def total(self) -> Decimal:
@@ -87,17 +90,21 @@ def costos_venta(
     pcts = {"transporte": pct_transporte, "comisiones": pct_comisiones, "impuestos": pct_impuestos}
     valores: dict[str, Decimal] = {}
     metodos: dict[str, str] = {}
+    originales: dict[str, Optional[Decimal]] = {}
     for componente in COMPONENTES_COSTO:
+        parametrizado = (q4(bruto * Decimal(pcts[componente]))
+                         if componente != "otros" and pcts[componente] is not None else None)
         if componente in manuales and manuales[componente] is not None:
             valor = Decimal(manuales[componente])
             if valor < 0:
                 raise ValueError(f"El costo de {componente} no puede ser negativo.")
             valores[componente], metodos[componente] = q4(valor), "MANUAL"
-        elif componente != "otros" and pcts[componente] is not None:
-            valores[componente], metodos[componente] = q4(bruto * Decimal(pcts[componente])), "PARAMETRIZADO"
+            originales[componente] = parametrizado
+        elif parametrizado is not None:
+            valores[componente], metodos[componente] = parametrizado, "PARAMETRIZADO"
         else:
             valores[componente] = CERO
-    return CostosVenta(**valores, metodos=metodos)
+    return CostosVenta(**valores, metodos=metodos, originales=originales)
 
 
 @dataclass(frozen=True)

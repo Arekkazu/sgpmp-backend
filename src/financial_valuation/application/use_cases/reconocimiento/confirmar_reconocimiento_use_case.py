@@ -3,10 +3,12 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82: confirmar el reconocimiento inicial y generar sus líneas de asiento |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 """Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable.
 
 Los costos de venta manuales exigen una referencia documental (RF-84 R4), que queda en el cálculo y en la
-auditoría del reconocimiento junto con la justificación (R2, R5).
+auditoría del reconocimiento junto con la justificación (R2, R5). Cada costo sobrescrito a mano deja su log
+de ajuste (R5, salida 3): ítem, valor parametrizado original, valor manual, justificación, Contador y fecha.
 
 Con un valor neto ≤ 0 el reconocimiento no se confirma (la BD exige un valor inicial positivo), pero el
 cálculo queda registrado en REVISION_REQUERIDA con una alerta crítica para que el Contador corrija los
@@ -88,6 +90,7 @@ class ConfirmarReconocimientoUseCase:
         if propuesta.indicador_valoracion == IndicadorValoracion.VALOR_RAZONABLE.value:
             propuesta.calculo.id_periodo_contable = periodo.id_periodo_contable
             id_calculo = self.valoraciones.agregar_calculo(propuesta.calculo)
+            self._auditar_ajustes(propuesta, id_calculo, periodo.id_periodo_contable, id_usuario, justificacion)
         else:
             id_valoracion = self.valoraciones.agregar_valoracion_costo(ValoracionCosto(
                 id_activo_biologico=activo.id_activo_biologico, escenario_activacion="INICIAL_RF82",
@@ -140,6 +143,23 @@ class ConfirmarReconocimientoUseCase:
                 "lineas": [{"id_linea": ln.id_linea_asiento_nic41, "tipo_hecho": ln.tipo_hecho, "sentido": ln.sentido,
                             "valor": ln.valor, "cuenta_debito": ln.cuenta_debito, "cuenta_credito": ln.cuenta_credito,
                             "estado": ln.estado} for ln in lineas]}
+
+    def _auditar_ajustes(self, propuesta: Propuesta, id_calculo: int, id_periodo: int, id_usuario: int,
+                         justificacion: Optional[str]) -> None:
+        """Un evento AJUSTE_MANUAL_COSTOS_VENTA por componente sobrescrito (RF-84 R5, salida 3)."""
+        for ajuste in propuesta.ajustes_manuales:
+            original = ajuste["valor_original"]
+            self.contabilizador.auditar(EventoAuditoria(
+                tipo_evento="AJUSTE_MANUAL_COSTOS_VENTA", severidad=Severidad.INFO.value,
+                payload={"item": ajuste["item"], "valor_original": str(original) if original is not None else None,
+                         "metodo_original": "PARAMETRIZADO" if original is not None else "SIN_PARAMETRO",
+                         "valor_manual": str(ajuste["valor_manual"]), "justificacion": justificacion,
+                         "id_calculo_valor_razonable": id_calculo,
+                         "id_parametro_costo_venta": propuesta.calculo.id_parametro_costo_venta},
+                id_usuario=id_usuario, id_activo_biologico=propuesta.activo.id_activo_biologico,
+                id_periodo_contable=id_periodo, id_referencia=id_calculo, monto_afectado=ajuste["valor_manual"],
+                datos_anteriores={"item": ajuste["item"], "valor": str(original) if original is not None else None},
+            ))
 
     def _auditar_bloqueo(self, propuesta: Propuesta, id_usuario: int) -> None:
         if not any(b["codigo"] == "RECONOCIMIENTO_BLOQUEADO_SIN_VALOR" for b in propuesta.bloqueos):

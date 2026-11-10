@@ -6,6 +6,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -61,6 +62,7 @@ class Propuesta:
     requiere_costos_manuales: bool = False
     vida_util_meses: Optional[int] = None
     calculo_revision: Optional[CalculoValor] = None  # valor neto ≤ 0: queda en revisión (RF-84 FA-2)
+    ajustes_manuales: tuple = ()  # costos sobrescritos a mano, para su log de auditoría (RF-84 salida 3)
 
     @property
     def es_confirmable(self) -> bool:
@@ -117,6 +119,7 @@ class ProponedorReconocimiento:
         if resultado.es_valido:
             propuesta.indicador_valoracion = IndicadorValoracion.VALOR_RAZONABLE.value
             propuesta.calculo, propuesta.precio = resultado.calculo, resultado.precio
+            propuesta.ajustes_manuales = resultado.ajustes_manuales
             propuesta.valor_inicial = resultado.calculo.valor_neto
             propuesta.costos_venta = resultado.calculo.valor_razonable_bruto - resultado.calculo.valor_neto
             if resultado.calculo.tiene_valor_estimado:

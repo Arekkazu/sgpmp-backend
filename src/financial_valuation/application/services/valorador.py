@@ -4,6 +4,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: el precio congelado vencido también es estimación |
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
@@ -42,6 +43,8 @@ class ResultadoValoracion:
     precio: Optional[Precio]
     motivo: Optional[str] = None
     mensaje: Optional[str] = None
+    # Componentes sobrescritos a mano: {item, valor_original, valor_manual} (RF-84 salida 3).
+    ajustes_manuales: tuple = ()
 
     @property
     def es_valido(self) -> bool:
@@ -122,7 +125,9 @@ class Valorador:
             id_evento_magnitud=activo.id_evento_peso if precio.categoria == CategoriaPrecio.PESO_KG.value else None,
             tiene_valor_estimado=estimado,
         )
+        ajustes = tuple({"item": c, "valor_original": costos.originales[c], "valor_manual": getattr(costos, c)}
+                        for c in costos.originales)
         if vn.requiere_revision and not aceptar_no_positivo:
             return ResultadoValoracion(calculo, precio, "VALOR_NETO_NO_POSITIVO",
-                                       MOTIVOS["VALOR_NETO_NO_POSITIVO"].format(**textos))
-        return ResultadoValoracion(calculo, precio)
+                                       MOTIVOS["VALOR_NETO_NO_POSITIVO"].format(**textos), ajustes_manuales=ajustes)
+        return ResultadoValoracion(calculo, precio, ajustes_manuales=ajustes)
