@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/84/86/88/90: núcleo de cálculo NIC 41 (Python puro) |
 # | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 """Núcleo de cálculo NIC 41 de M06. Python puro: lo usan todos los casos de uso.
 
 - RF-84 (¶12, ¶5): ``valor_neto = magnitud × precio − costos de venta``. Los costos de M05 son
@@ -179,6 +180,11 @@ class ValorPorCosto:
     @property
     def totalmente_depreciado(self) -> bool:
         return self.valor_contable <= 0
+
+
+def valor_libros_calculado(costo_adquisicion: Decimal, depreciacion: Decimal, deterioro: Decimal) -> Decimal:
+    """RF-88: resultado matemático costo − depreciación − deterioro, antes del piso en cero (puede ser negativo)."""
+    return q4(Decimal(costo_adquisicion) - Decimal(depreciacion) - Decimal(deterioro))
 
 
 def valor_por_costo(

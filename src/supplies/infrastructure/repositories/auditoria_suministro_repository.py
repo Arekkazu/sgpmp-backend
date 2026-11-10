@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-80: retención por tipo e intentos      |
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: persistir el contexto del evento mediante la columna JSON existente. |
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: deduplicar por UUID sin revertir la transacción del emisor. |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroPort` (RF-78/79, CU-05).
 
 Usa ``flush()`` (nunca ``commit()``) y traduce errores de BD con
@@ -52,6 +53,7 @@ class SqlAlchemyAuditoriaSuministroRepository(AuditoriaSuministroPort):
             registro_incompleto=evento.registro_incompleto,
             fecha_intentos=evento.fecha_intentos or None,
             fecha_emision=evento.fecha_emision or datetime.now(timezone.utc),
+            datos_nuevos=evento.datos_nuevos,
             clasificacion_registro=clasificacion,
             retencion_aplicable=retencion,
         ).on_conflict_do_nothing(index_elements=["id_evento_m05"])

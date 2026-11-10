@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82/RF-84: costos manuales con máximo 4 decimales |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ Clasificacion = Literal["PRODUCCION", "CONSUMO"]
 CategoriaActivo = Literal["PESO_KG", "POR_CABEZA"]
 Categoria = Literal["PESO_KG", "POR_CABEZA", "PRODUCTO"]
 Fuente = Literal["MERCADO_ACTIVO", "UPRA", "ESTIMADA"]
-TipoHecho = Literal["RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_TB", "VARIACION_VR_PM",
+TipoHecho = Literal["RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_TB", "VARIACION_VR_PM",
                     "PRODUCTO_AGRICOLA", "CONSUMO_INSUMO", "MANO_OBRA_PROPIA", "BAJA_ACTIVO", "AJUSTE_PERIODO_ANTERIOR",
                     "DEPRECIACION_ACTIVO_COSTO", "DETERIORO_ACTIVO_COSTO"]
 Sentido = Literal["GANANCIA", "PERDIDA", "UNICO", "TRASLADO", "CAPITALIZACION"]
@@ -76,10 +78,11 @@ class PrecioDTO(BaseDTO):
 
 
 class CostosManualesDTO(BaseDTO):
-    transporte: Optional[Decimal] = Field(default=None, ge=0)
-    comisiones: Optional[Decimal] = Field(default=None, ge=0)
-    impuestos: Optional[Decimal] = Field(default=None, ge=0)
-    otros: Optional[Decimal] = Field(default=None, ge=0)
+    # numeric(18,4): un 5.º decimal se rechaza (400) en vez de redondearse al guardar (INC-M06-303-G04).
+    transporte: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+    comisiones: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+    impuestos: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+    otros: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
 
 
 class ConfirmarReconocimientoDTO(BaseDTO):

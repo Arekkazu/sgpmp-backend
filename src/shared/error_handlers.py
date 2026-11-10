@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: un evento Edge con estructura inválida queda en la bitácora (E1) |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82: mensaje en español para exceso de decimales |
 # | 2026-10-26 | Arekkazu | INC-M03/M04 RF-57/59/73: 422 por ruta (x-codigo-validacion) y E1 de RF-57 en bitácora |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: respetar el HTTP 422 declarado por ruta y conservar el 400 predeterminado. |
 """Handlers globales de error de la aplicación FastAPI.
@@ -291,6 +292,13 @@ def _mensaje_legible(error: dict) -> str:
         if "error" in ctx:
             return str(ctx["error"])
         return str(error.get("msg", "")).removeprefix("Value error, ")
+
+    # INC-M06-303-G04: con el límite de la columna numeric(p,4) el valor se rechaza, no se redondea.
+    ctx = error.get("ctx") or {}
+    if error.get("type") == "decimal_max_places":
+        return f"El valor admite como máximo {ctx.get('decimal_places')} decimales."
+    if error.get("type") in ("decimal_max_digits", "decimal_whole_digits"):
+        return "El valor supera la cantidad de cifras permitida."
 
     return _MENSAJES_PYDANTIC_POR_TIPO.get(error.get("type", ""), error.get("msg", "Error de validación"))
 
