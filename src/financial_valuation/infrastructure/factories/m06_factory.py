@@ -9,6 +9,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | Arekkazu | INC-M06-342/351 RF-86/87: avisos de cuenta faltante y ajuste de período anterior |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -68,6 +69,10 @@ from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazab
 from src.financial_valuation.application.use_cases.valoracion.consultar_productos_agricolas_use_case import (
     ConsultarProductosAgricolasUseCase,
 )
+from src.financial_valuation.application.use_cases.valoracion.correctivo_variacion_use_case import (
+    ResolverCorrectivoVariacionUseCase,
+    SolicitarCorrectivoVariacionUseCase,
+)
 from src.financial_valuation.application.use_cases.valoracion.procesar_eventos_m02_use_case import ProcesarEventosM02UseCase
 from src.financial_valuation.application.use_cases.valoracion.validar_calculo_no_positivo_use_case import (
     ValidarCalculoNoPositivoUseCase,
@@ -89,6 +94,9 @@ from src.financial_valuation.infrastructure.repositories.auditoria_financiera_re
 )
 from src.financial_valuation.infrastructure.repositories.configuracion_contable_repository import (
     SqlAlchemyConfiguracionContableRepository,
+)
+from src.financial_valuation.infrastructure.repositories.correctivo_variacion_repository import (
+    SqlAlchemyCorrectivoVariacionRepository,
 )
 from src.financial_valuation.infrastructure.repositories.costo_repository import SqlAlchemyCostoRepository
 from src.financial_valuation.infrastructure.repositories.cotizacion_repository import SqlAlchemyCotizacionRepository
@@ -123,6 +131,8 @@ class M06:
     def precios(self): return SqlAlchemyPrecioRepository(self.db)
     @cached_property
     def valoraciones(self): return SqlAlchemyValoracionRepository(self.db)
+    @cached_property
+    def correctivos(self): return SqlAlchemyCorrectivoVariacionRepository(self.db)
     @cached_property
     def costos(self): return SqlAlchemyCostoRepository(self.db)
     @cached_property
@@ -173,6 +183,10 @@ class M06:
                                          notificador=self.notificador, bajas=BajaActivoM02Adapter(sesion_sistema))
     def reconocer_cosecha_pendiente(self):
         return ReconocerCosechaPendienteUseCase(self.db, self.eventos, self.procesar_eventos())
+    def solicitar_correctivo(self):
+        return SolicitarCorrectivoVariacionUseCase(self.db, self.correctivos, self.valoraciones, self.contabilizador)
+    def resolver_correctivo(self):
+        return ResolverCorrectivoVariacionUseCase(self.db, self.correctivos, self.valoraciones, self.contabilizador)
     def procesar_provisiones(self):
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):

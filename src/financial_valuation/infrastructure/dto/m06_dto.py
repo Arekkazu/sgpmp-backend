@@ -8,6 +8,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-319-G20 RF-84: la confirmación rechaza campos desconocidos (método por componente) |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: ajuste de un hecho de un período cerrado |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -126,6 +127,15 @@ class ReconocerCosechaDTO(BaseDTO):
     # justificación de 20 caracteres) van en el caso de uso para responder un solo 400 con su campo.
     costos_manuales: Optional[CostosManualesDTO] = None
     justificacion: Optional[str] = Field(default=None, max_length=1000)
+
+
+class SolicitarCorrectivoDTO(BaseDTO):
+    # RF-86 CA-13. El mínimo de 20 caracteres va en el caso de uso: ausente, vacío o corto responde el mismo 400.
+    motivo: Optional[str] = Field(default=None, max_length=2000)
+
+
+class RechazarCorrectivoDTO(BaseDTO):
+    motivo_rechazo: Optional[str] = Field(default=None, max_length=2000)
 
 
 class RevertirReconocimientoDTO(BaseDTO):
