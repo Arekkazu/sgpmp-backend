@@ -8,6 +8,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-296-G34-01 RF-86: aviso al Contador cuando la medición queda suspendida |
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-09 | destroyerban | INC-M06-321-G25 RF-85: no se reconoce una cosecha mayor que lo disponible del activo |
+# | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -53,7 +54,15 @@ from src.financial_valuation.domain.repositories.evento_m02_port import EventoM0
 from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.domain.services.nic41 import CERO, a_kg, costos_venta, q4, truncar2, valor_neto
+from src.financial_valuation.domain.services.nic41 import (
+    CERO,
+    a_kg,
+    costos_venta,
+    proporcion_registrada,
+    q4,
+    truncar2,
+    valor_neto,
+)
 from src.financial_valuation.domain.services.precios import precio_vigente
 from src.financial_valuation.domain.value_objects.nic41 import (
     CategoriaPrecio,
@@ -305,7 +314,7 @@ class ProcesarEventosM02UseCase:
         precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
         costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
         resultado = self._registrar_producto(evento, activo, periodo, dia, metrica, cantidad, precio_unitario,
-                                             costo_unitario, valor_reduccion, q4(proporcion), valor_reduccion,
+                                             costo_unitario, valor_reduccion, proporcion_registrada(proporcion), valor_reduccion,
                                              base.id_calculo_valor_razonable, medicion.id_medicion,
                                              "PRODUCTO_DE_CONSUMO", Sentido.TRASLADO.value,
                                              None if kg == cantidad else f"Cantidad convertida: {cantidad} {metrica['unidad_medida']} = {kg} kg.")
