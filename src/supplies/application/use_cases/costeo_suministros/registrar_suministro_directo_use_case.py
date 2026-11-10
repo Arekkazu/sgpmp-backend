@@ -2,6 +2,8 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: fases, códigos y efectos del RF    |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-264-G31 RF-78: 3 reintentos tras el intento inicial (esperas de 1, 3 y 5 s) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: registrar un suministro en el ledger de RF-78.
 
 Orden (RF-78): Fase 3 idempotencia (E8 → 200 YA_PROCESADO) → tipo de
@@ -83,12 +85,11 @@ class ResultadoRegistroDirecto:
     def mensaje(self) -> str:
         if self.estado == "YA_PROCESADO":
             return (
-                "Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear "
-                "un nuevo registro."
+                "Operación ya procesada. Se retorna el resultado original sin crear un nuevo registro."
             )
         if self.estado == "YA_ACUMULADO":
             return (
-                "El registro fuente ya está acumulado en el ciclo productivo desde su registro en RF-75/RF-76. "
+                "El registro fuente ya está acumulado en el ciclo productivo desde que se registró el consumo o la aplicación. "
                 "Se retorna el registro de suministro existente."
             )
         return "Suministro registrado y acumulado en el ciclo productivo."
@@ -125,7 +126,7 @@ class RegistrarSuministroDirectoUseCase:
                 code="TIPO_SUMINISTRO_NO_CONFIGURADO",
                 message=(
                     f"El tipo de suministro {dto.tipo_suministro} no está en el catálogo activo. Configúrelo "
-                    "en M09 antes de continuar."
+                    "en Configuración antes de continuar."
                 ),
                 field="tipo_suministro",
             )
@@ -137,7 +138,7 @@ class RegistrarSuministroDirectoUseCase:
                 code="CICLO_NO_ACTIVO",
                 message=(
                     f"No existe un ciclo productivo activo para el activo {dto.id_activo_biologico}. "
-                    "Verifique el estado del ciclo en M02 antes de registrar suministros."
+                    "Verifique el estado del ciclo en Activos biológicos antes de registrar suministros."
                 ),
             )
 
@@ -171,8 +172,8 @@ class RegistrarSuministroDirectoUseCase:
             raise ConflictError(
                 code="SUMINISTRO_DUPLICADO",
                 message=(
-                    "Registro de suministro idéntico ya existe. Si es una corrección, use "
-                    "tipo_operacion = CORRECCION con id_registro_original."
+                    "Ya existe un registro de suministro idéntico. Si quiere ajustarlo, registre una corrección "
+                    "sobre ese registro."
                 ),
             )
 
@@ -220,8 +221,8 @@ class RegistrarSuministroDirectoUseCase:
                     code="REGISTRO_RF75_INVALIDO",
                     message=(
                         f"El registro de consumo de alimento {referencia} no existe, no corresponde al activo "
-                        "indicado o no está en estado VALIDADO. Verifique el registro en RF-75 antes de "
-                        "registrar la acumulación."
+                        "indicado o no está en estado VALIDADO. Verifique el registro en Consumo de alimentos "
+                        "antes de registrar la acumulación."
                     ),
                     field="id_registro_rf75",
                 )
@@ -229,8 +230,8 @@ class RegistrarSuministroDirectoUseCase:
                 code="REGISTRO_RF76_INVALIDO",
                 message=(
                     f"El registro de aplicación de medicamento {referencia} no existe, no corresponde al activo "
-                    "indicado o no está en estado VALIDADO. Verifique el registro en RF-76 antes de registrar "
-                    "la acumulación."
+                    "indicado o no está en estado VALIDADO. Verifique el registro en Aplicación de medicamentos "
+                    "antes de registrar la acumulación."
                 ),
                 field="id_registro_rf76",
             )
@@ -254,7 +255,8 @@ class RegistrarSuministroDirectoUseCase:
         self, entidad: RegistroSuministroDirecto, usuario_actual: UsuarioActual
     ) -> ResultadoRegistroDirecto:
         ultimo_error: Optional[AppError] = None
-        for intento in range(1, _MAX_REINTENTOS + 1):
+        # Restricción 9: intento inicial + 3 reintentos, con esperas de 1 s, 3 s y 5 s antes de cada uno.
+        for intento in range(1, _MAX_REINTENTOS + 2):
             try:
                 guardado = self.registro_repo.guardar(entidad)
                 self.movimiento.registrar(guardado, id_usuario=usuario_actual.id_usuario, precio_manual=True)
@@ -263,7 +265,7 @@ class RegistrarSuministroDirectoUseCase:
             except _ERRORES_REINTENTABLES as exc:
                 self.db.rollback()
                 ultimo_error = exc
-                if intento < _MAX_REINTENTOS:
+                if intento <= _MAX_REINTENTOS:
                     time.sleep(_BACKOFF_SEGUNDOS[intento - 1])
                     continue
                 self._registrar_fallo(entidad, usuario_actual, str(exc.message))

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/85/86: medición por evento, productos agrícolas y bajas desde M02 |
+# | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -30,7 +31,7 @@ from src.financial_valuation.domain.repositories.activo_financiero_port import A
 from src.financial_valuation.domain.repositories.evento_m02_port import EventoM02, EventoM02Port
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.domain.services.nic41 import CERO, costos_venta, q4, truncar2, valor_neto
+from src.financial_valuation.domain.services.nic41 import CERO, a_kg, costos_venta, q4, truncar2, valor_neto
 from src.financial_valuation.domain.services.precios import precio_vigente
 from src.financial_valuation.domain.value_objects.nic41 import (
     CategoriaPrecio,
@@ -46,7 +47,6 @@ from src.shared.fechas import fecha_usuario
 logger = logging.getLogger(__name__)
 
 _BAJAS_DE_VENTA = ("venta", "sacrificio")
-_UNIDADES_KG = ("kg", "kgs", "kilogramo", "kilogramos")
 
 
 class ProcesarEventosM02UseCase:
@@ -200,8 +200,8 @@ class ProcesarEventosM02UseCase:
     def _cosecha_consumo(self, evento, activo, periodo, dia, cantidad, metrica) -> tuple[str, Optional[str]]:
         """Cosecha que consume el activo (peces, biomasa): se remide y se traslada a inventario por el
         mismo valor, así el asiento cuadra (contradicción C-2 de RF-85 paso 7)."""
-        if self.medidor.valorador.categoria(activo.id_especie) != CategoriaPrecio.PESO_KG.value \
-                or (metrica["unidad_medida"] or "").strip().lower() not in _UNIDADES_KG:
+        kg = a_kg(cantidad, metrica["unidad_medida"])
+        if self.medidor.valorador.categoria(activo.id_especie) != CategoriaPrecio.PESO_KG.value or kg is None:
             return self._producto_pendiente(activo, periodo, evento, (
                 f"No hay regla de conversión entre {metrica['unidad_medida']} y la magnitud del activo (kg)."))
         medicion = self.medidor.medir(activo, periodo, dia, origen="EVENTO", id_usuario=self.id_servicio,
@@ -209,14 +209,15 @@ class ProcesarEventosM02UseCase:
         if medicion.estado == "PENDIENTE":
             return "MEDICION_PENDIENTE", medicion.mensaje
         base = self.valoraciones.ultimo_calculo(activo.id_activo_biologico)
-        proporcion = min(Decimal(1), cantidad / base.magnitud)
+        proporcion = min(Decimal(1), kg / base.magnitud)
         valor_reduccion = truncar2(base.valor_neto * proporcion)
         precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
         costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
         resultado = self._registrar_producto(evento, activo, periodo, dia, metrica, cantidad, precio_unitario,
                                              costo_unitario, valor_reduccion, q4(proporcion), valor_reduccion,
                                              base.id_calculo_valor_razonable, medicion.id_medicion,
-                                             "PRODUCTO_DE_CONSUMO", Sentido.TRASLADO.value)
+                                             "PRODUCTO_DE_CONSUMO", Sentido.TRASLADO.value,
+                                             None if kg == cantidad else f"Cantidad convertida: {cantidad} {metrica['unidad_medida']} = {kg} kg.")
         if proporcion < 1:
             self.valoraciones.agregar_calculo(base.escalado(Decimal(1) - proporcion, periodo.id_periodo_contable))
         else:  # FA-4: cosechado por completo; la baja se registra en M02 (RF-45)
@@ -225,14 +226,14 @@ class ProcesarEventosM02UseCase:
         return resultado
 
     def _registrar_producto(self, evento, activo, periodo, dia, metrica, cantidad, precio_unitario, costo_unitario,
-                            valor, proporcion, valor_reduccion, id_calculo, id_medicion, tipo, sentido):
+                            valor, proporcion, valor_reduccion, id_calculo, id_medicion, tipo, sentido, justificacion=None):
         id_producto = self.valoraciones.agregar_producto({
             "id_evento_productivo": evento.id_evento, "id_activo_biologico": activo.id_activo_biologico,
             "producto_agricola": metrica["nombre"], "cantidad_cosechada": cantidad, "unidad_medida": metrica["unidad_medida"],
             "precio_mercado_producto": precio_unitario, "costo_venta_producto": costo_unitario, "valor_producto": valor,
             "proporcion_cosechada": proporcion, "valor_reduccion_activo": valor_reduccion,
             "id_calculo_valor_razonable": id_calculo, "id_periodo_contable": periodo.id_periodo_contable,
-            "justificacion": None, "fecha_cosecha": dia, "id_usuario": self.id_servicio, "tipo": tipo,
+            "justificacion": justificacion, "fecha_cosecha": dia, "id_usuario": self.id_servicio, "tipo": tipo,
             "id_medicion_posterior": id_medicion,
         })
         if valor > 0:

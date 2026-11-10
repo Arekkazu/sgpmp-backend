@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculos, reconocimientos, mediciones, variaciones y valoración por costo |
 # | 2026-11-05 | Arekkazu | M06 RF-83..88: listados del período y datos del modelo de costo por activo |
+# | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -294,15 +295,21 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     # --- Listados del período (vistas de medición, variaciones, cálculos y productos) ------------------
 
-    def mediciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+    def mediciones_del_periodo(self, id_periodo_contable: int, id_evento: Optional[int] = None,
+                               tiene_valor_estimado: Optional[bool] = None) -> list[dict]:
+        # Filtros en AND; uno omitido (NULL) no filtra.
         return filas(self.db, f"""
-            SELECT x.id_medicion_posterior, x.id_activo_biologico, {_ACTIVO}, x.origen_medicion::text AS origen_medicion,
+            SELECT x.id_medicion_posterior, x.id_activo_biologico, {_ACTIVO}, x.id_evento, x.id_periodo_contable,
+                   x.origen_medicion::text AS origen_medicion,
                    x.valor_razonable_anterior, x.valor_razonable_actual, x.ganancia_perdida_transformacion,
                    x.ganancia_perdida_precio_mercado, x.variacion_total, x.tiene_valor_estimado, x.estado::text AS estado,
                    x.fecha_medicion
             FROM modulo6.mediciones_posteriores x {_JOIN_ACTIVO}
-            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_medicion DESC, x.id_medicion_posterior DESC""",
-            {"p": id_periodo_contable})
+            WHERE x.id_periodo_contable = :p
+              AND (CAST(:e AS integer) IS NULL OR x.id_evento = :e)
+              AND (CAST(:est AS boolean) IS NULL OR x.tiene_valor_estimado = :est)
+            ORDER BY x.fecha_medicion DESC, x.id_medicion_posterior DESC""",
+            {"p": id_periodo_contable, "e": id_evento, "est": tiene_valor_estimado})
 
     def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
         # La verificación de trazabilidad actualiza la línea; la variación guarda el estado con que nació.

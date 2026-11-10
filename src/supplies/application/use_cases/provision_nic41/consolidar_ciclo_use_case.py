@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78 F9 / RF-79 F2: consolidar y entregar |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: consolidar la inversión de una instancia de ciclo cerrada (RF-78 Fase 9, RF-79 Fase 2).
 
 Lo dispara el cierre del ciclo (RF-38, ``consolidar_sin_commit`` dentro de la
@@ -95,7 +96,7 @@ class ConsolidarCicloUseCase:
                 code="CICLO_ACTIVO",
                 message=(
                     f"El ciclo {id_gestion_fases} está activo. El reporte consolidado solo está disponible "
-                    "tras el cierre del ciclo por RF-41."
+                    "tras el cierre del ciclo productivo."
                 ),
             )
 
@@ -174,7 +175,7 @@ class ConsolidarCicloUseCase:
             _RECURSO_PROVISION, _ACCION_EJECUTAR, "PROVISION_M06_PENDIENTE",
             f"El reporte consolidado NIC-41 {provision.id_provision} (ciclo {provision.id_gestion_fases}, "
             f"versión {provision.version_reporte}) quedó potencialmente incompleto: el monto del ledger no "
-            "coincide con el acumulado o con lo provisto incrementalmente, o hay eventos sin entregar a M06. "
+            "coincide con el acumulado o con lo provisto incrementalmente, o hay eventos sin entregar al módulo financiero. "
             "Revise el reporte y, si corresponde, solicite su corrección.",
             {"id_provision": provision.id_provision, "id_gestion_fases": provision.id_gestion_fases},
         )

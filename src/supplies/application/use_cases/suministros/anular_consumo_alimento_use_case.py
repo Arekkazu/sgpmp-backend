@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: anular compensa el ledger de RF-78 |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: anular un registro de consumo de alimento VALIDADO (RF-75 pasos 10-13).
 
 Un registro ANULADO no puede reactivarse ni volver a anularse. La justificación
@@ -66,7 +67,7 @@ class AnularConsumoAlimentoUseCase:
             if ledger is not None:
                 self.compensador.compensar(
                     ledger,
-                    f"Anulación del consumo {id_consumo} (RF-75): {justificacion.valor}",
+                    f"Anulación del consumo {id_consumo}: {justificacion.valor}",
                     usuario_actual.id_usuario,
                 )
             self.db.commit()

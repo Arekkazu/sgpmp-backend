@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: tipo de evento 31 CAMBIO_VARIABLE_CRITICA (RFC-016) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tipo de evento 32 NOTIFICACION_ALERTA |
 # | 2026-10-23 | Arekkazu | M05 RF-74..81: tipos de evento 33-38 de las notificaciones de suministros |
+# | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-14: tipos 39-41 de M06/M07; sin ellos sus avisos no se registraban |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -86,6 +87,12 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     36: EventoCategoria.MODIFICACION,
     37: EventoCategoria.MODIFICACION,
     38: EventoCategoria.MODIFICACION,
+    # Avisos del módulo financiero (migración c4d81e6f2a95) y de la integración contable
+    # (94b14a6931d6): cierre de período, alertas NIC 41 y alertas de integración. Los emiten
+    # procesos automáticos, igual que los de M05.
+    39: EventoCategoria.MODIFICACION,
+    40: EventoCategoria.MODIFICACION,
+    41: EventoCategoria.MODIFICACION,
 }
 
 
@@ -133,6 +140,9 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     36: "PROVISION_M06_PENDIENTE",
     37: "ALERTA_CONVERSION_ALIMENTICIA",
     38: "BATCH_ICA_INTERRUMPIDO",
+    39: "CIERRE_PERIODO_CONTABLE",
+    40: "ALERTA_FINANCIERA_NIC41",
+    41: "ALERTA_INTEGRACION_CONTABLE",
 }
 
 

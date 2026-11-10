@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: flujo NIC 41 de punta a punta contra PostgreSQL |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período, resumen de auditoría y filtros inválidos |
+# | 2026-11-08 | Arekkazu | INC-M06-314-G15 / INC-M06-332-G88: filtros de mediciones y cotización en período cerrado |
+# | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0 / RF-89 v1.1: aviso del cierre por activos al costo con precio y 400 en la justificación |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -164,7 +166,7 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
 
     # RF-83/86: pesaje 420 kg y precio 8.500 → precio = 400×500×0,95 = 190.000; TB = 20×8.500×0,95 = 161.500.
     _precio(m06, uid, especie, "8500", HOY)
-    _pesaje(db_session, activo, "420")
+    evento = _pesaje(db_session, activo, "420")
     resultado_eventos = m06.procesar_eventos().execute()
     assert resultado_eventos.get("PROCESADO") == 1, (resultado_eventos, db_session.execute(text("SELECT resultado, detalle FROM modulo6.procesamientos_eventos_m02")).all())
     lineas = {(ln.tipo_hecho, ln.sentido): ln.valor for ln in m06.asientos.del_activo(activo)}
@@ -175,6 +177,10 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     id_periodo = m06.periodos.que_contiene(NIT, HOY).id_periodo_contable
     [medicion] = [x for x in m06.valoraciones.mediciones_del_periodo(id_periodo) if x["id_activo_biologico"] == activo]
     assert medicion["variacion_total"] == D("351500.0000") and medicion["identificador"] and medicion["especie"]
+    # INC-M06-314-G15: la medición se consulta por su evento y trae el evento y el período que la originaron.
+    [por_evento] = m06.valoraciones.mediciones_del_periodo(id_periodo, id_evento=evento)
+    assert (por_evento["id_evento"], por_evento["id_periodo_contable"]) == (evento, id_periodo)
+    assert m06.valoraciones.mediciones_del_periodo(id_periodo, id_evento=evento, tiene_valor_estimado=True) == []
     variaciones = {x["tipo"]: x for x in m06.valoraciones.variaciones_del_periodo(id_periodo) if x["id_activo_biologico"] == activo}
     assert set(variaciones) == {"GANANCIA_TRANSFORMACION_BIOLOGICA", "GANANCIA_PRECIO_MERCADO"}
     assert all(v["id_linea"] and v["estado_trazabilidad"] for v in variaciones.values())
@@ -215,6 +221,10 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     with pytest.raises(AppError) as cerrado:
         m06.cierre().execute(periodo.id_periodo_contable, uid)
     assert cerrado.value.code == "PERIODO_CERRADO"
+    # RF-COT FA-3: con el período de hoy cerrado la cotización se rechaza, no pasa al período siguiente.
+    with pytest.raises(AppError) as cotizacion:
+        m06.registrar_cotizacion().execute([activo], D("3500000"), None, None, uid)
+    assert cotizacion.value.code == "PERIODO_CONTABLE_CERRADO"
 
     # RF-92: borrador con revelaciones manuales, aprobación y descarga.
     informe = m06.informe_revelaciones().generar(periodo.id_periodo_contable, {"declaracion_sin_novedad": True},
@@ -313,6 +323,8 @@ def test_rbac_contador_si_productor_no(db_session, crear_usuario_db, crear_auth_
         assert cliente.get("/finanzas/costos?estado=INEXISTENTE", headers=contador).status_code == 400
         assert cliente.get("/finanzas/cotizaciones?estado=x", headers=contador).status_code == 400
         assert cliente.get("/finanzas/periodos/1/mediciones", headers=contador).status_code == 200
+        assert cliente.get("/finanzas/periodos/1/mediciones?id_evento=0", headers=contador).status_code == 400
+        assert cliente.get("/finanzas/periodos/1/mediciones?tiene_valor_estimado=talvez", headers=contador).status_code == 400
         assert cliente.post("/finanzas/costos", headers=contador,
                             json={"subtipo_costo": "ALIMENTO", "origen_costo": "MANO_OBRA_PROPIA", "monto_costo": "1",
                                   "fecha_costo": HOY.isoformat(), "id_lote": 3}).status_code in (400, 422)  # CA-8
@@ -324,3 +336,40 @@ def test_cada_tipo_de_evento_de_auditoria_tiene_descripcion_legible(db_session):
 
     tipos = db_session.execute(text("SELECT unnest(enum_range(NULL::modulo6.enum_auditoria_financiera_tipo_evento))::text")).scalars()
     assert set(tipos) == set(DESCRIPCIONES)
+
+
+def test_aviso_de_vencimiento_queda_marcado_en_la_bandeja(db_session, contador):
+    """INC-M06-299-G81: la marca del aviso vive en el evento de la notificación, no en memoria."""
+    from src.financial_valuation.infrastructure.adapters.notificacion_financiera_m01_adapter import (
+        NotificacionFinancieraM01Adapter,
+    )
+
+    adaptador = NotificacionFinancieraM01Adapter(
+        lambda: Session(bind=db_session.connection(), join_transaction_mode="create_savepoint"))
+    marca = {"id_precio_mercado": _id(), "aviso": "15_DIAS"}
+    assert not adaptador.ya_notificado("ALERTA_FINANCIERA_NIC41", marca)
+    adaptador.a_contadores("ALERTA_FINANCIERA_NIC41", "El precio de mercado vence pronto.", marca)
+    assert adaptador.ya_notificado("ALERTA_FINANCIERA_NIC41", marca)
+    assert not adaptador.ya_notificado("ALERTA_FINANCIERA_NIC41", {**marca, "aviso": "7_DIAS"})
+
+
+def test_cierre_avisa_activos_al_costo_con_precio_y_justificacion_corta_es_400(db_session, m06, contador):
+    """RFC-024: RF-88 v2.0 (aviso de cierre) y RF-89 v1.1 CA-5 (justificación de estimación < 50 → 400)."""
+    uid = contador["id_usuario"]
+    especie = 3  # sin precios: el activo entra al costo
+    finca = _finca(db_session, uid, nit="830095213", dv="0")
+    _configurar(m06, uid, especie, vida=24)
+    _matriz(m06, uid)
+    comprado = _activo(db_session, finca, uid, especie=especie, origen="compra", costo=D("1200000"))
+    assert m06.confirmar_reconocimiento().execute(comprado, uid)["indicador_valoracion"] == "VALORACION_POR_COSTO"
+
+    with pytest.raises(AppError) as corta:
+        _precio(m06, uid, especie, "50000", HOY, fuente="ESTIMADA")  # sin justificación
+    assert (corta.value.status_code, corta.value.code) == (400, "JUSTIFICACION_ESTIMACION_INSUFICIENTE")
+
+    _precio(m06, uid, especie, "50000", HOY)
+    periodo = m06.periodos.que_contiene("830095213", HOY)
+    cierre = m06.cierre().execute(periodo.id_periodo_contable, uid)
+    identificador = f"M06-{comprado}"
+    assert cierre["activos_al_costo_con_precio"] == [identificador]
+    assert any(identificador in aviso and "valor razonable" in aviso for aviso in m06.notificador.avisos)

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1: cierre del período contable con comprobante NIC 41 |
 # | 2026-11-05 | Arekkazu | M06 RF-87: el bloqueo por cuentas faltantes nombra hecho, sentido y especie sin códigos |
+# | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0: el cierre avisa al Contador de los activos al costo que ya tienen precio |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -151,6 +152,11 @@ class EjecutarCierrePeriodoUseCase:
         self.notificador.a_contadores("CIERRE_PERIODO_CONTABLE", (
             f"Período {resultado['periodo']} cerrado: listo para transferir desde Agrofusión."),
             {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
+        if resultado["activos_al_costo_con_precio"]:  # RF-88 v2.0: ¶30 exige pasarlos a valor razonable
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
+                f"Al cerrar el período {resultado['periodo']}, estos activos valorados por costo ya tienen precio de mercado "
+                f"para su especie: {', '.join(resultado['activos_al_costo_con_precio'])}. La NIC 41 ¶30 exige pasarlos a "
+                "valor razonable."), {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
         return resultado
 
     def eventos_pendientes_primero(self) -> None:
@@ -210,11 +216,13 @@ class EjecutarCierrePeriodoUseCase:
                 congelados[activo.id_especie] = precio
         # Pasos 3-5: revaluación masiva, variaciones y líneas (más depreciación de los activos al costo).
         self._paso = 3
-        procesados = 0
+        procesados, al_costo_con_precio = 0, []
         for activo in activos:
             costo = self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico)
             if costo is not None:
                 self._depreciar(activo, costo, periodo, dia, id_cierre, id_usuario, congelados[activo.id_especie])
+                if congelados[activo.id_especie] is not None:
+                    al_costo_con_precio.append(activo.identificador)
                 procesados += 1
                 continue
             precio = congelados[activo.id_especie]
@@ -299,7 +307,7 @@ class EjecutarCierrePeriodoUseCase:
                  "periodo": f"{periodo.fecha_inicio:%Y-%m}", "estado": EstadoPeriodo.CERRADO.value,
                  "activos_procesados": procesados, "activos_excluidos": excluidos, "lineas_excluidas": pendientes,
                  "comprobantes": codigos, "hash_cierre": hash_cierre, "reportes": reportes,
-                 "id_periodo_siguiente": siguiente.id_periodo_contable})
+                 "id_periodo_siguiente": siguiente.id_periodo_contable, "activos_al_costo_con_precio": al_costo_con_precio})
 
     def _depreciar(self, activo, costo, periodo, dia, id_cierre, id_usuario, precio_vigente) -> None:
         """RF-88 4.1: depreciación del período como gasto; ¶30 exige pasar a valor razonable si ya hay precio."""
