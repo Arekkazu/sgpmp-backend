@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-318-G20 / RF-84 R5, salida 3: cada costo de venta sobrescrito a mano deja un evento
 AJUSTE_MANUAL_COSTOS_VENTA con el ítem, el valor parametrizado original, el valor manual y la justificación.
 
@@ -81,7 +82,8 @@ def _confirmar(costos_manuales):
                                            valor=linea.valor, cuenta_debito=None, cuenta_credito=None, estado="X"),
                                        auditar=eventos.append, config=config),
     )
-    resultado = caso.execute(7, 9, costos_manuales=costos_manuales, justificacion=JUSTIFICACION)
+    resultado = caso.execute(7, 9, costos_manuales=costos_manuales, justificacion=JUSTIFICACION,
+                         referencia_documental="Factura de venta FV-1234")
     return resultado, eventos, calculos
 
 

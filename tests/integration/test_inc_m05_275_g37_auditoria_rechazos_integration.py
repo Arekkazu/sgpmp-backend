@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: validar rechazo auditable, atomicidad, JWT, RBAC y finca con PostgreSQL real. |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RNF-05: el rechazo por activo de otra finca lo prueba un Gestor de Granja (Productor ya no crea) |
 """Regresión HTTP de #960 con el rol real de API y restricciones activas."""
 from __future__ import annotations
 
@@ -66,13 +67,16 @@ def escenario(db_session, crear_usuario_db, crear_auth_headers, montar):
     admin = crear_usuario_db(id_rol=1)
     productor = crear_usuario_db(id_rol=2)
     fiscal = crear_usuario_db(id_rol=8)
+    # Registra costeo directo pero solo en sus fincas (Productor y Veterinario ya no crean: RNF-05).
+    gestor = crear_usuario_db(id_rol=7)
     activo = sembrar_activo(db_session, admin['id_usuario'], 'POBLACIONAL')
     headers = crear_auth_headers(admin) | {'X-Zona-Horaria': 'America/Bogota'}
     hp = crear_auth_headers(productor)
     hf = crear_auth_headers(fiscal)
+    hg = crear_auth_headers(gestor)
     hoy = db_session.execute(text("SELECT (clock_timestamp() AT TIME ZONE 'America/Bogota')::date")).scalar_one()
     db_session.commit()  # El rollback del rechazo debe conservar las precondiciones del fixture.
-    return dict(**activo, usuario=admin['id_usuario'], headers=headers, productor=hp, fiscal=hf, hoy=hoy)
+    return dict(**activo, usuario=admin['id_usuario'], headers=headers, productor=hp, fiscal=hf, gestor=hg, hoy=hoy)
 
 
 def payload(e, **cambios):
@@ -185,7 +189,7 @@ def test_conflicto_tardio_revierte_ledger_outbox_y_exitos_antes_del_rechazo(clie
 def test_objetivo_inexistente_o_de_otra_finca_no_se_vincula(client, db_session, escenario, oculto):
     e = escenario
     cuerpo = payload(e) if oculto else payload(e, id_activo_biologico=2147483646)
-    headers = e['productor'] if oculto else e['headers']
+    headers = e['gestor'] if oculto else e['headers']
     r = client.post('/suministros/costeo-directo', headers=headers, json=cuerpo)
     assert r.status_code == 409 and r.json()['error_code'] == 'CICLO_NO_ACTIVO', r.text
     fila, = db_session.execute(text("SELECT id_activo_biologico,id_ciclo_productivo,id_gestion_fases,registro_incompleto FROM modulo5.auditorias_suministros WHERE resultado='RECHAZADO'")).all()

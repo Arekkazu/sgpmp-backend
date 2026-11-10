@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-313-G14 / RF-83: la medición por evento excluye los activos no elegibles y registra la exclusión.
 
 INACTIVO se medía (0 → 1 medición, evento PROCESADO) y PENDIENTE_RECONOCIMIENTO no dejaba rastro. BAJA lo
@@ -28,6 +29,9 @@ def _activo(estado: str):
 class ContabilizadorFake:
     def __init__(self) -> None:
         self.eventos, self.periodo_para_llamado = [], False
+
+    def periodo_cerrado_en(self, *_a):
+        return None
 
     def periodo_para(self, *_a):
         self.periodo_para_llamado = True
@@ -58,7 +62,7 @@ def _procesar(tipo: str, estado: str, sin_reconocimiento: bool = False):
     evento = EventoM02(55, 7, datetime(2026, 11, 8, 15, tzinfo=timezone.utc), tipo, {},
                        sin_reconocimiento=sin_reconocimiento)
     contabilizador, eventos, medidas = ContabilizadorFake(), EventosFake(evento), []
-    medidor = SimpleNamespace(medir=lambda *a, **k: medidas.append(a) or SimpleNamespace(estado="MEDIDO", mensaje=None))
+    medidor = SimpleNamespace(tomar_alertas=lambda: [], medir=lambda *a, **k: medidas.append(a) or SimpleNamespace(estado="MEDIDO", mensaje=None, motivo=None))
     valoraciones = SimpleNamespace(valoracion_costo_activa=lambda _id: None)
     caso = ProcesarEventosM02UseCase(DbFake(), eventos, SimpleNamespace(obtener=lambda _id: _activo(estado)),
                                      valoraciones, None, medidor, contabilizador, 1)

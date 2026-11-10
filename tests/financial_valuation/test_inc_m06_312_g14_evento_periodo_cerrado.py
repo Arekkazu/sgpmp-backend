@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-312-G14 / RF-83 restricción 2, RF-86 paso 1 c y FA-2: un evento de M02 cuya fecha cae en un período
 CERRADO no se valora en el período siguiente: queda MEDICION_PENDIENTE, se audita y se alerta al Contador.
 Los eventos encolados mientras el período estaba EN_CIERRE siguen yendo al período siguiente (RF-87)."""
@@ -24,7 +25,7 @@ CERRADO = Periodo(id_periodo_contable=77, numero_id_tributaria="900", tipo_cierr
                   fecha_cierre=datetime(2026, 11, 8, 12, tzinfo=timezone.utc))
 SIGUIENTE = Periodo(id_periodo_contable=78, numero_id_tributaria="900", tipo_cierre="MENSUAL",
                     fecha_inicio=date(2026, 12, 1), fecha_fin=date(2026, 12, 31), estado="ABIERTO")
-ACTIVO = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, id_finca=4,
+ACTIVO = SimpleNamespace(estado="ACTIVO", es_valorable=True, id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, id_finca=4,
                          numero_id_tributaria="900", id_dispositivo_iot=None)
 
 
@@ -90,7 +91,7 @@ def _procesar(evento: EventoM02, cerrado):
     contabilizador = ContabilizadorFake(cerrado)
     medidor = Medidor(None, None, contabilizador)  # real salvo ``medir``, que solo registra la llamada
     medidor.medidas = []
-    medidor.medir = lambda *a, **k: medidor.medidas.append(a) or SimpleNamespace(estado="MEDIDO", mensaje=None)
+    medidor.medir = lambda *a, **k: medidor.medidas.append(a) or SimpleNamespace(estado="MEDIDO", mensaje=None, motivo=None)
     db, eventos = DbFake(), EventosFake(evento)
     notificador = NotificadorFake(db)
     valoraciones = SimpleNamespace(valoracion_costo_activa=lambda _id: None)

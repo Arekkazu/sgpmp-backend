@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-317-G17 / RF-84 R3, FA-2: el valor neto ≤ 0 deja el cálculo en REVISION_REQUERIDA con alerta crítica
 y el Contador puede validarlo con justificación.
 
@@ -99,7 +100,8 @@ def _confirmar(bloqueos_previos: list[dict]):
         notificador=SimpleNamespace(a_contadores=lambda *a: avisos.append((list(registro), a))),
     )
     with pytest.raises(BusinessRuleError) as excinfo:
-        caso.execute(7, 9, costos_manuales={"transporte": D("9900000")}, justificacion=JUSTIFICACION)
+        caso.execute(7, 9, costos_manuales={"transporte": D("9900000")}, justificacion=JUSTIFICACION,
+                         referencia_documental="Factura de venta FV-1234")
     return excinfo.value, calculos, eventos, avisos, registro
 
 

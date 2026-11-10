@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: validar auditoria visible, transacciones y roles con PostgreSQL y HTTP reales. |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RLS modulo5: el archivo de otro usuario responde 404 bajo RLS (403 sin ella) |
 """Regresión #958 en una base exclusiva con restricciones y triggers activos."""
 from __future__ import annotations
 import importlib
@@ -202,7 +203,9 @@ def test_rbac_historial_y_archivos_privados(client,db_session,escenario,crear_us
     assert [x['id_reporte_gasto_acumulado'] for x in hist.json()['items']]==[propio['id_reporte_gasto_acumulado']]
     archivo_admin,=eventos(client,e,'archivos_exportacion_suministros','admin')
     r=client.get('/suministros/reportes-gastos/exportaciones/'+archivo_admin['datos_nuevos']['id_archivo'],headers=e['productor'])
-    assert r.status_code==403,r.text
+    # Sin RLS el caso de uso responde 403 (archivo de otro usuario); con la RLS de modulo5 la fila ajena no es
+    # visible para el rol de la API y responde como inexistente, sin revelar que existe.
+    assert (r.status_code,r.json()['error_code']) in ((403,'ARCHIVO_DE_OTRO_USUARIO'),(404,'ARCHIVO_NO_ENCONTRADO')),r.text
     assert client.get('/suministros/auditoria',headers=e['productor']).status_code==403
     antes=len(eventos(client,e,'reporte_gastos_acumulados'))
     assert client.post('/suministros/reportes-gastos',json=cuerpo(e)).status_code==401

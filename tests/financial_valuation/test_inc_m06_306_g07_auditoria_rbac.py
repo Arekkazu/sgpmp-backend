@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: los rechazos 403 de M06 quedan en la auditoría financiera |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-306-G07 / RNF-82-05: un rol no autorizado recibe 403 y el intento queda en RF-94."""
 from __future__ import annotations
 
@@ -35,6 +36,9 @@ class PermisosQueryFake:
 
     def first(self):
         return object() if self.concedido else None
+
+    def scalar(self):  # nombre del rol para el mensaje del 403 (RF-87 FA-4)
+        return "Productor"
 
 
 class DbFake:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-326-G30 / RF-85 CA-2, CA-6 y postcondición 2: la reducción del activo de consumo es acumulativa.
 
 Antes, tres cosechas del mismo día de 400, 400 y 300 kg sobre un activo de 1.000 kg (18.800.000) se reconocían
@@ -72,7 +73,7 @@ def _procesador(mundo: _Mundo) -> ProcesarEventosM02UseCase:
         valoracion_costo_activa=lambda _id: None,
         reconocimiento_confirmado=lambda _id: SimpleNamespace(clasificacion="CONSUMO"),
         agregar_producto=lambda d: mundo.productos.append(d) or len(mundo.productos))
-    contabilizador = SimpleNamespace(periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),
+    contabilizador = SimpleNamespace(periodo_cerrado_en=lambda *a: None, periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),
                                      asentar=lambda linea, _u: mundo.lineas.append(linea), auditar=lambda _e: None)
     medidor = Medidor(Valorador(SimpleNamespace(de_especie=lambda *a: [precio]), config), valoraciones, contabilizador)
     eventos = [EventoM02(id_evento=500 + i, id_activo_biologico=7, tipo="PRODUCTIVO",

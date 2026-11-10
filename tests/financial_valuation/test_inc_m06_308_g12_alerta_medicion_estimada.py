@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta MEDICION_PENDIENTE al Contador por medición estimada |
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: fakes con período abierto y evento no encolado |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-308-G12 / RF-83 restricción 3 y salida 4: una medición estimada (sin precio vigente, con el último
 precio conocido) registra ``MEDICION_CON_ESTIMACION`` y además alerta al Contador con ``MEDICION_PENDIENTE``.
 La alerta sale después del ``commit()`` y no sale si la transacción se revierte."""
@@ -19,11 +20,16 @@ from src.financial_valuation.application.use_cases.valoracion.procesar_eventos_m
 )
 from src.financial_valuation.domain.entities.contabilidad import Periodo
 from src.financial_valuation.domain.entities.valoracion import CalculoValor
+from src.financial_valuation.domain.services.precios import Precio
 
 D = Decimal
 PERIODO = Periodo(id_periodo_contable=3, numero_id_tributaria="900", tipo_cierre="MENSUAL",
                   fecha_inicio=date(2026, 11, 1), fecha_fin=date(2026, 11, 30), estado="ABIERTO")
-ACTIVO = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, id_finca=4,
+# Último precio conocido, vencido antes del día medido: la medición es estimada (RF-83 FA-1).
+PRECIO_VENCIDO = Precio(id_precio_mercado=1, id_especie=2, categoria="PESO_KG", precio_unitario=D("10"),
+                        unidad_medida="kg", fuente="MERCADO_ACTIVO", fecha_vigencia=date(2026, 9, 1),
+                        fecha_vencimiento=date(2026, 10, 31))
+ACTIVO = SimpleNamespace(estado="ACTIVO", es_valorable=True, id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, id_finca=4,
                          numero_id_tributaria="900", id_dispositivo_iot=None)
 
 
@@ -74,7 +80,7 @@ class ContabilizadorFake:
 
 
 def _medidor(nuevo=None, *, valido: bool = True, anterior=None):
-    resultado = SimpleNamespace(es_valido=True, calculo=nuevo, precio=SimpleNamespace(fuente="MERCADO_ACTIVO")) if valido \
+    resultado = SimpleNamespace(es_valido=True, calculo=nuevo, precio=PRECIO_VENCIDO) if valido \
         else SimpleNamespace(es_valido=False, motivo="SIN_PRECIO", mensaje="No hay precio de mercado para la especie.")
     valorador = SimpleNamespace(valorar=lambda *a, **k: resultado)
     contabilizador = ContabilizadorFake()
@@ -153,7 +159,8 @@ class EventosFake:
 
     def pendientes(self, _limite):
         return [SimpleNamespace(id_evento=55, tipo="CRECIMIENTO", id_activo_biologico=7, datos={},
-                                fecha=datetime(2026, 11, 8, 15, tzinfo=timezone.utc), encolado_en_cierre=False)]
+                                fecha=datetime(2026, 11, 8, 15, tzinfo=timezone.utc), encolado_en_cierre=False,
+                                sin_reconocimiento=False)]
 
     def registrar_procesamiento(self, _id, resultado, _detalle):
         if self.falla_registro and resultado != "ERROR":

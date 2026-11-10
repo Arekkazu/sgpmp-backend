@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: verificar auditoría de rechazos, idempotencia y fallos controlados con fakes. |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-78 R9: intento inicial + 3 reintentos (4 llamadas) tras #1024 |
 """Regresión de #960; persistencia y rollback se verifican aparte en PostgreSQL."""
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -162,7 +163,7 @@ def test_fallo_tecnico_conserva_reintentos_y_evento_fallido(monkeypatch):
     monkeypatch.setattr('src.supplies.application.use_cases.costeo_suministros.registrar_suministro_directo_use_case.time.sleep', lambda _: None)
     with pytest.raises(InfrastructureError):
         e.uc.execute(e.dto, e.usuario)
-    assert e.repo.guardar.call_count == 3
+    assert e.repo.guardar.call_count == 4  # intento inicial + 3 reintentos (RF-78 restricción 9)
     e.auditoria.registrar.assert_called_once()
     evento = e.auditoria.registrar.call_args.args[0]
     assert evento.resultado == 'FALLIDO' and evento.numero_reintentos == 3

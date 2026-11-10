@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período, resumen de auditoría y filtros inválidos |
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 / INC-M06-332-G88: filtros de mediciones y cotización en período cerrado |
 # | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0 / RF-89 v1.1: aviso del cierre por activos al costo con precio y 400 en la justificación |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-87: el notificador de prueba responde ya_notificado (avisos sin duplicados) |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -48,6 +49,9 @@ class _Notificador:
 
     def a_contadores(self, tipo_evento, mensaje, detalle, id_finca=None) -> None:
         self.avisos.append(mensaje)
+
+    def ya_notificado(self, tipo_evento, detalle) -> bool:  # avisos sin duplicados por período
+        return False
 
 
 def _id() -> int:

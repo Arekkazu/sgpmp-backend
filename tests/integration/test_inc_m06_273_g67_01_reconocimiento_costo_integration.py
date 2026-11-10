@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-07 | Leandro | INC-M06-273-G67-01 RF-82: verificar migración y reconocimiento por costo mediante HTTP con restricciones activas. |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82: la donación se asienta con RECONOCIMIENTO_DONACION (#1036) |
 """Diagnóstico local de #957; no realiza operaciones en bases compartidas."""
 from __future__ import annotations
 import importlib
@@ -86,7 +87,7 @@ def test_compra_por_costo_crea_reconocimiento_valoracion_y_auditoria(client,db_s
 @pytest.mark.parametrize('escenario',['donacion'],indirect=True)
 def test_costo_con_hecho_contable_resuelve_matriz_y_persiste_linea(client,db_session,escenario):
     e=escenario
-    r=client.post('/finanzas/configuracion/matriz',headers=e['headers'],json={'tipo_hecho':'RECONOCIMIENTO_NACIMIENTO','sentido':'UNICO','id_especie':e['especie'],'cuenta_debito':'1586','cuenta_credito':'4251'})
+    r=client.post('/finanzas/configuracion/matriz',headers=e['headers'],json={'tipo_hecho':'RECONOCIMIENTO_DONACION','sentido':'UNICO','id_especie':e['especie'],'cuenta_debito':'1586','cuenta_credito':'4251'})
     assert r.status_code==201,r.text
     r=post(client,e)
     assert r.status_code==201,r.text

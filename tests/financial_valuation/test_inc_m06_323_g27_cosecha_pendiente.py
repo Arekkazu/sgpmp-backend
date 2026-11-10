@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-323-G27 / RF-85 FA-1 y FA-2: una cosecha pendiente por falta de precio o de costos de venta continúa.
 
 Antes: (a) con el precio ESTIMADO ya registrado, la cola no volvía a tomar el evento MEDICION_PENDIENTE y la
@@ -39,7 +40,7 @@ PARAMETRO = SimpleNamespace(pct_transporte=D("0.06"), pct_comisiones=D("0"), pct
 
 
 def _procesador(clasificacion="PRODUCCION", precio=PRECIO, parametro=PARAMETRO):
-    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", id_especie=2, id_finca=3,
+    activo = SimpleNamespace(estado="ACTIVO", es_valorable=True, id_activo_biologico=7, identificador="BOV-007", id_especie=2, id_finca=3,
                              numero_id_tributaria="900123456", id_dispositivo_iot=None)
     calculos, productos, lineas, eventos = [], [], [], []
     caso = ProcesarEventosM02UseCase(
@@ -52,8 +53,8 @@ def _procesador(clasificacion="PRODUCCION", precio=PRECIO, parametro=PARAMETRO):
                                      agregar_calculo=lambda c: calculos.append(c) or 91,
                                      agregar_producto=lambda d: productos.append(d) or 70),
         precios=SimpleNamespace(de_especie=lambda *a: [precio] if precio else []),
-        medidor=SimpleNamespace(valorador=SimpleNamespace(config=SimpleNamespace(costos_venta_vigentes=lambda _e: parametro))),
-        contabilizador=SimpleNamespace(periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),
+        medidor=SimpleNamespace(tomar_alertas=lambda: [], valorador=SimpleNamespace(config=SimpleNamespace(costos_venta_vigentes=lambda _e: parametro))),
+        contabilizador=SimpleNamespace(periodo_cerrado_en=lambda *a: None, periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),
                                        asentar=lambda linea, _u: lineas.append(linea), auditar=eventos.append),
         id_usuario_servicio=1,
     )

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
+# | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 """INC-M06-320-G24 / RF-85 FA-4 y postcondición 6: la cosecha del 100 % de un producto de consumo deja el activo
 en cero y, después del commit, inicia su baja en M02 (RF-45).
 
@@ -42,7 +43,7 @@ class _Bajas:
 
 def _procesador(cantidad: str, bajas=None):
     registro: list = []
-    activo = SimpleNamespace(id_activo_biologico=7, identificador="TRU-007", id_especie=2, id_finca=3,
+    activo = SimpleNamespace(estado="ACTIVO", es_valorable=True, id_activo_biologico=7, identificador="TRU-007", id_especie=2, id_finca=3,
                              numero_id_tributaria="900123456", id_dispositivo_iot=None)
     evento = EventoM02(id_evento=500, id_activo_biologico=7, tipo="PRODUCTIVO",
                        fecha=datetime(2026, 11, 9, 15, tzinfo=timezone.utc),
@@ -63,9 +64,9 @@ def _procesador(cantidad: str, bajas=None):
                                      agregar_producto=lambda d: productos.append(d) or 70,
                                      agregar_calculo=lambda c: calculos.append(c) or 91),
         precios=None,
-        medidor=SimpleNamespace(valorador=SimpleNamespace(categoria=lambda _e: "PESO_KG"),
-                                medir=lambda *a, **k: SimpleNamespace(estado="MEDIDO", id_medicion=33, mensaje=None)),
-        contabilizador=SimpleNamespace(periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),
+        medidor=SimpleNamespace(tomar_alertas=lambda: [], valorador=SimpleNamespace(categoria=lambda _e: "PESO_KG"),
+                                medir=lambda *a, **k: SimpleNamespace(estado="MEDIDO", id_medicion=33, mensaje=None, motivo=None)),
+        contabilizador=SimpleNamespace(periodo_cerrado_en=lambda *a: None, periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),
                                        asentar=lambda *a: None, auditar=eventos_auditoria.append),
         id_usuario_servicio=1, bajas=bajas,
     )
