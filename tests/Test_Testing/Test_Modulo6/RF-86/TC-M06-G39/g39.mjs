@@ -121,7 +121,8 @@ async function pedir(r,api,id,ruta,actor,tokens,c,body){
   validarActor(id,actor);const p=entrada(id);if(r.solicitudes.length>=120||Date.now()>r._limite)throw Error('PRESUPUESTO_AGOTADO');
   const fila={id,metodo:p.metodo,ruta:ruta.split('?')[0],actor,http:null};r.solicitudes.push(fila);
   try{const res=await fetchEnContexto(api+ruta,{method:p.metodo,redirect:'manual',headers:{Authorization:`Bearer ${tokens[actor]}`,
-    'X-Test-Run-Id':c.runId,'X-Sandbox-Secret':tokens.secreto,...(body===undefined?{}:{'Content-Type':'application/json'})},
+    'X-Test-Run-Id':c.runId,'X-Sandbox-Secret':tokens.secreto,'X-Zona-Horaria':'America/Bogota',
+    ...(body===undefined?{}:{'Content-Type':'application/json'})},
     body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(p.metodo==='GET'?30000:120000)});
     const data=await res.json();fila.http=res.status;fila.eco=res.headers.get('x-test-run-id')===c.runId;
     fila.codigo=res.status>=400?limpio(data?.error_code??data?.code):null;
@@ -191,8 +192,8 @@ async function cerrar(r,c,api,tokens,h){
     motivo:h.inciertas?'Escritura incierta; rollback no demostrable.':'Sin escrituras; DELETE 200.'};return;}
   const lecturas=[],presentes=[];
   for(const [ruta,actor,tipo,ids] of [
-    [`/finanzas/costos?id_activo_biologico=${h.activoCosto}`,'contador','id_registro_costo',h.costos],
-    [`/finanzas/lineas?id_periodo_contable=${h.periodo}`,'contador','id_linea_asiento_nic41',h.lineas],
+    ...(h.activoCosto?[[`/finanzas/costos?id_activo_biologico=${h.activoCosto}`,'contador','id_registro_costo',h.costos]]:[]),
+    ...h.periodos.map(pid=>[`/finanzas/lineas?id_periodo_contable=${pid}`,'contador','id_linea_asiento_nic41',h.lineas[pid]??[]]),
     ...h.eventos.map(x=>[`/activos-biologicos/${x.activo}/eventos`,'admin','id_eventos',[x.id]])]){
     const res=await fetchEnContexto(api+ruta,{method:'GET',headers:{Authorization:`Bearer ${tokens[actor]}`},
       signal:AbortSignal.timeout(30000)}),data=await res.json().catch(()=>null);
@@ -213,12 +214,41 @@ async function cerrar(r,c,api,tokens,h){
 }
 export function informe(c,r){
   const v=x=>limpio(x??'sin dato');
+  const dato=x=>x===null||x===undefined?'—':v(x);
+  const lista=x=>Array.isArray(x)?x.map(dato).join(', ')||'ninguno':dato(x);
+  const cumple=k=>r.casos[k]?.estado==='APROBADO'?'Sí':'Por revisar según veredicto';
+  const observado16=k=>{
+    const ops=r.casos[k]?.observado?.operaciones??[];
+    if(!ops.length)return 'Sin operaciones observadas; consultar el motivo del veredicto.';
+    const esperado={CONSUMO_INVENTARIO:'422; 0 costos y 0 líneas',MANO_OBRA_PROPIA:'201; 1 costo y 1 línea RF-109',
+      COMPRA_PROVEEDOR:'201; 1 costo y 0 líneas',SERVICIO_TERCERO:'201; 1 costo y 0 líneas'};
+    const filas=ops.map(o=>{
+      const lineas=Array.isArray(o.lineas_nuevas)?o.lineas_nuevas:[];
+      const l=lineas[0];
+      const costo=Array.isArray(o.costos_nuevos)?lista(o.costos_nuevos):dato(o.costos_nuevos);
+      const linea=Array.isArray(o.lineas_nuevas)?lista(lineas.map(x=>x.id)):dato(o.lineas_nuevas);
+      return `| ${dato(o.origen)} | ${dato(o.http)} | ${dato(o.codigo)} | ${costo} | ${dato(o.vehiculo)} | ${linea} | ${l?`${dato(l.tipo)}/${dato(l.sentido)}`:'—'} | ${dato(l?.valor)} | ${l?`${dato(l.debito)}→${dato(l.credito)}`:'—'} | ${esperado[o.origen]??'Consultar oráculo'} | ${cumple(k)} |`;
+    }).join('\n');
+    const mano=ops.find(x=>x.origen==='MANO_OBRA_PROPIA'),lineaMano=mano?.lineas_nuevas?.[0];
+    const origenLinea=lineaMano?` La línea de mano de obra consta como ${dato(lineaMano.estado)}, tabla_origen ${dato(lineaMano.tabla_origen)} e id_origen ${dato(lineaMano.origen)}.`:'';
+    return `Activo ${dato(r.casos[k]?.observado?.activo)}, período ${dato(r.casos[k]?.observado?.periodo)}. En «costo» y «línea» se muestran los IDs nuevos, o 0 cuando no se creó ninguno.\n\n| origen | HTTP | código | costo | vehículo | línea | tipo/sentido | valor | débito→crédito | resultado esperado | cumple |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n${filas}\n\nRF-90 FA-12 reserva CONSUMO_INVENTARIO a M05; el catálogo tipo_hecho de RF-86 exige MANO_OBRA_PROPIA y no genera líneas para las facturas.${origenLinea} ${r.casos[k]?.estado==='APROBADO'?'Las cuatro comprobaciones coinciden con ese oráculo.':'El motivo del veredicto precisa la discrepancia o impedimento.'}`;
+  };
+  const observado17=k=>{
+    const bajas=r.casos[k]?.observado?.bajas??[];
+    if(!bajas.length)return 'Sin bajas observadas; consultar el motivo del veredicto.';
+    const filas=bajas.map(b=>{
+      const lineas=b.lineas??[],l=lineas.find(x=>x.tipo==='BAJA_ACTIVO');
+      const ingreso=lineas.some(x=>x!==l)?'Sí, otra línea del activo':'No';
+      return `| ${dato(b.tipo)} (baja HTTP ${dato(b.http_baja)}, proceso HTTP ${dato(b.http_procesar)}, evento ${dato(b.evento)}) | ${dato(b.activo)} | ${dato(b.valor_libros)} | ${l?`${dato(l.id)} BAJA_ACTIVO`:'—'} | ${dato(l?.sentido)} | ${dato(l?.valor)} | ${l?`${dato(l.debito)}→${dato(l.credito)}`:'—'} | ${ingreso} | ${cumple(k)} |`;
+    }).join('\n');
+    return `«Línea de ingreso» indica si apareció otra línea del activo.\n\n| baja | activo | valor en libros | línea | sentido | valor | débito→crédito | línea de ingreso | cumple |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n${filas}\n\nCA-20 exige una BAJA_ACTIVO por valor en libros para cada baja, con débito en costo de venta o pérdida según el tipo y crédito al activo biológico; la venta no genera ingreso. ${r.casos[k]?.estado==='APROBADO'?'Las dos bajas coinciden con ese oráculo y no agregaron otra línea del activo.':'El motivo del veredicto precisa la discrepancia o impedimento.'}`;
+  };
   const estados=CASOS.map(k=>r.casos[k]?.estado??'NO_CONCLUYENTE');
   const titulo=new Set(estados).size===1?estados[0]:'RESULTADO MIXTO';
   const filas=CASOS.map(k=>`| ${k} | ${v(r.casos[k]?.estado)} | ${v(r.casos[k]?.motivo)} |`).join('\n');
-  const detalle=CASOS.map(k=>`### ${k}\n\n- Esperado: ${k.endsWith('016')?
+  const detalle=CASOS.map(k=>`### ${k}\n\n${k.endsWith('016')?`- Adaptación de precondición: la fila pide un bovino con precio vigente. Los bovinos disponibles (NIT-A) tienen CERRADO el período de la fecha del costo y RF-90 lo rechaza por FA-4. ${r.casos[k]?.observado?.activo===1569?'Se usó el':'Se planificó usar el'} caprino 1569 de la finca 467, sin precio de mercado; su período ABIERTO se comprueba antes de escribir. RF-90 y la línea MANO_OBRA_PROPIA usan el monto del costo, no el precio de mercado; CONSUMO_INVENTARIO se rechaza antes de consultar el activo. La matriz RF-109 es genérica (id_especie NULL). Ni la especie ni la ausencia de precio cambian las cuentas o el oráculo.\n\n`:''}- Esperado: ${k.endsWith('016')?
     'CONSUMO_INVENTARIO manual → 422 sin costo ni línea; MANO_OBRA_PROPIA → una línea según RF-109; COMPRA_PROVEEDOR y SERVICIO_TERCERO → sin línea.':
-    'Venta y muerte → una BAJA_ACTIVO por valor en libros truncado, sentidos y cuentas RF-109; venta sin línea de ingreso.'}\n- Observado (valores, cuentas e IDs de la API):\n\n\`\`\`json\n${JSON.stringify(r.casos[k]?.observado??{},null,2)}\n\`\`\`\n\n- Comparación y decisión: **${v(r.casos[k]?.estado)}**. ${v(r.casos[k]?.motivo)}\n`).join('\n');
+    'Venta y muerte → una BAJA_ACTIVO por valor en libros truncado, sentidos y cuentas RF-109; venta sin línea de ingreso.'}\n- Observado (valores, cuentas e IDs de la API):\n\n${k.endsWith('016')?observado16(k):observado17(k)}\n\n- Comparación y decisión: **${v(r.casos[k]?.estado)}**. ${v(r.casos[k]?.motivo)}\n`).join('\n');
   const contraste=[...new Map(r.contraste_contrato.map(x=>[`${x.ruta}|${x.fuente??'ejecutor'}`,x])).values()]
     .map(x=>`- \`${v(x.ruta)}\` (${v(x.fuente??'ejecutor')}): ${v(x.resultado)}, HTTP ${v(x.http)}${x.motivo?`; ${v(x.motivo)}`:''}.`).join('\n')||'- Sin contraste registrado.';
   const incidencias=r.incidencias.map(x=>`- ${v(x.caso)}: ${v(x.titulo)}. ${v(x.equipo_inicial)}; ${v(x.severidad)}; ${v(x.certeza)}. ${v(x.justificacion_severidad)}. Causa raíz: ${v(x.causa_raiz)}.`).join('\n')||'Ninguna incidencia de producto.';
@@ -227,7 +257,7 @@ export function informe(c,r){
 export async function evaluar(c,e){
   if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.directorio))throw Error('RUN no autorizado o no preparado');
   const api=String(e.SIGAB_API_TEST_BASE).replace(/\/+$/,'');
-  const r=resultado(c),h={periodo:null,activoCosto:null,escrituras:false,inciertas:false,costos:[],lineas:[],eventos:[]};
+  const r=resultado(c),h={periodos:[],activoCosto:null,escrituras:false,inciertas:false,costos:[],lineas:{},eventos:[]};
   r._limite=Date.now()+1800000;let tokens=null;
   try{
     const contador=await login(api,e.QA_CONTADOR_EMAIL,e.QA_CONTADOR_PASSWORD);
@@ -254,38 +284,60 @@ export async function evaluar(c,e){
     const precios=new Map();for(const especie of new Set(activos.data.map(x=>x.id_especie))){
       const x=await q('precios_get',`/finanzas/precios?id_especie=${especie}`);
       if(!bien(x))throw Error('Precios ilegibles');precios.set(especie,x.data);}
-    const candidatos=[];for(const x of activos.data){
-      if(!/bovin/i.test(x.especie??'')||x.tipo!=='INDIVIDUAL'||x.estado!=='ACTIVO')continue;
+    const fechaCosto=hoy(),candidatos=[],descartadosCatalogo=[];for(const x of activos.data){
+      if(!/bovin/i.test(x.especie??'')&&num(x.id_activo_biologico)!==1569){
+        descartadosCatalogo.push({activo:x.id_activo_biologico,
+          casos:{'TC-M06-016':{apto:false,motivos:['no es el activo 1569 fijado para 016']},
+            'TC-M06-017':{apto:false,motivos:['no es bovino']}}});continue;}
       const id=num(x.id_activo_biologico),d=await q('activo_detalle',`/finanzas/activos/${id}`);
       const f=await q('ficha',`/activos-biologicos/${id}/ficha-integral`,'admin');
       if(!bien(d)||!bien(f))throw Error('Detalle o ficha ilegible');
       const calculo=d.data.calculos.filter(z=>z.estado==='CALCULADO'&&z.json_metodo_costo?.es_producto!==true)
         .sort((a,b)=>String(b.fecha_calculo).localeCompare(String(a.fecha_calculo)||b.id_calculo_valor_razonable-a.id_calculo_valor_razonable))[0];
-      const periodo=periodoDestino(periodos.data,d.data.activo.numero_id_tributaria,hoy());
-      const precio=vigente(precios.get(x.id_especie)??[],x.id_especie,hoy());
+      const nit=d.data.activo.numero_id_tributaria;
+      const periodo=periodoDestino(periodos.data,nit,fechaCosto);
+      const periodoCosto=periodos.data.find(p=>String(p.numero_id_tributaria)===String(nit)&&
+        p.fecha_inicio<=fechaCosto&&p.fecha_fin>=fechaCosto)??null;
+      const precio=vigente(precios.get(x.id_especie)??[],x.id_especie,fechaCosto);
       const valor=x.valorado_por_costo?x.valor_contable_por_costo:calculo?.valor_neto;
-      candidatos.push({...x,calculo,periodo,precio,valor,apto:!!periodo&&periodo.fecha_inicio<=hoy()&&
-        periodo.fecha_fin>=hoy()&&!!precio&&(x.valorado_por_costo||!!calculo)&&
-        Number(valor)>0&&f.data.estado_actual==='ACTIVO'});
+      const comunes=[];
+      if(x.estado!=='ACTIVO'||f.data.estado_actual!=='ACTIVO')comunes.push('estado distinto de ACTIVO');
+      if(x.tipo!=='INDIVIDUAL')comunes.push('no es activo individual');
+      if(!calculo)comunes.push('sin reconocimiento');
+      const motivos016=[...comunes];
+      if(id!==1569)motivos016.push('no es el activo 1569 fijado para 016');
+      if(x.valorado_por_costo)motivos016.push('valoración por costo');
+      if(!periodoCosto||periodoCosto.estado!=='ABIERTO')motivos016.push('período que contiene la fecha del costo no está ABIERTO');
+      const motivos017=[...comunes];
+      if(!periodo||periodo.estado!=='ABIERTO')motivos017.push('sin período destino ABIERTO');
+      if(!precio)motivos017.push('sin precio vigente');
+      if(!(Number(valor)>0))motivos017.push('sin valor en libros');
+      if(!/bovin/i.test(x.especie??''))motivos017.push('no es bovino');
+      candidatos.push({...x,calculo,periodo,periodoCosto,precio,valor,motivos016,motivos017});
     }
-    r.observaciones.candidatos=candidatos.map(x=>({activo:x.id_activo_biologico,apto:x.apto,
-      valorado_por_costo:x.valorado_por_costo,valor_libros:x.valor??null}));
-    const porPeriodo=new Map();for(const x of candidatos.filter(z=>z.apto)){
-      const pid=num(x.periodo.id_periodo_contable);if(!porPeriodo.has(pid))porPeriodo.set(pid,[]);porPeriodo.get(pid).push(x);}
-    const grupo=[...porPeriodo.values()].find(xs=>xs.length>=3&&xs.some(x=>!x.valorado_por_costo))??[];
-    const seleccion=[grupo.find(x=>!x.valorado_por_costo),...grupo.filter(x=>!x.valorado_por_costo).slice(1,3)]
-      .filter((x,i,a)=>x&&a.indexOf(x)===i);
-    const s16=seleccion[0]??null,otros=grupo.filter(x=>x!==s16).slice(0,2);
-    if(!s16)registrar(r,CASOS[0],'BLOQUEADO','Sin bovino individual ACTIVO a valor razonable, reconocido, con precio y período abierto.');
+    r.observaciones.candidatos=[...candidatos.map(x=>({activo:x.id_activo_biologico,
+      periodo_destino:x.periodo?.id_periodo_contable??null,periodo_costo:x.periodoCosto?.id_periodo_contable??null,
+      valorado_por_costo:x.valorado_por_costo,valor_libros:x.valor??null,
+      casos:{'TC-M06-016':{apto:!x.motivos016.length,motivos:x.motivos016},
+        'TC-M06-017':{apto:!x.motivos017.length,motivos:x.motivos017}}})),...descartadosCatalogo];
+    if(!activos.data.some(x=>num(x.id_activo_biologico)===1569))r.observaciones.candidatos.push({activo:1569,
+      casos:{'TC-M06-016':{apto:false,motivos:['activo 1569 ausente del catálogo']}}});
+    const s16=candidatos.find(x=>num(x.id_activo_biologico)===1569&&!x.motivos016.length)??null;
+    const aptos17=candidatos.filter(x=>!x.motivos017.length);
+    const otros=aptos17.map(x=>aptos17.filter(z=>z.periodo.id_periodo_contable===x.periodo.id_periodo_contable))
+      .find(xs=>xs.length>=2)?.slice(0,2)??[];
+    if(!s16){const motivo=r.observaciones.candidatos.find(x=>x.activo===1569)?.casos['TC-M06-016'].motivos.join('; ');
+      registrar(r,CASOS[0],'BLOQUEADO',`Activo 1569 no preparable: ${motivo}. Sin escritura.`);}
     if(otros.length<2)registrar(r,CASOS[1],'BLOQUEADO','Sin dos bovinos distintos aptos para las bajas; datos imprescindibles no preparables.');
-    const pid=num((s16??otros[0])?.periodo?.id_periodo_contable);
-    if(!pid)return r;h.periodo=pid;h.activoCosto=num(s16?.id_activo_biologico);
+    const pid16=num(s16?.periodoCosto?.id_periodo_contable),pid17=num(otros[0]?.periodo?.id_periodo_contable);
+    const pid=pid16??pid17;
+    if(!pid)return r;h.periodos=[...new Set([pid16,pid17].filter(Boolean))];h.activoCosto=num(s16?.id_activo_biologico);
     const cfg=await q('configuracion','/finanzas/configuracion');
-    const baseLineas=await q('lineas',`/finanzas/lineas?id_periodo_contable=${pid}`);
+    const baseLineas=[];for(const p of h.periodos)baseLineas.push([p,await q('lineas',`/finanzas/lineas?id_periodo_contable=${p}`)]);
     const costosPrevios=s16?await q('costos_get',`/finanzas/costos?id_activo_biologico=${h.activoCosto}`):null;
-    if(!bien(cfg)||!bien(baseLineas)||costosPrevios&&!bien(costosPrevios)||r.discrepancias_contrato.length)
+    if(!bien(cfg)||baseLineas.some(([,x])=>!bien(x))||costosPrevios&&!bien(costosPrevios)||r.discrepancias_contrato.length)
       throw Error('Lecturas previas o contrato discordantes; sin escrituras');
-    let lineas=baseLineas.data,costos=costosPrevios?.data??[];
+    const lineas=Object.fromEntries(baseLineas.map(([p,x])=>[p,x.data]));let costos=costosPrevios?.data??[];
     const par=(tipo,sentido,especie,subtipo)=>resolverMatriz(cfg.data.matriz,tipo,sentido,especie,subtipo);
     if(s16&&(!par('MANO_OBRA_PROPIA','UNICO',s16.id_especie,'MANO_OBRA')||
       !par('CONSUMO_INSUMO','UNICO',s16.id_especie,'ALIMENTO')||
@@ -293,19 +345,19 @@ export async function evaluar(c,e){
       registrar(r,CASOS[0],'BLOQUEADO','Matriz RF-109 sin MANO_OBRA_PROPIA/UNICO o CONSUMO_INSUMO/UNICO; precondición de costos no preparable.');}
     if(otros.length===2&&(!par('BAJA_ACTIVO','UNICO',otros[0].id_especie)||!par('BAJA_ACTIVO','PERDIDA',otros[1].id_especie)))
       registrar(r,CASOS[1],'BLOQUEADO','Matriz RF-109 sin BAJA_ACTIVO/UNICO o BAJA_ACTIVO/PERDIDA; precondición de bajas no preparable.');
-    const leerLineas=async()=>{const x=await q('lineas',`/finanzas/lineas?id_periodo_contable=${pid}`);
-      if(!bien(x)){h.inciertas=true;throw Error('Líneas ilegibles');}const nuevas=idsNuevos(lineas,x.data,'id_linea_asiento_nic41');
-      h.lineas.push(...nuevas.map(z=>num(z.id_linea_asiento_nic41)));lineas=x.data;return nuevas;};
+    const leerLineas=async(p)=>{const x=await q('lineas',`/finanzas/lineas?id_periodo_contable=${p}`);
+      if(!bien(x)){h.inciertas=true;throw Error('Líneas ilegibles');}const nuevas=idsNuevos(lineas[p],x.data,'id_linea_asiento_nic41');
+      h.lineas[p]??=[];h.lineas[p].push(...nuevas.map(z=>num(z.id_linea_asiento_nic41)));lineas[p]=x.data;return nuevas;};
     const leerCostos=async()=>{const x=await q('costos_get',`/finanzas/costos?id_activo_biologico=${h.activoCosto}`);
       if(!bien(x)){h.inciertas=true;throw Error('Costos ilegibles');}const nuevos=idsNuevos(costos,x.data,'id_registro_costo');
       h.costos.push(...nuevos.map(z=>num(z.id_registro_costo)));costos=x.data;return nuevos;};
     if(s16&&!r.casos[CASOS[0]]){
-      const aid=h.activoCosto,fecha=hoy(),observado={activo:aid,periodo:pid,operaciones:[]},fallos=[];
+      const aid=h.activoCosto,fecha=fechaCosto,observado={activo:aid,periodo:pid16,operaciones:[]},fallos=[];
       let bloqueoCosto=null;
       const base={id_activo_biologico:aid,fecha_costo:fecha,monto_costo:'123.45',justificacion:`QA ${c.runId}`};
       const reservar=await q('costo_reservado','/finanzas/costos','contador',
         {...base,subtipo_costo:'ALIMENTO',origen_costo:'CONSUMO_INVENTARIO'});
-      const trasReserva=await leerCostos(),lineasReserva=await leerLineas();
+      const trasReserva=await leerCostos(),lineasReserva=await leerLineas(pid16);
       if(trasReserva.length||lineasReserva.length)h.escrituras=true;
       observado.operaciones.push({origen:'CONSUMO_INVENTARIO',http:reservar.http,codigo:reservar.codigo,
         costos_nuevos:trasReserva.length,lineas_nuevas:lineasReserva.length});
@@ -319,7 +371,7 @@ export async function evaluar(c,e){
           fecha_factura:fecha,fecha_vencimiento_factura:fecha};
         const x=await q('costo_post','/finanzas/costos','contador',{...base,subtipo_costo:subtipo,origen_costo:origen,...factura});
         if(bien(x,201))h.escrituras=true;
-        const nuevosCostos=await leerCostos(),nuevasLineas=await leerLineas();
+        const nuevosCostos=await leerCostos(),nuevasLineas=await leerLineas(pid16);
         const reg=x.data?.registros?.[0],id=num(reg?.id_registro_costo);
         observado.operaciones.push({origen,http:x.http,codigo:x.codigo,id_costo:id,vehiculo:reg?.vehiculo_contable??null,
           id_linea:reg?.id_linea_asiento??null,costos_nuevos:nuevosCostos.map(z=>z.id_registro_costo),
@@ -345,13 +397,13 @@ export async function evaluar(c,e){
     if(otros.length===2&&!r.casos[CASOS[1]]){
       const observado={bajas:[]},fallos=[];
       for(const [i,tipo] of ['venta','muerte'].entries()){
-        const activo=otros[i],aid=num(activo.id_activo_biologico),antes=lineas;
+        const activo=otros[i],aid=num(activo.id_activo_biologico),antes=lineas[pid17].length;
         const x=await q('baja',`/activos-biologicos/${aid}/eventos/baja`,'admin',
           {tipo_baja:tipo,fecha_baja:hoy(),motivo_baja:`Baja QA ${c.runId}`});
         if(bien(x,201))h.escrituras=true;
         const evento=num(x.data?.id_eventos);if(evento)h.eventos.push({id:evento,activo:aid});
         let proc=null;if(bien(x,201)&&evento)proc=await q('procesar','/finanzas/eventos/procesar','contador',{});
-        const nuevas=await leerLineas();const relevantes=nuevas.filter(z=>num(z.id_activo_biologico)===aid);
+        const nuevas=await leerLineas(pid17);const relevantes=nuevas.filter(z=>num(z.id_activo_biologico)===aid);
         observado.bajas.push({tipo,activo:aid,valor_libros:String(activo.valor),http_baja:x.http,codigo_baja:x.codigo,
           evento,http_procesar:proc?.http??null,lineas:relevantes.map(z=>({id:z.id_linea_asiento_nic41,
             tipo:z.tipo_hecho,sentido:z.sentido,valor:z.valor,debito:z.cuenta_debito,credito:z.cuenta_credito,
@@ -362,7 +414,7 @@ export async function evaluar(c,e){
           especie:activo.id_especie,tipo});
         if(o.estado!=='APROBADO')fallos.push(`${tipo}: ${o.motivo}`);
         if(relevantes.length!==1)fallos.push(`${tipo}: ${relevantes.length} líneas nuevas del activo`);
-        if(antes.length+nuevas.length!==lineas.length)throw Error('Inventario de líneas incoherente');
+        if(antes+nuevas.length!==lineas[pid17].length)throw Error('Inventario de líneas incoherente');
       }
       registrar(r,CASOS[1],fallos.length?'RECHAZADO':'APROBADO',fallos[0]??'Venta y muerte con BAJA_ACTIVO por valor en libros; venta sin ingreso.',observado);
     }

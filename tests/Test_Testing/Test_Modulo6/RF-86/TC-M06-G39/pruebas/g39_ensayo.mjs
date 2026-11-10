@@ -7,17 +7,16 @@ import {randomInt} from 'node:crypto';
 import {mock,CONTRATO} from '../lib/g39_core.mjs';
 import {principal} from '../g39.mjs';
 
-const g37=JSON.parse(fs.readFileSync(new URL('../../TC-M06-G37/Resultados/RUN-G37-V1-20261108-233956/resultado.json',import.meta.url),'utf8'));
-const g38=JSON.parse(fs.readFileSync(new URL('../../TC-M06-G38/Resultados/RUN-G38-V1-20261109-025651/resultado.json',import.meta.url),'utf8'));
-assert.equal(g37.observaciones.candidatos.length,16);
-assert.equal(g38.casos['TC-M06-014'].estado,'APROBADO');
-assert.equal(g37.solicitudes.filter(x=>x.id==='precios_get').length,5);
-assert.equal(g38.solicitudes.find(x=>x.id==='configuracion')?.contrato,'coincide');
-assert.equal(g38.solicitudes.find(x=>x.id==='lineas')?.contrato,'coincide');
-assert.equal(g38.solicitudes.find(x=>x.id==='procesar')?.http,200);
-assert.equal(typeof g38.casos['TC-M06-014'].observado.lineas[0].valor,'string');
-assert.equal(g38.casos['TC-M06-014'].observado.lineas[0].estado,'REGISTRADA');
-const ids=g37.observaciones.candidatos.map(x=>x.activo);
+const replay=JSON.parse(fs.readFileSync(new URL('./replay_g39_tecnicos.json',import.meta.url),'utf8'));
+const ids=replay.catalogo_ids;
+assert.deepEqual(replay.candidatos.map(x=>x.activo),ids);
+assert.deepEqual(replay.bajas.map(x=>x.activo),[943,944]);
+assert.equal(replay.periodos.activo_1569_fecha_costo,220);
+assert.equal(replay.periodos.bajas_destino,8);
+assert.ok(replay.bajas.every(x=>replay.candidatos.find(c=>c.activo===x.activo).motivos_017.length===0));
+assert.deepEqual(replay.candidatos.find(x=>x.activo===1569).motivos_017,['sin precio vigente','no es bovino']);
+assert.equal(replay.formas_respuesta.procesar.http,200);
+assert.equal(ids.length,16);assert.ok(ids.includes(1569));
 const fecha='2026-11-08';
 function catalogo(){return ids.map((id,i)=>({...mock('activos')[0],id_activo_biologico:id,
   id_especie:i<5?39:[40,41,42,43][(i-5)%4],especie:i<5?'Bovino':'Caprino',
@@ -28,7 +27,8 @@ const matriz=[['MANO_OBRA_PROPIA','UNICO','158405','250505'],['CONSUMO_INSUMO','
   .map(([tipo_hecho,sentido,cuenta_debito,cuenta_credito],i)=>({id_asignacion_cuenta_contable:i+1,
     tipo_hecho,sentido,id_especie:null,subtipo_costo:null,cuenta_debito,cuenta_credito}));
 function linea(id,aid,origen,tipo,sentido,valor,debito,credito,tabla){return {...mock('lineas')[0],
-  id_linea_asiento_nic41:id,id_activo_biologico:aid,id_especie:39,id_periodo_contable:8,
+  id_linea_asiento_nic41:id,id_activo_biologico:aid,id_especie:aid===1569?42:39,
+  id_periodo_contable:aid===1569?220:8,
   id_origen:origen,tabla_origen:tabla,tipo_hecho:tipo,sentido,valor,cuenta_debito:debito,cuenta_credito:credito,
   estado:'REGISTRADA',fecha_hecho:fecha};}
 export async function escenario(nombre){
@@ -41,6 +41,8 @@ export async function escenario(nombre){
   let activos=catalogo(),costos=[],lineas=[],eventos=[],proximoCosto=100,proximaLinea=900,proximoEvento=500,
     activas=0,solapamientos=0,peticiones=0,newmanPeticiones=0,escrituras=0,deleteHttp=null;
   if(nombre==='seleccion')activos=[];
+  if(nombre==='1569_ausente')activos=activos.filter(x=>x.id_activo_biologico!==1569);
+  if(nombre==='1569_valorado_por_costo')activos.find(x=>x.id_activo_biologico===1569).valorado_por_costo=true;
   const server=http.createServer(async(req,res)=>{
     assert.equal(JSON.parse(fs.readFileSync(path.join(dir,'preflight.json'),'utf8')).ok,true);
     const run=req.headers['x-test-run-id']===runId;
@@ -61,21 +63,27 @@ export async function escenario(nombre){
       deleteHttp=nombre==='cierre'?500:200;if(deleteHttp===200){costos=[];lineas=[];eventos=[];}
       return send(deleteHttp,{ok:deleteHttp===200});}
     if(ruta==='/finanzas/activos')return send(200,activos);
-    if(ruta==='/finanzas/periodos')return send(200,[{id_periodo_contable:8,numero_id_tributaria:'900000001',
-      fecha_inicio:'2020-01-01',fecha_fin:'2030-12-31',estado:'ABIERTO',ultimo_cierre:null}]);
+    if(ruta==='/finanzas/periodos')return send(200,[
+      {id_periodo_contable:7,numero_id_tributaria:'900000001',fecha_inicio:'2026-11-01',fecha_fin:'2026-11-30',estado:'CERRADO',ultimo_cierre:null},
+      {id_periodo_contable:8,numero_id_tributaria:'900000001',fecha_inicio:'2026-12-01',fecha_fin:'2026-12-31',estado:'ABIERTO',ultimo_cierre:null},
+      {id_periodo_contable:220,numero_id_tributaria:'900000003',fecha_inicio:'2026-11-01',fecha_fin:'2026-11-30',
+        estado:nombre==='1569_periodo_cerrado'?'CERRADO':'ABIERTO',ultimo_cierre:null}]);
+  if(ruta==='/finanzas/precios'&&nombre==='1569_sin_precio'&&Number(u.searchParams.get('id_especie'))===42)
+      return send(200,[]);
     if(ruta==='/finanzas/precios')return send(200,[{id_precio_mercado:1,id_especie:Number(u.searchParams.get('id_especie')),
       categoria:'PESO_KG',fuente:'MERCADO_ACTIVO',precio_unitario:'1000.00',fecha_vigencia:'2020-01-01',fecha_vencimiento:null}]);
     if(/^\/finanzas\/activos\/\d+$/.test(ruta)){
       if(nombre==='detalle')return send(500,{});
-      const d=mock('activo_detalle');d.activo.numero_id_tributaria='900000001';
-      d.calculos[0].estado='CALCULADO';d.calculos[0].valor_neto='1000.9999';d.calculos[0].fecha_calculo=fecha;
+      const d=mock('activo_detalle');d.activo.numero_id_tributaria=Number(ruta.split('/').pop())===1569?'900000003':'900000001';
+      d.calculos[0].estado='CALCULADO';d.calculos[0].valor_neto=nombre==='1569_sin_precio'
+        ?replay.candidatos.find(x=>x.activo===Number(ruta.split('/').pop()))?.valor_libros??'1000.9999':'1000.9999';d.calculos[0].fecha_calculo=fecha;
       d.calculos[0].json_metodo_costo={};return send(200,d);}
     if(/^\/activos-biologicos\/\d+\/ficha-integral$/.test(ruta))return send(200,{peso_actual:'100.00',unidad_peso:'kg',estado_actual:'ACTIVO'});
     if(ruta==='/finanzas/configuracion'){
       const m=nombre==='matriz_sin_par'?matriz.filter(x=>x.tipo_hecho!=='CONSUMO_INSUMO'):
         nombre==='matriz_sin_perdida'?matriz.filter(x=>!(x.tipo_hecho==='BAJA_ACTIVO'&&x.sentido==='PERDIDA')):matriz;
       return send(200,{matriz:m,costos_venta:[]});}
-    if(ruta==='/finanzas/lineas')return send(200,lineas);
+    if(ruta==='/finanzas/lineas')return send(200,lineas.filter(x=>x.id_periodo_contable===Number(u.searchParams.get('id_periodo_contable'))));
     if(ruta==='/finanzas/costos'&&req.method==='GET')return send(200,costos.filter(x=>x.id_activo_biologico===Number(u.searchParams.get('id_activo_biologico'))));
     if(ruta==='/finanzas/costos'&&req.method==='POST'){
       const aid=body.id_activo_biologico;
@@ -111,9 +119,13 @@ export async function escenario(nombre){
       if(nombre==='procesar')return send(500,{error_code:'PROCESAR_ERROR'});
       for(const ev of eventos.filter(x=>!x.procesado)){
         ev.procesado=true;const venta=ev.tipo==='venta';
+        const valorReplay=replay.bajas
+          .find(x=>x.activo===ev.id_activo_biologico)?.valor_libros;
         if(nombre!=='baja_sin_linea')lineas.push(linea(++proximaLinea,ev.id_activo_biologico,ev.id_eventos,
           'BAJA_ACTIVO',nombre==='baja_sentido'?'GANANCIA':venta?'UNICO':'PERDIDA',
-          nombre==='baja_valor'?'1001.00':'1000.99',venta?'613505':'539510','158405','procesamientos_eventos_m02'));
+          nombre==='baja_valor'?'1001.00':nombre==='1569_sin_precio'&&valorReplay
+            ?`${valorReplay.split('.')[0]}.00`:'1000.99',
+          venta?'613505':'539510','158405','procesamientos_eventos_m02'));
         if(venta&&nombre==='venta_ingreso')lineas.push(linea(++proximaLinea,ev.id_activo_biologico,ev.id_eventos,
           'INGRESO_VENTA','UNICO','1200.00','130505','413505','procesamientos_eventos_m02'));
       }return send(200,{eventos:[],provisiones_m05:[]});}
@@ -130,11 +142,34 @@ export async function escenario(nombre){
   assert.equal(fs.readdirSync(dir).filter(x=>x.endsWith('.md')).length,1);
   assert.equal(r.run_id,runId);assert.equal(r.cierre.run.cierre_http,deleteHttp);
   const estados=['TC-M06-016','TC-M06-017'].map(x=>r.casos[x].estado);
+  if(nombre==='conforme'){
+    assert.equal(r.observaciones.candidatos.length,16);
+    assert.equal(r.casos['TC-M06-016'].observado.activo,1569);
+    assert.equal(r.casos['TC-M06-016'].observado.periodo,220);
+    assert.deepEqual(r.casos['TC-M06-017'].observado.bajas.map(x=>x.activo),[943,944]);
+    assert.ok(r.observaciones.candidatos.find(x=>x.activo===943).casos['TC-M06-016'].motivos.includes('período que contiene la fecha del costo no está ABIERTO'));
+  }
+  if(nombre==='1569_sin_precio'){
+    assert.deepEqual(estados,['APROBADO','APROBADO']);
+    assert.equal(escrituras,5,'tres costos de 016 y dos bajas de 017');
+    assert.equal(r.casos['TC-M06-016'].observado.operaciones.length,4);
+    assert.deepEqual(r.casos['TC-M06-017'].observado.bajas.map(x=>x.activo),[943,944]);
+    assert.deepEqual(r.observaciones.candidatos.find(x=>x.activo===1569).casos['TC-M06-016'],{apto:true,motivos:[]});
+    assert.equal(r.observaciones.candidatos.find(x=>x.activo===1569).periodo_costo,220);
+    assert.equal(r.observaciones.candidatos.find(x=>x.activo===1569).valor_libros,'3760000.0000');
+  } else if(nombre.startsWith('1569_')){
+    assert.equal(escrituras,2,`${nombre}: solo escrituras de 017`);
+    assert.equal(r.casos['TC-M06-016'].estado,'BLOQUEADO');
+    assert.ok(r.observaciones.candidatos.find(x=>x.activo===1569).casos['TC-M06-016'].motivos.length);
+  }
+  if(r.observaciones.candidatos)assert.ok(r.observaciones.candidatos.every(x=>
+    Object.values(x.casos).every(c=>Array.isArray(c.motivos))));
   console.log(`OK escenario_${nombre}: 016=${estados[0]} 017=${estados[1]} oficial=${r.oficial?'sí':'no'} solicitudes=${peticiones}/150`);
   fs.rmSync(temp,{recursive:true,force:true});return{estados,oficial:r.oficial,peticiones,newmanPeticiones,escrituras,r};
 }
 for(const [nombre,esperados,oficial] of [
-  ['conforme',['APROBADO','APROBADO'],true],['factura_linea',['RECHAZADO','APROBADO'],true],
+  ['conforme',['APROBADO','APROBADO'],true],['1569_sin_precio',['APROBADO','APROBADO'],true],
+  ['factura_linea',['RECHAZADO','APROBADO'],true],
   ['venta_ingreso',['APROBADO','RECHAZADO'],true],['matriz_sin_perdida',['APROBADO','BLOQUEADO'],false]]){
   const x=await escenario(nombre);assert.deepEqual(x.estados,esperados);assert.equal(x.oficial,oficial);
   assert.equal(x.newmanPeticiones,3,`Newman real ${nombre}`);
@@ -142,6 +177,9 @@ for(const [nombre,esperados,oficial] of [
 // Una variante por fila de la tabla de decisiones; todas atraviesan principal() y loopback.
 for(const [nombre,esperados] of [
   ['seleccion',['BLOQUEADO','BLOQUEADO']],
+  ['1569_periodo_cerrado',['BLOQUEADO','APROBADO']],
+  ['1569_valorado_por_costo',['BLOQUEADO','APROBADO']],
+  ['1569_ausente',['BLOQUEADO','APROBADO']],
   ['permisos',['NO_CONCLUYENTE','NO_CONCLUYENTE']],
   ['detalle',['NO_CONCLUYENTE','NO_CONCLUYENTE']],
   ['matriz_sin_par',['BLOQUEADO','APROBADO']],
