@@ -26,6 +26,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: router /finanzas y proceso de fondo NIC 41 |
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: routers de integración AAEF y transiciones de contratos |
 # | 2026-11-08 | Arekkazu | INC-M06-333-G89 RF-60: la evaluación de dispositivos corre en un hilo y no congela la API |
+# | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
 import asyncio
 import logging
 import os
@@ -293,6 +294,18 @@ async def _ejecutar_batch_ica_diario() -> None:
     from src.supplies.infrastructure.repositories.configuracion_batch_ica_repository import (
         SqlAlchemyConfiguracionBatchICARepository,
     )
+
+    from src.supplies.infrastructure.factories.eficiencia_factory import build_interrumpir_batch_use_case
+
+    db = sesion_sistema()
+    try:  # una corrida que quedó en vuelo al reiniciar bloquearía todas las noches siguientes
+        huerfanas = build_interrumpir_batch_use_case(db).interrumpir_huerfanas()
+        if huerfanas:
+            logger.warning("Batch ICA: corridas huérfanas interrumpidas al arrancar: %s", huerfanas)
+    except Exception:
+        logger.exception("Batch ICA: no se pudieron interrumpir las corridas huérfanas.")
+    finally:
+        db.close()
 
     while True:
         hora = dtime(2, 0)
