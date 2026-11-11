@@ -4,6 +4,7 @@
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar la exportacion exitosa en la misma transaccion del archivo. |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
+# | 2026-11-10 | Arekkazu | TC-DIS-204 RF-77: PDF con encabezados, montos, fechas y tendencia con signo en palabras |
 """Casos de uso: exportar un reporte de gastos a PDF/CSV y descargarlo (RF-77 pasos 8, E6).
 
 La exportación trabaja sobre un reporte ya generado: si se rechaza, el reporte
@@ -29,8 +30,11 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, InfrastructureError, NotFoundError, PayloadTooLargeError
 from src.supplies.application.use_cases.exportacion.generador_archivos import (
     Documento,
+    fecha,
     generar_csv,
     generar_pdf,
+    moneda,
+    numero,
 )
 from src.supplies.application.use_cases.reporte_gastos.generar_reporte_gastos_use_case import (
     GenerarReporteGastosUseCase,
@@ -50,7 +54,9 @@ logger = logging.getLogger(__name__)
 MAX_REGISTROS_PDF = 500
 MAX_BYTES_CSV = 50 * 1024 * 1024
 FORMATOS = ("PDF", "CSV")
-_COLUMNAS = ["fecha", "categoria", "descripcion", "monto_cop", "estado"]
+_COLUMNAS = ["fecha", "categoria", "descripcion", "monto_cop", "estado"]  # CSV: formato de integración
+_COLUMNAS_PDF = ["Fecha", "Categoría", "Descripción", "Monto", "Estado"]
+_ESTADO = {"VALIDADO": "Validado", "SIN_COSTO_REGISTRADO": "Sin costo registrado", "ANULADO": "Anulado"}
 
 
 def _identificador(reporte: ReporteGasto) -> str:
@@ -219,31 +225,37 @@ class ExportarReporteGastosUseCase:
             _linea_alcance(reporte, alcance),
             f"Período: {reporte.fecha_inicio:%d/%m/%Y} – {reporte.fecha_fin:%d/%m/%Y} "
             f"({_PERIODO.get(reporte.tipo_periodo, reporte.tipo_periodo.lower())})",
-            f"Gasto total acumulado: {reporte.gasto_total_acumulado} COP",
+            f"Gasto total acumulado: {moneda(reporte.gasto_total_acumulado)}",
         ]
         if reporte.gasto_promedio_individuo is not None:
-            encabezado.append(f"Gasto promedio por individuo: {reporte.gasto_promedio_individuo:.2f} COP")
+            encabezado.append(f"Gasto promedio por individuo: {moneda(reporte.gasto_promedio_individuo)}")
         pie = [
-            f"{_CATEGORIA.get(d.categoria, d.categoria.capitalize())}: {d.subtotal} COP ({d.porcentaje} %) — "
+            f"{_CATEGORIA.get(d.categoria, d.categoria.capitalize())}: {moneda(d.subtotal)} ({numero(d.porcentaje, 1)} %) — "
             f"{d.num_registros} registros"
             for d in reporte.desglose_categorias
         ]
         if reporte.desglose_temporal:  # RF-77 pasos 5 y 7, CA-5
             pie.append(f"Desglose {_PERIODO.get(reporte.tipo_periodo, 'por período').lower()}:")
-            pie.extend(f"{d.fecha_inicio:%d/%m/%Y} – {d.fecha_fin:%d/%m/%Y}: {d.monto} COP"
+            pie.extend(f"{d.fecha_inicio:%d/%m/%Y} – {d.fecha_fin:%d/%m/%Y}: {moneda(d.monto)}"
                        for d in reporte.desglose_temporal)
         if reporte.tendencia is not None:  # RF-77 paso 6
             t = reporte.tendencia
-            variacion = f" ({t.variacion_porcentual:+.2f} %)" if t.variacion_porcentual is not None else ""
-            pie.append(f"Tendencia frente al período anterior: {_TENDENCIA.get(t.estado, t.estado)}{variacion}")
+            if t.variacion_porcentual is not None:
+                sentido = "subió" if t.variacion_porcentual > 0 else "bajó" if t.variacion_porcentual < 0 else "se mantuvo"
+                signo = "+" if t.variacion_porcentual > 0 else ""
+                pie.append(f"Tendencia frente al período anterior: {signo}{numero(t.variacion_porcentual, 1)} % (el gasto {sentido}; "
+                           f"período anterior {moneda(t.gasto_periodo_anterior)})")
+            else:
+                pie.append(f"Tendencia frente al período anterior: {_TENDENCIA.get(t.estado, t.estado.lower())}")
             if t.nota:
                 pie.append(t.nota)
         for nota in (reporte.nota_bajas, reporte.causa_no_calculable_promedio, reporte.mensaje):
             if nota:
                 pie.append(nota)
+        filas = [[fecha(f[0]), _CATEGORIA.get(f[1], f[1]), f[2], moneda(f[3]), _ESTADO.get(f[4], f[4])] for f in filas]
         documento = Documento(
             titulo="Reporte de Gastos Acumulados",
-            columnas=_COLUMNAS,
+            columnas=_COLUMNAS_PDF,
             filas=filas,
             encabezado=encabezado,
             pie=pie,
