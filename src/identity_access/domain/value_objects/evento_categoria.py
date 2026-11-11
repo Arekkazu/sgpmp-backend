@@ -86,6 +86,9 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     36: EventoCategoria.MODIFICACION,
     37: EventoCategoria.MODIFICACION,
     38: EventoCategoria.MODIFICACION,
+    # TC-M06-G109: el aviso ALERTA_FINANCIERA_NIC41 necesita categoría para poder quedar marcado.
+    # No se agregan 39 ni 41: el cierre y la integración contable siguen con el mapa anterior.
+    40: EventoCategoria.MODIFICACION,
 }
 
 
@@ -133,7 +136,16 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     36: "PROVISION_M06_PENDIENTE",
     37: "ALERTA_CONVERSION_ALIMENTICIA",
     38: "BATCH_ICA_INTERRUMPIDO",
+    40: "ALERTA_FINANCIERA_NIC41",
 }
+
+
+def id_catalogado_para_nombre(nombre: str) -> int | None:
+    """Identificador que el código asocia a ese nombre, o ``None`` si no está catalogado."""
+    for id_tipo, nombre_catalogo in _NOMBRE_POR_TIPO_EVENTO.items():
+        if nombre_catalogo == nombre:
+            return id_tipo
+    return None
 
 
 def nombre_para_tipo_evento(tipo_evento: int) -> str:
