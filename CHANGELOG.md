@@ -1,3 +1,20 @@
+## [1.4.0-rc.53](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.52...v1.4.0-rc.53) (2026-11-11)
+
+### Features
+
+* **rf16-rf36-mod2-mod9:** densidad maxima por etapa con aviso preventivo y estado del lote ([0f5d774](https://github.com/Arekkazu/sgpmp-backend/commit/0f5d774aeebfc8e69fb45c5ebcaa3fbdd35685a2)), closes [#391](https://github.com/Arekkazu/sgpmp-backend/issues/391)
+* **rf16-rf37-mod9:** ciclos productivos de la especie con sus fases en orden ([4f10109](https://github.com/Arekkazu/sgpmp-backend/commit/4f10109e3d405c661cbd7500dd405f9014161857))
+* **rf36-mod2:** el listado de activos trae el estado de densidad de cada lote ([83c46fb](https://github.com/Arekkazu/sgpmp-backend/commit/83c46fbc0aba6f237a68bfc41bb4553457a8b901))
+* **rf86-mod6:** listado de eventos del periodo con medicion pendiente ([166acb2](https://github.com/Arekkazu/sgpmp-backend/commit/166acb2d48d5dfe67c71ce15c19e5c0c7afcfa36))
+* **rf87-mod6:** decision por activo sin precio en el cierre del periodo ([cbcec5c](https://github.com/Arekkazu/sgpmp-backend/commit/cbcec5c6e42b7db0b1c885111ee6bbfa5a0bed84))
+
+### Bug Fixes
+
+* **rf74-mod5:** al arrancar se interrumpen las corridas huerfanas del batch ICA ([6fc31df](https://github.com/Arekkazu/sgpmp-backend/commit/6fc31df4d774d7a44a76a3ac2f3e1390ea64fda4))
+* **rf75-rf76-mod5:** los mensajes de alimento y medicamento nombran el activo por su identificador ([912ab71](https://github.com/Arekkazu/sgpmp-backend/commit/912ab7169ce146a387e7042c90fb2b1da3e2f7a4)), closes [#512](https://github.com/Arekkazu/sgpmp-backend/issues/512)
+* **rf77-mod5:** el PDF de gastos nombra el activo, desglosa por periodo y explica la tendencia ([f6bae67](https://github.com/Arekkazu/sgpmp-backend/commit/f6bae67793a8c6a6e5ddd127866bdbcafdcd573d))
+* **rf87-mod6:** las lineas sin trazabilidad de la prevalidacion nombran su activo ([d8cde33](https://github.com/Arekkazu/sgpmp-backend/commit/d8cde33b97a53be9011e5a362eeccf9f0b4105f0))
+
 ## [1.4.0-rc.52](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.51...v1.4.0-rc.52) (2026-11-11)
 
 ### Features
