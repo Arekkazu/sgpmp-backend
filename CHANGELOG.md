@@ -1,3 +1,9 @@
+## [1.4.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.54...v1.4.0-rc.55) (2026-11-11)
+
+### Bug Fixes
+
+* **rf89:** la correccion de un precio ocupa su lugar y no desplaza al aplicado (TC-M06-G106) ([dba9ab0](https://github.com/Arekkazu/sgpmp-backend/commit/dba9ab04fbc45f6c9753323c51230ad78a068005))
+
 ## [1.4.0-rc.54](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.53...v1.4.0-rc.54) (2026-11-11)
 
 ### Bug Fixes

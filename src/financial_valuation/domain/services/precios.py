@@ -2,10 +2,12 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89: prioridad de fuente, vigencia y estado efectivo del precio |
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
+# | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: el precio corregido sale del cálculo y queda CORREGIDO |
 """Reglas de RF-89 sobre el repositorio de precios (NIC 41 ¶17). Python puro.
 
 El estado de un precio depende de la fecha (PROGRAMADO, ACTIVO, VENCIDO, SUPERADO) y el
-repositorio es inmutable, así que se calcula al leer en lugar de guardarse.
+repositorio es inmutable, así que se calcula al leer en lugar de guardarse. Un precio que otro
+corrige (FA-6) queda CORREGIDO y deja de contar: su corrección ocupa su lugar con la misma fecha.
 """
 from __future__ import annotations
 
@@ -36,9 +38,16 @@ class Precio:
         return self.fecha_vigencia <= dia and (self.fecha_vencimiento is None or self.fecha_vencimiento >= dia)
 
 
+def _corregidos(precios: Iterable[Precio]) -> set[int]:
+    return {p.id_precio_corregido for p in precios if p.id_precio_corregido is not None}
+
+
 def _mas_reciente(precios: Iterable[Precio], dia: date) -> Optional[Precio]:
-    """El de mayor fecha de vigencia que ya empezó; desempata el registro más nuevo (CA-11)."""
-    candidatos = [p for p in precios if p.fecha_vigencia <= dia]
+    """El de mayor fecha de vigencia que ya empezó; desempata el registro más nuevo (CA-11). Un
+    precio corregido no cuenta (FA-6); la corrección es de su mismo grupo, así que basta la lista."""
+    lista = list(precios)
+    corregidos = _corregidos(lista)
+    candidatos = [p for p in lista if p.fecha_vigencia <= dia and p.id_precio_mercado not in corregidos]
     return max(candidatos, key=lambda p: (p.fecha_vigencia, p.id_precio_mercado), default=None)
 
 
@@ -74,6 +83,9 @@ def motivo_estimacion(precio: Precio, dia: date) -> Optional[str]:
 def estado_precio(precio: Precio, mismos: Iterable[Precio], hoy: date) -> str:
     """Estado efectivo para el historial (RF-89 paso 2). ``mismos``: precios de la misma
     especie, categoría, métrica y fuente."""
+    mismos = list(mismos)
+    if precio.id_precio_mercado in _corregidos(mismos):  # FA-6
+        return "CORREGIDO"
     if precio.fecha_vigencia > hoy:
         return "PROGRAMADO"
     ultimo = _mas_reciente(mismos, hoy)
@@ -85,7 +97,8 @@ def estado_precio(precio: Precio, mismos: Iterable[Precio], hoy: date) -> str:
 
 
 def desviacion_pct(nuevo: Decimal, anterior: Decimal) -> Decimal:
-    """Variación porcentual contra el precio vigente anterior (RF-89 paso 5j / FA-7)."""
+    """Variación porcentual contra el precio vigente anterior o, en una corrección, contra el precio
+    que se corrige (RF-89 paso 5j / FA-7)."""
     return abs(Decimal(nuevo) - Decimal(anterior)) / Decimal(anterior) * 100
 
 

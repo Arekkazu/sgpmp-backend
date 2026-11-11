@@ -14,6 +14,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: el cierre recibe la decisión por activo sin precio |
 # | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: los períodos los lee quien consulta el estado de resultados o las revelaciones |
+# | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: estado corregido en el historial de precios |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -165,13 +166,13 @@ TAG_PRECIOS = "M06 · Precios de mercado"
 
 
 @router.get("/precios", tags=[TAG_PRECIOS], dependencies=[Depends(permiso("precios_mercado", R))],
-            summary="Historial de precios con su estado (vigente, programado, vencido, superado)")
+            summary="Historial de precios con su estado (vigente, programado, vencido, superado, corregido)")
 def listar_precios(id_especie: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
     return m.listar_precios().execute(id_especie)
 
 
 @router.post("/precios", tags=[TAG_PRECIOS], status_code=201, dependencies=[Depends(permiso("precios_mercado", C))],
-             summary="Registrar un precio de mercado de referencia (append-only)")
+             summary="Registrar un precio de mercado de referencia o la corrección de uno (append-only)")
 def registrar_precio(dto: PrecioDTO, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     return m.registrar_precio().execute(SolicitudPrecio(**dto.model_dump()), usuario.id_usuario)
 
