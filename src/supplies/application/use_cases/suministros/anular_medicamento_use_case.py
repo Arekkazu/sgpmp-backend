@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: anular compensa ledger y retiro    |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: anular una aplicación de medicamento VALIDADA (RF-76).
 
 - E8: un registro ANULADO no puede volver a anularse (409).
@@ -32,7 +33,7 @@ from src.supplies.domain.value_objects.estado_registro import EstadoRegistro
 from src.supplies.domain.value_objects.justificacion_anulacion import MENSAJE_RF76, JustificacionAnulacion
 from src.supplies.infrastructure.dto.anular_registro_dto import AnularRegistroDTO
 
-_MOTIVO_FIN_RETIRO = "Anulación del único tratamiento con retiro vigente (RF-76)."
+_MOTIVO_FIN_RETIRO = "Anulación del único tratamiento con retiro vigente."
 
 
 class AnularMedicamentoUseCase:
@@ -86,7 +87,7 @@ class AnularMedicamentoUseCase:
             if ledger is not None:
                 self.compensador.compensar(
                     ledger,
-                    f"Anulación del medicamento {id_medicamento} (RF-76): {justificacion.valor}",
+                    f"Anulación del medicamento {id_medicamento}: {justificacion.valor}",
                     usuario_actual.id_usuario,
                 )
             if sostenia_retiro:

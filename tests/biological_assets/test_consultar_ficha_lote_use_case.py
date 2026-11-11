@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima, ingreso de
 individuos"): no existía un endpoint/caso de uso propio de "gestión de lote"
 con la ficha operativa completa (cantidad_actual + peso_promedio +
@@ -47,6 +48,9 @@ class ActivoRepoFake:
 
 class InfraPortFake:
     """Área con sus especies y densidades (RFC-012, DEV-23)."""
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def __init__(self, superficie=None, densidades=(), nombre='Corral-01') -> None:
         self.superficie = superficie

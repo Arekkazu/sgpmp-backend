@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: archivo 72 h y aviso al usuario    |
+# | 2026-11-08 | Arekkazu         | INC-M05-259-G07: un error 500/503 se reintenta; INC-M05-265-G32 textos sin códigos |
 """Worker del motor async de historial de suministros (RF-81).
 
 Análogo a ``ProcesarColaReportesGastosUseCase`` (RF-77) y, en última
@@ -22,7 +23,7 @@ from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AppError
+from src.shared.errors import AppError, es_fallo_tecnico
 from src.supplies.application.use_cases.historial_suministros.consultar_historial_suministros_use_case import (
     ConsultarHistorialSuministrosUseCase,
 )
@@ -189,18 +190,18 @@ class ProcesarColaHistorialSuministrosUseCase:
                 db.commit()
                 self._notificar(trabajo, id_cola)
                 return
-            except AppError as exc:
-                # Regla de negocio/dato inválido (p.ej. activo inexistente): no se reintenta.
+            except Exception as exc:
                 db.rollback()
-                self._marcar_fallido_definitivo(id_cola, str(exc.message), intento)
-                return
-            except Exception as exc:  # fallo técnico → reintento con backoff
-                db.rollback()
+                causa = exc.message if isinstance(exc, AppError) else str(exc)
+                if not es_fallo_tecnico(exc):
+                    # Regla de negocio/dato inválido (p.ej. activo inexistente): no se reintenta.
+                    self._marcar_fallido_definitivo(id_cola, causa, intento)
+                    return
                 logger.warning("Trabajo de historial %s: fallo técnico intento %s: %s", id_cola, intento, exc)
                 if intento < config.max_reintentos:
                     time.sleep(self._backoff_segundos(config, intento))
                     continue
-                self._marcar_fallido_definitivo(id_cola, str(exc), intento)
+                self._marcar_fallido_definitivo(id_cola, causa, intento)
                 return
             finally:
                 db.close()
@@ -210,7 +211,7 @@ class ProcesarColaHistorialSuministrosUseCase:
             return
         if trabajo.tipo_trabajo == TipoTrabajoHistorial.EXPORTACION.value:
             mensaje = (
-                f"La exportación del historial de suministros (id_exportacion={id_cola}) está lista. "
+                f"La exportación n.º {id_cola} del historial de suministros está lista. "
                 "Podrá descargarla durante 72 horas."
             )
         else:

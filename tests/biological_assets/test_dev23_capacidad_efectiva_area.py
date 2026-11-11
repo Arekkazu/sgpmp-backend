@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """DEV-23 (RFC-012 v1.1): capacidad efectiva del área en registro, altas y transferencias.
 
 Casos del ticket: en el límite cabe y +1 → 422; grupo distinto → 422; especie sin
@@ -46,6 +47,9 @@ class Puerto:
 
     def bloquear_capacidad(self, id_infraestructura):
         self.llamadas.append('bloquear')
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def calcular_ocupacion(self, id_infraestructura):
         self.llamadas.append('ocupacion')

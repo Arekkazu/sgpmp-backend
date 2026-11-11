@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
 """Caso de uso: interrumpir una corrida del batch ICA en curso (RF-74, FA-12).
 
 Marca la ejecución ``INTERRUMPIDO`` y preserva la cola. Los workers de la corrida en
@@ -44,3 +47,13 @@ class InterrumpirBatchICAUseCase:
             self.db.rollback()
             raise
         return ejecucion
+
+    def interrumpir_huerfanas(self) -> list[int]:
+        """Al arrancar el proceso no queda ningún worker vivo: una corrida ``EN_EJECUCION``
+        quedó huérfana por un reinicio y bloquearía todas las siguientes con ``BATCH_EN_CURSO``.
+        Hay un solo proceso por ambiente, así que todas las que encuentre son huérfanas."""
+        ids: list[int] = []
+        while (ejecucion := self.ejecucion_repo.obtener_en_ejecucion()) is not None:
+            self.execute(ejecucion.id_ejecucion, None, CausaInterrupcionBatch.REINICIO_SERVIDOR.value)
+            ids.append(ejecucion.id_ejecucion)
+        return ids

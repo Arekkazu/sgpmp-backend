@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
 """Caso de uso: ingreso de individuos a un lote POBLACIONAL (RF-36)."""
 
 from __future__ import annotations
@@ -128,6 +129,9 @@ class RegistrarEventoIngresoUseCase:
             asociar_especie = validar_entrada_al_area(
                 self.infra_port, infra, id_especie=activo.id_especie,
                 entrantes=dto.cantidad_ingresada, field='cantidad_ingresada',
+                id_activo=activo.id_activo_biologico,
+                cantidad_lote=(activo.detalle_poblacional.cantidad_actual or 0) + dto.cantidad_ingresada
+                if activo.detalle_poblacional else None,
             )
 
         activo.aplicar_evento_ingreso(dto.cantidad_ingresada)

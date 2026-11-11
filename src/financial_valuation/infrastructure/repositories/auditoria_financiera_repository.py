@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-94: escritura y consulta de la auditoría financiera |
 # | 2026-11-05 | Arekkazu | M06 RF-94: orden descendente, conteo por severidad e identificador del activo |
+# | 2026-11-08 | Arekkazu | INC-M06-330-G86 RF-94: filtros por usuario, referencia y origen del registro |
 """Implementación SQL de :class:`AuditoriaFinancieraRepository` sobre ``modulo6.auditorias_financieras``.
 
 El hash SHA-256 lo calcula el trigger ``trg_hash_auditoria``; ``tgr_m06_27`` corre antes y exige
@@ -17,6 +18,19 @@ from src.financial_valuation.infrastructure.repositories.sql import a_json, escr
 
 _LIMITE_PAYLOAD = 64 * 1024
 _MARCADOR_HASH = "0" * 64
+
+# Filtros de RF-94 Fase 7 (en AND; uno vacío no filtra).
+_FILTROS = (("tipo_evento", "a.tipo_evento::text = ANY(:tipo_evento)"),
+            ("id_activo_biologico", "a.id_activo_biologico = :id_activo_biologico"),
+            ("id_periodo_contable", "a.id_periodo_contable = :id_periodo_contable"),
+            ("severidad", "a.severidad::text = :severidad"), ("id_usuario", "a.id_usuario = :id_usuario"),
+            ("id_referencia", "a.id_referencia = :id_referencia"), ("origen_registro", "a.origen_registro = :origen_registro"),
+            ("desde", "a.fecha_registro >= :desde"), ("hasta", "a.fecha_registro <= :hasta"))
+
+
+def _donde(filtros: dict) -> tuple[str, dict]:
+    activos = [(campo, sql) for campo, sql in _FILTROS if filtros.get(campo) not in (None, [], "")]
+    return " AND ".join(["true", *(sql for _, sql in activos)]), {campo: filtros[campo] for campo, _ in activos}
 
 
 class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
@@ -52,16 +66,8 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
         })
 
     def consultar(self, filtros: dict, pagina: int, tamano: int, descendente: bool = False) -> tuple[int, list[dict]]:
-        condiciones, params = ["true"], {"limite": tamano, "offset": (pagina - 1) * tamano}
-        for campo, sql in (("tipo_evento", "a.tipo_evento::text = ANY(:tipo_evento)"),
-                           ("id_activo_biologico", "a.id_activo_biologico = :id_activo_biologico"),
-                           ("id_periodo_contable", "a.id_periodo_contable = :id_periodo_contable"),
-                           ("severidad", "a.severidad::text = :severidad"), ("id_usuario", "a.id_usuario = :id_usuario"),
-                           ("desde", "a.fecha_registro >= :desde"), ("hasta", "a.fecha_registro <= :hasta")):
-            if filtros.get(campo) not in (None, [], ""):
-                condiciones.append(sql)
-                params[campo] = filtros[campo]
-        donde = " AND ".join(condiciones)
+        donde, params = _donde(filtros)
+        params.update(limite=tamano, offset=(pagina - 1) * tamano)
         orden = "DESC" if descendente else "ASC"
         total = fila(self.db, f"SELECT count(*) AS n FROM modulo6.auditorias_financieras a WHERE {donde}", params)["n"]
         eventos = filas(self.db, f"""
@@ -81,17 +87,9 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
     def conteo_por_severidad(self, filtros: dict) -> dict[str, int]:
         """Eventos por severidad con los mismos filtros de la consulta, sin el de severidad."""
         sin_severidad = {k: v for k, v in filtros.items() if k != "severidad"}
-        condiciones, params = ["true"], {}
-        for campo, sql in (("tipo_evento", "a.tipo_evento::text = ANY(:tipo_evento)"),
-                           ("id_activo_biologico", "a.id_activo_biologico = :id_activo_biologico"),
-                           ("id_periodo_contable", "a.id_periodo_contable = :id_periodo_contable"),
-                           ("id_usuario", "a.id_usuario = :id_usuario"),
-                           ("desde", "a.fecha_registro >= :desde"), ("hasta", "a.fecha_registro <= :hasta")):
-            if sin_severidad.get(campo) not in (None, [], ""):
-                condiciones.append(sql)
-                params[campo] = sin_severidad[campo]
+        donde, params = _donde(sin_severidad)
         conteo = {s: 0 for s in ("INFO", "WARNING", "ERROR", "CRITICAL")}
         for f in filas(self.db, f"""SELECT a.severidad::text AS severidad, count(*) AS n FROM modulo6.auditorias_financieras a
-                                   WHERE {" AND ".join(condiciones)} GROUP BY 1""", params):
+                                   WHERE {donde} GROUP BY 1""", params):
             conteo[f["severidad"]] = f["n"]
         return conteo

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89: registro append-only de precios de mercado (NIC 41 ¶17) |
+# | 2026-11-08 | Arekkazu | RFC-024 RF-89 v1.1 CA-5: justificación de estimación menor a 50 caracteres responde 400 |
 """Caso de uso RF-89 pasos 3-8. El historial es inmutable: un precio erróneo se corrige con uno nuevo
 que referencia al anterior (FA-6). Una desviación mayor al umbral exige confirmación (FA-7). Un
 precio con vigencia futura queda PROGRAMADO (FA-9)."""
@@ -21,7 +22,7 @@ from src.financial_valuation.domain.repositories.notificacion_financiera_port im
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.services.precios import Precio, desviacion_pct, precio_vigente
 from src.financial_valuation.domain.value_objects.nic41 import CategoriaPrecio, FuentePrecio
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import ConflictError, NotFoundError, ValidationError
 from src.shared.fechas import hoy_usuario
 
 UNIDAD_POR_CATEGORIA = {CategoriaPrecio.PESO_KG.value: "kg", CategoriaPrecio.POR_CABEZA.value: "cabeza"}
@@ -113,8 +114,8 @@ class RegistrarPrecioUseCase:
         if not (s.evidencia_documental or "").strip():
             raise ValidationError(code="EVIDENCIA_OBLIGATORIA", field="evidencia_documental",
                                   message="La evidencia documental de la fuente es obligatoria.")
-        if s.fuente == FuentePrecio.ESTIMADA.value and len((s.justificacion_estimacion or "").strip()) < 50:  # FA-2
-            raise BusinessRuleError(code="JUSTIFICACION_ESTIMACION_INSUFICIENTE", field="justificacion_estimacion", message=(
+        if s.fuente == FuentePrecio.ESTIMADA.value and len((s.justificacion_estimacion or "").strip()) < 50:  # FA-2, CA-5 v1.1: 400
+            raise ValidationError(code="JUSTIFICACION_ESTIMACION_INSUFICIENTE", field="justificacion_estimacion", message=(
                 "Para un precio estimado documente por qué no hay precio de mercado activo ni de UPRA y los comparables "
                 "usados (mínimo 50 caracteres)."))
         if s.id_precio_corregido is not None and self.precios.obtener(s.id_precio_corregido) is None:

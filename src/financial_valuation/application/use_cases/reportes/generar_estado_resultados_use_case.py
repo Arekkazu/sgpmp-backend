@@ -1,8 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-93: generar y aprobar el estado de resultados del período agropecuario |
-"""Casos de uso RF-93. Solo sobre períodos CERRADOS (R1). Cada generación es una versión nueva; la
-anterior no cambia (R5). Los filtros (especie, activo, infraestructura, finca) suman al consolidado
+# | 2026-11-10 | Arekkazu | INC-M06-337-G37 RF-86: acumulado del período abierto sin versión |
+"""Casos de uso RF-93. Solo sobre períodos CERRADOS (R1), salvo el acumulado de RF-86 (sin versión).
+Cada generación es una versión nueva; la anterior no cambia (R5). Los filtros (especie, activo, infraestructura, finca) suman al consolidado
 porque cada línea y cada costo pertenecen a un solo activo (CA-2, CA-11)."""
 from __future__ import annotations
 
@@ -33,6 +34,16 @@ class GenerarEstadoResultadosUseCase:
             raise BusinessRuleError(code="PERIODO_NO_CERRADO",
                                     message="Período no cerrado; ejecute el cierre antes de generar el estado.")
         return periodo
+
+    def acumulado(self, id_periodo_contable: int, filtros: dict) -> dict:
+        """RF-86: lo que el período lleva acumulado, sin guardar versión; sirve también con el período ABIERTO.
+        RF-93 (versionado, aprobación y descarga) sigue siendo solo del período cerrado."""
+        periodo = self.periodos.obtener(id_periodo_contable)
+        if periodo is None:
+            raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
+        calculo = self.constructor.calcular(id_periodo_contable, {k: v for k, v in filtros.items() if v})
+        return {**calculo, "id_periodo_contable": id_periodo_contable, "estado_periodo": periodo.estado,
+                "es_definitivo": periodo.estado == "CERRADO"}
 
     def generar(self, id_periodo_contable: int, filtros: dict, id_usuario: int) -> dict:
         self._cerrado(id_periodo_contable)

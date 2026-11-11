@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 """Adaptador de consulta del activo biológico (RF-33 / RF-36) contra ``modulo2``.
 
 Reutiliza ``SqlAlchemyActivoBiologicoRepository`` de biological_assets y proyecta
@@ -47,6 +50,7 @@ class ActivoM02Adapter(ActivoConsultaPort):
             nombre_estado=activo.nombre_estado,
             cantidad_actual=cantidad_actual,
             fecha_inicio_ciclo=activo.fecha_inicio_ciclo,
+            identificador=activo.identificador,
         )
 
     def listar_en_tratamiento(self) -> list[int]:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89: prioridad de fuente, vigencia y estado efectivo del precio |
+# | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
 """Reglas de RF-89 sobre el repositorio de precios (NIC 41 ¶17). Python puro.
 
 El estado de un precio depende de la fecha (PROGRAMADO, ACTIVO, VENCIDO, SUPERADO) y el
@@ -56,6 +57,18 @@ def ultimo_precio_conocido(precios: Iterable[Precio], dia: date) -> Optional[Pre
     """Último precio de cualquier fuente aunque haya vencido: estimación de RF-83 FA-1 para un
     activo que ya se mide a valor razonable (NIC 41 ¶31 impide pasarlo a costo)."""
     return _mas_reciente(precios, dia)
+
+
+def motivo_estimacion(precio: Precio, dia: date) -> Optional[str]:
+    """Por qué una medición con ``precio`` en ``dia`` es estimada (RF-83 FA-1); ``None`` si no lo es.
+
+    ``SIN_PRECIO_VIGENTE``: se usó el último precio conocido porque no había uno vigente.
+    ``FUENTE_ESTIMADA``: el precio vigente es una estimación del Contador (RF-89, fuente ESTIMADA)."""
+    if not precio.vigente_en(dia):
+        return "SIN_PRECIO_VIGENTE"
+    if precio.fuente == FuentePrecio.ESTIMADA.value:
+        return "FUENTE_ESTIMADA"
+    return None
 
 
 def estado_precio(precio: Precio, mismos: Iterable[Precio], hoy: date) -> str:

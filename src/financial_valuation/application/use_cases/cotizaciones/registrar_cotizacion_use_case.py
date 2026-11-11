@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-COT v1.1: registrar una cotización de venta (sin efecto contable) |
+# | 2026-11-08 | Arekkazu | INC-M06-332-G88 RF-COT FA-3: con el período de la emisión cerrado responde 422, no usa el siguiente |
 """Caso de uso RF-COT fases 1-6. La cotización no transfiere propiedad, no cambia el valor del activo
 y no genera asientos ni documentos (RFC-018 D-18.8). Su valor de referencia es la suma del último
 valor razonable neto de los activos (no se admite valor manual)."""
@@ -48,7 +49,7 @@ class RegistrarCotizacionUseCase:
                 raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message=f"El activo {id_activo} no existe.")
             if activo.estado != "ACTIVO" or self.valoraciones.reconocimiento_confirmado(id_activo) is None:  # FA-2
                 raise BusinessRuleError(code="ACTIVO_NO_DISPONIBLE", message=(
-                    f"El activo {activo.identificador} no está ACTIVO o no tiene reconocimiento inicial."))
+                    f"El activo {activo.identificador} no está activo o no tiene reconocimiento inicial."))
             calculo = self.valoraciones.ultimo_calculo(id_activo)
             if calculo is None:  # FA-4
                 raise BusinessRuleError(code="VALOR_RAZONABLE_NO_DISPONIBLE",
@@ -59,6 +60,9 @@ class RegistrarCotizacionUseCase:
             raise BusinessRuleError(code="ACTIVO_NO_DISPONIBLE", message="Los activos de una cotización deben ser del mismo titular.")
         try:
             periodo = self.contabilizador.periodo_para(titular.pop(), hoy, id_usuario)
+            if not periodo.contiene(hoy):  # FA-3: la emisión no se traslada al período siguiente
+                raise BusinessRuleError(code="PERIODO_CONTABLE_CERRADO", message=(
+                    f"El período contable de hoy ({hoy:%Y-%m}) está cerrado: no se pueden registrar cotizaciones en él."))
             id_cotizacion = self.cotizaciones.agregar({
                 "fecha_emision": hoy, "id_periodo_contable": periodo.id_periodo_contable,
                 "activos_cotizados": activos_cotizados, "valor_cotizacion_propuesto": valor_propuesto,

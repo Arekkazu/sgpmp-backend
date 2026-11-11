@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ayudas de SQL de los repositorios del módulo financiero |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 """Ayudas de SQL compartidas por los repositorios de M06.
 
 Los repositorios de M06 usan SQL explícito: casi todas sus lecturas cruzan M02, M09 y M05, y las
@@ -16,6 +17,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
+
+# RF-85 FA-4: un cálculo consumido por una cosecha del 100 % (producto de consumo con proporción 1) ya no es
+# valor del activo: su valor pasó a inventario y el activo queda en cero.
+CONSUMIDO_POR_COSECHA = """EXISTS (SELECT 1 FROM modulo6.reconocimientos_productos_agricolas p
+    WHERE p.id_calculo_valor_razonable = {calculo} AND p.tipo = 'PRODUCTO_DE_CONSUMO'
+      AND p.proporcion_cosechada >= 1)"""
 
 
 def a_json(valor: Any) -> Optional[str]:

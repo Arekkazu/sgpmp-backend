@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-20/23: el puerto falso cubre la validación de capacidad |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """DEV-20 (RF-33 1.4, RFC-014): fecha_nacimiento opcional y advertencia de edad del activo.
 
 Los 4 casos de RFC-014: especie sin esperanza de vida (no advierte), activo joven (no
@@ -136,6 +137,9 @@ class _Infra:
                                        especies=[EspecieDelArea(1, "Bovino", "ESPECIES_GRANDES", Decimal("2"))])
 
     def bloquear_capacidad(self, id_infraestructura): pass
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
     def calcular_ocupacion(self, id_infraestructura): return 0
     def asociar_especie(self, id_infraestructura, id_especie): pass
 

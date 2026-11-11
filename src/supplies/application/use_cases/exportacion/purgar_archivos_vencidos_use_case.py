@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: purga de archivos vencidos   |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: purgar los archivos exportados vencidos (RF-77 24 h, RF-81 72 h).
 
 Borra el contenido (la fila queda para que la descarga responda 410) y, para
@@ -47,7 +48,7 @@ class PurgarArchivosVencidosUseCase:
                         resultado="EXITOSO",
                         detalle_causa=(
                             f"Archivo {archivo.nombre_archivo} (trabajo {archivo.id_referencia}) eliminado al "
-                            "cumplir 72 horas (RF-81 Restricción 3)."
+                            "cumplir 72 horas."
                         ),
                     )
                 )

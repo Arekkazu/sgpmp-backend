@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 + M05 RF-79: costos de M05 a M06 (CONSUMO_INVENTARIO / CONSUMO_INSUMO) |
 # | 2026-11-05 | Arekkazu | M06 RF-90: justificación automática sin códigos de módulo |
+# | 2026-11-08 | Arekkazu | INC-M06-330-G86 RF-94: la auditoría del costo automático trae su naturaleza |
 """Caso de uso de fondo: convierte cada provisión INCREMENTAL de M05 en un costo de RF-90.
 
 - ALIMENTO y MEDICAMENTO: ``CONSUMO_INVENTARIO`` → línea ``CONSUMO_INSUMO`` (gasto contra el
@@ -116,6 +117,7 @@ class ProcesarProvisionesM05UseCase:
         self.contabilizador.auditar(EventoAuditoria(
             tipo_evento="COSTO_REGISTRADO", severidad=Severidad.INFO.value, id_sistema=ID_SISTEMA,
             payload={"origen_costo": OrigenCosto.CONSUMO_INVENTARIO.value, "subtipo_costo": subtipo,
+                     "naturaleza_costo": NaturalezaCosto.MANTENIMIENTO.value,
                      "vehiculo_contable": "ASIENTO_NIC41" if con_linea else "NINGUNO", "monto": str(monto),
                      "id_evento_provision": str(recepcion.id_evento_provision), "tipo_suministro": tipo},
             id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,

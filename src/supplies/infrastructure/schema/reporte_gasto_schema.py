@@ -1,15 +1,16 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas, archivo y aviso  |
+# | 2026-11-08 | Leandro | INC-M05-277-G20 RF-77: representar el promedio no calculable y conservar el contrato numérico. |
 """Schemas de respuesta de RF-77 — Reporte de Gastos Acumulados."""
 from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from src.supplies.domain.entities.archivo_exportacion import ArchivoExportacion
 from src.supplies.domain.entities.reporte_gasto import ReporteGasto
@@ -54,7 +55,7 @@ class ReporteGastoResponse(BaseModel):
     fecha_fin: datetime.date
     tipo_periodo: str
     gasto_total_acumulado: Decimal
-    gasto_promedio_individuo: Optional[Decimal]
+    gasto_promedio_individuo: Decimal | Literal["NO_CALCULABLE"] | None
     causa_no_calculable_promedio: Optional[str]
     sin_datos: bool
     estado: str = "GENERADO"
@@ -67,6 +68,14 @@ class ReporteGastoResponse(BaseModel):
     registros_sin_costo: list[RegistroSinCostoResponse]
     tendencia: Optional[TendenciaGastoResponse]
     fecha_generacion: Optional[datetime.datetime]
+
+    @model_validator(mode="after")
+    def representar_promedio_no_calculable(self) -> "ReporteGastoResponse":
+        # Una causa explícita distingue lo no calculable de un promedio no aplicable.
+        # El dominio conserva Decimal/None para evitar mezclar códigos y cálculos.
+        if self.gasto_promedio_individuo is None and self.causa_no_calculable_promedio:
+            self.gasto_promedio_individuo = "NO_CALCULABLE"
+        return self
 
     @classmethod
     def desde_entidad(cls, r: ReporteGasto) -> "ReporteGastoResponse":
@@ -136,11 +145,7 @@ class ReporteGastoResponse(BaseModel):
             fecha_fin=snapshot.fecha_fin,
             tipo_periodo=snapshot.tipo_periodo,
             gasto_total_acumulado=Decimal(resultado_json["gasto_total_acumulado"]),
-            gasto_promedio_individuo=(
-                Decimal(resultado_json["gasto_promedio_individuo"])
-                if resultado_json.get("gasto_promedio_individuo") is not None
-                else None
-            ),
+            gasto_promedio_individuo=resultado_json.get("gasto_promedio_individuo"),
             causa_no_calculable_promedio=resultado_json.get("causa_no_calculable_promedio"),
             sin_datos=resultado_json.get("sin_datos", False),
             desglose_categorias=[
