@@ -1,3 +1,10 @@
+## [1.4.0-rc.54](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.53...v1.4.0-rc.54) (2026-11-11)
+
+### Bug Fixes
+
+* **rf77-rf80-rf81-rf92-mod5-mod6:** PDF etiquetado para lector de pantalla (TC-DIS-204) ([b4bc2c1](https://github.com/Arekkazu/sgpmp-backend/commit/b4bc2c167f83a18ff62b1a8b0a4c0712456a6dd1))
+* **rf77-rf80-rf81-rf92-rf93-mod5-mod6:** PDF legibles sin recorte, reporte de gastos reabierto completo y periodos para quien consulta ([7effb12](https://github.com/Arekkazu/sgpmp-backend/commit/7effb12ecb8639b0773ea5b6817cddff3121800e)), closes [#593](https://github.com/Arekkazu/sgpmp-backend/issues/593)
+
 ## [1.4.0-rc.53](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.52...v1.4.0-rc.53) (2026-11-11)
 
 ### Features
