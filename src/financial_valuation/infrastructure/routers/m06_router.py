@@ -12,6 +12,7 @@
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82/87: el 403 nombra el rol y queda en la auditoría financiera (#1025 + #1068) |
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
+# | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: el cierre recibe la decisión por activo sin precio |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -450,7 +451,8 @@ def prevalidar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06)) -> dict:
 def ejecutar_cierre(id_periodo_contable: int, dto: CierreDTO, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     return m.cierre().execute(id_periodo_contable, usuario.id_usuario, autorizar_exclusiones=dto.autorizar_exclusiones,
-                              incluir_activos_sin_precio=dto.incluir_activos_sin_precio)
+                              incluir_activos_sin_precio=dto.incluir_activos_sin_precio,
+                              activos_estimados=dto.activos_estimados)
 
 
 @router.post("/periodos/{id_periodo_contable}/cierre/cancelacion", tags=[TAG_CIERRE],

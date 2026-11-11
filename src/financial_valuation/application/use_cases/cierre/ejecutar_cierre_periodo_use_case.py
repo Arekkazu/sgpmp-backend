@@ -7,6 +7,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: EN_CIERRE en espera de autorización, cancelación, matriz y titular |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-02 RF-87: las líneas sin trazabilidad de la prevalidación nombran su activo |
+# | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio (excluir o estimar) |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -39,6 +40,7 @@ from src.financial_valuation.domain.repositories.notificacion_financiera_port im
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.consolidacion import LineaContable, consolidar_comprobantes
+from src.financial_valuation.domain.services.precios import Precio
 from src.financial_valuation.application.use_cases.valoracion_costo.registrar_deterioro_use_case import (
     evento_valor_libros_cero,
 )
@@ -60,7 +62,7 @@ from src.financial_valuation.domain.value_objects.nic41 import (
     TipoEvidencia,
     TipoHecho,
 )
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError, ValidationError
 from src.shared.fechas import en_zona_usuario, hoy_usuario
 
 logger = logging.getLogger(__name__)
@@ -177,15 +179,21 @@ class EjecutarCierrePeriodoUseCase:
     # --- Ejecución -------------------------------------------------------------------------------
 
     def execute(self, id_periodo_contable: int, id_usuario: int, *, autorizar_exclusiones: bool = False,
-                incluir_activos_sin_precio: bool = False) -> dict:
+                incluir_activos_sin_precio: bool = False, activos_estimados: Optional[list[int]] = None) -> dict:
+        """``activos_estimados``: decisión por activo de RF-87 FA-2 (CA-5). Los activos sin precio que estén en
+        la lista entran con el último precio conocido como estimación (RF-83 v1.2); los demás se excluyen y
+        pasan al período siguiente, lo que exige ``autorizar_exclusiones``. Ninguno pasa al costo (RF-88 v2.0)."""
+        estimados = frozenset(activos_estimados or ())
         # Los eventos de M02 pendientes se miden antes (RF-83: el cierre va después de los eventos).
         self.eventos_pendientes_primero()
-        id_cierre = self._iniciar(id_periodo_contable, id_usuario, autorizar_exclusiones, incluir_activos_sin_precio)
+        id_cierre = self._iniciar(id_periodo_contable, id_usuario, autorizar_exclusiones, incluir_activos_sin_precio,
+                                  estimados)
         self._paso = 1
         try:
             self.db.execute(text("SELECT set_config('app.cierre_periodo', :p, true)"), {"p": str(id_periodo_contable)})
             periodo = self.periodos.obtener(id_periodo_contable)
-            resultado = self._pasos(periodo, id_cierre, id_usuario, autorizar_exclusiones, incluir_activos_sin_precio)
+            resultado = self._pasos(periodo, id_cierre, id_usuario, autorizar_exclusiones, incluir_activos_sin_precio,
+                                    estimados)
             self.db.commit()
         except Exception as exc:
             self.db.rollback()
@@ -215,7 +223,7 @@ class EjecutarCierrePeriodoUseCase:
     def eventos_pendientes_primero(self) -> None:
         self.procesador_eventos.execute(2000)
 
-    def _iniciar(self, id_periodo, id_usuario, autorizar, incluir_sin_precio) -> int:
+    def _iniciar(self, id_periodo, id_usuario, autorizar, incluir_sin_precio, estimados: frozenset = frozenset()) -> int:
         try:
             periodo = self.periodos.obtener(id_periodo, bloquear=True)
             if periodo is None:
@@ -230,7 +238,7 @@ class EjecutarCierrePeriodoUseCase:
             if periodo.estado == EstadoPeriodo.EN_CIERRE.value:
                 en_curso = self.periodos.ejecucion_en_proceso(id_periodo)
                 vigente = en_curso and datetime.now(timezone.utc) - en_curso["fecha_inicio"] < _CIERRE_ABANDONADO
-                if vigente and en_curso["esperando_autorizacion"] and (autorizar or incluir_sin_precio):
+                if vigente and en_curso["esperando_autorizacion"] and (autorizar or incluir_sin_precio or estimados):
                     en_espera = en_curso  # el Contador decide sobre el cierre que espera (FA-2/FA-3)
                 elif vigente:
                     raise ConflictError(code="CIERRE_EN_EJECUCION", message=self._mensaje_concurrencia(en_curso))
@@ -240,11 +248,16 @@ class EjecutarCierrePeriodoUseCase:
             if not prevalidacion.puede_cerrar:
                 raise BusinessRuleError(code="CIERRE_BLOQUEADO",
                                         message=" ".join(b["mensaje"] for b in prevalidacion.bloqueos))
+            sin_precio = {a["id_activo_biologico"] for a in prevalidacion.activos_sin_precio}
+            if estimados - sin_precio:
+                raise ValidationError(code="ACTIVO_ESTIMADO_NO_APLICA", field="activos_estimados", message=(
+                    "Solo se puede estimar el valor de los activos que el cierre muestra sin precio vigente. "
+                    "Recargue la verificación previa e intente de nuevo."))
             pendiente = None
             if prevalidacion.lineas_sin_trazabilidad and not autorizar:  # FA-3
                 pendiente = (f"{len(prevalidacion.lineas_sin_trazabilidad)} asientos tienen la cadena de trazabilidad "
                              "incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.")
-            elif prevalidacion.activos_sin_precio and not (autorizar or incluir_sin_precio):  # FA-2
+            elif sin_precio - estimados and not (autorizar or incluir_sin_precio):  # FA-2: los no estimados se excluyen
                 pendiente = (f"{len(prevalidacion.activos_sin_precio)} activos no tienen precio de mercado vigente. "
                              "Autorice su exclusión o inclúyalos con el último precio conocido como estimación.")
             if en_espera is not None:
@@ -257,6 +270,7 @@ class EjecutarCierrePeriodoUseCase:
                 self.contabilizador.auditar(EventoAuditoria(
                     tipo_evento="CIERRE_PERIODO_INICIADO", severidad=Severidad.INFO.value, id_usuario=id_usuario,
                     payload={"autorizar_exclusiones": autorizar, "incluir_activos_sin_precio": incluir_sin_precio,
+                             "activos_estimados": sorted(estimados),
                              "advertencias": prevalidacion.a_dict()},
                     id_periodo_contable=id_periodo, id_referencia=id_cierre,
                 ))
@@ -315,28 +329,36 @@ class EjecutarCierrePeriodoUseCase:
         return {"id_periodo_contable": id_periodo_contable, "id_cierre": en_curso["id_cierre"],
                 "estado": EstadoPeriodo.ABIERTO.value}
 
-    def _pasos(self, periodo: Periodo, id_cierre: int, id_usuario: int, autorizar: bool, incluir_sin_precio: bool):
+    def _pasos(self, periodo: Periodo, id_cierre: int, id_usuario: int, autorizar: bool, incluir_sin_precio: bool,
+               estimados: frozenset = frozenset()):
         dia = min(periodo.fecha_fin, hoy_usuario())
         activos = self.activos.listar_reconocidos(periodo.numero_id_tributaria)
         # Paso 2: precios congelados al inicio del cierre (por especie).
         self._paso = 2
-        congelados, excluidos = {}, []
+        # Por especie y por si se admite la estimación: la decisión es por activo (FA-2), el precio por especie.
+        congelados: dict[tuple[int, bool], Optional[Precio]] = {}
+        excluidos = []
+
+        def estima(activo) -> bool:
+            return incluir_sin_precio or activo.id_activo_biologico in estimados
+
         for activo in activos:
-            if activo.id_especie not in congelados:
-                precio, _ = self.medidor.valorador.precio_para(activo, dia, incluir_sin_precio)
-                congelados[activo.id_especie] = precio
+            clave = (activo.id_especie, estima(activo))
+            if clave not in congelados:
+                congelados[clave], _ = self.medidor.valorador.precio_para(activo, dia, clave[1])
         # Pasos 3-5: revaluación masiva, variaciones y líneas (más depreciación de los activos al costo).
         self._paso = 3
         procesados, al_costo_con_precio = 0, []
         for activo in activos:
             costo = self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico)
             if costo is not None:
-                self._depreciar(activo, costo, periodo, dia, id_cierre, id_usuario, congelados[activo.id_especie])
-                if congelados[activo.id_especie] is not None:
+                precio_costo = congelados[(activo.id_especie, estima(activo))]
+                self._depreciar(activo, costo, periodo, dia, id_cierre, id_usuario, precio_costo)
+                if precio_costo is not None:
                     al_costo_con_precio.append(activo.identificador)
                 procesados += 1
                 continue
-            precio = congelados[activo.id_especie]
+            precio = congelados[(activo.id_especie, estima(activo))]
             if precio is None:
                 excluidos.append({"id_activo_biologico": activo.id_activo_biologico, "identificador": activo.identificador,
                                   "motivo": "PENDIENTE_PRECIO"})
@@ -346,7 +368,7 @@ class EjecutarCierrePeriodoUseCase:
             hubo_cambio_fisico = anterior is not None and magnitud is not None and magnitud != anterior.magnitud
             resultado = self.medidor.medir(
                 activo, periodo, dia, origen="CIERRE_PERIODO", id_usuario=id_usuario, id_usuario_auditoria=id_usuario,
-                id_cierre=id_cierre, hubo_evento=hubo_cambio_fisico, permitir_estimado=incluir_sin_precio,
+                id_cierre=id_cierre, hubo_evento=hubo_cambio_fisico, permitir_estimado=estima(activo),
                 precio_congelado=precio, tipo_evidencia_tb=TipoEvidencia.CIERRE_PERIODO.value,
                 tipo_evidencia_pm=TipoEvidencia.CIERRE_PERIODO.value)
             if resultado.estado == "PENDIENTE":
