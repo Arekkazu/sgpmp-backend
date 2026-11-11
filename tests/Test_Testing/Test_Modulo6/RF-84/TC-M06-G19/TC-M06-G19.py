@@ -1,18 +1,22 @@
 # | Fecha      | Nombre           | Que se hizo                                                              |
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-84: script del grupo TC-M06-G19 (pytest + sandbox, rol Contador) |
+# | 2026-11-11 | Daniela Castillo | M06 RF-84: 091 y 093 reescritos: tipo_costo ya no se valida como campo, se cumple por construcción (la naturaleza la deriva RF-90); 092 sin cambios |
 """
 TC-M06-G19 - Tipificación de costos: tipo_costo VENTA y exclusión de MANTENIMIENTO.   RF-84 (CU03 FA-04) y RF-90.   Casos: TC-M06-091 a TC-M06-093.
 
 La clasificación del costo (tipo_costo del RF-84) es `naturaleza_costo` de RF-90 en POST /finanzas/costos: MANTENIMIENTO / INVERSION / VENTA, DERIVADA del
 subtipo (RF-90: «derivada del catálogo según subtipo_costo, o declarada por el Contador si OTRO»); con subtipo OTRO sin naturaleza el costo queda
 PENDIENTE_CLASIFICACION (RF-90 FA-3). El cálculo del valor neto (RF-84) no recibe costos de M05 ni guarda tipo_costo (H-16 de G16).
-- 091: ficha dice «sin tipo_costo se rechaza»; RF-90 dice que se deriva del subtipo -> se prueba lo que dice RF-90 (091a derivada VENTA,
-  091b OTRO sin naturaleza queda PENDIENTE_CLASIFICACION sin tocar el neto, 091c VENTA explícito se acepta). La diferencia con la ficha se documenta.
+- 091 (reescrito): RF-84 ya no recibe ni valida un campo tipo_costo: el requisito «solo costos de VENTA entran al neto» se cumple por construcción (el neto
+  sale de los porcentajes de costos de venta de M09 y los costos de M05/RF-90 nacen con su naturaleza derivada del subtipo). 091a: sin naturaleza en el
+  cuerpo el costo queda con la naturaleza derivada (TRANSPORTE = VENTA) sin tocar el neto; 091b: subtipo OTRO sin naturaleza queda PENDIENTE_CLASIFICACION
+  (RF-90 FA-3) sin tocar el neto; 091c: VENTA explícito se acepta.
 - 092: costo MANTENIMIENTO de 80.000 (mano de obra propia; M05 no se puede simular desde QA): el neto sigue en 9.500.000, el costo queda como gasto
   del período (línea de asiento). 092b: un MANTENIMIENTO no se puede registrar como VENTA (RF-84 CA-7, RF-90 FA-2). La notificación al Contador
   se emite en una sesión aparte tras el commit: no verificable en el sandbox (se revisa en Cypress, G31).
-- 093: clasificaciones inválidas ('OTRO', 'FINANCIERO') se rechazan con 4xx y no cambian el neto ni crean costo.
+- 093 (reescrito): una clasificación inválida ('OTRO', 'FINANCIERO') se rechaza con 4xx, no cambia el neto y no deja costo registrado. 091d (nuevo): invariante «por
+  construcción»: todo costo registrado tiene naturaleza válida o está PENDIENTE_CLASIFICACION.
 Todo el grupo comparte un activo reconocido en un solo run; cada caso usa montos distintos para no confundir sus registros.
 
 Cómo correrlo:
@@ -74,7 +78,7 @@ def test_TC_M06_091a_tipo_costo_ausente_o_nulo_se_deriva_del_subtipo(env, ida):
         reg = _registro(r)
         assert reg.get("naturaleza_costo") == "VENTA" and reg.get("estado") == "REGISTRADO", (nombre, reg)
     assert _neto(env, ida) == antes, "el costo de VENTA registrado no debe cambiar el cálculo del neto"
-    obs("La ficha pide rechazar el costo sin tipo; RF-90 dice que la naturaleza se deriva del subtipo (TRANSPORTE = VENTA): diferencia de la ficha.")
+    obs("RF-84 ya no valida tipo_costo como campo: se cumple por construcción (la naturaleza se deriva del subtipo, TRANSPORTE = VENTA, y el neto sale de M09).")
 
 
 def test_TC_M06_091b_subtipo_otro_sin_naturaleza_queda_pendiente_de_clasificacion(env, ida):
@@ -119,11 +123,24 @@ def test_TC_M06_092b_mantenimiento_no_se_reclasifica_como_venta(env, ida):
 
 
 @pytest.mark.parametrize("clasificacion", ["OTRO", "FINANCIERO"])
-def test_TC_M06_093_clasificacion_invalida_se_rechaza(env, ida, clasificacion):
+def test_TC_M06_093_clasificacion_invalida_se_rechaza_sin_afectar_el_calculo(env, ida, clasificacion):
     antes = _neto(env, ida)
     n = len(lista_de(env.call("GET", "/finanzas/costos", "contador", params={"id_activo_biologico": ida}).data, "costos", "registros"))
-    r = _post(env, ida, "70041.0000" if clasificacion == "OTRO" else "70042.0000", naturaleza_costo=clasificacion)
-    assert 400 <= r.status < 500, f"naturaleza_costo {clasificacion} debía rechazarse con 4xx y respondió {r}"
-    assert _neto(env, ida) == antes, "el costo inválido no debe afectar el neto"
+    r = _post(env, ida, "70041.0000" if clasificacion == "OTRO" else "70042.0000", naturaleza_costo=clasificacion, justificacion=JUSTIF)
+    assert 400 <= r.status < 500, f"naturaleza_costo {clasificacion} no es una clasificación válida: debía rechazarse con 4xx y respondió {r}"
+    assert _neto(env, ida) == antes, "la clasificación inválida no debe afectar el neto"
     n2 = len(lista_de(env.call("GET", "/finanzas/costos", "contador", params={"id_activo_biologico": ida}).data, "costos", "registros"))
     assert n2 == n, "el costo con clasificación inválida no debe quedar registrado"
+    obs(f"naturaleza_costo {clasificacion}: HTTP {r.status} {r.err or ''}. RF-84 no recibe tipo_costo (se cumple por construcción) y la clasificación inválida tampoco entra por RF-90.")
+
+
+def test_TC_M06_091d_todo_costo_registrado_tiene_naturaleza_valida_o_queda_pendiente(env, ida):
+    """Invariante «por construcción»: ningún costo del activo queda sin tipificar. Cada registro tiene naturaleza MANTENIMIENTO / INVERSION / VENTA
+    o, si no la tiene, está PENDIENTE_CLASIFICACION; y solo los de VENTA clasificados explícitamente o derivados llegan a ser costos de venta."""
+    lista = env.call("GET", "/finanzas/costos", "contador", params={"id_activo_biologico": ida})
+    assert lista.status == 200, lista
+    registros = lista_de(lista.data, "costos", "registros")
+    assert registros, "el activo debe tener costos registrados por los casos anteriores del grupo"
+    malos = [c for c in registros if not (c.get("naturaleza_costo") in ("MANTENIMIENTO", "INVERSION", "VENTA")
+                                          or (not c.get("naturaleza_costo") and c.get("estado") == "PENDIENTE_CLASIFICACION"))]
+    assert not malos, f"hay costos sin naturaleza válida y sin quedar PENDIENTE_CLASIFICACION: {malos}"

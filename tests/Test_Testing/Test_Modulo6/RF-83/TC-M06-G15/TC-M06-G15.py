@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G15 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G15 alineado con la ficha y RF-94: 071 a 075 en pytest; 076 y 077 (tiempos) pasan a Newman |
+# | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: caso nuevo 073c: evento sobre activo por costo SIN_EFECTO, sin variación en RF-86 y sin reproceso |
 """
 TC-M06-G15 - Integración con RF-86 y RF-52, auditoría, inmutabilidad, idempotencia y rendimiento de la medición.
 RF-83 (CU02).   Casos: TC-M06-071 a TC-M06-077.
@@ -177,6 +178,8 @@ def test_TC_M06_072a_mediciones_consultables_por_activo_y_periodo_con_total_en_b
 
 
 def test_TC_M06_072b_filtros_por_evento_y_valor_estimado(env):
+    """Filtros del listado de mediciones del período (PR #1024, issue #1001): id_evento y tiene_valor_estimado devuelven exactamente las filas que
+    cumplen el filtro; un valor inválido responde 400 VAL_ENTRADA; las filas traen id_evento e id_periodo_contable."""
     c = _esc072(env)
     a, b = c["a"], c["b"]
     ma, mb = env.mediciones(a), env.mediciones(b)
@@ -184,25 +187,38 @@ def test_TC_M06_072b_filtros_por_evento_y_valor_estimado(env):
         no_verificable("no se generaron las mediciones del escenario.")
     periodo = mb[-1]["id_periodo_contable"]
 
+    def pedir(**params):
+        return env.call("GET", f"/finanzas/periodos/{periodo}/mediciones", "contador", params=params or None)
+
     def listar(**params):
-        r = env.call("GET", f"/finanzas/periodos/{periodo}/mediciones", "contador", params=params or None)
+        r = pedir(**params)
         assert r.status == 200, r
         return lista_de(r.data, "mediciones")
 
     sin = listar()
     if len({f["tiene_valor_estimado"] for f in sin}) < 2 or len(sin) < 2:
         no_verificable(f"el período {periodo} no tiene mediciones estimadas y no estimadas a la vez ({len(sin)} filas).")
-    faltan = []
-    if not any((lambda f: 0 < len(f) < len(sin) and all(x["tiene_valor_estimado"] for x in f))(listar(**{k: "true"}))
-               for k in ("tiene_valor_estimado", "valor_estimado")):
-        faltan.append("valor_estimado")
-    ev = next((m["id_evento"] for m in ma if m.get("id_evento")), None)
-    if ev is None or not (lambda f: 0 < len(f) < len(sin))(listar(id_evento=ev)):
-        faltan.append("id_evento")
-    if faltan:
-        bloqueado("funcionalidad no implementada: la ficha pide consultar las mediciones con filtros por id_evento y valor_estimado y la API solo "
-                  f"filtra por activo (historial) y por período (listado); sin filtro en el servidor: {', '.join(faltan)}. "
-                  f"El listado del período {periodo} devuelve las {len(sin)} mediciones aunque se pase el parámetro.")
+    assert all("id_evento" in f and "id_periodo_contable" in f for f in sin), (
+        f"cada fila del listado debe traer id_evento e id_periodo_contable: {sorted(sin[0])}")
+    ev = next((m["id_evento"] for m in ma + mb if m.get("id_evento")), None)
+    assert ev is not None, "ninguna medición del escenario trae id_evento"
+    por_evento, estimadas, no_estimadas = listar(id_evento=ev), listar(tiene_valor_estimado="true"), listar(tiene_valor_estimado="false")
+    if len(por_evento) == len(sin) and len(estimadas) == len(sin) and len(no_estimadas) == len(sin):
+        bloqueado("funcionalidad no implementada o sin desplegar: el listado devuelve las mismas filas con y sin filtros (PR #1024 / issue #1001 "
+                  f"pide filtrar por id_evento y tiene_valor_estimado); filas sin filtro: {len(sin)}.")
+    esperadas_ev = [f for f in sin if f["id_evento"] == ev]
+    assert esperadas_ev and {f["id_medicion_posterior"] for f in por_evento} == {f["id_medicion_posterior"] for f in esperadas_ev}, (
+        f"id_evento={ev} debe devolver exactamente las mediciones de ese evento ({len(esperadas_ev)}) y devolvió {len(por_evento)}")
+    assert {f["id_medicion_posterior"] for f in estimadas} == {f["id_medicion_posterior"] for f in sin if f["tiene_valor_estimado"] is True} and estimadas, (
+        f"tiene_valor_estimado=true debe devolver solo las estimadas: {[(f['id_medicion_posterior'], f['tiene_valor_estimado']) for f in estimadas]}")
+    assert {f["id_medicion_posterior"] for f in no_estimadas} == {f["id_medicion_posterior"] for f in sin if f["tiene_valor_estimado"] is False} and no_estimadas, (
+        f"tiene_valor_estimado=false debe devolver solo las no estimadas: {[(f['id_medicion_posterior'], f['tiene_valor_estimado']) for f in no_estimadas]}")
+    fallos = []
+    for params in ({"id_evento": "abc"}, {"tiene_valor_estimado": "abc"}):
+        r = pedir(**params)
+        if r.status != 400 or r.err != "VAL_ENTRADA":
+            fallos.append(f"filtro inválido {params}: debía responder 400 VAL_ENTRADA y respondió {r}")
+    assert not fallos, " | ".join(fallos)
 
 
 # ------------------------------------------------------------------------------------------------------------------- 073
@@ -257,6 +273,28 @@ def test_TC_M06_073b_trazabilidad_de_la_medicion_por_cierre(env):
     _verificar_auditoria_medicion(env, ida, m, "CIERRE_PERIODO")
     var = [e for e in _auditoria_tecnica(env, ida) if e.get("tipo_evento") == "VARIACION_REGISTRADA"]
     assert var and _payload(var[-1]).get("id_cierre") is not None, "la variación por cierre debe quedar ligada al cierre del período"
+
+
+def test_TC_M06_073c_evento_sobre_activo_por_costo_queda_sin_efecto_y_trazado(env):
+    """RF-83 v1.2: el evento sobre un activo por costo se registra como procesado SIN_EFECTO (trazable por id_evento), no llega nada a RF-86
+    (sin variación ni líneas) y reprocesar la cola no cambia nada."""
+    _nuevo(env)
+    env.presupuesto(70)
+    esc, ida = env.activo_por_costo()
+    lineas0 = len(lineas_de(env.historial(ida)))
+    env.pesaje(ida, "450")
+    assert env.procesar_eventos().status == 200
+    pr = env.ultimo_procesamiento()                                  # el SELECT del sandbox no ve modulo2: el id_evento sale del procesamiento
+    assert pr, "el evento de crecimiento no figura en procesamientos_eventos_m02"
+    ide = pr["id_evento"]
+    assert pr and "SIN_EFECTO" in str(pr["resultado"]).upper(), f"el evento {ide} debía figurar procesado SIN_EFECTO: {pr}"
+    assert pr.get("detalle") == "Activo valorado por costo (NIC 41 ¶30)", f"detalle esperado «Activo valorado por costo (NIC 41 ¶30)»: {pr}"
+    assert not _filas_med(env, ida), "no debe existir medición"
+    assert not env.sql(f"SELECT 1 FROM modulo6.variaciones_valor_razonable WHERE id_activo_biologico = {int(ida)}"), "RF-86 no debe recibir variación"
+    assert len(lineas_de(env.historial(ida))) == lineas0, "no deben generarse líneas de asiento"
+    assert env.procesar_eventos().status == 200 and env.procesar_eventos().status == 200
+    n = int(uno(env.sql(f"SELECT count(*) AS n FROM modulo6.procesamientos_eventos_m02 WHERE id_evento = {int(ide)}")))
+    assert n == 1 and not _filas_med(env, ida), f"reprocesar no debe cambiar nada (procesamientos del evento: {n})"
 
 
 # ------------------------------------------------------------------------------------------------------------------- 074

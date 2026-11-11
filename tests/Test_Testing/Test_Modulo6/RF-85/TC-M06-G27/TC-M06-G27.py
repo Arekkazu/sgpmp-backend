@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G27 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | G27 revisado contra la ficha: 120 verifica el precio manual justificado (con y sin justificación) y que la cosecha pendiente se reconozca; 121 verifica el ingreso manual de costos del producto; 122 y 123 y 124 verifican lo que pide la ficha o quedan BLOQUEADOS por función no implementada |
+# | 2026-11-11 | Daniela Castillo | M06 RF-85 v1.2: 122, 123 y 124 reescritos con las reglas de conversión del sistema (masa a kg; volumen y unidades bloquean con aviso); 124b conserva «sin cantidad total» |
 """
 TC-M06-G27 - Precio, costos de venta y conversión de unidades del producto agrícola.   RF-85 (FA-1, FA-2, FA-8 de CU04).   Casos: TC-M06-120 a TC-M06-124.
 
@@ -12,11 +13,13 @@ se asigna con POST /activos-biologicos/{id}/fases. Un producto no se registra do
   y la cosecha pendiente debe reconocerse con el valor calculado (120c): 200 kg x 3.500,00 menos 6 % = 658.000,00.
 - 121: producto con precio pero sin costos de venta en M09 (el activo se reconoció con costos manuales) -> pendiente con alerta (121); el RF pide el ingreso manual de los costos del producto y que el
   proceso continúe (121b): se busca esa operación en la API; si no existe, queda BLOQUEADO por función no implementada.
-- 122: conversión de unidades con reglas configuradas: el RF-85 (paso 6, FA-8 de CU04) pide aplicar la regla de conversión definida; se busca en la API alguna operación de reglas de conversión y, si
-  no hay, queda BLOQUEADO por función no implementada.
-- 123: sin regla de conversión se bloquea: especie de consumo medida por cabeza y cosecha en kg (la ficha usa M2 contra KG; el evento de M02 solo admite la unidad de la métrica): pendiente por falta
-  de regla, con mensaje de conversión, sin producto ni asiento.
-- 124: consumo sin cantidad total del activo (ausente y 0): el activo sin magnitud no se reconoce y, por tanto, no se calcula proporción; sin error 5xx.
+- 122 (RF-85 v1.2, C24.4): reglas de conversión del sistema para cosechas de CONSUMO (masa a kg): g x 0,001, t x 1.000, lb x 0,45359237, arroba x 12,5. Se
+  crea una métrica de la especie en la unidad de origen (M02 solo admite la unidad de la métrica), se cosecha en esa unidad sobre un activo de 1.000 kg y se
+  verifica: producto reconocido con la cantidad y la unidad ORIGINALES, proporción cosechada = kg convertidos / 1.000 y el texto de la conversión en la justificación.
+- 123: volumen (mL, L) no tiene regla de conversión: el reconocimiento se bloquea con aviso al Contador (mensaje de conversión), sin producto ni asiento.
+- 124: unidades (unidad) no tiene regla de conversión: igual que 123. 124b: consumo sin cantidad total del activo (ausente y 0): el activo sin magnitud no se reconoce
+  y, por tanto, no se calcula proporción; sin error 5xx (verificación previa, sin cambios).
+- PRODUCCION no se convierte (RF-85 v1.2): no hay caso propio en este grupo.
 
 Cómo correrlo:
     python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G27/TC-M06-G27.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G27/reporte-TC-M06-G27.html" --self-contained-html
@@ -135,37 +138,68 @@ def test_TC_M06_121b_costos_manuales_del_producto(env, sin_costos):
               "y el backend solo deja el reconocimiento pendiente: no existe operación para costos manuales del producto ni se reprocesa la cosecha (ver operaciones listadas).")
 
 
-def test_TC_M06_122_conversion_de_unidades(env):
-    rutas = _rutas_api(env, "conversion", "conversi")
-    obs(f"Operaciones de la API de reglas de conversión de unidades: {rutas if rutas is not None else 'no se pudo leer /openapi.json'}")
-    if rutas:
-        no_concluyente(f"existen operaciones de conversión ({rutas}) pero la cosecha solo admite la unidad de la métrica de la especie: no hay forma de enviar una unidad distinta al evento")
-    bloqueado("funcionalidad no implementada: RF-85 paso 6 y FA-8 de CU04 piden aplicar la regla de conversión definida (p. ej. 1.000.000 mL = 1.000 LT) y registrar la cantidad original y la convertida; "
-              "el backend no tiene reglas de conversión (solo reconoce kg como unidad del activo) y el evento productivo de M02 solo admite la unidad de la métrica.")
-
-
-def test_TC_M06_123_sin_regla_de_conversion_se_bloquea(env):
+def _cosecha_consumo_en(env, unidad, cantidad):
+    """Run nuevo: activo de CONSUMO de 1.000 kg y una cosecha de `cantidad` en `unidad` (métrica propia de la especie en esa unidad)."""
     env.nuevo_run()
-    env.presupuesto(90)
-    esc = env.escenario(categoria="POR_CABEZA", clasificacion="CONSUMO", precio=None, especie_existente=ID_ESPECIE_PRODUCTIVA)
-    env.precio(esc, "8000000.00", desde=hoy() - timedelta(days=10))
-    ida, _ = env.reconocer(esc, origen="nacimiento", costo=None, soporte=None)
+    env.presupuesto(100)
+    esc = env.escenario_producto("CONSUMO", "20000.00")
+    # M09 solo admite por tipo: PESO g/kg/lb, VOLUMEN litros/l/ml, CONTEO unidades; cualquier otra (arroba, t) solo con tipo OTRO. M02 exige que el evento
+    # use la unidad de la métrica y que la métrica esté habilitada en el ciclo activo.
+    tipo = {"g": "PESO", "lb": "PESO", "mL": "VOLUMEN", "L": "VOLUMEN", "unidades": "CONTEO"}.get(unidad, "OTRO")
+    idm = env.metrica(esc, f"Cosecha {unidad}", unidad, tipo=tipo, habilitar_ciclo=True)
+    env.precio_producto(esc, idm, "1000.00", desde=hoy() - timedelta(days=10))
+    ida = env.activo_productivo(esc, "1000")
+    env.evento_productivo(ida, idm, cantidad, unidad)
     env.procesar_eventos()
-    fase = env.asignar_fase(ida)
-    if fase.status not in (200, 201):
-        bloqueado(f"no se pudo asignar la fase al activo: {fase}")
-    env.prep(env.cosecha(ida, "10", "kg"), (200, 201), "evento productivo de 10 kg sobre un activo medido por cabeza")
-    env.procesar_eventos()
-    hay, tipos = _pendiente(env, ida)
+    return esc, ida
+
+
+def _texto_pendiente(env, ida):
     ev = [e for e in env.auditoria(ida) if e.get("tipo_evento") == "RECONOCIMIENTO_PRODUCTO_PENDIENTE"]
-    texto = str(ev[-1]) if ev else ""
-    obs("La ficha usa cosecha en M2 con precio en KG; el evento de M02 solo admite la unidad de la métrica, por eso se usa kg contra un activo medido por cabeza.")
-    assert hay, f"sin regla de conversión kg -> cabezas el reconocimiento debía bloquearse con alerta (eventos: {tipos})"
-    assert "conversi" in texto.lower(), f"el mensaje debía indicar la falta de regla de conversión: {texto[:300]}"
-    assert not env.producto_sql(ida) and not env.lineas_producto(ida), "sin regla de conversión no debe crearse reconocimiento ni asiento"
+    return (str(ev[-1]) if ev else ""), env.tipos_auditoria(ida)
 
 
-def test_TC_M06_124_consumo_sin_cantidad_total_del_activo(env):
+@pytest.mark.parametrize("unidad,cantidad,kg", [("g", "100000", "100"), ("lb", "1000", "453.59237"), ("arroba", "20", "250"), ("t", "0.3", "300")])
+def test_TC_M06_122_conversion_de_masa_a_kg_con_las_reglas_del_sistema(env, unidad, cantidad, kg):
+    esc, ida = _cosecha_consumo_en(env, unidad, cantidad)
+    filas = env.producto_sql(ida)
+    texto, tipos = _texto_pendiente(env, ida)
+    assert filas, (f"la cosecha de {cantidad} {unidad} (= {kg} kg) debía reconocerse con la regla de conversión del sistema y no se reconoció; "
+                   f"eventos del activo: {tipos}; aviso: {texto[:1200]}")
+    p = filas[-1]
+    assert dec(p["cantidad_cosechada"]) == dec(cantidad) and str(p["unidad_medida"]).lower() == unidad.lower(), (
+        f"el producto debe conservar la cantidad y la unidad originales ({cantidad} {unidad}): {p}")
+    esperada = dec(kg) / dec("1000")
+    assert abs(dec(p["proporcion_cosechada"]) - esperada) <= dec("0.0001"), f"proporción esperada {esperada} ({kg} kg de 1.000 kg): {p}"
+    fila = env.sql("SELECT r::text AS fila FROM modulo6.reconocimientos_productos_agricolas r "
+                   f"WHERE id_activo_biologico = {int(ida)} ORDER BY id_reconocimiento_producto_agricola DESC LIMIT 1")
+    obs(f"{cantidad} {unidad} -> {kg} kg; proporción {p['proporcion_cosechada']}; valor_producto {p['valor_producto']}")
+    # El activo de 1.000 kg a 20.000,00 vale 18.800.000,00 neto (costos de M09 del 6 %): la reducción debe ser proporcional a los kg convertidos.
+    esperada_red = dec("18800000") * dec(kg) / dec("1000")
+    assert abs(dec(p["valor_reduccion_activo"]) - esperada_red) <= dec("0.01") + dec("18800000") * dec("0.0001"), (
+        f"la reducción del activo debía ser proporcional a {kg} kg (≈ {esperada_red}): {p}")
+    assert "convers" in str(uno(fila)).lower(), f"RF-85 v1.2: el texto de la conversión debe quedar en la justificación del producto: {str(uno(fila))[:400]}"
+
+
+@pytest.mark.parametrize("unidad,cantidad", [("mL", "500000"), ("L", "500")])
+def test_TC_M06_123_volumen_sin_regla_de_conversion_se_bloquea_con_aviso(env, unidad, cantidad):
+    esc, ida = _cosecha_consumo_en(env, unidad, cantidad)
+    texto, tipos = _texto_pendiente(env, ida)
+    assert "RECONOCIMIENTO_PRODUCTO_PENDIENTE" in tipos, f"el volumen ({unidad}) no tiene regla: debía bloquearse con aviso al Contador (eventos: {tipos})"
+    assert "conversi" in texto.lower(), f"el aviso debía indicar la falta de regla de conversión: {texto[:300]}"
+    assert not env.producto_sql(ida) and not env.lineas_producto(ida), "sin regla de conversión no debe crearse producto ni asiento"
+
+
+@pytest.mark.parametrize("unidad,cantidad", [("unidades", "10")])
+def test_TC_M06_124_unidades_sin_regla_de_conversion_se_bloquea_con_aviso(env, unidad, cantidad):
+    esc, ida = _cosecha_consumo_en(env, unidad, cantidad)
+    texto, tipos = _texto_pendiente(env, ida)
+    assert "RECONOCIMIENTO_PRODUCTO_PENDIENTE" in tipos, f"las unidades ({unidad}) no tienen regla: debía bloquearse con aviso al Contador (eventos: {tipos})"
+    assert "conversi" in texto.lower(), f"el aviso debía indicar la falta de regla de conversión: {texto[:300]}"
+    assert not env.producto_sql(ida) and not env.lineas_producto(ida), "sin regla de conversión no debe crearse producto ni asiento"
+
+
+def test_TC_M06_124b_consumo_sin_cantidad_total_del_activo(env):
     env.nuevo_run()
     env.presupuesto(90)
     esc = env.escenario_producto("CONSUMO", "20000.00")

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                                              |
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-84: script del grupo TC-M06-G16 (pytest + sandbox, rol Contador) |
+# | 2026-11-11 | Daniela Castillo | M06 RF-84: 078 revisado: el neto resta la suma de los cuatro costos de venta; tipo_costo=VENTA se cumple por construcción (078b) |
 """
 TC-M06-G16 - Cálculo del valor razonable menos costos de venta: parametrizado, manual y mixto.   RF-84 (CU03).   Casos: TC-M06-078 a TC-M06-081 (078b y 079b: tipo_costo=VENTA y referencia documental).
 
@@ -8,7 +9,7 @@ RF-84 no tiene un endpoint propio de cálculo con entradas: el cálculo se persi
 con costos_manuales y justificacion) y se lee en GET /finanzas/activos/{id} (calculos). Bruto = 10.000.000,0000 (1 cabeza POR_CABEZA a 10.000.000,00).
 Costos de M09 (PUT costos-venta): transporte 1,5 %, comisiones 2 %, impuestos 0,5 % -> 150.000 / 200.000 / 50.000. «otros» siempre es manual.
 El método por componente queda en json_metodo_costo y el global en metodo_costo (PARAMETRIZADO / MANUAL / MIXTO). tipo_costo=VENTA no es un campo
-del cálculo (obs).
+del cálculo: se cumple por construcción (los cuatro componentes son costos de venta; 078b verifica que el neto resta su suma).
 
 Cómo correrlo:
     python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G16/TC-M06-G16.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G16/reporte-TC-M06-G16.html" --self-contained-html
@@ -56,9 +57,12 @@ def test_TC_M06_078_calculo_parametrizado_con_otros_manual(env):
     esc = env.escenario(categoria="POR_CABEZA", precio="10000000.00", costos=PCT)
     c = _confirmar(env, esc, {"otros": "100000"}, JUSTIF)
     assert _componentes(c) == (dec("150000"), dec("200000"), dec("50000"), dec("100000")), c
-    assert dec(c["valor_neto"]) == dec("9500000.0000"), c
+    suma = sum(_componentes(c), Decimal("0"))
+    assert suma == dec("500000.0000"), f"la suma de los costos de venta debe ser 500.000: {_componentes(c)}"
+    assert dec(c["valor_neto"]) == dec("9500000.0000") == BRUTO - suma, c
     assert _metodos(c) == {"transporte": "PARAMETRIZADO", "comisiones": "PARAMETRIZADO", "impuestos": "PARAMETRIZADO", "otros": "MANUAL"}, c
     assert c["metodo_costo"] == "MIXTO", c
+    assert c.get("justificacion") == JUSTIF, "«otros» es manual: su justificación debe quedar guardada junto al cálculo"
 
 
 def test_TC_M06_079_calculo_totalmente_manual(env):
@@ -78,17 +82,18 @@ def _claves(c):
     return ks
 
 
-def test_TC_M06_078b_tipo_costo_venta_en_cada_componente(env):
-    """Ficha 078 y RF-84 (entradas, Restricción 6, paso 7): cada costo del cálculo queda clasificado con tipo_costo = VENTA."""
+def test_TC_M06_078b_el_neto_resta_la_suma_de_los_costos_de_venta(env):
+    """Ficha 078 y RF-84 (Restricción 6): los costos del cálculo son costos de venta. tipo_costo ya no es un campo del cálculo: se cumple por
+    construcción, es decir, el neto resta exactamente la suma de los cuatro componentes (transporte, comisiones, impuestos, otros) y nada más."""
     env.presupuesto(30)
     esc = env.escenario(categoria="POR_CABEZA", precio="10000000.00", costos=PCT)
     c = _confirmar(env, esc, {"otros": "100000"}, JUSTIF)
-    plano = {**(c.get("json_metodo_costo") or {}), **c}
-    tipos = {k: v for k, v in plano.items() if str(k).lower().startswith("tipo_costo")}
-    if not tipos:
-        bloqueado("funcionalidad no implementada: el cálculo no guarda ni devuelve tipo_costo = VENTA por componente "
-                  f"(RF-84 Restricción 6; ficha 078). Claves del cálculo: {sorted(c)}")
-    assert all(str(v).upper() == "VENTA" for v in tipos.values()) and len(tipos) >= 4, tipos
+    suma = sum(_componentes(c), Decimal("0"))
+    assert suma == dec("500000"), f"los cuatro costos de venta suman 150.000 + 200.000 + 50.000 + 100.000 = 500.000: {_componentes(c)}"
+    assert dec(c["valor_neto"]) == BRUTO - suma, f"el neto debe ser el bruto menos la suma de los costos de venta: {c}"
+    tipos = {k: v for k, v in {**(c.get("json_metodo_costo") or {}), **c}.items() if str(k).lower().startswith("tipo_costo")}
+    assert all(str(v).upper() == "VENTA" for v in tipos.values()), f"si el cálculo devuelve tipo_costo, todos deben ser VENTA: {tipos}"
+    obs("tipo_costo = VENTA no es un campo del cálculo: se cumple por construcción (el neto solo resta costos de venta).")
 
 
 def test_TC_M06_079b_referencia_documental_como_dato_propio(env):
