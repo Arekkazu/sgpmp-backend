@@ -1,0 +1,66 @@
+﻿..F..FF.                                                                 [100%]
+================================== FAILURES ===================================
+_____________ test_018c_fallo_persistente_avisa_al_administrador ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022DFCAC7E10>
+
+    def test_018c_fallo_persistente_avisa_al_administrador(monkeypatch):
+        """La ficha pide alerta al Administrador tras el fallo persistente (E5)."""
+        b = _batch(_config(), [ActivoBatchRef(id_activo_biologico=825, fecha_inicio_ciclo=date(2026, 10, 12))],
+                   calculo_falla=True, monkeypatch=monkeypatch)
+        asyncio.run(b.uc.ejecutar(tipo_disparo="AUTOMATICO"))
+>       assert b.notif.avisos, "no se envió ningún aviso al Administrador por el fallo persistente del activo 825"
+E       AssertionError: no se envió ningún aviso al Administrador por el fallo persistente del activo 825
+E       assert []
+E        +  where [] = <test_tc_m05_g07.Notificador object at 0x0000022DFCAD8410>.avisos
+E        +    where <test_tc_m05_g07.Notificador object at 0x0000022DFCAD8410> = namespace(uc=<src.supplies.application.use_cases.eficiencia.ejecutar_batch_ica_use_case.EjecutarBatchICAUseCase object...test_tc_m05_g07.SesionFalsa object at 0x0000022DFCAD9ED0>, <test_tc_m05_g07.SesionFalsa object at 0x0000022DFCADA010>]).notif
+
+tests\Test_Testing\Test_Modulo5\RF-74\TC-M05-G07\test_tc_m05_g07.py:228: AssertionError
+------------------------------ Captured log call ------------------------------
+WARNING  src.supplies.application.use_cases.eficiencia.ejecutar_batch_ica_use_case:ejecutar_batch_ica_use_case.py:263 Batch ICA: fallo técnico activo 825 intento 1: BD caída (fallo técnico inyectado)
+WARNING  src.supplies.application.use_cases.eficiencia.ejecutar_batch_ica_use_case:ejecutar_batch_ica_use_case.py:263 Batch ICA: fallo técnico activo 825 intento 2: BD caída (fallo técnico inyectado)
+WARNING  src.supplies.application.use_cases.eficiencia.ejecutar_batch_ica_use_case:ejecutar_batch_ica_use_case.py:263 Batch ICA: fallo técnico activo 825 intento 3: BD caída (fallo técnico inyectado)
+______________ test_018g_panel_cuenta_los_pendientes_por_limite _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022DFCAC7310>
+
+    def test_018g_panel_cuenta_los_pendientes_por_limite(monkeypatch):
+        """Observación: la corrida nace con cantidad_activos_pendientes = excedentes encolados, pero al completar
+        se recalcula como total - procesados y el panel termina mostrando 0 pendientes con activos en cola."""
+        activos = [ActivoBatchRef(id_activo_biologico=i, fecha_inicio_ciclo=date(2026, 9, d))
+                   for i, d in ((10, 1), (20, 2), (30, 3))]
+        b = _batch(_config(limite_activos=2), activos, criticos={30}, monkeypatch=monkeypatch)
+        ejecucion = asyncio.run(b.uc.ejecutar(tipo_disparo="AUTOMATICO"))
+        assert len(b.uc.cola_repo.encolados) == 1
+>       assert ejecucion.cantidad_activos_pendientes == 1, (
+            f"quedó 1 activo en cola por límite y la corrida informa {ejecucion.cantidad_activos_pendientes} pendientes")
+E       AssertionError: quedó 1 activo en cola por límite y la corrida informa 0 pendientes
+E       assert 0 == 1
+E        +  where 0 = EjecucionBatchICA(tipo_disparo='AUTOMATICO', hora_inicio=datetime.datetime(2026, 11, 11, 5, 8, 21, 304105, tzinfo=date...tc), hora_corte=None, causa_interrupcion=None, id_usuario_disparo=None, id_usuario_interrupcion=None, id_ejecucion=900).cantidad_activos_pendientes
+
+tests\Test_Testing\Test_Modulo5\RF-74\TC-M05-G07\test_tc_m05_g07.py:268: AssertionError
+___________ test_018h_fallo_tecnico_traducido_tambien_se_reintenta ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022DFCB8E110>
+
+    def test_018h_fallo_tecnico_traducido_tambien_se_reintenta(monkeypatch):
+        """En TEST el error de BD llega al batch ya traducido como InfrastructureError (subclase de AppError).
+        El batch trata todo AppError como regla de negocio ("OK", sin reintento ni fallo): por eso las corridas 53 y 54
+        del 2026-11-06 quedaron COMPLETADO con 498 procesados, 0 fallidos y ningún resultado guardado."""
+        from src.shared.errors import InfrastructureError
+        b = _batch(_config(), [ActivoBatchRef(id_activo_biologico=825, fecha_inicio_ciclo=date(2026, 10, 12))],
+                   error=InfrastructureError(code="ERROR_INTERNO", message="permission denied for schema public"),
+                   monkeypatch=monkeypatch)
+        ejecucion = asyncio.run(b.uc.ejecutar(tipo_disparo="AUTOMATICO"))
+>       assert len(b.intentos) == 3, f"un fallo técnico debe reintentarse 3 veces; intentos: {len(b.intentos)}"
+E       AssertionError: un fallo técnico debe reintentarse 3 veces; intentos: 1
+E       assert 1 == 3
+E        +  where 1 = len([(825, <PeriodoEvaluacion.SEMANAL: 'SEMANAL'>, <TipoCalculo.AUTOMATICO: 'AUTOMATICO'>, 1)])
+E        +    where [(825, <PeriodoEvaluacion.SEMANAL: 'SEMANAL'>, <TipoCalculo.AUTOMATICO: 'AUTOMATICO'>, 1)] = namespace(uc=<src.supplies.application.use_cases.eficiencia.ejecutar_batch_ica_use_case.EjecutarBatchICAUseCase object...ct at 0x0000022DFCB8D310>, encolados_ventana=[], sesiones=[<test_tc_m05_g07.SesionFalsa object at 0x0000022DFCB8D9D0>]).intentos
+
+tests\Test_Testing\Test_Modulo5\RF-74\TC-M05-G07\test_tc_m05_g07.py:281: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Test_Testing/Test_Modulo5/RF-74/TC-M05-G07/test_tc_m05_g07.py::test_018c_fallo_persistente_avisa_al_administrador
+FAILED tests/Test_Testing/Test_Modulo5/RF-74/TC-M05-G07/test_tc_m05_g07.py::test_018g_panel_cuenta_los_pendientes_por_limite
+FAILED tests/Test_Testing/Test_Modulo5/RF-74/TC-M05-G07/test_tc_m05_g07.py::test_018h_fallo_tecnico_traducido_tambien_se_reintenta
+3 failed, 5 passed in 2.75s

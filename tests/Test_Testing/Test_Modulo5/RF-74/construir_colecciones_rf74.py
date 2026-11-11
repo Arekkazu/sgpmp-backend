@@ -7,6 +7,7 @@
 # | 2026-11-06 | Juan Manuel      | TC-M05-G29, G30 (RF-78) y G32 (RF-79)             |
 # | 2026-11-06 | Juan Manuel      | TC-M05-G33 a G35 (RF-79)                          |
 # | 2026-11-09 | Juan Manuel      | TC-M05 re-ejecucion: conteos relativos (batch activo), TC-001 con activo nuevo, 046/051/060 con datos reales |
+# | 2026-11-11 | Juan Manuel      | TC-M05 v3: TC-051 excluye eventos sembrados con fecha anterior al 2026-11-07 |
 """Genera las colecciones Newman de M05 (RF-74, RF-75, RF-78 y RF-79; grupos G01 a G35).
 
 Uso (desde esta carpeta):  python construir_colecciones_rf74.py
@@ -1817,7 +1818,11 @@ def g33():
                          WHERE a.tipo_operacion::text = 'PROVISION_INCREMENTAL_ENTREGADA' AND a.id_auditoria_suministro <= {{max_auditoria}}) AS acks
                 FROM modulo5.outbox_provisiones_m06
                 WHERE modalidad::text = 'INCREMENTAL' AND id_gestion_fases IS DISTINCT FROM {{id_fase_activa}}
+                  AND fecha_creacion >= '2026-11-07'
             """, [
+                # Solo eventos creados por la API desde que Suministros vuelve a guardar (2026-11-07, migracion
+                # 35f17c29). Antes no habia escrituras posibles; las filas con fecha anterior (fase 719, activo 1637,
+                # cargadas el 2026-11-10 con fechas de sep/oct) son datos sembrados en la BD, no registros de la API.
                 "const f = filas[0] || {}, pct = Number(f.en_5s) * 100 / Math.max(Number(f.entregados), 1);",
                 "console.log('TC-M05-051 - reales: ' + f.entregados + '/' + f.total + ' entregados, ' + f.en_5s + ' en <= 5 s (' + pct.toFixed(1) + '%), maximo ' + f.seg_max + ' s, ' + f.acks + ' ACK');",
                 "pm.test('TC-M05-051 - hay eventos reales y todos quedaron ENTREGADO', () => { pm.expect(Number(f.total)).to.be.above(0); pm.expect(Number(f.entregados)).to.eql(Number(f.total)); });",

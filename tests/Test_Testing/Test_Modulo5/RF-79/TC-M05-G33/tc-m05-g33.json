@@ -800,7 +800,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT count(*) AS total, count(*) FILTER (WHERE estado::text = 'ENTREGADO') AS entregados, count(*) FILTER (WHERE estado::text = 'ENTREGADO' AND fecha_entrega - fecha_creacion <= interval '5 seconds') AS en_5s, round(max(extract(epoch FROM fecha_entrega - fecha_creacion))::numeric, 2) AS seg_max, (SELECT count(*) FROM modulo5.auditorias_suministros a WHERE a.tipo_operacion::text = 'PROVISION_INCREMENTAL_ENTREGADA' AND a.id_auditoria_suministro <= {{max_auditoria}}) AS acks FROM modulo5.outbox_provisiones_m06 WHERE modalidad::text = 'INCREMENTAL' AND id_gestion_fases IS DISTINCT FROM {{id_fase_activa}}\"}",
+              "raw": "{\"query\": \"SELECT count(*) AS total, count(*) FILTER (WHERE estado::text = 'ENTREGADO') AS entregados, count(*) FILTER (WHERE estado::text = 'ENTREGADO' AND fecha_entrega - fecha_creacion <= interval '5 seconds') AS en_5s, round(max(extract(epoch FROM fecha_entrega - fecha_creacion))::numeric, 2) AS seg_max, (SELECT count(*) FROM modulo5.auditorias_suministros a WHERE a.tipo_operacion::text = 'PROVISION_INCREMENTAL_ENTREGADA' AND a.id_auditoria_suministro <= {{max_auditoria}}) AS acks FROM modulo5.outbox_provisiones_m06 WHERE modalidad::text = 'INCREMENTAL' AND id_gestion_fases IS DISTINCT FROM {{id_fase_activa}} AND fecha_creacion >= '2026-11-07'\"}",
               "options": {
                 "raw": {
                   "language": "json"
