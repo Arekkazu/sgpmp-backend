@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
 """Modelo ORM para la tabla `modulo9.ciclos_biologicos`.
 
 Representa las etapas del ciclo productivo configuradas por especie (RF-16).
@@ -8,7 +11,10 @@ from __future__ import annotations
 import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String
+from decimal import Decimal
+
+from sqlalchemy import (Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, Sequence,
+                        SmallInteger, String, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_model import Base
@@ -59,3 +65,6 @@ class CicloBiologicoModel(Base):
         DateTime(timezone=True),
         comment='Timestamp de última modificación. Usado para concurrencia optimista (FA-07).',
     )
+    densidad_maxima: Mapped[Optional[Decimal]] = mapped_column(Numeric(6, 2))
+    biomasa_maxima: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2))
+    aviso_preventivo_pct: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default=text('90'))

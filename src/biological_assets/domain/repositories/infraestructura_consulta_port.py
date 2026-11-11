@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: el área expone sus especies y la capacidad derivada a M02 (RFC-012) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
 """Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
 
 from __future__ import annotations
@@ -37,6 +38,15 @@ class InfraestructuraConsulta:
     @property
     def id_especies(self) -> list[int]:
         return [e.id_especie for e in self.especies]
+
+
+@dataclass(frozen=True)
+class LimiteEtapa:
+    """Límites de la etapa en que está el lote (RF-16 por etapa, RF-36). Sin ``densidad_maxima``, no limita."""
+    nombre_etapa: str
+    densidad_maxima: Optional[Decimal]  # animales por m²
+    biomasa_maxima: Optional[Decimal]  # kg por m²
+    aviso_preventivo_pct: int
 
 
 class InfraestructuraConsultaPort(ABC):
@@ -89,3 +99,7 @@ class InfraestructuraConsultaPort(ABC):
         compatible por defecto (sin restricción todavía definida para ese tipo).
         Si hay al menos una regla, solo son compatibles las especies listadas.
         """
+
+    def limite_etapa_del_activo(self, id_activo_biologico: int) -> Optional[LimiteEtapa]:
+        """Límites de la etapa de la fase activa del activo (RF-37), o ``None`` si no tiene fase."""
+        return None

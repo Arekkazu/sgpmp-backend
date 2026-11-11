@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """DEF-RF48-02 / INC-M02-40-G28 (RF-36 + RF-48): al transferir un lote
 poblacional a una infraestructura con distinta superficie, `id_infraestructura`
 y el historial se actualizaban correctamente, pero
@@ -95,6 +96,9 @@ class InfraPortFake:
 
     def bloquear_capacidad(self, _id: int) -> None:
         pass
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
         self.asociadas.append((id_infraestructura, id_especie))

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-45: el registro de baja delega el cambio de estado en el componente centralizado.
 
 En una baja total (individual o lote que llega a cero) el use case delega la
@@ -73,6 +74,9 @@ class EventoRepoFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def obtener_activa(self, _id: int):
         return None
 

@@ -6,6 +6,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
+# | 2026-11-10 | Arekkazu | #394 RF-36: la ficha del lote devuelve el estado de su densidad |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -175,6 +176,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoReproductivoResponse,
     EventoSanitarioResponse,
     FichaIntegralResponse,
+    EstadoDensidadLoteResponse,
     FichaLoteResponse,
     GestionFaseResponse,
     HistorialActivoResponse,
@@ -1838,6 +1840,7 @@ def consultar_ficha_lote(
             for r in ficha.historial
         ],
         total_registros_historial=ficha.total_registros_historial,
+        estado_densidad=EstadoDensidadLoteResponse.model_validate(ficha.estado_densidad) if ficha.estado_densidad else None,
     )
 
 

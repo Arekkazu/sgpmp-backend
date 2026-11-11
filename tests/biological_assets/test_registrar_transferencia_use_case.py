@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48: la fecha futura se rechaza como regla funcional con HTTP 422.
 
 E-10 es la última validación del proceso (RF-48 paso 6f) — el control de
@@ -102,6 +103,9 @@ class InfraPortFake:
 
     def bloquear_capacidad(self, _id: int) -> None:
         pass
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def asociar_especie(self, _id_infraestructura: int, _id_especie: int) -> None:
         pass
