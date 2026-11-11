@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89: repositorio append-only de precios de mercado |
+# | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: un precio corregido no avisa vencimiento |
 """Implementación SQL de :class:`PrecioRepository`. ``categoria`` es un arreglo de un solo valor
 (diseño del baseline, ``ck_precio_mercado_categoria_unica``)."""
 from __future__ import annotations
@@ -65,5 +66,7 @@ class SqlAlchemyPrecioRepository(PrecioRepository):
 
     def por_vencer(self, desde: date, hasta: date) -> list[Precio]:
         return [_precio(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.precios_mercado
-                                                       WHERE fecha_vencimiento BETWEEN :d AND :h""",
+                                                       WHERE fecha_vencimiento BETWEEN :d AND :h
+                                                         AND NOT EXISTS (SELECT 1 FROM modulo6.precios_mercado c
+                                                                         WHERE c.id_precio_corregido = precios_mercado.id_precio_mercado)""",
                                           {"d": desde, "h": hasta})]
