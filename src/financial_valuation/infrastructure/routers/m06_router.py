@@ -13,6 +13,7 @@
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82/87: el 403 nombra el rol y queda en la auditoría financiera (#1025 + #1068) |
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: el cierre recibe la decisión por activo sin precio |
+# | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: los períodos los lee quien consulta el estado de resultados o las revelaciones |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -56,7 +57,7 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     ValidarCalculoDTO,
 )
 from src.financial_valuation.infrastructure.factories.m06_factory import M06
-from src.financial_valuation.infrastructure.rbac_auditoria import require_permission_m06
+from src.financial_valuation.infrastructure.rbac_auditoria import require_alguno_m06, require_permission_m06
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.errors import ConflictError, NotFoundError
@@ -428,8 +429,10 @@ def clasificar_costo(id_registro_costo: int, dto: ClasificarCostoDTO, m: M06 = D
 TAG_CIERRE = "M06 · Períodos y cierre"
 
 
-@router.get("/periodos", tags=[TAG_CIERRE], dependencies=[Depends(permiso("cierre_periodo", R))],
-            summary="Períodos contables por titular con su último cierre")
+@router.get("/periodos", tags=[TAG_CIERRE],
+            dependencies=[Depends(require_alguno_m06([("cierre_periodo", R), ("estado_resultados", R), ("revelaciones_nic41", R)],
+                                                     mensaje_denegado=_DENEGADO))],
+            summary="Períodos contables por titular con su último cierre (también para quien solo consulta reportes)")
 def listar_periodos(numero_id_tributaria: Optional[str] = None, m: M06 = Depends(_m06)) -> list[dict]:
     return [{**p.__dict__, "ultimo_cierre": m.periodos.ultima_ejecucion(p.id_periodo_contable)}
             for p in m.periodos.listar(numero_id_tributaria)]

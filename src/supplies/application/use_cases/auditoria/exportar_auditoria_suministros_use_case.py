@@ -4,6 +4,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: conservar UUID y versión de integridad al exportar auditoría. |
+# | 2026-11-10 | Arekkazu | CP111/TC-DIS-208 RF-80: PDF y Excel con encabezados y valores legibles; el PDF ya no recorta columnas |
 """Caso de uso: exportar la bitácora de auditoría de M05 en CSV/Excel/PDF (RF-80, CU-06).
 
 Formatos elegidos por el usuario (no solo CSV, a diferencia del precedente de
@@ -13,6 +14,11 @@ y PDF vía ``reportlab.platypus``, ambas dependencias nuevas del proyecto
 mismo límite de registros exportables (``_LIMITE_EXPORTACION``); no hay modo
 asíncrono para este CU (a diferencia de RF-81) porque el volumen de
 ``auditorias_suministros`` es órdenes de magnitud menor.
+
+El CSV conserva los nombres técnicos de las columnas y los valores crudos: es el
+formato para integraciones. Excel y PDF los leen personas, así que llevan
+encabezados y valores en palabras (mismas 22 columnas, mismo orden que el CSV), y
+el PDF reparte el ancho de la hoja entre las columnas con salto de línea (CP111).
 """
 from __future__ import annotations
 
@@ -25,6 +31,14 @@ from typing import Optional
 from uuid import UUID
 
 from src.shared.errors import ValidationError
+from src.supplies.application.use_cases.exportacion.generador_archivos import (
+    Documento,
+    fecha,
+    generar_excel,
+    generar_pdf,
+    legible,
+    moneda,
+)
 from src.supplies.domain.entities.evento_auditoria_suministro import EventoAuditoriaSuministroConsulta
 from src.supplies.domain.repositories.auditoria_suministro_read_port import (
     AuditoriaSuministroReadPort,
@@ -57,6 +71,84 @@ _CAMPOS = [
     "id_evento_m05",
     "version_hash_integridad",
 ]
+
+# Encabezado legible de cada columna, en el mismo orden que ``_CAMPOS``.
+_ETIQUETAS = {
+    "id_auditoria_suministro": "N.º de evento",
+    "entidad_afectada": "Entidad afectada",
+    "tipo_operacion": "Operación",
+    "id_usuario": "Usuario",
+    "resultado": "Resultado",
+    "fecha_evento": "Fecha y hora",
+    "id_activo_biologico": "Activo",
+    "id_ciclo_productivo": "Ciclo productivo",
+    "id_gestion_fases": "Instancia del ciclo",
+    "costo_afectado": "Costo afectado",
+    "origen_precio": "Origen del precio",
+    "clasificacion_registro": "Clasificación",
+    "retencion_aplicable": "Retención",
+    "hash_integridad": "Huella de integridad",
+    "registro_incompleto": "Registro incompleto",
+    "detalle_causa": "Detalle",
+    "numero_reintentos": "Reintentos",
+    "ip_origen": "IP de origen",
+    "id_sesion": "Sesión",
+    "fecha_emision": "Fecha de emisión",
+    "id_evento_m05": "Identificador del evento",
+    "version_hash_integridad": "Versión de la huella",
+}
+_OPERACION = {
+    "SUMINISTRO_REGISTRADO": "Suministro registrado", "SUMINISTRO_CORREGIDO": "Suministro corregido",
+    "REGISTRO_FALLIDO": "Registro fallido", "CONFLICTO_CONCURRENCIA": "Conflicto de concurrencia",
+    "CICLO_CONSOLIDADO": "Ciclo consolidado", "PROVISION_INCREMENTAL_ENTREGADA": "Provisión entregada",
+    "PROVISION_INCREMENTAL_FALLIDA": "Provisión fallida", "REPORTE_COSTOS_GENERADO": "Reporte de costos generado",
+    "PRECIO_MANUAL_INGRESADO": "Precio manual ingresado", "ACUMULADO_ACTUALIZADO": "Acumulado actualizado",
+    "PROVISION_PENDIENTE": "Provisión pendiente", "CONSULTA_HISTORIAL_EJECUTADA": "Consulta de historial",
+    "EXPORTACION_HISTORIAL_GENERADA": "Exportación generada", "EXPORTACION_HISTORIAL_ELIMINADA": "Exportación eliminada",
+    "REGISTRO": "Registro", "CORRECCION": "Corrección",
+    "INSERT": "Creación", "UPDATE": "Modificación", "DELETE": "Eliminación", "SELECT": "Consulta",
+}
+_RESULTADO = {"EXITOSO": "Exitoso", "FALLIDO": "Fallido", "PARCIAL": "Parcial", "RECHAZADO": "Rechazado", "ADVERTENCIA": "Advertencia"}
+_CLASIFICACION = {"NIC41": "NIC-41 (5 años)", "TECNICO": "Técnico (1 año)"}
+_ORIGEN_PRECIO = {"MANUAL": "Precio manual", "M40_AUTOMATICO": "Precio automático", "CATALOGO": "Catálogo"}
+
+
+def _entidad(nombre: Optional[str]) -> str:
+    """Nombre de tabla o de entidad en palabras: «reporte_gastos_acumulados» → «Reporte gastos acumulados»."""
+    return (nombre or "").replace("_", " ").strip().capitalize()
+
+
+def _legible(campo: str, valor) -> str:
+    if valor is None or valor == "":
+        return ""
+    if campo == "tipo_operacion":
+        return legible(valor, _OPERACION)
+    if campo == "resultado":
+        return legible(valor, _RESULTADO)
+    if campo == "clasificacion_registro":
+        return legible(valor, _CLASIFICACION)
+    if campo == "origen_precio":
+        return legible(valor, _ORIGEN_PRECIO)
+    if campo == "entidad_afectada":
+        return _entidad(valor)
+    if campo == "costo_afectado":
+        return moneda(valor)
+    if campo in ("fecha_evento", "fecha_emision"):
+        return fecha(valor)
+    if campo == "registro_incompleto":
+        return "Sí" if valor else "No"
+    return str(valor)
+
+
+def _documento(items: list[EventoAuditoriaSuministroConsulta]) -> Documento:
+    filas = [[_legible(campo, getattr(e, campo)) for campo in _CAMPOS] for e in items]
+    return Documento(
+        titulo="Bitácora de auditoría de suministros",
+        columnas=[_ETIQUETAS[c] for c in _CAMPOS],
+        filas=filas,
+        encabezado=[f"Total de registros: {len(items)}"],
+    )
+
 
 _FORMATOS_VALIDOS = {"csv", "xlsx", "pdf"}
 
@@ -121,56 +213,7 @@ class ExportarAuditoriaSuministrosUseCase:
         return output.getvalue()
 
     def _a_xlsx(self, items: list[EventoAuditoriaSuministroConsulta]) -> bytes:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font
-
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Auditoria Suministros"
-        ws.append(_CAMPOS)
-        for cell in ws[1]:
-            cell.font = Font(bold=True)
-        for e in items:
-            fila = _evento_a_dict(e)
-            ws.append([fila[campo] for campo in _CAMPOS])
-        for columna in ws.columns:
-            largo_max = max((len(str(c.value)) for c in columna if c.value is not None), default=10)
-            ws.column_dimensions[columna[0].column_letter].width = min(largo_max + 2, 40)
-
-        buffer = io.BytesIO()
-        wb.save(buffer)
-        return buffer.getvalue()
+        return generar_excel(_documento(items))
 
     def _a_pdf(self, items: list[EventoAuditoriaSuministroConsulta]) -> bytes:
-        from reportlab.lib import colors
-        from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
-        styles = getSampleStyleSheet()
-        elementos = [
-            Paragraph("Bitácora de Auditoría — Suministros", styles["Title"]),
-            Paragraph(f"Generado: {datetime.now(timezone.utc).isoformat()}", styles["Normal"]),
-            Paragraph(f"Total de registros: {len(items)}", styles["Normal"]),
-            Spacer(1, 12),
-        ]
-        filas = [_CAMPOS] + [
-            [str(_evento_a_dict(e).get(campo) or "") for campo in _CAMPOS] for e in items
-        ]
-        tabla = Table(filas, repeatRows=1)
-        tabla.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                    ("FONTSIZE", (0, 0), (-1, -1), 6),
-                    ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")]),
-                ]
-            )
-        )
-        elementos.append(tabla)
-        doc.build(elementos)
-        return buffer.getvalue()
+        return generar_pdf(_documento(items), datetime.now(timezone.utc))

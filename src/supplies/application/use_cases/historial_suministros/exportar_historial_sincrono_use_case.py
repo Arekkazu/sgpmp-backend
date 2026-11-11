@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: PDF/Excel, 202 > 10.000, firma     |
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
+# | 2026-11-10 | Arekkazu         | CP088 RF-81: PDF y Excel con encabezados, fechas, montos y catálogos en palabras; sin recorte |
 """Caso de uso: exportar el historial de suministros a PDF o Excel (RF-81 Fase 6).
 
 - ≤ 10.000 registros: archivo síncrono (≤ 10 s).
@@ -28,8 +29,12 @@ from sqlalchemy.orm import Session
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
 from src.supplies.application.use_cases.exportacion.generador_archivos import (
     Documento,
+    fecha,
     generar_excel,
     generar_pdf,
+    legible,
+    moneda,
+    numero,
 )
 from src.supplies.domain.entities.historial_suministro import FiltrosHistorialSuministro, LineaHistorialSuministro
 from src.supplies.domain.entities.trabajo_historial_suministro import TrabajoHistorialSuministro
@@ -65,6 +70,26 @@ _COLUMNAS = [
     "estado_ciclo",
     "observacion",
 ]
+
+
+# Lo que lee una persona en el PDF y el Excel; la firma se calcula sobre los valores originales.
+_ETIQUETAS = [
+    "Id. del registro", "Tipo", "Operación", "Descripción", "Fecha", "Cantidad", "Unidad", "Precio unitario",
+    "Costo", "Origen del precio", "Activo", "Especie", "Ciclo", "Estado del ciclo", "Observación",
+]
+_TIPO = {"ALIMENTO": "Alimento", "MEDICAMENTO": "Medicamento", "SERVICIO_VETERINARIO": "Servicio veterinario",
+         "INSEMINACION": "Inseminación", "TODOS": "Todos"}
+_OPERACION = {"REGISTRO": "Registro", "CORRECCION": "Corrección"}
+_ORIGEN = {"MANUAL": "Precio manual", "M40_AUTOMATICO": "Precio automático", "CATALOGO": "Catálogo", "TODOS": "Todos"}
+
+
+def _fila_legible(l: LineaHistorialSuministro) -> list:
+    return [
+        l.id_registro_suministro, legible(l.tipo_suministro, _TIPO), legible(l.tipo_operacion, _OPERACION), l.descripcion,
+        fecha(l.fecha_aplicacion), numero(l.cantidad, 3), l.unidad_medida, moneda(l.precio_unitario), moneda(l.costo_registro),
+        legible(l.origen_precio, _ORIGEN), l.nombre_activo or "", l.especie or "", l.nombre_ciclo or "",
+        legible(l.estado_ciclo), l.observacion or "",
+    ]
 
 
 def _fila(l: LineaHistorialSuministro) -> list:
@@ -157,26 +182,29 @@ class ExportarHistorialSincronoUseCase:
         filas = [_fila(l) for l in resultado.lineas]
         firma = hashlib.sha256("\n".join("|".join(map(str, f)) for f in filas).encode("utf-8")).hexdigest()
         primera = resultado.lineas[0] if resultado.lineas else None
+        ciclos = {l.id_ciclo_productivo: l.nombre_ciclo for l in resultado.lineas if l.nombre_ciclo}
+        rango = (f"{fecha(filtros.fecha_inicio_filtro) or 'el inicio'} a {fecha(filtros.fecha_fin_filtro) or 'hoy'}"
+                 if filtros.fecha_inicio_filtro or filtros.fecha_fin_filtro else "todas")
         documento = Documento(
             titulo="Historial de Suministros",
-            columnas=_COLUMNAS,
-            filas=filas,
+            columnas=_ETIQUETAS,
+            filas=[_fila_legible(l) for l in resultado.lineas],
             encabezado=[
-                f"Activo: {filtros.id_activo_biologico}"
-                + (f" — {primera.nombre_activo} ({primera.especie})" if primera else ""),
-                f"Filtros: ciclo={filtros.id_ciclo_productivo or 'TODOS'}, "
-                f"fechas={filtros.fecha_inicio_filtro or '-'}..{filtros.fecha_fin_filtro or '-'}, "
-                f"tipo={filtros.tipo_suministro_filtro}, origen={filtros.origen_precio_filtro}",
+                "Activo: " + (f"{primera.nombre_activo} ({primera.especie})" if primera and primera.nombre_activo
+                              else f"N.º {filtros.id_activo_biologico}"),
+                f"Filtros · ciclo: {ciclos.get(filtros.id_ciclo_productivo, 'todos') if filtros.id_ciclo_productivo else 'todos'}"
+                f" · fechas: {rango} · tipo: {legible(filtros.tipo_suministro_filtro, _TIPO).lower()}"
+                f" · origen del precio: {legible(filtros.origen_precio_filtro, _ORIGEN).lower()}",
                 f"Total de registros: {resultado.total_registros_filtrados} · "
-                f"Monto total: {resultado.monto_total_filtrado} COP",
+                f"Monto total: {moneda(resultado.monto_total_filtrado)}",
             ],
             pie=[
-                *(f"Subtotal {tipo}: {d['monto']} COP ({d['total']} registros)"
+                *(f"Subtotal {legible(tipo, _TIPO).lower()}: {moneda(d['monto'])} ({d['total']} registros)"
                   for tipo, d in resultado.desglose_por_tipo_suministro.items()),
-                *(f"Subtotal ciclo {ciclo}: {d['monto']} COP ({d['total']} registros)"
+                *(f"Subtotal del ciclo {ciclos.get(ciclo, 'sin nombre')}: {moneda(d['monto'])} ({d['total']} registros)"
                   for ciclo, d in resultado.desglose_por_ciclo.items()),
                 f"Firma del sistema (SHA-256): {firma}",
-                f"Generado por SIGAB: {ahora.isoformat(timespec='seconds')}",
+                "Generado por SIGAB",
             ],
         )
         contenido = generar_pdf(documento, ahora) if formato == "PDF" else generar_excel(documento)

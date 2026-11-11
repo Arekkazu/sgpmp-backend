@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas y parámetros      |
+# | 2026-11-10 | Arekkazu         | H-M05-19 RF-77: mensaje sin datos sin ids ni nombres de columna |
 """Entidades del reporte de gastos acumulados (RF-77 / CU-04).
 
 Python puro, sin SQLAlchemy ni FastAPI. ``ReporteGasto`` es el agregado de
@@ -155,12 +156,12 @@ class ReporteGasto:
         if not self.sin_datos:
             return None
         alcance = (
-            f"el activo {self.id_activo_biologico}" if self.id_activo_biologico is not None
-            else f"la infraestructura {self.id_infraestructura}" if self.id_infraestructura is not None
-            else f"la especie {self.id_especie}"
+            "el activo elegido" if self.id_activo_biologico is not None
+            else "la infraestructura elegida" if self.id_infraestructura is not None
+            else "la especie elegida"
         )
         return (
             f"No se encontraron registros de gastos con costo registrado para {alcance} en el período "
-            f"{self.fecha_inicio.isoformat()} – {self.fecha_fin.isoformat()}. Verifique que los registros "
-            "tengan costo_unitario definido."
+            f"{self.fecha_inicio:%d/%m/%Y} – {self.fecha_fin:%d/%m/%Y}. Verifique que los registros "
+            "tengan su costo por unidad."
         )

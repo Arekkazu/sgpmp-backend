@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: require_permission_sobre ubica el recurso por nombre |
 # | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87 FA-4: el 403 puede nombrar el rol del usuario |
+# | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: permiso «alguno de» por nombre de recurso |
 """Control de acceso basado en roles (RBAC) para endpoints FastAPI.
 
 Provee la dependencia ``require_permission`` que verifica en tiempo de
@@ -131,6 +132,26 @@ def require_permission_sobre(nombre_recurso: str, id_accion: int, *, mensaje_den
         _exigir_permiso(
             usuario_actual,
             lambda: tiene_permiso_sobre(db, usuario_actual.id_rol, nombre_recurso, id_accion),
+            mensaje_denegado,
+            db,
+        )
+
+    return dependency
+
+
+def require_alguno_sobre(pares: list[tuple[str, int]], *, mensaje_denegado: Optional[str] = None) -> Callable:
+    """Pasa si el rol tiene al menos uno de los permisos ``(nombre_recurso, id_accion)``.
+
+    Para lecturas de contexto que comparten varias pantallas (p. ej. los períodos contables,
+    que necesitan tanto quien cierra como quien solo consulta el estado de resultados).
+    """
+    def dependency(
+        db: Session = Depends(get_db),
+        usuario_actual: UsuarioActual = Depends(get_current_user),
+    ) -> None:
+        _exigir_permiso(
+            usuario_actual,
+            lambda: any(tiene_permiso_sobre(db, usuario_actual.id_rol, r, a) for r, a in pares),
             mensaje_denegado,
             db,
         )
