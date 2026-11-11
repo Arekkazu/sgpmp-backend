@@ -52,7 +52,7 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-11 (TC-
 
 ### TC-92-083 — Verificar la matriz de roles de la guía: el Contador genera y aprueba; el Administrador y el Revisor Fiscal tienen solo lectura sobre Finanzas; el Productor solo lee revelaciones ya aprobadas
 - **Tipo:** Seguridad / autorización · **Prioridad:** Crítica · **Ejecutable:** Sí. El Administrador lee según la guía (la matriz de permisos del código no le da lectura de revelaciones); el Productor lee según RF-92 Salida 3.
-- **Pasos:** «TC-92-083 Contador genera (permitido; 404/422 por periodo inexistente)»; «TC-92-083 Administrador tiene lectura de informes segun la guia (404 por id inexistente, no 403)»; «TC-92-083 Productor tiene lectura de informes segun RF-92 Salida 3 (404 por id inexistente, no 403)»; «TC-92-083 Administrador consulta un APROBADO (solo lectura)»; «TC-92-083 Administrador aprueba -> 403»; «TC-92-083 Productor consulta un APROBADO (permitido segun la guia)»; «TC-92-083 Productor consulta un BORRADOR -> 403».
+- **Pasos:** «TC-92-083 Contador genera (permitido; 404/422 por periodo inexistente)»; «TC-92-083 Administrador tiene lectura de informes segun la guia (404 por id inexistente, no 403)»; «TC-92-083 Productor tiene lectura de informes segun RF-92 Salida 3 (404 por id inexistente, no 403)»; «TC-92-083 Administrador consulta un APROBADO (solo lectura)»; «TC-92-083 Administrador aprueba -> 403»; «TC-92-083 Productor consulta un APROBADO (permitido segun la guia)»; «TC-92-083 Productor consulta un BORRADOR -> 403 o 404 (no lo ve)».
 - **Esperado (matriz):** que una sección sin permiso no aparezca y que, entrando por URL, salga «Sin acceso».
 
 ## Ejecución automatizada

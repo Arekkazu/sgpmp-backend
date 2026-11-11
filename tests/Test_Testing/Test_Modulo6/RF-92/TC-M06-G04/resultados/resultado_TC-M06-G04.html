@@ -469,10 +469,10 @@ body.theme-light code {
                 <a class="nav-link text-white" id="pills-summary-tab" data-toggle="pill" href="#pills-summary" role="tab" aria-controls="pills-summary" aria-selected="true">Summary</a>
             </li>
             <li class="nav-item bg-success" data-toggle="tooltip" title="Click to view the Requests">
-                <a class="nav-link text-white" id="pills-requests-tab" data-toggle="pill" href="#pills-requests" role="tab" aria-controls="pills-requests" aria-selected="false">Total Requests <span class="badge badge-light">7</span></a>
+                <a class="nav-link text-white" id="pills-requests-tab" data-toggle="pill" href="#pills-requests" role="tab" aria-controls="pills-requests" aria-selected="false">Total Requests <span class="badge badge-light">26</span></a>
             </li>
             <li class="nav-item bg-danger" data-toggle="tooltip" title="Click to view the Failed Tests">
-                <a class="nav-link text-white" id="pills-failed-tab" data-toggle="pill" href="#pills-failed" role="tab" aria-controls="pills-failed" aria-selected="false">Failed Tests <span class="badge badge-light">0</span></a>
+                <a class="nav-link text-white" id="pills-failed-tab" data-toggle="pill" href="#pills-failed" role="tab" aria-controls="pills-failed" aria-selected="false">Failed Tests <span class="badge badge-light">1</span></a>
             </li>
             <li class="nav-item bg-warning" data-toggle="tooltip" title="Click to view the Skipped Tests">
                 <a class="nav-link text-white" id="pills-skipped-tab" data-toggle="pill" href="#pills-skipped" role="tab" aria-controls="pills-skipped" aria-selected="false">Skipped Tests <span class="badge badge-light">0</span></a>
@@ -483,11 +483,11 @@ body.theme-light code {
 <div class="row">
   <div class="col-md-9 col-lg-12 main">
    <h1 class="display-2 text-center">Newman Run Dashboard</h1>
-   <h5 class="text-center">Saturday, 07 November 2026 14:07:03</h5>
+   <h5 class="text-center">Tuesday, 10 November 2026 13:15:12</h5>
    <div class="row">
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-success">
-      <div class="card-body bg-success">
+      <div class="card-body bg-danger">
        <div class="rotate">
         <i class="fa fa-retweet fa-5x"></i>
        </div>
@@ -503,18 +503,18 @@ body.theme-light code {
         <i class="fa fa-list fa-4x"></i>
        </div>
        <h6 class="text-uppercase">Total Assertions</h6>
-       <h1 class="display-1">9</h1>
+       <h1 class="display-1">22</h1>
       </div>
      </div>
     </div>
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-info">
-      <div class="card-body bg-success">
+      <div class="card-body bg-danger">
        <div class="rotate">
         <i class="fa fa-plus-circle fa-5x"></i>
        </div>
        <h6 class="text-uppercase">Total Failed Tests</h6>
-       <h1 class="display-1">0</h1>
+       <h1 class="display-1">1</h1>
       </div>
      </div>
     </div>
@@ -562,9 +562,9 @@ body.theme-light code {
             <div class="card border-info">
                 <div class="card-body">
                 <h5 class="card-title text-uppercase text-white text-center bg-info">Timings and Data</h5>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 1594ms<br>
-                <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 1.59KB<br>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 277ms<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 3.6s<br>
+                <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 102.22KB<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 186ms<br>
                 </div>
             </div>
         </div>
@@ -583,7 +583,7 @@ body.theme-light code {
                 <tbody>
                     <tr>
                         <td>Requests</td>
-                        <td class="text-center">7</td>
+                        <td class="text-center">26</td>
                         <td class="text-center">0</td>
                     </tr>
                     <tr>
@@ -593,13 +593,13 @@ body.theme-light code {
                     </tr>
                     <tr>
                         <td>Test Scripts</td>
-                        <td class="text-center">3</td>
+                        <td class="text-center">5</td>
                         <td class="text-center">0</td>
                     </tr>
-                    <tr class="">
+                    <tr class="table-danger">
                         <td>Assertions</td>
-                        <td class="text-center">9</td>
-                        <td class="text-center">0</td>
+                        <td class="text-center">22</td>
+                        <td class="text-center">1</td>
                     </tr>
                     <tr class="">
                         <td>Skipped Tests</td>
@@ -620,9 +620,36 @@ body.theme-light code {
             <div class="tab-pane fade" id="pills-failed" role="tabcard" aria-labelledby="pills-failed-tab">
                 <button id="topOfFailuresScreen" class="btn btn-outline-success btn-sm backToTop" onclick="topFunction()">Go To Top</button>
 
-                <div class="alert alert-success text-uppercase text-center">
-                     <br><br><h1 class="text-center">There are no failed tests <span><i class="far fa-thumbs-up"></i></span></h1><br><br>
-                </div>
+                    <div class="btn-group float-right" role="group" aria-label="Button Group">
+                        <button id="openAllFailed" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 185px;">Expand All Failed Tests</button>
+                    </div>
+                    <br>
+                    <br>
+
+                    <div class="alert alert-danger text-uppercase text-center">
+                        <h4>Showing 1 Failure</h4>
+                    </div>
+                    <div class="col-sm-12 mb-3">
+                    <div class="card-deck">
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger">
+                                <a data-toggle="collapse" href="#" data-target="#fails-collapse-5278fca2-2834-4eb6-ab03-855e7316672a" aria-expanded="false" aria-controls="collapse" id="fails-5278fca2-2834-4eb6-ab03-855e7316672a" class="collapsed text-white z-block">
+                                    Iteration 1 - AssertionError - TC-M06-G04 - RF-92 Cuadre matemático del rollforward por activo individual y agregado (CA-4, Párr. 50) - TC-92-018..024 Cuadre del rollforward (APROBADO) <i class="float-lg-right fa fa-chevron-down" style="padding-top:5px;"></i>
+                                </a>
+                            </div>
+                            <div id="fails-collapse-5278fca2-2834-4eb6-ab03-855e7316672a" class="collapse" aria-labelledby="fails-5278fca2-2834-4eb6-ab03-855e7316672a">
+                            <div class="card-body">
+                                <h5 ><strong>Failed Test:</strong> TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas &#x3D; cierre</h5>
+                            <hr>
+                            <h5 class="card-title text-uppercase text-white text-center bg-danger">Assertion Error Message</h5>
+                            <div>
+                                <pre><code >activo QA-M06-BOV-01: 2788980.00 vs 2954796: expected 165816 to be at most 0.01</code></pre>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
             </div>
 
             <div class="tab-pane fade" id="pills-skipped" role="tabcard" aria-labelledby="pills-skipped-tab">
@@ -637,6 +664,7 @@ body.theme-light code {
             <button id="topOfRequestsScreen" class="btn btn-outline-success btn-sm backToTop" onclick="topFunction()">Go To Top</button>
 
             <div class="btn-group float-right" role="group" aria-label="Button Group">
+                <button id="showOnlyFailures" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width:160px;">Show Failed Iterations</button>
                 <button id="openAll" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 140px;">Expand Folders</button>
                 <button id="openAllRequests" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 140px;">Expand Requests</button>
             </div>
@@ -651,16 +679,16 @@ body.theme-light code {
     </div>
     <h6 class="text-uppercase text-muted" id="iterationSelected" style="padding-top: 10px;"></h6>
 	<div class="tab-content" id="execution-data">
-            <div id="folder-83e84a2e-4726-42f8-bea7-e70072be6935" class="card-deck iteration-0">
+            <div id="folder-de18003c-fafc-473e-b2fb-0223ef5efce4" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-83e84a2e-4726-42f8-bea7-e70072be6935" aria-expanded="false" aria-controls="collapse" id="requests-83e84a2e-4726-42f8-bea7-e70072be6935" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-de18003c-fafc-473e-b2fb-0223ef5efce4" aria-expanded="false" aria-controls="collapse" id="requests-de18003c-fafc-473e-b2fb-0223ef5efce4" class="collapsed text-white z-block">
                     Iteration: 1 - Login cont <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-83e84a2e-4726-42f8-bea7-e70072be6935" class="collapse" aria-labelledby="requests-83e84a2e-4726-42f8-bea7-e70072be6935">
+                    <div id="collapse-de18003c-fafc-473e-b2fb-0223ef5efce4" class="collapse" aria-labelledby="requests-de18003c-fafc-473e-b2fb-0223ef5efce4">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -676,7 +704,7 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 644ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 600ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 406B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -720,7 +748,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">dc987113-3763-4d18-9113-29007eb119f7</td>
+                                                        <td class="text-wrap">63491c64-cede-4eff-b5b1-5e017d4b9fed</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -794,7 +822,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Sat, 07 Nov 2026 19:07:02 GMT</td>
+                                                    <td class="text-wrap">Tue, 10 Nov 2026 18:15:08 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -818,7 +846,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">1e4c89c2-f658-4129-8e00-dfe3d0d9c0c7</td>
+                                                    <td class="text-wrap">10c00ef2-e616-4b51-a8c1-0e625765ee54</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -835,10 +863,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-9a40fd0a-801e-4fc7-a4b1-333b3bc94ca4" class="prettyPrint">{&quot;token&quot;:&quot;***TOKEN_OCULTO***&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28799,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
+                                                <pre><code id="copyText-b70e4451-5aba-4456-8c25-164db24ed5f1" class="prettyPrint">{&quot;token&quot;:&quot;***TOKEN_OCULTO***&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28799,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-9a40fd0a-801e-4fc7-a4b1-333b3bc94ca4">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-b70e4451-5aba-4456-8c25-164db24ed5f1">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -909,16 +937,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-caf595f3-2b92-4fab-9d5c-c99c7719583f" class="card-deck iteration-0">
+            <div id="folder-da1bfa95-ca68-421b-8042-36338144c36a" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f" aria-expanded="false" aria-controls="collapse" id="requests-caf595f3-2b92-4fab-9d5c-c99c7719583f" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-da1bfa95-ca68-421b-8042-36338144c36a" aria-expanded="false" aria-controls="collapse" id="requests-da1bfa95-ca68-421b-8042-36338144c36a" class="collapsed text-white z-block">
                     Iteration: 1 - Descubrir periodos contables (Contador) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f" class="collapse" aria-labelledby="requests-caf595f3-2b92-4fab-9d5c-c99c7719583f">
+                    <div id="collapse-da1bfa95-ca68-421b-8042-36338144c36a" class="collapse" aria-labelledby="requests-da1bfa95-ca68-421b-8042-36338144c36a">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -927,252 +955,14 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://api.inmero.co/api-sgpmp-test/finanzas/periodos" target="_blank">https://api.inmero.co/api-sgpmp-test/finanzas/periodos</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://api.inmero.co/api-sgpmp-test/finanzas/lineas?id_periodo_contable&#x3D;3" target="_blank">https://api.inmero.co/api-sgpmp-test/finanzas/lineas?id_periodo_contable&#x3D;3</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 138ms</span><br>
-                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 1.18KB</span><br>
-                                    <hr>
-                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
-                                    <div>
-                                        <div class="progress" style="height: 40px;">
-                                            <div class="progress-bar  bg-success" style="width: 100%" role="progressbar">
-                                            <h5 style="padding-top:5px;"><strong>100 %</strong></h5>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-12 mb-3">
-                                <div class="card-deck">
-                                <div class="card border-info" style="width: 50rem;">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-uppercase text-white text-center bg-info">Request Headers</h5>
-                                        <div class="table-responsive">
-                                            <table class="table table-bordered">
-                                            <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td class="text-nowrap">Content-Type</td>
-                                                        <td class="text-wrap">application/json</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer ***TOKEN_OCULTO***</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">User-Agent</td>
-                                                        <td class="text-wrap">PostmanRuntime/7.39.1</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Accept</td>
-                                                        <td class="text-wrap">*/*</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Cache-Control</td>
-                                                        <td class="text-wrap">no-cache</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">92f704c7-6191-441c-8a04-05d52c734b5a</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Host</td>
-                                                        <td class="text-wrap">api.inmero.co</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Accept-Encoding</td>
-                                                        <td class="text-wrap">gzip, deflate, br</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Connection</td>
-                                                        <td class="text-wrap">keep-alive</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="text-nowrap">Cookie</td>
-                                                        <td class="text-wrap">refresh_token&#x3D;***</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                        <div class="col-sm-12 mb-3">
-                            <div class="card-deck">
-                            <div class="card border-info" style="width: 50rem;">
-                                <div class="card-body">
-                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Headers</h5>
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered">
-                                        <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="text-nowrap">Alt-Svc</td>
-                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">Content-Length</td>
-                                                    <td class="text-wrap">1213</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">Content-Security-Policy</td>
-                                                    <td class="text-wrap">default-src &#x27;none&#x27;</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">Content-Type</td>
-                                                    <td class="text-wrap">application/json</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Sat, 07 Nov 2026 19:07:02 GMT</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">Server</td>
-                                                    <td class="text-wrap">uvicorn</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">Strict-Transport-Security</td>
-                                                    <td class="text-wrap">max-age&#x3D;63072000; includeSubDomains</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">X-Content-Type-Options</td>
-                                                    <td class="text-wrap">nosniff</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">X-Frame-Options</td>
-                                                    <td class="text-wrap">DENY</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">44d312c2-932b-49f3-a30c-97a37b5d2720</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                        </div>
-                        <div class="row">
-                        <div class="col-sm-12 mb-3">
-                            <div class="card-deck">
-                            <div class="card border-info" style="width: 50rem;">
-                                <div class="card-body">
-                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
-                                        <div class="dyn-height">
-                                                <pre><code id="copyText-dbe4f86e-f981-4b99-8be6-48fb2b2bb20c" class="prettyPrint">[{&quot;id_periodo_contable&quot;:1,&quot;numero_id_tributaria&quot;:null,&quot;tipo_cierre&quot;:&quot;MENSUAL&quot;,&quot;fecha_inicio&quot;:&quot;2026-05-10&quot;,&quot;fecha_fin&quot;:&quot;2026-05-11&quot;,&quot;estado&quot;:&quot;ABIERTO&quot;,&quot;fecha_cierre&quot;:null,&quot;ultimo_cierre&quot;:null},{&quot;id_periodo_contable&quot;:2,&quot;numero_id_tributaria&quot;:null,&quot;tipo_cierre&quot;:&quot;MENSUAL&quot;,&quot;fecha_inicio&quot;:&quot;2026-05-10&quot;,&quot;fecha_fin&quot;:&quot;2026-06-10&quot;,&quot;estado&quot;:&quot;CERRADO&quot;,&quot;fecha_cierre&quot;:null,&quot;ultimo_cierre&quot;:null},{&quot;id_periodo_contable&quot;:6,&quot;numero_id_tributaria&quot;:null,&quot;tipo_cierre&quot;:&quot;TRIMESTRAL&quot;,&quot;fecha_inicio&quot;:&quot;2024-10-01&quot;,&quot;fecha_fin&quot;:&quot;2024-12-31&quot;,&quot;estado&quot;:&quot;ABIERTO&quot;,&quot;fecha_cierre&quot;:null,&quot;ultimo_cierre&quot;:null},{&quot;id_periodo_contable&quot;:5,&quot;numero_id_tributaria&quot;:null,&quot;tipo_cierre&quot;:&quot;TRIMESTRAL&quot;,&quot;fecha_inicio&quot;:&quot;2024-07-01&quot;,&quot;fecha_fin&quot;:&quot;2024-09-30&quot;,&quot;estado&quot;:&quot;CERRADO&quot;,&quot;fecha_cierre&quot;:&quot;2024-10-10T15:00:00Z&quot;,&quot;ultimo_cierre&quot;:null},{&quot;id_periodo_contable&quot;:4,&quot;numero_id_tributaria&quot;:null,&quot;tipo_cierre&quot;:&quot;TRIMESTRAL&quot;,&quot;fecha_inicio&quot;:&quot;2024-04-01&quot;,&quot;fecha_fin&quot;:&quot;2024-06-30&quot;,&quot;estado&quot;:&quot;CERRADO&quot;,&quot;fecha_cierre&quot;:&quot;2024-07-08T16:30:00Z&quot;,&quot;ultimo_cierre&quot;:null},{&quot;id_periodo_contable&quot;:3,&quot;numero_id_tributaria&quot;:null,&quot;tipo_cierre&quot;:&quot;TRIMESTRAL&quot;,&quot;fecha_inicio&quot;:&quot;2024-01-01&quot;,&quot;fecha_fin&quot;:&quot;2024-03-31&quot;,&quot;estado&quot;:&quot;CERRADO&quot;,&quot;fecha_cierre&quot;:&quot;2024-04-05T17:00:00Z&quot;,&quot;ultimo_cierre&quot;:null}]</code></pre>
-                                        </div>
-                                        <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-dbe4f86e-f981-4b99-8be6-48fb2b2bb20c">Copy to Clipboard</button>
-                                        </div>
-                                </div>
-                            </div>
-                            </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="card border-info">
-                                <div class="card-body">
-                                <h5 class="card-title text-uppercase text-white text-center bg-info">Test Information</h5>
-                                    <div class="table-responsive text-nowrap">
-                                        <table class="datatable table table-hover">
-                                        <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
-                                            <tbody>
-                                                <tr >
-                                                    <td >HTTP 200</td>
-                                                    <td class="text-center bg-success">1</td>
-                                                    <td class="text-center ">0</td>
-                                                    <td class="text-center ">0</td>
-                                                </tr>
-                                                <tr >
-                                                    <td >sin error 5xx</td>
-                                                    <td class="text-center bg-success">1</td>
-                                                    <td class="text-center ">0</td>
-                                                    <td class="text-center ">0</td>
-                                                </tr>
-                                                <tr >
-                                                    <td >sin stack trace</td>
-                                                    <td class="text-center bg-success">1</td>
-                                                    <td class="text-center ">0</td>
-                                                    <td class="text-center ">0</td>
-                                                </tr>
-                                            </tbody>
-                                            <tfoot>
-                                                <tr class="bg-light">
-                                                    <td><strong>Total</strong></td>
-                                                    <td class="text-center">3</td>
-                                                    <td class="text-center">0</td>
-                                                    <td class="text-center">0</td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                    <div class="row d-none">
-                                    <div class="col-sm-12 mb-3">
-                                        <div class="card-deck">
-                                        <div class="card border-danger" style="width: 50rem;">
-                                            <div class="card-body">
-                                                <h5 class="card-title text-uppercase text-white text-center bg-danger">Test Failure</h5>
-                                                <div class="table-responsive">
-                                                    <table class="table table-hover">
-                                                    <thead><tr class="text-nowrap"><th>Test Name</th><th>Assertion Error</th></tr></thead>
-                                                        <tbody>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-                </div>
-            </div>
-            </div>
-            <div id="folder-0b8732bd-de36-4f84-82b3-cc66a7310203" class="card-deck iteration-0">
-            <div class="row iteration-0">
-                <div class="col-sm-12 mb-3 iteration-0">
-                <div class="card iteration-0">
-                    <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-0b8732bd-de36-4f84-82b3-cc66a7310203" aria-expanded="false" aria-controls="collapse" id="requests-0b8732bd-de36-4f84-82b3-cc66a7310203" class="collapsed text-white z-block">
-                    Iteration: 1 - Descubrir informes de revelaciones (Contador) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
-                </a>
-                    </div>
-                    <div id="collapse-0b8732bd-de36-4f84-82b3-cc66a7310203" class="collapse" aria-labelledby="requests-0b8732bd-de36-4f84-82b3-cc66a7310203">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-sm-12 mb-3">
-                                <div class="card-deck">
-                                <div class="card border-info" style="width: 50rem;">
-                                    <div class="card-body">
-                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://api.inmero.co/api-sgpmp-test/finanzas/periodos/4/revelaciones" target="_blank">https://api.inmero.co/api-sgpmp-test/finanzas/periodos/4/revelaciones</a><br>
-                                    </div>
-                                </div>
-                                <div class="card border-info" style="width: 50rem;">
-                                    <div class="card-body">
-                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 314ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 107ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 2B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -1216,7 +1006,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">0babb93c-26a7-409e-8467-77e2cd1aa3cd</td>
+                                                        <td class="text-wrap">5eae1239-4310-44f8-9279-3f023fa2ca40</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1270,7 +1060,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Sat, 07 Nov 2026 19:07:03 GMT</td>
+                                                    <td class="text-wrap">Tue, 10 Nov 2026 18:15:10 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1290,7 +1080,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">09097a4a-56bb-49ac-aa82-3ce722b9acb2</td>
+                                                    <td class="text-wrap">f4d3b42c-b9ab-4aaf-ad12-f8a8aa1a9ce2</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1307,10 +1097,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-1561174a-bdec-4e02-947e-80ec2a5de086" class="prettyPrint">[]</code></pre>
+                                                <pre><code id="copyText-45ab7a28-267c-435a-9bd9-14ef66741a9e" class="prettyPrint">[]</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-1561174a-bdec-4e02-947e-80ec2a5de086">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-45ab7a28-267c-435a-9bd9-14ef66741a9e">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1327,19 +1117,25 @@ body.theme-light code {
                                             <tbody>
                                                 <tr >
                                                     <td >HTTP 200</td>
-                                                    <td class="text-center bg-success">5</td>
+                                                    <td class="text-center bg-success">15</td>
                                                     <td class="text-center ">0</td>
                                                     <td class="text-center ">0</td>
                                                 </tr>
                                                 <tr >
                                                     <td >sin error 5xx</td>
-                                                    <td class="text-center bg-success">5</td>
+                                                    <td class="text-center bg-success">15</td>
                                                     <td class="text-center ">0</td>
                                                     <td class="text-center ">0</td>
                                                 </tr>
                                                 <tr >
                                                     <td >sin stack trace</td>
-                                                    <td class="text-center bg-success">5</td>
+                                                    <td class="text-center bg-success">15</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >Descubrimiento: lineas por periodo {&quot;1&quot;:0,&quot;2&quot;:0,&quot;3&quot;:0,&quot;4&quot;:0,&quot;5&quot;:0,&quot;6&quot;:0,&quot;7&quot;:14,&quot;8&quot;:8,&quot;219&quot;:3,&quot;220&quot;:4,&quot;241&quot;:86,&quot;253&quot;:2,&quot;258&quot;:0,&quot;260&quot;:0} | ms por consulta {&quot;1&quot;:104,&quot;2&quot;:109,&quot;3&quot;:107,&quot;4&quot;:106,&quot;5&quot;:109,&quot;6&quot;:113,&quot;7&quot;:112,&quot;8&quot;:114,&quot;219&quot;:112,&quot;220&quot;:116,&quot;241&quot;:210,&quot;253&quot;:107,&quot;258&quot;:114,&quot;260&quot;:111} | tipo:estado {&quot;IOT_DIRECTO:PENDIENTE_TRAZABILIDAD&quot;:1,&quot;IOT_DIRECTO:VERIFICACION_PENDIENTE&quot;:2,&quot;EVENTO_SANITARIO:VERIFICACION_PENDIENTE&quot;:1,&quot;REGISTRO_MANUAL:VERIFICACION_PENDIENTE&quot;:92,&quot;VARIACION_PRECIO:VERIFICACION_PENDIENTE&quot;:2,&quot;REGISTRO_MANUAL:VERIFICADO&quot;:13,&quot;CIERRE_PERIODO:VERIFICADO&quot;:6} | abierto&#x3D;241 cerrado&#x3D;7 en_cierre&#x3D;- | CERRADO sin fecha_cierre&#x3D;2</td>
+                                                    <td class="text-center bg-success">15</td>
                                                     <td class="text-center ">0</td>
                                                     <td class="text-center ">0</td>
                                                 </tr>
@@ -1347,7 +1143,757 @@ body.theme-light code {
                                             <tfoot>
                                                 <tr class="bg-light">
                                                     <td><strong>Total</strong></td>
-                                                    <td class="text-center">15</td>
+                                                    <td class="text-center">60</td>
+                                                    <td class="text-center">0</td>
+                                                    <td class="text-center">0</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div class="row d-none">
+                                    <div class="col-sm-12 mb-3">
+                                        <div class="card-deck">
+                                        <div class="card border-danger" style="width: 50rem;">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-uppercase text-white text-center bg-danger">Test Failure</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover">
+                                                    <thead><tr class="text-nowrap"><th>Test Name</th><th>Assertion Error</th></tr></thead>
+                                                        <tbody>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+            <div id="folder-0e66fdd5-823d-4f79-9d79-b2bdaff382fb" class="card-deck iteration-0">
+            <div class="row iteration-0">
+                <div class="col-sm-12 mb-3 iteration-0">
+                <div class="card iteration-0">
+                    <div class="card-header  bg-success iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb" aria-expanded="false" aria-controls="collapse" id="requests-0e66fdd5-823d-4f79-9d79-b2bdaff382fb" class="collapsed text-white z-block">
+                    Iteration: 1 - Descubrir informes de revelaciones (Contador) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                </a>
+                    </div>
+                    <div id="collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb" class="collapse" aria-labelledby="requests-0e66fdd5-823d-4f79-9d79-b2bdaff382fb">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://api.inmero.co/api-sgpmp-test/finanzas/periodos/253/revelaciones" target="_blank">https://api.inmero.co/api-sgpmp-test/finanzas/periodos/253/revelaciones</a><br>
+                                    </div>
+                                </div>
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 348ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 247B</span><br>
+                                    <hr>
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
+                                    <div>
+                                        <div class="progress" style="height: 40px;">
+                                            <div class="progress-bar  bg-success" style="width: 100%" role="progressbar">
+                                            <h5 style="padding-top:5px;"><strong>100 %</strong></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-uppercase text-white text-center bg-info">Request Headers</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                            <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="text-nowrap">Authorization</td>
+                                                        <td class="text-wrap">Bearer ***TOKEN_OCULTO***</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">User-Agent</td>
+                                                        <td class="text-wrap">PostmanRuntime/7.39.1</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept</td>
+                                                        <td class="text-wrap">*/*</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cache-Control</td>
+                                                        <td class="text-wrap">no-cache</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Postman-Token</td>
+                                                        <td class="text-wrap">14d3b3a5-cb6b-432d-a0a2-fcf52b289f5d</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Host</td>
+                                                        <td class="text-wrap">api.inmero.co</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept-Encoding</td>
+                                                        <td class="text-wrap">gzip, deflate, br</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Connection</td>
+                                                        <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;***</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Headers</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                        <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Length</td>
+                                                    <td class="text-wrap">247</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Security-Policy</td>
+                                                    <td class="text-wrap">default-src &#x27;none&#x27;</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Type</td>
+                                                    <td class="text-wrap">application/json</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Date</td>
+                                                    <td class="text-wrap">Tue, 10 Nov 2026 18:15:11 GMT</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Server</td>
+                                                    <td class="text-wrap">uvicorn</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Strict-Transport-Security</td>
+                                                    <td class="text-wrap">max-age&#x3D;63072000; includeSubDomains</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Content-Type-Options</td>
+                                                    <td class="text-wrap">nosniff</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Frame-Options</td>
+                                                    <td class="text-wrap">DENY</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Request-Id</td>
+                                                    <td class="text-wrap">e37d3802-c95a-4cf0-92ff-ee7ef06808f1</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
+                                        <div class="dyn-height">
+                                                <pre><code id="copyText-42121aeb-681f-4481-a0ed-9d3176ad1ff9" class="prettyPrint">[{&quot;id_informe&quot;:35,&quot;version_informe&quot;:&quot;2026-M10-V1&quot;,&quot;estado&quot;:&quot;BORRADOR&quot;,&quot;fecha_generacion&quot;:&quot;2026-11-10T02:25:27.234621Z&quot;,&quot;fecha_aprobacion&quot;:null,&quot;razon_rechazo&quot;:null,&quot;hash_informe&quot;:&quot;0eb1905b4ff81af39fbf168d9ba732dfc3ccb6c792990840f59b30f11bd340eb&quot;}]</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-42121aeb-681f-4481-a0ed-9d3176ad1ff9">Copy to Clipboard</button>
+                                        </div>
+                                </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                <h5 class="card-title text-uppercase text-white text-center bg-info">Test Information</h5>
+                                    <div class="table-responsive text-nowrap">
+                                        <table class="datatable table table-hover">
+                                        <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
+                                            <tbody>
+                                                <tr >
+                                                    <td >HTTP 200</td>
+                                                    <td class="text-center bg-success">8</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >sin error 5xx</td>
+                                                    <td class="text-center bg-success">8</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >sin stack trace</td>
+                                                    <td class="text-center bg-success">8</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="bg-light">
+                                                    <td><strong>Total</strong></td>
+                                                    <td class="text-center">24</td>
+                                                    <td class="text-center">0</td>
+                                                    <td class="text-center">0</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div class="row d-none">
+                                    <div class="col-sm-12 mb-3">
+                                        <div class="card-deck">
+                                        <div class="card border-danger" style="width: 50rem;">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-uppercase text-white text-center bg-danger">Test Failure</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover">
+                                                    <thead><tr class="text-nowrap"><th>Test Name</th><th>Assertion Error</th></tr></thead>
+                                                        <tbody>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+            <div id="folder-8350f913-f020-4009-ae8a-746f960281ec" class="card-deck iteration-0">
+            <div class="row iteration-0">
+                <div class="col-sm-12 mb-3 iteration-0">
+                <div class="card iteration-0">
+                    <div class="card-header  bg-danger iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-8350f913-f020-4009-ae8a-746f960281ec" aria-expanded="false" aria-controls="collapse" id="requests-8350f913-f020-4009-ae8a-746f960281ec" class="collapsed text-white z-block">
+                    Iteration: 1 - TC-92-018..024 Cuadre del rollforward (APROBADO) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                </a>
+                    </div>
+                    <div id="collapse-8350f913-f020-4009-ae8a-746f960281ec" class="collapse" aria-labelledby="requests-8350f913-f020-4009-ae8a-746f960281ec">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://api.inmero.co/api-sgpmp-test/finanzas/revelaciones/2" target="_blank">https://api.inmero.co/api-sgpmp-test/finanzas/revelaciones/2</a><br>
+                                    </div>
+                                </div>
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 126ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 9KB</span><br>
+                                    <hr>
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
+                                    <div>
+                                        <div class="progress" style="height: 40px;">
+                                            <div class="progress-bar  bg-danger" style="width: 100%" role="progressbar">
+                                            <h5 style="padding-top:5px;"><strong>83 %</strong></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-uppercase text-white text-center bg-info">Request Headers</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                            <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="text-nowrap">Content-Type</td>
+                                                        <td class="text-wrap">application/json</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Authorization</td>
+                                                        <td class="text-wrap">Bearer ***TOKEN_OCULTO***</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">User-Agent</td>
+                                                        <td class="text-wrap">PostmanRuntime/7.39.1</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept</td>
+                                                        <td class="text-wrap">*/*</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cache-Control</td>
+                                                        <td class="text-wrap">no-cache</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Postman-Token</td>
+                                                        <td class="text-wrap">beb00425-1478-43ce-bfd4-a5fb7c5535b0</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Host</td>
+                                                        <td class="text-wrap">api.inmero.co</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept-Encoding</td>
+                                                        <td class="text-wrap">gzip, deflate, br</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Connection</td>
+                                                        <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;***</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Headers</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                        <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Length</td>
+                                                    <td class="text-wrap">9211</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Security-Policy</td>
+                                                    <td class="text-wrap">default-src &#x27;none&#x27;</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Type</td>
+                                                    <td class="text-wrap">application/json</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Date</td>
+                                                    <td class="text-wrap">Tue, 10 Nov 2026 18:15:11 GMT</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Server</td>
+                                                    <td class="text-wrap">uvicorn</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Strict-Transport-Security</td>
+                                                    <td class="text-wrap">max-age&#x3D;63072000; includeSubDomains</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Content-Type-Options</td>
+                                                    <td class="text-wrap">nosniff</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Frame-Options</td>
+                                                    <td class="text-wrap">DENY</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Request-Id</td>
+                                                    <td class="text-wrap">317be53e-1dc0-4145-b6c7-04659389d1b3</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
+                                        <div class="dyn-height">
+                                                <pre><code id="copyText-6c6e0c21-8bde-414e-b8d5-73c8fde0180d" class="prettyPrint">{&quot;id_informe&quot;:2,&quot;id_periodo_contable&quot;:7,&quot;version_informe&quot;:&quot;2026-M11-V2&quot;,&quot;estado&quot;:&quot;APROBADO&quot;,&quot;contenido&quot;:{&quot;parr_53_riesgos&quot;:[{&quot;tipo&quot;:&quot;DIAGNOSTICO&quot;,&quot;cantidad&quot;:1,&quot;categoria&quot;:&quot;SANITARIO&quot;},{&quot;tipo&quot;:&quot;TRATAMIENTO&quot;,&quot;cantidad&quot;:1,&quot;categoria&quot;:&quot;SANITARIO&quot;},{&quot;tipo&quot;:&quot;muerte&quot;,&quot;cantidad&quot;:1,&quot;categoria&quot;:&quot;BAJA&quot;}],&quot;exclusiones_cierre&quot;:[{&quot;id_linea&quot;:9,&quot;faltantes&quot;:[&quot;lecturas_nic41&quot;],&quot;tipo_hecho&quot;:&quot;VARIACION_VR_TB&quot;,&quot;nivel_fallo&quot;:1,&quot;id_activo_biologico&quot;:943}],&quot;alertas_consistencia&quot;:[{&quot;campo&quot;:&quot;rollforward&quot;,&quot;detalle&quot;:&quot;Conciliación 2788980.00 vs valor al cierre 2954796.00&quot;,&quot;id_activo_biologico&quot;:943},{&quot;campo&quot;:&quot;rollforward&quot;,&quot;detalle&quot;:&quot;Conciliación 0.00 vs valor al cierre 2671480.00&quot;,&quot;id_activo_biologico&quot;:948}],&quot;parr_50_conciliacion&quot;:[{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;3200000.0000&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;2954796.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-BOV-01&quot;,&quot;precio_mercado&quot;:&quot;-158860.00&quot;,&quot;id_activo_biologico&quot;:943,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;-252160.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;3100000.0000&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;2710020.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-BOV-02&quot;,&quot;precio_mercado&quot;:&quot;-145700.00&quot;,&quot;id_activo_biologico&quot;:944,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;-244280.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;3000000.0000&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;2622600.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-BOV-03&quot;,&quot;precio_mercado&quot;:&quot;-141000.00&quot;,&quot;id_activo_biologico&quot;:945,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;-236400.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;3300000.0000&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;2884860.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-BOV-04&quot;,&quot;precio_mercado&quot;:&quot;-155100.00&quot;,&quot;id_activo_biologico&quot;:946,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;-260040.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;0&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;305970.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-BOV-05&quot;,&quot;precio_mercado&quot;:&quot;-16450.00&quot;,&quot;id_activo_biologico&quot;:947,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;322420.00&quot;},{&quot;bajas&quot;:&quot;2671480.00&quot;,&quot;compras&quot;:&quot;2900000.0000&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;2671480.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-BOV-06&quot;,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;id_activo_biologico&quot;:948,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;-228520.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;4500000.0000&quot;,&quot;especie&quot;:&quot;Equino&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;4500000.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06-COSTO-01&quot;,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;id_activo_biologico&quot;:951,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;0&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;2500000.0000&quot;,&quot;especie&quot;:&quot;Pollo De Engorde Qa Mseis&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;6960000.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:null,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;id_activo_biologico&quot;:949,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;4460000.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;2500000.0000&quot;,&quot;especie&quot;:&quot;Pollo De Engorde Qa Mseis&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;6960000.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:null,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;id_activo_biologico&quot;:950,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;4460000.00&quot;}],&quot;parr_41_43_descripcion&quot;:[{&quot;especie&quot;:&quot;Bovino&quot;,&quot;valor_cierre&quot;:&quot;14149726.0000&quot;,&quot;clasificacion&quot;:[&quot;PRODUCCION&quot;],&quot;cantidad_activos&quot;:6},{&quot;especie&quot;:&quot;Equino&quot;,&quot;valor_cierre&quot;:&quot;4500000.0000&quot;,&quot;clasificacion&quot;:[&quot;PRODUCCION&quot;],&quot;cantidad_activos&quot;:1},{&quot;especie&quot;:&quot;Pollo De Engorde Qa Mseis&quot;,&quot;valor_cierre&quot;:&quot;13920000.0000&quot;,&quot;clasificacion&quot;:[&quot;CONSUMO&quot;],&quot;cantidad_activos&quot;:2}],&quot;parr_40_ganancias_perdidas&quot;:{&quot;total&quot;:&quot;7403910.00&quot;,&quot;precio_mercado&quot;:&quot;-617110.00&quot;,&quot;reconocimiento_inicial&quot;:&quot;8021020.00&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;},&quot;parr_54_56_activos_al_costo&quot;:[{&quot;costo&quot;:&quot;4500000.0000&quot;,&quot;razon&quot;:&quot;Ausencia verificada de precio de mercado en el repositorio de precios&quot;,&quot;especie&quot;:&quot;Equino&quot;,&quot;identificador&quot;:&quot;QA-M06-COSTO-01&quot;,&quot;valor_contable&quot;:&quot;4500000.0000&quot;,&quot;vida_util_meses&quot;:240,&quot;deterioro_acumulado&quot;:&quot;0.0000&quot;,&quot;id_activo_biologico&quot;:951,&quot;metodo_depreciacion&quot;:&quot;Línea recta&quot;,&quot;rango_valor_razonable&quot;:&quot;No determinable&quot;,&quot;depreciacion_acumulada&quot;:&quot;0.0000&quot;}],&quot;niif13_93_precios_referencia&quot;:[{&quot;fuente&quot;:&quot;MERCADO_ACTIVO&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;evidencia&quot;:&quot;QA-M06-P1: subasta ganadera de Neiva, promedio ponderado semana 44-2026, bovino macho en pie.&quot;,&quot;justificacion&quot;:null,&quot;unidad_medida&quot;:&quot;kg&quot;,&quot;fecha_vigencia&quot;:&quot;2026-11-01&quot;,&quot;precio_unitario&quot;:&quot;9800.00&quot;,&quot;id_precio_mercado&quot;:15},{&quot;fuente&quot;:&quot;MERCADO_ACTIVO&quot;,&quot;especie&quot;:&quot;Bovino&quot;,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;evidencia&quot;:&quot;QA-M06-P4: subasta ganadera de Neiva semana 45-2026, baja del precio del bovino en pie.&quot;,&quot;justificacion&quot;:null,&quot;unidad_medida&quot;:&quot;kg&quot;,&quot;fecha_vigencia&quot;:&quot;2026-11-07&quot;,&quot;precio_unitario&quot;:&quot;9300.00&quot;,&quot;id_precio_mercado&quot;:17},{&quot;fuente&quot;:&quot;UPRA&quot;,&quot;especie&quot;:&quot;Pollo De Engorde Qa Mseis&quot;,&quot;categoria&quot;:&quot;POR_CABEZA&quot;,&quot;evidencia&quot;:&quot;QA-M06-P2: boletin UPRA semana 44-2026, pollo de engorde en pie por cabeza.&quot;,&quot;justificacion&quot;:null,&quot;unidad_medida&quot;:&quot;cabeza&quot;,&quot;fecha_vigencia&quot;:&quot;2026-11-01&quot;,&quot;precio_unitario&quot;:&quot;14500.00&quot;,&quot;id_precio_mercado&quot;:16}],&quot;justificacion_inconsistencias&quot;:&quot;QA M06: inconsistencia conocida, se continúa para pruebas&quot;,&quot;niif13_93_metodos_y_supuestos&quot;:[{&quot;magnitud&quot;:&quot;290.0000&quot;,&quot;valor_neto&quot;:&quot;2671480.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;9800.0000&quot;,&quot;unidad_magnitud&quot;:&quot;kg&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:948,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;2842000.0000&quot;},{&quot;magnitud&quot;:&quot;500.0000&quot;,&quot;valor_neto&quot;:&quot;6960000.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;14500.0000&quot;,&quot;unidad_magnitud&quot;:&quot;cabeza&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:500,&quot;categoria&quot;:&quot;POR_CABEZA&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;UPRA&quot;},&quot;id_activo_biologico&quot;:949,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;7250000.0000&quot;},{&quot;magnitud&quot;:&quot;500.0000&quot;,&quot;valor_neto&quot;:&quot;6960000.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;14500.0000&quot;,&quot;unidad_magnitud&quot;:&quot;cabeza&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:500,&quot;categoria&quot;:&quot;POR_CABEZA&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;UPRA&quot;},&quot;id_activo_biologico&quot;:950,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;7250000.0000&quot;},{&quot;magnitud&quot;:&quot;338.0000&quot;,&quot;valor_neto&quot;:&quot;2954796.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;9300.0000&quot;,&quot;unidad_magnitud&quot;:&quot;kg&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:943,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;3143400.0000&quot;},{&quot;magnitud&quot;:&quot;310.0000&quot;,&quot;valor_neto&quot;:&quot;2710020.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;9300.0000&quot;,&quot;unidad_magnitud&quot;:&quot;kg&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:944,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;2883000.0000&quot;},{&quot;magnitud&quot;:&quot;300.0000&quot;,&quot;valor_neto&quot;:&quot;2622600.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;9300.0000&quot;,&quot;unidad_magnitud&quot;:&quot;kg&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:945,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;2790000.0000&quot;},{&quot;magnitud&quot;:&quot;330.0000&quot;,&quot;valor_neto&quot;:&quot;2884860.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;9300.0000&quot;,&quot;unidad_magnitud&quot;:&quot;kg&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:946,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;3069000.0000&quot;},{&quot;magnitud&quot;:&quot;35.0000&quot;,&quot;valor_neto&quot;:&quot;305970.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;9300.0000&quot;,&quot;unidad_magnitud&quot;:&quot;kg&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;PESO_KG&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:947,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;325500.0000&quot;}],&quot;parr_49_restricciones_compromisos&quot;:{&quot;compromisos&quot;:[],&quot;activos_pignorados&quot;:[],&quot;declaracion_sin_novedad&quot;:true},&quot;parr_51_separacion_precio_transformacion&quot;:{&quot;precio_mercado&quot;:&quot;-617110.00&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;}},&quot;hash_informe&quot;:&quot;3b2bb66a7ddfcafa3673dd288df52230530e7be58c6e80bc0f9bea3929da665b&quot;,&quot;id_contador_aprobador&quot;:141,&quot;fecha_aprobacion&quot;:&quot;2026-11-07T20:13:24.802504Z&quot;,&quot;razon_rechazo&quot;:null,&quot;id_usuario_solicitante&quot;:141,&quot;fecha_generacion&quot;:&quot;2026-11-07T20:13:20.924095Z&quot;}</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-6c6e0c21-8bde-414e-b8d5-73c8fde0180d">Copy to Clipboard</button>
+                                        </div>
+                                </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                <h5 class="card-title text-uppercase text-white text-center bg-info">Test Information</h5>
+                                    <div class="table-responsive text-nowrap">
+                                        <table class="datatable table table-hover">
+                                        <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
+                                            <tbody>
+                                                <tr >
+                                                    <td >HTTP 200</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas &#x3D; cierre</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center bg-danger">1</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >TC-92-022/023 la suma individual coincide con la agregacion por especie</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >TC-92-024 agregacion por categoria (categoria o clasificacion)</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >sin error 5xx</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >sin stack trace</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="bg-light">
+                                                    <td><strong>Total</strong></td>
+                                                    <td class="text-center">5</td>
+                                                    <td class="text-center">1</td>
+                                                    <td class="text-center">0</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div class="row ">
+                                    <div class="col-sm-12 mb-3">
+                                        <div class="card-deck">
+                                        <div class="card border-danger" style="width: 50rem;">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-uppercase text-white text-center bg-danger">Test Failure</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover">
+                                                    <thead><tr class="text-nowrap"><th>Test Name</th><th>Assertion Error</th></tr></thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td class="w-45 text-nowrap ">TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas &#x3D; cierre</td>
+                                                                <td class="w-55"><pre><code >activo QA-M06-BOV-01: 2788980.00 vs 2954796: expected 165816 to be at most 0.01</code></pre></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+            <div id="folder-e44b27a0-bc8f-44bc-8883-25a56a93ed04" class="card-deck iteration-0">
+            <div class="row iteration-0">
+                <div class="col-sm-12 mb-3 iteration-0">
+                <div class="card iteration-0">
+                    <div class="card-header  bg-success iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04" aria-expanded="false" aria-controls="collapse" id="requests-e44b27a0-bc8f-44bc-8883-25a56a93ed04" class="collapsed text-white z-block">
+                    Iteration: 1 - TC-92-018..024 Cuadre del rollforward (BORRADOR) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                </a>
+                    </div>
+                    <div id="collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04" class="collapse" aria-labelledby="requests-e44b27a0-bc8f-44bc-8883-25a56a93ed04">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://api.inmero.co/api-sgpmp-test/finanzas/revelaciones/41" target="_blank">https://api.inmero.co/api-sgpmp-test/finanzas/revelaciones/41</a><br>
+                                    </div>
+                                </div>
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 124ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 2.87KB</span><br>
+                                    <hr>
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
+                                    <div>
+                                        <div class="progress" style="height: 40px;">
+                                            <div class="progress-bar  bg-success" style="width: 100%" role="progressbar">
+                                            <h5 style="padding-top:5px;"><strong>100 %</strong></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-uppercase text-white text-center bg-info">Request Headers</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                            <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="text-nowrap">Content-Type</td>
+                                                        <td class="text-wrap">application/json</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Authorization</td>
+                                                        <td class="text-wrap">Bearer ***TOKEN_OCULTO***</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">User-Agent</td>
+                                                        <td class="text-wrap">PostmanRuntime/7.39.1</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept</td>
+                                                        <td class="text-wrap">*/*</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cache-Control</td>
+                                                        <td class="text-wrap">no-cache</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Postman-Token</td>
+                                                        <td class="text-wrap">14fcd918-79c3-4cd5-8bf9-bded620e582b</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Host</td>
+                                                        <td class="text-wrap">api.inmero.co</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept-Encoding</td>
+                                                        <td class="text-wrap">gzip, deflate, br</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Connection</td>
+                                                        <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;***</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Headers</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                        <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Length</td>
+                                                    <td class="text-wrap">2934</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Security-Policy</td>
+                                                    <td class="text-wrap">default-src &#x27;none&#x27;</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Type</td>
+                                                    <td class="text-wrap">application/json</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Date</td>
+                                                    <td class="text-wrap">Tue, 10 Nov 2026 18:15:11 GMT</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Server</td>
+                                                    <td class="text-wrap">uvicorn</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Strict-Transport-Security</td>
+                                                    <td class="text-wrap">max-age&#x3D;63072000; includeSubDomains</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Content-Type-Options</td>
+                                                    <td class="text-wrap">nosniff</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Frame-Options</td>
+                                                    <td class="text-wrap">DENY</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Request-Id</td>
+                                                    <td class="text-wrap">346d652e-0a7a-41de-87aa-80e2cd01a8b0</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
+                                        <div class="dyn-height">
+                                                <pre><code id="copyText-3e686494-6479-44cb-85c1-57ffd5ab1aa5" class="prettyPrint">{&quot;id_informe&quot;:41,&quot;id_periodo_contable&quot;:219,&quot;version_informe&quot;:&quot;2026-M11-V1&quot;,&quot;estado&quot;:&quot;BORRADOR&quot;,&quot;contenido&quot;:{&quot;parr_53_riesgos&quot;:[],&quot;exclusiones_cierre&quot;:[],&quot;alertas_consistencia&quot;:[],&quot;parr_50_conciliacion&quot;:[{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;3500000.0000&quot;,&quot;especie&quot;:&quot;Caprino Qa Aislado&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;3760000.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06C-VR-01&quot;,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;id_activo_biologico&quot;:1568,&quot;depreciacion_y_deterioro&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;260000.00&quot;},{&quot;bajas&quot;:&quot;0&quot;,&quot;compras&quot;:&quot;4500000.0000&quot;,&quot;especie&quot;:&quot;Equino Qa Aislado&quot;,&quot;cosechas&quot;:&quot;0&quot;,&quot;valor_cierre&quot;:&quot;4387500.0000&quot;,&quot;valor_inicio&quot;:&quot;0&quot;,&quot;identificador&quot;:&quot;QA-M06C-COSTO-01&quot;,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;id_activo_biologico&quot;:1567,&quot;depreciacion_y_deterioro&quot;:&quot;112500.00&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;,&quot;nacimientos_y_otros_ingresos&quot;:&quot;0&quot;}],&quot;parr_41_43_descripcion&quot;:[{&quot;especie&quot;:&quot;Caprino Qa Aislado&quot;,&quot;valor_cierre&quot;:&quot;3760000.0000&quot;,&quot;clasificacion&quot;:[&quot;PRODUCCION&quot;],&quot;cantidad_activos&quot;:1},{&quot;especie&quot;:&quot;Equino Qa Aislado&quot;,&quot;valor_cierre&quot;:&quot;4387500.0000&quot;,&quot;clasificacion&quot;:[&quot;PRODUCCION&quot;],&quot;cantidad_activos&quot;:1}],&quot;parr_40_ganancias_perdidas&quot;:{&quot;total&quot;:&quot;260000.00&quot;,&quot;precio_mercado&quot;:&quot;0&quot;,&quot;reconocimiento_inicial&quot;:&quot;260000.00&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;},&quot;parr_54_56_activos_al_costo&quot;:[{&quot;costo&quot;:&quot;4500000.0000&quot;,&quot;razon&quot;:&quot;Ausencia verificada de precio de mercado en el repositorio de precios&quot;,&quot;especie&quot;:&quot;Equino Qa Aislado&quot;,&quot;identificador&quot;:&quot;QA-M06C-COSTO-01&quot;,&quot;valor_contable&quot;:&quot;4387500.0000&quot;,&quot;vida_util_meses&quot;:120,&quot;deterioro_acumulado&quot;:&quot;0.0000&quot;,&quot;id_activo_biologico&quot;:1567,&quot;metodo_depreciacion&quot;:&quot;Línea recta&quot;,&quot;rango_valor_razonable&quot;:&quot;No determinable&quot;,&quot;depreciacion_acumulada&quot;:&quot;112500.0000&quot;}],&quot;niif13_93_precios_referencia&quot;:[{&quot;fuente&quot;:&quot;MERCADO_ACTIVO&quot;,&quot;especie&quot;:&quot;Caprino Qa Aislado&quot;,&quot;categoria&quot;:&quot;POR_CABEZA&quot;,&quot;evidencia&quot;:&quot;Boletín de precios de referencia para pruebas QA (sembrado 2026-11-08)&quot;,&quot;justificacion&quot;:null,&quot;unidad_medida&quot;:&quot;cabeza&quot;,&quot;fecha_vigencia&quot;:&quot;2026-11-01&quot;,&quot;precio_unitario&quot;:&quot;4000000.00&quot;,&quot;id_precio_mercado&quot;:435}],&quot;justificacion_inconsistencias&quot;:null,&quot;niif13_93_metodos_y_supuestos&quot;:[{&quot;magnitud&quot;:&quot;1.0000&quot;,&quot;valor_neto&quot;:&quot;3760000.0000&quot;,&quot;metodo_costo&quot;:&quot;PARAMETRIZADO&quot;,&quot;precio_unitario&quot;:&quot;4000000.0000&quot;,&quot;unidad_magnitud&quot;:&quot;cabeza&quot;,&quot;json_metodo_costo&quot;:{&quot;cabezas&quot;:1,&quot;categoria&quot;:&quot;POR_CABEZA&quot;,&quot;impuestos&quot;:&quot;PARAMETRIZADO&quot;,&quot;comisiones&quot;:&quot;PARAMETRIZADO&quot;,&quot;transporte&quot;:&quot;PARAMETRIZADO&quot;,&quot;fuente_precio&quot;:&quot;MERCADO_ACTIVO&quot;},&quot;id_activo_biologico&quot;:1568,&quot;tiene_valor_estimado&quot;:false,&quot;valor_razonable_bruto&quot;:&quot;4000000.0000&quot;}],&quot;parr_49_restricciones_compromisos&quot;:{&quot;compromisos&quot;:[],&quot;activos_pignorados&quot;:[],&quot;declaracion_sin_novedad&quot;:false},&quot;parr_51_separacion_precio_transformacion&quot;:{&quot;precio_mercado&quot;:&quot;0&quot;,&quot;transformacion_biologica&quot;:&quot;0&quot;}},&quot;hash_informe&quot;:&quot;8ae04fc4289bc67b51982fd4c8cfef190eab95e61c381cc1303697ba5b589109&quot;,&quot;id_contador_aprobador&quot;:null,&quot;fecha_aprobacion&quot;:null,&quot;razon_rechazo&quot;:null,&quot;id_usuario_solicitante&quot;:141,&quot;fecha_generacion&quot;:&quot;2026-11-10T06:18:00.098094Z&quot;}</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-3e686494-6479-44cb-85c1-57ffd5ab1aa5">Copy to Clipboard</button>
+                                        </div>
+                                </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                <h5 class="card-title text-uppercase text-white text-center bg-info">Test Information</h5>
+                                    <div class="table-responsive text-nowrap">
+                                        <table class="datatable table table-hover">
+                                        <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
+                                            <tbody>
+                                                <tr >
+                                                    <td >HTTP 200</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas &#x3D; cierre</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >TC-92-022/023 la suma individual coincide con la agregacion por especie</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >TC-92-024 agregacion por categoria (categoria o clasificacion)</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >sin error 5xx</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                                <tr >
+                                                    <td >sin stack trace</td>
+                                                    <td class="text-center bg-success">1</td>
+                                                    <td class="text-center ">0</td>
+                                                    <td class="text-center ">0</td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="bg-light">
+                                                    <td><strong>Total</strong></td>
+                                                    <td class="text-center">6</td>
                                                     <td class="text-center">0</td>
                                                     <td class="text-center">0</td>
                                                 </tr>
@@ -1447,13 +1993,13 @@ $('#openAll').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#folder-ea8e0ddb-f6ed-47fe-881b-0d01997349c0-iteration-0').removeClass('collapsed')
-            $('#folder-collapse-ea8e0ddb-f6ed-47fe-881b-0d01997349c0-iteration-0').addClass('show')
+            $('#folder-47923428-faf2-4b32-9827-4e34cdec9770-iteration-0').removeClass('collapsed')
+            $('#folder-collapse-47923428-faf2-4b32-9827-4e34cdec9770-iteration-0').addClass('show')
         $('#openAll').html("Collapse Folders");
         break;
     case 2:
-            $('#folder-ea8e0ddb-f6ed-47fe-881b-0d01997349c0-iteration-0').addClass('collapsed')
-            $('#folder-collapse-ea8e0ddb-f6ed-47fe-881b-0d01997349c0-iteration-0').removeClass('show')
+            $('#folder-47923428-faf2-4b32-9827-4e34cdec9770-iteration-0').addClass('collapsed')
+            $('#folder-collapse-47923428-faf2-4b32-9827-4e34cdec9770-iteration-0').removeClass('show')
         $('#openAll').html("Expand Folders");
         break;
 }
@@ -1469,33 +2015,49 @@ $('#openAllRequests').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#requests-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('collapsed')
-            $('#collapse-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('collapsed')
-            $('#requests-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('show')
-            $('#collapse-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('show')
-            $('#requests-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('collapsed')
-            $('#collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('collapsed')
-            $('#requests-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('show')
-            $('#collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('show')
-            $('#requests-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('collapsed')
-            $('#collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('collapsed')
-            $('#requests-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('show')
-            $('#collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('show')
+            $('#requests-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('collapsed')
+            $('#collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('collapsed')
+            $('#requests-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('show')
+            $('#collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('show')
+            $('#requests-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('collapsed')
+            $('#collapse-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('collapsed')
+            $('#requests-da1bfa95-ca68-421b-8042-36338144c36a').addClass('show')
+            $('#collapse-da1bfa95-ca68-421b-8042-36338144c36a').addClass('show')
+            $('#requests-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('collapsed')
+            $('#collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('collapsed')
+            $('#requests-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('show')
+            $('#collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('show')
+            $('#requests-8350f913-f020-4009-ae8a-746f960281ec').removeClass('collapsed')
+            $('#collapse-8350f913-f020-4009-ae8a-746f960281ec').removeClass('collapsed')
+            $('#requests-8350f913-f020-4009-ae8a-746f960281ec').addClass('show')
+            $('#collapse-8350f913-f020-4009-ae8a-746f960281ec').addClass('show')
+            $('#requests-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('collapsed')
+            $('#collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('collapsed')
+            $('#requests-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('show')
+            $('#collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('show')
         $('#openAllRequests').html("Collapse Requests");
         break;
     case 2:
-            $('#requests-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('collapsed')
-            $('#collapse-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('collapsed')
-            $('#requests-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('show')
-            $('#collapse-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('show')
-            $('#requests-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('collapsed')
-            $('#collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('collapsed')
-            $('#requests-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('show')
-            $('#collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('show')
-            $('#requests-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('collapsed')
-            $('#collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('collapsed')
-            $('#requests-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('show')
-            $('#collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('show')
+            $('#requests-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('collapsed')
+            $('#collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('collapsed')
+            $('#requests-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('show')
+            $('#collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('show')
+            $('#requests-da1bfa95-ca68-421b-8042-36338144c36a').addClass('collapsed')
+            $('#collapse-da1bfa95-ca68-421b-8042-36338144c36a').addClass('collapsed')
+            $('#requests-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('show')
+            $('#collapse-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('show')
+            $('#requests-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('collapsed')
+            $('#collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('collapsed')
+            $('#requests-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('show')
+            $('#collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('show')
+            $('#requests-8350f913-f020-4009-ae8a-746f960281ec').addClass('collapsed')
+            $('#collapse-8350f913-f020-4009-ae8a-746f960281ec').addClass('collapsed')
+            $('#requests-8350f913-f020-4009-ae8a-746f960281ec').removeClass('show')
+            $('#collapse-8350f913-f020-4009-ae8a-746f960281ec').removeClass('show')
+            $('#requests-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('collapsed')
+            $('#collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('collapsed')
+            $('#requests-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('show')
+            $('#collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('show')
         $('#openAllRequests').html("Expand Requests");
         break;
 }
@@ -1511,33 +2073,49 @@ $('#openAllSkipped').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#skipped-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('collapsed')
-            $('#skipped-collapse-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('collapsed')
-            $('#skipped-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('show')
-            $('#skipped-collapse-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('show')
-            $('#skipped-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('collapsed')
-            $('#skipped-collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('collapsed')
-            $('#skipped-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('show')
-            $('#skipped-collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('show')
-            $('#skipped-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('collapsed')
-            $('#skipped-collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('collapsed')
-            $('#skipped-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('show')
-            $('#skipped-collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('show')
+            $('#skipped-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('collapsed')
+            $('#skipped-collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('collapsed')
+            $('#skipped-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('show')
+            $('#skipped-collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('show')
+            $('#skipped-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('collapsed')
+            $('#skipped-collapse-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('collapsed')
+            $('#skipped-da1bfa95-ca68-421b-8042-36338144c36a').addClass('show')
+            $('#skipped-collapse-da1bfa95-ca68-421b-8042-36338144c36a').addClass('show')
+            $('#skipped-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('collapsed')
+            $('#skipped-collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('collapsed')
+            $('#skipped-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('show')
+            $('#skipped-collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('show')
+            $('#skipped-8350f913-f020-4009-ae8a-746f960281ec').removeClass('collapsed')
+            $('#skipped-collapse-8350f913-f020-4009-ae8a-746f960281ec').removeClass('collapsed')
+            $('#skipped-8350f913-f020-4009-ae8a-746f960281ec').addClass('show')
+            $('#skipped-collapse-8350f913-f020-4009-ae8a-746f960281ec').addClass('show')
+            $('#skipped-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('collapsed')
+            $('#skipped-collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('collapsed')
+            $('#skipped-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('show')
+            $('#skipped-collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('show')
         $('#openAllSkipped').html("Collapse All Skipped Tests");
         break;
     case 2:
-            $('#skipped-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('collapsed')
-            $('#skipped-collapse-83e84a2e-4726-42f8-bea7-e70072be6935').addClass('collapsed')
-            $('#skipped-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('show')
-            $('#skipped-collapse-83e84a2e-4726-42f8-bea7-e70072be6935').removeClass('show')
-            $('#skipped-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('collapsed')
-            $('#skipped-collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').addClass('collapsed')
-            $('#skipped-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('show')
-            $('#skipped-collapse-caf595f3-2b92-4fab-9d5c-c99c7719583f').removeClass('show')
-            $('#skipped-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('collapsed')
-            $('#skipped-collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').addClass('collapsed')
-            $('#skipped-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('show')
-            $('#skipped-collapse-0b8732bd-de36-4f84-82b3-cc66a7310203').removeClass('show')
+            $('#skipped-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('collapsed')
+            $('#skipped-collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').addClass('collapsed')
+            $('#skipped-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('show')
+            $('#skipped-collapse-de18003c-fafc-473e-b2fb-0223ef5efce4').removeClass('show')
+            $('#skipped-da1bfa95-ca68-421b-8042-36338144c36a').addClass('collapsed')
+            $('#skipped-collapse-da1bfa95-ca68-421b-8042-36338144c36a').addClass('collapsed')
+            $('#skipped-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('show')
+            $('#skipped-collapse-da1bfa95-ca68-421b-8042-36338144c36a').removeClass('show')
+            $('#skipped-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('collapsed')
+            $('#skipped-collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').addClass('collapsed')
+            $('#skipped-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('show')
+            $('#skipped-collapse-0e66fdd5-823d-4f79-9d79-b2bdaff382fb').removeClass('show')
+            $('#skipped-8350f913-f020-4009-ae8a-746f960281ec').addClass('collapsed')
+            $('#skipped-collapse-8350f913-f020-4009-ae8a-746f960281ec').addClass('collapsed')
+            $('#skipped-8350f913-f020-4009-ae8a-746f960281ec').removeClass('show')
+            $('#skipped-collapse-8350f913-f020-4009-ae8a-746f960281ec').removeClass('show')
+            $('#skipped-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('collapsed')
+            $('#skipped-collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').addClass('collapsed')
+            $('#skipped-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('show')
+            $('#skipped-collapse-e44b27a0-bc8f-44bc-8883-25a56a93ed04').removeClass('show')
         $('#openAllSkipped').html("Expand All Skipped Tests");
         break;
 }
@@ -1555,9 +2133,21 @@ let failedItemContent
 let failedItemHeading
 switch (clickCount){
     case 1:
+            failedItemHeading = $('#fails-5278fca2-2834-4eb6-ab03-855e7316672a');
+            failedItemContent = $("#fails-collapse-5278fca2-2834-4eb6-ab03-855e7316672a");
+            failedItemHeading.removeClass('collapsed')
+            failedItemContent.removeClass('collapsed')
+            failedItemHeading.addClass('show')
+            failedItemContent.addClass('show')
         $('#openAllFailed').html("Collapse All Failed Tests");
         break;
     case 2:
+            failedItemHeading = $('#fails-5278fca2-2834-4eb6-ab03-855e7316672a');
+            failedItemContent = $("#fails-collapse-5278fca2-2834-4eb6-ab03-855e7316672a");
+            failedItemHeading.removeClass('show')
+            failedItemContent.removeClass('show')
+            failedItemHeading.addClass('collapsed')
+            failedItemContent.addClass('collapsed')
         $('#openAllFailed').html("Expand All Failed Tests");
         break;
 }
@@ -1682,6 +2272,8 @@ function scrollFunction() {
     document.getElementById("openAllRequests").style.display = "none";
 
 
+    document.getElementById("showOnlyFailures").style.display = "none";
+    document.getElementById("openAllFailed").style.display = "none";
   } else {
     document.getElementById("topOfRequestsScreen").style.display = "none";
     document.getElementById("topOfFailuresScreen").style.display = "none";
@@ -1689,6 +2281,8 @@ function scrollFunction() {
     document.getElementById("openAll").style.display = "block";
     document.getElementById("openAllRequests").style.display = "block";
 
+    document.getElementById("showOnlyFailures").style.display = "block";
+    document.getElementById("openAllFailed").style.display = "block";
   }
 }
 
@@ -1751,6 +2345,7 @@ window.onload = function () {
   document.getElementById('iteration-0').click();
   document.getElementById('iterationSelected').innerHTML = `Iteration ${document.getElementById('iteration-0').innerHTML} selected`
 
+    $("#iteration-0").removeClass('itPassed').addClass('itFailed')
 }
 </script>
 
