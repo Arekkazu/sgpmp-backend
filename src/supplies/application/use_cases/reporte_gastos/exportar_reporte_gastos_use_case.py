@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-77: exportación PDF/CSV y descarga     |
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar la exportacion exitosa en la misma transaccion del archivo. |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
 """Casos de uso: exportar un reporte de gastos a PDF/CSV y descargarlo (RF-77 pasos 8, E6).
 
 La exportación trabaja sobre un reporte ya generado: si se rechaza, el reporte
@@ -58,6 +59,25 @@ def _identificador(reporte: ReporteGasto) -> str:
     if reporte.id_infraestructura is not None:
         return f"INFRA{reporte.id_infraestructura}"
     return f"ESPECIE{reporte.id_especie}"
+
+
+_PERIODO = {"MENSUAL": "Mensual", "SEMANAL": "Semanal", "CICLO_COMPLETO": "Ciclo completo"}
+_CATEGORIA = {"ALIMENTACION": "Alimentación", "MEDICACION": "Medicación"}
+_TENDENCIA = {"CALCULADA": "calculada", "SIN_BASE_COMPARATIVA": "sin base comparativa",
+              "SIN_MOVIMIENTO": "sin movimiento en ninguno de los dos períodos"}
+_TIPO_ACTIVO = {"INDIVIDUAL": "individual", "POBLACIONAL": "lote"}
+
+
+def _linea_alcance(reporte: ReporteGasto, alcance: dict) -> str:
+    """Encabezado con nombres (RF-77 paso 7, CA-9), nunca ids: «Activo BOV-01 (individual) · Área …»."""
+    partes = []
+    if reporte.id_activo_biologico is not None:
+        tipo = _TIPO_ACTIVO.get((alcance.get("tipo_activo") or "").upper())
+        nombre = alcance.get("identificador") or "sin identificador"
+        partes.append(f"Activo: {nombre}" + (f" ({tipo})" if tipo else ""))
+    partes.append(f"Área: {alcance.get('infraestructura') or 'Todas'}")
+    partes.append(f"Especie: {alcance.get('especie') or 'Todas'}")
+    return " · ".join(partes)
 
 
 class ExportarReporteGastosUseCase:
@@ -192,22 +212,33 @@ class ExportarReporteGastosUseCase:
         ]
 
     def _pdf(self, reporte: ReporteGasto, filas: list[list], ahora: datetime, id_usuario: int) -> bytes:
+        alcance = self.generador.detalle_port.describir_alcance(
+            reporte.id_activo_biologico, reporte.id_infraestructura, reporte.id_especie
+        )
         encabezado = [
-            f"Activo: {reporte.id_activo_biologico or '-'} · Infraestructura: {reporte.id_infraestructura or '-'} "
-            f"· Especie: {reporte.id_especie or '-'}",
-            f"Período: {reporte.fecha_inicio.isoformat()} – {reporte.fecha_fin.isoformat()} ({reporte.tipo_periodo})",
+            _linea_alcance(reporte, alcance),
+            f"Período: {reporte.fecha_inicio:%d/%m/%Y} – {reporte.fecha_fin:%d/%m/%Y} "
+            f"({_PERIODO.get(reporte.tipo_periodo, reporte.tipo_periodo.lower())})",
             f"Gasto total acumulado: {reporte.gasto_total_acumulado} COP",
         ]
         if reporte.gasto_promedio_individuo is not None:
             encabezado.append(f"Gasto promedio por individuo: {reporte.gasto_promedio_individuo:.2f} COP")
         pie = [
-            f"{d.categoria}: {d.subtotal} COP ({d.porcentaje} %) — {d.num_registros} registros"
+            f"{_CATEGORIA.get(d.categoria, d.categoria.capitalize())}: {d.subtotal} COP ({d.porcentaje} %) — "
+            f"{d.num_registros} registros"
             for d in reporte.desglose_categorias
         ]
-        if reporte.tendencia is not None:
-            pie.append(f"Tendencia vs. período anterior: {reporte.tendencia.estado} "
-                       f"{reporte.tendencia.variacion_porcentual or ''}")
-        for nota in (reporte.nota_bajas, reporte.mensaje):
+        if reporte.desglose_temporal:  # RF-77 pasos 5 y 7, CA-5
+            pie.append(f"Desglose {_PERIODO.get(reporte.tipo_periodo, 'por período').lower()}:")
+            pie.extend(f"{d.fecha_inicio:%d/%m/%Y} – {d.fecha_fin:%d/%m/%Y}: {d.monto} COP"
+                       for d in reporte.desglose_temporal)
+        if reporte.tendencia is not None:  # RF-77 paso 6
+            t = reporte.tendencia
+            variacion = f" ({t.variacion_porcentual:+.2f} %)" if t.variacion_porcentual is not None else ""
+            pie.append(f"Tendencia frente al período anterior: {_TENDENCIA.get(t.estado, t.estado)}{variacion}")
+            if t.nota:
+                pie.append(t.nota)
+        for nota in (reporte.nota_bajas, reporte.causa_no_calculable_promedio, reporte.mensaje):
             if nota:
                 pie.append(nota)
         documento = Documento(

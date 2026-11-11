@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, existencia y bajas RF-45  |
+# | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
 """Puerto de lectura de las líneas de gasto fuente del reporte (RF-77).
 
 Consolida los registros VALIDADOS de RF-75 (consumo de alimento) y RF-76
@@ -46,4 +47,11 @@ class DetalleGastoReadPort(ABC):
     @abstractmethod
     def contar_bajas(self, id_activo_biologico: int, fecha_inicio: date, fecha_fin: date) -> int:
         """Individuos dados de baja (RF-45) en el período, para la nota del promedio (RF-77 R6)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def describir_alcance(self, id_activo_biologico: Optional[int], id_infraestructura: Optional[int],
+                          id_especie: Optional[int]) -> dict:
+        """Nombres para el encabezado del PDF (RF-77 paso 7): ``identificador``, ``tipo_activo``,
+        ``especie`` e ``infraestructura``. Con activo, la especie y el área salen del propio activo."""
         raise NotImplementedError

@@ -27,6 +27,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: routers de integración AAEF y transiciones de contratos |
 # | 2026-11-08 | Arekkazu | INC-M06-333-G89 RF-60: la evaluación de dispositivos corre en un hilo y no congela la API |
 # | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
+# | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: el directorio de logos se crea al arrancar; un logo ausente responde 404 |
 import asyncio
 import logging
 import os
@@ -1054,6 +1055,11 @@ app.add_middleware(SecurityHeadersMiddleware)
 # devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
 # `check_dir=False` porque el directorio solo aparece con el primer logotipo
 # subido; exigirlo al arrancar tumbaría un despliegue limpio.
+# Sin el directorio, StaticFiles responde 500 a cualquier logo; con él, uno que falta da 404.
+try:
+    os.makedirs(almacen_logos.DIRECTORIO_LOGOS, exist_ok=True)
+except OSError:
+    logger.exception("No se pudo crear el directorio de logos %s", almacen_logos.DIRECTORIO_LOGOS)
 app.mount(
     almacen_logos.RUTA_PUBLICA_LOGOS,
     StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
