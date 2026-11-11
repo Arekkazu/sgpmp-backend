@@ -152,6 +152,8 @@ class ActivoBiologicoResponse(BaseModel):
     nombre_infraestructura: Optional[str] = None
     # RFC-014 (DEV-20): solo en el registro; informativa, el activo se registra igual (201).
     advertencia_edad: Optional[str] = None
+    # #393: solo lo llena el listado, para lotes (POBLACIONAL); la ficha del lote trae el detalle completo.
+    estado_densidad: Optional["EstadoDensidadLoteResponse"] = None
 
     model_config = {'from_attributes': True}
 
@@ -611,3 +613,8 @@ class RegistroCorrectivoAuditoriaResponse(BaseModel):
     id_activo_biologico: Optional[int]
     motivo: str
     timestamp_evento: datetime
+
+
+# #393: ActivoBiologicoResponse referencia EstadoDensidadLoteResponse, definido más abajo.
+ActivoBiologicoResponse.model_rebuild()
+ActivosPaginadosResponse.model_rebuild()

@@ -36,3 +36,22 @@ def test_entrada_que_supera_la_etapa_dice_cuantos_caben():
     except BusinessRuleError as exc:
         assert exc.code == "DENSIDAD_ETAPA_EXCEDIDA"
         assert "caben como máximo 100 animales en Corral 2" in exc.message and "quedaría con 101" in exc.message
+
+
+def test_el_listado_completa_el_estado_de_los_lotes_con_una_consulta():
+    from types import SimpleNamespace as N
+
+    from src.biological_assets.infrastructure.routers.activo_biologico_router import _completar_estado_densidad
+
+    lote = N(id_activo_biologico=7, tipo="POBLACIONAL", estado_densidad=None,
+             detalle_poblacional=N(cantidad_actual=95, biomasa_total=None))
+    individual = N(id_activo_biologico=8, tipo="INDIVIDUAL", estado_densidad=None, detalle_poblacional=None)
+    fila = N(id_activo_biologico=7, superficie=D("50"), densidad_area=D("3"), etapa="Ceba",
+             densidad_maxima=D("2"), biomasa_maxima=None, aviso_preventivo_pct=90)
+    consultas = []
+    db = N(execute=lambda sql, params: consultas.append(params) or [fila])
+
+    _completar_estado_densidad(db, [lote, individual])
+    assert consultas == [{"ids": [7]}]
+    assert (lote.estado_densidad.estado, lote.estado_densidad.fuente, lote.estado_densidad.cupo_disponible) == ("AVISO", "ETAPA", 5)
+    assert individual.estado_densidad is None

@@ -7,6 +7,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
 # | 2026-11-10 | Arekkazu | #394 RF-36: la ficha del lote devuelve el estado de su densidad |
+# | 2026-11-10 | Arekkazu | #393 RF-36: el listado trae el estado de densidad de cada lote |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -208,6 +209,8 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
+from src.biological_assets.domain.repositories.infraestructura_consulta_port import LimiteEtapa
+from src.biological_assets.domain.services.densidad_lote import evaluar_densidad
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
@@ -549,6 +552,7 @@ def listar_activos(
         for a in registros
     ]
     _completar_nombres_catalogo(db, respuestas)
+    _completar_estado_densidad(db, respuestas)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
@@ -577,6 +581,41 @@ def _completar_nombres_catalogo(db: Session, activos: list[ActivoBiologicoRespon
     for a in activos:
         a.nombre_especie = nombres.get(('E', a.id_especie))
         a.nombre_infraestructura = nombres.get(('I', a.id_infraestructura))
+
+
+_SQL_DENSIDAD_LOTES = text("""
+    SELECT ab.id_activo_biologico, i.superficie,
+           (SELECT min(e.densidad_maxima_por_especie) FROM modulo9.infraestructuras_especies ie
+              JOIN modulo9.especies e ON e.id_especie = ie.id_especie
+             WHERE ie.id_infraestructura = i.id_infraestructura
+            HAVING count(*) = count(e.densidad_maxima_por_especie)) AS densidad_area,
+           cb.nombre AS etapa, cb.densidad_maxima, cb.biomasa_maxima, cb.aviso_preventivo_pct
+    FROM modulo2.activos_biologicos ab
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    LEFT JOIN LATERAL (
+        SELECT gf.id_ciclos_productivo_biologico FROM modulo2.gestiones_fases gf
+        WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa
+        ORDER BY gf.fecha_inicio DESC LIMIT 1) fase ON true
+    LEFT JOIN modulo9.ciclos_productivos_biologicos cpb
+           ON cpb.id_ciclos_productivo_biologico = fase.id_ciclos_productivo_biologico
+    LEFT JOIN modulo9.ciclos_biologicos cb ON cb.id_ciclo_biologico = cpb.id_ciclo_biologico
+    WHERE ab.id_activo_biologico = ANY(:ids)
+""")
+
+
+def _completar_estado_densidad(db: Session, activos: list[ActivoBiologicoResponse]) -> None:
+    """#393: estado de densidad de los lotes de la página en una consulta, con la regla de la ficha (RF-36):
+    el máximo más estricto entre la etapa y las especies del área (RFC-012)."""
+    lotes = {a.id_activo_biologico: a for a in activos if a.tipo == 'POBLACIONAL' and a.detalle_poblacional}
+    if not lotes:
+        return
+    for f in db.execute(_SQL_DENSIDAD_LOTES, {'ids': list(lotes)}):
+        a = lotes[f.id_activo_biologico]
+        etapa = (LimiteEtapa(f.etapa, f.densidad_maxima, f.biomasa_maxima, f.aviso_preventivo_pct)
+                 if f.etapa is not None else None)
+        a.estado_densidad = EstadoDensidadLoteResponse.model_validate(evaluar_densidad(
+            cantidad=a.detalle_poblacional.cantidad_actual, superficie=f.superficie, densidad_especie=f.densidad_area,
+            limite_etapa=etapa, biomasa_total=a.detalle_poblacional.biomasa_total))
 
 
 def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:
