@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Comparación — TC-M06-G103</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    a { color: #0b4f8a; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-89 · TC-M06-G103 · INC-M06-291-G75 · Issue #978</p>
+  <h1>Comparación de evaluaciones</h1>
+  <p>El caso comprueba las fechas de un precio de mercado. El cierre acepta la prueba automatizada del caso de uso como evidencia suficiente de TC-M06-23. El resultado general pasa de 67 % a 100 %.</p>
+
+  <h2>Primera evaluación</h2>
+  <p>8 de noviembre de 2026, 07:53 UTC. Ejecución contra TEST. Porcentaje histórico: 67 %. <a href="primera_evaluacion/resultado_ejecucion_TC-M06-G103.html">Informe</a> · <a href="primera_evaluacion/resumen_ejecucion_TC-M06-G103.json">Resumen</a> · <a href="primera_evaluacion/evidencia_peticiones_TC-M06-G103.json">Peticiones</a></p>
+
+  <h2>Última evaluación</h2>
+  <p>10 de noviembre de 2026. Tres subcasos aprobados. Porcentaje: 100 %. Dictamen: APROBADO. <a href="ultima_evaluacion/resultado_ejecucion_TC-M06-G103.html">Informe</a> · <a href="ultima_evaluacion/resumen_ejecucion_TC-M06-G103.json">Resumen</a> · <a href="ultima_evaluacion/evidencia_tc_m06_23_prueba_aislada.json">Evidencia técnica de TC-M06-23</a></p>
+
+  <table>
+    <tr><th>Subcaso</th><th>Primera evaluación</th><th>Última evaluación</th></tr>
+    <tr><td>TC-M06-22</td><td>APROBADO</td><td>APROBADO</td></tr>
+    <tr><td>TC-M06-23</td><td>BLOQUEADO</td><td>APROBADO</td></tr>
+    <tr><td>TC-M06-24</td><td>APROBADO</td><td>APROBADO</td></tr>
+    <tr><td>Porcentaje</td><td>67 %</td><td>100 %</td></tr>
+  </table>
+
+  <h2>Cambio de TC-M06-23</h2>
+  <p>En la primera evaluación el subcaso quedó bloqueado porque no se envió el POST. La última evaluación lo aprueba con <code>test_tc_m06_23_limite_365_dias.py</code>: 365 días continúan el caso de uso en estado ACTIVO y 366 días se rechazan con <code>FECHA_VIGENCIA_FUERA_DE_RANGO</code> antes de persistir o notificar. QA aceptó esa prueba, de 2 passed en 0,73 s, como suficiente para el objetivo. La evidencia sigue siendo técnica: no hubo alta real en TEST, ni HTTP 201, ni verificación del trigger.</p>
+  <p>TC-M06-22 y TC-M06-24 conservan la aprobación HTTP del 8 de noviembre y no se volvieron a ejecutar.</p>
+  <p><a href="../test_tc_m06_23_limite_365_dias.py">Prueba automatizada</a></p>
+</body>
+</html>
