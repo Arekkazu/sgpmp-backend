@@ -1,0 +1,595 @@
+================================================================================
+INFORME DE EJECUCION OFICIAL EN STAGING Y DIAGNOSTICO - TC-M05-G18 (RF-76)
+================================================================================
+Fecha de generacion: 2026-11-10
+Carpeta del caso: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/
+Carpeta de corrida oficial: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-204212/
+Carpeta archivada (no oficial, intacta): tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-202406/
+
+--------------------------------------------------------------------------------
+1. VERIFICACION DE INTEGRIDAD (SHA-256 INICIAL Y FINAL)
+--------------------------------------------------------------------------------
+- test_tc_m05_g18.py
+  * Esperado / Inicial : 789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A
+  * Final              : 789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A
+  * Coincide           : SI
+- ejecutar_tc_m05_g18.ps1
+  * Esperado / Inicial : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+  * Final              : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+  * Coincide           : SI
+- generar_resultado_g18.py (copia sin cambios desde run-20261110-202406)
+  * SHA-256 origen     : A65B9BF2867D63E19D50E618199F55C6BAA3CD84623D97D561BE889FC8CF4326
+  * SHA-256 copia      : A65B9BF2867D63E19D50E618199F55C6BAA3CD84623D97D561BE889FC8CF4326
+  * Coincide           : SI
+- Codigo del backend (src/, main.py): sin modificaciones.
+- Carpeta resultados/: intacta, contiene unicamente .gitkeep.
+
+--------------------------------------------------------------------------------
+2. EJECUCION OFICIAL DEL RUNNER
+--------------------------------------------------------------------------------
+- Comando ejecutado (una sola vez, desde la carpeta del TC):
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\ejecutar_tc_m05_g18.ps1
+- Variable DATABASE_URL en .env.test: AUSENTE
+- Carpeta creada: evidencias/run-20261110-204212
+- Codigo de salida del runner: RUNNER_EXIT_CODE=1 (pytest reporto 2 failed, 8 passed, 2 warnings in 17.34s; JUnit XML time="17.317")
+- Segunda corrida: NO ejecutada (G18_R_01 paso en la primera corrida con estado OK, sin errores de red, timeout ni bloqueo de login).
+- Cierre de corrida sandbox: G18_R_01 abrio y cerro limpiamente su corrida sandbox en TEST (post_rollback=0, sin corridas sandbox abiertas al finalizar).
+
+--------------------------------------------------------------------------------
+3. TABLA DE RESULTADOS DE LOS 10 TESTS
+--------------------------------------------------------------------------------
+Veredicto global: Rechazado (total=10, ok=8, falla=2)
+
+#  | ID        | Subcaso (plano / orig) | Estado | Duracion | Descripcion corta
+---+-----------+------------------------+--------+----------+---------------------------------------------------------------
+01 | G18_S1_01 | S1 (043 / 011)         | OK     | 0.026s   | Dos tratamientos (vencido y vigente manana) no revierte
+02 | G18_S1_02 | S1 (043 / 011)         | OK     | 0.020s   | Retiro vence hoy (<= hoy) invoca RF-44 1 vez y revierte a ACTIVO
+03 | G18_S1_03 | S1 (043 / 011)         | FALLA  | 0.020s   | Fin de retiro notifica a Veterinario y Productor
+04 | G18_S2_01 | S2 (044 / 012)         | OK     | 0.054s   | Falla RF-44 retorna HTTP 500 ERROR_ESTADO_EN_TRATAMIENTO
+05 | G18_S2_02 | S2 (044 / 012)         | OK     | 0.032s   | Falla RF-44 ejecuta rollback completo sin persistir registro
+06 | G18_S2_03 | S2 (044 / 012)         | OK     | 0.031s   | Falla RF-44 mantiene activo en ACTIVO y 0 notificaciones inicio
+07 | G18_S3_01 | S3 (047 / 042)         | OK     | 0.076s   | Falla calculo fecha_fin_retiro responde HTTP 500 y rollback
+08 | G18_S3_02 | S3 (047 / 042)         | OK     | 0.221s   | Falla BD guardar() pasa por db_error_translator (503) y rollback
+09 | G18_S3_03 | S3 (047 / 042)         | FALLA  | 0.073s   | Incidente de auditoria sobrevive al rollback en sesion indep.
+10 | G18_R_01  | Control real sandbox   | OK     | 4.722s   | POST real en TEST periodo_retiro_dias=0 (hoy/D-6) e inocuidad
+
+--------------------------------------------------------------------------------
+4. DIAGNOSTICO DETALLADO DE FALLOS
+--------------------------------------------------------------------------------
+
+4.1. G18_S1_03 (test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor)
+- Clasificacion: PRODUCTO (defecto funcional contra especificacion RF-76 flujo paso 13)
+- Asercion (--tb=short, test_tc_m05_g18.py:874 / 880):
+  AssertionError: Defecto RF-76 paso 13: no se notifico al Veterinario (veterinario.g18@finca.example) al finalizar el retiro; solo se envio a destinatarios=['productor.g18@finca.example']
+  assert 'veterinario.g18@finca.example' in ['productor.g18@finca.example']
+- Evidencia de ejecucion / traza:
+  * El stub de correo registro destinatarios obtenidos = ['productor.g18@finca.example'].
+  * Se envio notificacion unicamente al Productor; el Veterinario ('veterinario.g18@finca.example') quedo omitido.
+- Verificacion en codigo del backend [LECTURA DE CODIGO]:
+  * src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py:101 invoca NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(id_activo, fecha_fin_retiro).
+  * src/supplies/infrastructure/adapters/notificacion_medicamento_email_adapter.py:72-79 define notificar_fin_retiro(self, id_activo, fecha_fin_retiro): unicamente consulta self._productor_de_activo(id_activo) (linea 73) y envia el correo al productor (lineas 74-79), sin resolver ni notificar al veterinario (a diferencia de notificar_inicio_retiro en lineas 48-70, que si resuelve _usuario(id_usuario_veterinario) en lineas 63-70).
+- Conclusion: Falla genuina de PRODUCTO (no de TEST ni de INFRA/AMBIENTE).
+
+4.2. G18_S3_03 (test_g18_s3_03_incidente_auditoria_sobrevive_rollback)
+- Clasificacion: PRODUCTO (defecto funcional contra CU03 FA-13)
+- Asercion (--tb=short, test_tc_m05_g18.py:1141 / 1153):
+  AssertionError: Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no confirmo incidente de auditoria en sesion independiente sobreviviente al rollback (incidentes_confirmados=0, sesiones_indep_commiteadas=0).
+  assert (0 >= 1)
+   +  where 0 = len([])
+- Evidencia de ejecucion / traza:
+  * El test ejecuto ambos escenarios antes de las aserciones de auditoria:
+    - Escenario A (OverflowError al calcular fecha_fin_retiro, test_tc_m05_g18.py:1100-1115): resp_a retorno HTTP 500; audit_post_a = [] (conteo A = 0 incidentes confirmados).
+    - Escenario B (OperationalError en flush() al persistir medicamento, test_tc_m05_g18.py:1117-1135): resp_b retorno HTTP 503 con log 'ServiceUnavailableError [BD_NO_DISPONIBLE]' (pytest.log:289) tras fake_db_b.flush_calls >= 1.
+    - Al evaluar sesiones_indep_commit sobre store.sessions_opened de ambos escenarios (test_tc_m05_g18.py:1138-1140), se obtuvo sesiones_indep_commiteadas = 0.
+    - La asercion de linea 1141 fallo por incidentes_confirmados=0 (conteo A = 0) y sesiones_indep_commiteadas=0; por ello la asercion especifica de linea 1146 para audit_post_b no alcanzo a evaluarse, aunque el conteo conjunto de sesiones independientes commiteadas en ambos escenarios A y B fue 0 (y audit_post_b tampoco tuvo sesion independiente commiteada).
+- Verificacion en codigo del backend [LECTURA DE CODIGO]:
+  * Escenario A: en src/supplies/application/use_cases/suministros/registrar_medicamento_use_case.py:193 se calcula fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias) fuera de cualquier bloque que audite el fallo; la excepcion llega a error_no_controlado_handler en src/shared/error_handlers.py:350-371, que solo ejecuta logger.exception(...) (linea 363) y retorna HTTP 500 ERROR_INTERNO (lineas 366-371), sin abrir sesion independiente ni persistir incidente en auditoria.
+  * Escenario B: en src/supplies/infrastructure/repositories/medicamento_repository.py:124-127, flush() lanza OperationalError y raise_from_db_error (src/shared/db_error_translator.py:262-442) la traduce a ServiceUnavailableError("BD_NO_DISPONIBLE"); la maneja app_error_handler en src/shared/error_handlers.py:76-105, que solo ejecuta logger.error(...) (linea 93) y retorna HTTP 503 (lineas 97-105), sin abrir sesion independiente ni registrar incidente en auditoria.
+  * Nota comparativa en src/shared/error_handlers.py: existen helpers locales _auditar_evento_edge_rechazado (lineas 131-155) y _auditar_evento_alerta_rechazado (lineas 158-190) para eventos edge/alerta especificos, pero ni app_error_handler ni error_no_controlado_handler persisten incidentes de auditoria en errores 5xx.
+- Conclusion: Falla genuina de PRODUCTO (no de TEST ni de INFRA/AMBIENTE).
+
+--------------------------------------------------------------------------------
+5. COHERENCIA DE ARTEFACTOS E INOCUIDAD DE G18_R_01
+--------------------------------------------------------------------------------
+- Coherencia 10/10 entre artefactos de evidencias/run-20261110-204212/:
+  * resultado_TC-M05-G18.html (data-jsonblob): 10 tests (8 Passed, 2 Failed: G18_S1_03 y G18_S3_03).
+  * junit_TC-M05-G18.xml: 10 testcase (tests="10" failures="2" errors="0" skipped="0", time="17.317").
+  * trazas_tc_m05_g18.json: 10 entradas en orden identico (8 OK, 2 FALLA).
+  * resultado_TC-M05-G18.json: summary total=10, ok=8, falla=2, veredicto="Rechazado", 10 checkpoints coherentes con XML y trazas.
+- Inocuidad de G18_R_01 en entorno TEST (sandbox real):
+  * Traza obtenida: activo=853, base=0, en_sandbox=2, post_rollback=0.
+  * Los 2 registros creados (hoy y D-6 con periodo_retiro_dias=0, ambos HTTP 201) se revirtieron por completo al cerrar la corrida sandbox, dejando el conteo del activo 853 intacto en base=0 -> post_rollback=0.
+
+--------------------------------------------------------------------------------
+6. ESCANEO DE SECRETOS
+--------------------------------------------------------------------------------
+- Escaneo automatico ejecutado por el runner (ejecutar_tc_m05_g18.ps1):
+  Escaneo de secretos: 0 coincidencias
+- Escaneo independiente posterior sobre todos los archivos de evidencias/run-20261110-204212/
+  (junit_TC-M05-G18.xml, pytest.log, resultado_TC-M05-G18.html, resultado_TC-M05-G18.json,
+  trazas_tc_m05_g18.json, generar_resultado_g18.py y TC-M05-G18_ejecucion_informe.txt):
+  0 coincidencias
+
+================================================================================
+7. ANEXOS LITERALES
+================================================================================
+
+--------------------------------------------------------------------------------
+ANEXO A: pytest.log (verbatim)
+--------------------------------------------------------------------------------
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 10 items
+
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte PASSED [ 10%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte PASSED [ 20%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor FAILED [ 30%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion PASSED [ 40%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido PASSED [ 50%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion PASSED [ 60%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro PASSED [ 70%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback PASSED [ 80%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03_incidente_auditoria_sobrevive_rollback FAILED [ 90%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad PASSED [100%]
+
+================================== FAILURES ===================================
+_________ test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor __________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:880: in test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:178: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:874: in _verificar
+    assert VET_CORREO in destinatarios, (
+E   AssertionError: Defecto RF-76 paso 13: no se notifico al Veterinario (veterinario.g18@finca.example) al finalizar el retiro; solo se envio a destinatarios=['productor.g18@finca.example']
+E   assert 'veterinario.g18@finca.example' in ['productor.g18@finca.example']
+____________ test_g18_s3_03_incidente_auditoria_sobrevive_rollback ____________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1153: in test_g18_s3_03_incidente_auditoria_sobrevive_rollback
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:178: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1141: in _verificar
+    assert len(audit_post_a) >= 1 and len(sesiones_indep_commit) >= 1, (
+E   AssertionError: Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no confirmo incidente de auditoria en sesion independiente sobreviviente al rollback (incidentes_confirmados=0, sesiones_indep_commiteadas=0).
+E   assert (0 >= 1)
+E    +  where 0 = len([])
+------------------------------ Captured log call ------------------------------
+ERROR    src.shared.error_handlers:error_handlers.py:363 Error no controlado en http://testserver/suministros/medicamentos [6cd8d202-cd18-41f4-acd5-9649ee1bda96]
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |                ~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  |         "unhandled errors in a TaskGroup", self._exceptions
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\Juansegutt\anaconda3\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\shared\middlewares.py", line 136, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\Juansegutt\anaconda3\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\shared\middlewares.py", line 96, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\Juansegutt\anaconda3\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\shared\rollback\infraestructure\testing_middlaware.py", line 19, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 330, in run_endpoint_function
+    |     return await run_in_threadpool(dependant.call, **values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\concurrency.py", line 32, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2518, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1002, in run
+    |     result = context.run(func, *args)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\supplies\infrastructure\routers\medicamento_router.py", line 69, in registrar_medicamento
+    |     resultado = build_registrar_medicamento_use_case(db).execute(dto, usuario_actual)
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\supplies\application\use_cases\suministros\registrar_medicamento_use_case.py", line 193, in execute
+    |     fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)
+    |                                               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py", line 1105, in _fallar_td
+    |     raise OverflowError("Falla simulada fecha_fin_retiro")
+    | OverflowError: Falla simulada fecha_fin_retiro
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Juansegutt\anaconda3\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\shared\middlewares.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Juansegutt\anaconda3\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\shared\middlewares.py", line 96, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Juansegutt\anaconda3\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\shared\rollback\infraestructure\testing_middlaware.py", line 19, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\starlette\concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\supplies\infrastructure\routers\medicamento_router.py", line 69, in registrar_medicamento
+    resultado = build_registrar_medicamento_use_case(db).execute(dto, usuario_actual)
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\src\supplies\application\use_cases\suministros\registrar_medicamento_use_case.py", line 193, in execute
+    fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)
+                                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py", line 1105, in _fallar_td
+    raise OverflowError("Falla simulada fecha_fin_retiro")
+OverflowError: Falla simulada fecha_fin_retiro
+ERROR    src.shared.error_handlers:error_handlers.py:93 ServiceUnavailableError [BD_NO_DISPONIBLE] en http://testserver/suministros/medicamentos: OperationalError('(psycopg2.OperationalError) connection to PostgreSQL server lost during flush')
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1256
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1256: PytestUnknownMarkWarning: Unknown pytest.mark.sandbox_real - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.sandbox_real
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\run-20261110-204212\junit_TC-M05-G18.xml -
+- Generated html report: file:///C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-204212/resultado_TC-M05-G18.html -
+=========================== short test summary info ===========================
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03_incidente_auditoria_sobrevive_rollback
+================== 2 failed, 8 passed, 2 warnings in 17.34s ===================
+
+--------------------------------------------------------------------------------
+ANEXO B: trazas_tc_m05_g18.json (verbatim)
+--------------------------------------------------------------------------------
+[
+  {
+    "test": "G18_S1_01",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.",
+    "obtenido": "activo_estado=3, revert_calls=0, listar_calls=1, vigente_calls=1",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:25.946523-05:00"
+  },
+  {
+    "test": "G18_S1_02",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.",
+    "obtenido": "activo_estado=1, revert_calls=1, commits=1, listar_calls=1",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:25.978482-05:00"
+  },
+  {
+    "test": "G18_S1_03",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Al revertir retiro vencido, NotificacionMedicamentoEmailAdapter envia correo a Productor Y Veterinario.",
+    "obtenido": "AssertionError: Defecto RF-76 paso 13: no se notifico al Veterinario (veterinario.g18@finca.example) al finalizar el retiro; solo se envio a destinatarios=['productor.g18@finca.example']\nassert 'veterinario.g18@finca.example' in ['productor.g18@finca.example']",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:42:26.000125-05:00"
+  },
+  {
+    "test": "G18_S2_01",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+    "obtenido": "http=500, error_code=ERROR_ESTADO_EN_TRATAMIENTO",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:26.896075-05:00"
+  },
+  {
+    "test": "G18_S2_02",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Rollback ejecutado (>=1), 0 commits y 0 registros de medicamento persistidos.",
+    "obtenido": "rollbacks=2, commits=0, persistidos=0",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:26.928945-05:00"
+  },
+  {
+    "test": "G18_S2_03",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.",
+    "obtenido": "activo_estado=1, notificaciones_inicio=0",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:26.961728-05:00"
+  },
+  {
+    "test": "G18_S3_01",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
+    "obtenido": "http=500, error_code=ERROR_INTERNO, rollbacks=1, timedelta_calls=1",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:27.039521-05:00"
+  },
+  {
+    "test": "G18_S3_02",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+    "obtenido": "http=503, error_code=BD_NO_DISPONIBLE, flush_calls=1, rollbacks=2",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:27.262092-05:00"
+  },
+  {
+    "test": "G18_S3_03",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Un incidente de auditoria sobrevive al rollback en sesion independiente para S3_01 y S3_02.",
+    "obtenido": "AssertionError: Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no confirmo incidente de auditoria en sesion independiente sobreviviente al rollback (incidentes_confirmados=0, sesiones_indep_commiteadas=0).\nassert (0 >= 1)\n +  where 0 = len([])",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:42:27.337063-05:00"
+  },
+  {
+    "test": "G18_R_01",
+    "caso_plano": "043/044/047",
+    "caso_original": "011/012/042",
+    "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.",
+    "obtenido": "activo=853, base=0, en_sandbox=2, post_rollback=0",
+    "estado": "OK",
+    "timestamp": "2026-11-10T20:42:32.469165-05:00"
+  }
+]
+
+--------------------------------------------------------------------------------
+ANEXO C: resultado_TC-M05-G18.json (verbatim)
+--------------------------------------------------------------------------------
+{
+  "tc": "TC-M05-G18",
+  "summary": {
+    "total": 10,
+    "ok": 8,
+    "falla": 2,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "G18_S1_01 (plano 043 / orig 011) - test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte",
+      "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.",
+      "obtenido": "activo_estado=3, revert_calls=0, listar_calls=1, vigente_calls=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S1_02 (plano 043 / orig 011) - test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte",
+      "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.",
+      "obtenido": "activo_estado=1, revert_calls=1, commits=1, listar_calls=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S1_03 (plano 043 / orig 011) - test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor",
+      "esperado": "Al revertir retiro vencido, NotificacionMedicamentoEmailAdapter envia correo a Productor Y Veterinario.",
+      "obtenido": "AssertionError: Defecto RF-76 paso 13: no se notifico al Veterinario (veterinario.g18@finca.example) al finalizar el retiro; solo se envio a destinatarios=['productor.g18@finca.example']\nassert 'veterinario.g18@finca.example' in ['productor.g18@finca.example']",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S2_01 (plano 044 / orig 012) - test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion",
+      "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+      "obtenido": "http=500, error_code=ERROR_ESTADO_EN_TRATAMIENTO",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S2_02 (plano 044 / orig 012) - test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido",
+      "esperado": "Rollback ejecutado (>=1), 0 commits y 0 registros de medicamento persistidos.",
+      "obtenido": "rollbacks=2, commits=0, persistidos=0",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S2_03 (plano 044 / orig 012) - test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion",
+      "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.",
+      "obtenido": "activo_estado=1, notificaciones_inicio=0",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S3_01 (plano 047 / orig 042) - test_g18_s3_01_falla_calculo_fecha_fin_retiro",
+      "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
+      "obtenido": "http=500, error_code=ERROR_INTERNO, rollbacks=1, timedelta_calls=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S3_02 (plano 047 / orig 042) - test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback",
+      "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+      "obtenido": "http=503, error_code=BD_NO_DISPONIBLE, flush_calls=1, rollbacks=2",
+      "estado": "OK"
+    },
+    {
+      "paso": "G18_S3_03 (plano 047 / orig 042) - test_g18_s3_03_incidente_auditoria_sobrevive_rollback",
+      "esperado": "Un incidente de auditoria sobrevive al rollback en sesion independiente para S3_01 y S3_02.",
+      "obtenido": "AssertionError: Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no confirmo incidente de auditoria en sesion independiente sobreviviente al rollback (incidentes_confirmados=0, sesiones_indep_commiteadas=0).\nassert (0 >= 1)\n +  where 0 = len([])",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_R_01 (plano 043/044/047 / orig 011/012/042) - test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad",
+      "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.",
+      "obtenido": "activo=853, base=0, en_sandbox=2, post_rollback=0",
+      "estado": "OK"
+    }
+  ]
+}
