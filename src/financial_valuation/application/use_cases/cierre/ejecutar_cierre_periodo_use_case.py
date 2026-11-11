@@ -6,6 +6,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta al Contador de mediciones estimadas o pendientes |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: EN_CIERRE en espera de autorización, cancelación, matriz y titular |
+# | 2026-11-10 | Arekkazu | INC-M06-346-G43-02 RF-87: las líneas sin trazabilidad de la prevalidación nombran su activo |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -152,6 +153,9 @@ class EjecutarCierrePeriodoUseCase:
                 sin_precio.append({"id_activo_biologico": activo.id_activo_biologico, "identificador": activo.identificador,
                                    "especie": activo.especie})
         sin_trazabilidad = self.verificador.evaluar(self.contabilizador.asientos.del_periodo(periodo.id_periodo_contable))
+        nombres = {a.id_activo_biologico: a.identificador for a in reconocidos}  # el panel nombra el activo, no su id
+        for linea in sin_trazabilidad:
+            linea["identificador"] = nombres.get(linea.get("id_activo_biologico"))
         return Prevalidacion(bloqueos, sin_precio, sin_trazabilidad)
 
     def _combinaciones_sin_cuenta(self, reconocidos: list[DatosActivo]) -> list[str]:
