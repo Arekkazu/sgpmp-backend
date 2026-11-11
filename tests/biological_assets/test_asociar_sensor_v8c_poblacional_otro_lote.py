@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-49 Restriccion 4 (INC-M02-64-G88): un sensor POBLACIONAL solo puede
 estar activo en un unico lote a la vez. V8b solo validaba por activo (que el
 lote no tuviera ya otro sensor); faltaba V8c, la simetrica por sensor.
@@ -48,6 +51,9 @@ class SensorPortFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, infra) -> None:
         self.infra = infra
 

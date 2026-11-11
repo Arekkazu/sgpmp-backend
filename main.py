@@ -26,6 +26,9 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: router /finanzas y proceso de fondo NIC 41 |
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: routers de integración AAEF y transiciones de contratos |
 # | 2026-11-08 | Arekkazu | INC-M06-333-G89 RF-60: la evaluación de dispositivos corre en un hilo y no congela la API |
+# | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
+# | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: el directorio de logos se crea al arrancar; un logo ausente responde 404 |
+# | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: router de ciclos productivos |
 import asyncio
 import logging
 import os
@@ -52,6 +55,7 @@ logger = logging.getLogger(__name__)
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
+from src.configuration.infrastructure.routers.ciclo_productivo_router import router as ciclo_productivo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
 from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
 from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
@@ -293,6 +297,18 @@ async def _ejecutar_batch_ica_diario() -> None:
     from src.supplies.infrastructure.repositories.configuracion_batch_ica_repository import (
         SqlAlchemyConfiguracionBatchICARepository,
     )
+
+    from src.supplies.infrastructure.factories.eficiencia_factory import build_interrumpir_batch_use_case
+
+    db = sesion_sistema()
+    try:  # una corrida que quedó en vuelo al reiniciar bloquearía todas las noches siguientes
+        huerfanas = build_interrumpir_batch_use_case(db).interrumpir_huerfanas()
+        if huerfanas:
+            logger.warning("Batch ICA: corridas huérfanas interrumpidas al arrancar: %s", huerfanas)
+    except Exception:
+        logger.exception("Batch ICA: no se pudieron interrumpir las corridas huérfanas.")
+    finally:
+        db.close()
 
     while True:
         hora = dtime(2, 0)
@@ -1041,6 +1057,11 @@ app.add_middleware(SecurityHeadersMiddleware)
 # devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
 # `check_dir=False` porque el directorio solo aparece con el primer logotipo
 # subido; exigirlo al arrancar tumbaría un despliegue limpio.
+# Sin el directorio, StaticFiles responde 500 a cualquier logo; con él, uno que falta da 404.
+try:
+    os.makedirs(almacen_logos.DIRECTORIO_LOGOS, exist_ok=True)
+except OSError:
+    logger.exception("No se pudo crear el directorio de logos %s", almacen_logos.DIRECTORIO_LOGOS)
 app.mount(
     almacen_logos.RUTA_PUBLICA_LOGOS,
     StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
@@ -1062,6 +1083,7 @@ app.include_router(activo_biologico_router)
 app.include_router(infraestructura_sensor_router)
 app.include_router(especie_router)
 app.include_router(ciclo_router)
+app.include_router(ciclo_productivo_router)
 app.include_router(patologia_router)
 app.include_router(metrica_router)
 app.include_router(umbral_router)

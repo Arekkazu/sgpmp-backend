@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-49 R3 / FA-04: compatibilidad biologica sensor-especie."""
 from __future__ import annotations
 
@@ -75,6 +78,9 @@ class SensorPortFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, fincas: dict[int, int]) -> None:
         self.fincas = fincas
 

@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-76: mensajes y E11 del RF, ledger      |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -63,6 +64,7 @@ class ResultadoRegistroMedicamento:
     fecha_fin_retiro_vigente: Optional[date]
     activo_ya_en_tratamiento: bool = False
     tratamientos_activos: int = 0
+    nombre_activo: str = "seleccionado"
 
     @property
     def mensaje(self) -> Optional[str]:
@@ -71,7 +73,7 @@ class ResultadoRegistroMedicamento:
             return None
         hasta = self.fecha_fin_retiro_vigente.isoformat() if self.fecha_fin_retiro_vigente else "-"
         return (
-            f"El medicamento fue registrado correctamente. El activo {self.medicamento.id_activo_biologico} "
+            f"El medicamento fue registrado correctamente. El activo {self.nombre_activo} "
             f"tiene {self.tratamientos_activos} tratamientos activos. El período de retiro vigente se "
             f"extiende hasta {hasta}."
         )
@@ -120,7 +122,7 @@ class RegistrarMedicamentoUseCase:
                 code="ACTIVO_ESTADO_INVALIDO",
                 message=(
                     "No es posible registrar una aplicación de medicamento para el activo "
-                    f"{activo.id_activo_biologico} porque su estado actual es {activo.nombre_estado}. Solo se "
+                    f"{activo.nombre_visible} porque su estado actual es {activo.nombre_estado}. Solo se "
                     "permite el registro sobre activos en estado ACTIVO."
                 ),
                 field="id_activo_biologico",
@@ -131,7 +133,7 @@ class RegistrarMedicamentoUseCase:
             raise BusinessRuleError(
                 code="CICLO_NO_ABIERTO",
                 message=(
-                    f"El activo {activo.id_activo_biologico} no tiene un ciclo productivo activo. No es posible "
+                    f"El activo {activo.nombre_visible} no tiene un ciclo productivo activo. No es posible "
                     "registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes "
                     "de continuar."
                 ),
@@ -168,7 +170,7 @@ class RegistrarMedicamentoUseCase:
                     code="EVENTO_SANITARIO_INVALIDO",
                     message=(
                         f"El evento sanitario {dto.id_evento_sanitario} no existe o no está asociado al activo "
-                        f"{dto.id_activo_biologico}. Verifique el identificador del evento sanitario antes de "
+                        f"{activo.nombre_visible}. Verifique el identificador del evento sanitario antes de "
                         "continuar."
                     ),
                     field="id_evento_sanitario",
@@ -180,7 +182,7 @@ class RegistrarMedicamentoUseCase:
                 raise BusinessRuleError(
                     code="POBLACIONAL_SIN_CANTIDAD",
                     message=(
-                        f"No es posible registrar el medicamento para el activo {activo.id_activo_biologico} "
+                        f"No es posible registrar el medicamento para el activo {activo.nombre_visible} "
                         "porque su cantidad actual de individuos es cero o no está definida."
                     ),
                     field="id_activo_biologico",
@@ -203,7 +205,7 @@ class RegistrarMedicamentoUseCase:
             raise ConflictError(
                 code="MEDICAMENTO_DUPLICADO",
                 message=(
-                    f"Ya existe un registro de {dto.nombre_medicamento} para el activo {dto.id_activo_biologico} "
+                    f"Ya existe un registro de {dto.nombre_medicamento} para el activo {activo.nombre_visible} "
                     f"el {dto.fecha_aplicacion.isoformat()} a las {dto.hora_aplicacion.strftime('%H:%M')}. No se "
                     "permiten registros duplicados. Si se trata de una dosis subsecuente, registre una nueva "
                     f"aplicación con fecha y hora posteriores al {momento}."
@@ -266,6 +268,7 @@ class RegistrarMedicamentoUseCase:
             fecha_fin_retiro_vigente=vigente,
             activo_ya_en_tratamiento=ya_en_tratamiento,
             tratamientos_activos=activos,
+            nombre_activo=activo.nombre_visible,
         )
 
     def _marcar_en_tratamiento(self, dto: RegistrarMedicamentoDTO, usuario_actual: UsuarioActual) -> None:

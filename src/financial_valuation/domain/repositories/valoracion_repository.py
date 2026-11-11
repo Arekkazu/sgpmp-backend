@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
+# | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 """Puerto de la valoración NIC 41: cálculos (RF-84), reconocimientos (RF-82), mediciones y
 variaciones (RF-83/86), productos agrícolas (RF-85) y valoración por costo (RF-88)."""
 from __future__ import annotations
@@ -86,6 +87,11 @@ class ValoracionRepository(ABC):
     def mediciones_del_periodo(self, id_periodo_contable: int, id_evento: Optional[int] = None,
                                tiene_valor_estimado: Optional[bool] = None) -> list[dict]:
         """RF-83: mediciones posteriores del período con el activo que midieron."""
+
+    @abstractmethod
+    def eventos_pendientes_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-86: eventos del período cuya medición quedó suspendida (MEDICION_PENDIENTE). No dejan
+        medición, así que sin esto el panel tomaría como vigente una medición anterior del activo."""
 
     @abstractmethod
     def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:

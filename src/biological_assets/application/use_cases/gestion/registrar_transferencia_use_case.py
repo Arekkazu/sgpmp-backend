@@ -4,6 +4,7 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: integra vinculaciones en la misma transaccion |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
 """Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
 
 from __future__ import annotations
@@ -196,6 +197,7 @@ class RegistrarTransferenciaUseCase:
         asociar_especie = validar_entrada_al_area(
             self.infra_port, infra_destino, id_especie=activo.id_especie,
             entrantes=self._cantidad_a_transferir(activo), field='infraestructura_destino_id',
+            id_activo=activo.id_activo_biologico, cantidad_lote=self._cantidad_a_transferir(activo),
         )
 
         # E-10: fecha de transferencia no puede ser futura. Es la última

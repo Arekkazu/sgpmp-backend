@@ -7,6 +7,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ from src.financial_valuation.domain.entities.valoracion import (
 )
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
+from src.shared.fechas import nombre_zona_usuario
 
 _COLUMNAS_CALCULO = """id_calculo_valor_razonable, id_activo_biologico, id_precio_mercado, id_periodo_contable, magnitud,
     unidad_magnitud, precio_unitario, valor_razonable_bruto, costo_transporte, costo_comisiones,
@@ -351,6 +353,21 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
               AND (CAST(:est AS boolean) IS NULL OR x.tiene_valor_estimado = :est)
             ORDER BY x.fecha_medicion DESC, x.id_medicion_posterior DESC""",
             {"p": id_periodo_contable, "e": id_evento, "est": tiene_valor_estimado})
+
+    def eventos_pendientes_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        # El día del evento en la zona del usuario, igual que al procesarlo (fecha_usuario).
+        return filas(self.db, f"""
+            SELECT pr.id_evento, x.id_activo_biologico, {_ACTIVO}, x.fecha AS fecha_evento,
+                   pr.detalle AS motivo, pr.fecha_procesamiento
+            FROM modulo6.procesamientos_eventos_m02 pr
+            JOIN modulo2.eventos_activos x ON x.id_eventos = pr.id_evento
+            {_JOIN_ACTIVO}
+            JOIN modulo6.periodos_contables p
+              ON p.id_periodo_contable = :p AND p.numero_id_tributaria = f.numero_id_tributaria
+            WHERE pr.resultado = 'MEDICION_PENDIENTE'
+              AND (x.fecha AT TIME ZONE :tz)::date BETWEEN p.fecha_inicio AND p.fecha_fin
+            ORDER BY x.fecha DESC, pr.id_evento DESC""",
+            {"p": id_periodo_contable, "tz": nombre_zona_usuario()})
 
     def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
         # La verificación de trazabilidad actualiza la línea; la variación guarda el estado con que nació.

@@ -1,7 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
 """Entidad de dominio ``CicloBiologico`` — etapa del ciclo productivo por especie (RF-16)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from datetime import datetime
 from typing import Optional
 
@@ -30,6 +34,10 @@ class CicloBiologico:
     id_ciclo_biologico: Optional[int] = None
     descripcion: Optional[str] = None
     fecha_actualizacion: Optional[datetime] = None
+    # RF-16 por etapa (#391): límite propio del lote que está en esta fase. Sin densidad, no limita.
+    densidad_maxima: Optional[Decimal] = None  # animales por m²
+    biomasa_maxima: Optional[Decimal] = None  # kg por m²
+    aviso_preventivo_pct: int = 90
 
     @classmethod
     def crear(
@@ -59,6 +67,13 @@ class CicloBiologico:
         self.nombre = nombre
         self.duracion_dias = duracion_dias
         self.descripcion = descripcion
+        self.fecha_actualizacion = fecha_actualizacion
+
+    def configurar_densidad(self, *, densidad_maxima: Decimal, biomasa_maxima: Optional[Decimal],
+                            aviso_preventivo_pct: int, fecha_actualizacion: datetime) -> None:
+        self.densidad_maxima = densidad_maxima
+        self.biomasa_maxima = biomasa_maxima
+        self.aviso_preventivo_pct = aviso_preventivo_pct
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:

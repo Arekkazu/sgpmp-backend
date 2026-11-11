@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: capacidad_maxima derivada y especies del área desde la tabla puente |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
 """Adapter de ``InfraestructuraConsultaPort`` que lee infraestructuras, ocupación y
 sensores de M09.
 """
@@ -18,6 +19,7 @@ from src.biological_assets.domain.entities.activo_biologico import SensorEnInfra
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import (
     InfraestructuraConsulta,
     InfraestructuraConsultaPort,
+    LimiteEtapa,
 )
 from src.configuration.domain.services.capacidad_area import EspecieDelArea, capacidad_efectiva
 from src.configuration.infrastructure.models.especie_model import EspecieModel
@@ -160,3 +162,17 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
                 {'tipo': tipo_infraestructura, 'id_especie': id_especie},
             ).scalar()
         )
+
+    def limite_etapa_del_activo(self, id_activo_biologico: int) -> Optional[LimiteEtapa]:
+        fila = self.db.execute(text("""
+            SELECT cb.nombre, cb.densidad_maxima, cb.biomasa_maxima, cb.aviso_preventivo_pct
+            FROM modulo2.gestiones_fases gf
+            JOIN modulo9.ciclos_productivos_biologicos cpb
+              ON cpb.id_ciclos_productivo_biologico = gf.id_ciclos_productivo_biologico
+            JOIN modulo9.ciclos_biologicos cb ON cb.id_ciclo_biologico = cpb.id_ciclo_biologico
+            WHERE gf.id_activo_biologico = :a AND gf.es_activa
+            ORDER BY gf.fecha_inicio DESC LIMIT 1"""), {"a": id_activo_biologico}).first()
+        if fila is None:
+            return None
+        return LimiteEtapa(nombre_etapa=fila.nombre, densidad_maxima=fila.densidad_maxima,
+                           biomasa_maxima=fila.biomasa_maxima, aviso_preventivo_pct=fila.aviso_preventivo_pct)

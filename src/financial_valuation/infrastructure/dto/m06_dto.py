@@ -9,6 +9,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: ajuste de un hecho de un período cerrado |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio en el cierre |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, PositiveInt, model_validator
 
 from src.shared.base_dto import BaseDTO
 
@@ -180,6 +181,8 @@ class AjustePeriodoAnteriorDTO(BaseDTO):
 class CierreDTO(BaseDTO):
     autorizar_exclusiones: bool = False
     incluir_activos_sin_precio: bool = False
+    # RF-87 FA-2 por activo: los sin precio listados entran estimados; el resto se excluye (con autorización).
+    activos_estimados: list[PositiveInt] = Field(default_factory=list, max_length=5000)
 
 
 class DeterioroDTO(BaseDTO):

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
 """Enums de dominio para la eficiencia alimenticia / ICA (RF-74 / CU-02).
 
 Se mantienen como ``str``-``Enum`` en la aplicación; en la BD las columnas
@@ -90,3 +93,4 @@ class CausaInterrupcionBatch(str, Enum):
 
     VENTANA_EXCEDIDA = "VENTANA_EXCEDIDA"
     MANUAL = "MANUAL"
+    REINICIO_SERVIDOR = "REINICIO_SERVIDOR"  # el proceso se reinició con la corrida en vuelo
