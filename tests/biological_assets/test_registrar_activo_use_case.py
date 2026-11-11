@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: el doble del área declara sus especies (RFC-012) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-33: snapshot inicial (Evento 0) y código HTTP del flujo de costo inválido.
 
 - El registro exitoso debe dejar un snapshot version=1/tipo_evento=CREACION en
@@ -109,6 +110,9 @@ class InfraFake:
 
     def bloquear_capacidad(self, id_infraestructura: int) -> None:
         self.bloqueos.append(id_infraestructura)
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
         self.asociadas.append((id_infraestructura, id_especie))

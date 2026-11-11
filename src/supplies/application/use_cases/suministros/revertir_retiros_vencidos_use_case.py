@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: día calendario de Colombia         |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: revertir a ACTIVO los activos cuyo período de retiro venció (RF-76 pasos 11-13).
 
 Corre como tarea programada diaria (ver ``main.py``), sin usuario interactivo.
@@ -24,7 +25,7 @@ from src.shared.fechas import hoy_usuario
 
 logger = logging.getLogger(__name__)
 
-_MOTIVO_REVERSION = "Vencimiento de período de retiro (RF-76)."
+_MOTIVO_REVERSION = "Vencimiento de período de retiro."
 
 
 class RevertirRetirosVencidosUseCase:

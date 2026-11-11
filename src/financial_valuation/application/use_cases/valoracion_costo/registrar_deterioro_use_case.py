@@ -1,31 +1,42 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-88 paso 5: deterioro de un activo valorado por costo (NIC 41 ¶30, ¶55) |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 """Caso de uso RF-88 paso 5: el Contador cuantifica el impacto económico de un evento sanitario de
-RF-41 sobre un activo valorado por costo. RF-41 aporta el hecho clínico; M06, el monto."""
+RF-41 sobre un activo valorado por costo. RF-41 aporta el hecho clínico; M06, el monto.
+
+INC-M06-281-G68-07: si costo − depreciación − deterioro da negativo, el valor en libros queda en cero y se
+registra la alerta persistente ``VALOR_LIBROS_AJUSTADO_A_CERO`` (valor calculado y aplicado, consultable por
+activo); después del commit se avisa al Contador."""
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.application.services.contabilizador import Contabilizador
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.domain.services.nic41 import CERO, truncar2
+from src.financial_valuation.domain.services.nic41 import CERO, truncar2, valor_libros_calculado
 from src.financial_valuation.domain.value_objects.nic41 import Sentido, Severidad, TipoEvidencia, TipoHecho
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 from src.shared.fechas import hoy_usuario
 
+logger = logging.getLogger(__name__)
+
 
 class RegistrarDeterioroUseCase:
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
-                 contabilizador: Contabilizador) -> None:
+                 contabilizador: Contabilizador, notificador: Optional[NotificacionFinancieraPort] = None) -> None:
         self.db = db
         self.activos = activos
         self.valoraciones = valoraciones
         self.contabilizador = contabilizador
+        self.notificador = notificador
 
     def execute(self, id_activo_biologico: int, id_evento_sanitario: int, impacto: Decimal, justificacion: str,
                 id_usuario: int) -> dict:
@@ -49,8 +60,9 @@ class RegistrarDeterioroUseCase:
             id_deterioro = self.valoraciones.agregar_deterioro(costo.id_valoracion_por_costo, id_evento_sanitario,
                                                                impacto, justificacion.strip(), id_usuario)
             costo.deterioro_acumulado += Decimal(impacto)
-            costo.valor_contable_por_costo = max(CERO, costo.costos_adquisicion - costo.depreciacion_acumulada
-                                                 - costo.deterioro_acumulado)
+            calculado = valor_libros_calculado(costo.costos_adquisicion, costo.depreciacion_acumulada,
+                                               costo.deterioro_acumulado)
+            costo.valor_contable_por_costo = max(CERO, calculado)
             self.valoraciones.actualizar_valoracion_costo(costo)
             if reduccion > 0:
                 self.contabilizador.asentar(LineaAsiento(
@@ -68,6 +80,10 @@ class RegistrarDeterioroUseCase:
                 id_activo_biologico=id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
                 id_referencia=id_deterioro, monto_afectado=impacto, metodo_nuevo="VALORACION_POR_COSTO",
             ))
+            if calculado < 0:
+                self.contabilizador.auditar(evento_valor_libros_cero(
+                    costo, calculado, "DETERIORO", id_activo_biologico, periodo.id_periodo_contable, id_deterioro,
+                    id_usuario))
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -76,4 +92,33 @@ class RegistrarDeterioroUseCase:
         if costo.valor_contable_por_costo <= 0:  # FA-1
             aviso = (f"El activo {activo.identificador} llegó a valor contable cero por depreciación y deterioro. Evalúe "
                      "registrar su baja o revisar la vida útil de la especie.")
-        return {"id_deterioro_activo": id_deterioro, "valor_contable": costo.valor_contable_por_costo, "aviso": aviso}
+        if calculado < 0:
+            self._avisar(activo, calculado)
+        return {"id_deterioro_activo": id_deterioro, "valor_contable": costo.valor_contable_por_costo, "aviso": aviso,
+                "valor_libros_calculado": calculado}
+
+    def _avisar(self, activo, calculado: Decimal) -> None:
+        if self.notificador is None:
+            return
+        try:
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
+                f"El valor en libros del activo {activo.identificador} dio ${calculado:,.2f} (costo menos depreciación "
+                "y deterioro) y se ajustó a $0.00. Evalúe registrar su baja."), {
+                "id_activo_biologico": activo.id_activo_biologico, "valor_calculado": str(calculado),
+                "valor_aplicado": "0"}, id_finca=activo.id_finca)
+        except Exception:
+            logger.exception("M06: no se pudo avisar el ajuste a cero del activo %s.", activo.id_activo_biologico)
+
+
+def evento_valor_libros_cero(costo, calculado: Decimal, origen: str, id_activo_biologico: int, id_periodo: int,
+                             id_referencia: Optional[int], id_usuario: Optional[int]) -> EventoAuditoria:
+    """RF-88: alerta persistente del ajuste a cero (la usan el deterioro y la depreciación del cierre)."""
+    return EventoAuditoria(
+        tipo_evento="VALOR_LIBROS_AJUSTADO_A_CERO", severidad=Severidad.WARNING.value, id_usuario=id_usuario,
+        payload={"origen": origen, "valor_calculado": str(calculado), "valor_aplicado": "0.0000",
+                 "costo_adquisicion": str(costo.costos_adquisicion),
+                 "depreciacion_acumulada": str(costo.depreciacion_acumulada),
+                 "deterioro_acumulado": str(costo.deterioro_acumulado)},
+        id_activo_biologico=id_activo_biologico, id_periodo_contable=id_periodo, id_referencia=id_referencia,
+        monto_afectado=-calculado, metodo_nuevo="VALORACION_POR_COSTO",
+    )

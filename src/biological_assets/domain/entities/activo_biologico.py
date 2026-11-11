@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
 """Entidades y read-models del agregado ``ActivoBiologico`` (M02).
 
 El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
@@ -227,6 +228,7 @@ class FichaLote:
     densidad_maxima: Optional[Decimal]
     historial: list[RegistroHistorial]
     total_registros_historial: int
+    estado_densidad: Optional[object] = None  # EstadoDensidadLote (#394)
 
 
 @dataclass

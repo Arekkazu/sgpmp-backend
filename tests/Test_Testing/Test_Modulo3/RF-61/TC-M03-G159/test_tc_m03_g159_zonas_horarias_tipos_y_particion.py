@@ -1,45 +1,44 @@
-# | Fecha      | Nombre           | Que se hizo                                                        |
-# |------------|------------------|--------------------------------------------------------------------|
-# | 2026-11-03 | HulkyZeus        | TC-M03-G159 RF-61: reconstruye el test desde su reporte HTML       |
 """
-TC-M03-G159 (RF-61) - Zonas horarias, tipos de fecha y particion de
-`modulo3.vinculaciones_lecturas`.
+TC-M03-G159 (RF-61 v1.2 Restricción 4/Entradas/RNF-08, CU-09) -
+"Coherencia de zonas horarias y tipos temporales."
 
-Verifica por inspeccion estatica del DDL baseline y de `src/telemetry/`:
-  (b) no hay mezcla de Date y timestamp: las tres fechas de la tabla son
-      `timestamp with time zone`;
-  (d) no existe ninguna cache de capa 1 (`fecha_redondeada_al_dia`);
-  (f) la tabla no esta particionada (sin PARTITION BY).
+HALLAZGO PRINCIPAL (invalida (b), en sentido contrario al que la ficha
+teme): el DDL real (`esquema_baseline.sql`) confirma que
+`fecha_inicio_vinculacion`/`fecha_fin_vinculacion`/`fecha_creacion` son
+las TRES `timestamp with time zone` -- no existe ningún campo `Date` en
+esta tabla.
 
-NOTA DE PROCEDENCIA (2026-11-03): el archivo original nunca se versiono en el
-repositorio; solo se subio su reporte (resultados/resultado_TC-M03-G159.html).
-Este archivo se RECONSTRUYO a partir del codigo y los mensajes de ese reporte
-(4 tests: 3 fallidos con codigo completo + 1 que PASO).
-  - Las aserciones y mensajes de los 3 tests fallidos son copia del reporte.
-  - Los helpers `DDL` / `_bloque_create_table_vinculaciones` y el cuerpo del
-    test que paso NO figuran en el reporte (los tests que pasan no guardan
-    codigo): son una reconstruccion razonable, no el original.
-Si Juan Pablo conserva el original, debe prevalecer sobre este.
+(a) UTC consistente -- NO RE-VERIFICADO (fuera del alcance de los casos
+    de uso de vinculación).
+(b) Date vs Timestamp -- HALLAZGO (ficha incorrecta): ambas columnas son
+    timestamptz.
+(c) Traslado hora local vs UTC -- NO APLICA: corolario de G152 --
+    fecha_fin_vinculacion nunca se asigna.
+(d) Cache de Capa 1 -- HALLAZGO: no existe ningún mecanismo de caché.
+(e) Cambio de horario/año bisiesto -- CONFIRMADO POR DISEÑO: al ser
+    timestamptz, no hay ambigüedad posible.
+(f) Partición mensual -- HALLAZGO: la tabla no tiene ninguna cláusula
+    PARTITION BY.
 
-Estilo: el test FALLA ("HALLAZGO") mientras el defecto/faltante exista.
+Cómo se prueba: inspección directa del DDL real.
+
+Como correrlo:
+    python -m pytest <ruta>\\test_tc_m03_g159_zonas_horarias_tipos_y_particion.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M03-G159.html --self-contained-html
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-DDL = (REPO_ROOT / 'alembic/baseline/esquema_baseline.sql').read_text(
-    encoding='utf-8', errors='ignore')
+DDL = (REPO_ROOT / 'alembic/baseline/esquema_baseline.sql').read_text(encoding='utf-8', errors='ignore')
 
 
 def _bloque_create_table_vinculaciones() -> str:
-    m = re.search(
-        r'CREATE TABLE modulo3\.vinculaciones_lecturas \((.*?)\n\);', DDL, re.DOTALL)
-    assert m, 'No se encontro CREATE TABLE modulo3.vinculaciones_lecturas en el DDL baseline'
-    return m.group(0)
+    inicio = DDL.index('CREATE TABLE modulo3.vinculaciones_lecturas')
+    return DDL[inicio:inicio + 1200]
 
 
 class TestSubCasoBNoHayMezclaDeDateYTimestamp:
@@ -55,10 +54,8 @@ class TestSubCasoBNoHayMezclaDeDateYTimestamp:
         )
 
     def test_comentario_de_tabla_confirma_que_subcomponente_b_fue_diseñado_pero_no_construido(self):
-        # RECONSTRUIDO: el reporte solo registra que este test PASO.
-        m = re.search(r"COMMENT ON TABLE modulo3\.vinculaciones_lecturas IS '([^']*)'", DDL)
-        assert m, 'La tabla no tiene COMMENT en el DDL baseline'
-        assert 'Subcomponente B' in m.group(1)
+        bloque_comentario = DDL[DDL.index("COMMENT ON TABLE modulo3.vinculaciones_lecturas"):][:600]
+        assert 'Subcomponente B' in bloque_comentario
 
 
 class TestSubCasoDNoExisteCacheDeCapa1:

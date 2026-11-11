@@ -1,0 +1,113 @@
+{
+  "caso": "TC-M06-025",
+  "id": "G43-UI-025-01",
+  "estado": "RECHAZADO",
+  "lista_completa": true,
+  "confirmacion_individual": false,
+  "total_prevalidacion": 1,
+  "controles": [
+    {
+      "tipo": "radio",
+      "nombre": "sin-precio"
+    },
+    {
+      "tipo": "radio",
+      "nombre": "sin-precio"
+    }
+  ],
+  "captura": true,
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/__sonda__",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/prevalidacion",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/prevalidacion",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "http": 200,
+      "eco": true
+    }
+  ],
+  "boton_deshabilitado": false,
+  "radios": 2
+}

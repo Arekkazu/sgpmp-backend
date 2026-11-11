@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G96 — ejecución funcional</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem; line-height: 1.45; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; vertical-align: top; text-align: left; }
+    th { background: #f3f3f3; }
+    .b { font-weight: 700; }
+    code { font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <h1>Módulo 6 — RF-88 — TC-M06-G96</h1>
+  <p>Fecha: 2026-11-08T03:13:30.585321+00:00. Ambiente: https://api.inmero.co/api-sgpmp-test.</p>
+  <p>Autenticación POST /sesiones/: HTTP 200. Escrituras financieras: ninguna. Datos de prueba creados: ninguno.</p>
+  <h2>Resumen</h2>
+  <table>
+    <tr><th>Total</th><td>3</td></tr>
+    <tr><th>Aprobados</th><td>0</td></tr>
+    <tr><th>Rechazados</th><td>0</td></tr>
+    <tr><th>Bloqueados</th><td>3</td></tr>
+    <tr><th>Porcentaje de aprobación</th><td>0 %</td></tr>
+  </table>
+  <h2>Subcasos</h2>
+  <table>
+    <thead><tr><th>Subcaso</th><th>Entrada</th><th>Esperado</th><th>Obtenido</th><th>Estado</th><th>Validación</th></tr></thead>
+    <tbody><tr><td>TC-M06-05</td><td>10000000, depreciacion 2000000, deterioro 1000000</td><td>7000000</td><td>No ejecutado</td><td class="b">BLOQUEADO</td><td>El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro.</td></tr><tr><td>TC-M06-06</td><td>10000000, depreciacion 10000000, deterioro 0</td><td>0</td><td>No ejecutado</td><td class="b">BLOQUEADO</td><td>El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro.</td></tr><tr><td>TC-M06-07</td><td>10000000, depreciacion 7000000, deterioro 5000000</td><td>0 y alerta persistente consultable</td><td>No ejecutado</td><td class="b">BLOQUEADO</td><td>El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro. GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento genérico.</td></tr></tbody>
+  </table>
+  <h2>Panorama leído antes de escribir</h2>
+  <pre>{
+  &quot;activos&quot;: 13,
+  &quot;fincas&quot;: 3,
+  &quot;nits&quot;: 1,
+  &quot;periodos&quot;: 8,
+  &quot;estados_periodo&quot;: {
+    &quot;ABIERTO&quot;: 3,
+    &quot;CERRADO&quot;: 5
+  },
+  &quot;propuestas&quot;: 526,
+  &quot;valoraciones_por_costo&quot;: 2,
+  &quot;costo_10000000&quot;: 0,
+  &quot;propuestas_costo_10000000&quot;: 0,
+  &quot;deterioros_auditados&quot;: 1,
+  &quot;depreciaciones_auditadas&quot;: 0,
+  &quot;configuracion_http&quot;: 200,
+  &quot;aislado&quot;: false
+}</pre>
+  <h2>Respuestas HTTP</h2>
+  <table>
+    <thead><tr><th>Solicitud</th><th>Código</th><th>Resumen sin secretos</th></tr></thead>
+    <tbody><tr><td>GET /finanzas/configuracion</td><td>200</td><td><code>{&quot;codigo&quot;: 200, &quot;claves&quot;: [&quot;general&quot;, &quot;especies&quot;, &quot;costos_venta&quot;, &quot;matriz&quot;, &quot;lineas_pendientes_cuenta&quot;], &quot;especies&quot;: 312, &quot;matriz&quot;: 55, &quot;lineas_pendientes_cuenta&quot;: 0}</code></td></tr><tr><td>GET /finanzas/activos</td><td>200</td><td><code>{&quot;codigo&quot;: 200, &quot;registros&quot;: 13}</code></td></tr><tr><td>GET /finanzas/periodos</td><td>200</td><td><code>{&quot;codigo&quot;: 200, &quot;registros&quot;: 8}</code></td></tr><tr><td>GET /finanzas/reconocimientos/propuestas</td><td>200</td><td><code>{&quot;codigo&quot;: 200, &quot;registros&quot;: 526}</code></td></tr><tr><td>GET /finanzas/auditoria</td><td>400</td><td><code>{&quot;codigo&quot;: 400, &quot;error_code&quot;: &quot;FILTRO_OBLIGATORIO&quot;, &quot;message&quot;: &quot;Indique al menos un filtro: tipo de evento, período contable o activo.&quot;}</code></td></tr><tr><td>GET /finanzas/auditoria?tipo_evento=DETERIORO_REGISTRADO</td><td>200</td><td><code>{&quot;codigo&quot;: 200, &quot;total_registros&quot;: 1}</code></td></tr><tr><td>GET /finanzas/auditoria?tipo_evento=DEPRECIACION_REGISTRADA</td><td>200</td><td><code>{&quot;codigo&quot;: 200, &quot;total_registros&quot;: 0}</code></td></tr></tbody>
+  </table>
+  <h2>Hallazgos</h2>
+  <ul><li><strong>QUESTION-M06-003</strong> No hay titular aislado para el costo de 10000000. QUESTION, Capacidad de prueba, QA, con un titular nuevo preparado por DBA si el NIT actual no puede segregarse, Medio. Disponer de una finca, un NIT, un activo de costo 10000000 y un período que no compartan los 13 reconocimientos ni los 8 períodos actuales.</li><li><strong>HALL-M06-G96-02</strong> No hay alerta persistente cuando el valor en libros se lleva a cero. BUG, FLUJO, Desarrollo Backend, Medio. Guardar una alerta consultable por activo, distinta de DETERIORO_REGISTRADO y del texto aviso de la respuesta.</li></ul>
+  <h2>Conclusión</h2>
+  <p>RF-88 no se cumplió en esta corrida: los tres subcasos quedaron bloqueados. El cálculo no se persistió y la alerta de TC-M06-07 no se consultó como un registro propio.</p>
+</body>
+</html>

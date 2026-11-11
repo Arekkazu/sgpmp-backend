@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/36/48: capacidad efectiva del área al entrar individuos (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
 """Regla de capacidad por densidad cuando entran individuos a un área (RFC-012 v1.1).
 
 La aplican el registro (RF-33), el ingreso a un lote (RF-36) y la transferencia (RF-48):
@@ -17,7 +18,8 @@ carga resultante y se apunta el error al campo del área en M02.
 """
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
+from typing import Optional
 
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import (
     InfraestructuraConsulta,
@@ -55,8 +57,14 @@ def validar_entrada_al_area(
     id_especie: int,
     entrantes: int,
     field: str,
+    id_activo: Optional[int] = None,
+    cantidad_lote: Optional[int] = None,
 ) -> bool:
     """422 si los ``entrantes`` individuos de ``id_especie`` no caben en ``infra``.
+
+    Con ``id_activo`` y ``cantidad_lote`` (los individuos que el lote tendría en ``infra`` tras la entrada) se
+    aplica además la densidad máxima de la etapa en que está el lote (RF-16 por etapa, RF-36). Una etapa sin
+    densidad configurada no limita: la regla del área sigue valiendo.
 
     ``infra_port.calcular_ocupacion`` no debe contar todavía a los entrantes. Serializa
     en la transacción las entradas al mismo área, para que dos altas simultáneas no
@@ -78,10 +86,27 @@ def validar_entrada_al_area(
             especies=especies,
             carga_resultante=infra_port.calcular_ocupacion(infra.id_infraestructura) + entrantes,
         )
+        if id_activo is not None and cantidad_lote is not None:
+            _validar_densidad_etapa(infra_port.limite_etapa_del_activo(id_activo), infra, cantidad_lote)
     except BusinessRuleError as exc:
         exc.field = field  # el área es el campo de entrada en M02, no "especies" de M09
         raise
     return asociar
+
+
+def maximo_por_etapa(densidad_maxima: Decimal, superficie: Decimal) -> int:
+    """Individuos que caben en el área con la densidad de la etapa (piso, como la capacidad del área)."""
+    return int((Decimal(densidad_maxima) * Decimal(superficie)).to_integral_value(rounding=ROUND_FLOOR))
+
+
+def _validar_densidad_etapa(limite, infra: InfraestructuraConsulta, cantidad_lote: int) -> None:
+    if limite is None or limite.densidad_maxima is None:
+        return
+    maximo = maximo_por_etapa(limite.densidad_maxima, infra.superficie)
+    if cantidad_lote > maximo:
+        raise BusinessRuleError(code='DENSIDAD_ETAPA_EXCEDIDA', message=(
+            f'En la etapa «{limite.nombre_etapa}» caben como máximo {maximo} animales en {infra.nombre} '
+            f'({limite.densidad_maxima:g} por m²). Con este movimiento el lote quedaría con {cantidad_lote}.'))
 
 
 def admite_entrada(

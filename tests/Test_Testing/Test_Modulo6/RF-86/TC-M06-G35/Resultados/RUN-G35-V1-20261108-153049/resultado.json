@@ -1,0 +1,1004 @@
+{
+  "grupo": "G35",
+  "run_id": "RUN-G35-V1-20261108-153049",
+  "version": 1,
+  "intento": 3,
+  "casos": {
+    "TC-M06-008": {
+      "caso": "TC-M06-008",
+      "estado": "APROBADO",
+      "motivo": "baja: APROBADO, Se cumplen estado, vínculo, rechazo específico y ausencias. baja_rechazo: APROBADO, Se cumplen estado, vínculo, rechazo específico y ausencias. inexistente: APROBADO, Se cumplen estado, vínculo, rechazo específico y ausencias.",
+      "subcasos": {
+        "baja": {
+          "estado": "APROBADO",
+          "motivo": "Se cumplen estado, vínculo, rechazo específico y ausencias.",
+          "observados": {
+            "activo_id": 943,
+            "evento_baja_id": 1283,
+            "http": 201,
+            "codigo_error": "",
+            "mensaje_saneado": "",
+            "eventos_nuevos": [
+              1283
+            ],
+            "variaciones_nuevas": [],
+            "lineas_nuevas": [
+              889
+            ],
+            "mediciones_nuevas": [],
+            "estado_antes": "ACTIVO",
+            "estado_despues": "BAJA"
+          }
+        },
+        "baja_rechazo": {
+          "estado": "APROBADO",
+          "motivo": "Se cumplen estado, vínculo, rechazo específico y ausencias.",
+          "observados": {
+            "activo_id": 943,
+            "evento_baja_id": 1283,
+            "http": 409,
+            "codigo_error": "ESTADO_NO_PERMITE_EVENTOS",
+            "mensaje_saneado": "El activo no se encuentra en estado ACTIVO. Estado actual: BAJA. Los eventos de crecimiento solo se pueden registrar sobre activos en estado ACTIVO.",
+            "eventos_nuevos": [],
+            "variaciones_nuevas": [],
+            "lineas_nuevas": [],
+            "mediciones_nuevas": [],
+            "estado_antes": "BAJA",
+            "estado_despues": "BAJA"
+          }
+        },
+        "inexistente": {
+          "estado": "APROBADO",
+          "motivo": "Se cumplen estado, vínculo, rechazo específico y ausencias.",
+          "observados": {
+            "activo_id": 943,
+            "evento_baja_id": 1283,
+            "http": 404,
+            "codigo_error": "ACTIVO_NO_ENCONTRADO",
+            "mensaje_saneado": "El activo biológico con id 100951 no existe.",
+            "eventos_nuevos": [],
+            "variaciones_nuevas": [],
+            "lineas_nuevas": [],
+            "mediciones_nuevas": [],
+            "estado_antes": "BAJA",
+            "estado_despues": "BAJA",
+            "inexistente_id": 100951,
+            "datos_creados_para_inexistente": []
+          }
+        }
+      },
+      "activo_id": 943,
+      "periodo_id": 8,
+      "inexistente_id": 100951,
+      "evento_baja_id": 1283,
+      "snapshots": {
+        "base": {
+          "completa": true,
+          "estado": "ACTIVO",
+          "eventos": [
+            674,
+            670,
+            663
+          ],
+          "variaciones": [
+            10
+          ],
+          "lineas": [
+            {
+              "id": 9,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 4,
+              "valor": "165816.00"
+            },
+            {
+              "id": 16,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 10,
+              "valor": "61194.00"
+            },
+            {
+              "id": 21,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 8,
+              "valor": "92500.00"
+            },
+            {
+              "id": 22,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 9,
+              "valor": "42000.00"
+            }
+          ],
+          "mediciones": [
+            8
+          ],
+          "calculos": [
+            26,
+            21,
+            20,
+            12
+          ],
+          "auditoria": [
+            1119,
+            1120,
+            1132,
+            1133
+          ]
+        },
+        "baja": {
+          "completa": true,
+          "estado": "BAJA",
+          "eventos": [
+            1283,
+            674,
+            670,
+            663
+          ],
+          "variaciones": [
+            10
+          ],
+          "lineas": [
+            {
+              "id": 9,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 4,
+              "valor": "165816.00"
+            },
+            {
+              "id": 16,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 10,
+              "valor": "61194.00"
+            },
+            {
+              "id": 21,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 8,
+              "valor": "92500.00"
+            },
+            {
+              "id": 22,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 9,
+              "valor": "42000.00"
+            },
+            {
+              "id": 889,
+              "tipo": "BAJA_ACTIVO",
+              "origen": 1283,
+              "valor": "3015990.00"
+            }
+          ],
+          "mediciones": [
+            8
+          ],
+          "calculos": [
+            26,
+            21,
+            20,
+            12
+          ],
+          "auditoria": [
+            1119,
+            1120,
+            1132,
+            1133,
+            7047
+          ]
+        },
+        "baja_rechazo": {
+          "completa": true,
+          "estado": "BAJA",
+          "eventos": [
+            1283,
+            674,
+            670,
+            663
+          ],
+          "variaciones": [
+            10
+          ],
+          "lineas": [
+            {
+              "id": 9,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 4,
+              "valor": "165816.00"
+            },
+            {
+              "id": 16,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 10,
+              "valor": "61194.00"
+            },
+            {
+              "id": 21,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 8,
+              "valor": "92500.00"
+            },
+            {
+              "id": 22,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 9,
+              "valor": "42000.00"
+            },
+            {
+              "id": 889,
+              "tipo": "BAJA_ACTIVO",
+              "origen": 1283,
+              "valor": "3015990.00"
+            }
+          ],
+          "mediciones": [
+            8
+          ],
+          "calculos": [
+            26,
+            21,
+            20,
+            12
+          ],
+          "auditoria": [
+            1119,
+            1120,
+            1132,
+            1133,
+            7047
+          ]
+        },
+        "inexistente": {
+          "completa": true,
+          "estado": "BAJA",
+          "eventos": [
+            1283,
+            674,
+            670,
+            663
+          ],
+          "variaciones": [
+            10
+          ],
+          "lineas": [
+            {
+              "id": 9,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 4,
+              "valor": "165816.00"
+            },
+            {
+              "id": 16,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 10,
+              "valor": "61194.00"
+            },
+            {
+              "id": 21,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 8,
+              "valor": "92500.00"
+            },
+            {
+              "id": 22,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 9,
+              "valor": "42000.00"
+            },
+            {
+              "id": 889,
+              "tipo": "BAJA_ACTIVO",
+              "origen": 1283,
+              "valor": "3015990.00"
+            }
+          ],
+          "mediciones": [
+            8
+          ],
+          "calculos": [
+            26,
+            21,
+            20,
+            12
+          ],
+          "auditoria": [
+            1119,
+            1120,
+            1132,
+            1133,
+            7047
+          ]
+        },
+        "poscierre": {
+          "completa": true,
+          "estado": "ACTIVO",
+          "eventos": [
+            674,
+            670,
+            663
+          ],
+          "variaciones": [
+            10
+          ],
+          "lineas": [
+            {
+              "id": 9,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 4,
+              "valor": "165816.00"
+            },
+            {
+              "id": 16,
+              "tipo": "VARIACION_VR_TB",
+              "origen": 10,
+              "valor": "61194.00"
+            },
+            {
+              "id": 21,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 8,
+              "valor": "92500.00"
+            },
+            {
+              "id": 22,
+              "tipo": "CONSUMO_INSUMO",
+              "origen": 9,
+              "valor": "42000.00"
+            }
+          ],
+          "mediciones": [
+            8
+          ],
+          "calculos": [
+            26,
+            21,
+            20,
+            12
+          ],
+          "auditoria": [
+            1119,
+            1120,
+            1132,
+            1133
+          ]
+        }
+      },
+      "diagnostico_por_candidato": [
+        {
+          "activo_id": 943,
+          "estado": "SELECCIONADO",
+          "motivo": "Cumple condiciones de baja."
+        },
+        {
+          "activo_id": 944,
+          "estado": "ELEGIBLE",
+          "motivo": "Elegible; ya se seleccionó otro activo."
+        },
+        {
+          "activo_id": 945,
+          "estado": "ELEGIBLE",
+          "motivo": "Elegible; ya se seleccionó otro activo."
+        },
+        {
+          "activo_id": 946,
+          "estado": "ELEGIBLE",
+          "motivo": "Elegible; ya se seleccionó otro activo."
+        },
+        {
+          "activo_id": 947,
+          "estado": "ELEGIBLE",
+          "motivo": "Elegible; ya se seleccionó otro activo."
+        }
+      ],
+      "peso_kg": 345,
+      "valor_baja_esperado": 3015990,
+      "diagnostico_candidatos": {
+        "total": 9,
+        "bovinos": 6,
+        "individuales": 6,
+        "activos": 5,
+        "reconocidos": 5,
+        "periodo": 5,
+        "calculo": 5,
+        "peso": 5,
+        "matriz": 5,
+        "evaluados_maximo": 5,
+        "omitidos_por_limite": 0
+      },
+      "procesamiento_http": 200
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-008",
+      "fuente": "API",
+      "id": "G35-API-008-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Se cumplen estado, vínculo, rechazo específico y ausencias.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-008",
+      "fuente": "API",
+      "id": "G35-API-008-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Se cumplen estado, vínculo, rechazo específico y ausencias.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-008",
+      "fuente": "API",
+      "id": "G35-API-008-03",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Se cumplen estado, vínculo, rechazo específico y ausencias.",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "duracion_ms": 879,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única."
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "duracion_ms": 675,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "duracion_ms": 243,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "duracion_ms": 149,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "duracion_ms": 352,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 240,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 212,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "duracion_ms": 176,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/944/ficha-integral",
+      "http": 200,
+      "duracion_ms": 189,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 250,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/ficha-integral",
+      "http": 200,
+      "duracion_ms": 1023,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "http": 200,
+      "duracion_ms": 175,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/946/ficha-integral",
+      "http": 200,
+      "duracion_ms": 205,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947",
+      "http": 200,
+      "duracion_ms": 158,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/947/ficha-integral",
+      "http": 200,
+      "duracion_ms": 220,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/100951",
+      "http": 404,
+      "duracion_ms": 152,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico con ID 100951 no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 188,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "http": 200,
+      "duracion_ms": 179,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 153,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 163,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 149,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 165,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/943/eventos/baja",
+      "http": 201,
+      "duracion_ms": 219,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "duracion_ms": 183,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 204,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "http": 200,
+      "duracion_ms": 187,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 147,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 157,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 180,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/943/eventos/crecimiento",
+      "http": 409,
+      "duracion_ms": 188,
+      "eco": true,
+      "codigo": "ESTADO_NO_PERMITE_EVENTOS",
+      "mensaje_saneado": "El activo no se encuentra en estado ACTIVO. Estado actual: BAJA. Los eventos de crecimiento solo se pueden registrar sobre activos en estado ACTIVO."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 192,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "http": 200,
+      "duracion_ms": 171,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 152,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 148,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 165,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 173,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/100951/eventos/crecimiento",
+      "http": 404,
+      "duracion_ms": 149,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico con id 100951 no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 187,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "http": 200,
+      "duracion_ms": 168,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 152,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 163,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 153,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G35-API-008-01",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G35-API-008-02",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G35-API-008-03",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G35-V1-20261108-153049",
+      "http": 200,
+      "duracion_ms": 131,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 210,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "http": 200,
+      "duracion_ms": 170,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 173,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 163,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 149,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 173,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 157,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    }
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M06-G35_resultado.md",
+    "newman/newman-G35.json",
+    "newman/newman-G35.html"
+  ],
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 3,
+      "fallos": 0,
+      "accesos_denegados": 0,
+      "codigo": 0,
+      "problema": false,
+      "estado": "CONCLUYENTE",
+      "problema_tecnico": null
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "estado_original": "ACTIVO",
+      "estado_final": "ACTIVO",
+      "residuos": [],
+      "motivo": "ACTIVO restaurado; evento RF-45, línea y datos del RUN ausentes."
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "estado_ejecucion": "OFICIAL"
+}

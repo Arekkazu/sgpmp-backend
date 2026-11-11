@@ -1,0 +1,1000 @@
+{
+  "grupo": "G45",
+  "rf": "RF-87 v1.1",
+  "run_id": "RUN-G45-V1-20261110-081025",
+  "version": 1,
+  "autorizacion_referencia": "AUT-G45-V1-20261110",
+  "casos": {
+    "TC-M06-031": {
+      "estado": "RECHAZADO",
+      "motivo": "031_en_cierre",
+      "comprobaciones": [
+        {
+          "id": "031_en_cierre",
+          "esperado": "EN_CIERRE mientras se solicita autorización de exclusión",
+          "estado": "RECHAZADO",
+          "observado": "HTTP 409; error EXCLUSION_REQUIERE_AUTORIZACION; estado ABIERTO"
+        }
+      ]
+    },
+    "TC-M06-032": {
+      "estado": "RECHAZADO",
+      "motivo": "032_alta_costo",
+      "comprobaciones": [
+        {
+          "id": "032_alta_costo",
+          "esperado": "HTTP 409 por período cerrado y período 7 idéntico",
+          "estado": "RECHAZADO",
+          "observado": "HTTP 422; error PERIODO_CONTABLE_CERRADO; mensaje La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto.; período 7 idéntico true"
+        },
+        {
+          "id": "032_eliminar_reconocimiento",
+          "esperado": "HTTP 409 con REVERSION_BLOQUEADA y período 7 idéntico",
+          "estado": "APROBADO",
+          "observado": "HTTP 409; error REVERSION_BLOQUEADA; mensaje No es posible revertir el reconocimiento inicial del activo None. Existen registros contables dependientes: cierre del período del 2026-11-07; cierre del período del 2026-11-30. Para corregir la valoración use un ajuste en el período vigente.; período 7 i"
+        },
+        {
+          "id": "032_integridad",
+          "esperado": "líneas, comprobantes, variaciones, estado, fecha y último cierre de 7 y 219 idénticos",
+          "estado": "APROBADO",
+          "observado": "7 true; 219 true"
+        }
+      ]
+    },
+    "TC-M06-033": {
+      "estado": "RECHAZADO",
+      "motivo": "033_ajuste",
+      "comprobaciones": [
+        {
+          "id": "033_ajuste",
+          "esperado": "AJUSTE_PERIODO_ANTERIOR en 8, referencia a línea de 7 y justificación",
+          "estado": "RECHAZADO",
+          "observado": "líneas de ajuste 0; referencia y justificación false"
+        },
+        {
+          "id": "033_cerrado_intacto",
+          "esperado": "7 CERRADO con fecha, líneas y comprobantes idénticos",
+          "estado": "APROBADO",
+          "observado": "estado CERRADO; contenido idéntico true"
+        }
+      ]
+    }
+  },
+  "preflight": {
+    "grupo": "G45",
+    "run_id": "RUN-G45-V1-20261110-081025",
+    "version": 1,
+    "referencia": "AUT-G45-V1-20261110",
+    "ok": true,
+    "barreras": [],
+    "efectos": [
+      "1 inicio de sesión Contador",
+      "1 POST cierre del 8 sin autorizar",
+      "1 POST costo sobre 944 (rechazo esperado)",
+      "1 POST reversión de 949 (409 esperado)",
+      "hasta 2 GET OpenAPI",
+      "lecturas API y Newman",
+      "DELETE del RUN siempre y lecturas poscierre sin cabeceras"
+    ]
+  },
+  "preflight_datos": [
+    {
+      "requisito": "periodo_7_estado",
+      "esperado": "CERRADO",
+      "observado": "CERRADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_8_estado",
+      "esperado": "ABIERTO",
+      "observado": "ABIERTO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_219_estado",
+      "esperado": "CERRADO",
+      "observado": "CERRADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_8_sin_bloqueos",
+      "esperado": "[]",
+      "observado": [],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_8_linea_sin_trazabilidad",
+      "esperado": "al menos una línea",
+      "observado": 1,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_944_activo_finca_463",
+      "esperado": "ACTIVO, finca 463",
+      "observado": {
+        "estado": "ACTIVO",
+        "id_finca": 463
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_944_reconocimiento_vigente",
+      "esperado": "reconocimiento 15 CONFIRMADO en período 7",
+      "observado": {
+        "id": 15,
+        "estado": "CONFIRMADO",
+        "id_periodo_contable": 7
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_949_reconocimiento_vigente_periodo_7",
+      "esperado": "reconocimiento 20 CONFIRMADO en período 7 y activo ACTIVO",
+      "observado": {
+        "reconocimiento": {
+          "id": 20,
+          "estado": "CONFIRMADO",
+          "id_periodo_contable": 7
+        },
+        "estado": "ACTIVO"
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_8_sin_ajustes_previos",
+      "esperado": 0,
+      "observado": 0,
+      "cumple": true,
+      "bloqueante": true
+    }
+  ],
+  "solicitudes": [
+    {
+      "id": "G45-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:25.186Z",
+      "eco": false
+    },
+    {
+      "id": "G45-002",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:26.468Z",
+      "eco": true
+    },
+    {
+      "id": "G45-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:26.918Z",
+      "eco": true
+    },
+    {
+      "id": "G45-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:27.142Z",
+      "eco": true
+    },
+    {
+      "id": "G45-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:27.323Z",
+      "eco": true
+    },
+    {
+      "id": "G45-006",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:27.577Z",
+      "eco": true
+    },
+    {
+      "id": "G45-007",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:27.790Z",
+      "eco": true
+    },
+    {
+      "id": "G45-008",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:27.936Z",
+      "eco": true
+    },
+    {
+      "id": "G45-009",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:28.089Z",
+      "eco": true
+    },
+    {
+      "id": "G45-010",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:28.259Z",
+      "eco": true
+    },
+    {
+      "id": "G45-011",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:28.500Z",
+      "eco": true
+    },
+    {
+      "id": "G45-012",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:28.641Z",
+      "eco": true
+    },
+    {
+      "id": "G45-013",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:28.780Z",
+      "eco": true
+    },
+    {
+      "id": "G45-014",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:28.939Z",
+      "eco": true
+    },
+    {
+      "id": "G45-015",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:29.072Z",
+      "eco": true
+    },
+    {
+      "id": "G45-016",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:29.215Z",
+      "eco": true
+    },
+    {
+      "id": "G45-017",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:29.366Z",
+      "eco": true
+    },
+    {
+      "id": "G45-018",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/949",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:29.642Z",
+      "eco": true
+    },
+    {
+      "id": "G45-019",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:29.786Z",
+      "eco": true
+    },
+    {
+      "id": "G45-020",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/8/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-10T08:10:29.938Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-021",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:30.143Z",
+      "eco": true
+    },
+    {
+      "id": "G45-022",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 422,
+      "hora_utc": "2026-11-10T08:10:30.298Z",
+      "eco": true,
+      "error": "PERIODO_CONTABLE_CERRADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-023",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:30.434Z",
+      "eco": true
+    },
+    {
+      "id": "G45-024",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:30.594Z",
+      "eco": true
+    },
+    {
+      "id": "G45-025",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:30.782Z",
+      "eco": true
+    },
+    {
+      "id": "G45-026",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:31.059Z",
+      "eco": true
+    },
+    {
+      "id": "G45-027",
+      "metodo": "POST",
+      "ruta": "/finanzas/reconocimientos/949/reversion",
+      "http": 409,
+      "hora_utc": "2026-11-10T08:10:31.204Z",
+      "eco": true,
+      "error": "REVERSION_BLOQUEADA",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-028",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:31.369Z",
+      "eco": true
+    },
+    {
+      "id": "G45-029",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:31.519Z",
+      "eco": true
+    },
+    {
+      "id": "G45-030",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:31.991Z",
+      "eco": true
+    },
+    {
+      "id": "G45-031",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:32.125Z",
+      "eco": true
+    },
+    {
+      "id": "G45-032",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:32.406Z",
+      "eco": true
+    },
+    {
+      "id": "G45-033",
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:32.558Z",
+      "eco": true
+    },
+    {
+      "id": "G45-034",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:37.364Z",
+      "eco": true
+    },
+    {
+      "id": "G45-035",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:37.906Z",
+      "eco": true
+    },
+    {
+      "id": "G45-036",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:38.058Z",
+      "eco": true
+    },
+    {
+      "id": "G45-037",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:38.319Z",
+      "eco": true
+    },
+    {
+      "id": "G45-038",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:38.535Z",
+      "eco": true
+    },
+    {
+      "id": "G45-039",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:38.683Z",
+      "eco": true
+    },
+    {
+      "id": "G45-040",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:38.841Z",
+      "eco": true
+    },
+    {
+      "id": "G45-041",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:38.978Z",
+      "eco": true
+    },
+    {
+      "id": "G45-042",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G45-V1-20261110-081025",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:43.831Z",
+      "eco": true
+    },
+    {
+      "id": "G45-043",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:44.201Z",
+      "eco": false
+    },
+    {
+      "id": "G45-044",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:44.628Z",
+      "eco": false
+    },
+    {
+      "id": "G45-045",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:44.850Z",
+      "eco": false
+    },
+    {
+      "id": "G45-046",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:45.066Z",
+      "eco": false
+    },
+    {
+      "id": "G45-047",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:45.213Z",
+      "eco": false
+    },
+    {
+      "id": "G45-048",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:45.443Z",
+      "eco": false
+    },
+    {
+      "id": "G45-049",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:45.663Z",
+      "eco": false
+    },
+    {
+      "id": "G45-050",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:45.843Z",
+      "eco": false
+    },
+    {
+      "id": "G45-051",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:45.984Z",
+      "eco": false
+    },
+    {
+      "id": "G45-052",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:46.215Z",
+      "eco": false
+    },
+    {
+      "id": "G45-053",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:46.366Z",
+      "eco": false
+    },
+    {
+      "id": "G45-054",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:46.505Z",
+      "eco": false
+    },
+    {
+      "id": "G45-055",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:46.639Z",
+      "eco": false
+    },
+    {
+      "id": "G45-056",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:46.869Z",
+      "eco": false
+    },
+    {
+      "id": "G45-057",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/949",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:10:47.003Z",
+      "eco": false
+    }
+  ],
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-031",
+      "id": "031_en_cierre",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-032",
+      "id": "032_alta_costo",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-032",
+      "id": "032_eliminar_reconocimiento",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-033",
+      "id": "033_ajuste",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-032",
+      "id": "032_integridad",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-033",
+      "id": "033_cerrado_intacto",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "incidencias": [
+    {
+      "id": "INC-M06-G45-01",
+      "casos": [
+        "TC-M06-031"
+      ],
+      "esperado": "EN_CIERRE durante la espera",
+      "obtenido": "HTTP 409; estado ABIERTO",
+      "evidencia": "resultado.json",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "El estado de espera del cierre no se representa como exige CA-7.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada por la API pública en TEST.",
+      "causa_raiz": "Por determinar.",
+      "accion": "Desarrollo revisa la discrepancia; QA repite con autorización.",
+      "relacion": "INC-M06-G43-01"
+    },
+    {
+      "id": "INC-M06-G45-02",
+      "casos": [
+        "TC-M06-032"
+      ],
+      "esperado": "HTTP 409 por período cerrado y reversión bloqueada, con períodos cerrados intactos",
+      "obtenido": "costo 422 PERIODO_CONTABLE_CERRADO; reversión 409 REVERSION_BLOQUEADA; integridad true",
+      "evidencia": "resultado.json",
+      "severidad": "MEDIA",
+      "justificacion_severidad": "El rechazo 422 por período cerrado incumple el HTTP 409 exigido por CA-3.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada por la API pública en TEST.",
+      "causa_raiz": "Por determinar.",
+      "accion": "Desarrollo revisa la discrepancia; QA repite con autorización."
+    },
+    {
+      "id": "INC-M06-G45-03",
+      "casos": [
+        "TC-M06-033"
+      ],
+      "esperado": "Ajuste en período 8 con referencia y justificación",
+      "obtenido": "No se halló ajuste completo",
+      "evidencia": "resultado.json",
+      "severidad": "ALTA",
+      "justificacion_severidad": "La vía de corrección de prioridad Must no se acreditó por API pública.",
+      "certeza": "CONFIRMADA",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada por la API pública en TEST.",
+      "causa_raiz": "Por determinar.",
+      "accion": "Desarrollo revisa la discrepancia; QA repite con autorización.",
+      "clasificacion": "DEFECTO_FUNCIONAL_CANDIDATO"
+    }
+  ],
+  "evidencias": [
+    "newman/newman-G45.html",
+    "newman/newman-G45.json"
+  ],
+  "observaciones": [
+    "031: costo, variación, reconocimiento y medición durante la pausa, pesaje M02 y cola A/B no evaluables: la API pública M06 no crea hechos fechados dentro del 8 ni eventos M02; no existe EN_CIERRE previo.",
+    "032: modificación/eliminación de costos y variaciones, altas fechadas en período cerrado y notificación de variaciones no aplican: no existe ruta pública M06 para fijar tales fechas o modificar esos registros; RF-86 prohíbe modificarlos."
+  ],
+  "problemas_tecnicos": [],
+  "respuestas": {
+    "cierre": {
+      "http": 409,
+      "cuerpo": {
+        "error_code": "EXCLUSION_REQUIERE_AUTORIZACION",
+        "message": "1 asientos tienen la cadena de trazabilidad incompleta y no pueden entrar al cierre. Autorice su exclusión para continuar.",
+        "fields": [],
+        "timestamp": "2026-11-10T08:10:30.609832+00:00"
+      }
+    },
+    "costo": {
+      "http": 422,
+      "cuerpo": {
+        "error_code": "PERIODO_CONTABLE_CERRADO",
+        "message": "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto.",
+        "fields": [
+          {
+            "field": "fecha_costo",
+            "message": "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto."
+          }
+        ],
+        "timestamp": "2026-11-10T08:10:30.901659+00:00"
+      }
+    },
+    "reversion": {
+      "http": 409,
+      "cuerpo": {
+        "error_code": "REVERSION_BLOQUEADA",
+        "message": "No es posible revertir el reconocimiento inicial del activo None. Existen registros contables dependientes: cierre del período del 2026-11-07; cierre del período del 2026-11-30. Para corregir la valoración use un ajuste en el período vigente.",
+        "fields": [],
+        "timestamp": "2026-11-10T08:10:31.836771+00:00"
+      }
+    }
+  },
+  "cypress": {
+    "paneles": {},
+    "total_pruebas": 0
+  },
+  "rollback": {
+    "verificado": true,
+    "motivo": "Lecturas sin cabeceras: 7 true; 8 ABIERTO e idéntico true; 219 true; reconocimiento de 949 vigente true; costos 944 true; períodos nuevos false"
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "codigo": 0,
+      "fallos": 0,
+      "solicitudes": 5,
+      "reportes": true
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "bases": {
+    "periodo_7": {
+      "estado": "CERRADO",
+      "fecha_cierre": "2026-11-07T20:11:44.408365Z",
+      "ultimo_cierre": {
+        "id_cierre": 1,
+        "estado": "COMPLETADO",
+        "paso_actual": 9,
+        "activos_procesados": 8,
+        "activos_pendientes": 0,
+        "activos_excluidos": [
+          {
+            "id_linea": 9,
+            "faltantes": [
+              "lecturas_nic41"
+            ],
+            "tipo_hecho": "VARIACION_VR_TB",
+            "nivel_fallo": 1,
+            "id_activo_biologico": 943
+          }
+        ],
+        "precios_congelados": [
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 39,
+            "fecha_vigencia": "2026-11-07",
+            "precio_unitario": "9300.00",
+            "id_precio_mercado": 17
+          },
+          {
+            "fuente": "UPRA",
+            "id_especie": 421,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "14500.00",
+            "id_precio_mercado": 16
+          }
+        ],
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-07T20:11:36.147116Z",
+        "fecha_fin": "2026-11-07T20:11:44.408365Z",
+        "tiempo_ejecucion_ms": 8261,
+        "hash_cierre": "4537aa86903869b2e7df2d1e3a11a6531dd2f7f00b65233abdfe86adfbb9819f",
+        "id_usuario_ejecutor": 141
+      },
+      "hash_contenido": "8d6f9d61b7b0a0b4c9ea133031368c4068eb09ccbe9f639ea4ac9287f98b708e",
+      "lineas": 14,
+      "comprobantes": 5,
+      "variaciones": 6
+    },
+    "periodo_8": {
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "ultimo_cierre": null,
+      "hash_contenido": "948c218790d0540b561c71dd85d0cb25798a120b4fb849da658b06929a1af048",
+      "lineas": 8,
+      "comprobantes": 0,
+      "variaciones": 4
+    },
+    "periodo_219": {
+      "estado": "CERRADO",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "ultimo_cierre": {
+        "id_cierre": 43,
+        "estado": "COMPLETADO",
+        "paso_actual": 9,
+        "activos_procesados": 2,
+        "activos_pendientes": 0,
+        "activos_excluidos": [],
+        "precios_congelados": [
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 423,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "4300000.00",
+            "id_precio_mercado": 438
+          },
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 422,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "4000000.00",
+            "id_precio_mercado": 435
+          }
+        ],
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-10T06:18:00.058864Z",
+        "fecha_fin": "2026-11-10T06:18:00.098094Z",
+        "tiempo_ejecucion_ms": 39,
+        "hash_cierre": "70ba6bac95ab4843d810d916cd4cb1b7b780cb51e1ddb2f4a4a14d4427b4a5a6",
+        "id_usuario_ejecutor": 141
+      },
+      "hash_contenido": "ec39b2c3dfe1c5faf40a8a92b3509fc4b7f59d93c98148dcb7bb2a9860f7f157",
+      "lineas": 3,
+      "comprobantes": 3,
+      "variaciones": 0
+    },
+    "costos_944_ids": []
+  },
+  "openapi": {
+    "http": 200,
+    "rutas_ajuste": []
+  },
+  "integridad": {
+    "periodo_7": {
+      "estado": "CERRADO",
+      "fecha_cierre": "2026-11-07T20:11:44.408365Z",
+      "ultimo_cierre": {
+        "id_cierre": 1,
+        "estado": "COMPLETADO",
+        "paso_actual": 9,
+        "activos_procesados": 8,
+        "activos_pendientes": 0,
+        "activos_excluidos": [
+          {
+            "id_linea": 9,
+            "faltantes": [
+              "lecturas_nic41"
+            ],
+            "tipo_hecho": "VARIACION_VR_TB",
+            "nivel_fallo": 1,
+            "id_activo_biologico": 943
+          }
+        ],
+        "precios_congelados": [
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 39,
+            "fecha_vigencia": "2026-11-07",
+            "precio_unitario": "9300.00",
+            "id_precio_mercado": 17
+          },
+          {
+            "fuente": "UPRA",
+            "id_especie": 421,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "14500.00",
+            "id_precio_mercado": 16
+          }
+        ],
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-07T20:11:36.147116Z",
+        "fecha_fin": "2026-11-07T20:11:44.408365Z",
+        "tiempo_ejecucion_ms": 8261,
+        "hash_cierre": "4537aa86903869b2e7df2d1e3a11a6531dd2f7f00b65233abdfe86adfbb9819f",
+        "id_usuario_ejecutor": 141
+      },
+      "hash_contenido": "8d6f9d61b7b0a0b4c9ea133031368c4068eb09ccbe9f639ea4ac9287f98b708e",
+      "lineas": 14,
+      "comprobantes": 5,
+      "variaciones": 6
+    },
+    "periodo_219": {
+      "estado": "CERRADO",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "ultimo_cierre": {
+        "id_cierre": 43,
+        "estado": "COMPLETADO",
+        "paso_actual": 9,
+        "activos_procesados": 2,
+        "activos_pendientes": 0,
+        "activos_excluidos": [],
+        "precios_congelados": [
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 423,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "4300000.00",
+            "id_precio_mercado": 438
+          },
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 422,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "4000000.00",
+            "id_precio_mercado": 435
+          }
+        ],
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-10T06:18:00.058864Z",
+        "fecha_fin": "2026-11-10T06:18:00.098094Z",
+        "tiempo_ejecucion_ms": 39,
+        "hash_cierre": "70ba6bac95ab4843d810d916cd4cb1b7b780cb51e1ddb2f4a4a14d4427b4a5a6",
+        "id_usuario_ejecutor": 141
+      },
+      "hash_contenido": "ec39b2c3dfe1c5faf40a8a92b3509fc4b7f59d93c98148dcb7bb2a9860f7f157",
+      "lineas": 3,
+      "comprobantes": 3,
+      "variaciones": 0
+    },
+    "ambos_identicos": true
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lecturas sin cabeceras: 7 true; 8 ABIERTO e idéntico true; 219 true; reconocimiento de 949 vigente true; costos 944 true; períodos nuevos false"
+    }
+  },
+  "total_solicitudes_api": 62,
+  "duracion_segundos": 22,
+  "clasificacion_fallo": "PRODUCTO",
+  "sha256": {
+    "ejecutor": "9ea11a76b79feee27e5207065da54344e5273ef12763933a701aa3eae4d0673c",
+    "infraestructura": {
+      "lib/infra.mjs": "97562a7d9269eee82413be798d116a0e271277381fc3b69ba058199358874238",
+      "lib/contrato.mjs": "bfd07b9e5de3c12ac466c9fe0ff4a4f82afa7c91ffd0d190cb6e529a0b750fff",
+      "lib/informe.mjs": "a70d1730daecd336d15f6b9ff03b1a9e7142723e2aa7b128556efde6b5b3c9b0",
+      "pruebas/newman_hijo.mjs": "38ecb80490ff6e8fe05bd86896e01c835f850313c04fca0c91c734d4a7b08455",
+      "pruebas/verificar.mjs": "902874ba54870e01283396f190a6dd3d604ba5707d0ee4d81ae23589d9824b66"
+    }
+  }
+}

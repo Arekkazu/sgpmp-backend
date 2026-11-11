@@ -1,0 +1,109 @@
+{
+  "login_http": 200,
+  "login": {
+    "tipo": "Bearer",
+    "expira_en": 28799,
+    "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+    "perfil_incompleto": false
+  },
+  "http": [
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "consulta": "/finanzas/configuracion",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "claves": [
+          "general",
+          "especies",
+          "costos_venta",
+          "matriz",
+          "lineas_pendientes_cuenta"
+        ],
+        "especies": 312,
+        "matriz": 55,
+        "lineas_pendientes_cuenta": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "registros": 13
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "registros": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "consulta": "/finanzas/reconocimientos/propuestas",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "registros": 526
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 400,
+      "resumen": {
+        "codigo": 400,
+        "error_code": "FILTRO_OBLIGATORIO",
+        "message": "Indique al menos un filtro: tipo de evento, período contable o activo."
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria?tipo_evento=DETERIORO_REGISTRADO",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "total_registros": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria?tipo_evento=DEPRECIACION_REGISTRADA",
+      "codigo": 200,
+      "resumen": {
+        "codigo": 200,
+        "total_registros": 0
+      }
+    }
+  ],
+  "panorama": {
+    "activos": 13,
+    "fincas": 3,
+    "nits": 1,
+    "periodos": 8,
+    "estados_periodo": {
+      "ABIERTO": 3,
+      "CERRADO": 5
+    },
+    "propuestas": 526,
+    "valoraciones_por_costo": 2,
+    "costo_10000000": 0,
+    "propuestas_costo_10000000": 0,
+    "deterioros_auditados": 1,
+    "depreciaciones_auditadas": 0,
+    "configuracion_http": 200,
+    "aislado": false
+  }
+}

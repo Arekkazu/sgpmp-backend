@@ -1,9 +1,13 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: exponer identidad UUID y versión verificable del hash. |
 """Response schemas para la bitácora de auditoría de M05 (RF-80, CU-06)."""
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+from uuid import UUID
 
 from pydantic import ConfigDict
 
@@ -14,6 +18,8 @@ class EventoAuditoriaSuministroResponse(BaseDTO):
     model_config = ConfigDict(from_attributes=True)
 
     id_auditoria_suministro: int
+    id_evento_m05: UUID
+    version_hash_integridad: int
     entidad_afectada: str
     tipo_operacion: str
     id_usuario: int

@@ -2,6 +2,8 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: mensajes del RF, CA-10 y ledger    |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -74,7 +76,7 @@ class RegistrarConsumoAlimentoUseCase:
             raise BusinessRuleError(
                 code="ACTIVO_ESTADO_INVALIDO",
                 message=(
-                    f"No es posible registrar consumo de alimento para el activo {activo.id_activo_biologico} "
+                    f"No es posible registrar consumo de alimento para el activo {activo.nombre_visible} "
                     f"porque su estado actual es {activo.nombre_estado}. Solo se permite el registro sobre "
                     "activos en estado ACTIVO."
                 ),
@@ -86,7 +88,7 @@ class RegistrarConsumoAlimentoUseCase:
             raise BusinessRuleError(
                 code="CICLO_NO_ABIERTO",
                 message=(
-                    f"El activo {activo.id_activo_biologico} no tiene un ciclo productivo activo. No es posible "
+                    f"El activo {activo.nombre_visible} no tiene un ciclo productivo activo. No es posible "
                     "registrar consumo sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar."
                 ),
                 field="id_activo_biologico",
@@ -136,9 +138,9 @@ class RegistrarConsumoAlimentoUseCase:
                 raise BusinessRuleError(
                     code="POBLACIONAL_SIN_CANTIDAD",
                     message=(
-                        f"No es posible registrar el consumo para el activo {activo.id_activo_biologico} porque "
-                        "su cantidad actual de individuos es cero o no está definida. Verifique el estado del "
-                        "POBLACIONAL en RF-36 antes de registrar el consumo."
+                        f"No es posible registrar el consumo para el activo {activo.nombre_visible} porque "
+                        "su cantidad actual de individuos es cero o no está definida. Verifique la población del "
+                        "activo en Activos biológicos antes de registrar el consumo."
                     ),
                     field="id_activo_biologico",
                 )

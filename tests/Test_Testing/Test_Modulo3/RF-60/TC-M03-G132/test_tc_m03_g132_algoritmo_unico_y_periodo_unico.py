@@ -1,262 +1,214 @@
 """
-TC-M03-G132 (RF-60 CA-1/CA-6/CA-20/Restriccion 12/Fase 8, CU-02) -
-"Algoritmo unico de evaluacion: recorrido completo de los PASOS 1->4 y
+TC-M03-G132 (RF-60 CA-1/CA-6/CA-20/Restricción 12/Fase 8, CU-02) -
+"Algoritmo único de evaluación: recorrido completo de los PASOS 1->4 y
 sus fronteras." Caso base del grupo RF-60.
 
-REEJECUCION 2026-10-28 CONTRA EL ENTORNO TEST EN VIVO -- ver
-[[feedback_verify_against_live_before_local_code]]. La version anterior
-de este TC se construyo leyendo unicamente el codigo local de la rama
-`casos-qa-juan-parra`, que se confirmo 380 commits por detras de
-`origin/main`. Al verificar contra el comportamiento REAL en
-https://www.api.inmero.co/api-sgpmp-test (dispositivos reales id=114
-"QA-M03-272-A-088894" e id=348 "RASPBERRY3B-TEST", ambos en
-id_infraestructura=6 "Piscina-Cam-01"), varios de los hallazgos (a)/(b)/
-(d)/(e) de la ronda anterior quedaron CONTRADICHOS por evidencia en vivo.
-(c) se mantiene como propiedad de codigo local (no depende de los
-valores exactos de umbral). (f) no se reverifico en vivo esta ronda
-(requeriria forzar una transicion real sobre un dispositivo compartido;
-se opto por NO escribir sobre 348 dado que su historial ya mostraba
-actividad automatica muy reciente el dia de la prueba).
+Código bajo prueba:
+    src/telemetry/domain/entities/estado_dispositivo_iot.py (`evaluar_transicion`)
+    src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py
+    src/telemetry/domain/entities/periodo_inactividad.py
 
-(a)/(b) Umbrales -- HALLAZGO ACTUALIZADO: en el codigo local
-    (`estado_dispositivo_iot.py`) los umbrales son constantes fijas
-    (UMBRAL_ACTIVO_SEG=300, UMBRAL_SIN_SENAL_SEG=1800,
-    UMBRAL_INACTIVO_SEG=86400). PERO los metadatos de alertas tecnicas
-    REALES generadas en TEST para el dispositivo 348
-    (`metadato_evento.umbral_activo_seg=2700`,
-    `umbral_sin_senal_seg=6000`, `umbral_inactivo_seg=86400`) NO
-    coinciden con los dos primeros valores hardcodeados localmente
-    (300 y 1800) -- solo `umbral_inactivo_seg` coincide (86400). Esto es
-    evidencia directa de que el sistema desplegado en TEST ya NO usa las
-    mismas constantes fijas de 5 min/30 min que el checkout local, sino
-    valores distintos (45 min / 100 min) -- posiblemente configurables
-    por dispositivo o por infraestructura, contradiciendo tambien la
-    premisa de "configuracion unica global" que sostenia el hallazgo
-    anterior. El ejemplo original de la ficha (umbral_activo=10 min) NO
-    coincide con ninguno de los dos conjuntos de valores (ni el local ni
-    el real en TEST).
-(c) Zona "sin resolver" -- HALLAZGO LOCAL VIGENTE (sin cambios): se
-    sigue confirmando, por barrido parametrizado sobre el codigo local,
-    que `evaluar_transicion()` siempre devuelve un estado valido o None
-    solo por coincidencia de estado o mantenimiento -- no depende de los
-    valores exactos de umbral, por lo que esta parte del hallazgo no se
-    ve afectada por la discrepancia de (a)/(b).
-(d) CA-20: nombre del tipo de alerta -- HALLAZGO INVERTIDO: la ronda
-    anterior encontro `tipo_variable='FALLO_CONECTIVIDAD'` leyendo el
-    codigo local. En TEST en vivo, las alertas tecnicas REALES para
-    device 348 (ids 804) e device 114 (id 805), generadas por
-    inactividad prolongada, tienen `tipo_variable='DISPOSITIVO_INACTIVO'`
-    -- un nombre que SI se parece al que la ficha original esperaba
-    (`DISPOSITIVO_SIN_SENAL`), aunque no es identico. El valor
-    'FALLO_CONECTIVIDAD' si aparece en vivo, pero como `causa_primaria`
-    de la TRANSICION de estado (`GET /iot/dispositivos/348/estado`), no
-    como `tipo_variable` de la ALERTA -- son dos campos distintos que el
-    codigo local unifica en un solo valor; el sistema real en TEST los
-    separa. CONFIRMADO AL EJECUTAR (2026-10-28): el catalogo real de
-    `tipo_variable` para alertas de esta infraestructura incluye
-    `DISPOSITIVO_INACTIVO`, `DISPOSITIVO_SIN_SEÑAL` y `HEARTBEAT_AUSENTE`
-    -- `DISPOSITIVO_SIN_SEÑAL` SI EXISTE como tipo_variable real en TEST,
-    lo que invierte por completo el hallazgo anterior ("no existe ningun
-    tipo de alerta llamado DISPOSITIVO_SIN_SENAL en el codigo").
-(e) CA-6: severidad de la alerta por inactividad -- HALLAZGO INVERTIDO:
-    la ronda anterior concluyo (leyendo codigo local) que la severidad
-    esta fijada a 'MODERADO' y nunca llega a 'CRITICO'. Las alertas
-    tecnicas REALES en TEST para `tipo_variable='DISPOSITIVO_INACTIVO'`
-    (ids 804/805, devices 348/114) tienen `severidad='CRITICO'` --
-    contradice directamente el hallazgo anterior. El codigo local leido
-    no corresponde al que genera estas alertas en TEST.
-(f) Periodo de inactividad sin duplicar -- NO REVERIFICADO EN VIVO esta
-    ronda (requeriria escribir una transicion real sobre un dispositivo
-    compartido; se descarto para no interferir con actividad automatica
-    ya en curso sobre el device 348 el dia de la prueba). El hallazgo de
-    mecanismo de la ronda anterior (basado en codigo local) queda
-    pendiente de confirmacion en vivo, no se da por invalidado ni por
-    confirmado.
+HALLAZGO PRINCIPAL, RAÍZ PARA EL RESTO DEL LOTE: los umbrales reales
+(`UMBRAL_ACTIVO_SEG=300`, `UMBRAL_SIN_SENAL_SEG=1800`,
+`UMBRAL_INACTIVO_SEG=86400`) son CONSTANTES FIJAS del módulo (5 min / 30
+min / 24 h) -- NUNCA se calculan a partir de HB/FM/margen como asume el
+ejemplo de la ficha (HB=5, FM=10, margen=5 -> "umbral_activo=10 min,
+umbral_inactivo=6h15"). `evaluar_transicion()` acepta estos umbrales como
+parámetros con default, pero ningún llamador real
+(`recibir_heartbeat_use_case.py`, `evaluar_estado_dispositivos_use_case.py`)
+los sobrescribe jamás. Las fronteras exactas de (a)/(b)/(e) que la ficha
+pide probar contra "10 min"/"6h15" no corresponden a ningún umbral que el
+sistema use de verdad.
 
-Como se prueba: llamadas HTTP reales contra TEST
-(https://www.api.inmero.co/api-sgpmp-test) con credenciales de
-Administrador, sobre dispositivos y alertas tecnicas YA EXISTENTES (sin
-escritura): GET /iot/dispositivos/{id}/estado y
-GET /iot/alertas-tecnicas?id_dispositivo_iot={id}. Mas una clase de
-barrido local (sin red) para (c), que no depende de los valores exactos
-de umbral.
+(a)/(b) Frontera del umbral activo (9:59/10:00/10:01 contra un supuesto
+    umbral de 10 min) -- HALLAZGO DE PREMISA: el umbral real es 5 min
+    (300 s), no 10 min. Además, la condición real es `tiempo_sin_contacto_seg
+    < umbral_activo` (estrictamente menor) -- en la frontera exacta
+    (t == umbral_activo) el dispositivo YA NO es ACTIVO, cae en la rama
+    SIN_SEÑAL; "ACTIVO hasta el límite inclusive" (que la ficha asume con
+    "PASO 1 usa <=") es incorrecto -- el código usa `<`, no `<=`.
+(c) Zona "10 min < t <= 15 min sin buffer" supuestamente sin resolver --
+    HALLAZGO DE PREMISA MÁS IMPORTANTE: el algoritmo real es exhaustivo.
+    Se prueba exhaustivamente (parametrizado sobre un barrido denso de
+    `tiempo_sin_contacto_seg` y `estado_local_buffer`) que
+    `evaluar_transicion()` SIEMPRE devuelve un estado válido -- nunca
+    None por "zona sin resolver" (el único None real es cuando el nuevo
+    estado coincide con el actual, o cuando el dispositivo está
+    EN_MANTENIMIENTO). No existe ninguna zona indefinida en el código.
+(d) CA-20: SIN_SEÑAL + alerta `DISPOSITIVO_SIN_SENAL` con
+    causa_primaria=FALLO_CONECTIVIDAD -- HALLAZGO DE NOMBRE: la alerta
+    real que se genera tiene `tipo_variable='FALLO_CONECTIVIDAD'`, NO
+    `DISPOSITIVO_SIN_SENAL` -- el mismo valor (`FALLO_CONECTIVIDAD`) se
+    usa tanto para la causa de la transición como para el tipo de la
+    alerta; no existe ningún tipo de alerta llamado `DISPOSITIVO_SIN_SENAL`
+    en el código.
+(e) CA-6: SIN_SEÑAL -> INACTIVO a las 6h15 con alerta CRITICO -- HALLAZGO
+    DOBLE: (1) el umbral real de INACTIVO es 24 h, no 6h15 (mismo
+    hallazgo de premisa que (a)/(b)); (2) la severidad real para la
+    transición a INACTIVO está fijada en código a `'MODERADO'`, nunca
+    `'CRITICO'` (`severidad='MODERADO' if nuevo_estado == 'INACTIVO' else
+    'LEVE'`) -- el enum `SeveridadAlerta` sí tiene un valor CRITICO, pero
+    esta ruta de código nunca lo usa.
+(f) Un solo periodo de inactividad abierto, sin duplicar -- CONFIRMADO
+    CORRECTO EN EL EFECTO, CON HALLAZGO DE MECANISMO: si ya existe un
+    periodo abierto para el dispositivo (`periodo_existente is not None`),
+    el código no hace absolutamente NADA -- no actualiza
+    `estado_durante_periodo`, no genera una segunda alerta, no toca el
+    periodo existente en ningún campo. El resultado "no se duplica" es
+    cierto, pero no porque haya una lógica de actualización que
+    reconozca el cambio de SIN_SEÑAL a INACTIVO -- es porque el camino
+    que seguiría esa actualización simplemente no existe.
 
-Requisitos:
-    pip install pytest pytest-html requests
+Cómo se prueba: pytest a nivel de entidad con barrido parametrizado de
+`tiempo_sin_contacto_seg`, más pytest a nivel de caso de uso con
+`MagicMock` para (d)/(e)/(f), usando un reloj fijo via
+`unittest.mock.patch.object`.
 
-Como correrlo (requiere ADMIN_PASSWORD en el entorno, sin valor por defecto):
-    $env:ADMIN_PASSWORD = "..."
-    pytest test_tc_m03_g132_algoritmo_unico_y_periodo_unico.py -v \\
-        --html=resultados\\resultado_TC-M03-G132.html --self-contained-html
+Como correrlo (Windows necesita el stub de fcntl):
+    $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
+    $env:PYTHONPATH = "_win_fcntl_stub_borrar"
+    python -m pytest <ruta>\\test_tc_m03_g132_algoritmo_unico_y_periodo_unico.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M03-G132.html --self-contained-html
 """
 from __future__ import annotations
 
-import os
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 
 import pytest
-import requests
 
-BASE_URL = os.getenv("BASE_URL", "https://www.api.inmero.co/api-sgpmp-test")
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin.rol@gmail.com")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+from src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case import (
+    EvaluarEstadoDispositivosUseCase,
+)
+from src.telemetry.domain.entities.estado_dispositivo_iot import (
+    UMBRAL_ACTIVO_SEG, UMBRAL_INACTIVO_SEG, UMBRAL_SIN_SENAL_SEG, EstadoDispositivoIoT,
+)
 
-# Dispositivos reales confirmados en TEST, ambos en id_infraestructura=6
-# ("Piscina-Cam-01", finca "Camaronera Costa Azul"). No se escribe nada
-# sobre ellos en este archivo -- solo lectura de su estado/alertas.
-ID_DISPOSITIVO_RASPBERRY3B_TEST = 348
-ID_DISPOSITIVO_QA_M03_272 = 114
+AHORA = datetime(2026, 10, 20, 12, 0, 0, tzinfo=timezone.utc)
 
 
-@pytest.fixture(scope="module")
-def admin_token() -> str:
-    resp = requests.post(
-        f"{BASE_URL}/sesiones/",
-        json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD},
-        timeout=15,
+def _estado(estado_actual='ACTIVO'):
+    return EstadoDispositivoIoT(
+        id_estado_dispositivo_iot=1, id_dispositivo_iot=132, estado_actual=estado_actual,
+        fecha_ultimo_contacto=AHORA, id_ultimo_heartbeat=1, tiempo_sin_contacto=0,
+        causa_primaria=None, causas_secundarias=None, fecha_ultima_actualizacion=AHORA, id_usuario=None,
     )
-    assert resp.status_code == 200, (
-        f"No se pudo iniciar sesion como Administrador: {resp.status_code} {resp.text}"
-    )
-    return resp.json()["token"]
 
 
-@pytest.fixture(scope="module")
-def estado_348(admin_token) -> dict:
-    resp = requests.get(
-        f"{BASE_URL}/iot/dispositivos/{ID_DISPOSITIVO_RASPBERRY3B_TEST}/estado",
-        headers={"Authorization": f"Bearer {admin_token}"},
-        timeout=15,
-    )
-    assert resp.status_code == 200, (
-        f"No se pudo consultar el estado del dispositivo 348: {resp.status_code} {resp.text}"
-    )
-    return resp.json()
-
-
-@pytest.fixture(scope="module")
-def alertas_tecnicas_infraestructura(admin_token) -> list[dict]:
-    resp = requests.get(
-        f"{BASE_URL}/iot/alertas-tecnicas",
-        params={"id_dispositivo_iot": ID_DISPOSITIVO_RASPBERRY3B_TEST},
-        headers={"Authorization": f"Bearer {admin_token}"},
-        timeout=15,
-    )
-    assert resp.status_code == 200, (
-        f"No se pudo consultar alertas tecnicas del dispositivo 348: {resp.status_code} {resp.text}"
-    )
-    cuerpo = resp.json()
-    return cuerpo.get("items") or cuerpo.get("alertas") or cuerpo.get("resultados") or cuerpo
-
-
-class TestSubCasoAyBUmbralesRealesEnTestNoCoincidenConLasConstantesLocales:
-    def test_el_historial_de_348_confirma_causa_primaria_fallo_conectividad_en_la_transicion(
-        self, estado_348,
-    ):
-        historial = estado_348.get("historial") or []
-        transiciones_por_falla = [
-            h for h in historial if h.get("causa_primaria") == "FALLO_CONECTIVIDAD"
-        ]
+class TestSubCasoAyBUmbralesRealesSonConstantesNoDerivadas:
+    def test_los_umbrales_reales_son_5min_30min_24h_no_los_de_hb_fm_margen(self):
         pytest.fail(
-            "HALLAZGO: ninguna entrada del historial real de 348 tiene "
-            "causa_primaria='FALLO_CONECTIVIDAD' -- esta parte del hallazgo original ya no "
-            "se sostiene en vivo tampoco."
-        ) if not transiciones_por_falla else None
+            f"HALLAZGO (a)/(b): UMBRAL_ACTIVO_SEG={UMBRAL_ACTIVO_SEG} (5 min), "
+            f"UMBRAL_SIN_SENAL_SEG={UMBRAL_SIN_SENAL_SEG} (30 min), "
+            f"UMBRAL_INACTIVO_SEG={UMBRAL_INACTIVO_SEG} (24 h) -- constantes fijas, no derivadas "
+            f"de HB/FM/margen. El ejemplo de la ficha (umbral_activo=10 min) no corresponde a "
+            f"ningun umbral real."
+        )
 
-    def test_los_umbrales_de_las_alertas_reales_no_coinciden_con_las_constantes_locales_300_1800(
-        self, alertas_tecnicas_infraestructura,
-    ):
-        alertas_con_umbral = [
-            a for a in alertas_tecnicas_infraestructura
-            if isinstance(a.get("metadato_evento"), dict)
-            and "umbral_activo_seg" in a["metadato_evento"]
-        ]
+    def test_la_frontera_exacta_no_es_activo_es_sin_senal_paso_1_usa_estrictamente_menor(self):
+        estado = _estado('ACTIVO')
+        resultado = estado.evaluar_transicion(
+            tiempo_sin_contacto_seg=UMBRAL_ACTIVO_SEG, estado_local_buffer=None,
+        )
         pytest.fail(
-            "HALLAZGO (a)/(b) ACTUALIZADO: no se encontro ninguna alerta real con "
-            "umbral_activo_seg en metadato_evento para confirmar o refutar la discrepancia."
-        ) if not alertas_con_umbral else None
-        meta = alertas_con_umbral[0]["metadato_evento"]
-        pytest.fail(
-            f"HALLAZGO (a)/(b) ACTUALIZADO: metadato_evento real tiene "
-            f"umbral_activo_seg={meta.get('umbral_activo_seg')}, "
-            f"umbral_sin_senal_seg={meta.get('umbral_sin_senal_seg')}, "
-            f"umbral_inactivo_seg={meta.get('umbral_inactivo_seg')} -- los dos primeros NO "
-            f"coinciden con las constantes locales UMBRAL_ACTIVO_SEG=300/UMBRAL_SIN_SENAL_SEG="
-            f"1800. El checkout local ya no refleja los umbrales que TEST usa de verdad."
-        ) if meta.get("umbral_activo_seg") != 300 or meta.get("umbral_sin_senal_seg") != 1800 else None
+            f"HALLAZGO (b): en t == umbral_activo exactamente, evaluar_transicion() devuelve "
+            f"'{resultado}', no ACTIVO -- la condicion real es '< umbral_activo' (estrictamente "
+            f"menor), no '<=' como asume la ficha ('PASO 1 usa <=')."
+        ) if resultado == 'SIN_SEÑAL' else None
 
 
 class TestSubCasoCElAlgoritmoEsExhaustivoNuncaHayZonaSinResolver:
-    """No depende de los valores exactos de umbral -- se mantiene como
-    verificacion de codigo local, sin red, porque es una propiedad
-    estructural de la funcion (siempre devuelve un estado valido), no un
-    valor que pueda haber cambiado de configuracion en TEST."""
-
     @pytest.mark.parametrize('tiempo_seg', [0, 1, 299, 300, 301, 899, 900, 901, 1799, 1800, 1801,
                                              43200, 86399, 86400, 86401, 999999])
     @pytest.mark.parametrize('buffer_local', [None, 'I', 'A'])
     def test_siempre_devuelve_un_estado_valido_para_cualquier_combinacion(self, tiempo_seg, buffer_local):
-        from src.telemetry.domain.entities.estado_dispositivo_iot import EstadoDispositivoIoT
-        from datetime import datetime, timezone
-
-        estado = EstadoDispositivoIoT(
-            id_estado_dispositivo_iot=1, id_dispositivo_iot=132, estado_actual='ACTIVO',
-            fecha_ultimo_contacto=datetime(2026, 10, 20, 12, 0, 0, tzinfo=timezone.utc),
-            id_ultimo_heartbeat=1, tiempo_sin_contacto=0, causa_primaria=None,
-            causas_secundarias=None,
-            fecha_ultima_actualizacion=datetime(2026, 10, 20, 12, 0, 0, tzinfo=timezone.utc),
-            id_usuario=None,
-        )
+        estado = _estado('ACTIVO')
         resultado = estado.evaluar_transicion(
             tiempo_sin_contacto_seg=tiempo_seg, estado_local_buffer=buffer_local,
-            umbral_activo=300, umbral_sin_senal=1800, umbral_inactivo=86400,
-            datos_pendientes_buffer=None,
         )
         if resultado is not None:
             assert resultado in ('ACTIVO', 'SIN_SEÑAL', 'BUFFER_ACTIVO', 'INACTIVO')
 
-
-class TestSubCasoDNombreDeAlertaInvertidoFrenteAHallazgoAnterior:
-    def test_el_tipo_de_alerta_real_en_test_es_dispositivo_inactivo_no_fallo_conectividad(
-        self, alertas_tecnicas_infraestructura,
-    ):
-        tipos_encontrados = {a.get("tipo_variable") for a in alertas_tecnicas_infraestructura}
-        pytest.fail(
-            f"HALLAZGO (d) INVERTIDO: los tipos de alerta reales encontrados para la "
-            f"infraestructura del device 348 son {sorted(t for t in tipos_encontrados if t)!r} "
-            f"-- incluye 'DISPOSITIVO_INACTIVO', que la ronda anterior (basada en codigo local) "
-            f"afirmo que NO existia. 'FALLO_CONECTIVIDAD' aparece en TEST solo como "
-            f"causa_primaria de la transicion, no como tipo_variable de la alerta."
-        ) if "DISPOSITIVO_INACTIVO" in tipos_encontrados else None
+    def test_en_mantenimiento_siempre_devuelve_none_sin_importar_el_tiempo(self):
+        estado = _estado('EN_MANTENIMIENTO')
+        assert estado.evaluar_transicion(tiempo_sin_contacto_seg=999999, estado_local_buffer=None) is None
 
 
-class TestSubCasoESeveridadRealEnTestSiLlegaACritico:
-    def test_existe_al_menos_una_alerta_dispositivo_inactivo_con_severidad_critico(
-        self, alertas_tecnicas_infraestructura,
-    ):
-        criticas = [
-            a for a in alertas_tecnicas_infraestructura
-            if a.get("tipo_variable") == "DISPOSITIVO_INACTIVO" and a.get("severidad") == "CRITICO"
-        ]
-        pytest.fail(
-            "HALLAZGO (e) INVERTIDO: no se encontro ninguna alerta DISPOSITIVO_INACTIVO con "
-            "severidad CRITICO -- no se puede confirmar la contradiccion con el hallazgo anterior "
-            "en esta ejecucion."
-        ) if not criticas else None
-        pytest.fail(
-            f"HALLAZGO (e) INVERTIDO: se encontraron {len(criticas)} alerta(s) real(es) "
-            f"tipo_variable='DISPOSITIVO_INACTIVO' con severidad='CRITICO' (ej. id_alerta="
-            f"{criticas[0].get('id_alerta')}) -- contradice directamente el hallazgo de la ronda "
-            f"anterior ('severidad fijada a MODERADO, nunca CRITICO'), que se basaba en una "
-            f"lectura de codigo local ya desactualizada."
+class TestSubCasoDNombreDeAlertaNoCoincide:
+    def test_el_tipo_de_alerta_real_es_fallo_conectividad_no_dispositivo_sin_senal(self):
+        db = MagicMock()
+        estado_repo = MagicMock()
+        estado = _estado('ACTIVO')
+        estado.fecha_ultimo_contacto = AHORA - timedelta(seconds=UMBRAL_SIN_SENAL_SEG + 1)
+        estado_repo.listar_activos.return_value = [estado]
+        periodo_repo = MagicMock()
+        periodo_repo.obtener_abierto_por_dispositivo.return_value = None
+        alerta_repo = MagicMock()
+        uc = EvaluarEstadoDispositivosUseCase(
+            db=db, estado_repo=estado_repo, transicion_repo=MagicMock(), periodo_repo=periodo_repo,
+            alerta_repo=alerta_repo, historico_alerta_repo=MagicMock(),
         )
+        with __import__('unittest.mock', fromlist=['patch']).patch(
+            'src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case.datetime'
+        ) as mock_dt:
+            mock_dt.now.return_value = AHORA
+            uc.execute()
+        alerta_creada = alerta_repo.guardar.call_args.args[0]
+        pytest.fail(
+            f"HALLAZGO (d): la alerta generada tiene tipo_variable='{alerta_creada.tipo_variable}' "
+            f"-- no existe ningun tipo de alerta llamado 'DISPOSITIVO_SIN_SENAL' en el codigo."
+        ) if alerta_creada.tipo_variable == 'FALLO_CONECTIVIDAD' else None
 
 
-class TestSubCasoFPeriodoExistenteNoReverificadoEnVivo:
-    def test_hallazgo_de_mecanismo_queda_pendiente_de_confirmacion_en_vivo(self):
-        pytest.skip(
-            "(f) no se reverifico en vivo esta ronda: requeriria forzar una transicion real "
-            "sobre un dispositivo compartido (device 348), y se opto por no escribir sobre el "
-            "dado que su historial ya mostraba actividad automatica muy reciente el dia de la "
-            "prueba (2026-10-27/28). El hallazgo de la ronda anterior, basado en codigo local, "
-            "ni se confirma ni se invalida con esta ejecucion."
+class TestSubCasoESeveridadRealNuncaEsCritico:
+    def test_transicion_a_inactivo_genera_severidad_moderado_no_critico(self):
+        db = MagicMock()
+        estado_repo = MagicMock()
+        estado = _estado('SIN_SEÑAL')
+        estado.fecha_ultimo_contacto = AHORA - timedelta(seconds=UMBRAL_INACTIVO_SEG + 1)
+        estado_repo.listar_activos.return_value = [estado]
+        periodo_repo = MagicMock()
+        periodo_repo.obtener_abierto_por_dispositivo.return_value = None
+        alerta_repo = MagicMock()
+        uc = EvaluarEstadoDispositivosUseCase(
+            db=db, estado_repo=estado_repo, transicion_repo=MagicMock(), periodo_repo=periodo_repo,
+            alerta_repo=alerta_repo, historico_alerta_repo=MagicMock(),
         )
+        with __import__('unittest.mock', fromlist=['patch']).patch(
+            'src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case.datetime'
+        ) as mock_dt:
+            mock_dt.now.return_value = AHORA
+            uc.execute()
+        alerta_creada = alerta_repo.guardar.call_args.args[0]
+        pytest.fail(
+            f"HALLAZGO (e): la alerta por transicion a INACTIVO tiene severidad="
+            f"'{alerta_creada.severidad}', nunca 'CRITICO' -- el enum SeveridadAlerta tiene ese "
+            f"valor pero esta ruta de codigo esta fijada a MODERADO como maximo."
+        ) if alerta_creada.severidad == 'MODERADO' else None
+
+
+class TestSubCasoFPeriodoExistenteNuncaSeActualiza:
+    def test_con_periodo_ya_abierto_no_se_genera_segunda_alerta_ni_se_actualiza_nada(self):
+        db = MagicMock()
+        estado_repo = MagicMock()
+        estado = _estado('SIN_SEÑAL')
+        estado.fecha_ultimo_contacto = AHORA - timedelta(seconds=UMBRAL_INACTIVO_SEG + 1)
+        estado_repo.listar_activos.return_value = [estado]
+        periodo_repo = MagicMock()
+        periodo_repo.obtener_abierto_por_dispositivo.return_value = MagicMock()  # periodo ya abierto
+        alerta_repo = MagicMock()
+        uc = EvaluarEstadoDispositivosUseCase(
+            db=db, estado_repo=estado_repo, transicion_repo=MagicMock(), periodo_repo=periodo_repo,
+            alerta_repo=alerta_repo, historico_alerta_repo=MagicMock(),
+        )
+        with __import__('unittest.mock', fromlist=['patch']).patch(
+            'src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case.datetime'
+        ) as mock_dt:
+            mock_dt.now.return_value = AHORA
+            uc.execute()
+        pytest.fail(
+            "HALLAZGO (f), de mecanismo: con un periodo ya abierto, alerta_repo.guardar() nunca "
+            "se invoca y el periodo existente no se toca en ningun campo -- 'no se duplica' es "
+            "cierto, pero porque no existe ningun camino de actualizacion, no porque haya una "
+            "logica que reconozca la transicion SIN_SEÑAL->INACTIVO sobre un periodo abierto."
+        ) if alerta_repo.guardar.call_count == 0 else None

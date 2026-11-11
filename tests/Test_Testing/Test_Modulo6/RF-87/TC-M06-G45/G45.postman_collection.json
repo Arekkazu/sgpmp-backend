@@ -1,0 +1,173 @@
+{
+  "info": {
+    "name": "TC-M06-G45 RF-87 lecturas finales",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "periodos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON v?lido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "prevalidacion_8",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/8/prevalidacion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON v?lido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "lineas_8",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/lineas?id_periodo_contable=8"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON v?lido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "comprobantes_7",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/7/comprobantes"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON v?lido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "variaciones_219",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/219/variaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON v?lido',()=>pm.expect(()=>pm.response.json()).not.to.throw());"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

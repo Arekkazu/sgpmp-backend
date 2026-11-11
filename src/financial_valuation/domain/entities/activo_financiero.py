@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/83: vista financiera del activo biológico (M02 + finca + titular) |
+# | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
 """Read-model del activo biológico que M06 necesita para valorarlo (NIC 41 ¶10, ¶12)."""
 from __future__ import annotations
 
@@ -35,6 +36,9 @@ class DatosActivo:
     peso_kg: Optional[Decimal]  # INDIVIDUAL: último pesaje; POBLACIONAL: peso promedio por individuo
     id_evento_peso: Optional[int]
     id_dispositivo_iot: Optional[int]
+    # RF-85: kg ya cosechados como producto de consumo después del último pesaje. M02 no baja el peso con las
+    # cosechas, así que sin descontarlos cada cosecha se calcularía sobre el activo completo.
+    kg_cosechados: Decimal = Decimal(0)
 
     @property
     def es_poblacional(self) -> bool:
@@ -55,4 +59,4 @@ class DatosActivo:
             return Decimal(self.cabezas), "cabeza"
         if self.peso_kg is None:
             return None, "kg"
-        return Decimal(self.peso_kg) * self.cabezas, "kg"
+        return max(Decimal(0), Decimal(self.peso_kg) * self.cabezas - self.kg_cosechados), "kg"

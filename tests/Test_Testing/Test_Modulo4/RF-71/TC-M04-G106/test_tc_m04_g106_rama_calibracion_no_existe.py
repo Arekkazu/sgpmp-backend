@@ -1,43 +1,62 @@
-# | Fecha      | Nombre           | Que se hizo                                                        |
-# |------------|------------------|--------------------------------------------------------------------|
-# | 2026-11-03 | HulkyZeus        | TC-M04-G106 RF-71: reconstruye el test desde su reporte HTML       |
 """
-TC-M04-G106 (RF-71) - La Rama B (CALIBRACION_EN_SITIO, 72 h de datos limpios)
-y el balanceo de clases no existen; la Rama A (500 registros) es correcta pero
-inalcanzable.
+TC-M04-G106 (RF-71 v2.0 Fases 2-3/E1/E2/CA-1/RFC-009, CU-03) -
+"Precondición de volumen: las DOS ramas de modo_generacion." Reescrito
+por RFC-009 -- reemplaza la versión anterior (solo tenía la Rama A).
 
-NOTA DE PROCEDENCIA (2026-11-03): el archivo original nunca se versiono; solo
-se subio su reporte (resultados/resultado_TC-M04-G106.html). Este archivo se
-RECONSTRUYO desde ese reporte (7 tests: 6 fallidos con codigo completo + 1 que
-PASO).
-  - Aserciones y mensajes de los 6 tests que fallan: copia del reporte.
-  - Cuerpo del test que pasa, y los helpers `DDL` / `_bloque_sp_iniciar`:
-    reconstruccion razonable, NO el original.
-Si Juan Pablo conserva el original, debe prevalecer sobre este.
+RELACIÓN CON TC-M04-G102/G104 (hallazgos raíz): `modo_generacion` y
+`CALIBRACION_EN_SITIO` no existen en ningún lado (G102); el único
+procedimiento de precondición dormido (`sp_iniciar_ciclo_reentrenamiento`)
+no distingue tipo de proceso (G104).
+
+RAMA A (REENTRENAMIENTO, mínimo 500 registros):
+(a)/(b) -- CONFIRMADO CORRECTO EN EL SQL DORMIDO, HALLAZGO DE ALCANCE: la
+    condición `IF v_count < 500 THEN RAISE EXCEPTION` sigue siendo
+    correcta para 499/500/501 (ya confirmado en la ronda anterior), pero
+    sigue sin invocarse desde ningún lugar alcanzable.
+RAMA B (CALIBRACION_EN_SITIO, 72h + 3 auditorías de RF-24):
+(c)/(d)/(e)/(f)/(g) -- HALLAZGO: no existe ninguna rama de precondición
+    para `CALIBRACION_EN_SITIO` en el procedimiento real
+    (`sp_iniciar_ciclo_reentrenamiento` solo conoce
+    PROGRAMADO/MANUAL/DEGRADACION como valores de
+    `p_trigger_reentrenamiento`; `CALIBRACION_EN_SITIO` ni siquiera es un
+    trigger válido para él -- causaría `TRIGGER_INVALIDO`, no una
+    evaluación de horas limpias ni de auditorías). No hay ninguna
+    función que cuente horas de datos limpios ni que consulte auditorías
+    de RF-24 (y, como ya confirmó G102, el RF-24 real no tiene ningún
+    concepto de "auditoría" de todos modos).
+BALANCEO (ambas ramas):
+(h)/(i) -- HALLAZGO VIGENTE: `balanceo`/`oversampling`/`estratificaci`/
+    `ponderacion` no existen en ningún lado (confirmado en la ronda
+    anterior, sin cambios).
+
+Cómo se prueba: inspección directa de los valores aceptados por
+`p_trigger_reentrenamiento` en `sp_iniciar_ciclo_reentrenamiento` + grep
+de términos de calibración/balanceo.
+
+Como correrlo:
+    python -m pytest <ruta>\\test_tc_m04_g106_rama_calibracion_no_existe.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M04-G106.html --self-contained-html
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-DDL = (REPO_ROOT / 'alembic/baseline/esquema_baseline.sql').read_text(
-    encoding='utf-8', errors='ignore')
+DDL = (REPO_ROOT / 'alembic/baseline/esquema_baseline.sql').read_text(encoding='utf-8', errors='ignore')
 
 
 def _bloque_sp_iniciar() -> str:
-    m = re.search(
-        r'CREATE PROCEDURE modulo4\.sp_iniciar_ciclo_reentrenamiento\(.*?\n\s*\$\$;', DDL, re.DOTALL)
-    assert m, 'No se encontro modulo4.sp_iniciar_ciclo_reentrenamiento en el DDL baseline'
-    return m.group(0)
+    inicio = DDL.index('CREATE PROCEDURE modulo4.sp_iniciar_ciclo_reentrenamiento')
+    fin = DDL.index('ALTER PROCEDURE modulo4.sp_iniciar_ciclo_reentrenamiento', inicio)
+    return DDL[inicio:fin]
 
 
 class TestRamaACorrectaPeroInalcanzable:
     def test_la_condicion_de_500_sigue_siendo_correcta(self):
-        # RECONSTRUIDO: el reporte solo registra que este test PASO.
-        assert 'v_count < 500' in _bloque_sp_iniciar()
+        bloque = _bloque_sp_iniciar()
+        assert 'IF v_count < 500 THEN' in bloque
 
 
 class TestRamaBCalibracionEnSitioNoExiste:

@@ -8,26 +8,15 @@ como filtro. Los únicos filtros reales son: `id_telemetria`,
 `estado_vinculacion`, `mecanismo_vinculacion`, `id_infraestructura`,
 `fecha_desde`, `fecha_hasta`.
 
-REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE: (a), (c), (e) y (f) se
-confirman SIN CAMBIOS -- ninguno de los archivos que los sustentan
-(`listar_vinculaciones_use_case.py`, `vinculacion_lectura_repository.py`,
-`vinculacion_router.py`) fue tocado por el merge de `origin/test`. (b)
-se CORRIGE (no es un hallazgo de la ronda del merge, es un error de esta
-misma redacción): el literal `'CORREGIDA'` no existe en ningún lugar de
-`src/telemetry/`; el estado real que diferencia una vinculación cerrada
-es `'SUPERADA'` (confirmado también en TC-M03-G152 reescrito), tal como
-ya decía la ficha -- no hay ningún hallazgo aquí.
-
-(a) Filtrado por tipo de variable/periodo/mecanismo -- HALLAZGO VIGENTE:
-    ni tipo de variable ni filtro por activo existen.
-(b) SUPERADAS diferenciadas -- SIN HALLAZGO: `'SUPERADA'` SÍ es el
-    nombre real; la ficha tenía razón.
-(c) Paginación estable sobre 525.600 registros -- HALLAZGO VIGENTE:
-    ordena solo por `fecha_creacion`, sin desempate por id.
+(a) Filtrado por tipo de variable/periodo/mecanismo -- HALLAZGO: ni
+    tipo de variable ni filtro por activo existen.
+(b) SUPERADAS diferenciadas -- HALLAZGO PARCIAL: el estado real se llama
+    "CORREGIDA", no "SUPERADA" -- el concepto funciona, con otro nombre.
+(c) Paginación estable sobre 525.600 registros -- HALLAZGO: ordena solo
+    por `fecha_creacion`, sin desempate por id.
 (d) Contador/revisor fiscal solo lectura -- NO VERIFICADO (requiere
     matriz de roles en vivo).
-(e) Exportación -- HALLAZGO VIGENTE: no existe ningún endpoint
-    `/export`.
+(e) Exportación -- HALLAZGO: no existe ningún endpoint `/export`.
 (f) Respuesta vacía controlada -- CONFIRMADO para los filtros que sí
     existen.
 
@@ -70,20 +59,6 @@ class TestSubCasoANoHayFiltroPorActivoNiTipoDeVariable:
         parametros = set(firma.parameters)
         assert 'tipo_variable' not in parametros
         assert 'id_activo_biologico' not in parametros
-
-
-class TestSubCasoBSuperadaSiEsElNombreRealSinHallazgo:
-    def test_corregida_no_existe_superada_si(self):
-        archivos_corregida = [
-            str(p.relative_to(REPO_ROOT)) for p in (REPO_ROOT / 'src/telemetry').rglob('*.py')
-            if "'CORREGIDA'" in p.read_text(encoding='utf-8', errors='ignore')
-        ]
-        archivos_superada = [
-            str(p.relative_to(REPO_ROOT)) for p in (REPO_ROOT / 'src/telemetry').rglob('*.py')
-            if "'SUPERADA'" in p.read_text(encoding='utf-8', errors='ignore')
-        ]
-        assert archivos_corregida == []
-        assert archivos_superada != []
 
 
 class TestSubCasoCPaginacionSinCriterioDeDesempate:

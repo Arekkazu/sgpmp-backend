@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-92/RF-93: construcción del estado de resultados y del informe de revelaciones |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
+# | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -31,17 +33,20 @@ class ConstructorEstadoResultados:
         costos = self.costos.del_periodo(id_periodo_contable, filtros)
         er = estado_resultados(
             [MovimientoResultado(m["tipo_hecho"], m["sentido"], Decimal(m["valor"]), m["es_reverso"]) for m in movimientos],
-            [CostoPeriodo(c["naturaleza_costo"], c["politica_capitalizacion"], Decimal(c["monto_costo"]), c["es_reverso"])
-             for c in costos],
+            [CostoPeriodo(c["naturaleza_costo"], c["politica_capitalizacion"], Decimal(c["monto_costo"]), c["es_reverso"],
+                          c["subtipo_costo"]) for c in costos],
         )
-        return {"componentes": {k: str(v) for k, v in er.componentes.items()}, "total_ingresos": er.total_ingresos,
+        return {"componentes": {k: str(v) for k, v in er.componentes.items()},
+                "desglose_costos_mantenimiento": {k: str(v) for k, v in er.desglose_mantenimiento.items()},
+                "total_ingresos": er.total_ingresos,
                 "total_gastos": er.total_gastos, "resultado_neto": er.resultado_neto,
                 "sin_actividad": [k for k, v in er.componentes.items() if v == 0], "lineas": len(movimientos),
                 "costos": len(costos)}
 
     def guardar(self, id_periodo_contable: int, filtros: dict, id_usuario: int, excluidos: list) -> dict:
         calculo = self.calcular(id_periodo_contable, filtros)
-        componentes = {**calculo["componentes"], "activos_excluidos_cierre": excluidos}
+        componentes = {**calculo["componentes"], "desglose_costos_mantenimiento": calculo["desglose_costos_mantenimiento"],
+                       "activos_excluidos_cierre": excluidos}
         c = {k: Decimal(v) for k, v in calculo["componentes"].items()}
         version = self.reportes.siguiente_version_estado(id_periodo_contable)
         id_estado = self.reportes.agregar_estado({
@@ -72,7 +77,7 @@ class ConstructorInformeRevelaciones:
             inicio = Decimal(a["valor_inicio"] or 0)
             reconocido_en_periodo = a["fecha_reconocimiento"] >= periodo["fecha_inicio"]
             compras = Decimal(a["costo_adquisicion"] or 0) if reconocido_en_periodo and a["origen_financiero"] == "compra" else CERO
-            nacimientos = sum((v for k, v in mov.items() if k.startswith("RECONOCIMIENTO_NACIMIENTO")), CERO)
+            nacimientos = sum((v for k, v in mov.items() if k.startswith(("RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION"))), CERO)
             diferencia = mov.get("RECONOCIMIENTO_DIFERENCIA:GANANCIA", CERO) - mov.get("RECONOCIMIENTO_DIFERENCIA:PERDIDA", CERO)
             tb = mov.get("VARIACION_VR_TB:GANANCIA", CERO) - mov.get("VARIACION_VR_TB:PERDIDA", CERO)
             pm = mov.get("VARIACION_VR_PM:GANANCIA", CERO) - mov.get("VARIACION_VR_PM:PERDIDA", CERO)

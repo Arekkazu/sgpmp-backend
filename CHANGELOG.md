@@ -1,3 +1,92 @@
+## [1.4.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.54...v1.4.0-rc.55) (2026-11-11)
+
+### Bug Fixes
+
+* **rf89:** la correccion de un precio ocupa su lugar y no desplaza al aplicado (TC-M06-G106) ([dba9ab0](https://github.com/Arekkazu/sgpmp-backend/commit/dba9ab04fbc45f6c9753323c51230ad78a068005))
+
+## [1.4.0-rc.54](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.53...v1.4.0-rc.54) (2026-11-11)
+
+### Bug Fixes
+
+* **rf77-rf80-rf81-rf92-mod5-mod6:** PDF etiquetado para lector de pantalla (TC-DIS-204) ([b4bc2c1](https://github.com/Arekkazu/sgpmp-backend/commit/b4bc2c167f83a18ff62b1a8b0a4c0712456a6dd1))
+* **rf77-rf80-rf81-rf92-rf93-mod5-mod6:** PDF legibles sin recorte, reporte de gastos reabierto completo y periodos para quien consulta ([7effb12](https://github.com/Arekkazu/sgpmp-backend/commit/7effb12ecb8639b0773ea5b6817cddff3121800e)), closes [#593](https://github.com/Arekkazu/sgpmp-backend/issues/593)
+
+## [1.4.0-rc.53](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.52...v1.4.0-rc.53) (2026-11-11)
+
+### Features
+
+* **rf16-rf36-mod2-mod9:** densidad maxima por etapa con aviso preventivo y estado del lote ([0f5d774](https://github.com/Arekkazu/sgpmp-backend/commit/0f5d774aeebfc8e69fb45c5ebcaa3fbdd35685a2)), closes [#391](https://github.com/Arekkazu/sgpmp-backend/issues/391)
+* **rf16-rf37-mod9:** ciclos productivos de la especie con sus fases en orden ([4f10109](https://github.com/Arekkazu/sgpmp-backend/commit/4f10109e3d405c661cbd7500dd405f9014161857))
+* **rf36-mod2:** el listado de activos trae el estado de densidad de cada lote ([83c46fb](https://github.com/Arekkazu/sgpmp-backend/commit/83c46fbc0aba6f237a68bfc41bb4553457a8b901))
+* **rf86-mod6:** listado de eventos del periodo con medicion pendiente ([166acb2](https://github.com/Arekkazu/sgpmp-backend/commit/166acb2d48d5dfe67c71ce15c19e5c0c7afcfa36))
+* **rf87-mod6:** decision por activo sin precio en el cierre del periodo ([cbcec5c](https://github.com/Arekkazu/sgpmp-backend/commit/cbcec5c6e42b7db0b1c885111ee6bbfa5a0bed84))
+
+### Bug Fixes
+
+* **rf74-mod5:** al arrancar se interrumpen las corridas huerfanas del batch ICA ([6fc31df](https://github.com/Arekkazu/sgpmp-backend/commit/6fc31df4d774d7a44a76a3ac2f3e1390ea64fda4))
+* **rf75-rf76-mod5:** los mensajes de alimento y medicamento nombran el activo por su identificador ([912ab71](https://github.com/Arekkazu/sgpmp-backend/commit/912ab7169ce146a387e7042c90fb2b1da3e2f7a4)), closes [#512](https://github.com/Arekkazu/sgpmp-backend/issues/512)
+* **rf77-mod5:** el PDF de gastos nombra el activo, desglosa por periodo y explica la tendencia ([f6bae67](https://github.com/Arekkazu/sgpmp-backend/commit/f6bae67793a8c6a6e5ddd127866bdbcafdcd573d))
+* **rf87-mod6:** las lineas sin trazabilidad de la prevalidacion nombran su activo ([d8cde33](https://github.com/Arekkazu/sgpmp-backend/commit/d8cde33b97a53be9011e5a362eeccf9f0b4105f0))
+
+## [1.4.0-rc.52](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.51...v1.4.0-rc.52) (2026-11-11)
+
+### Features
+
+* **rf85-mod6:** conversion de unidades de masa a kg en la cosecha de un activo de consumo ([dfe53a0](https://github.com/Arekkazu/sgpmp-backend/commit/dfe53a0af443c9461bff761de68061bf555ff376)), closes [#1011](https://github.com/Arekkazu/sgpmp-backend/issues/1011)
+* **rf86-mod6:** correctivo de variaciones con aprobación del Contador (INC-M06-336-G36) ([7151367](https://github.com/Arekkazu/sgpmp-backend/commit/7151367e5929ec461dae0d9a51483598c9157d38)), closes [#1023](https://github.com/Arekkazu/sgpmp-backend/issues/1023)
+* **rf86-mod6:** inmutabilidad de la solicitud de correctivo resuelta (INC-M06-336-G36) ([0093c09](https://github.com/Arekkazu/sgpmp-backend/commit/0093c090a7167709842533245f4dbc3299410f62)), closes [#1023](https://github.com/Arekkazu/sgpmp-backend/issues/1023)
+
+### Bug Fixes
+
+* **rf14-mod6:** los avisos de M06 y M07 al Contador y al Administrador se registran ([453bbca](https://github.com/Arekkazu/sgpmp-backend/commit/453bbca364c772fcccd751d7d8c2c070bc6b3b5d)), closes [#985](https://github.com/Arekkazu/sgpmp-backend/issues/985)
+* **rf60-mod3:** la evaluacion periodica de dispositivos corre en un hilo y no congela la API ([709ced2](https://github.com/Arekkazu/sgpmp-backend/commit/709ced22d51bd27996e586df967d53d9793db247)), closes [#1020](https://github.com/Arekkazu/sgpmp-backend/issues/1020)
+* **rf74-mod5:** la alerta critica del ICA lleva la infraestructura del activo ([#1037](https://github.com/Arekkazu/sgpmp-backend/issues/1037)) ([60280b4](https://github.com/Arekkazu/sgpmp-backend/commit/60280b44d05b8134c922656360308eec6752f619))
+* **rf74-rf78-mod5:** reintentos de fallos tecnicos y textos visibles de suministros ([d2eea05](https://github.com/Arekkazu/sgpmp-backend/commit/d2eea05326b568d54c2a0e3fde986da2c5c2b12c)), closes [#949](https://github.com/Arekkazu/sgpmp-backend/issues/949) [#950](https://github.com/Arekkazu/sgpmp-backend/issues/950) [#951](https://github.com/Arekkazu/sgpmp-backend/issues/951)
+* **rf74-rf94-mod5-mod6:** une las 11 cabezas del lote antes de la RLS de modulo5 y modulo6 ([8cca215](https://github.com/Arekkazu/sgpmp-backend/commit/8cca21500d8ec0fa6a303237613154e4aebbe8cd)), closes [#955](https://github.com/Arekkazu/sgpmp-backend/issues/955)
+* **rf75-mod5:** la cantidad de alimento admite hasta 3 decimales ([#1038](https://github.com/Arekkazu/sgpmp-backend/issues/1038)) ([d0c96bd](https://github.com/Arekkazu/sgpmp-backend/commit/d0c96bd8a61b64d1e3aa8a9a930000bcdd6a73b3))
+* **rf76-mod5:** conservar cuatro decimales en dosis ([#954](https://github.com/Arekkazu/sgpmp-backend/issues/954)) ([513e950](https://github.com/Arekkazu/sgpmp-backend/commit/513e950c08ffa66d86d5b389b134d4d5543bb288))
+* **rf77-mod5:** auditar reportes de gastos y exportaciones ([#958](https://github.com/Arekkazu/sgpmp-backend/issues/958)) ([2937862](https://github.com/Arekkazu/sgpmp-backend/commit/293786267fbcef466746af902fde17684cf81f05))
+* **rf77-mod5:** representar promedio no calculable del lote ([#963](https://github.com/Arekkazu/sgpmp-backend/issues/963)) ([9c6d22d](https://github.com/Arekkazu/sgpmp-backend/commit/9c6d22dc05e1c34c30ff30215a86a1fcb311c564))
+* **rf78-mod5:** unidad del tipo de suministro y replicas simultaneas de idempotencia ([#1039](https://github.com/Arekkazu/sgpmp-backend/issues/1039) [#1046](https://github.com/Arekkazu/sgpmp-backend/issues/1046)) ([0f6a889](https://github.com/Arekkazu/sgpmp-backend/commit/0f6a889e4f699129c704f6fa8ed08c4281d65fb3))
+* **rf79-rf80-mod5:** nombres de triggers y funciones segun la convencion de BD y SQLSTATE de modulo5 ([b219116](https://github.com/Arekkazu/sgpmp-backend/commit/b2191160bceae8eee980248c2edf52131e1a5069)), closes [#1067](https://github.com/Arekkazu/sgpmp-backend/issues/1067) [#1035](https://github.com/Arekkazu/sgpmp-backend/issues/1035)
+* **rf80-mod5:** auditar rechazos de costeo directo ([#960](https://github.com/Arekkazu/sgpmp-backend/issues/960)) ([b9b5074](https://github.com/Arekkazu/sgpmp-backend/commit/b9b5074687c7e23af62ffbe24ae9cc902e3b29aa))
+* **rf80-mod5:** la bitacora de auditoria se ordena por fecha del evento o de emision ([22083ab](https://github.com/Arekkazu/sgpmp-backend/commit/22083abb231b72fa430dccf507c3d822d90ae084))
+* **rf80-mod5:** la bitacora de suministros pasa datos_nuevos una sola vez ([e23e42d](https://github.com/Arekkazu/sgpmp-backend/commit/e23e42d46d081d196cea630691fe0e125f3a9bdf)), closes [#988](https://github.com/Arekkazu/sgpmp-backend/issues/988) [#1036](https://github.com/Arekkazu/sgpmp-backend/issues/1036)
+* **rf80-mod5:** proteger integridad e identidad de auditoria ([#964](https://github.com/Arekkazu/sgpmp-backend/issues/964)) ([0bcd4cc](https://github.com/Arekkazu/sgpmp-backend/commit/0bcd4cc74f69e7fee3a4ec616c1a5970b402ef38))
+* **rf80-mod5:** validar rango temporal de auditoria ([#961](https://github.com/Arekkazu/sgpmp-backend/issues/961)) ([1d137b4](https://github.com/Arekkazu/sgpmp-backend/commit/1d137b43e1ac2932fa414413d9e40c6c3879a418))
+* **rf81-mod5:** registros_por_pagina mayor a 200 se limita a 200 en vez de rechazarse ([#970](https://github.com/Arekkazu/sgpmp-backend/issues/970)) ([e76b106](https://github.com/Arekkazu/sgpmp-backend/commit/e76b106857a5f4d8a190b0c552462b7c96d05411))
+* **rf81-rf80-mod5:** eventos del historial con filtros aplicados y total retornado ([#971](https://github.com/Arekkazu/sgpmp-backend/issues/971)) ([2151328](https://github.com/Arekkazu/sgpmp-backend/commit/215132887eb114240631f939d381c7122af53907))
+* **rf82-mod6:** habilitar acceso al reconocimiento contable ([#957](https://github.com/Arekkazu/sgpmp-backend/issues/957)) ([fa28359](https://github.com/Arekkazu/sgpmp-backend/commit/fa283592a4f78940ca8a03c851c5144169d31631))
+* **rf82-mod6:** la donacion por valor razonable omite el hecho menor a 0,01 ([9a67ce4](https://github.com/Arekkazu/sgpmp-backend/commit/9a67ce4286aabebbcc1193281e82ddd0433b969e)), closes [#1036](https://github.com/Arekkazu/sgpmp-backend/issues/1036) [#1027](https://github.com/Arekkazu/sgpmp-backend/issues/1027)
+* **rf82-mod6:** los 403 de RBAC quedan en la auditoria financiera (INC-M06-306-G07) ([1c196fa](https://github.com/Arekkazu/sgpmp-backend/commit/1c196fad46d39caeff2478d12799c9f2914b0c69)), closes [#993](https://github.com/Arekkazu/sgpmp-backend/issues/993)
+* **rf82-mod6:** rechazar costos con mas de 4 decimales en vez de redondearlos ([#990](https://github.com/Arekkazu/sgpmp-backend/issues/990)) ([be4751c](https://github.com/Arekkazu/sgpmp-backend/commit/be4751c3341619c980af7f0486559ac3671f059e))
+* **rf82-rf86-mod6:** hecho contable propio para el reconocimiento por donacion ([#989](https://github.com/Arekkazu/sgpmp-backend/issues/989)) ([bb1f9bd](https://github.com/Arekkazu/sgpmp-backend/commit/bb1f9bd080125a4c899ae44b68456d955c867907))
+* **rf83-mod6:** componentes menores a 0,01 se registran sin linea de valor 0 (INC-M06-307-G11) ([2238457](https://github.com/Arekkazu/sgpmp-backend/commit/2238457874b9dd56c708feeb828f11c27d2ae664)), closes [#994](https://github.com/Arekkazu/sgpmp-backend/issues/994)
+* **rf83-mod6:** evento de M02 en periodo cerrado queda MEDICION_PENDIENTE y alerta (INC-M06-312-G14) ([cc17ac8](https://github.com/Arekkazu/sgpmp-backend/commit/cc17ac88fd36957d0043493a4f5a9a7d5c2519d3)), closes [#995](https://github.com/Arekkazu/sgpmp-backend/issues/995) [#999](https://github.com/Arekkazu/sgpmp-backend/issues/999)
+* **rf83-mod6:** la medicion estimada alerta MEDICION_PENDIENTE al Contador (INC-M06-308-G12) ([c28dc03](https://github.com/Arekkazu/sgpmp-backend/commit/c28dc034139985a76220af979b5c360d71403496)), closes [#995](https://github.com/Arekkazu/sgpmp-backend/issues/995)
+* **rf83-mod6:** la medicion por evento excluye y registra los activos no elegibles (INC-M06-313-G14) ([0f5a03a](https://github.com/Arekkazu/sgpmp-backend/commit/0f5a03af8346e08f9583eda171ee54179e13b4bc)), closes [#1000](https://github.com/Arekkazu/sgpmp-backend/issues/1000)
+* **rf83-mod6:** MEDICION_CON_ESTIMACION deja el motivo y el precio usado (INC-M06-310-G12) ([75df914](https://github.com/Arekkazu/sgpmp-backend/commit/75df9147744298117774be7c240453c7a181ad83)), closes [#997](https://github.com/Arekkazu/sgpmp-backend/issues/997)
+* **rf83-rf86-mod6:** un solo aviso al Contador por evento suspendido ([a7453d4](https://github.com/Arekkazu/sgpmp-backend/commit/a7453d4b40b16b0e411d628f838a91c052f36046)), closes [#1029](https://github.com/Arekkazu/sgpmp-backend/issues/1029) [#1036](https://github.com/Arekkazu/sgpmp-backend/issues/1036) [#1032](https://github.com/Arekkazu/sgpmp-backend/issues/1032) [#1034](https://github.com/Arekkazu/sgpmp-backend/issues/1034) [#1060](https://github.com/Arekkazu/sgpmp-backend/issues/1060) [#1053](https://github.com/Arekkazu/sgpmp-backend/issues/1053) [#1054](https://github.com/Arekkazu/sgpmp-backend/issues/1054) [#1025](https://github.com/Arekkazu/sgpmp-backend/issues/1025) [#1068](https://github.com/Arekkazu/sgpmp-backend/issues/1068)
+* **rf83-rf94-mod6:** filtros de mediciones y auditoria, avisos de precio sin duplicados, reparto y cotizacion con 422 ([2951293](https://github.com/Arekkazu/sgpmp-backend/commit/29512934f10e83c6904fbd4aeddec24086640947)), closes [#1001](https://github.com/Arekkazu/sgpmp-backend/issues/1001) [#1017](https://github.com/Arekkazu/sgpmp-backend/issues/1017) [#985](https://github.com/Arekkazu/sgpmp-backend/issues/985) [#1016](https://github.com/Arekkazu/sgpmp-backend/issues/1016) [#1019](https://github.com/Arekkazu/sgpmp-backend/issues/1019)
+* **rf84-mod6:** el valor neto no positivo queda en revisión y el Contador puede validarlo (INC-M06-317-G17) ([9ed1add](https://github.com/Arekkazu/sgpmp-backend/commit/9ed1add7181782ad97a0749dc4a1c6963c3b677a)), closes [#1004](https://github.com/Arekkazu/sgpmp-backend/issues/1004)
+* **rf84-mod6:** la confirmación rechaza marcar otros costos como parametrizados (INC-M06-319-G20) ([a828356](https://github.com/Arekkazu/sgpmp-backend/commit/a828356ee6d95a9390b7c8559eda2b36c2f804e3)), closes [#1006](https://github.com/Arekkazu/sgpmp-backend/issues/1006)
+* **rf84-mod6:** la sobrescritura manual de costos deja su log de auditoría (INC-M06-318-G20) ([9956e61](https://github.com/Arekkazu/sgpmp-backend/commit/9956e61592dbbad845df35c507235f1fab8c0256)), closes [#1005](https://github.com/Arekkazu/sgpmp-backend/issues/1005)
+* **rf84-mod6:** los costos manuales exigen y guardan una referencia documental (INC-M06-316-G16) ([a539958](https://github.com/Arekkazu/sgpmp-backend/commit/a539958c68bec03dc818feeb70a1d1eee7630968)), closes [#1003](https://github.com/Arekkazu/sgpmp-backend/issues/1003)
+* **rf85-mod6:** historial de productos agrícolas con filtros, evento y usuario (INC-M06-325-G30) ([cb5230e](https://github.com/Arekkazu/sgpmp-backend/commit/cb5230e8275ccc5be2ec10e2546ab82523a44d63)), closes [#1012](https://github.com/Arekkazu/sgpmp-backend/issues/1012)
+* **rf85-mod6:** la cosecha del 100 % deja el activo en cero e inicia su baja (INC-M06-320-G24) ([0dfc5af](https://github.com/Arekkazu/sgpmp-backend/commit/0dfc5afce6ffca66eb52014849c52789bd3fbbb7)), closes [#1007](https://github.com/Arekkazu/sgpmp-backend/issues/1007)
+* **rf85-mod6:** la cosecha pendiente continúa con precio o costos manuales (INC-M06-323-G27) ([7acdd8a](https://github.com/Arekkazu/sgpmp-backend/commit/7acdd8a2757d0b3115a0edb5142ad8110d06a1b1)), closes [#1010](https://github.com/Arekkazu/sgpmp-backend/issues/1010)
+* **rf85-mod6:** la proporción cosechada se guarda a 6 decimales y nunca en 0 (INC-M06-322-G25) ([56f1423](https://github.com/Arekkazu/sgpmp-backend/commit/56f14237465988bf0e17efc08705c3ec662cec34)), closes [#1009](https://github.com/Arekkazu/sgpmp-backend/issues/1009)
+* **rf85-mod6:** la reducción del activo de consumo es acumulativa entre cosechas (INC-M06-326-G30) ([e0f474f](https://github.com/Arekkazu/sgpmp-backend/commit/e0f474f482e9ace326306dd0c7b6166fc1697df6)), closes [#1013](https://github.com/Arekkazu/sgpmp-backend/issues/1013)
+* **rf85-mod6:** no se reconoce una cosecha mayor que lo disponible del activo (INC-M06-321-G25) ([2651c85](https://github.com/Arekkazu/sgpmp-backend/commit/2651c8524d1d0414f19cdb93f9b2e1497f5eb354)), closes [#1008](https://github.com/Arekkazu/sgpmp-backend/issues/1008)
+* **rf86-mod6:** avisar al Contador cuando la medicion por evento queda suspendida ([#984](https://github.com/Arekkazu/sgpmp-backend/issues/984)) ([3871d46](https://github.com/Arekkazu/sgpmp-backend/commit/3871d46dfad8ec97df762517a09844f8b85dbe50))
+* **rf86-rf87-mod6:** cierre en espera de autorizacion, ajuste de periodo anterior, acumulado y avisos ([#1033](https://github.com/Arekkazu/sgpmp-backend/issues/1033) [#1049](https://github.com/Arekkazu/sgpmp-backend/issues/1049) [#1063](https://github.com/Arekkazu/sgpmp-backend/issues/1063) [#1065](https://github.com/Arekkazu/sgpmp-backend/issues/1065) [#1066](https://github.com/Arekkazu/sgpmp-backend/issues/1066)) ([0fcde3b](https://github.com/Arekkazu/sgpmp-backend/commit/0fcde3bbc73a619fdc8d178696b34e76e5a3eb7e))
+* **rf88-mod6:** alerta persistente cuando el valor en libros negativo se ajusta a cero ([#968](https://github.com/Arekkazu/sgpmp-backend/issues/968)) ([8829599](https://github.com/Arekkazu/sgpmp-backend/commit/8829599fdd8c111752c22d8ec0fea08f95ea1acf))
+* **rf88-rf89-mod6:** ajustes a RFC-024 en el aviso del cierre y en la justificacion de estimacion ([6680902](https://github.com/Arekkazu/sgpmp-backend/commit/66809025b54a1e954713aa35cc2dace0a2a9ac66))
+* **rf89-mod6:** el aviso de inmutabilidad de precios nombra id_precio_corregido ([c6257f8](https://github.com/Arekkazu/sgpmp-backend/commit/c6257f86d270ee1aebe395c077db81e35e55346a)), closes [#982](https://github.com/Arekkazu/sgpmp-backend/issues/982)
+* **rf91-rf86-mod6:** una cadena de periodo cerrado ya no aborta la verificacion de trazabilidad ([#975](https://github.com/Arekkazu/sgpmp-backend/issues/975)) ([15d6562](https://github.com/Arekkazu/sgpmp-backend/commit/15d6562578a8ba4bb2a23268ae648d7c19b7f03e))
+* **rf93-mod6:** el estado de resultados desglosa los costos de mantenimiento por tipo ([#1056](https://github.com/Arekkazu/sgpmp-backend/issues/1056)) ([616a35d](https://github.com/Arekkazu/sgpmp-backend/commit/616a35d896a2ab8629fb0315530af8f64af14a43))
+* **rnf05-mod5:** el permiso de costeo directo se ubica por nombre de recurso ([5d38688](https://github.com/Arekkazu/sgpmp-backend/commit/5d38688ed4522ea49ef1f20f470a58623a1e308f)), closes [#1048](https://github.com/Arekkazu/sgpmp-backend/issues/1048)
+
 ## [1.4.0-rc.51](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.50...v1.4.0-rc.51) (2026-11-07)
 
 ### Bug Fixes

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-92/RF-93: insumos y persistencia de revelaciones y estado de resultados |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
+# | 2026-11-10 | Arekkazu | TC-DIS-257 RF-92/93: nombre de quien aprobó el informe y el estado de resultados |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -9,12 +11,17 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
 
 ES_BASE_C = "COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false"
+CONSUMIDO_C = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")  # RF-85 FA-4: vale 0
 
 _FILTROS = (("id_especie", "l.id_especie = :id_especie"), ("id_activo_biologico", "l.id_activo_biologico = :id_activo_biologico"),
             ("id_infraestructura", "a.id_infraestructura = :id_infraestructura"), ("id_finca", "l.id_finca = :id_finca"))
+
+
+# Nombre de quien aprobó (RF-92 paso 6 / RF-93): nulo mientras no se apruebe.
+_NOMBRE_APROBADOR = "NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_aprobador"
 
 
 class SqlAlchemyReporteRepository(ReporteRepository):
@@ -50,7 +57,9 @@ class SqlAlchemyReporteRepository(ReporteRepository):
     def obtener_estado(self, id_estado: int) -> Optional[dict]:
         return fila(self.db, """SELECT id_estado, id_periodo_contable, total_ingresos, total_gastos, resultado_neto, estado,
                                        hash_consistencia, fecha_generacion, json_componentes AS componentes,
-                                       json_filtros AS filtros, version, id_usuario, id_usuario_aprobador, fecha_aprobacion
+                                       json_filtros AS filtros, version, id_usuario, id_usuario_aprobador, fecha_aprobacion,
+                                       (SELECT NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '')
+                                        FROM modulo1.usuarios u WHERE u.id_usuario = id_usuario_aprobador) AS nombre_aprobador
                                 FROM modulo6.estados_resultados_periodo WHERE id_estado = :id""", {"id": id_estado})
 
     def aprobar_estado(self, id_estado: int, id_usuario: int) -> None:
@@ -81,10 +90,10 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                    ri.clasificacion::text AS clasificacion, ri.indicador_valoracion::text AS indicador_valoracion,
                    ri.origen_financiero::text AS origen_financiero, ri.costo_adquisicion,
                    ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual,
-                   (SELECT c.valor_neto FROM modulo6.calculos_valor_razonable c
+                   (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date < :i
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_inicio,
-                   (SELECT c.valor_neto FROM modulo6.calculos_valor_razonable c
+                   (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date <= :f
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_cierre,
                    vc.valor_contable_por_costo, vc.razon_sin_mercado, vc.vida_util_meses, vc.depreciacion_acumulada,
@@ -159,10 +168,12 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                       "costo": a_json(datos["costo"]), "riesgos": a_json(datos["riesgos"])})
 
     def obtener_informe(self, id_informe: int) -> Optional[dict]:
-        return fila(self.db, """SELECT id_informe, id_periodo_contable, version_informe, estado::text AS estado,
-                                       contenido_jsonb AS contenido, hash_informe, id_contador_aprobador, fecha_aprobacion,
-                                       razon_rechazo, id_usuario_solicitante, fecha_generacion
-                                FROM modulo6.informes_revelacion_nic41 WHERE id_informe = :id""", {"id": id_informe})
+        return fila(self.db, f"""SELECT i.id_informe, i.id_periodo_contable, i.version_informe, i.estado::text AS estado,
+                                        i.contenido_jsonb AS contenido, i.hash_informe, i.id_contador_aprobador, i.fecha_aprobacion,
+                                        i.razon_rechazo, i.id_usuario_solicitante, i.fecha_generacion, {_NOMBRE_APROBADOR}
+                                 FROM modulo6.informes_revelacion_nic41 i
+                                 LEFT JOIN modulo1.usuarios u ON u.id_usuario = i.id_contador_aprobador
+                                 WHERE i.id_informe = :id""", {"id": id_informe})
 
     def aprobar_informe(self, id_informe: int, id_usuario: int) -> None:
         informe = self.obtener_informe(id_informe)
@@ -177,10 +188,11 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                              WHERE id_informe = :id AND estado = 'BORRADOR'""", {"id": id_informe, "r": razon})
 
     def listar_informes(self, id_periodo_contable: int) -> list[dict]:
-        return filas(self.db, """SELECT id_informe, version_informe, estado::text AS estado, fecha_generacion,
-                                        fecha_aprobacion, razon_rechazo, hash_informe
-                                 FROM modulo6.informes_revelacion_nic41 WHERE id_periodo_contable = :p
-                                 ORDER BY id_informe DESC""", {"p": id_periodo_contable})
+        return filas(self.db, f"""SELECT i.id_informe, i.version_informe, i.estado::text AS estado, i.fecha_generacion,
+                                         i.fecha_aprobacion, i.razon_rechazo, i.hash_informe, {_NOMBRE_APROBADOR}
+                                  FROM modulo6.informes_revelacion_nic41 i
+                                  LEFT JOIN modulo1.usuarios u ON u.id_usuario = i.id_contador_aprobador
+                                  WHERE i.id_periodo_contable = :p ORDER BY i.id_informe DESC""", {"p": id_periodo_contable})
 
     def siguiente_version_informe(self, id_periodo_contable: int) -> int:
         return fila(self.db, "SELECT count(*) + 1 AS v FROM modulo6.informes_revelacion_nic41 WHERE id_periodo_contable = :p",

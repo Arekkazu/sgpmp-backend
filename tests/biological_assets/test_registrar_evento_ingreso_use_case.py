@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima, ingreso de
 individuos"): no existía ningún mecanismo de alta de individuos a un lote --
 solo el flujo de BAJA. `RegistrarEventoIngresoUseCase` es la contraparte,
@@ -102,6 +103,9 @@ class InfraPortFake:
 
     def bloquear_capacidad(self, _id_infraestructura: int) -> None:
         pass
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
 
 def _activo_lote(id_estado: int = EstadoActivo.ACTIVO, cantidad_actual: int = 5, peso_promedio=None) -> ActivoBiologico:

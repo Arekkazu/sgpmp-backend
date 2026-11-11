@@ -1,0 +1,69 @@
+const {clasificarIntercepcion}=require('./lib/intercepcion.cjs');
+const env=k=>Cypress.env(k),API=String(env('API_BASE')||'').replace(/\/+$/,''),FRONT=String(env('FRONT_BASE')||'').replace(/\/+$/,'');
+const RUN=String(env('RUN_ID')||''),DIR=String(env('ARTIFACTS_DIR')||''),PANEL=String(env('PANEL')||''),EXPECTED=typeof env('EXPECTED')==='string'?JSON.parse(env('EXPECTED')):env('EXPECTED')||{};
+const trial=env('LOCAL_SMOKE')==='SI';
+const loopback=u=>{try{const x=new URL(u);return x.protocol==='http:'&&['127.0.0.1','localhost'].includes(x.hostname)&&Boolean(x.port)&&x.pathname==='/';}catch{return false;}};
+const valid=/^RUN-G\d+-V\d+-\d{8}-\d{6}$/.test(RUN)&&(trial?loopback(API)&&loopback(FRONT):/^https:\/\/(?:www\.)?api\.inmero\.co\/api-sgpmp-test$/.test(API)&&/^https:\/\/(?:www\.)?api\.inmero\.co\/sigab-test$/.test(FRONT))&&['025','026','027'].includes(PANEL)&&DIR&&env('PROD_LOGIN_TOKEN')&&env('SANDBOX_SECRET');
+const periodo={'025':219,'026':220,'027':8}[PANEL],acta={caso:`TC-M06-${PANEL}`,id:`G43-UI-${PANEL}-01`,estado:'NO_CONCLUYENTE',lista_completa:false,confirmacion_individual:false,total_prevalidacion:null,controles:[],captura:false,peticiones:[]};
+let cola=Promise.resolve();
+function interceptar(){cy.intercept({url:/^https?:\/\//,middleware:true},req=>{
+  const {destino,ruta}=clasificarIntercepcion(req.url,req.method,API,FRONT,trial);
+  if(destino==='FRONTAL'){req.continue();return;}
+  if(destino==='BLOQUEADO'){req.reply({forceNetworkError:true});return;}
+  const row={metodo:req.method,ruta,http:null,eco:false};
+  acta.peticiones.push(row);
+  if(acta.peticiones.length>40){req.reply({forceNetworkError:true});return;}
+  if(req.method==='GET'&&ruta==='/__sonda__'){
+    req.alias='sonda';row.http=200;row.eco=true;
+    req.reply({statusCode:200,headers:{'x-test-run-id':RUN},body:{interceptado:true}});return;
+  }
+  if(req.method==='POST'&&ruta==='/sesiones/'){
+    req.alias='login';row.http=200;row.eco=true;
+    req.reply({statusCode:200,headers:{'x-test-run-id':RUN},body:{token:env('PROD_LOGIN_TOKEN')}});return;
+  }
+  if(!['GET','OPTIONS'].includes(req.method)){req.reply({forceNetworkError:true});return;}
+  if(ruta===`/finanzas/periodos/${periodo}/prevalidacion`)req.alias='prevalidacion';
+  let release;const turn=cola;cola=new Promise(resolve=>release=resolve);
+  return turn.then(()=>{
+    req.headers['X-Test-Run-Id']=RUN;req.headers['X-Sandbox-Secret']=env('SANDBOX_SECRET');
+    req.continue(res=>{row.http=res.statusCode;row.eco=res.headers?.['x-test-run-id']===RUN;release();});
+  });
+});}
+describe('G43 panel del Contador',()=>{
+  beforeEach(interceptar);
+  afterEach(()=>{
+    cy.get('body').then($b=>{$b[0].querySelectorAll('input,header,nav,aside').forEach(x=>x.style.filter='blur(10px)');});
+    cy.writeFile(`${DIR}/G43-UI-${PANEL}.json`,acta);
+    cy.screenshot(`G43-UI-${PANEL}`,{capture:'fullPage',overwrite:true}).then(()=>{acta.captura=true;cy.writeFile(`${DIR}/G43-UI-${PANEL}.json`,acta);});
+  });
+  it(`G43-UI-${PANEL}-01`,()=>{
+    if(!valid)throw Error('BLOQUEO_ENTORNO_CYPRESS');
+    cy.visit(FRONT+'/login');
+    cy.window().then(win=>win.fetch(API+'/__sonda__')).then(x=>x.json()).then(x=>expect(x.interceptado).eq(true));
+    cy.wait('@sonda');
+    cy.get('input[type="email"]').type('g43-ui@local.invalid',{log:false});
+    cy.get('input[type="password"]').type('G43LocalDummy123!',{log:false});
+    cy.get('button[type="submit"]').click();
+    cy.wait('@login');
+    cy.window().then(w=>{const base=new URL(FRONT).pathname.replace(/\/+$/,'');w.history.pushState({},'',base+'/finanzas/cierre');w.dispatchEvent(new w.PopStateEvent('popstate'));});
+    cy.get(`#fin-periodo option[value="${periodo}"]`,{timeout:30000});
+    cy.get('#fin-periodo').select(String(periodo));
+    cy.wait('@prevalidacion',{requestTimeout:30000,responseTimeout:30000}).then(({response})=>{
+      expect(response.statusCode).eq(200);expect(response.headers['x-test-run-id']).eq(RUN);
+      acta.total_prevalidacion=response.body.activos_sin_precio?.length??null;
+      const body=response.body,ids=new Set((body.activos_sin_precio||[]).map(x=>Number(x.id_activo_biologico))),lineas=new Set((body.lineas_sin_trazabilidad||[]).map(x=>Number(x.id_linea)));
+      const visible=PANEL==="025"?EXPECTED.activos.every(x=>ids.has(Number(x.id))):PANEL==="026"?EXPECTED.sinPrecio.every(x=>ids.has(Number(x))):lineas.has(Number(EXPECTED.linea));
+      if(!visible){acta.bloqueo_entorno="DATOS_RUN_NO_VISIBLES_EN_CYPRESS";throw Error("BLOQUEO_ENTORNO_CYPRESS_DATOS_RUN_NO_VISIBLES");}
+    });
+    if(PANEL==='026')cy.get('input[name="sin-precio"]',{timeout:30000}).eq(1).check();
+    cy.get('section[aria-labelledby="cierre-pre"]',{timeout:30000}).should($s=>{expect($s[0].querySelectorAll('li.fin-check,label').length).to.be.greaterThan(0);});
+    cy.get('section[aria-labelledby="cierre-pre"]').then($s=>{
+      const root=$s[0],checks=[...root.querySelectorAll('li.fin-check')];
+      acta.controles=[...root.querySelectorAll('input')].map(x=>({tipo:x.type,nombre:x.name}));
+      if(PANEL==='025'){const row=checks.find(x=>{const t=x.innerText||'';return t.includes(String(EXPECTED.conteo))&&EXPECTED.activos.every(a=>t.includes(a.identificador)&&t.includes(a.especie));});acta.lista_completa=Boolean(row);const btn=[...root.querySelectorAll('button')].find(x=>/ejecutar/i.test(x.innerText));acta.boton_deshabilitado=Boolean(btn?.disabled);acta.radios=root.querySelectorAll('input[name="sin-precio"]').length;acta.estado=acta.lista_completa&&acta.boton_deshabilitado&&acta.radios===2?'APROBADO':'RECHAZADO';}
+      if(PANEL==='027'){const row=checks.find(x=>{const t=x.innerText||'';return t.includes(String(EXPECTED.linea))&&EXPECTED.activos.every(a=>t.includes(String(a)));});acta.lista_completa=Boolean(row);acta.casilla_autorizacion=Boolean(root.querySelector('input[type="checkbox"]'));acta.estado=acta.lista_completa&&acta.casilla_autorizacion?'APROBADO':'RECHAZADO';}
+      if(PANEL==='026'){acta.confirmacion_individual=EXPECTED.activos.every(a=>{const el=[...root.querySelectorAll('label')].find(x=>(x.innerText||'').includes(String(a))&&/p.rrafo\s*30/i.test(x.innerText||''));return Boolean(el?.querySelector('input[type="checkbox"],input[type="radio"]'));});acta.estado=acta.confirmacion_individual?'APROBADO':'RECHAZADO';}
+      if(acta.peticiones.some(x=>x.http!=null&&!x.eco))acta.estado='NO_CONCLUYENTE';
+    });
+  });
+});

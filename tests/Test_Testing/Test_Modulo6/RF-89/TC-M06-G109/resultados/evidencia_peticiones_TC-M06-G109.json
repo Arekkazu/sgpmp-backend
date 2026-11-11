@@ -1,0 +1,73 @@
+{
+  "caso": "TC-M06-G109",
+  "generado_en": "2026-11-08T09:01:36.801714+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 709,
+      "escritura": false,
+      "en": "2026-11-08T09:01:37.510629+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true,
+          "longitud": null
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/configuracion",
+      "codigo": 200,
+      "duracion_ms": 571,
+      "escritura": false,
+      "en": "2026-11-08T09:01:38.081723+00:00",
+      "respuesta": {
+        "dias_alerta_vencimiento_precio": 30
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 385,
+      "escritura": false,
+      "en": "2026-11-08T09:01:38.466806+00:00",
+      "respuesta": {
+        "total": 11,
+        "en_7": 0,
+        "en_15": 0,
+        "en_30": 0,
+        "en_marca": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/notificaciones?pagina=1&tamano=50",
+      "codigo": 200,
+      "duracion_ms": 359,
+      "escritura": false,
+      "en": "2026-11-08T09:01:38.825612+00:00",
+      "respuesta": {
+        "total": 40,
+        "coincidencias": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REFERENCIA_VENCIDO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 363,
+      "escritura": false,
+      "en": "2026-11-08T09:01:39.188852+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    }
+  ]
+}
