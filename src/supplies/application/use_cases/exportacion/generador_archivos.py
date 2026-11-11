@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: CSV, Excel y PDF             |
 # | 2026-11-10 | Arekkazu         | CP088/CP111/TC-DIS-204 RF-77/80/81: PDF sin recorte, celdas con salto de línea, idioma y título; moneda legible |
+# | 2026-11-11 | Arekkazu         | TC-DIS-204 RF-77: PDF etiquetado para lector de pantalla (encabezado, párrafos y tabla con TH/TD) |
 """Generación de archivos de exportación de M05 (RF-77 y RF-81).
 
 - CSV en bloques de 1.000 filas (RF-77 "chunking" para > 5.000 registros): el
@@ -12,6 +13,10 @@
   ninguna columna queda fuera de la página (CP088, CP111). Con más de 10 columnas
   la hoja pasa a A3 horizontal para que el texto siga legible. El archivo declara
   idioma (es-CO), título, autor y muestra el título en la ventana del lector.
+  Va etiquetado (TC-DIS-204): título como H1, líneas como P, logo como Figure con
+  texto alternativo y cada tabla con TR/TH/TD en orden de lectura; fondos y
+  líneas de la tabla y el encabezado repetido en otra hoja se marcan como
+  decoración (Artifact) para que el lector no los lea.
 - Excel con encabezado en negrita, ancho de columna según el contenido y la fila
   de encabezados fija al desplazarse.
 """
@@ -87,6 +92,8 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
     from reportlab.lib.units import mm
     from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+    _Parrafo, _Imagen = _etiquetado(Paragraph), _etiquetado(Image)
+
     salida = io.BytesIO()
     hoja = landscape(A4 if len(doc.columnas) <= _COLUMNAS_A4 else A3)
     margen = 12 * mm
@@ -113,37 +120,154 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
     pesos = _anchos(doc)
     anchos = [util * p / sum(pesos) for p in pesos] if pesos else None
 
-    def _p(texto: object, estilo) -> Paragraph:
-        return Paragraph(escape("" if texto is None else str(texto)).replace("\n", "<br/>"), estilo)
+    etiquetas = _Etiquetas()
+    raiz = etiquetas.documento
+
+    def _p(texto: object, estilo, rol: Optional[str] = None) -> Paragraph:
+        parrafo = _Parrafo(escape("" if texto is None else str(texto)).replace("\n", "<br/>"), estilo)
+        if rol:
+            parrafo._etiqueta = etiquetas.nuevo(rol, raiz)
+        return parrafo
 
     elementos = []
     if doc.ruta_logo:
-        elementos.append(Image(doc.ruta_logo, width=80, height=40, kind="proportional"))
-    elementos.append(Paragraph(escape(doc.titulo), estilos["Title"]))
-    elementos.append(_p(f"Fecha de generación: {fecha_hora(generado)}", estilos["Normal"]))
+        logo = _Imagen(doc.ruta_logo, width=80, height=40, kind="proportional")
+        logo._etiqueta = etiquetas.nuevo("Figure", raiz, alt="Logo de la finca")
+        elementos.append(logo)
+    elementos.append(_p(doc.titulo, estilos["Title"], "H1"))
+    elementos.append(_p(f"Fecha de generación: {fecha_hora(generado)}", estilos["Normal"], "P"))
     for linea in doc.encabezado:
-        elementos.append(_p(linea, estilos["Normal"]))
+        elementos.append(_p(linea, estilos["Normal"], "P"))
     elementos.append(Spacer(1, 10))
 
-    encabezados = [_p(c, cabecera) for c in doc.columnas]
     paginas = [doc.filas[i:i + FILAS_POR_PAGINA_PDF] for i in range(0, len(doc.filas), FILAS_POR_PAGINA_PDF)] or [[]]
     for numero, pagina in enumerate(paginas):
         if numero:
             elementos.append(PageBreak())
-        tabla = Table([encabezados, *([_p(v, celda) for v in _texto(f)] for f in pagina)], colWidths=anchos, repeatRows=1)
+        filas = [[_p(c, cabecera) for c in doc.columnas], *([_p(v, celda) for v in _texto(f)] for f in pagina)]
+        tabla = Table(filas, colWidths=anchos, repeatRows=1, renderCB=etiquetas.al_dibujar_tabla)
         tabla.setStyle(estilo_tabla)
+        etiquetas.tabla(filas)
         elementos.append(tabla)
 
     if doc.pie:
         elementos.append(Spacer(1, 10))
         for linea in doc.pie:
-            elementos.append(_p(linea, estilos["Normal"]))
+            elementos.append(_p(linea, estilos["Normal"], "P"))
 
     def _ver_titulo(lienzo, _plantilla) -> None:
         lienzo.setViewerPreference("DisplayDocTitle", "true")  # el lector muestra el título, no el nombre del archivo
 
+    plantilla._doSave = 0  # el árbol de etiquetas se escribe cuando ya existen todas las páginas
     plantilla.build(elementos, onFirstPage=_ver_titulo, onLaterPages=_ver_titulo)
+    etiquetas.escribir(plantilla.canv)
+    plantilla.canv.save()
     return salida.getvalue()
+
+
+class _Etiquetas:
+    """Árbol de etiquetas del PDF (estructura que lee un lector de pantalla); reportlab no lo escribe solo.
+
+    Cada flowable etiquetado abre una secuencia de contenido marcado (``BDC``) con su MCID al dibujarse;
+    al final ``escribir`` arma StructTreeRoot, ParentTree y MarkInfo con las páginas ya creadas.
+    """
+
+    def __init__(self) -> None:
+        self.documento = self.nuevo("Document", None)
+        self.por_pagina: dict[int, list[dict]] = {}
+        self.celdas: dict[int, dict] = {}  # id del Paragraph de la celda -> su TH/TD
+
+    def nuevo(self, rol: str, padre: Optional[dict], **extra) -> dict:
+        elemento = {"rol": rol, "padre": padre, "hijos": [], "marcas": [], "arbol": self, **extra}
+        if padre is not None:
+            padre["hijos"].append(elemento)
+        return elemento
+
+    def abrir(self, lienzo, elemento: dict) -> None:
+        pagina = lienzo.getPageNumber()
+        marcas = self.por_pagina.setdefault(pagina, [])
+        elemento["marcas"].append((pagina, len(marcas)))
+        lienzo._code.append(f"/{elemento['rol']} <</MCID {len(marcas)}>> BDC")
+        marcas.append(elemento)
+
+    def tabla(self, filas: list[list]) -> None:
+        tabla = self.nuevo("Table", self.documento)
+        for indice, fila in enumerate(filas):
+            tr = self.nuevo("TR", tabla)
+            for parrafo in fila:
+                self.celdas[id(parrafo)] = self.nuevo("TH", tr, alcance="Column") if indice == 0 else self.nuevo("TD", tr)
+
+    def al_dibujar_tabla(self, tabla, evento: str, *args) -> None:
+        codigo = tabla.canv._code
+        if evento in ("startBG", "startLines"):
+            codigo.append("/Artifact BMC")
+        elif evento in ("endBG", "endLines", "endCell"):
+            codigo.append("EMC")
+        elif evento == "startCell":
+            valor = args[2]  # reportlab entrega el Paragraph dentro de una tupla
+            elemento = self.celdas.get(id(valor[0] if isinstance(valor, (list, tuple)) and valor else valor))
+            if elemento is None or elemento["marcas"]:  # encabezado repetido en la hoja siguiente
+                codigo.append("/Artifact BMC")
+            else:
+                self.abrir(tabla.canv, elemento)
+
+    def escribir(self, lienzo) -> None:
+        from reportlab.pdfbase.pdfdoc import PDFArray, PDFDictionary, PDFName, PDFString
+
+        pdf = lienzo._doc
+        paginas = pdf.Pages.pages
+        todos, pendientes = [], [self.documento]
+        while pendientes:
+            elemento = pendientes.pop()
+            todos.append(elemento)
+            pendientes.extend(elemento["hijos"])
+        objetos = {id(e): PDFDictionary({}) for e in todos}
+        refs = {id(e): pdf.Reference(objetos[id(e)]) for e in todos}
+        raiz = PDFDictionary({"Type": PDFName("StructTreeRoot")})
+        ref_raiz = pdf.Reference(raiz)
+        for e in todos:
+            hijos = [refs[id(h)] for h in e["hijos"]] + [
+                PDFDictionary({"Type": PDFName("MCR"), "Pg": pdf.Reference(paginas[p - 1]), "MCID": m})
+                for p, m in e["marcas"]
+            ]
+            d = objetos[id(e)].dict
+            d.update(Type=PDFName("StructElem"), S=PDFName(e["rol"]), K=PDFArray(hijos),
+                     P=refs[id(e["padre"])] if e["padre"] else ref_raiz)
+            if "alcance" in e:
+                d["A"] = PDFDictionary({"O": PDFName("Table"), "Scope": PDFName(e["alcance"])})
+            if "alt" in e:
+                d["Alt"] = PDFString(e["alt"])
+        nums = []
+        for indice, pagina in enumerate(paginas):
+            pagina.__NoDefault__ = [*pagina.__NoDefault__, "StructParents", "Tabs"]
+            pagina.StructParents = indice
+            pagina.Tabs = PDFName("S")
+            nums += [indice, PDFArray([refs[id(e)] for e in self.por_pagina.get(indice + 1, [])])]
+        raiz.dict.update(K=PDFArray([refs[id(self.documento)]]), ParentTree=PDFDictionary({"Nums": PDFArray(nums)}))
+        pdf.Catalog.StructTreeRoot = raiz
+        pdf.Catalog.MarkInfo = PDFDictionary({"Marked": "true"})
+
+
+def _etiquetado(base):
+    """Flowable que, si tiene ``_etiqueta``, encierra su dibujo en contenido marcado; sus partes heredan la etiqueta."""
+
+    class Etiquetado(base):
+        _etiqueta: Optional[dict] = None
+
+        def drawOn(self, canvas, x, y, _sW=0):
+            if self._etiqueta is None:
+                return super().drawOn(canvas, x, y, _sW)
+            self._etiqueta["arbol"].abrir(canvas, self._etiqueta)
+            super().drawOn(canvas, x, y, _sW)
+            canvas._code.append("EMC")
+
+        def split(self, ancho, alto):
+            partes = super().split(ancho, alto)
+            for parte in partes:
+                parte._etiqueta = self._etiqueta
+            return partes
+
+    return Etiquetado
 
 
 def _anchos(doc: Documento) -> list[float]:

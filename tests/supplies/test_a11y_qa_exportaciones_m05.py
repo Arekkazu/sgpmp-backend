@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | CP088/CP111/H-M05-19 RF-77/80/81: PDF sin recorte y legible; el reporte reabierto conserva su desglose |
+# | 2026-11-11 | Arekkazu | TC-DIS-204 RF-77: el PDF va etiquetado para lector de pantalla |
 """Primera evaluación QA de M05: los PDF recortaban columnas y mostraban nombres internos, y un reporte de
 gastos reabierto perdía el desglose que se vio al generarlo."""
 from __future__ import annotations
@@ -61,6 +62,27 @@ def test_pdf_reparte_el_ancho_y_declara_idioma_titulo_y_autor():
     assert "/Lang (es-CO)" in pdf and "/DisplayDocTitle true" in pdf and "/Author (SIGAB)" in pdf
     assert re.search(r"/MediaBox \[ 0 0 1190", pdf), "con más de 10 columnas la hoja pasa a A3 horizontal"
     assert len(_anchos(doc)) == 22 and all(p >= 7 for p in _anchos(doc))
+
+
+def test_pdf_etiquetado_para_lector_de_pantalla(tmp_path):
+    """TC-DIS-204: árbol de etiquetas con H1, P, Figure con texto alternativo y tabla TR/TH/TD."""
+    from PIL import Image as Imagen
+
+    logo = tmp_path / "logo.png"
+    Imagen.new("RGB", (20, 10), "green").save(logo)
+    filas = [[f"Fila {i}", "Ana"] for i in range(30)]  # dos tablas: 25 + 5
+    pdf = generar_pdf(
+        Documento("Reporte de gastos", ["Concepto", "Usuario"], filas, pie=["Total: $ 10"], ruta_logo=str(logo)),
+        datetime(2026, 11, 11, tzinfo=timezone.utc),
+    ).decode("latin1")
+
+    assert "/StructTreeRoot" in pdf and re.search(r"/Marked\s+true", pdf)
+    for rol in ("Document", "H1", "P", "Figure", "Table", "TR", "TH", "TD"):
+        assert re.search(rf"/S\s*/{rol}\b", pdf), rol
+    assert "(Logo de la finca)" in pdf and "/Scope /Column" in pdf
+    assert len(re.findall(r"/S\s*/TD\b", pdf)) == 60
+    assert len(re.findall(r"/S\s*/TH\b", pdf)) == 4
+    assert "/StructParents 0" in pdf and "/Tabs /S" in pdf
 
 
 def test_auditoria_excel_y_pdf_legibles_y_csv_tecnico():
