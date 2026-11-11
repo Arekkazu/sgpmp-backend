@@ -1,8 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89 paso 2: historial de precios con su estado efectivo |
+# | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: estado corregido en el historial |
 """Caso de uso RF-89 paso 2: historial por especie y categoría, del más reciente al más antiguo,
-con su estado (vigente, programado, vencido, superado) calculado a la fecha de hoy."""
+con su estado (vigente, programado, vencido, superado, corregido) calculado a la fecha de hoy."""
 from __future__ import annotations
 
 from collections import defaultdict

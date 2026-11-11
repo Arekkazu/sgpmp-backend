@@ -10,6 +10,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: ajuste de un hecho de un período cerrado |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio en el cierre |
+# | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: fecha de vigencia opcional en la corrección de un precio |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -75,7 +76,8 @@ class PrecioDTO(BaseDTO):
     categoria: Categoria
     id_metrica_produccion: Optional[int] = Field(default=None, gt=0)
     precio_unitario: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
-    fecha_vigencia: date
+    fecha_vigencia: Optional[date] = Field(
+        default=None, description="Obligatoria salvo en una corrección, que hereda la del precio corregido.")
     fecha_vencimiento: Optional[date] = None
     fuente: Fuente
     evidencia_documental: str = Field(min_length=1, max_length=500)
