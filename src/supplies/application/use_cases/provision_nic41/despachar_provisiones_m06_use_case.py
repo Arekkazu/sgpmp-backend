@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: entrega del outbox a M06           |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: entregar a M06 los eventos del outbox de provisiones (RF-79).
 
 Corre en segundo plano cada pocos segundos (CA-1: ≤ 5 s desde la persistencia).
@@ -111,8 +112,8 @@ class DespacharProvisionesM06UseCase:
             self.notificador.a_permiso(
                 _RECURSO_PROVISION, _ACCION_EJECUTAR, "PROVISION_M06_PENDIENTE",
                 f"La provisión de costos {evento.id_evento_provision} (activo {evento.id_activo_biologico}) no se "
-                f"pudo entregar a M06 tras {evento.numero_intentos} intentos. Queda en estado PROVISION_PENDIENTE "
-                "y se seguirá reintentando.",
+                f"pudo entregar al módulo financiero tras {evento.numero_intentos} intentos. Queda pendiente de "
+                "entrega y se seguirá reintentando.",
                 {"id_evento_provision": str(evento.id_evento_provision), "numero_reintentos": evento.numero_intentos},
             )
 
@@ -146,7 +147,7 @@ class DespacharProvisionesM06UseCase:
         _ultima_alerta_critica = ahora
         self.notificador.a_permiso(
             _RECURSO_PROVISION, _ACCION_EJECUTAR, "PROVISION_M06_PENDIENTE",
-            f"CRÍTICO: la cola de provisión hacia M06 tiene {pendientes} eventos pendientes de entrega. "
+            f"CRÍTICO: la cola de provisión hacia el módulo financiero tiene {pendientes} eventos pendientes de entrega. "
             "Intervención manual puede ser necesaria.",
             {"pendientes": pendientes},
         )

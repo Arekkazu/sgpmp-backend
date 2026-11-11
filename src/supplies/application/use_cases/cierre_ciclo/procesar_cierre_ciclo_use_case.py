@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-38→RF-74/76/77/78/79: cierre de ciclo  |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Efectos en M05 del cierre del ciclo productivo (RF-38 en M02).
 
 Corre dentro de la transacción del cierre (no hace ``commit``), así el cierre y
@@ -62,7 +63,7 @@ class ProcesarCierreCicloSuministrosUseCase:
                 message=(
                     f"El activo biológico {id_activo} tiene tratamientos con período de retiro vigente hasta "
                     f"{vigente.isoformat()}. No es posible cerrar el ciclo productivo mientras el activo esté "
-                    "EN_TRATAMIENTO (RF-76)."
+                    "en tratamiento."
                 ),
             )
         activo = self.activo_port.obtener(id_activo)

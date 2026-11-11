@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77 E6c: error 413                      |
+# | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: es_fallo_tecnico para los reintentos |
 """Jerarquía de errores de dominio compartida.
 
 Todos los errores de negocio e infraestructura heredan de ``AppError``.
@@ -316,3 +317,10 @@ class ServiceUnavailableError(AppError):
         """
         super().__init__(code, message, field)
         self.original_error = original_error
+
+
+def es_fallo_tecnico(exc: BaseException) -> bool:
+    """``True`` si vale la pena reintentar: una excepción nativa o un ``AppError`` 5xx (el error de BD
+    que traduce ``raise_from_db_error`` llega como ``InfrastructureError`` 500). Un 4xx es regla de
+    negocio o dato inválido y repetirlo da el mismo resultado."""
+    return not isinstance(exc, AppError) or exc.status_code >= 500

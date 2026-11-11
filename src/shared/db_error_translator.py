@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: P0408 (fecha_entrenamiento futura) → 422        |
+# | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: traducir solo dosis/costo inválidos del trigger RF-76 a 400 seguro. |
 """Traductor de errores de base de datos a errores de dominio.
 
 Los repositorios SQLAlchemy capturan ``IntegrityError``, ``DataError`` y
@@ -88,6 +89,15 @@ def traducir_rechazo_trigger(exc: Exception) -> AppError | None:
                 message="La versión de modelo especificada no existe.",
                 field="id_version_modelo",
             )
+    if (sqlstate, funcion) == ("P0001", "modulo5.fn_trg_calcular_costo_total_medicamento"):
+        etiqueta = (getattr(diag, "message_primary", None) or "").partition(":")[0]
+        rechazos = {
+            "CANTIDAD_INVALIDA": ("dosis_aplicada", "La dosis aplicada debe ser mayor a cero."),
+            "COSTO_INVALIDO": ("costo_unitario", "El costo unitario del medicamento debe ser mayor a cero."),
+        }
+        if etiqueta in rechazos:
+            campo, mensaje = rechazos[etiqueta]
+            return ValidationError(code="VAL_ENTRADA", message=mensaje, field=campo)
     return None
 
 

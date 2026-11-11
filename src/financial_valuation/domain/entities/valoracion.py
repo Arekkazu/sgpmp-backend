@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculo de valor razonable, reconocimiento y valoración por costo |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Entidades de valoración NIC 41."""
 from __future__ import annotations
 
@@ -131,7 +132,49 @@ class VariacionRegistro:
     id_precio_mercado: Optional[int] = None
     id_cierre: Optional[int] = None
     id_variacion_valor_razonable: Optional[int] = None
+    id_variacion_corregida: Optional[int] = None  # RF-86 R5: el registro que este correctivo corrige
 
     @property
     def monto_variacion(self) -> Decimal:
         return self.variacion_transformacion + self.variacion_precio_mercado
+
+    @property
+    def es_correctivo(self) -> bool:
+        return self.id_variacion_corregida is not None
+
+    def correctivo(self, id_usuario: int) -> "VariacionRegistro":
+        """RF-86 R5 / CA-13: registro con monto opuesto que referencia a este. El original no cambia.
+
+        Ganancia ↔ pérdida del mismo componente; los valores de referencia se invierten (el correctivo
+        devuelve el activo del valor nuevo al anterior)."""
+        sentido, componente = self.tipo.split("_", 1)
+        return VariacionRegistro(
+            id_activo_biologico=self.id_activo_biologico,
+            tipo=f"{'PERDIDA' if sentido == 'GANANCIA' else 'GANANCIA'}_{componente}",
+            variacion_transformacion=-self.variacion_transformacion, variacion_precio_mercado=-self.variacion_precio_mercado,
+            valor_razonable_anterior=self.valor_razonable_nuevo, valor_razonable_nuevo=self.valor_razonable_anterior,
+            id_periodo_contable=self.id_periodo_contable, id_usuario=id_usuario, tiene_estimacion=self.tiene_estimacion,
+            id_medicion_posterior=self.id_medicion_posterior, id_evento=self.id_evento,
+            id_precio_mercado=self.id_precio_mercado, id_cierre=self.id_cierre,
+            id_variacion_corregida=self.id_variacion_valor_razonable,
+        )
+
+
+@dataclass
+class SolicitudCorrectivo:
+    """Solicitud de correctivo de una variación (RF-86 CA-13): PENDIENTE hasta que otro Contador la resuelve."""
+
+    id_solicitud_correctivo_variacion: int
+    id_variacion_valor_razonable: int
+    motivo: str
+    estado: str  # PENDIENTE | APROBADA | RECHAZADA
+    id_usuario_solicitante: int
+    fecha_solicitud: datetime
+    id_usuario_resolutor: Optional[int] = None
+    fecha_resolucion: Optional[datetime] = None
+    motivo_rechazo: Optional[str] = None
+    id_variacion_correctiva: Optional[int] = None
+
+    @property
+    def esta_pendiente(self) -> bool:
+        return self.estado == "PENDIENTE"

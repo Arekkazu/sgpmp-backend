@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
+# | 2026-11-10 | Arekkazu | INC-M06-345-G43 RF-87: cierre en espera de autorización |
 """Puerto de los períodos contables, sus cierres y comprobantes (RF-87)."""
 from __future__ import annotations
 
@@ -42,7 +43,15 @@ class PeriodoRepository(ABC):
     def iniciar_cierre(self, id_periodo_contable: int, id_usuario: int, incluir_sin_precio: bool) -> int: ...
 
     @abstractmethod
-    def ejecucion_en_proceso(self, id_periodo_contable: int) -> Optional[dict]: ...
+    def ejecucion_en_proceso(self, id_periodo_contable: int) -> Optional[dict]:
+        """Incluye ``esperando_autorizacion`` y ``nombre_usuario_ejecutor``."""
+
+    @abstractmethod
+    def esperar_autorizacion(self, id_cierre: int) -> None:
+        """El cierre queda EN_PROCESO esperando la decisión del Contador sobre las exclusiones."""
+
+    @abstractmethod
+    def reanudar_cierre(self, id_cierre: int, incluir_sin_precio: bool) -> None: ...
 
     @abstractmethod
     def finalizar_cierre(self, id_cierre: int, estado: str, datos: dict) -> None: ...

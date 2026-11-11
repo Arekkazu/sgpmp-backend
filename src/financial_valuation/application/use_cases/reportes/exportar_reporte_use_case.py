@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87/92/93: descarga del comprobante, del estado de resultados y del informe |
 # | 2026-11-05 | Arekkazu | M06 RF-87: el comprobante descargado nombra el hecho contable, no su código |
+# | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: el estado descargado desglosa el mantenimiento por tipo |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -14,7 +15,7 @@ from datetime import datetime, timezone
 
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
-from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO
+from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO, ETIQUETA_SUBTIPO
 from src.shared.errors import BusinessRuleError, NotFoundError
 from src.supplies.application.use_cases.exportacion.generador_archivos import (
     Documento,
@@ -78,7 +79,12 @@ class ExportarReporteUseCase:
         if estado["estado"] != "APROBADO":
             raise BusinessRuleError(code="ESTADO_RESULTADOS_NO_APROBADO", message="Solo se descarga el estado aprobado.")
         componentes = estado["componentes"] or {}
-        filas = [[etiqueta, componentes.get(clave, "0")] for clave, etiqueta in ETIQUETAS_COMPONENTES.items()]
+        filas = []
+        for clave, etiqueta in ETIQUETAS_COMPONENTES.items():
+            filas.append([etiqueta, componentes.get(clave, "0")])
+            if clave == "costos_mantenimiento":  # RF-87 paso 7: por tipo
+                filas += [[f"   {ETIQUETA_SUBTIPO.get(t, t).capitalize()}", v]
+                          for t, v in (componentes.get("desglose_costos_mantenimiento") or {}).items()]
         doc = Documento(titulo="Estado de resultados del período agropecuario", columnas=["Componente", "Valor (COP)"],
                         filas=filas, encabezado=[f"Versión {estado['version']}", f"Filtros: {estado['filtros'] or 'consolidado'}"],
                         pie=[f"Total ingresos: {estado['total_ingresos']}", f"Total gastos: {estado['total_gastos']}",

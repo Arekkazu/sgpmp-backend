@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: mensajes del RF, CA-10 y ledger    |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -137,8 +138,8 @@ class RegistrarConsumoAlimentoUseCase:
                     code="POBLACIONAL_SIN_CANTIDAD",
                     message=(
                         f"No es posible registrar el consumo para el activo {activo.id_activo_biologico} porque "
-                        "su cantidad actual de individuos es cero o no está definida. Verifique el estado del "
-                        "POBLACIONAL en RF-36 antes de registrar el consumo."
+                        "su cantidad actual de individuos es cero o no está definida. Verifique la población del "
+                        "activo en Activos biológicos antes de registrar el consumo."
                     ),
                     field="id_activo_biologico",
                 )

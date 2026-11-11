@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: E4/E6, observaciones y longitudes  |
+# | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: validar dosis decimal(10,4) y rechazar precisión excesiva sin redondear. |
 """DTO de entrada para registrar una aplicación de medicamento (RF-76).
 
 ``descripcion_clinica`` (NOT NULL en BD, ausente en el RF) se puebla en el caso
@@ -31,7 +32,8 @@ class RegistrarMedicamentoDTO(BaseDTO):
     fecha_aplicacion: date
     hora_aplicacion: time
     via_administracion: str = Field(min_length=1, max_length=20)
-    dosis_aplicada: Decimal = Field(description="Dosis total administrada (> 0).")
+    dosis_aplicada: Decimal = Field(max_digits=10, decimal_places=4,
+        description="Dosis total administrada (> 0), decimal(10,4): hasta seis enteros y cuatro decimales; no se redondea la entrada.")
     unidad_dosis: str = Field(min_length=1, max_length=20)
     periodo_retiro_dias: int = Field(default=0, ge=0)
     motivo_aplicacion: str = Field(max_length=500)

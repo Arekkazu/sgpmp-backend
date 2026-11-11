@@ -1,6 +1,10 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-80: retención por tipo e intentos      |
+# | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: persistir el contexto del evento mediante la columna JSON existente. |
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: deduplicar por UUID sin revertir la transacción del emisor. |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-80: un solo datos_nuevos al registrar el evento (#988 + #1036) |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroPort` (RF-78/79, CU-05).
 
 Usa ``flush()`` (nunca ``commit()``) y traduce errores de BD con
@@ -14,6 +18,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert
 
 from src.shared.db_error_translator import raise_from_db_error
 from src.supplies.domain.repositories.auditoria_suministro_port import (
@@ -32,11 +37,13 @@ class SqlAlchemyAuditoriaSuministroRepository(AuditoriaSuministroPort):
 
     def registrar(self, evento: EventoAuditoriaSuministro) -> None:
         clasificacion, retencion = clasificar_retencion(evento.tipo_operacion)
-        orm = AuditoriaSuministroModel(
+        sentencia = insert(AuditoriaSuministroModel).values(
+            id_evento_m05=evento.id_evento_m05,
             entidad_afectada=evento.entidad_afectada,
             tipo_operacion=evento.tipo_operacion,
             id_usuario=evento.id_usuario,
             resultado=evento.resultado,
+            datos_nuevos=evento.datos_nuevos,
             id_activo_biologico=evento.id_activo_biologico,
             id_ciclo_productivo=evento.id_ciclo_productivo,
             id_gestion_fases=evento.id_gestion_fases,
@@ -49,9 +56,9 @@ class SqlAlchemyAuditoriaSuministroRepository(AuditoriaSuministroPort):
             fecha_emision=evento.fecha_emision or datetime.now(timezone.utc),
             clasificacion_registro=clasificacion,
             retencion_aplicable=retencion,
-        )
+        ).on_conflict_do_nothing(index_elements=["id_evento_m05"])
         try:
-            self.db.add(orm)
+            self.db.execute(sentencia)
             self.db.flush()
         except Exception as exc:
             raise_from_db_error(exc)

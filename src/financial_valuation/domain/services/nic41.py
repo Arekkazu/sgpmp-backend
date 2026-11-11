@@ -1,6 +1,10 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-83/84/86/88/90: núcleo de cálculo NIC 41 (Python puro) |
+# | 2026-11-08 | Arekkazu | INC-M06-324-G27 RF-85: reglas de conversión de masa a kg para la cosecha de un activo de consumo |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
+# | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 """Núcleo de cálculo NIC 41 de M06. Python puro: lo usan todos los casos de uso.
 
 - RF-84 (¶12, ¶5): ``valor_neto = magnitud × precio − costos de venta``. Los costos de M05 son
@@ -28,11 +32,24 @@ from src.financial_valuation.domain.value_objects.nic41 import Sentido, TipoCier
 
 Q4 = Decimal("0.0001")
 Q2 = Decimal("0.01")
+Q6 = Decimal("0.000001")  # proporcion_cosechada NUMERIC(8,6)
 CERO = Decimal("0")
 
 
 def q4(valor: Decimal) -> Decimal:
     return Decimal(valor).quantize(Q4, rounding=ROUND_HALF_UP)
+
+
+def proporcion_registrada(proporcion: Decimal) -> Decimal:
+    """RF-85: proporción cosechada a la precisión de su columna (6 decimales).
+
+    Una cosecha positiva nunca se guarda en 0 (``chk_prod_agricola_proporcion_rango`` exige > 0): por debajo de
+    0,0000005 se registra el mínimo representable. Una parcial tampoco se redondea a 1, que marca la cosecha
+    total (FA-4). El valor de la reducción se calcula con la proporción exacta."""
+    if proporcion <= 0:
+        return CERO
+    registrada = max(Decimal(proporcion).quantize(Q6, rounding=ROUND_HALF_UP), Q6)
+    return min(registrada, 1 - Q6) if proporcion < 1 else registrada
 
 
 def truncar2(valor: Decimal) -> Decimal:
@@ -53,6 +70,8 @@ class CostosVenta:
     otros: Decimal = CERO
     # Método por componente: PARAMETRIZADO o MANUAL (RF-84 entradas metodo_costo_*).
     metodos: dict = field(default_factory=dict)
+    # Valor parametrizado que reemplazó cada componente MANUAL (None si M09 no lo parametriza): RF-84 salida 3.
+    originales: dict = field(default_factory=dict)
 
     @property
     def total(self) -> Decimal:
@@ -85,17 +104,21 @@ def costos_venta(
     pcts = {"transporte": pct_transporte, "comisiones": pct_comisiones, "impuestos": pct_impuestos}
     valores: dict[str, Decimal] = {}
     metodos: dict[str, str] = {}
+    originales: dict[str, Optional[Decimal]] = {}
     for componente in COMPONENTES_COSTO:
+        parametrizado = (q4(bruto * Decimal(pcts[componente]))
+                         if componente != "otros" and pcts[componente] is not None else None)
         if componente in manuales and manuales[componente] is not None:
             valor = Decimal(manuales[componente])
             if valor < 0:
                 raise ValueError(f"El costo de {componente} no puede ser negativo.")
             valores[componente], metodos[componente] = q4(valor), "MANUAL"
-        elif componente != "otros" and pcts[componente] is not None:
-            valores[componente], metodos[componente] = q4(bruto * Decimal(pcts[componente])), "PARAMETRIZADO"
+            originales[componente] = parametrizado
+        elif parametrizado is not None:
+            valores[componente], metodos[componente] = parametrizado, "PARAMETRIZADO"
         else:
             valores[componente] = CERO
-    return CostosVenta(**valores, metodos=metodos)
+    return CostosVenta(**valores, metodos=metodos, originales=originales)
 
 
 @dataclass(frozen=True)
@@ -180,6 +203,11 @@ class ValorPorCosto:
         return self.valor_contable <= 0
 
 
+def valor_libros_calculado(costo_adquisicion: Decimal, depreciacion: Decimal, deterioro: Decimal) -> Decimal:
+    """RF-88: resultado matemático costo − depreciación − deterioro, antes del piso en cero (puede ser negativo)."""
+    return q4(Decimal(costo_adquisicion) - Decimal(depreciacion) - Decimal(deterioro))
+
+
 def valor_por_costo(
     costo_adquisicion: Decimal, vida_util_meses: int, meses: int, deterioro_acumulado: Decimal = CERO
 ) -> ValorPorCosto:
@@ -187,6 +215,26 @@ def valor_por_costo(
     depreciacion = q4(min(Decimal(costo_adquisicion), Decimal(costo_adquisicion) * meses / vida_util_meses))
     contable = max(CERO, q4(Decimal(costo_adquisicion) - depreciacion - Decimal(deterioro_acumulado)))
     return ValorPorCosto(Decimal(costo_adquisicion), depreciacion, Decimal(deterioro_acumulado), contable)
+
+
+# --- RF-85 precondición 7: conversión de unidades del sistema ---------------------------------
+
+# El activo de consumo se mide en kg (categoría de precio por peso): una cosecha en otra unidad de
+# masa se convierte con estas reglas fijas. Volumen o unidades no tienen regla hacia kg (sin densidad
+# ni peso unitario) y el reconocimiento queda bloqueado, como pide RF-85 restricción 6.
+_KG_POR_UNIDAD = {
+    **dict.fromkeys(("kg", "kgs", "kilo", "kilos", "kilogramo", "kilogramos"), Decimal(1)),
+    **dict.fromkeys(("g", "gr", "grs", "gramo", "gramos"), Decimal("0.001")),
+    **dict.fromkeys(("t", "ton", "tonelada", "toneladas"), Decimal(1000)),
+    **dict.fromkeys(("lb", "lbs", "libra", "libras"), Decimal("0.45359237")),
+    **dict.fromkeys(("@", "arroba", "arrobas"), Decimal("12.5")),  # arroba colombiana: 25 libras
+}
+
+
+def a_kg(cantidad: Decimal, unidad: Optional[str]) -> Optional[Decimal]:
+    """``cantidad`` en kg, o ``None`` si la unidad no tiene regla de conversión."""
+    factor = _KG_POR_UNIDAD.get((unidad or "").strip().lower())
+    return None if factor is None else q4(Decimal(cantidad) * factor)
 
 
 # --- RF-90 5.8: reparto -----------------------------------------------------------------------

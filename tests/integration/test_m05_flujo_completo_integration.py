@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-74..81: flujo completo contra Postgres |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: la bitácora se ordena por fecha del evento o de emisión |
 """M05 de punta a punta contra Postgres real (TestClient + triggers + migración bf404c6f1018).
 
 Cubre lo que los fakes no pueden: el ledger y el acumulado que llevan los
@@ -102,6 +103,7 @@ def cliente(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Generator[T
     from src.shared import jwt as jwt_module
     from src.shared.database import get_db
     from src.shared.error_handlers import register_error_handlers
+    from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria
     from src.supplies.infrastructure.routers.consumo_alimento_router import router as consumos
     from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo
     from src.supplies.infrastructure.routers.historial_suministros_router import router as historial
@@ -116,7 +118,7 @@ def cliente(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Generator[T
 
     app = FastAPI()
     register_error_handlers(app)
-    for r in (activos, consumos, costeo, historial, medicamentos, reportes):
+    for r in (activos, auditoria, consumos, costeo, historial, medicamentos, reportes):
         app.include_router(r)
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app, client=("m05-integracion", 50000), raise_server_exceptions=False) as c:
@@ -375,3 +377,32 @@ def test_catalogo_tipos_alimento_ordenado_y_solo_activos(cliente, db_session, ad
 
     todos = cliente.get("/suministros/consumo-alimentos/tipos-alimento", headers=headers, params={"solo_activos": False})
     assert {activo, cesado} <= {x["nombre"] for x in todos.json()["items"]}
+
+
+def test_bitacora_ordena_por_fecha_de_emision(cliente, db_session, admin):
+    """RF-80 v2.0 (RNF-08): la consulta ordena por cualquiera de los dos timestamps; un valor fuera de ellos es 400."""
+    from datetime import datetime, timezone
+
+    from src.supplies.domain.repositories.auditoria_suministro_port import EventoAuditoriaSuministro
+    from src.supplies.infrastructure.repositories.auditoria_suministro_repository import (
+        SqlAlchemyAuditoriaSuministroRepository,
+    )
+
+    usuario, headers = admin
+    repo = SqlAlchemyAuditoriaSuministroRepository(db_session)
+    ahora = datetime.now(timezone.utc)
+    for horas in (1, 2):  # el segundo se registra después pero se emitió antes
+        repo.registrar(EventoAuditoriaSuministro(
+            entidad_afectada="registro_suministro", tipo_operacion="SUMINISTRO_REGISTRADO",
+            id_usuario=usuario["id_usuario"], resultado="EXITOSO", fecha_emision=ahora - timedelta(hours=horas)))
+    db_session.flush()
+
+    def emisiones(orden: str) -> list[str]:
+        r = cliente.get(f"/suministros/auditoria?id_usuario={usuario['id_usuario']}&ordenar_por={orden}", headers=headers)
+        assert r.status_code == 200, r.text
+        return [e["fecha_emision"] for e in r.json()["items"]]
+
+    por_emision = emisiones("fecha_emision")
+    assert por_emision == sorted(por_emision, reverse=True) and len(por_emision) == 2
+    assert emisiones("fecha_evento") == list(reversed(por_emision))  # mismo instante de registro: desempata el más nuevo
+    assert cliente.get("/suministros/auditoria?ordenar_por=hash", headers=headers).status_code == 400

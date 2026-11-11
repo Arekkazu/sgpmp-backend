@@ -1,11 +1,17 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/89: valor razonable menos costos de venta de un activo |
+# | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: el precio congelado vencido también es estimación |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-84: el cálculo en revisión también lleva los ajustes manuales (#1053 + #1054) |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
 de venta de M09. No persiste nada: devuelve el cálculo listo para guardar o el motivo por el que
-no se puede valorar."""
+no se puede valorar. Con un valor neto ≤ 0 devuelve el motivo y, además, el cálculo en
+REVISION_REQUERIDA para que quien llama pueda dejarlo registrado (RF-84 FA-2)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,7 +25,7 @@ from src.financial_valuation.domain.repositories.configuracion_contable_reposito
 )
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.services.nic41 import costos_venta, valor_neto
-from src.financial_valuation.domain.services.precios import Precio, precio_vigente, ultimo_precio_conocido
+from src.financial_valuation.domain.services.precios import Precio, motivo_estimacion, precio_vigente, ultimo_precio_conocido
 from src.financial_valuation.domain.value_objects.nic41 import CategoriaPrecio, FuentePrecio
 
 MOTIVOS = {
@@ -38,6 +44,8 @@ class ResultadoValoracion:
     precio: Optional[Precio]
     motivo: Optional[str] = None
     mensaje: Optional[str] = None
+    # Componentes sobrescritos a mano: {item, valor_original, valor_manual} (RF-84 salida 3).
+    ajustes_manuales: tuple = ()
 
     @property
     def es_valido(self) -> bool:
@@ -77,10 +85,12 @@ class Valorador:
         costos_manuales: Optional[dict] = None,
         justificacion: Optional[str] = None,
         aceptar_no_positivo: bool = False,
+        referencia_documental: Optional[str] = None,
     ) -> ResultadoValoracion:
         textos = {"especie": activo.especie, "activo": activo.identificador}
         if precio_congelado is not None:
-            precio, estimado = precio_congelado, precio_congelado.fuente == FuentePrecio.ESTIMADA.value
+            # El cierre congela el último precio conocido si se incluyen activos sin precio vigente (RF-87 FA-2).
+            precio, estimado = precio_congelado, motivo_estimacion(precio_congelado, dia) is not None
         else:
             precio, estimado = self.precio_para(activo, dia, permitir_estimado)
         if precio is None:
@@ -100,9 +110,6 @@ class Valorador:
             costos_manuales,
         )
         vn = valor_neto(magnitud, precio.precio_unitario, costos)
-        if vn.requiere_revision and not aceptar_no_positivo:
-            return ResultadoValoracion(None, precio, "VALOR_NETO_NO_POSITIVO",
-                                       MOTIVOS["VALOR_NETO_NO_POSITIVO"].format(**textos))
         calculo = CalculoValor(
             id_activo_biologico=activo.id_activo_biologico, id_precio_mercado=precio.id_precio_mercado,
             id_periodo_contable=id_periodo_contable, magnitud=magnitud, unidad_magnitud=unidad,
@@ -111,11 +118,17 @@ class Valorador:
             costo_impuestos_transaccion=costos.impuestos, otros_costos_disposicion=costos.otros,
             valor_neto=vn.neto, metodo_costo=costos.metodo_global,
             json_metodo_costo={**costos.metodos, "categoria": precio.categoria, "fuente_precio": precio.fuente,
-                               "cabezas": activo.cabezas},
+                               "cabezas": activo.cabezas,
+                               **({"referencia_documental": referencia_documental} if costos.tiene_manuales else {})},
             id_usuario=id_usuario, estado="REVISION_REQUERIDA" if vn.requiere_revision else "CALCULADO",
             justificacion=justificacion if costos.tiene_manuales or vn.requiere_revision else None,
             id_parametro_costo_venta=parametro.id_parametro_costo_venta if parametro else None,
             id_evento_magnitud=activo.id_evento_peso if precio.categoria == CategoriaPrecio.PESO_KG.value else None,
             tiene_valor_estimado=estimado,
         )
-        return ResultadoValoracion(calculo, precio)
+        ajustes = tuple({"item": c, "valor_original": costos.originales[c], "valor_manual": getattr(costos, c)}
+                        for c in costos.originales)
+        if vn.requiere_revision and not aceptar_no_positivo:
+            return ResultadoValoracion(calculo, precio, "VALOR_NETO_NO_POSITIVO",
+                                       MOTIVOS["VALOR_NETO_NO_POSITIVO"].format(**textos), ajustes_manuales=ajustes)
+        return ResultadoValoracion(calculo, precio, ajustes_manuales=ajustes)

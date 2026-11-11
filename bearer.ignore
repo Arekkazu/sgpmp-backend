@@ -23,11 +23,23 @@
     "false_positive": true,
     "ignored_at": "2026-10-23T20:16:06Z"
   },
+  "4338d6c8293c4a947b20f6b05c5b95fd_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo (CWE-328): id_evento_alerta usa md5(usedforsecurity=False) solo para derivar un UUID determinista de la alerta, que debe coincidir con el md5(...)::uuid que calcula el SQL del historial; no protege ni firma nada. Cambiar de algoritmo rompe la correspondencia con los ids ya emitidos.",
+    "false_positive": true,
+    "ignored_at": "2026-11-10T18:00:00Z"
+  },
   "52c242b28ae20fdce1bf1628c385d5ec_0": {
     "author": "mortiz-indigo",
     "comment": "Falso positivo: tabla y condicion provienen del diccionario cerrado _FUENTES_RF46; el id es parametrizado (:id).",
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "5599c93da0a5fdc642ac050acbd0e3f1_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo (CWE-1287): gateway_aaef.atender no construye ninguna expresion regular con datos del cliente; _NIT es un patron compilado fijo (re.compile) que solo se usa con .match(nit). La linea marcada (evento.update con el cliente y el usuario del token) no usa regex.",
+    "false_positive": true,
+    "ignored_at": "2026-11-10T18:00:00Z"
   },
   "5fb4150b27b647fd67ce86bae4704cf6_0": {
     "author": "Arekkazu",
@@ -82,5 +94,11 @@
     "comment": "Borrado del artefacto recien escrito si falla la persistencia (INC-M04-214): misma ruta interna de _guardar_artefacto (UUID + tipo_modelo y componente validados contra catalogo, extension fija onnx/pb).",
     "false_positive": true,
     "ignored_at": "2026-10-29T15:00:00Z"
+  },
+  "f9d5111950ba46355d218a1a1adf6e8a_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo (CWE-210): agrofusion_dto.validar_identificacion levanta ValueError con mensaje_identificacion_invalida(tipo), que devuelve uno de dos textos constantes (pasaporte o numerico) segun el tipo de documento; el numero de identificacion no entra en el mensaje.",
+    "false_positive": true,
+    "ignored_at": "2026-11-10T18:00:00Z"
   }
 }

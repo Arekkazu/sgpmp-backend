@@ -1,6 +1,14 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: DTO de entrada del módulo financiero |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82/RF-84: costos manuales con máximo 4 decimales |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-319-G20 RF-84: la confirmación rechaza campos desconocidos (método por componente) |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: ajuste de un hecho de un período cerrado |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -17,7 +25,7 @@ Clasificacion = Literal["PRODUCCION", "CONSUMO"]
 CategoriaActivo = Literal["PESO_KG", "POR_CABEZA"]
 Categoria = Literal["PESO_KG", "POR_CABEZA", "PRODUCTO"]
 Fuente = Literal["MERCADO_ACTIVO", "UPRA", "ESTIMADA"]
-TipoHecho = Literal["RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_TB", "VARIACION_VR_PM",
+TipoHecho = Literal["RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_TB", "VARIACION_VR_PM",
                     "PRODUCTO_AGRICOLA", "CONSUMO_INSUMO", "MANO_OBRA_PROPIA", "BAJA_ACTIVO", "AJUSTE_PERIODO_ANTERIOR",
                     "DEPRECIACION_ACTIVO_COSTO", "DETERIORO_ACTIVO_COSTO"]
 Sentido = Literal["GANANCIA", "PERDIDA", "UNICO", "TRASLADO", "CAPITALIZACION"]
@@ -76,24 +84,58 @@ class PrecioDTO(BaseDTO):
 
 
 class CostosManualesDTO(BaseDTO):
-    transporte: Optional[Decimal] = Field(default=None, ge=0)
-    comisiones: Optional[Decimal] = Field(default=None, ge=0)
-    impuestos: Optional[Decimal] = Field(default=None, ge=0)
-    otros: Optional[Decimal] = Field(default=None, ge=0)
+    # numeric(18,4): un 5.º decimal se rechaza (400) en vez de redondearse al guardar (INC-M06-303-G04).
+    transporte: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+    comisiones: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+    impuestos: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+    otros: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
+
+    # INC-M06-319-G20 / RF-84: el método de cada componente se deriva (MANUAL si viene aquí; «otros» siempre es
+    # MANUAL). Un campo de método u otro desconocido (metodo_otros: PARAMETRIZADO) se rechaza en vez de ignorarse.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
 
 class ConfirmarReconocimientoDTO(BaseDTO):
     clasificacion: Optional[Clasificacion] = None
     costos_manuales: Optional[CostosManualesDTO] = None
     justificacion: Optional[str] = Field(default=None, max_length=1000,
-                                         description="Obligatoria si se ingresan costos de venta manuales (RF-84 R2/R4).")
+                                         description="Obligatoria si se ingresan costos de venta manuales (RF-84 R2).")
+    referencia_documental: Optional[str] = Field(
+        default=None, min_length=3, max_length=200,
+        description="Documento que respalda los costos de venta manuales: factura, cotización o contrato con su "
+                    "número (RF-84 R4). Obligatoria si se ingresan costos manuales.")
+
+    # INC-M06-319-G20: metodo_costo_otros (u otro campo desconocido) responde 400 en vez de confirmarse con 201.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     @model_validator(mode="after")
     def _justificar_manuales(self):
         if self.costos_manuales and any(v is not None for v in self.costos_manuales.model_dump().values()) \
                 and len((self.justificacion or "").strip()) < 20:
-            raise ValueError("Los costos de venta manuales requieren una justificación con su soporte documental (mín. 20).")
+            raise ValueError("Los costos de venta manuales requieren una justificación (mín. 20 caracteres).")
         return self
+
+
+class ValidarCalculoDTO(BaseDTO):
+    # Opcional en el formato: ausente, vacía o en blanco responde el mismo 400 desde el caso de uso.
+    justificacion: Optional[str] = Field(default=None, max_length=2000,
+                                         description="Por qué se acepta un valor neto menor o igual a cero (mín. 20).")
+
+
+class ReconocerCosechaDTO(BaseDTO):
+    # RF-85 FA-2: costos de venta del producto ingresados por el Contador. Las reglas (al menos un costo,
+    # justificación de 20 caracteres) van en el caso de uso para responder un solo 400 con su campo.
+    costos_manuales: Optional[CostosManualesDTO] = None
+    justificacion: Optional[str] = Field(default=None, max_length=1000)
+
+
+class SolicitarCorrectivoDTO(BaseDTO):
+    # RF-86 CA-13. El mínimo de 20 caracteres va en el caso de uso: ausente, vacío o corto responde el mismo 400.
+    motivo: Optional[str] = Field(default=None, max_length=2000)
+
+
+class RechazarCorrectivoDTO(BaseDTO):
+    motivo_rechazo: Optional[str] = Field(default=None, max_length=2000)
 
 
 class RevertirReconocimientoDTO(BaseDTO):
@@ -127,6 +169,12 @@ class CostoDTO(BaseDTO):
 class ClasificarCostoDTO(BaseDTO):
     naturaleza_costo: Literal["MANTENIMIENTO", "INVERSION", "VENTA"]
     justificacion: str = Field(min_length=10, max_length=2000)
+
+
+class AjustePeriodoAnteriorDTO(BaseDTO):
+    tipo_ajuste: Literal["AUMENTAR", "DISMINUIR"]
+    valor: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
+    justificacion: str = Field(min_length=20, max_length=1000)
 
 
 class CierreDTO(BaseDTO):

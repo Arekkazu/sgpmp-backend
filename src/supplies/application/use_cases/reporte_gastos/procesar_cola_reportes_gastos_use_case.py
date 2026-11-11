@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77 E4/E5: exporta y notifica al usuario |
+# | 2026-11-08 | Arekkazu         | INC-M05-259-G07: un error 500/503 se reintenta, no es regla de negocio |
 """Worker del motor async de generación de reportes de gastos (RF-77).
 
 Análogo a ``EjecutarBatchICAUseCase`` (RF-74): procesa hasta
@@ -22,7 +23,7 @@ from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AppError
+from src.shared.errors import AppError, es_fallo_tecnico
 from src.supplies.application.use_cases.reporte_gastos.generar_reporte_gastos_use_case import (
     GenerarReporteGastosUseCase,
 )
@@ -172,18 +173,18 @@ class ProcesarColaReportesGastosUseCase:
                     {"id_cola": id_cola, "id_reporte": reporte.id_reporte_gasto_acumulado},
                 )
                 return
-            except AppError as exc:
-                # Regla de negocio/dato inválido (p.ej. activo sin ciclo): no se reintenta.
+            except Exception as exc:
                 db.rollback()
-                self._marcar_fallido_definitivo(id_cola, str(exc.message), intento)
-                return
-            except Exception as exc:  # fallo técnico → reintento con backoff
-                db.rollback()
+                causa = exc.message if isinstance(exc, AppError) else str(exc)
+                if not es_fallo_tecnico(exc):
+                    # Regla de negocio/dato inválido (p.ej. activo sin ciclo): no se reintenta.
+                    self._marcar_fallido_definitivo(id_cola, causa, intento)
+                    return
                 logger.warning("Reporte de gastos %s: fallo técnico intento %s: %s", id_cola, intento, exc)
                 if intento < config.max_reintentos:
                     time.sleep(self._backoff_segundos(config, intento))
                     continue
-                self._marcar_fallido_definitivo(id_cola, str(exc), intento)
+                self._marcar_fallido_definitivo(id_cola, causa, intento)
                 return
             finally:
                 db.close()

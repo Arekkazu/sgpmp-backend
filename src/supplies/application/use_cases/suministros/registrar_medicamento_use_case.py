@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: mensajes y E11 del RF, ledger      |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -273,7 +274,7 @@ class RegistrarMedicamentoUseCase:
             self.estado_port.marcar_en_tratamiento(
                 id_activo=dto.id_activo_biologico,
                 id_usuario=usuario_actual.id_usuario,
-                motivo=f"Inicio de período de retiro por aplicación de '{dto.nombre_medicamento}' (RF-76).",
+                motivo=f"Inicio de período de retiro por aplicación de '{dto.nombre_medicamento}'.",
             )
         except Exception as exc:
             raise InfrastructureError(

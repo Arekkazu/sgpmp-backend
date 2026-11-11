@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-COT 5.4/5.5: modificar o anular una cotización antes del cierre |
+# | 2026-11-08 | Arekkazu | INC-M06-335-G91 RF-COT: el aviso de cotización no modificable nombra el estado, no su valor de enum |
 """Casos de uso RF-COT fases 8-9 con control optimista por ``version`` (5.9, FA-11)."""
 from __future__ import annotations
 
@@ -13,6 +14,8 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, P
 from src.shared.fechas import hoy_usuario
 
 CAMPOS_MODIFICABLES = ("valor_cotizacion_propuesto", "condiciones", "fecha_vencimiento")
+
+_ETIQUETA_ESTADO = {"VENCIDA": "vencida", "ANULADA": "anulada", "CONVERTIDA_EN_VENTA": "convertida en venta"}
 
 
 class ModificarCotizacionUseCase:
@@ -28,7 +31,8 @@ class ModificarCotizacionUseCase:
         if cotizacion["estado_periodo"] == "CERRADO":  # FA-8
             raise BusinessRuleError(code="PERIODO_CONTABLE_CERRADO", message="La cotización es de un período cerrado.")
         if cotizacion["estado"] != "COTIZADO":
-            raise BusinessRuleError(code="COTIZACION_NO_MODIFICABLE", message=f"La cotización está {cotizacion['estado']}.")
+            estado = _ETIQUETA_ESTADO.get(cotizacion["estado"], "cerrada")
+            raise BusinessRuleError(code="COTIZACION_NO_MODIFICABLE", message=f"La cotización está {estado}: ya no se puede cambiar.")
         return cotizacion
 
     def modificar(self, id_cotizacion: int, version: int, cambios: dict, justificacion: str, id_usuario: int) -> dict:

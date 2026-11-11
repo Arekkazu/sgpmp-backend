@@ -2,14 +2,25 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
 # | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
+# | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83 / INC-M06-330-G86 RF-94: filtros de mediciones y de auditoría |
+# | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: los 403 de RBAC quedan en la auditoría financiera |
+# | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
+# | 2026-11-10 | Arekkazu | INC-M06-337/345/350/351 RF-86/87: acumulado, cancelar cierre, ajuste y 403 con el rol |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82/87: el 403 nombra el rol y queda en la auditoría financiera (#1025 + #1068) |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
-Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
+Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
+``require_permission_m06``), recursos por nombre (ids 88-99 de la
 migración ``c4d81e6f2a95``) y acciones C=1, R=2, U=3, D=4, E=5. El Contador tiene acceso completo;
 el Administrador, el Productor y el Revisor Fiscal, el que les da la matriz de esa migración."""
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -19,6 +30,7 @@ from src.financial_valuation.application.use_cases.costos.registrar_costo_use_ca
 from src.financial_valuation.application.use_cases.precios.registrar_precio_use_case import SolicitudPrecio
 from src.financial_valuation.domain.entities.contabilidad import ParametroEspecie
 from src.financial_valuation.infrastructure.dto.m06_dto import (
+    AjustePeriodoAnteriorDTO,
     AnularCotizacionDTO,
     AsignacionCuentaDTO,
     CierreDTO,
@@ -34,18 +46,31 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     ModificarCotizacionDTO,
     ParametroEspecieDTO,
     PrecioDTO,
+    ReconocerCosechaDTO,
     ResolverInformeDTO,
+    RechazarCorrectivoDTO,
     RevertirReconocimientoDTO,
+    SolicitarCorrectivoDTO,
+    ValidarCalculoDTO,
 )
 from src.financial_valuation.infrastructure.factories.m06_factory import M06
+from src.financial_valuation.infrastructure.rbac_auditoria import require_permission_m06
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
-from src.shared.errors import NotFoundError
+from src.shared.errors import ConflictError, NotFoundError
 from src.shared.fechas import hoy_usuario
-from src.shared.rbac import require_permission_sobre as permiso
 from src.shared.schemas import ErrorResponse
 
 C, R, U, D, E = 1, 2, 3, 4, 5
+_DENEGADO = "Acceso denegado: su rol ({rol}) no tiene permiso para esta operación del módulo financiero."
+_DENEGADO_CIERRE = ("Acceso denegado: el cierre del período contable es competencia exclusiva del Contador. "
+                    "Su rol actual ({rol}) no tiene permisos de cierre contable.")
+
+
+def permiso(recurso: str, accion: int, mensaje: str = _DENEGADO):
+    """RBAC por nombre de recurso: el 403 nombra el rol del usuario (RF-87 FA-4) y queda en RF-94 (RNF-82-05)."""
+    return require_permission_m06(recurso, accion, mensaje_denegado=mensaje)
+
 
 # Catálogos de los filtros: un valor fuera de ellos responde 400 en vez de una lista vacía silenciosa.
 Clasificacion = Literal["PRODUCCION", "CONSUMO"]
@@ -57,6 +82,8 @@ SubtipoCosto = Literal["ALIMENTO", "MEDICAMENTO", "MANO_OBRA", "VETERINARIO", "T
                        "IMPUESTO_TRANSACCION", "SACRIFICIO", "INVERSION_DIRECTA", "OTRO"]
 EstadoCotizacion = Literal["COTIZADO", "VENCIDA", "ANULADA", "CONVERTIDA_EN_VENTA"]
 Severidad = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
+TipoProducto = Literal["PRODUCTO_DE_CONSUMO", "PRODUCTO_PERIODICO"]
+EstadoCorrectivo = Literal["PENDIENTE", "APROBADA", "RECHAZADA"]
 _ERRORES = {c: {"model": ErrorResponse} for c in (400, 401, 403, 404, 409, 412, 422, 500)}
 
 router = APIRouter(prefix="/finanzas", responses=_ERRORES)
@@ -171,7 +198,8 @@ def confirmar_reconocimiento(id_activo_biologico: int, dto: ConfirmarReconocimie
                              usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     manuales = dto.costos_manuales.model_dump() if dto.costos_manuales else None
     return m.confirmar_reconocimiento().execute(id_activo_biologico, usuario.id_usuario, clasificacion=dto.clasificacion,
-                                                costos_manuales=manuales, justificacion=dto.justificacion)
+                                                costos_manuales=manuales, justificacion=dto.justificacion,
+                                                referencia_documental=dto.referencia_documental)
 
 
 @router.post("/reconocimientos/{id_activo_biologico}/reversion", tags=[TAG_RECON],
@@ -216,10 +244,33 @@ def simular_valor(id_activo_biologico: int, m: M06 = Depends(_m06), usuario: Usu
             "precio": resultado.precio.__dict__ if resultado.precio else None}
 
 
+@router.post("/calculos/{id_calculo_valor_razonable}/validacion", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Validar con justificación un cálculo con valor neto ≤ 0 (REVISION_REQUERIDA → CALCULADO)")
+def validar_calculo(id_calculo_valor_razonable: int, dto: ValidarCalculoDTO, m: M06 = Depends(_m06),
+                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.validar_calculo().execute(id_calculo_valor_razonable, dto.justificacion, usuario.id_usuario)
+
+
 @router.post("/eventos/procesar", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", E))],
              summary="Procesar ya los eventos de M02 pendientes (lo hace también el proceso de fondo)")
 def procesar_eventos(m: M06 = Depends(_m06)) -> dict:
     return {"eventos": m.procesar_eventos().execute(500), "provisiones_m05": m.procesar_provisiones().execute(500)}
+
+
+@router.get("/productos/pendientes", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Cosechas cuyo reconocimiento quedó pendiente por falta de precio o de costos de venta (RF-85)")
+def cosechas_pendientes(m: M06 = Depends(_m06)) -> list[dict]:
+    return m.eventos.cosechas_pendientes()
+
+
+@router.post("/productos/pendientes/{id_evento}/reconocimiento", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Reconocer una cosecha pendiente con costos de venta ingresados a mano (RF-85 FA-2)")
+def reconocer_cosecha_pendiente(id_evento: int, dto: ReconocerCosechaDTO, m: M06 = Depends(_m06),
+                                usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    manuales = dto.costos_manuales.model_dump() if dto.costos_manuales else None
+    return m.reconocer_cosecha_pendiente().execute(id_evento, manuales, dto.justificacion, usuario.id_usuario)
 
 
 @router.get("/lineas", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
@@ -233,9 +284,11 @@ def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[Estad
 
 @router.get("/periodos/{id_periodo_contable}/mediciones", tags=[TAG_VALOR],
             dependencies=[Depends(permiso("valoracion_activos", R))],
-            summary="Mediciones posteriores del período con el activo medido")
-def mediciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
-    return m.valoraciones.mediciones_del_periodo(id_periodo_contable)
+            summary="Mediciones posteriores del período con el activo medido (filtrables por evento y estimación)")
+def mediciones_del_periodo(id_periodo_contable: int, id_evento: Optional[int] = Query(None, gt=0),
+                           tiene_valor_estimado: Optional[bool] = None, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.mediciones_del_periodo(id_periodo_contable, id_evento=id_evento,
+                                                 tiene_valor_estimado=tiene_valor_estimado)
 
 
 @router.get("/periodos/{id_periodo_contable}/variaciones", tags=[TAG_VALOR],
@@ -245,6 +298,63 @@ def variaciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) ->
     return m.valoraciones.variaciones_del_periodo(id_periodo_contable)
 
 
+# --- Correctivos de variaciones (RF-86 restricción 5, CA-12, CA-13) ---------------------------------------
+
+_INMUTABLE = ("Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. "
+              "Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia "
+              "el original, y se aplicará cuando otro Contador lo apruebe.")
+
+
+@router.post("/variaciones/{id_variacion}/correctivos", tags=[TAG_VALOR], status_code=201,
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Solicitar el correctivo de una variación (monto opuesto; queda pendiente de aprobación)")
+def solicitar_correctivo(id_variacion: int, dto: SolicitarCorrectivoDTO, m: M06 = Depends(_m06),
+                         usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.solicitar_correctivo().execute(id_variacion, dto.motivo, usuario.id_usuario)
+
+
+@router.get("/correctivos", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Solicitudes de correctivo de variaciones (filtrables por estado, período y activo)")
+def listar_correctivos(estado: Optional[EstadoCorrectivo] = None, id_periodo_contable: Optional[int] = Query(None, gt=0),
+                       id_activo_biologico: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    return m.correctivos.listar({"estado": estado, "id_periodo_contable": id_periodo_contable,
+                                 "id_activo_biologico": id_activo_biologico})
+
+
+@router.post("/correctivos/{id_solicitud}/aprobacion", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Aprobar un correctivo: registra la variación correctiva y sus líneas inversas (otro Contador)")
+def aprobar_correctivo(id_solicitud: int, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.resolver_correctivo().aprobar(id_solicitud, usuario.id_usuario)
+
+
+@router.post("/correctivos/{id_solicitud}/rechazo", tags=[TAG_VALOR],
+             dependencies=[Depends(permiso("valoracion_activos", E))],
+             summary="Rechazar un correctivo pendiente con su motivo (otro Contador)")
+def rechazar_correctivo(id_solicitud: int, dto: RechazarCorrectivoDTO, m: M06 = Depends(_m06),
+                        usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.resolver_correctivo().rechazar(id_solicitud, dto.motivo_rechazo, usuario.id_usuario)
+
+
+@router.api_route("/variaciones/{id_variacion}", methods=["PUT", "PATCH", "DELETE"], tags=[TAG_VALOR],
+                  dependencies=[Depends(permiso("valoracion_activos", R))], include_in_schema=False)
+@router.api_route("/periodos/{id_periodo_contable}/variaciones/{id_variacion}", methods=["PUT", "PATCH", "DELETE"],
+                  tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))], include_in_schema=False)
+def variacion_inmutable(id_variacion: int) -> None:
+    """CA-12: la modificación directa se rechaza y orienta al correctivo (``POST /variaciones/{id}/correctivos``)."""
+    raise ConflictError(code="VARIACION_INMUTABLE", message=_INMUTABLE)
+
+
+@router.api_route("/lineas/{id_linea}", methods=["PUT", "PATCH", "DELETE"], tags=[TAG_VALOR],
+                  dependencies=[Depends(permiso("valoracion_activos", R))], include_in_schema=False)
+def linea_inmutable(id_linea: int) -> None:
+    """Las líneas de asiento tampoco se modifican: se corrigen con líneas inversas del correctivo o de la reversión."""
+    raise ConflictError(code="LINEA_ASIENTO_INMUTABLE", message=(
+        "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el "
+        "correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige "
+        "con su reversión."))
+
+
 @router.get("/periodos/{id_periodo_contable}/calculos", tags=[TAG_VALOR],
             dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Cálculos del valor razonable menos costos de venta registrados en el período")
@@ -252,11 +362,28 @@ def calculos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> li
     return m.valoraciones.calculos_del_periodo(id_periodo_contable)
 
 
+def _filtros_productos(tipo: Optional[TipoProducto] = None, id_activo_biologico: Optional[int] = Query(None, gt=0),
+                       id_especie: Optional[int] = Query(None, gt=0),
+                       producto_agricola: Optional[str] = Query(None, min_length=1, max_length=100),
+                       valor_min: Optional[Decimal] = Query(None, ge=0, max_digits=18, decimal_places=4),
+                       valor_max: Optional[Decimal] = Query(None, ge=0, max_digits=18, decimal_places=4)) -> dict:
+    return {"tipo": tipo, "id_activo_biologico": id_activo_biologico, "id_especie": id_especie,
+            "producto_agricola": producto_agricola, "valor_min": valor_min, "valor_max": valor_max}
+
+
 @router.get("/periodos/{id_periodo_contable}/productos", tags=[TAG_VALOR],
             dependencies=[Depends(permiso("valoracion_activos", R))],
-            summary="Productos agrícolas reconocidos en el período")
-def productos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
-    return m.valoraciones.productos_del_periodo(id_periodo_contable)
+            summary="Productos agrícolas reconocidos en el período (filtrables por tipo, activo, especie, producto y valor)")
+def productos_del_periodo(id_periodo_contable: int, filtros: dict = Depends(_filtros_productos),
+                          m: M06 = Depends(_m06)) -> list[dict]:
+    return m.consultar_productos().execute({**filtros, "id_periodo_contable": id_periodo_contable})
+
+
+@router.get("/productos", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Historial de productos agrícolas reconocidos (RNF-85-05: activo, período, tipo y rango de valores)")
+def historial_productos(id_periodo_contable: Optional[int] = Query(None, gt=0), filtros: dict = Depends(_filtros_productos),
+                        m: M06 = Depends(_m06)) -> list[dict]:
+    return m.consultar_productos().execute({**filtros, "id_periodo_contable": id_periodo_contable})
 
 
 # --- Costos (RF-90) ---------------------------------------------------------------------------------------
@@ -310,12 +437,29 @@ def prevalidar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06)) -> dict:
 
 
 @router.post("/periodos/{id_periodo_contable}/cierre", tags=[TAG_CIERRE],
-             dependencies=[Depends(permiso("cierre_periodo", E))],
+             dependencies=[Depends(permiso("cierre_periodo", E, _DENEGADO_CIERRE))],
              summary="Ejecutar el cierre del período (revaluación, comprobante NIC 41, estado de resultados)")
 def ejecutar_cierre(id_periodo_contable: int, dto: CierreDTO, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     return m.cierre().execute(id_periodo_contable, usuario.id_usuario, autorizar_exclusiones=dto.autorizar_exclusiones,
                               incluir_activos_sin_precio=dto.incluir_activos_sin_precio)
+
+
+@router.post("/periodos/{id_periodo_contable}/cierre/cancelacion", tags=[TAG_CIERRE],
+             dependencies=[Depends(permiso("cierre_periodo", E, _DENEGADO_CIERRE))],
+             summary="Cancelar el cierre que espera autorización de exclusiones (el período vuelve a ABIERTO)")
+def cancelar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06),
+                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.cierre().cancelar(id_periodo_contable, usuario.id_usuario)
+
+
+@router.post("/lineas-asiento/{id_linea}/ajustes", tags=[TAG_CIERRE], status_code=201,
+             dependencies=[Depends(permiso("cierre_periodo", E))],
+             summary="Corregir un hecho de un período cerrado con un ajuste en el período abierto")
+def registrar_ajuste_periodo_anterior(id_linea: int, dto: AjustePeriodoAnteriorDTO, m: M06 = Depends(_m06),
+                                      usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    return m.ajuste_periodo_anterior().execute(id_linea, dto.tipo_ajuste, dto.valor, dto.justificacion,
+                                               usuario.id_usuario)
 
 
 @router.get("/periodos/{id_periodo_contable}/comprobantes", tags=[TAG_CIERRE],
@@ -426,6 +570,13 @@ def listar_estados(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dic
     return m.reportes.listar_estados(id_periodo_contable)
 
 
+@router.get("/periodos/{id_periodo_contable}/estado-resultados/acumulado", tags=[TAG_REP],
+            dependencies=[Depends(permiso("estado_resultados", R))],
+            summary="Acumulado del período (también abierto): ganancias como ingresos y pérdidas como gastos, sin versión")
+def acumulado_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO = Depends(), m: M06 = Depends(_m06)) -> dict:
+    return m.estado_resultados().acumulado(id_periodo_contable, dto.model_dump())
+
+
 @router.get("/estados-resultados/{id_estado}", tags=[TAG_REP], dependencies=[Depends(permiso("estado_resultados", R))],
             summary="Detalle de un estado de resultados")
 def obtener_estado(id_estado: int, m: M06 = Depends(_m06)) -> dict:
@@ -500,9 +651,12 @@ def descargar_informe(id_informe: int, formato: str = Query("pdf", pattern="^(pd
 def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
                         id_periodo_contable: Optional[int] = Query(None, gt=0),
                         id_activo_biologico: Optional[int] = Query(None, gt=0), severidad: Optional[Severidad] = None,
+                        id_usuario: Optional[int] = Query(None, gt=0), id_referencia: Optional[int] = Query(None, gt=0),
+                        origen_registro: Optional[Literal["REPOSITORIO", "FALLBACK"]] = None,
                         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = Query(1, ge=1),
                         tamano: int = Query(100, ge=1, le=500), formato: str = Query("LEGIBLE", pattern="^(LEGIBLE|TECNICO)$"),
                         orden: Literal["ASC", "DESC"] = "ASC", m: M06 = Depends(_m06)) -> dict:
     filtros = {"tipo_evento": tipo_evento, "id_periodo_contable": id_periodo_contable,
-               "id_activo_biologico": id_activo_biologico, "severidad": severidad, "desde": desde, "hasta": hasta}
+               "id_activo_biologico": id_activo_biologico, "severidad": severidad, "id_usuario": id_usuario,
+               "id_referencia": id_referencia, "origen_registro": origen_registro, "desde": desde, "hasta": hasta}
     return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE", orden == "DESC")
