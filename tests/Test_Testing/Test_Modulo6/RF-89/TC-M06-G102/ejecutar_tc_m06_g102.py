@@ -1,10 +1,10 @@
 """TC-M06-G102 contra TEST.
 
-Los tres registros positivos no se envían: un precio vigente es global por
-especie, se confirma en base de datos y puede cambiar valoraciones compartidas.
-
-Los tres rechazos sí se envían. El DTO o el caso de uso los detienen antes de
-insertar el precio.
+Los tres registros positivos no se envían desde este script. El subcaso 18
+incluye, en el ejecutor preparado, evidencia_documental de 1 a 500 caracteres
+y justificacion_estimacion de al menos 50 caracteres. Los cuerpos y la especie
+424 están en preparar_tc_m06_g102.py. Este archivo no debe ejecutarse para
+probar los subcasos 16, 17 y 18: los rechazos 19, 20 y 21 sí hacen POST.
 
     python tests/Test_Testing/Test_Modulo6/RF-89/TC-M06-G102/ejecutar_tc_m06_g102.py
 """
@@ -243,14 +243,14 @@ def main() -> int:
     inicio = time.perf_counter()
     peticiones: list[dict] = []
     hallazgos = [
-        "QUESTION-M06-G102-01: el caso pide evidencia documental adjunta. El contrato implementado guarda un texto evidencia_documental de 1 a 500 caracteres, no un archivo.",
-        "QUESTION-M06-G102-02: ESTIMADA exige, además de la evidencia, una justificacion_estimacion de al menos 50 caracteres. El subcaso 18 no contempla ese campo.",
+        "ACLARACION-976: evidencia_documental es texto de 1 a 500 caracteres, no un archivo. RF-89 v1.1 y el comentario de Análisis en el issue #976.",
+        "ACLARACION-976: el subcaso 18 incluye justificacion_estimacion de al menos 50 caracteres, con la ausencia de MERCADO_ACTIVO, la ausencia de UPRA y los comparables. El cuerpo está en preparar_tc_m06_g102.py y este script no lo envía.",
         "El catálogo de precios es global por especie. Un precio ACTIVO nuevo se confirma, puede avisar a los contadores y cambia el precio aplicado de las valoraciones de esa especie.",
     ]
     escenarios = [
         subcaso("TC-M06-16", "Registrar MERCADO_ACTIVO por 5000000 con evidencia y conservar la procedencia."),
         subcaso("TC-M06-17", "Registrar UPRA por 4800000 con evidencia y conservar la procedencia."),
-        subcaso("TC-M06-18", "Registrar ESTIMADA por 4500000 con evidencia y conservar la procedencia."),
+        subcaso("TC-M06-18", "Registrar ESTIMADA por 4500000 con evidencia documental y justificacion_estimacion de al menos 50 caracteres."),
         subcaso("TC-M06-19", "Rechazar un precio igual a cero o negativo."),
         subcaso("TC-M06-20", "Rechazar un precio sin evidencia documental obligatoria."),
         subcaso("TC-M06-21", "Rechazar una fuente que no sea MERCADO_ACTIVO, UPRA ni ESTIMADA."),
