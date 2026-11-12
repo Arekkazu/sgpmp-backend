@@ -30,4 +30,4 @@ Los dos períodos existen: aparecen en `GET /finanzas/periodos` y la re-verifica
 
 **Adjunto:** `reeval_RF-91_TC-M06-G10.html` (sin contraseña, tokens ni cookies).
 
-**Estado propuesto:** se mantiene abierta; no pasar a resuelta. Se sugiere actualizar el título: el síntoma actual es 404 PERIODO_NO_ENCONTRADO al re-cerrar un período CERRADO (con o sin `fecha_cierre`).
+**Estado propuesto:** se mantiene abierta; no pasar a resuelta. El 404 se reporta aparte como INC-M06-054B-G10 (otra causa); esta incidencia conserva su título y su defecto de `fecha_cierre` nula, que se podrá re-probar cuando se corrija el 404.
