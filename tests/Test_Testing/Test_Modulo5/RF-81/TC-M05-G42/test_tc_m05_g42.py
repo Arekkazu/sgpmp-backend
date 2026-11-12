@@ -1,6 +1,7 @@
 # | Fecha      | Nombre                   | Que se hizo                                                           |
 # |------------|--------------------------|-----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G42 RF-81: filtros, paginacion y limites (100, 101 / 035, 036) |
+# | 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: B01b/B01c/B01d tope 200, retiro A02a/A02b, T00/T99 sandbox |
 """
 TC-M05-G42 — RF-81 CU04, GET /suministros/historial.
 Validacion de filtros, paginacion y niveles de volumen.
@@ -61,7 +62,14 @@ _CONTEXTO: dict[str, Any] = {
     "id_ciclo_b": 5,
     "activo_grande_id": 1042,
     "activo_grande_total": 0,
-    "auditoria_inicial": 0,
+    "auditoria_inicial_total": None,
+    "auditoria_inicial_ultimo_id": None,
+    "run_id_t00": None,
+    "run_id_principal": None,
+    "run_id_t99": None,
+    "delete_t00": None,
+    "delete_principal": None,
+    "delete_t99": None,
 }
 
 _TEST_ACTUAL = "init"
@@ -126,6 +134,7 @@ def _trazar(
     token_extra: str | None = None,
     error: str | None = None,
     test_nombre: str | None = None,
+    paso: str | None = None,
 ) -> None:
     directorio = os.environ.get("TEST_EVIDENCE_DIR")
     if not directorio:
@@ -139,10 +148,12 @@ def _trazar(
     server_date = ""
     status_code = None
     error_code = None
+    x_request_id = ""
 
     if resp is not None:
         status_code = resp.status_code
         server_date = resp.headers.get("Date", "")
+        x_request_id = resp.headers.get("X-Request-Id", "") or resp.headers.get("x-request-id", "")
         try:
             resp_body = resp.json()
             if isinstance(resp_body, dict):
@@ -153,8 +164,10 @@ def _trazar(
     registro = {
         "timestamp_local": now_iso,
         "server_date": server_date,
+        "x_request_id": x_request_id,
         "duracion_ms": duracion_ms,
         "test": test_nombre or _TEST_ACTUAL,
+        "paso": paso or "",
         "metodo": metodo,
         "ruta": ruta,
         "params": _sanitizar_objeto(params, extra),
@@ -186,8 +199,8 @@ class ErrorConexion(AssertionError):
 class CorridaSandboxG42:
     """Gestiona la transaccion sandbox para TC-M05-G42 (Administrador)."""
 
-    def __init__(self) -> None:
-        self.run_id = f"tc-m05-g42-adm-{uuid.uuid4().hex[:12]}"
+    def __init__(self, prefijo_run: str = "tc-m05-g42-adm") -> None:
+        self.run_id = f"{prefijo_run}-{uuid.uuid4().hex[:12]}"
         self.base = _env("TEST_BASE_URL").rstrip("/")
         self.secret = _env("TEST_SANDBOX_SECRET")
         self.token: str | None = None
@@ -217,9 +230,9 @@ class CorridaSandboxG42:
         try:
             resp = self.http.request(metodo, self.base + ruta, timeout=TIMEOUT_S, params=params, json=json_body, **kw)
         except requests.RequestException as exc:
-            _trazar(metodo, ruta, None, inicio, params=params, req_body=json_body, token_extra=token_extra, error=type(exc).__name__)
+            _trazar(metodo, ruta, None, inicio, params=params, req_body=json_body, token_extra=token_extra, error=type(exc).__name__, paso=paso)
             raise ErrorConexion(paso or _TEST_ACTUAL, ruta, exc) from None
-        _trazar(metodo, ruta, resp, inicio, params=params, req_body=json_body, token_extra=token_extra)
+        _trazar(metodo, ruta, resp, inicio, params=params, req_body=json_body, token_extra=token_extra, paso=paso)
         return resp
 
     def get(self, ruta: str, paso: str | None = None, params: Any = None, **kw) -> requests.Response:
@@ -263,7 +276,34 @@ def _marcar_test(request: pytest.FixtureRequest):
 
 @pytest.fixture(scope="class")
 def corrida_g42() -> CorridaSandboxG42:
-    c = CorridaSandboxG42()
+    # T00: Run de sandbox aparte, solo lectura, para capturar linea base de auditoria
+    c_t00 = CorridaSandboxG42(prefijo_run="tc-m05-g42-t00")
+    _CONTEXTO["run_id_t00"] = c_t00.run_id
+    try:
+        c_t00.login()
+        r_aud = c_t00.get(
+            "/suministros/auditoria",
+            params={"pagina": 1, "registros_por_pagina": 1},
+            paso="T00_auditoria_inicial",
+        )
+        assert r_aud.status_code == 200, (
+            f"PRECONDICION_NO_CUMPLIDA: GET /suministros/auditoria en T00 HTTP {r_aud.status_code}: {c_t00.seguro(r_aud.text)}"
+        )
+        body_aud = r_aud.json()
+        _CONTEXTO["auditoria_inicial_total"] = body_aud.get("total")
+        items_aud = body_aud.get("items", [])
+        _CONTEXTO["auditoria_inicial_ultimo_id"] = items_aud[0].get("id_auditoria_suministro") if items_aud else None
+    finally:
+        r_del_t00 = c_t00.cerrar()
+        if r_del_t00 is not None:
+            _CONTEXTO["delete_t00"] = {
+                "status_code": r_del_t00.status_code,
+                "body": r_del_t00.text,
+            }
+
+    # Run principal de pruebas (cerrado en test_98_cierre_sandbox o en finally)
+    c = CorridaSandboxG42(prefijo_run="tc-m05-g42-adm")
+    _CONTEXTO["run_id_principal"] = c.run_id
     c.login()
     try:
         yield c
@@ -275,8 +315,14 @@ class TestTC_M05_G42_Filtros_Paginacion:
     """Suite TC-M05-G42: Validacion de filtros, paginacion y niveles (RF-81, 100/101 plano, 035/036 agrupado)."""
 
     def test_00_setup_linea_base_y_activos(self, corrida_g42: CorridaSandboxG42):
-        """T00: Setup de activos A y B con ciclo, 3 registros en A y captura de linea base."""
+        """T00: Verificacion de linea base (run aparte) y setup de activos A y B con ciclo y 3 registros en A."""
         c = corrida_g42
+        # Fuente: Protocolo Sandbox (linea base T00 cerrada antes del run principal)
+        assert _CONTEXTO["auditoria_inicial_total"] is not None, "Falta total de auditoria inicial en T00"
+        del_t00 = _CONTEXTO.get("delete_t00") or {}
+        assert del_t00.get("status_code") == 200 and "Rollback exitoso" in del_t00.get("body", ""), (
+            f"T00 no cerro correctamente el sandbox: {del_t00}"
+        )
 
         # 1. Crear activo A (Individual Holstein)
         id_unico_a = f"QA-G42-A-{uuid.uuid4().hex[:6]}"
@@ -454,52 +500,23 @@ class TestTC_M05_G42_Filtros_Paginacion:
         # Verificar que los tres mensajes de conflicto son distintos y descriptivos
         assert len(set(mensajes_observados)) == 3, f"Los mensajes de conflicto deben diferir entre si: {mensajes_observados}"
 
-    def test_a02a_fecha_fin_futura(self, corrida_g42: CorridaSandboxG42):
-        """A02a (TC-M05-100 / 035, fuente: caso/CU04 FA-02; RF-81 NO lo define):
-        fecha_fin_filtro futura (hoy + 1 dia en America/Bogota).
-        Esperado del caso (CU04 FA-02): HTTP 422 con conflicto especifico.
-        Hecho observado: la API responde HTTP 200, reportado como omision / especificacion ambigua."""
-        c = corrida_g42
-        id_a = _CONTEXTO["id_activo_a"]
-
+        # Observaciones retiradas A02a y A02b (A.5): se envian las requests para registro en trazas, sin asercion.
+        # Motivo: RF-81 Restriccion 7 y E5 no definen estas validaciones (vienen de CU04 FA-02).
         manana = (datetime.now(ZONA_USUARIO).date() + timedelta(days=1)).isoformat()
-        params_d = {
-            "id_activo_biologico": id_a,
-            "fecha_fin_filtro": manana,
-        }
-        r_d = c.get("/suministros/historial", params=params_d, paso="A02a_fecha_fin_futura")
-        assert r_d.status_code == 422, (
-            f"DEFECTO / OMISION SEGUN CASO CU04 FA-02: fecha_fin_filtro futura ({manana}) "
-            f"respondio HTTP {r_d.status_code} en lugar de 422 ({c.seguro(r_d.text)})"
+        c.get(
+            "/suministros/historial",
+            params={"id_activo_biologico": id_a, "fecha_fin_filtro": manana},
+            paso="OBS_A02a_fecha_fin_futura",
         )
-
-    def test_a02b_fecha_inicio_anterior_ciclo(self, corrida_g42: CorridaSandboxG42):
-        """A02b (TC-M05-100 / 035, fuente: caso/CU04 FA-02; RF-81 NO lo define):
-        fecha_inicio_filtro anterior al inicio del ciclo del activo (2026-08-01 vs 2026-01-01).
-        Esperado del caso (CU04 FA-02): HTTP 422 con conflicto especifico.
-        Hecho observado: la API responde HTTP 200, reportado como omision / especificacion ambigua."""
-        c = corrida_g42
-        id_a = _CONTEXTO["id_activo_a"]
-
-        params_e = {
-            "id_activo_biologico": id_a,
-            "fecha_inicio_filtro": "2026-01-01",
-        }
-        r_e = c.get("/suministros/historial", params=params_e, paso="A02b_fecha_inicio_anterior_ciclo")
-        assert r_e.status_code == 422, (
-            f"DEFECTO / OMISION SEGUN CASO CU04 FA-02: fecha_inicio_filtro anterior al ciclo (2026-01-01) "
-            f"respondio HTTP {r_e.status_code} en lugar de 422 ({c.seguro(r_e.text)})"
+        c.get(
+            "/suministros/historial",
+            params={"id_activo_biologico": id_a, "fecha_inicio_filtro": "2026-01-01"},
+            paso="OBS_A02b_fecha_inicio_anterior_ciclo",
         )
 
     def test_b01a_paginacion_activo_con_mas_de_205_registros(self, corrida_g42: CorridaSandboxG42):
-        """B01a (TC-M05-101 / 036): Paginacion obligatoria (Restr. 5 / RNF-04 / CA-6).
-        Se ejecuta en solo lectura dentro de la sandbox sobre activo 1042 (500 registros commiteados):
-        - registros_por_pagina=200 -> HTTP 200 con 200 items.
-        - Recorrido completo de todas las paginas sin duplicados.
-        - Metadatos coherentes: total_registros_filtrados, total_paginas, pagina_actual.
-        - Orden fecha_aplicacion DESC.
-        - monto_total_filtrado = suma de costo_registro de todos los registros consultando todas las paginas.
-        - Observacion de registros_por_pagina=0 y pagina=0 registradas en trazas."""
+        """B01a (TC-M05-101 / 036): Paginacion obligatoria.
+        Fuente: RF-81 Entradas (registros_por_pagina) y RNF-04 (metadatos de paginacion)."""
         c = corrida_g42
         id_grande = _CONTEXTO["activo_grande_id"]  # 1042
 
@@ -571,31 +588,119 @@ class TestTC_M05_G42_Filtros_Paginacion:
         )
 
     def test_b01b_tope_maximo_registros_por_pagina(self, corrida_g42: CorridaSandboxG42):
-        """B01b (TC-M05-101 / 036): Validación de límite superior excedido (Tabla Entradas 'registros_por_pagina').
-        Especificación: 'El sistema aplica el límite máximo si se excede' -> esperado HTTP 200 con 200 items.
-        Hecho observado: el backend responde HTTP 400 (FastAPI query validation), reportado como defecto de producto."""
+        """B01b (REDISEÑO): registros_por_pagina=201, pagina=1 -> HTTP 200 aplicando tope de 200.
+        Fuente: RF-81 Entradas, 'registros_por_pagina | max: 200 | El sistema aplica el limite maximo si se excede'; RNF-04 (metadatos de paginacion)."""
         c = corrida_g42
         id_grande = _CONTEXTO["activo_grande_id"]  # 1042
 
         r_201 = c.get(
             "/suministros/historial",
             params={"id_activo_biologico": id_grande, "pagina": 1, "registros_por_pagina": 201},
-            paso="B01b_tamano_201_aplica_tope",
+            paso="B01b_tamano_201_p1",
         )
+        # Fuente: RF-81 Entradas ("El sistema aplica el limite maximo si se excede")
         assert r_201.status_code == 200, (
-            f"DEFECTO DE PRODUCTO (Tabla Entradas 'registros_por_pagina'): Se esperaba HTTP 200 aplicando tope máximo de 200 items, "
-            f"pero el backend respondió HTTP {r_201.status_code} ({c.seguro(r_201.text)})"
+            f"Esperado HTTP 200 con tope maximo 200 para param=201, obtenido HTTP {r_201.status_code}: {c.seguro(r_201.text)}"
         )
         data_201 = r_201.json()
         items_201 = data_201.get("items", [])
-        assert len(items_201) == 200, f"El sistema debio aplicar el limite de 200 items ante param=201, pero retorno {len(items_201)}"
-        # Solo se registran en trazas_http.jsonl como observacion del ambiente
+        resumen_201 = data_201.get("resumen", {})
+        # Fuente: RF-81 Entradas (max: 200) y RNF-04 (metadatos de paginacion)
+        assert len(items_201) == 200, f"Se esperaban 200 registros en pagina 1 con param=201, obtenidos {len(items_201)}"
+        assert resumen_201.get("total_registros_filtrados") == 500, (
+            f"total_registros_filtrados esperado 500, obtenido {resumen_201.get('total_registros_filtrados')}"
+        )
+        assert resumen_201.get("total_paginas") == 3, (
+            f"total_paginas esperado 3, obtenido {resumen_201.get('total_paginas')}"
+        )
+        assert resumen_201.get("pagina_actual") == 1, (
+            f"pagina_actual esperada 1, obtenida {resumen_201.get('pagina_actual')}"
+        )
+
+    def test_b01c_paginacion_completa_con_exceso_201(self, corrida_g42: CorridaSandboxG42):
+        """B01c (NUEVO): registros_por_pagina=201 en paginas 1, 2 y 3 -> conteos [200, 200, 100], 500 ids distintos, orden DESC.
+        Fuente: RF-81 Entradas (el limite se aplica como tamano de pagina) y Fase 3 (orden por fecha_aplicacion DESC, paginacion maxima de 200)."""
+        c = corrida_g42
+        id_grande = _CONTEXTO["activo_grande_id"]  # 1042
+
+        conteos = []
+        ids_paginas = []
+        fechas_por_pagina = []
+        todas_las_fechas = []
+
+        for pag in (1, 2, 3):
+            r_pag = c.get(
+                "/suministros/historial",
+                params={"id_activo_biologico": id_grande, "pagina": pag, "registros_por_pagina": 201},
+                paso=f"B01c_tamano_201_p{pag}",
+            )
+            # Fuente: RF-81 Entradas (el limite se aplica como tamano de pagina)
+            assert r_pag.status_code == 200, f"Pagina {pag} con param=201 fallo: HTTP {r_pag.status_code}: {c.seguro(r_pag.text)}"
+            items_pag = r_pag.json().get("items", [])
+            conteos.append(len(items_pag))
+            ids_paginas.append([it["id_registro_suministro"] for it in items_pag])
+            fechas_pag = [it["fecha_aplicacion"] for it in items_pag]
+            fechas_por_pagina.append(fechas_pag)
+            todas_las_fechas.extend(fechas_pag)
+
+        # Fuente: RF-81 Entradas y Fase 3 (paginacion maxima de 200 sobre 500 registros)
+        assert conteos == [200, 200, 100], f"Conteos por pagina esperados [200, 200, 100], obtenidos {conteos}"
+
+        ids_planos = [i for sub in ids_paginas for i in sub]
+        ids_unicos = set(ids_planos)
+        # Fuente: RF-81 Fase 3 (sin repeticion entre paginas)
+        assert len(ids_planos) == 500 and len(ids_unicos) == 500, (
+            f"Se esperaban 500 ids distintos sin duplicados; total={len(ids_planos)}, unicos={len(ids_unicos)}"
+        )
+
+        # Orden fecha_aplicacion DESC dentro de cada pagina y entre paginas (ultima de p >= primera de p+1)
+        comparaciones_orden = 0
+        for fechas_pag in fechas_por_pagina:
+            for idx in range(len(fechas_pag) - 1):
+                assert fechas_pag[idx] >= fechas_pag[idx + 1], (
+                    f"Orden DESC violado dentro de pagina: {fechas_pag[idx]} < {fechas_pag[idx + 1]}"
+                )
+                comparaciones_orden += 1
+        for idx in range(len(fechas_por_pagina) - 1):
+            assert fechas_por_pagina[idx][-1] >= fechas_por_pagina[idx + 1][0], (
+                f"Orden DESC violado entre paginas {idx+1} y {idx+2}: "
+                f"{fechas_por_pagina[idx][-1]} < {fechas_por_pagina[idx + 1][0]}"
+            )
+            comparaciones_orden += 1
+        assert comparaciones_orden >= 1, "El bucle de orden exige >= 1 comparacion"
+
+    def test_b01d_tope_maximo_extremo_1000(self, corrida_g42: CorridaSandboxG42):
+        """B01d (NUEVO): registros_por_pagina=1000, pagina=1 -> HTTP 200; len(registros)=200; total_paginas=3.
+        Fuente: RF-81 Entradas ('si se excede')."""
+        c = corrida_g42
+        id_grande = _CONTEXTO["activo_grande_id"]  # 1042
+
+        r_1000 = c.get(
+            "/suministros/historial",
+            params={"id_activo_biologico": id_grande, "pagina": 1, "registros_por_pagina": 1000},
+            paso="B01d_tamano_1000_p1",
+        )
+        # Fuente: RF-81 Entradas ("si se excede")
+        assert r_1000.status_code == 200, (
+            f"Esperado HTTP 200 para param=1000, obtenido HTTP {r_1000.status_code}: {c.seguro(r_1000.text)}"
+        )
+        data_1000 = r_1000.json()
+        items_1000 = data_1000.get("items", [])
+        resumen_1000 = data_1000.get("resumen", {})
+        assert len(items_1000) == 200, f"Se esperaban 200 items para param=1000, obtenidos {len(items_1000)}"
+        assert resumen_1000.get("total_paginas") == 3, (
+            f"total_paginas esperado 3 para param=1000, obtenido {resumen_1000.get('total_paginas')}"
+        )
 
     def test_98_cierre_sandbox(self, corrida_g42: CorridaSandboxG42):
         """T98: Cierre estricto del sandbox con DELETE /test-control/runs/{run_id} -> 200."""
         c = corrida_g42
         resp = c.cerrar()
         assert resp is not None, "El sandbox ya habia sido cerrado"
+        _CONTEXTO["delete_principal"] = {
+            "status_code": resp.status_code,
+            "body": resp.text,
+        }
         assert resp.status_code == 200, f"Error cerrando sandbox: HTTP {resp.status_code}: {resp.text}"
         cuerpo = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
         assert "Rollback exitoso" in resp.text or cuerpo.get("status") == "Rollback exitoso", (
@@ -603,23 +708,60 @@ class TestTC_M05_G42_Filtros_Paginacion:
         )
 
     def test_99_inocuidad_final(self):
-        """T99: Inocuidad final sin sandbox: confirmar que no quedaron activos creados del test."""
+        """T99: Inocuidad final en run de sandbox aparte (solo lectura): auditoria igual a T00 y recursos creados -> 404."""
         id_a = _CONTEXTO.get("id_activo_a")
-        if not id_a:
-            return
-        base_url = _env("TEST_BASE_URL").rstrip("/")
-        # Login normal fuera de sandbox
-        r_login = requests.post(
-            f"{base_url}/sesiones/",
-            json={"correo_electronico": _env("TEST_ADMIN_EMAIL"), "contrasena": _env("TEST_ADMIN_PASSWORD")},
-            timeout=TIMEOUT_S,
-        )
-        assert r_login.status_code == 200
-        token = r_login.json().get("token") or r_login.json().get("access_token")
-        headers = {"Authorization": f"Bearer {token}"}
+        id_b = _CONTEXTO.get("id_activo_b")
+        assert id_a is not None and id_b is not None, "Faltan IDs de activos creados en T00"
 
-        # Consultar activo A fuera de sandbox: debe retornar 404 (revertido en BD)
-        r_check = requests.get(f"{base_url}/suministros/historial?id_activo_biologico={id_a}", headers=headers, timeout=TIMEOUT_S)
-        assert r_check.status_code == 404, (
-            f"Falta de inocuidad: el activo {id_a} sigue existiendo fuera de sandbox (HTTP {r_check.status_code})"
+        c_t99 = CorridaSandboxG42(prefijo_run="tc-m05-g42-t99")
+        _CONTEXTO["run_id_t99"] = c_t99.run_id
+        try:
+            c_t99.login()
+
+            # 1. Verificar auditoria igual a linea base T00
+            r_aud = c_t99.get(
+                "/suministros/auditoria",
+                params={"pagina": 1, "registros_por_pagina": 1},
+                paso="T99_auditoria_final",
+            )
+            assert r_aud.status_code == 200, f"Error consultando auditoria en T99: HTTP {r_aud.status_code}: {c_t99.seguro(r_aud.text)}"
+            body_aud = r_aud.json()
+            total_final = body_aud.get("total")
+            items_aud = body_aud.get("items", [])
+            ultimo_id_final = items_aud[0].get("id_auditoria_suministro") if items_aud else None
+
+            assert total_final == _CONTEXTO["auditoria_inicial_total"], (
+                f"Falta de inocuidad en auditoria: total inicial={_CONTEXTO['auditoria_inicial_total']}, final={total_final}"
+            )
+            assert ultimo_id_final == _CONTEXTO["auditoria_inicial_ultimo_id"], (
+                f"Falta de inocuidad en auditoria: ultimo_id inicial={_CONTEXTO['auditoria_inicial_ultimo_id']}, final={ultimo_id_final}"
+            )
+
+            # 2. Verificar que los activos A, B y su historial responden 404
+            r_get_a = c_t99.get(f"/activos-biologicos/{id_a}", paso="T99_get_activo_a")
+            assert r_get_a.status_code == 404, (
+                f"Falta de inocuidad: GET /activos-biologicos/{id_a} respondio HTTP {r_get_a.status_code}"
+            )
+            r_get_b = c_t99.get(f"/activos-biologicos/{id_b}", paso="T99_get_activo_b")
+            assert r_get_b.status_code == 404, (
+                f"Falta de inocuidad: GET /activos-biologicos/{id_b} respondio HTTP {r_get_b.status_code}"
+            )
+            r_hist_a = c_t99.get(
+                "/suministros/historial",
+                params={"id_activo_biologico": id_a},
+                paso="T99_historial_activo_a",
+            )
+            assert r_hist_a.status_code == 404, (
+                f"Falta de inocuidad: historial de activo {id_a} respondio HTTP {r_hist_a.status_code}"
+            )
+        finally:
+            r_del_t99 = c_t99.cerrar()
+            if r_del_t99 is not None:
+                _CONTEXTO["delete_t99"] = {
+                    "status_code": r_del_t99.status_code,
+                    "body": r_del_t99.text,
+                }
+        del_t99 = _CONTEXTO.get("delete_t99") or {}
+        assert del_t99.get("status_code") == 200 and "Rollback exitoso" in del_t99.get("body", ""), (
+            f"T99 no cerro correctamente el sandbox: {del_t99}"
         )

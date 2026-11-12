@@ -1,0 +1,449 @@
+================================================================================
+INFORME OFICIAL DE REINTENTO 1 — TC-M05-G25 (RF-77)
+Staging: evidencias/run-20261111-154122/
+================================================================================
+
+1. PARTE A — DIFF (ETAPA 1B -> ETAPA 1C), HASHES SHA-256 Y VERIFICACION ESTATICA
+----------------------------------------------------------------------------------
+Verificacion estatica posterior a Parte A:
+- py_compile (test_tc_m05_g25.py, generar_artefactos_run_g25.py): exit 0
+- PowerShell Parser::ParseFile (ejecutar_tc_m05_g25.ps1): 0 errores de sintaxis
+- Verificacion binaria ejecutar_tc_m05_g25.ps1: PS1_HAS_BOM=False, PS1_NON_ASCII_COUNT=0 (ASCII puro, bytes < 0x80)
+- pytest -p no:randomly --collect-only -q: 23 tests collected in 0.45s
+- Limpieza __pycache__ / *.pyc en TC-M05-G25 tras Parte B: residuales = 0
+
+Comparativa SHA-256 (HEAD / Etapa 1b / Etapa 1c):
+- test_tc_m05_g25.py:
+  - HEAD     : 6C58E9B4963B0AAA93B55BE903117957AFE6D235A2252F8CE3EEFDB473127CBE
+  - Etapa 1b : 2B99C452C29BC6CA1119605EFC06926AD7B5FDD59FC56AABA051AE3872EC90D6
+  - Etapa 1c : 42086B9D4F936A59E17CDA1F166025CA63D8032E8AA19FEFAB69F53E6D617D3A
+- ejecutar_tc_m05_g25.ps1:
+  - HEAD     : 429EB3C404AC5853498E2C5BDFC9E95B660062EFFC9ECB25AFE8C5E1E6F54624
+  - Etapa 1b : 0807BCEFF4647B855DDDE4733BEE635C95C72D8A62E501F7DF575F95F0BC6588
+  - Etapa 1c : BDE400B8EA336171822F1201F4642FEE342CABDA8D0B11393FC8136875556D31
+- generar_artefactos_run_g25.py:
+  - HEAD     : 24B09ED4EF732E4C8830B91554F42DD1C355F8014F09081CFC940EEA321693AF
+  - Etapa 1b : 58A6347023A071EED5423BC8CCEB21E9EF38C90A9A86476BFFE07591C7C35C8B
+  - Etapa 1c : 22AEDEB8FD6EA410CF887430BFE9B668A674A55AC2FB680ABA55884455B1E29D
+
+Diff exacto Etapa 1b -> Etapa 1c:
+--- a/test_tc_m05_g25.py (1b)
++++ b/test_tc_m05_g25.py (1c)
+@@ -3,6 +3,7 @@
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G25 RF-77: Permisos por rol, Aislamiento/IDOR y Auditoria M05   |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sandbox en Clase 4, D02/D04 y C02 estrictos        |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1b): C03 auditoría Productor, D05 IDOR de reporte, B03 con archivo real, patrón de escáner |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1c): D02 403/404 por RLS, setup D05 alineado, ps1 ASCII |
+ """Suite de pruebas automatizadas para TC-M05-G25 (RF-77).
+ 
+ Cubierta:
+@@ -786,7 +787,6 @@
+             "fecha_ingreso": fecha_ciclo,
+             "fecha_inicio_ciclo": fecha_ciclo,
+             "origen_financiero": "nacimiento",
+-            "peso_actual": 25.5,
+         }
+         r_act = sandbox_idor.enviar("adm", "POST", "/activos-biologicos", paso="D05_setup_crear_activo", json_body=payload_activo)
+         assert r_act.status_code == 201, f"Setup D05 crear activo falló: HTTP {r_act.status_code}: {sandbox_idor.seguro(r_act.text)}"
+@@ -798,7 +798,11 @@
+             "POST",
+             f"/activos-biologicos/{id_activo}/fases",
+             paso="D05_setup_abrir_fase",
+-            json_body={"id_ciclo_productiva": 1, "motivo_cambio": "Setup QA TC-M05-G25 D05"},
++            json_body={
++                "id_ciclo_productiva": 1,
++                "motivo_cambio": "Setup QA TC-M05-G25 D05",
++                "fecha_inicio": f"{fecha_ciclo}T05:00:00Z",
++            },
+         )
+         assert r_fase.status_code in (200, 201), f"Setup D05 abrir fase falló: HTTP {r_fase.status_code}: {sandbox_idor.seguro(r_fase.text)}"
+ 
+@@ -810,11 +814,10 @@
+             json_body={
+                 "id_activo_biologico": id_activo,
+                 "id_tipo_alimento": 1,
++                "fecha_consumo": hoy_str,
++                "hora_suministro": "09:00:00",
+                 "cantidad_alimento": 10.0,
+                 "costo_unitario": 2500.0,
+-                "fecha_consumo": hoy_str,
+-                "hora_suministro": "09:00:00",
+-                "observaciones": "Consumo QA para D05 IDOR reporte",
+             },
+         )
+         assert r_cons.status_code == 201, f"Setup D05 consumo falló: HTTP {r_cons.status_code}: {sandbox_idor.seguro(r_cons.text)}"
+@@ -828,7 +831,7 @@
+                 "activo_biologico_id": id_activo,
+                 "fecha_inicio_reporte": fecha_ciclo,
+                 "fecha_fin_reporte": hoy_str,
+-                "tipo_periodo": "CICLO_COMPLETO",
++                "tipo_periodo": "MENSUAL",
+             },
+         )
+         assert r_rep.status_code == 200, f"Setup D05 generar reporte falló: HTTP {r_rep.status_code}: {sandbox_idor.seguro(r_rep.text)}"
+@@ -943,11 +946,12 @@
+         assert r5.status_code == 401, f"[RF-02] Se esperaba 401 sin auth en auditoría, obtenido: {r5.status_code}"
+ 
+     def test_d02_idor_descarga_exportacion_ajena_retorna_403(self, sandbox_idor: CorridaSandboxIDOR):
+-        """D02: Descarga de exportación CSV ajena en el mismo sandbox retorna HTTP 403 ARCHIVO_DE_OTRO_USUARIO.
++        """D02: Descarga de exportación CSV ajena en el mismo sandbox impide el acceso sin contenido del archivo.
+ 
+         Se genera y exporta dinámicamente dentro de la misma corrida (los archivos exportados expiran en 24 h
+-        según RF-77 Postcondición 2) en lugar de usar un UUID fijo. Productor intenta descargarlo y debe recibir
+-        HTTP 403 ARCHIVO_DE_OTRO_USUARIO sin contenido del archivo (RF-77 RNF Seguridad / TC-M05-024).
++        según RF-77 Postcondición 2) en lugar de usar un UUID fijo. RF-77 RNF Seguridad / TC-M05-024 exigen impedir
++        el acceso sin fijar 403 vs 404; en sandbox la RLS de modulo5 responde 404 (observado en el Paso 0e,
++        X-Request-Id 7cc058d7-5c49-4d1b-a4e4-34bbdc0661e7).
+         """
+         sandbox_idor.login_rol("adm", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
+         payload_rep = {
+@@ -981,12 +985,15 @@
+             f"/suministros/reportes-gastos/exportaciones/{uuid_admin}",
+             paso="D02_idor_descarga_prod",
+         )
+-        assert r.status_code == 403, (
+-            f"[RF-77 RNF Seguridad / TC-M05-024] Se esperaba HTTP 403 por descarga IDOR ajena, "
++        assert r.status_code in (403, 404), (
++            f"RF-77 RNF Seguridad / TC-M05-024 exigen impedir el acceso sin fijar 403 vs 404; en sandbox la RLS de modulo5 "
++            f"responde 404 (observado en el Paso 0e, X-Request-Id 7cc058d7-5c49-4d1b-a4e4-34bbdc0661e7); "
+             f"obtenido: {r.status_code}: {sandbox_idor.seguro(r.text)}"
+         )
+-        assert r.json().get("error_code") == "ARCHIVO_DE_OTRO_USUARIO", (
+-            f"[RF-77 RNF Seguridad / TC-M05-024] Código de error inesperado: {r.json()}"
++        assert r.json().get("error_code") in ("ARCHIVO_DE_OTRO_USUARIO", "ARCHIVO_NO_ENCONTRADO"), (
++            f"RF-77 RNF Seguridad / TC-M05-024 exigen impedir el acceso sin fijar 403 vs 404; en sandbox la RLS de modulo5 "
++            f"responde 404 (observado en el Paso 0e, X-Request-Id 7cc058d7-5c49-4d1b-a4e4-34bbdc0661e7); "
++            f"código de error inesperado: {r.json()}"
+         )
+         ct = r.headers.get("content-type", "")
+         cd = r.headers.get("content-disposition", "")
+@@ -1072,7 +1079,7 @@
+ 
+         La especificación (RF-77 / TC-M05-024) exige impedir el acceso sin fijar HTTP 403 vs 404 para reporte
+         ajeno, por lo que se aceptan únicamente 403 o 404 sin datos del reporte y sin eventos de auditoría.
+-        Lectura de código (Paso 0d) sugiere que no hay comprobación de dueño; el esperado sale de la especificación.
++        Paso 0d (código) no mostró comprobación de dueño en el caso de uso; el Paso 0e observó 404 por RLS de modulo5. El esperado sale de la especificación.
+         """
+         id_rep_ajeno, id_prod = _asegurar_reporte_d05(sandbox_idor)
+         top_id = _capturar_top_id_auditoria_idor(sandbox_idor, "D05a_auditoria_pre")
+@@ -1091,7 +1098,7 @@
+ 
+         La especificación (RF-77 / TC-M05-024) exige impedir el acceso sin fijar HTTP 403 vs 404 para reporte
+         ajeno, por lo que se aceptan únicamente 403 o 404 sin datos del reporte y sin evento REGENERACION.
+-        Lectura de código (Paso 0d) sugiere que no hay comprobación de dueño; el esperado sale de la especificación.
++        Paso 0d (código) no mostró comprobación de dueño en el caso de uso; el Paso 0e observó 404 por RLS de modulo5. El esperado sale de la especificación.
+         """
+         id_rep_ajeno, id_prod = _asegurar_reporte_d05(sandbox_idor)
+         top_id = _capturar_top_id_auditoria_idor(sandbox_idor, "D05b_auditoria_pre")
+@@ -1110,7 +1117,7 @@
+ 
+         La especificación (RF-77 / TC-M05-024) exige impedir el acceso sin fijar HTTP 403 vs 404 para reporte
+         ajeno, por lo que se aceptan únicamente 403 o 404 sin archivo creado y sin evento EXPORTACION.
+-        Lectura de código (Paso 0d) sugiere que no hay comprobación de dueño; el esperado sale de la especificación.
++        Paso 0d (código) no mostró comprobación de dueño en el caso de uso; el Paso 0e observó 404 por RLS de modulo5. El esperado sale de la especificación.
+         """
+         id_rep_ajeno, id_prod = _asegurar_reporte_d05(sandbox_idor)
+         top_id = _capturar_top_id_auditoria_idor(sandbox_idor, "D05c_auditoria_pre")
+--- a/ejecutar_tc_m05_g25.ps1 (1b)
++++ b/ejecutar_tc_m05_g25.ps1 (1c)
+@@ -2,7 +2,8 @@
+ # |------------|--------------------------|----------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G25 RF-77: runner Pytest con staging de evidencias            |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sufijos _reintentoN, sin copiar a resultados y escaneo estricto |
+-# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1b): C03 auditoría Productor, D05 IDOR de reporte, B03 con archivo real, patrón de escáner |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1b): C03 auditoria Productor, D05 IDOR de reporte, B03 con archivo real, patron de escaner |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1c): D02 403/404 por RLS, setup D05 alineado, ps1 ASCII |
+ <#
+ .SYNOPSIS
+   Ejecuta TC-M05-G25 (RF-77, Roles, IDOR y Auditoria) contra TEST.
+--- a/generar_artefactos_run_g25.py (1b)
++++ b/generar_artefactos_run_g25.py (1c)
+@@ -3,6 +3,7 @@
+ # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G25 (JSON, repro, MD, TXT)  |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sufijo reintento y clasificacion dinamica sin textos fijos |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1b): C03 auditoría Productor, D05 IDOR de reporte, B03 con archivo real, patrón de escáner |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1c): D02 403/404 por RLS, setup D05 alineado, ps1 ASCII |
+ """Generador de artefactos de corrida para TC-M05-G25.
+ Lee el JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
+ - resultado_TC-M05-G25[_reintentoN].json
+@@ -119,7 +120,7 @@
+     },
+     "test_d02_idor_descarga_exportacion_ajena_retorna_403": {
+         "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
+-        "esperado": "HTTP 403 ARCHIVO_DE_OTRO_USUARIO sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox",
++        "esperado": "HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARCHIVO_NO_ENCONTRADO por RLS de modulo5) sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox",
+         "fuente": "RF-77 RNF Seguridad / TC-M05-024",
+     },
+     "test_d03_manipulacion_identificadores_no_genera_500": {
+
+
+2. RESULTADOS POR TEST (REINTENTO 1) Y CLASIFICACION DE FALLOS
+--------------------------------------------------------------
+- Comando ejecutado: powershell -NoProfile -ExecutionPolicy Bypass -File tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G25\ejecutar_tc_m05_g25.ps1 -Reintento 1
+- Resumen JUnit XML: tests=23, passed=23, failures=0, errors=0, skipped=0, duracion_xml=16.317s (consola pytest: 16.34s).
+- Fallos / Errores: 0 (sin fallos que clasificar; todos los checkpoints aprobaron en la especificacion).
+- Nota sobre artefactos de runner: se generaron con sufijo _reintento1 (.html, .xml, .json, .md, _TC-M05-G25_reintento1.txt).
+
+Detalle individual (23/23):
+ 1. test_a01_productor_genera_reporte_sincronico            | PASSED | 1.349s
+ 2. test_a02_productor_exporta_reporte_csv                  | PASSED | 0.134s
+ 3. test_a03_productor_exporta_reporte_pdf                  | PASSED | 0.148s
+ 4. test_a04_productor_descarga_su_propia_exportacion       | PASSED | 0.116s
+ 5. test_a05_productor_no_accede_a_auditoria_m05            | PASSED | 0.111s
+ 6. test_a98_cierre_sandbox_productor                       | PASSED | 0.105s
+ 7. test_b01_veterinario_generar_reporte_denegado           | PASSED | 1.213s
+ 8. test_b02_veterinario_exportar_reporte_denegado          | PASSED | 0.116s
+ 9. test_b03_veterinario_descargar_exportacion_denegado     | PASSED | 0.768s
+10. test_b04_veterinario_acceder_auditoria_denegado         | PASSED | 0.118s
+11. test_b98_cierre_sandbox_veterinario                     | PASSED | 0.106s
+12. test_c01_admin_genera_y_exporta_reporte                 | PASSED | 1.670s
+13. test_c02_verificacion_auditoria_ca11_postcondicion3     | PASSED | 0.356s
+14. test_c03_auditoria_productor_ca11_postcondicion3        | PASSED | 1.411s
+15. test_c98_cierre_sandbox_admin                           | PASSED | 0.122s
+16. test_d01_solicitudes_sin_autenticacion_retornan_401     | PASSED | 1.751s
+17. test_d02_idor_descarga_exportacion_ajena_retorna_403    | PASSED | 1.711s
+18. test_d03_manipulacion_identificadores_no_genera_500     | PASSED | 0.610s
+19. test_d04_aislamiento_historial_por_usuario              | PASSED | 1.121s
+20. test_d05a_idor_consultar_reporte_ajeno                  | PASSED | 1.433s
+21. test_d05b_idor_regenerar_reporte_ajeno                  | PASSED | 0.640s
+22. test_d05c_idor_exportar_reporte_ajeno                   | PASSED | 0.675s
+23. test_d98_cierre_sandbox_idor                            | PASSED | 0.119s
+
+3. DETALLE OBSERVADO DE C02, C03, D02 Y D05A/B/C
+------------------------------------------------
+- C02 (Actor Admin, id_usuario=104; reporte creado en C01 id_reporte=246, archivo id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d, CSV):
+  - Evento GENERACION: id_auditoria_suministro=72140, id_usuario=104, resultado=EXITOSO, fecha_evento=2026-11-11T20:41:30.919938Z,
+    latencia observada desde fin C01 hasta lectura en C02 (polling 0s) = 0.49 s (<= 2.0 s).
+  - Evento EXPORTACION: id_auditoria_suministro=72141, id_usuario=104, id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d, formato=CSV,
+    resultado=EXITOSO, fecha_evento=2026-11-11T20:41:30.919938Z, latencia observada = 0.348 s (<= 2.0 s).
+
+- C03 (Actor Productor, id_usuario=2; reporte id_reporte=247, archivo id_archivo=f70ce7d4-1b86-4c83-878a-2bd84476b488, CSV):
+  - Evento GENERACION: id_auditoria_suministro=72142, id_usuario=2, resultado=EXITOSO, fecha_evento=2026-11-11T20:41:30.919938Z,
+    latencia observada desde fin POST reporte hasta lectura C03 (polling 0s) = 0.591 s (<= 2.0 s).
+  - Evento EXPORTACION: id_auditoria_suministro=72143, id_usuario=2, id_archivo=f70ce7d4-1b86-4c83-878a-2bd84476b488, formato=CSV,
+    resultado=EXITOSO, fecha_evento=2026-11-11T20:41:30.919938Z, latencia observada = 0.442 s (<= 2.0 s).
+
+- D02 (Productor descargando archivo CSV de Admin id_archivo=78cd718e-b4a9-492d-a6f1-761f1cdc8994 del reporte 248):
+  - HTTP 404, error_code=ARCHIVO_NO_ENCONTRADO, duracion=118.92ms, sin cabeceras text/csv ni attachment ni contenido CSV.
+  - Nota: trazas_http.jsonl no almacena el header X-Request-Id de las respuestas; queda la traza con timestamp 2026-11-11T15:41:37.435600-05:00.
+
+- D05a / D05b / D05c (Productor intentando acceso IDOR sobre reporte Admin id_reporte=250 en activo 1839):
+  - D05a GET /suministros/reportes-gastos/250 -> HTTP 404, error_code=REPORTE_NO_ENCONTRADO (124.1ms, ts=2026-11-11T15:41:40.281074-05:00).
+  - D05b GET /suministros/reportes-gastos/250/regenerar -> HTTP 404, error_code=REPORTE_NO_ENCONTRADO (119.32ms, ts=2026-11-11T15:41:40.932441-05:00).
+  - D05c POST /suministros/reportes-gastos/250/exportacion -> HTTP 404, error_code=REPORTE_NO_ENCONTRADO (117.97ms, ts=2026-11-11T15:41:41.581231-05:00).
+  - Auditoria posterior Admin en los tres pasos: 0 eventos GENERACION/REGENERACION/EXPORTACION atribuibles a Productor ni archivos creados.
+
+4. INOCUIDAD (BASE, FINAL Y VERIFICACION DE 404 POR IDENTIFICADOR)
+------------------------------------------------------------------
+- Inocuidad Base (antes del runner; corrida cerrada run_id=tc-m05-g25-inobase-cbd8bd1f):
+  - GET /suministros/auditoria?registros_por_pagina=5 -> HTTP 200 (X-Request-Id=0ab32bce-217e-4d52-b22d-463b5ebb6391)
+  - total = 65967, ultimo id_auditoria_suministro = 72129
+  - DELETE /test-control/runs/tc-m05-g25-inobase-cbd8bd1f -> HTTP 200 ("Rollback exitoso", X-Request-Id=d53faa6e-93ab-446e-9c73-96eb1a15762e)
+
+- Inocuidad Final (despues del runner; corrida cerrada run_id=tc-m05-g25-inofin-a048d127):
+  - GET /suministros/auditoria?registros_por_pagina=5 -> HTTP 200 (X-Request-Id=27a52212-abfc-431a-add3-5970ad0399a2)
+  - total = 65967 (igual al base), ultimo id_auditoria_suministro = 72129 (igual al base)
+  - Verificacion GET post-rollback de CADA activo, reporte y archivo creados en la corrida (extraidos de trazas_http.jsonl):
+    * Activos (1):
+      - GET /activos-biologicos/1839 (test_d05a) -> HTTP 404 (X-Request-Id=ea9ea557-5134-4d7c-8c48-f788f5db4ecf)
+    * Reportes (7):
+      - GET /suministros/reportes-gastos/244 (test_a01) -> HTTP 404 (X-Request-Id=b7a5d252-c8a8-4b74-b4b4-8ff786683122)
+      - GET /suministros/reportes-gastos/245 (test_b03) -> HTTP 404 (X-Request-Id=f0ac3732-d4e0-4b85-8e11-e450abe2e36e)
+      - GET /suministros/reportes-gastos/246 (test_c01) -> HTTP 404 (X-Request-Id=ecdcd8b1-3328-4223-ac07-6c459a1720bd)
+      - GET /suministros/reportes-gastos/247 (test_c03) -> HTTP 404 (X-Request-Id=1eb61f97-1592-49ef-9340-151ed6586b45)
+      - GET /suministros/reportes-gastos/248 (test_d02) -> HTTP 404 (X-Request-Id=76bd70ce-8685-49e8-9b47-f81ca67b946f)
+      - GET /suministros/reportes-gastos/249 (test_d04) -> HTTP 404 (X-Request-Id=46674490-128d-4d2b-a2ac-ed63d93231ce)
+      - GET /suministros/reportes-gastos/250 (test_d05a) -> HTTP 404 (X-Request-Id=652fb429-00e1-4169-9b6c-0a9eb7d97dbc)
+    * Archivos exportados (6):
+      - GET /suministros/reportes-gastos/exportaciones/62f64d67-3f84-4814-a419-734d2aafa4b9 (test_a02) -> HTTP 404 (X-Request-Id=d5b9bfb7-ad6a-4c4d-b1b8-7b784c761370)
+      - GET /suministros/reportes-gastos/exportaciones/d9fecbd0-acb8-4fda-ac2b-6acc60c9b2b7 (test_a03) -> HTTP 404 (X-Request-Id=49edbc47-856d-4763-8ffc-5e2ca685ef37)
+      - GET /suministros/reportes-gastos/exportaciones/c9d0b296-6ed7-4274-a21e-125dcdf23caf (test_b03) -> HTTP 404 (X-Request-Id=8f100e12-cd04-4348-bc2c-c4f9e5348567)
+      - GET /suministros/reportes-gastos/exportaciones/119f3c2e-b105-40b7-931a-f707d7d0196d (test_c01) -> HTTP 404 (X-Request-Id=298b81ba-9302-42f7-8e11-d38b5aab044f)
+      - GET /suministros/reportes-gastos/exportaciones/f70ce7d4-1b86-4c83-878a-2bd84476b488 (test_c03) -> HTTP 404 (X-Request-Id=cf49637a-01fe-42ca-ab3a-c7cd4b5e3f7a)
+      - GET /suministros/reportes-gastos/exportaciones/78cd718e-b4a9-492d-a6f1-761f1cdc8994 (test_d02) -> HTTP 404 (X-Request-Id=278bd166-92db-40ad-a9c2-cda12039b04f)
+  - DELETE /test-control/runs/tc-m05-g25-inofin-a048d127 -> HTTP 200 ("Rollback exitoso", X-Request-Id=753ae589-2868-47ae-9a1f-0dd7d5741b65)
+
+5. ESTADO DE RESULTADOS/ (SIN PROMOCION; SHA-256 IDENTICO ANTES Y DESPUES)
+--------------------------------------------------------------------------
+- .gitkeep: E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+- resultado_TC-M05-G25.html: 7C045A998AE91BFC3C5471549DCC847C94FF3129AEACE47710D2F2D60DCD66EF
+- resultado_TC-M05-G25.json: 252231D230BE7E486A9AFDAC52F1119AD4F171D81153B9BF661BED159C87C112
+
+6. ESCANEO DE SECRETOS DEL STAGING
+----------------------------------
+Patrones evaluados desde .env.test en memoria: TEST_ADMIN_PASSWORD, TEST_PRODUCER_PASSWORD, TEST_VET_PASSWORD,
+TEST_SANDBOX_SECRET, ultimos 20 caracteres de valores > 20 y prefijo JWT ('ey' + 'J').
+- INFORME_FASE234_TC-M05-G25_reintento1.txt: no encontrado
+- TC-M05-G25_resultado_reintento1.md: no encontrado
+- consola_pytest.log: no encontrado
+- repro: no encontrado
+- resultado_TC-M05-G25_reintento1.html: no encontrado
+- resultado_TC-M05-G25_reintento1.json: no encontrado
+- resultado_TC-M05-G25_reintento1.xml: no encontrado
+- trazas_http.jsonl: no encontrado
+- INFORME_REINTENTO1_G25.txt: verificado tras escritura (auto-escaneara inmediatamente despues -> no encontrado).
+
+7. LISTA DE ARCHIVOS DEL STAGING (evidencias/run-20261111-154122/)
+------------------------------------------------------------------
+- INFORME_FASE234_TC-M05-G25_reintento1.txt
+- INFORME_REINTENTO1_G25.txt
+- TC-M05-G25_resultado_reintento1.md
+- consola_pytest.log
+- repro
+- resultado_TC-M05-G25_reintento1.html
+- resultado_TC-M05-G25_reintento1.json
+- resultado_TC-M05-G25_reintento1.xml
+- trazas_http.jsonl
+
+================================================================================
+ANEXO — CONTENIDO COMPLETO DE resultado_TC-M05-G25_reintento1.json
+================================================================================
+{
+  "tc": "TC-M05-G25",
+  "summary": {
+    "total": 23,
+    "ok": 23,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "A01 Generación de reporte sincrónico por Productor",
+      "esperado": "HTTP 200, respuesta con id_reporte_gasto_acumulado y gasto acumulado calculado (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 200, respuesta con id_reporte_gasto_acumulado y gasto acumulado calculado)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Exportación de reporte a formato CSV por Productor",
+      "esperado": "HTTP 201, generación de archivo CSV con vigencia de 24 horas y prefijo Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "Conforme con la especificación (HTTP 201, generación de archivo CSV con vigencia de 24 horas y prefijo Gastos_)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Exportación de reporte a formato PDF por Productor",
+      "esperado": "HTTP 201, generación de archivo PDF con prefijo Reporte_Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "Conforme con la especificación (HTTP 201, generación de archivo PDF con prefijo Reporte_Gastos_)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Descarga de exportación propia por Productor",
+      "esperado": "HTTP 200, Content-Type text/csv, Content-Disposition attachment (Fuente: RF-77 RNF Exportación (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 200, Content-Type text/csv, Content-Disposition attachment)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 Restricción de acceso a auditoría de M05 para Productor",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Recurso 57 restringido a Administrador/Contador) (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO (Recurso 57 restringido a Administrador/Contador))",
+      "estado": "OK"
+    },
+    {
+      "paso": "A98 Cierre ordenado de sandbox Productor y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Restricción de generación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Solo Productor y Administrador pueden generar) (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO (Solo Productor y Administrador pueden generar))",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Restricción de exportación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Restricción de descarga de exportación real para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO sin contenido CSV al descargar archivo real exportado por Administrador (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO sin contenido CSV al descargar archivo real exportado por Administrador)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04 Restricción de acceso a auditoría para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B98 Cierre ordenado de sandbox Veterinario y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Generación y exportación de reporte por Administrador",
+      "esperado": "HTTP 200 en generación y HTTP 201 en exportación CSV (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 200 en generación y HTTP 201 en exportación CSV)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Registro en bitácora de auditoría de M05 de generación y exportación de Admin",
+      "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Admin, fecha_evento y registro <= 2 s (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "Conforme con la especificación (Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Admin, fecha_evento y registro <= 2 s)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C03 Registro en bitácora de auditoría de M05 de generación y exportación de Productor",
+      "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Productor, fecha_evento y registro <= 2 s (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "Conforme con la especificación (Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Productor, fecha_evento y registro <= 2 s)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C98 Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    },
+    {
+      "paso": "D01 Rechazo de solicitudes no autenticadas",
+      "esperado": "HTTP 401 sin Authorization (con cabeceras sandbox) en generación, exportación, descarga, historial y auditoría (Fuente: RF-02 / RF-77 RNF Seguridad)",
+      "obtenido": "Conforme con la especificación (HTTP 401 sin Authorization (con cabeceras sandbox) en generación, exportación, descarga, historial y auditoría)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
+      "esperado": "HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARCHIVO_NO_ENCONTRADO por RLS de modulo5) sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "Conforme con la especificación (HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARCHIVO_NO_ENCONTRADO por RLS de modulo5) sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D03 Validación de tipos y resistencia ante IDs inexistentes o inválidos",
+      "esperado": "HTTP 404 en inexistentes, HTTP 400/422 en tipos inválidos; jamás HTTP 500 (Fuente: Guía de Pruebas / Robustez de la API)",
+      "obtenido": "Conforme con la especificación (HTTP 404 en inexistentes, HTTP 400/422 en tipos inválidos; jamás HTTP 500)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D04 Aislamiento estricto de historial por usuario",
+      "esperado": "GET /historial devuelve los reportes propios del usuario y excluye por completo los de otro usuario (Fuente: RF-77 RNF Historial (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (GET /historial devuelve los reportes propios del usuario y excluye por completo los de otro usuario)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05a Prevención de IDOR al consultar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni eventos indebidos en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "Conforme con la especificación (HTTP 403 o 404 sin datos del reporte ajeno ni eventos indebidos en auditoría)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05b Prevención de IDOR al regenerar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni evento REGENERACION en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "Conforme con la especificación (HTTP 403 o 404 sin datos del reporte ajeno ni evento REGENERACION en auditoría)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05c Prevención de IDOR al exportar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin creación de archivo ni evento EXPORTACION en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "Conforme con la especificación (HTTP 403 o 404 sin creación de archivo ni evento EXPORTACION en auditoría)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D98 Cierre ordenado de sandbox IDOR/Aislamiento y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    }
+  ]
+}

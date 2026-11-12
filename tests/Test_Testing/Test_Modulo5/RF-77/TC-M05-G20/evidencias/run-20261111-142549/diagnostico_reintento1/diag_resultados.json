@@ -1,0 +1,202 @@
+{
+  "fecha_ejecucion": "2026-11-11T14:28:34.304596-05:00",
+  "fecha_ciclo": "2026-11-01",
+  "fecha_hoy": "2026-11-11",
+  "pasos": [
+    {
+      "id": "P01",
+      "origen": "[especificación]",
+      "esperado": "200, total 50000, promedio 1000 (decimal, no string)",
+      "veredicto": "OK",
+      "detalle_tipo_json": "tipo JSON recibido=str",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": 234,
+      "gasto_total_acumulado": "50000.0000",
+      "cantidad_actual": 50,
+      "gasto_promedio_individuo": "1000.0000",
+      "gasto_promedio_tipo_json": "str",
+      "causa_no_calculable_promedio": null,
+      "nota_bajas": null,
+      "advertencia": null,
+      "estado": "GENERADO",
+      "x_request_id": "0bbacae6-a9bc-4668-80aa-7b7086a5414e"
+    },
+    {
+      "id": "P02",
+      "origen": "[especificación]",
+      "esperado": "201, cantidad_actual = 0",
+      "http": 201,
+      "error_code": null,
+      "cantidad_actual": 0,
+      "estado_activo": 6,
+      "x_request_id": "ffc56711-81be-49f2-89ea-651da80593c8",
+      "veredicto": "OK"
+    },
+    {
+      "id": "P03",
+      "origen": "[especificación R6]",
+      "esperado": "200, promedio 'NO_CALCULABLE' (str), causa informada, nota 50 bajas",
+      "veredicto": "OK",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": 235,
+      "gasto_total_acumulado": "50000.0000",
+      "cantidad_actual": 0,
+      "gasto_promedio_individuo": "NO_CALCULABLE",
+      "gasto_promedio_tipo_json": "str",
+      "causa_no_calculable_promedio": "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.",
+      "nota_bajas": "El lote registró 50 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.",
+      "advertencia": null,
+      "estado": "GENERADO",
+      "x_request_id": "280453eb-3543-47bf-aa74-e0e96512ac4a"
+    },
+    {
+      "id": "P04",
+      "origen": "[contrato Dev]",
+      "esperado": "200, snapshot R2 con 'NO_CALCULABLE' + causa",
+      "veredicto": "OK",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": 235,
+      "gasto_total_acumulado": "50000.0000",
+      "cantidad_actual": 0,
+      "gasto_promedio_individuo": "NO_CALCULABLE",
+      "gasto_promedio_tipo_json": "str",
+      "causa_no_calculable_promedio": "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.",
+      "nota_bajas": "El lote registró 50 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.",
+      "advertencia": null,
+      "estado": "GENERADO",
+      "x_request_id": "b6652b8b-0095-4ce3-84e2-f114dd2d4404"
+    },
+    {
+      "id": "P05",
+      "origen": "[contrato Dev]",
+      "esperado": "200, snapshot R1 promedio original 1000, sin causa",
+      "veredicto": "OK",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": 234,
+      "gasto_total_acumulado": "50000.0000",
+      "cantidad_actual": 50,
+      "gasto_promedio_individuo": "1000.0000",
+      "gasto_promedio_tipo_json": "str",
+      "causa_no_calculable_promedio": null,
+      "nota_bajas": null,
+      "advertencia": null,
+      "estado": "GENERADO",
+      "x_request_id": "90f64361-0784-46c1-9035-aa1c85db5fce"
+    },
+    {
+      "id": "P06",
+      "origen": "[contrato Dev]",
+      "esperado": "200, historial contiene R1 (1000, sin causa) y R2 ('NO_CALCULABLE' + causa)",
+      "http": 200,
+      "error_code": null,
+      "total_historial": 20,
+      "r1_en_historial": {
+        "id_reporte": 234,
+        "gasto_promedio_individuo": "1000.0000",
+        "causa_no_calculable_promedio": null
+      },
+      "r2_en_historial": {
+        "id_reporte": 235,
+        "gasto_promedio_individuo": "NO_CALCULABLE",
+        "causa_no_calculable_promedio": "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo."
+      },
+      "x_request_id": "ae6d7010-6682-483d-9faa-9bb43486357e",
+      "veredicto": "OK"
+    },
+    {
+      "id": "P07",
+      "origen": "[especificación RNF + Dev]",
+      "esperado": "200, 'NO_CALCULABLE' + causa y advertencia de regeneracion RNF",
+      "veredicto": "OK",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": null,
+      "gasto_total_acumulado": "50000.0000",
+      "cantidad_actual": 0,
+      "gasto_promedio_individuo": "NO_CALCULABLE",
+      "gasto_promedio_tipo_json": "str",
+      "causa_no_calculable_promedio": "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.",
+      "nota_bajas": "El lote registró 50 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.",
+      "advertencia": "Este reporte fue generado originalmente el 2026-11-11T19:28:34+00:00. Los datos mostrados corresponden al estado actual del sistema y pueden diferir del reporte original si hubo modificaciones en los registros del período consultado. Se recomienda exportar y guardar el reporte si requiere conservar los valores exactos.",
+      "estado": "GENERADO",
+      "x_request_id": "3b3cf5c5-eb38-4304-b4e3-8e136adf62fe"
+    },
+    {
+      "id": "P08",
+      "origen": "[contrato Dev]",
+      "esperado": "200, activo INDIVIDUAL 853 -> gasto_promedio_individuo null, sin causa",
+      "veredicto": "OK",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": 236,
+      "gasto_total_acumulado": "10000.0000",
+      "cantidad_actual": null,
+      "gasto_promedio_individuo": null,
+      "gasto_promedio_tipo_json": "null",
+      "causa_no_calculable_promedio": null,
+      "nota_bajas": null,
+      "advertencia": null,
+      "estado": "GENERADO",
+      "x_request_id": "132d9c54-641d-4c3e-80b7-29db9e72f2ce"
+    },
+    {
+      "id": "P09",
+      "origen": "[caso G20 subcaso 2]",
+      "esperado": "200, total 1000000, promedio 10000 (decimal)",
+      "veredicto": "OK",
+      "detalle_tipo_json": "tipo JSON recibido=str",
+      "http": 200,
+      "error_code": null,
+      "id_reporte": 237,
+      "gasto_total_acumulado": "1000000.0000",
+      "cantidad_actual": 100,
+      "gasto_promedio_individuo": "10000.0000",
+      "gasto_promedio_tipo_json": "str",
+      "causa_no_calculable_promedio": null,
+      "nota_bajas": null,
+      "advertencia": null,
+      "estado": "GENERADO",
+      "x_request_id": "d1cd5836-1b26-487b-8296-354db56fc35a"
+    }
+  ],
+  "login": {
+    "http": 200,
+    "x_request_id": "69553e60-ae06-4758-bcaf-08e6ecb78db1"
+  },
+  "id_lote_1": 1824,
+  "id_lote_2": 1825,
+  "async_polling_nota": "No probado (requiere > 12 meses); fuera de alcance, ver G24.",
+  "teardown": {
+    "http": 200,
+    "x_request_id": "0e7e82b5-a30e-4e8b-b06d-539ce79fd02e",
+    "body": "{\"status\":\"Rollback exitoso\"}"
+  },
+  "inocuidad": {
+    "base": {
+      "historial_total": 100,
+      "http": 200,
+      "x_request_id": "c5159843-27ae-4f82-9c71-42b1e425bd2e",
+      "items_len": 100
+    },
+    "teardown_base": {
+      "http": 200,
+      "x_request_id": "e00e03cc-74c9-4a95-9e1c-7e709c54e993",
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "final": {
+      "historial_total": 100,
+      "http": 200,
+      "x_request_id": "d12ddda2-b804-4c9e-ae6c-f7429cb45166",
+      "items_len": 100
+    },
+    "teardown_final": {
+      "http": 200,
+      "x_request_id": "1d3bc5cf-fccc-43bd-9163-ff98bca0f87d",
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  }
+}

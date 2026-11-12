@@ -1,0 +1,817 @@
+================================================================================
+INFORME DE REEVALUACIÓN — TC-M05-G20 (RF-77) — REINTENTO 1
+Fecha: 2026-11-11
+Staging: tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/evidencias/run-20261111-142549/
+INC corregido: INC-M05-277-G20 (Dev #963: gasto_promedio_individuo = "NO_CALCULABLE"
+               con cantidad_actual = 0, causa conservada, promedio y causa
+               persistidos en el snapshot, sin migración)
+================================================================================
+
+1) PASO 0 — INTEGRIDAD SHA-256 Y PUNTO DE PARTIDA
+--------------------------------------------------------------------------------
+A. Integridad SHA-256 (inicial y final):
+  - test_tc_m05_g20.py:
+      Inicial: 064297A758AEFC5DD429A7E289ACB836595E1AE98ED4FED13617BBFEDFA08471
+      Final  : 064297A758AEFC5DD429A7E289ACB836595E1AE98ED4FED13617BBFEDFA08471 (COINCIDE, sin modificaciones)
+  - ejecutar_tc_m05_g20.ps1:
+      Inicial: EC8A453B911A11B87949E0D8985D28E8F6BD4A65C42339B155BA2526A2866EBB
+      Final  : EC8A453B911A11B87949E0D8985D28E8F6BD4A65C42339B155BA2526A2866EBB (COINCIDE, sin modificaciones)
+
+B. Resultado de ronda 1 (resultados/resultado_TC-M05-G20.json):
+  - summary: {"total": 7, "ok": 6, "falla": 1, "veredicto": "Rechazado"}
+  - Checkpoints OK (6): T00, A01, A02, B01, T98, T99.
+  - Checkpoint FALLA (1): "B02 Gasto promedio no calculable en lote poblacional con baja total"
+    (esperado gasto_promedio_individuo='NO_CALCULABLE'; obtenido null con AssertionError).
+
+C. Aserciones literales de B02 (test_tc_m05_g20.py, líneas 638-660):
+  - assert r_rep.status_code == 200
+  - total_obtenido = Decimal(str(rep["gasto_total_acumulado"]))
+  - assert total_obtenido == Decimal("50000.0000")
+  - promedio_obtenido = rep.get("gasto_promedio_individuo")
+  - assert promedio_obtenido == "NO_CALCULABLE"
+  - causa_obtenida = rep.get("causa_no_calculable_promedio") or ""
+  - causa_esperada = "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo."
+  - assert causa_obtenida == causa_esperada  (bloque repetido 2 veces en líneas 650-654 y 656-660)
+  - Nota de bajas en B02: B02 NO verifica nota_bajas (esa aserción existe únicamente en B01, líneas 564-568).
+  - B02 SÍ exige el literal "NO_CALCULABLE" y la causa esperada: pasa el control de Paso 0.
+
+D. Capacidades del runner (ejecutar_tc_m05_g20.ps1):
+  - Acepta parámetro `param([int]$Reintento = 0)` (-Reintento N).
+  - Redirige salida a `evidencias/run-<yyyyMMdd-HHmmss>/` (`$env:TEST_EVIDENCE_DIR`), genera HTML
+    --self-contained-html, JUnit XML y `console_execution.log` (`Out-File -Encoding utf8`), y ejecuta
+    `generar_artefactos_run_g20.py`.
+  - Nota operativa: las líneas 270-275 del runner copian automáticamente `resultado_TC-M05-G20_reintentoN.{html,json}`
+    a `resultados/`. Para honrar la regla dura "NO escribas en resultados/" sin modificar el runner, se eliminaron
+    únicamente esas dos copias recién promovidas tras finalizar el runner, dejando `resultados/` intacto con
+    los 3 archivos previos (.gitkeep, resultado_TC-M05-G20.html, resultado_TC-M05-G20.json).
+
+2) PASO 1 — CONTROL DE DESPLIEGUE (GATE) Y LECTURA DE CÓDIGO
+--------------------------------------------------------------------------------
+A. HECHO OBSERVADO EN TEST (GET {TEST_BASE_URL}/openapi.json con cabeceras sandbox):
+  - GET /openapi.json -> HTTP 200 | X-Request-ID: 5832b33a-6c81-4fd7-9c68-3a1d7a8c11fe
+  - paths["/suministros/reportes-gastos"]["post"]["responses"]["200"] aparece sin ref inline (`{}`) porque
+    el endpoint devuelve dinámicamente 200 (`ReporteGastoResponse`) o 202 (`TrabajoReporteResponse`).
+  - En `components.schemas.ReporteGastoResponse.properties`:
+      * gasto_promedio_individuo:
+        {"anyOf": [{"type": "string", "pattern": "^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$"}, {"type": "string", "const": "NO_CALCULABLE"}, {"type": "null"}], "title": "Gasto Promedio Individuo"}
+      * causa_no_calculable_promedio:
+        {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Causa No Calculable Promedio"}
+  - Cierre sandbox (`DELETE /test-control/runs/gate-g20-e325e1c7531e`): HTTP 404 `{"detail":"Run ID no encontrado."}`
+    (el endpoint `/openapi.json` no abrió transacción en BD / sandbox manager; X-Request-ID: 23376cc7-da34-441c-a6cb-7ac553af1829).
+  - Veredicto del GATE: APROBADO (`const: "NO_CALCULABLE"` presente en `/openapi.json` de TEST).
+
+B. LECTURA DE CÓDIGO LOCAL (no constituye prueba de despliegue en TEST):
+  - `ReporteGastoResponse` (`src/supplies/infrastructure/schema/reporte_gasto_schema.py`, líneas 49-78):
+      * Admite `gasto_promedio_individuo: Decimal | Literal["NO_CALCULABLE"] | None` (l. 58).
+      * `@model_validator(mode="after") def representar_promedio_no_calculable` (ll. 72-78): convierte `None` a `"NO_CALCULABLE"` cuando `causa_no_calculable_promedio` tiene valor.
+  - Persistencia de snapshot (`src/supplies/infrastructure/repositories/reporte_gasto_repository.py`, ll. 105-125 y 145-155):
+      * SÍ existe `"resumen_promedio"` dentro de `orm.json_parametros` con `"gasto_promedio_individuo"` y `"causa_no_calculable_promedio"`.
+  - Endpoints en `src/supplies/infrastructure/routers/reporte_gastos_router.py` (prefijo `/suministros/reportes-gastos`):
+      * Consultar un reporte: `GET /suministros/reportes-gastos/{id_reporte_gasto_acumulado}` (path param int, `ReporteGastoResponse`).
+      * Ver historial: `GET /suministros/reportes-gastos/historial` (query param `limite: int = 20` [1..100], `HistorialReportesResponse`).
+      * Regenerar un reporte: `GET /suministros/reportes-gastos/{id_reporte_gasto_acumulado}/regenerar` (path param int, `ReporteGastoResponse` con `advertencia`).
+
+3) PASO 2 — EVALUACIÓN OFICIAL (REINTENTO 1)
+--------------------------------------------------------------------------------
+Comando ejecutado:
+  powershell -ExecutionPolicy Bypass -File "tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/ejecutar_tc_m05_g20.ps1" -Reintento 1
+
+Resultado global (JUnit XML / pytest):
+  Total ejecutados: 7 | Passed: 7 | Failed: 0 | Errors: 0 | Skipped: 0 | Duración: 7.23s (pytest) / 7.212s (JUnit)
+  - test_00_setup_linea_base                        -> PASSED (1.315s)
+  - test_a01_consolidado_y_anulacion                -> PASSED (2.088s)
+  - test_a02_filtro_categorias_incluidas            -> PASSED (0.134s)
+  - test_b01_lote_poblacional_promedio_y_bajas      -> PASSED (1.036s)
+  - test_b02_lote_poblacional_baja_total_no_calculable -> PASSED (0.894s)
+  - test_98_cierre_sandbox                          -> PASSED (0.105s)
+  - test_99_inocuidad_final                         -> PASSED (1.289s)
+  Fallos clasificados: Ninguno (0 fallos, 0 errores).
+
+Campos observados en B02 (`POST /suministros/reportes-gastos` en lote P2 id=1821 tras baja total de 50 individuos):
+  - HTTP: 200 | id_reporte_gasto_acumulado: 229 | estado: "GENERADO"
+  - gasto_total_acumulado: "50000.0000"
+  - cantidad_actual: campo NO incluido en `ReporteGastoResponse` (ausente en el JSON de respuesta; antes de la baja `POST /activos-biologicos` reportó `detalle_poblacional.cantidad_actual = 50` y `POST /eventos/baja` registró `cantidad_afectada = 50`).
+  - gasto_promedio_individuo: "NO_CALCULABLE"
+  - causa_no_calculable_promedio: "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo."
+  - nota_bajas: "El lote registró 50 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período."
+  - X-Request-ID: no registrado en `trazas_http.jsonl` porque `_trazar()` en `test_tc_m05_g20.py` (ll. 138-161) no captura cabeceras de respuesta HTTP (las cabeceras X-Request-ID sí se registran en P01–P09 abajo).
+
+4) PASO 3 — DIAGNÓSTICO DEL ALCANCE DE LA CORRECCIÓN P01–P09 (NO ES REPORTE OFICIAL)
+--------------------------------------------------------------------------------
+Script: evidencias/run-20261111-142549/diagnostico_reintento1/diag_promedio.py
+Corrida sandbox única con un login Admin (HTTP 200, X-Request-ID: 69553e60-ae06-4758-bcaf-08e6ecb78db1).
+Lote 1 id=1824 (50 ind., 50.000 COP); Lote 2 id=1825 (100 ind., 1.000.000 COP); Activo individual 853 (10.000 COP med, retiro=0).
+Resultado pytest diagnóstico: 3 passed in 7.79s.
+
+ID  | Origen                    | Esperado                                                                    | HTTP | id_rep | Promedio (tipo JSON)   | Causa / Nota / Advertencia | X-Request-ID                         | Veredicto
+----|---------------------------|-----------------------------------------------------------------------------|------|--------|------------------------|----------------------------|--------------------------------------|----------
+P01 | [especificación]          | 200, total 50000, promedio 1000 (decimal, no string)                        | 200  | 234    | '1000.0000' (str)      | sin causa/nota             | 0bbacae6-a9bc-4668-80aa-7b7086a5414e | OK
+P02 | [especificación]          | 201, cantidad_actual = 0                                                    | 201  | -      | cant_actual=0 (est=6)  | -                          | ffc56711-81be-49f2-89ea-651da80593c8 | OK
+P03 | [especificación R6]       | 200, promedio 'NO_CALCULABLE' (str), causa informada, nota 50 bajas         | 200  | 235    | 'NO_CALCULABLE' (str)  | causa=OK, nota=50 bajas    | 280453eb-3543-47bf-aa74-e0e96512ac4a | OK
+P04 | [contrato Dev]            | 200, snapshot R2 con 'NO_CALCULABLE' + causa                                | 200  | 235    | 'NO_CALCULABLE' (str)  | causa=OK, nota=50 bajas    | b6652b8b-0095-4ce3-84e2-f114dd2d4404 | OK
+P05 | [contrato Dev]            | 200, snapshot R1 promedio original 1000, sin causa                          | 200  | 234    | '1000.0000' (str)      | sin causa/nota             | 90f64361-0784-46c1-9035-aa1c85db5fce | OK
+P06 | [contrato Dev]            | 200, historial contiene R1 (1000, sin causa) y R2 ('NO_CALCULABLE' + causa) | 200  | 234,235 | R1=1000.0000, R2=NO_CALCULABLE | total_hist=20; R2 causa OK | ae6d7010-6682-483d-9faa-9bb43486357e | OK
+P07 | [especificación RNF + Dev] | 200, 'NO_CALCULABLE' + causa y advertencia de regeneracion RNF              | 200  | None   | 'NO_CALCULABLE' (str)  | causa=OK, nota=50 bajas, advertencia=OK | 3b3cf5c5-eb38-4304-b4e3-8e136adf62fe | OK
+P08 | [contrato Dev]            | 200, activo INDIVIDUAL 853 -> gasto_promedio_individuo null, sin causa      | 200  | 236    | None (null)            | sin causa/nota             | 132d9c54-641d-4c3e-80b7-29db9e72f2ce | OK
+P09 | [caso G20 subcaso 2]      | 200, total 1000000, promedio 10000 (decimal)                                | 200  | 237    | '10000.0000' (str)     | sin causa/nota             | d1cd5836-1b26-487b-8296-354db56fc35a | OK
+
+Notas técnicas del diagnóstico:
+  - En P01 (`"1000.0000"`) y P09 (`"10000.0000"`), el tipo JSON recibido es `str` porque FastAPI/Pydantic v2 serializa `Decimal` como cadena numérica conforme al schema OpenAPI (`"type": "string", "pattern": "..."`), equivalente numéricamente a `Decimal("1000")` y `Decimal("10000")`, distinto del literal `"NO_CALCULABLE"`.
+  - P04, P05, P06, P07 y P08 cumplieron el contrato Dev (snapshots conservan valores históricos independientes, historial muestra ambos, regenerar R1 recalcula con población actual 0 devolviendo `"NO_CALCULABLE"` + advertencia RNF, y activo individual 853 devuelve `null` sin causa).
+  - Async/polling (> 12 meses): NO probado; fuera de alcance, ver G24.
+
+5) INOCUIDAD BASE / FINAL POR CORRIDA
+--------------------------------------------------------------------------------
+- Corrida oficial (`ejecutar_tc_m05_g20.ps1 -Reintento 1`):
+    * Base T00 (en sandbox): historial_total = 20 | Teardown T98 (`DELETE /test-control/runs/tc-m05-g20-adm-20fa8c4f8132`): HTTP 200 "Rollback exitoso"
+    * Final T99 (fuera de sandbox): historial coincide con base (20 == 20, PASSED).
+- Corrida diagnóstico (`diag_promedio.py`):
+    * Base (`test_00_diag_inocuidad_base`): historial_total = 100 (limite=100, X-Request-ID: c5159843-27ae-4f82-9c71-42b1e425bd2e) | Teardown HTTP 200 "Rollback exitoso" (e00e03cc-74c9-4a95-9e1c-7e709c54e993)
+    * Principal (`test_01_diag_alcance_p01_p09`): Teardown HTTP 200 "Rollback exitoso" (0e7e82b5-a30e-4e8b-b06d-539ce79fd02e)
+    * Final (`test_02_diag_inocuidad_final`): historial_total = 100 (X-Request-ID: d12ddda2-b804-4c9e-ae6c-f7429cb45166) | Teardown HTTP 200 "Rollback exitoso" (1d3bc5cf-fccc-43bd-9163-ff98bca0f87d)
+    * Coincidencia base == final: SÍ (100 == 100).
+
+6) ESCANEO DE SECRETOS (TODOS LOS ARTEFACTOS GENERADOS EN STAGING)
+--------------------------------------------------------------------------------
+Patrones verificados desde .env.test en memoria (sin imprimir valores):
+  admin_password, admin_password_ult20, sandbox_secret, sandbox_secret_ult20, prefijo_JWT.
+
+  - console_execution.log -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - diagnostico_reintento1\console_diag.log -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - diagnostico_reintento1\diag_promedio.py -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - diagnostico_reintento1\diag_resultados.json -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - INFORME_FASE234_TC-M05-G20.txt -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - repro -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - resultado_TC-M05-G20_reintento1.html -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - resultado_TC-M05-G20_reintento1.json -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - resultado_TC-M05-G20_reintento1.xml -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - TC-M05-G20_resultado.md -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - trazas_http.jsonl -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - INFORME_REEVALUACION_G20.txt -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado (verificado tras escritura)
+
+Nota: `resultados/` permanece sin cambios respecto al estado previo:
+  - .gitkeep (0 bytes)
+  - resultado_TC-M05-G20.html (42592 bytes)
+  - resultado_TC-M05-G20.json (3467 bytes)
+
+7) ARCHIVOS GENERADOS EN evidencias/run-20261111-142549/
+--------------------------------------------------------------------------------
+  - console_execution.log (2666 bytes)
+  - diagnostico_reintento1\console_diag.log (1693 bytes)
+  - diagnostico_reintento1\diag_promedio.py (25257 bytes)
+  - diagnostico_reintento1\diag_resultados.json (7690 bytes)
+  - INFORME_FASE234_TC-M05-G20.txt (93979 bytes)
+  - repro (81 bytes)
+  - resultado_TC-M05-G20_reintento1.html (42052 bytes)
+  - resultado_TC-M05-G20_reintento1.json (3301 bytes)
+  - resultado_TC-M05-G20_reintento1.xml (1502 bytes)
+  - TC-M05-G20_resultado.md (3671 bytes)
+  - trazas_http.jsonl (41921 bytes)
+  - INFORME_REEVALUACION_G20.txt (este archivo)
+
+================================================================================
+ANEXO A — CONTENIDO COMPLETO DE diag_promedio.py
+================================================================================
+# | Fecha      | Nombre                   | Que se hizo                                                              |
+# |------------|--------------------------|--------------------------------------------------------------------------|
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G20 RF-77 reintento 1: diagnostico de alcance P01-P09             |
+"""Diagnostico del alcance de la correccion INC-M05-277-G20 (RF-77).
+
+NO es un reporte oficial. Ejecuta P01-P09 en UNA corrida sandbox con UN login
+de Administrador (DEF-04), verifica inocuidad base y final en corridas aparte
+y guarda los resultados estructurados en ``diag_resultados.json`` (sin secretos).
+"""
+from __future__ import annotations
+
+import json
+import os
+import uuid
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import pytest
+import requests
+from dotenv import dotenv_values
+
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+except ImportError:  # pragma: no cover
+    ZoneInfo = None  # type: ignore[assignment]
+    ZoneInfoNotFoundError = Exception  # type: ignore[misc,assignment]
+
+
+def _zona_bogota():
+    if ZoneInfo is not None:
+        try:
+            return ZoneInfo("America/Bogota")
+        except ZoneInfoNotFoundError:
+            pass
+    return timezone(timedelta(hours=-5))
+
+
+ZONA_BOGOTA = _zona_bogota()
+TIMEOUT_S = 30
+AQUI = Path(__file__).resolve().parent
+RAIZ = AQUI.parents[7]
+if not (RAIZ / ".env.test").exists():
+    RAIZ = Path.cwd()
+ENV_PATH = RAIZ / ".env.test"
+_ENV = dotenv_values(ENV_PATH) if ENV_PATH.exists() else {}
+OUT_JSON = AQUI / "diag_resultados.json"
+
+_INOCUIDAD: dict[str, Any] = {}
+
+
+def _cfg(nombre: str) -> str:
+    val = os.environ.get(nombre) or _ENV.get(nombre)
+    if not val:
+        raise AssertionError(f"PRECONDICION: falta variable {nombre} en entorno/.env.test")
+    return val
+
+
+class SandboxDiagClient:
+    """Cliente sandbox secuencial (un login por run_id, teardown garantizado)."""
+
+    def __init__(self, prefix: str) -> None:
+        self.base = _cfg("TEST_BASE_URL").rstrip("/")
+        self.secret = _cfg("TEST_SANDBOX_SECRET")
+        self.run_id = f"{prefix}-{uuid.uuid4().hex[:10]}"
+        self.http = requests.Session()
+        self.http.headers.update({
+            "X-Test-Run-Id": self.run_id,
+            "X-Sandbox-Secret": self.secret,
+            "X-Zona-Horaria": "America/Bogota",
+        })
+        self.logged_in = False
+        self.closed = False
+
+    def login_admin(self) -> dict[str, Any]:
+        assert not self.logged_in, "DEF-04: solo un POST /sesiones/ por run_id"
+        r = self.http.post(
+            f"{self.base}/sesiones/",
+            json={
+                "correo_electronico": _cfg("TEST_ADMIN_EMAIL"),
+                "contrasena": _cfg("TEST_ADMIN_PASSWORD"),
+            },
+            timeout=TIMEOUT_S,
+        )
+        assert r.status_code == 200, (
+            f"Login Admin fallo HTTP {r.status_code} "
+            f"X-Request-ID={r.headers.get('X-Request-ID')}: {r.text[:300]}"
+        )
+        data = r.json()
+        token = data.get("token") or data.get("access_token")
+        assert token, "Login sin token"
+        self.http.headers["Authorization"] = f"Bearer {token}"
+        self.logged_in = True
+        return {"http": r.status_code, "x_request_id": r.headers.get("X-Request-ID")}
+
+    def req(self, method: str, path: str, **kwargs: Any) -> requests.Response:
+        return self.http.request(method, f"{self.base}{path}", timeout=TIMEOUT_S, **kwargs)
+
+    def close(self) -> dict[str, Any]:
+        if self.closed:
+            return {"status": "already_closed"}
+        self.closed = True
+        try:
+            r = self.http.delete(f"{self.base}/test-control/runs/{self.run_id}", timeout=TIMEOUT_S)
+            return {
+                "http": r.status_code,
+                "x_request_id": r.headers.get("X-Request-ID"),
+                "body": r.text[:200],
+            }
+        finally:
+            self.http.close()
+
+
+def _conteo_historial(client: SandboxDiagClient) -> tuple[int, dict[str, Any]]:
+    r = client.req("GET", "/suministros/reportes-gastos/historial", params={"limite": 100})
+    assert r.status_code == 200, f"GET historial HTTP {r.status_code}: {r.text[:200]}"
+    data = r.json()
+    items = data if isinstance(data, list) else data.get("items", [])
+    total = data.get("total", len(items)) if isinstance(data, dict) else len(items)
+    return int(total), {"http": r.status_code, "x_request_id": r.headers.get("X-Request-ID"), "items_len": len(items)}
+
+
+def _extraer_campos_reporte(r: requests.Response, cantidad_actual: int | None) -> dict[str, Any]:
+    x_req = r.headers.get("X-Request-ID")
+    try:
+        body = r.json()
+    except Exception:
+        return {
+            "http": r.status_code,
+            "error_code": None,
+            "x_request_id": x_req,
+            "raw_text": r.text[:250],
+        }
+    if not isinstance(body, dict):
+        return {"http": r.status_code, "x_request_id": x_req, "body_type": type(body).__name__}
+
+    prom = body.get("gasto_promedio_individuo")
+    return {
+        "http": r.status_code,
+        "error_code": body.get("error_code"),
+        "id_reporte": body.get("id_reporte_gasto_acumulado"),
+        "gasto_total_acumulado": body.get("gasto_total_acumulado"),
+        "cantidad_actual": cantidad_actual,
+        "gasto_promedio_individuo": prom,
+        "gasto_promedio_tipo_json": type(prom).__name__ if prom is not None else "null",
+        "causa_no_calculable_promedio": body.get("causa_no_calculable_promedio"),
+        "nota_bajas": body.get("nota_bajas"),
+        "advertencia": body.get("advertencia"),
+        "estado": body.get("estado"),
+        "x_request_id": x_req,
+    }
+
+
+def _crear_lote_y_gasto(
+    c: SandboxDiagClient,
+    tag: str,
+    cantidad_inicial: int,
+    fecha_ciclo: str,
+    fecha_hoy: str,
+    cantidad_alimento: float,
+    costo_unitario: float,
+) -> tuple[int, int]:
+    r_lote = c.req(
+        "POST",
+        "/activos-biologicos",
+        json={
+            "tipo_activo": "POBLACIONAL",
+            "id_especie": 1,
+            "id_infraestructura": 2,
+            "identificador_unico": f"QA-G20-DIAG-{tag}-{uuid.uuid4().hex[:6]}",
+            "cantidad_inicial": cantidad_inicial,
+            "fecha_ingreso": fecha_ciclo,
+            "fecha_inicio_ciclo": fecha_ciclo,
+            "origen_financiero": "nacimiento",
+        },
+    )
+    assert r_lote.status_code == 201, f"Crear lote {tag} HTTP {r_lote.status_code}: {r_lote.text[:250]}"
+    id_lote = r_lote.json()["id_activo_biologico"]
+
+    r_fase = c.req(
+        "POST",
+        f"/activos-biologicos/{id_lote}/fases",
+        json={
+            "id_ciclo_productiva": 1,
+            "motivo_cambio": f"Apertura fase diag {tag}",
+            "fecha_inicio": f"{fecha_ciclo}T05:00:00Z",
+        },
+    )
+    assert r_fase.status_code in (200, 201), f"Abrir fase {tag} HTTP {r_fase.status_code}: {r_fase.text[:250]}"
+
+    r_cons = c.req(
+        "POST",
+        "/suministros/consumo-alimentos",
+        json={
+            "id_activo_biologico": id_lote,
+            "id_tipo_alimento": 1,
+            "fecha_consumo": fecha_hoy,
+            "hora_suministro": "08:00:00",
+            "cantidad_alimento": cantidad_alimento,
+            "costo_unitario": costo_unitario,
+        },
+    )
+    assert r_cons.status_code == 201, f"Consumo {tag} HTTP {r_cons.status_code}: {r_cons.text[:250]}"
+
+    r_get = c.req("GET", f"/activos-biologicos/{id_lote}")
+    cant_actual = _cantidad_actual_de_resp(r_get) if r_get.status_code == 200 else cantidad_inicial
+    return id_lote, cant_actual
+
+
+def _cantidad_actual_de_resp(r: requests.Response) -> int | None:
+    if r.status_code != 200:
+        return None
+    data = r.json()
+    if not isinstance(data, dict):
+        return None
+    if data.get("cantidad_actual") is not None:
+        return data.get("cantidad_actual")
+    dp = data.get("detalle_poblacional") or {}
+    return dp.get("cantidad_actual") if isinstance(dp, dict) else None
+
+
+def test_00_diag_inocuidad_base() -> None:
+    """Captura conteo base de historial de reportes en sandbox separado."""
+    c = SandboxDiagClient("diag-g20-base")
+    orig_err: BaseException | None = None
+    try:
+        c.login_admin()
+        total_base, meta = _conteo_historial(c)
+        _INOCUIDAD["base"] = {"historial_total": total_base, **meta}
+    except BaseException as exc:
+        orig_err = exc
+    finally:
+        teardown = c.close()
+        _INOCUIDAD["teardown_base"] = teardown
+        if orig_err is not None:
+            raise orig_err
+        assert teardown.get("http") == 200 and "Rollback exitoso" in teardown.get("body", "")
+
+
+def test_01_diag_alcance_p01_p09() -> None:
+    """Ejecuta P01-P09 dentro de UNA unica corrida sandbox con UN login."""
+    c = SandboxDiagClient("diag-g20-p")
+    fecha_ciclo = "2026-11-01"
+    fecha_hoy = datetime.now(ZONA_BOGOTA).date().isoformat()
+
+    resultados: dict[str, Any] = {
+        "fecha_ejecucion": datetime.now(ZONA_BOGOTA).isoformat(),
+        "fecha_ciclo": fecha_ciclo,
+        "fecha_hoy": fecha_hoy,
+        "pasos": [],
+    }
+    orig_err: BaseException | None = None
+
+    try:
+        resultados["login"] = c.login_admin()
+
+        # Preparacion Lote 1: 50 individuos, 50.000 COP
+        id_l1, cant_l1_inicial = _crear_lote_y_gasto(c, "L1", 50, fecha_ciclo, fecha_hoy, 50.0, 1000.0)
+        resultados["id_lote_1"] = id_l1
+
+        payload_rep_l1 = {
+            "activo_biologico_id": id_l1,
+            "fecha_inicio_reporte": fecha_ciclo,
+            "fecha_fin_reporte": fecha_hoy,
+            "tipo_periodo": "MENSUAL",
+        }
+
+        # P01: Reporte R1 con 50 individuos -> 200, total 50000, promedio 1000
+        r_p01 = c.req("POST", "/suministros/reportes-gastos", json=payload_rep_l1)
+        d_p01 = _extraer_campos_reporte(r_p01, cant_l1_inicial)
+        prom_p01_dec = Decimal(str(d_p01["gasto_promedio_individuo"])) == Decimal("1000") if d_p01.get("gasto_promedio_individuo") not in (None, "NO_CALCULABLE") else False
+        tot_p01_dec = Decimal(str(d_p01["gasto_total_acumulado"])) == Decimal("50000") if d_p01.get("gasto_total_acumulado") is not None else False
+        ok_p01 = r_p01.status_code == 200 and tot_p01_dec and prom_p01_dec and d_p01.get("causa_no_calculable_promedio") is None
+        resultados["pasos"].append({
+            "id": "P01",
+            "origen": "[especificación]",
+            "esperado": "200, total 50000, promedio 1000 (decimal, no string)",
+            "veredicto": "OK" if ok_p01 else "FALLA",
+            "detalle_tipo_json": f"tipo JSON recibido={d_p01.get('gasto_promedio_tipo_json')}",
+            **d_p01,
+        })
+        id_r1 = d_p01["id_reporte"]
+
+        # P02: Baja de los 50 individuos (cantidad_actual = 0)
+        r_p02 = c.req(
+            "POST",
+            f"/activos-biologicos/{id_l1}/eventos/baja",
+            json={
+                "tipo_baja": "muerte",
+                "fecha_baja": fecha_hoy,
+                "motivo_baja": "Muerte total diagnostico QA G20",
+                "cantidad_afectada": 50,
+            },
+        )
+        r_l1_post_baja = c.req("GET", f"/activos-biologicos/{id_l1}")
+        l1_after = r_l1_post_baja.json() if r_l1_post_baja.status_code == 200 else {}
+        cant_l1_baja = _cantidad_actual_de_resp(r_l1_post_baja)
+        ok_p02 = r_p02.status_code == 201 and cant_l1_baja == 0
+        resultados["pasos"].append({
+            "id": "P02",
+            "origen": "[especificación]",
+            "esperado": "201, cantidad_actual = 0",
+            "http": r_p02.status_code,
+            "error_code": (r_p02.json().get("error_code") if r_p02.headers.get("content-type", "").startswith("application/json") else None),
+            "cantidad_actual": cant_l1_baja,
+            "estado_activo": l1_after.get("id_estado"),
+            "x_request_id": r_p02.headers.get("X-Request-ID"),
+            "veredicto": "OK" if ok_p02 else "FALLA",
+        })
+
+        # P03: Reporte R2 -> 200, promedio "NO_CALCULABLE" (string), causa informada, nota de 50 bajas
+        r_p03 = c.req("POST", "/suministros/reportes-gastos", json=payload_rep_l1)
+        d_p03 = _extraer_campos_reporte(r_p03, cant_l1_baja)
+        nota_p03 = d_p03.get("nota_bajas") or ""
+        ok_p03 = (
+            r_p03.status_code == 200
+            and d_p03.get("gasto_promedio_individuo") == "NO_CALCULABLE"
+            and isinstance(d_p03.get("gasto_promedio_individuo"), str)
+            and bool(d_p03.get("causa_no_calculable_promedio"))
+            and "50 bajas" in nota_p03
+        )
+        resultados["pasos"].append({
+            "id": "P03",
+            "origen": "[especificación R6]",
+            "esperado": "200, promedio 'NO_CALCULABLE' (str), causa informada, nota 50 bajas",
+            "veredicto": "OK" if ok_p03 else "FALLA",
+            **d_p03,
+        })
+        id_r2 = d_p03["id_reporte"]
+
+        # P04: Consultar snapshot de R2 -> "NO_CALCULABLE" + causa
+        r_p04 = c.req("GET", f"/suministros/reportes-gastos/{id_r2}")
+        if r_p04.status_code in (404, 405, 501):
+            resultados["pasos"].append({
+                "id": "P04",
+                "origen": "[contrato Dev]",
+                "esperado": "snapshot R2: 'NO_CALCULABLE' + causa",
+                "http": r_p04.status_code,
+                "x_request_id": r_p04.headers.get("X-Request-ID"),
+                "veredicto": "NO_DISPONIBLE",
+            })
+        else:
+            d_p04 = _extraer_campos_reporte(r_p04, cant_l1_baja)
+            ok_p04 = (
+                r_p04.status_code == 200
+                and d_p04.get("gasto_promedio_individuo") == "NO_CALCULABLE"
+                and d_p04.get("causa_no_calculable_promedio") == d_p03.get("causa_no_calculable_promedio")
+            )
+            resultados["pasos"].append({
+                "id": "P04",
+                "origen": "[contrato Dev]",
+                "esperado": "200, snapshot R2 con 'NO_CALCULABLE' + causa",
+                "veredicto": "OK" if ok_p04 else "HALLAZGO_DEV",
+                **d_p04,
+            })
+
+        # P05: Consultar snapshot de R1 -> promedio original 1000, sin causa
+        r_p05 = c.req("GET", f"/suministros/reportes-gastos/{id_r1}")
+        if r_p05.status_code in (404, 405, 501):
+            resultados["pasos"].append({
+                "id": "P05",
+                "origen": "[contrato Dev]",
+                "esperado": "snapshot R1: promedio original 1000, sin causa",
+                "http": r_p05.status_code,
+                "x_request_id": r_p05.headers.get("X-Request-ID"),
+                "veredicto": "NO_DISPONIBLE",
+            })
+        else:
+            d_p05 = _extraer_campos_reporte(r_p05, cant_l1_inicial)
+            prom_p05_ok = (
+                d_p05.get("gasto_promedio_individuo") not in (None, "NO_CALCULABLE")
+                and Decimal(str(d_p05["gasto_promedio_individuo"])) == Decimal("1000")
+            )
+            ok_p05 = r_p05.status_code == 200 and prom_p05_ok and d_p05.get("causa_no_calculable_promedio") is None
+            resultados["pasos"].append({
+                "id": "P05",
+                "origen": "[contrato Dev]",
+                "esperado": "200, snapshot R1 promedio original 1000, sin causa",
+                "veredicto": "OK" if ok_p05 else "HALLAZGO_DEV",
+                **d_p05,
+            })
+
+        # P06: Historial de reportes -> R1 y R2 con los valores de P05 y P04
+        r_p06 = c.req("GET", "/suministros/reportes-gastos/historial", params={"limite": 20})
+        if r_p06.status_code in (404, 405, 501):
+            resultados["pasos"].append({
+                "id": "P06",
+                "origen": "[contrato Dev]",
+                "esperado": "200, R1 y R2 en historial con valores de P05 y P04",
+                "http": r_p06.status_code,
+                "x_request_id": r_p06.headers.get("X-Request-ID"),
+                "veredicto": "NO_DISPONIBLE",
+            })
+        else:
+            h_body = r_p06.json() if r_p06.status_code == 200 else {}
+            h_items = h_body if isinstance(h_body, list) else h_body.get("items", [])
+            by_id = {it.get("id_reporte_gasto_acumulado"): it for it in h_items if isinstance(it, dict)}
+            it_r1 = by_id.get(id_r1)
+            it_r2 = by_id.get(id_r2)
+            r1_ok = (
+                it_r1 is not None
+                and it_r1.get("gasto_promedio_individuo") not in (None, "NO_CALCULABLE")
+                and Decimal(str(it_r1["gasto_promedio_individuo"])) == Decimal("1000")
+                and it_r1.get("causa_no_calculable_promedio") is None
+            )
+            r2_ok = (
+                it_r2 is not None
+                and it_r2.get("gasto_promedio_individuo") == "NO_CALCULABLE"
+                and bool(it_r2.get("causa_no_calculable_promedio"))
+            )
+            resultados["pasos"].append({
+                "id": "P06",
+                "origen": "[contrato Dev]",
+                "esperado": "200, historial contiene R1 (1000, sin causa) y R2 ('NO_CALCULABLE' + causa)",
+                "http": r_p06.status_code,
+                "error_code": h_body.get("error_code") if isinstance(h_body, dict) else None,
+                "total_historial": h_body.get("total") if isinstance(h_body, dict) else len(h_items),
+                "r1_en_historial": {
+                    "id_reporte": id_r1,
+                    "gasto_promedio_individuo": it_r1.get("gasto_promedio_individuo") if it_r1 else None,
+                    "causa_no_calculable_promedio": it_r1.get("causa_no_calculable_promedio") if it_r1 else None,
+                } if it_r1 else None,
+                "r2_en_historial": {
+                    "id_reporte": id_r2,
+                    "gasto_promedio_individuo": it_r2.get("gasto_promedio_individuo") if it_r2 else None,
+                    "causa_no_calculable_promedio": it_r2.get("causa_no_calculable_promedio") if it_r2 else None,
+                } if it_r2 else None,
+                "x_request_id": r_p06.headers.get("X-Request-ID"),
+                "veredicto": "OK" if (r_p06.status_code == 200 and r1_ok and r2_ok) else "HALLAZGO_DEV",
+            })
+
+        # P07: Regenerar R1 -> "NO_CALCULABLE" + causa (poblacion actual) y advertencia de regeneracion del RNF
+        r_p07 = c.req("GET", f"/suministros/reportes-gastos/{id_r1}/regenerar")
+        if r_p07.status_code in (404, 405, 501):
+            resultados["pasos"].append({
+                "id": "P07",
+                "origen": "[especificación RNF + Dev]",
+                "esperado": "200, 'NO_CALCULABLE' + causa y advertencia de regeneracion RNF",
+                "http": r_p07.status_code,
+                "x_request_id": r_p07.headers.get("X-Request-ID"),
+                "veredicto": "NO_DISPONIBLE",
+            })
+        else:
+            d_p07 = _extraer_campos_reporte(r_p07, cant_l1_baja)
+            ok_p07 = (
+                r_p07.status_code == 200
+                and d_p07.get("gasto_promedio_individuo") == "NO_CALCULABLE"
+                and bool(d_p07.get("causa_no_calculable_promedio"))
+                and bool(d_p07.get("advertencia"))
+            )
+            resultados["pasos"].append({
+                "id": "P07",
+                "origen": "[especificación RNF + Dev]",
+                "esperado": "200, 'NO_CALCULABLE' + causa y advertencia de regeneracion RNF",
+                "veredicto": "OK" if ok_p07 else "HALLAZGO_DEV",
+                **d_p07,
+            })
+
+        # P08: Reporte de activo INDIVIDUAL (activo 853 con medicamento periodo_retiro_dias=0 y fase abierta) -> promedio null
+        r_f853 = c.req(
+            "POST",
+            "/activos-biologicos/853/fases",
+            json={
+                "id_ciclo_productiva": 5,
+                "motivo_cambio": "Apertura fase diag P08 activo 853",
+                "fecha_inicio": f"{fecha_ciclo}T05:00:00Z",
+            },
+        )
+        assert r_f853.status_code in (200, 201), f"Fase 853 P08 HTTP {r_f853.status_code}: {r_f853.text[:200]}"
+        r_m853 = c.req(
+            "POST",
+            "/suministros/medicamentos",
+            json={
+                "id_activo_biologico": 853,
+                "nombre_medicamento": "Oxitetraciclina Diag P08",
+                "via_administracion": "INTRAMUSCULAR",
+                "dosis_aplicada": 10.0,
+                "unidad_dosis": "ml",
+                "fecha_aplicacion": fecha_hoy,
+                "hora_aplicacion": "09:15:00",
+                "costo_unitario": 1000.0,
+                "periodo_retiro_dias": 0,
+                "motivo_aplicacion": "Control sanitario diagnostico G20 P08",
+                "nombre_veterinario": "Dr. QA Veterinario",
+            },
+        )
+        assert r_m853.status_code == 201, f"Med 853 P08 HTTP {r_m853.status_code}: {r_m853.text[:250]}"
+        r_g853 = c.req("GET", "/activos-biologicos/853")
+        cant_853 = _cantidad_actual_de_resp(r_g853)
+        r_p08 = c.req(
+            "POST",
+            "/suministros/reportes-gastos",
+            json={
+                "activo_biologico_id": 853,
+                "fecha_inicio_reporte": fecha_ciclo,
+                "fecha_fin_reporte": fecha_hoy,
+                "tipo_periodo": "MENSUAL",
+            },
+        )
+        d_p08 = _extraer_campos_reporte(r_p08, cant_853)
+        ok_p08 = (
+            r_p08.status_code == 200
+            and d_p08.get("gasto_promedio_individuo") is None
+            and d_p08.get("causa_no_calculable_promedio") is None
+        )
+        resultados["pasos"].append({
+            "id": "P08",
+            "origen": "[contrato Dev]",
+            "esperado": "200, activo INDIVIDUAL 853 -> gasto_promedio_individuo null, sin causa",
+            "veredicto": "OK" if ok_p08 else "HALLAZGO_DEV",
+            **d_p08,
+        })
+
+        # P09: Regresion: otro lote de 100 individuos con 1.000.000 COP -> promedio 10000 (decimal)
+        id_l2, cant_l2 = _crear_lote_y_gasto(c, "L2", 100, fecha_ciclo, fecha_hoy, 100.0, 10000.0)
+        resultados["id_lote_2"] = id_l2
+        r_p09 = c.req(
+            "POST",
+            "/suministros/reportes-gastos",
+            json={
+                "activo_biologico_id": id_l2,
+                "fecha_inicio_reporte": fecha_ciclo,
+                "fecha_fin_reporte": fecha_hoy,
+                "tipo_periodo": "MENSUAL",
+            },
+        )
+        d_p09 = _extraer_campos_reporte(r_p09, cant_l2)
+        prom_p09_ok = (
+            d_p09.get("gasto_promedio_individuo") not in (None, "NO_CALCULABLE")
+            and Decimal(str(d_p09["gasto_promedio_individuo"])) == Decimal("10000")
+        )
+        tot_p09_ok = (
+            d_p09.get("gasto_total_acumulado") is not None
+            and Decimal(str(d_p09["gasto_total_acumulado"])) == Decimal("1000000")
+        )
+        ok_p09 = r_p09.status_code == 200 and tot_p09_ok and prom_p09_ok and d_p09.get("causa_no_calculable_promedio") is None
+        resultados["pasos"].append({
+            "id": "P09",
+            "origen": "[caso G20 subcaso 2]",
+            "esperado": "200, total 1000000, promedio 10000 (decimal)",
+            "veredicto": "OK" if ok_p09 else "FALLA",
+            "detalle_tipo_json": f"tipo JSON recibido={d_p09.get('gasto_promedio_tipo_json')}",
+            **d_p09,
+        })
+
+        resultados["async_polling_nota"] = "No probado (requiere > 12 meses); fuera de alcance, ver G24."
+    except BaseException as exc:
+        orig_err = exc
+    finally:
+        teardown = c.close()
+        resultados["teardown"] = teardown
+        resultados["inocuidad"] = _INOCUIDAD
+        OUT_JSON.write_text(json.dumps(resultados, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if orig_err is not None:
+            raise orig_err
+        assert teardown.get("http") == 200 and "Rollback exitoso" in teardown.get("body", "")
+
+    # Verificar P01-P03 y P09 obligatorios; hallazgos Dev en P04-P08 quedan registrados
+    for paso in resultados["pasos"]:
+        if paso["id"] in ("P01", "P02", "P03", "P09"):
+            assert paso["veredicto"] == "OK", f"Fallo en {paso['id']}: {paso}"
+
+
+def test_02_diag_inocuidad_final() -> None:
+    """Verifica que historial_total final coincide exactamente con la linea base tras rollback."""
+    c = SandboxDiagClient("diag-g20-fin")
+    orig_err: BaseException | None = None
+    try:
+        c.login_admin()
+        total_final, meta = _conteo_historial(c)
+        _INOCUIDAD["final"] = {"historial_total": total_final, **meta}
+    except BaseException as exc:
+        orig_err = exc
+    finally:
+        teardown = c.close()
+        _INOCUIDAD["teardown_final"] = teardown
+        # Actualizar diag_resultados.json con inocuidad final
+        if OUT_JSON.exists():
+            data = json.loads(OUT_JSON.read_text(encoding="utf-8"))
+            data["inocuidad"] = _INOCUIDAD
+            OUT_JSON.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if orig_err is not None:
+            raise orig_err
+        assert teardown.get("http") == 200 and "Rollback exitoso" in teardown.get("body", "")
+
+    assert _INOCUIDAD["final"]["historial_total"] == _INOCUIDAD["base"]["historial_total"], (
+        f"Inocuidad fallida: base={_INOCUIDAD['base']} != final={_INOCUIDAD['final']}"
+    )
+
+================================================================================
+ANEXO B — SALIDA DE CONSOLA OFICIAL (console_execution.log)
+================================================================================
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 7 items
+
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_00_setup_linea_base PASSED [ 14%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_a01_consolidado_y_anulacion PASSED [ 28%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_a02_filtro_categorias_incluidas PASSED [ 42%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_b01_lote_poblacional_promedio_y_bajas PASSED [ 57%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_b02_lote_poblacional_baja_total_no_calculable PASSED [ 71%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_98_cierre_sandbox PASSED [ 85%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/test_tc_m05_g20.py::TestTC_M05_G20_Consolidado_Promedio::test_99_inocuidad_final PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G20\evidencias\run-20261111-142549\resultado_TC-M05-G20_reintento1.xml -
+- Generated html report: file:///C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/evidencias/run-20261111-142549/resultado_TC-M05-G20_reintento1.html -
+======================== 7 passed, 1 warning in 7.23s =========================
+
+================================================================================
+ANEXO C — SALIDA DE CONSOLA DIAGNÓSTICO (diagnostico_reintento1/console_diag.log)
+================================================================================
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 3 items
+
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/evidencias/run-20261111-142549/diagnostico_reintento1/diag_promedio.py::test_00_diag_inocuidad_base PASSED [ 33%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/evidencias/run-20261111-142549/diagnostico_reintento1/diag_promedio.py::test_01_diag_alcance_p01_p09 PASSED [ 66%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G20/evidencias/run-20261111-142549/diagnostico_reintento1/diag_promedio.py::test_02_diag_inocuidad_final PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 3 passed, 1 warning in 7.79s =========================

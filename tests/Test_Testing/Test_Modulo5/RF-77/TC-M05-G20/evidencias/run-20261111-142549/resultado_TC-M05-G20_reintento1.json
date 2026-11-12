@@ -1,0 +1,53 @@
+{
+  "tc": "TC-M05-G20",
+  "summary": {
+    "total": 7,
+    "ok": 7,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base de historial del Administrador",
+      "esperado": "HTTP 200 en GET /suministros/reportes-gastos/historial, captura del total inicial de reportes",
+      "obtenido": "GET /suministros/reportes-gastos/historial HTTP 200; total_base=20, items=20 (estado JUnit: OK).",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Consolidado monetario y exclusión de anulados en activo individual",
+      "esperado": "HTTP 200; gasto_total_acumulado = 100.000 COP exacto (75.000 COP alimentación + 25.000 COP medicación); porcentajes exactos 75% y 25%; exclusión estricta de consumo anulado de 10.000 COP",
+      "obtenido": "Activo INDIVIDUAL id=1819 HTTP 201; anulacion HTTP 200; POST /suministros/reportes-gastos HTTP 200 (id_reporte=226, gasto_total_acumulado='100000.0000', desglose=[ALIMENTACION=75000.0000 (75.00%, 3 reg), MEDICACION=25000.0000 (25.00%, 2 reg)]).",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Filtro por categorias_incluidas=['ALIMENTACION']",
+      "esperado": "HTTP 200; total = 75.000 COP; desglose_categorias incluye únicamente la categoría ALIMENTACION",
+      "obtenido": "POST /suministros/reportes-gastos (categorias_incluidas=['ALIMENTACION']) HTTP 200 (id_reporte=227, gasto_total_acumulado='75000.0000', desglose=[ALIMENTACION=75000.0000 (100%)]).",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Gasto promedio por individuo en lote poblacional con bajas parciales",
+      "esperado": "HTTP 200; lote P1 con inicial 110 y 10 bajas (actual 100); total 1.000.000 COP; gasto_promedio_individuo = 10.000 COP exacto; nota_bajas presente informando N=10 bajas y uso de cantidad actual",
+      "obtenido": "Lote P1 id=1820 (inicial=110, baja=10, HTTP 201); POST /suministros/reportes-gastos HTTP 200 (id_reporte=228, gasto_total_acumulado='1000000.0000', gasto_promedio_individuo='10000.0000', nota_bajas='El lote registró 10 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.').",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Gasto promedio no calculable en lote poblacional con baja total",
+      "esperado": "gasto_promedio_individuo = 'NO_CALCULABLE'; causa_no_calculable_promedio = 'La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.'",
+      "obtenido": "Lote P2 id=1821 (baja=50, HTTP 201); POST /suministros/reportes-gastos HTTP 200 (id_reporte=229, gasto_total_acumulado='50000.0000', gasto_promedio_individuo='NO_CALCULABLE', causa_no_calculable_promedio='La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.', nota_bajas='El lote registró 50 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.').",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre ordenado de sandbox Administrador",
+      "esperado": "DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE /test-control/runs/<run_id> HTTP 200 (status='Rollback exitoso').",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Verificación de inocuidad final e integridad de la base",
+      "esperado": "Historial de reportes del Administrador fuera de sandbox coincide exactamente con la línea base capturada en T00 (0 efectos persistidos)",
+      "obtenido": "Verificacion fuera de sandbox completada (JUnit OK): historial final coincide con total_base=20 (0 efectos persistidos).",
+      "estado": "OK"
+    }
+  ]
+}

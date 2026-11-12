@@ -1,18 +1,19 @@
-# | Fecha      | Nombre                   | Que se hizo                                                          |
-# |------------|--------------------------|----------------------------------------------------------------------|
-# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G37 RF-80: runner Pytest con staging de evidencias            |
+# | Fecha      | Nombre                   | Que se hizo                                                                            |
+# |------------|--------------------------|----------------------------------------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G37 RF-80: runner Pytest con staging de evidencias                              |
+# | 2026-11-11 | Juan Sebastian Gutierrez | Ajuste v2.0: sufijo _reintentoN, escaneo sin reescritura, prefijo concatenado, ASCII   |
 <#
 .SYNOPSIS
-  Ejecuta TC-M05-G37 (RF-80, Persistencia y Clasificacion de Eventos) contra TEST.
+  Ejecuta TC-M05-G37 (RF-80 v2.0, Persistencia y Clasificacion de Eventos) contra TEST.
 
 .DESCRIPTION
   - Carga .env.test del repo en las variables de entorno del PROCESO.
   - Verifica variables obligatorias para Admin y Sandbox.
   - Valida integridad de suites previas G14-G25.
   - Crea el staging evidencias\run-<yyyyMMdd-HHmmss>\ y define TEST_EVIDENCE_DIR.
-  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML.
-  - Genera artefactos derivados (JSON, MD, TXT) via generar_artefactos_run_g37.py.
-  - Escaneo estricto de secretos post-corrida.
+  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML (con sufijo _reintentoN si aplica).
+  - Genera artefactos derivados via generar_artefactos_run_g37.py (sin tocar resultados/).
+  - Escaneo de reporte de secretos post-corrida sin reescritura de artefactos (exit 4 si hay hallazgos).
   - Valida nuevamente integridad de suites previas.
 #>
 param(
@@ -92,7 +93,7 @@ foreach ($v in $variablesObligatorias) {
 
 # --- Snapshot inicial SHA-256 de suites previas
 function Obtener-Sha256([string]$archivo) {
-    if (-not (Test-Path -LiteralPath $archivo)) { return "NO_EXISTE" }
+    if (-not (Test-Path -LiteralPath $archivo)) { return 'NO_EXISTE' }
     return (Get-FileHash -LiteralPath $archivo -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
@@ -117,7 +118,7 @@ $shaG15RunnerIni = Obtener-Sha256 $g15Runner
 $shaG14ScriptIni = Obtener-Sha256 $g14Script
 $shaG14RunnerIni = Obtener-Sha256 $g14Runner
 
-# --- Creacion del directorio de staging
+# --- Creacion del directorio de staging (sin tocar resultados/)
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runId     = "run-$timestamp"
 $evidencias= Join-Path $tcDir 'evidencias'
@@ -125,8 +126,9 @@ $staging   = Join-Path $evidencias $runId
 
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
 
-$htmlReport  = Join-Path $staging 'resultado_TC-M05-G37.html'
-$xmlReport   = Join-Path $staging 'resultado_TC-M05-G37.xml'
+$sufijo      = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
+$htmlReport  = Join-Path $staging "resultado_TC-M05-G37$sufijo.html"
+$xmlReport   = Join-Path $staging "resultado_TC-M05-G37$sufijo.xml"
 $consolaLog  = Join-Path $staging 'console_execution.log'
 
 # --- Variables de entorno del subproceso
@@ -134,34 +136,37 @@ $consolaLog  = Join-Path $staging 'console_execution.log'
 [Environment]::SetEnvironmentVariable('PYTHONPATH', $repo, 'Process')
 [Environment]::SetEnvironmentVariable('PYTHONUTF8', '1', 'Process')
 
-Write-Host "============================================================"
-Write-Host "Ejecutando TC-M05-G37 (RF-80: Persistencia y Clasificacion)"
+Write-Host '============================================================'
+Write-Host "Ejecutando TC-M05-G37 (RF-80 v2.0: Persistencia y Clasificacion) Reintento=$Reintento"
 Write-Host "Staging: $staging"
-Write-Host "============================================================"
+Write-Host '============================================================'
 
 # --- Localizacion de python en venv
 $venvPython = Join-Path $repo '.venv\Scripts\python.exe'
 $pythonCmd  = if (Test-Path -LiteralPath $venvPython) { $venvPython } else { 'python' }
 
 $cronometro = [System.Diagnostics.Stopwatch]::StartNew()
+$prevPref = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 $salidaConsola = & $pythonCmd -m pytest -p no:randomly --tb=short `
-    --html=$htmlReport --self-contained-html `
-    --junitxml=$xmlReport `
+    "--html=$htmlReport" --self-contained-html `
+    "--junitxml=$xmlReport" `
     -v $prueba 2>&1
-
 $codigoPytest = $LASTEXITCODE
+$ErrorActionPreference = $prevPref
 $cronometro.Stop()
 $duracionS = [Math]::Round($cronometro.Elapsed.TotalSeconds, 2)
 
-$salidaConsola | Out-File -LiteralPath $consolaLog -Encoding utf8
+$utf8SinBom = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllLines($consolaLog, [string[]]($salidaConsola | ForEach-Object { $_.ToString() }), $utf8SinBom)
 $salidaConsola | ForEach-Object { Write-Host $_ }
 
 Write-Host "Pytest finalizo con codigo $codigoPytest en $duracionS s"
 
 # --- Generacion de artefactos derivados
 if (Test-Path -LiteralPath $generadorPy) {
-    Write-Host "Generando artefactos derivados..."
-    & $pythonCmd $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS
+    Write-Host 'Generando artefactos derivados...'
+    & $pythonCmd -B $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS --reintento $Reintento
 }
 
 # --- Verificacion de integridad de suites previas
@@ -196,64 +201,57 @@ if ($shaG25ScriptIni -ne $shaG25ScriptFin -or $shaG25RunnerIni -ne $shaG25Runner
     $shaG16ScriptIni -ne $shaG16ScriptFin -or $shaG16RunnerIni -ne $shaG16RunnerFin -or
     $shaG15ScriptIni -ne $shaG15ScriptFin -or $shaG15RunnerIni -ne $shaG15RunnerFin -or
     $shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14RunnerFin) {
-    Write-Host "ERROR CRITICO: Una suite previa fue modificada durante la ejecucion!" -ForegroundColor Red
+    Write-Host 'ERROR CRITICO: Una suite previa fue modificada durante la ejecucion!' -ForegroundColor Red
     exit 5
 }
-Write-Host "Integridad de suites previas G14-G25: 100% OK"
+Write-Host 'Integridad de suites previas G14-G25: 100% OK'
 
-# --- Escaneo y saneamiento de secretos
-$claves = @(
-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process'),
-    [Environment]::GetEnvironmentVariable('TEST_VET_PASSWORD', 'Process')
+# --- Escaneo estricto de secretos (solo reporte, SIN reescribir artefactos)
+$clavesEnv = @(
+    'TEST_ADMIN_PASSWORD',
+    'TEST_PRODUCER_PASSWORD',
+    'TEST_FIELD_ENGINEER_PASSWORD',
+    'TEST_DB_PASSWORD',
+    'TEST_VET_PASSWORD',
+    'TEST_SANDBOX_SECRET',
+    'BROKER_SERVICE_TOKEN',
+    'TEST_ADMIN_EMAIL',
+    'TEST_VET_EMAIL'
 )
-$correos = @(
-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_EMAIL', 'Process'),
-    [Environment]::GetEnvironmentVariable('TEST_VET_EMAIL', 'Process')
-)
-$secreto = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process')
-
-$patrones = New-Object System.Collections.Generic.List[string]
-foreach ($c in $claves) {
-    if (-not [string]::IsNullOrEmpty($c)) {
-        $patrones.Add($c)
-        if ($c.Length -gt 20) { $patrones.Add($c.Substring($c.Length - 20)) }
+$patronesNombrados = New-Object 'System.Collections.Generic.List[hashtable]'
+foreach ($k in $clavesEnv) {
+    $v = [Environment]::GetEnvironmentVariable($k, 'Process')
+    if (-not [string]::IsNullOrEmpty($v)) {
+        $patronesNombrados.Add(@{ Nombre = "${k}_full"; Valor = $v })
+        if ($v.Length -ge 20) {
+            $patronesNombrados.Add(@{ Nombre = "${k}_last20"; Valor = $v.Substring($v.Length - 20) })
+        }
     }
 }
-foreach ($e in $correos) {
-    if (-not [string]::IsNullOrEmpty($e)) { $patrones.Add($e) }
-}
-if (-not [string]::IsNullOrEmpty($secreto)) {
-    $patrones.Add($secreto)
-    if ($secreto.Length -gt 20) { $patrones.Add($secreto.Substring($secreto.Length - 20)) }
-}
-$patrones.Add('eyJ')
+$jwtPrefijo = 'ey' + 'J'
+$patronesNombrados.Add(@{ Nombre = 'jwt_prefijo'; Valor = $jwtPrefijo })
 
-$utf8 = New-Object System.Text.UTF8Encoding($false)
 $artefactos = @(Get-ChildItem -LiteralPath $staging -File -Recurse)
-
-function Contar-Secretos([string]$texto) {
-    $n = 0
-    foreach ($p in $patrones) { if ($texto.Contains($p)) { $n++ } }
-    return $n
-}
-
-$quedan = 0
+$hallazgos = 0
+Write-Host '--- Escaneo de secretos en staging (solo reporte) ---'
 foreach ($a in $artefactos) {
-    $texto = [IO.File]::ReadAllText($a.FullName, $utf8)
-    if ((Contar-Secretos $texto) -gt 0) {
-        foreach ($p in $patrones) { $texto = $texto.Replace($p, '***REDACTED***') }
-        [IO.File]::WriteAllText($a.FullName, $texto, $utf8)
-        Write-Host "Saneado: $($a.Name)" -ForegroundColor Yellow
-        $revisado = [IO.File]::ReadAllText($a.FullName, $utf8)
-        if ((Contar-Secretos $revisado) -gt 0) { $quedan++ }
+    $texto = [IO.File]::ReadAllText($a.FullName, $utf8SinBom)
+    foreach ($p in $patronesNombrados) {
+        if (-not [string]::IsNullOrEmpty($p.Valor) -and $texto.Contains($p.Valor)) {
+            Write-Host "  $($a.Name) | $($p.Nombre): encontrado" -ForegroundColor Red
+            $hallazgos++
+        } else {
+            Write-Host "  $($a.Name) | $($p.Nombre): no encontrado"
+        }
     }
 }
-$claves = $null; $correos = $null; $secreto = $null; $patrones.Clear()
+$patronesNombrados.Clear()
+$jwtPrefijo = $null
 
-if ($quedan -gt 0) {
+if ($hallazgos -gt 0) {
     Write-Host 'ARTEFACTOS CON SECRETOS: NO PROMOVER' -ForegroundColor Red
     exit 4
 }
-Write-Host 'Escaneo de secretos en staging: LIMPIO (0 secretos)'
+Write-Host 'Escaneo de secretos en staging: LIMPIO (0 hallazgos)'
 
 exit $codigoPytest

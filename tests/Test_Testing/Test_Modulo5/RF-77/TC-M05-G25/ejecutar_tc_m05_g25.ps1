@@ -1,6 +1,9 @@
 # | Fecha      | Nombre                   | Que se hizo                                                          |
 # |------------|--------------------------|----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G25 RF-77: runner Pytest con staging de evidencias            |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sufijos _reintentoN, sin copiar a resultados y escaneo estricto |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1b): C03 auditoria Productor, D05 IDOR de reporte, B03 con archivo real, patron de escaner |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1c): D02 403/404 por RLS, setup D05 alineado, ps1 ASCII |
 <#
 .SYNOPSIS
   Ejecuta TC-M05-G25 (RF-77, Roles, IDOR y Auditoria) contra TEST.
@@ -9,9 +12,9 @@
   - Carga .env.test del repo en las variables de entorno del PROCESO.
   - Verifica variables obligatorias para Producer, Vet, Admin y Sandbox.
   - Crea el staging evidencias\run-<yyyyMMdd-HHmmss>\ y define TEST_EVIDENCE_DIR.
-  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML.
+  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML (con sufijo _reintentoN si -Reintento > 0).
   - Genera artefactos derivados (JSON, repro, MD, TXT).
-  - Promocion condicionada: solo copia a resultados\ si 0 fallos y 0 secretos.
+  - Solo escanea secretos en staging (reporta y falla si hay hallazgos; nunca reescribe ni escribe en resultados\).
 #>
 param(
     [int]$Reintento = 0
@@ -122,8 +125,9 @@ $marcaTiempo = Get-Date -Format 'yyyyMMdd-HHmmss'
 $staging     = Join-Path $tcDir "evidencias\run-$marcaTiempo"
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
 
-$htmlReport  = Join-Path $staging 'resultado_TC-M05-G25.html'
-$xmlReport   = Join-Path $staging 'resultado_TC-M05-G25.xml'
+$sufijo      = if ($Reintento -gt 0) { "_reintento$Reintento" } else { "" }
+$htmlReport  = Join-Path $staging "resultado_TC-M05-G25$sufijo.html"
+$xmlReport   = Join-Path $staging "resultado_TC-M05-G25$sufijo.xml"
 $consoleLog  = Join-Path $staging 'consola_pytest.log'
 
 # --- Variables de entorno del subproceso
@@ -151,7 +155,7 @@ $salidaConsola | ForEach-Object { Write-Host $_ }
 # --- Generacion de artefactos derivados
 if (Test-Path -LiteralPath $generadorPy) {
     Write-Host "Generando artefactos derivados en staging..."
-    & $python $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS
+    & $python $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS --reintento $Reintento
 }
 
 # --- Verificacion de integridad SHA-256 post-corrida
@@ -200,70 +204,46 @@ if ($shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14Runner
 }
 Write-Host "Integridad de suites previas G14-G24: 100% OK"
 
-# --- Post-corrida de seguridad: escaneo de secretos
-$claves = @(
-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process'),
-    [Environment]::GetEnvironmentVariable('TEST_PRODUCER_PASSWORD', 'Process'),
-    [Environment]::GetEnvironmentVariable('TEST_VET_PASSWORD', 'Process')
+# --- Post-corrida de seguridad: escaneo de secretos (solo reporta, nunca reescribe)
+$entradasSecretos = @(
+    @{ Nombre = 'TEST_ADMIN_PASSWORD'; Valor = [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process') },
+    @{ Nombre = 'TEST_PRODUCER_PASSWORD'; Valor = [Environment]::GetEnvironmentVariable('TEST_PRODUCER_PASSWORD', 'Process') },
+    @{ Nombre = 'TEST_VET_PASSWORD'; Valor = [Environment]::GetEnvironmentVariable('TEST_VET_PASSWORD', 'Process') },
+    @{ Nombre = 'TEST_SANDBOX_SECRET'; Valor = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process') }
 )
-$correos = @(
-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_EMAIL', 'Process'),
-    [Environment]::GetEnvironmentVariable('TEST_PRODUCER_EMAIL', 'Process'),
-    [Environment]::GetEnvironmentVariable('TEST_VET_EMAIL', 'Process')
-)
-$secreto = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process')
 
-$patrones = New-Object System.Collections.Generic.List[string]
-foreach ($c in $claves) {
-    if (-not [string]::IsNullOrEmpty($c)) {
-        $patrones.Add($c)
-        if ($c.Length -gt 20) { $patrones.Add($c.Substring($c.Length - 20)) }
+$patrones = New-Object System.Collections.Generic.List[object]
+foreach ($item in $entradasSecretos) {
+    $v = $item.Valor
+    if (-not [string]::IsNullOrWhiteSpace($v)) {
+        $patrones.Add([PSCustomObject]@{ Nombre = $item.Nombre; Valor = $v })
+        if ($v.Length -gt 20) {
+            $patrones.Add([PSCustomObject]@{ Nombre = "$($item.Nombre)_ULTIMOS_20"; Valor = $v.Substring($v.Length - 20) })
+        }
     }
 }
-foreach ($e in $correos) {
-    if (-not [string]::IsNullOrEmpty($e)) { $patrones.Add($e) }
-}
-if (-not [string]::IsNullOrEmpty($secreto)) {
-    $patrones.Add($secreto)
-    if ($secreto.Length -gt 20) { $patrones.Add($secreto.Substring($secreto.Length - 20)) }
-}
-$patrones.Add('eyJ')
+$patrones.Add([PSCustomObject]@{ Nombre = 'PREFIJO_JWT'; Valor = ('ey' + 'J') })
 
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $artefactos = @(Get-ChildItem -LiteralPath $staging -File -Recurse)
+$hallazgos = 0
 
-function Contar-Secretos([string]$texto) {
-    $n = 0
-    foreach ($p in $patrones) { if ($texto.Contains($p)) { $n++ } }
-    return $n
-}
-
-$quedan = 0
 foreach ($a in $artefactos) {
     $texto = [IO.File]::ReadAllText($a.FullName, $utf8)
-    if ((Contar-Secretos $texto) -gt 0) {
-        foreach ($p in $patrones) { $texto = $texto.Replace($p, '***REDACTED***') }
-        [IO.File]::WriteAllText($a.FullName, $texto, $utf8)
-        Write-Host "Saneado: $($a.Name)" -ForegroundColor Yellow
-        $revisado = [IO.File]::ReadAllText($a.FullName, $utf8)
-        if ((Contar-Secretos $revisado) -gt 0) { $quedan++ }
+    foreach ($p in $patrones) {
+        if (-not [string]::IsNullOrEmpty($p.Valor) -and $texto.Contains($p.Valor)) {
+            Write-Host "HALLAZGO SECRETO [$($p.Nombre)] en: $($a.Name)" -ForegroundColor Red
+            $hallazgos++
+        }
     }
 }
-$claves = $null; $correos = $null; $secreto = $null; $patrones.Clear()
+$entradasSecretos = $null
+$patrones.Clear()
 
-if ($quedan -gt 0) {
-    Write-Host 'ARTEFACTOS CON SECRETOS: NO PROMOVER' -ForegroundColor Red
+if ($hallazgos -gt 0) {
+    Write-Host "Escaneo de secretos: $hallazgos hallazgo(s) encontrado(s). Revisar staging (sin reescritura ni promocion)." -ForegroundColor Red
     exit 4
 }
 Write-Host 'Escaneo de secretos en staging: LIMPIO (0 secretos)'
-
-# --- Promocion condicionada a resultados/
-if ($codigo -eq 0 -and $quedan -eq 0) {
-    Write-Host "Promoviendo reporte a resultados/ (0 fallos, 0 secretos, SHA-256 intacto)..." -ForegroundColor Green
-    Copy-Item -LiteralPath (Join-Path $staging 'resultado_TC-M05-G25.html') -Destination (Join-Path $tcDir 'resultados\resultado_TC-M05-G25.html') -Force
-    Copy-Item -LiteralPath (Join-Path $staging 'resultado_TC-M05-G25.json') -Destination (Join-Path $tcDir 'resultados\resultado_TC-M05-G25.json') -Force
-    Write-Host "Promocion completada con exito en resultados/." -ForegroundColor Green
-} else {
-    Write-Host "No se promueve a resultados/ (codigo=$codigo, secretos=$quedan). Se conserva resultados/ limpio." -ForegroundColor Yellow
-}
+Write-Host "Evidencias guardadas en staging: $staging (sin copiar a resultados/)." -ForegroundColor Cyan
 exit $codigo

@@ -1,12 +1,15 @@
 # | Fecha      | Nombre                   | Que se hizo                                                            |
 # |------------|--------------------------|------------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G25 (JSON, repro, MD, TXT)  |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sufijo reintento y clasificacion dinamica sin textos fijos |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1b): C03 auditoría Productor, D05 IDOR de reporte, B03 con archivo real, patrón de escáner |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3 (1c): D02 403/404 por RLS, setup D05 alineado, ps1 ASCII |
 """Generador de artefactos de corrida para TC-M05-G25.
 Lee el JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
-- resultado_TC-M05-G25.json
+- resultado_TC-M05-G25[_reintentoN].json
 - repro
-- TC-M05-G25_resultado.md
-- INFORME_FASE234_TC-M05-G25.txt
+- TC-M05-G25_resultado[_reintentoN].md
+- INFORME_FASE234_TC-M05-G25[_reintentoN].txt
 """
 from __future__ import annotations
 
@@ -76,8 +79,8 @@ TEST_METADATA = {
         "fuente": "RF-77 RNF Seguridad (TC-M05-024)",
     },
     "test_b03_veterinario_descargar_exportacion_denegado": {
-        "paso": "B03 Restricción de descarga de exportación para Veterinario",
-        "esperado": "HTTP 403 ACCESO_DENEGADO",
+        "paso": "B03 Restricción de descarga de exportación real para Veterinario",
+        "esperado": "HTTP 403 ACCESO_DENEGADO sin contenido CSV al descargar archivo real exportado por Administrador",
         "fuente": "RF-77 RNF Seguridad (TC-M05-024)",
     },
     "test_b04_veterinario_acceder_auditoria_denegado": {
@@ -96,8 +99,13 @@ TEST_METADATA = {
         "fuente": "RF-77 RNF Seguridad (TC-M05-024)",
     },
     "test_c02_verificacion_auditoria_ca11_postcondicion3": {
-        "paso": "C02 Registro en bitácora de auditoría de M05 de generación/exportación",
-        "esperado": "Presencia de evento de auditoría con usuario y timestamp (RF-77 CA-11 / Postcondición 3)",
+        "paso": "C02 Registro en bitácora de auditoría de M05 de generación y exportación de Admin",
+        "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Admin, fecha_evento y registro <= 2 s",
+        "fuente": "RF-77 CA-11 / Postcondición 3 (TC-M05-025)",
+    },
+    "test_c03_auditoria_productor_ca11_postcondicion3": {
+        "paso": "C03 Registro en bitácora de auditoría de M05 de generación y exportación de Productor",
+        "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Productor, fecha_evento y registro <= 2 s",
         "fuente": "RF-77 CA-11 / Postcondición 3 (TC-M05-025)",
     },
     "test_c98_cierre_sandbox_admin": {
@@ -107,25 +115,60 @@ TEST_METADATA = {
     },
     "test_d01_solicitudes_sin_autenticacion_retornan_401": {
         "paso": "D01 Rechazo de solicitudes no autenticadas",
-        "esperado": "HTTP 401 NO_AUTENTICADO en endpoints de reporte, exportación, descarga, historial y auditoría",
-        "fuente": "RF-02 / Especificación Global de Seguridad",
+        "esperado": "HTTP 401 sin Authorization (con cabeceras sandbox) en generación, exportación, descarga, historial y auditoría",
+        "fuente": "RF-02 / RF-77 RNF Seguridad",
     },
     "test_d02_idor_descarga_exportacion_ajena_retorna_403": {
         "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
-        "esperado": "HTTP 403 ARCHIVO_DE_OTRO_USUARIO al intentar descargar archivo generado por otro usuario",
-        "fuente": "RF-77 RNF Seguridad / Aislamiento (TC-M05-024 / TC-M05-025)",
+        "esperado": "HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARCHIVO_NO_ENCONTRADO por RLS de modulo5) sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox",
+        "fuente": "RF-77 RNF Seguridad / TC-M05-024",
     },
     "test_d03_manipulacion_identificadores_no_genera_500": {
         "paso": "D03 Validación de tipos y resistencia ante IDs inexistentes o inválidos",
-        "esperado": "HTTP 404 en inexistentes, HTTP 422 en tipos inválidos; jamás HTTP 500",
+        "esperado": "HTTP 404 en inexistentes, HTTP 400/422 en tipos inválidos; jamás HTTP 500",
         "fuente": "Guía de Pruebas / Robustez de la API",
     },
     "test_d04_aislamiento_historial_por_usuario": {
         "paso": "D04 Aislamiento estricto de historial por usuario",
-        "esperado": "GET /historial filtra exclusivamente los reportes creados por el usuario autenticado",
-        "fuente": "RF-77 RNF Historial (TC-M05-023 / TC-M05-024)",
+        "esperado": "GET /historial devuelve los reportes propios del usuario y excluye por completo los de otro usuario",
+        "fuente": "RF-77 RNF Historial (TC-M05-024)",
+    },
+    "test_d05a_idor_consultar_reporte_ajeno": {
+        "paso": "D05a Prevención de IDOR al consultar reporte de otro usuario",
+        "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni eventos indebidos en auditoría",
+        "fuente": "RF-77 RNF Seguridad / TC-M05-024",
+    },
+    "test_d05b_idor_regenerar_reporte_ajeno": {
+        "paso": "D05b Prevención de IDOR al regenerar reporte de otro usuario",
+        "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni evento REGENERACION en auditoría",
+        "fuente": "RF-77 RNF Seguridad / TC-M05-024",
+    },
+    "test_d05c_idor_exportar_reporte_ajeno": {
+        "paso": "D05c Prevención de IDOR al exportar reporte de otro usuario",
+        "esperado": "HTTP 403 o 404 sin creación de archivo ni evento EXPORTACION en auditoría",
+        "fuente": "RF-77 RNF Seguridad / TC-M05-024",
+    },
+    "test_d98_cierre_sandbox_idor": {
+        "paso": "D98 Cierre ordenado de sandbox IDOR/Aislamiento y rollback",
+        "esperado": "HTTP 200 con confirmación 'Rollback exitoso'",
+        "fuente": "Testing Harness / Sandbox Control",
     },
 }
+
+
+def _cargar_trazas(trazas_path: Path) -> list[dict]:
+    if not trazas_path.exists():
+        return []
+    registros = []
+    for linea in trazas_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        linea = linea.strip()
+        if not linea:
+            continue
+        try:
+            registros.append(json.loads(linea))
+        except json.JSONDecodeError:
+            continue
+    return registros
 
 
 def main():
@@ -133,18 +176,21 @@ def main():
     parser.add_argument("--staging", required=True, help="Ruta al directorio de staging de evidencias")
     parser.add_argument("--repo-root", required=True, help="Ruta a la raiz del repositorio")
     parser.add_argument("--duracion-s", type=float, default=0.0, help="Duracion de la corrida en segundos")
+    parser.add_argument("--reintento", type=int, default=0, help="Numero de reintento (>0 agrega sufijo _reintentoN)")
     args = parser.parse_args()
 
     staging = Path(args.staging)
     repo = Path(args.repo_root)
+    sufijo = f"_reintento{args.reintento}" if args.reintento > 0 else ""
 
-    xml_path = staging / "resultado_TC-M05-G25.xml"
+    xml_path = staging / f"resultado_TC-M05-G25{sufijo}.xml"
     if not xml_path.exists():
         print(f"ERROR: No se encontro el archivo XML: {xml_path}")
         return
 
     tree = ET.parse(xml_path)
     root = tree.getroot()
+    trazas = _cargar_trazas(staging / "trazas_http.jsonl")
 
     checkpoints = []
     total_ok = 0
@@ -187,13 +233,12 @@ def main():
             "ok": total_ok,
             "falla": total_falla,
             "veredicto": veredicto_global,
-            "duracion_s": round(args.duracion_s, 2),
         },
         "checkpoints": checkpoints,
     }
 
-    # Guardar resultado_TC-M05-G25.json en staging
-    json_path = staging / "resultado_TC-M05-G25.json"
+    # Guardar resultado_TC-M05-G25[_reintentoN].json en staging
+    json_path = staging / f"resultado_TC-M05-G25{sufijo}.json"
     json_path.write_text(json.dumps(json_data, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # Generar repro (script de reproducción)
@@ -226,14 +271,19 @@ if ($FiltroTest -ne "") {{
 """
     repro_path.write_text(repro_content, encoding="utf-8")
 
-    # Generar narrativo TC-M05-G25_resultado.md
-    narrativo_path = staging / "TC-M05-G25_resultado.md"
+    fallidos = [c for c in checkpoints if c["estado"] == "FALLA"]
+    errores_conexion = sum(1 for t in trazas if t.get("error_conexion"))
+
+    # Generar narrativo TC-M05-G25_resultado[_reintentoN].md
+    narrativo_path = staging / f"TC-M05-G25_resultado{sufijo}.md"
     md_content = f"""# Reporte de Ejecución: TC-M05-G25 (RF-77)
 
 ## 1. Identificación y Alcance
 - **Caso de Prueba**: TC-M05-G25
 - **Requerimiento**: RF-77 (Reporte de Gastos Acumulados por Activo)
-- **Subcasos Evaluados**: TC-M05-024 (Roles y Permisos), TC-M05-025 (Auditoría de Generación y Exportación)
+- **Subcasos Evaluados**: TC-M05-024 (Roles y Permisos / Aislamiento IDOR), TC-M05-025 (Auditoría de Generación y Exportación)
+- **Trazas HTTP Registradas**: {len(trazas)} (errores de conexión: {errores_conexion})
+- **Duración Medida**: {round(args.duracion_s, 2)} s
 - **Veredicto Global**: **{veredicto_global.upper()}** ({total_ok} OK, {total_falla} FALLA)
 
 ## 2. Resumen Normativo de Checkpoints
@@ -244,25 +294,21 @@ if ($FiltroTest -ne "") {{
         md_content += f"| {idx} | {chk['paso']} | {chk['esperado']} | {chk['obtenido']} | **{chk['estado']}** |\n"
 
     md_content += f"""
-## 3. Diagnóstico Técnico y Clasificación de Fallos
+## 3. Diagnóstico Técnico y Clasificación Derivada de Resultados
 - **Total de Pruebas**: {len(checkpoints)}
 - **Aprobadas**: {total_ok}
 - **Fallidas**: {total_falla}
-
-### Análisis de Roles y Permisos (TC-M05-024)
-- **Productor**: Autorizado para generar reportes y exportar en CSV/PDF. No autorizado para ver auditoría de M05 (HTTP 403).
-- **Veterinario**: Rechazado correctamente con HTTP 403 ACCESO_DENEGADO en generación de reportes, exportaciones, descargas y auditoría.
-- **No Autenticado**: Rechazado con HTTP 401 NO_AUTENTICADO en todos los endpoints probados.
-- **Aislamiento e IDOR**: Verificada la protección contra descarga de exportaciones de otros usuarios (HTTP 403 ARCHIVO_DE_OTRO_USUARIO) y resistencia a IDs inválidos (404/422, sin 500).
-
-### Análisis de Auditoría (TC-M05-025 - CA-11 / Postcondición 3)
-- La especificación RF-77 exige en CA-11 y Postcondición 3 que toda generación y exportación de reportes quede registrada de forma inmutable en la bitácora de auditoría con usuario y timestamp.
-- **Hallazgo / Defecto de Producto**: La implementación actual del caso de uso (`GenerarReporteGastosUseCase` y `ExportarReporteGastosUseCase`) no invoca el puerto de auditoría (`auditoria_port.registrar`) durante la generación o exportación exitosa de reportes.
-- **Clasificación**: DEFECTO DE PRODUCTO (GAP normativo frente a RF-77 CA-11 / Postcondición 3). No promovible a producción hasta que se implemente la auditoría de RF-77.
 """
+    if not fallidos:
+        md_content += "- **Clasificación Global**: **CONFORME** (todos los checkpoints aprobaron en JUnit/trazas).\n"
+    else:
+        md_content += "- **Clasificación Global**: **PENDIENTE_DIAGNOSTICO**\n"
+        for f in fallidos:
+            md_content += f"  - **{f['paso']}** (`PENDIENTE_DIAGNOSTICO`): {f['obtenido']}\n"
+
     narrativo_path.write_text(md_content, encoding="utf-8")
 
-    # Generar INFORME_FASE234_TC-M05-G25.txt
+    # Generar INFORME_FASE234_TC-M05-G25[_reintentoN].txt
     txt_content = f"""================================================================================
 INFORME DE EJECUCION FASE 2, 3 Y 4 — TC-M05-G25
 RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
@@ -272,9 +318,10 @@ RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
 --------------------
 - Caso de Prueba: TC-M05-G25
 - Requerimiento: RF-77 (CU04)
-- Subcasos Evaluados: TC-M05-024 (roles y permisos), TC-M05-025 (auditoria)
-- Ambiente: API Staging (https://www.api.inmero.co/api-sgpmp-test)
+- Subcasos Evaluados: TC-M05-024 (roles y permisos / IDOR), TC-M05-025 (auditoria)
+- Ambiente: TEST (desde TEST_BASE_URL)
 - Fecha y Hora de Ejecución: {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')}
+- Trazas HTTP registradas: {len(trazas)} (errores_conexion={errores_conexion})
 - Total de Checkpoints: {len(checkpoints)}
 - Checkpoints Aprobados: {total_ok}
 - Checkpoints Fallidos: {total_falla}
@@ -283,27 +330,31 @@ RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
 2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
 -----------------------------------------
 """
-    txt_content += f"{'Test / Paso':<45} | {'Esperado (Fuente)':<45} | {'Estado':<8} | {'Clasificación':<15}\n"
-    txt_content += f"{'-'*45}-+-{'-'*45}-+-{'-'*8}-+-{'-'*15}\n"
+    txt_content += f"{'Test / Paso':<45} | {'Esperado (Fuente)':<45} | {'Estado':<8} | {'Clasificación':<21}\n"
+    txt_content += f"{'-'*45}-+-{'-'*45}-+-{'-'*8}-+-{'-'*21}\n"
     for chk in checkpoints:
-        txt_content += f"{chk['paso'][:45]:<45} | {chk['esperado'][:45]:<45} | {chk['estado']:<8} | {'CONFORME' if chk['estado']=='OK' else 'DEFECTO_PRODUCTO':<15}\n"
+        clasif = "CONFORME" if chk["estado"] == "OK" else "PENDIENTE_DIAGNOSTICO"
+        txt_content += f"{chk['paso'][:45]:<45} | {chk['esperado'][:45]:<45} | {chk['estado']:<8} | {clasif:<21}\n"
 
-    txt_content += f"""
+    txt_content += """
 3. RUN IDS Y CICLO DE VIDA SANDBOX
 ----------------------------------
-- Modalidad Productor: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
-- Modalidad Veterinario: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
-- Modalidad Administrador: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
-- Modalidad IDOR / Tipos: Ejecutada directamente contra la API pública sin sandbox.
+- Modalidad Productor: Ejecutada bajo Sandbox Transaccional (Rollback atómico en A98).
+- Modalidad Veterinario: Ejecutada bajo Sandbox Transaccional (Rollback atómico en B98).
+- Modalidad Administrador: Ejecutada bajo Sandbox Transaccional (Rollback atómico en C98).
+- Modalidad IDOR / Tipos / Aislamiento: Ejecutada bajo Sandbox Transaccional (Rollback atómico en D98).
 
-4. DIAGNOSTICO DE FALLOS Y ACCIONES RECOMENDADAS
-------------------------------------------------
-- TC-M05-024 (Roles y Permisos): 100% CONFORME. RBAC aplica con precisión matemática.
-- TC-M05-025 (Auditoría): NO CONFORME (GAP de Producto).
-  El backend no emite llamadas a la bitácora de auditoría de M05 al generar o exportar reportes de RF-77.
-  Candidato a INC: Falta integración de auditoría de generación y exportación de reportes de gastos.
+4. DIAGNOSTICO DERIVADO DE RESULTADOS REALES
+--------------------------------------------
 """
-    (staging / "INFORME_FASE234_TC-M05-G25.txt").write_text(txt_content, encoding="utf-8")
+    if not fallidos:
+        txt_content += f"- Sin fallos registrados ({total_ok}/{len(checkpoints)} OK). Clasificación: CONFORME.\n"
+    else:
+        txt_content += f"- Se registraron {total_falla} fallo(s) en JUnit. Clasificación: PENDIENTE_DIAGNOSTICO.\n"
+        for f in fallidos:
+            txt_content += f"  * {f['paso']} [PENDIENTE_DIAGNOSTICO]: {f['obtenido']}\n"
+
+    (staging / f"INFORME_FASE234_TC-M05-G25{sufijo}.txt").write_text(txt_content, encoding="utf-8")
     print(f"Artefactos generados exitosamente en: {staging}")
 
 
