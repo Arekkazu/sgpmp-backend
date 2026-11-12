@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-11-06 | Juan Manuel      | TC-M05-G31 RF-78: atomicidad y reintentos del costeo directo |
+# | 2026-11-12 | Juan Manuel      | TC-M05 v4: intento inicial + 3 reintentos (264) y activo_port del caso de uso |
 """TC-M05-G31 / TC-M05-048 (RF-78, CA-6, E5, FA-07/FA-08): atomicidad ante fallo de BD y reintentos 1 s / 3 s / 5 s.
 
 No se ejecuta en TEST (inyección de fallos). Se prueban los casos de uso reales
@@ -98,6 +99,7 @@ def _registro(error, monkeypatch):
     db, aud, mov, repo = Sesion(), Auditoria(), Movimiento(), RepoQueFalla(error)
     uc = RegistrarSuministroDirectoUseCase(
         db=db, registro_repo=repo, auditoria_port=aud, movimiento=mov,
+        activo_port=SimpleNamespace(obtener=lambda id_: SimpleNamespace(id_activo_biologico=id_)),
         ciclo_port=SimpleNamespace(obtener_abierto=lambda id_: CicloAbierto(
             id_ciclo_productivo=4, fecha_inicio=datetime(2026, 10, 13, 1, 49, tzinfo=timezone.utc), id_gestion_fases=300)))
     return SimpleNamespace(uc=uc, db=db, aud=aud, mov=mov, repo=repo, esperas=esperas)
@@ -108,13 +110,13 @@ def test_048a_fallo_de_bd_reintenta_3_veces_y_luego_500(monkeypatch):
     t = _registro(InfrastructureError(code="BD_FALLO", message="fallo inyectado al guardar"), monkeypatch)
     with pytest.raises(InfrastructureError):   # el handler global lo responde como 500
         t.uc.execute(_dto(), USUARIO)
-    assert t.repo.intentos == 3, "3 intentos de persistencia (CA-6)"
-    assert t.db.rollbacks >= 3, "cada intento fallido revierte toda la transacción"
+    assert t.repo.intentos == 4, "intento inicial + 3 reintentos de persistencia (CA-6)"
+    assert t.db.rollbacks >= 4, "cada intento fallido revierte toda la transacción"
     assert t.mov.llamadas == [], "el acumulado no se toca si el registro no se guardó"
 
 
 def test_048b_backoff_de_1_3_y_5_segundos(monkeypatch):
-    """La ficha pide 1 s / 3 s / 5 s. Con 3 intentos solo hay 2 esperas: el 5 s nunca se aplica."""
+    """La ficha pide 1 s / 3 s / 5 s: una espera antes de cada uno de los 3 reintentos."""
     t = _registro(InfrastructureError(code="BD_FALLO", message="fallo inyectado"), monkeypatch)
     with pytest.raises(InfrastructureError):
         t.uc.execute(_dto(), USUARIO)
@@ -165,6 +167,6 @@ def test_048e_correccion_con_bloqueo_responde_409_conflicto_concurrencia(monkeyp
     with pytest.raises(ConflictError) as exc:
         uc.execute(original.id_registro_suministro, dto, USUARIO)
     assert exc.value.code == "CONFLICTO_CONCURRENCIA"
-    assert len(intentos) == 3, "3 intentos de tomar el bloqueo del acumulado"
+    assert len(intentos) == 4, "intento inicial + 3 reintentos de tomar el bloqueo del acumulado"
     assert mov.llamadas == [], "sin bloqueo no se mueve el acumulado"
     assert [e.tipo_operacion for e in aud.eventos] == ["CONFLICTO_CONCURRENCIA"], "evento del mismo nombre en auditoría"

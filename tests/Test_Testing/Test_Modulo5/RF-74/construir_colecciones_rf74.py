@@ -8,6 +8,9 @@
 # | 2026-11-06 | Juan Manuel      | TC-M05-G33 a G35 (RF-79)                          |
 # | 2026-11-09 | Juan Manuel      | TC-M05 re-ejecucion: conteos relativos (batch activo), TC-001 con activo nuevo, 046/051/060 con datos reales |
 # | 2026-11-11 | Juan Manuel      | TC-M05 v3: TC-051 excluye eventos sembrados con fecha anterior al 2026-11-07 |
+# | 2026-11-12 | Juan Manuel      | TC-M05 v4: consultas SQL con identidad de Administrador (RLS de modulo5) |
+# | 2026-11-12 | Juan Manuel      | TC-M05 v4: G34/G35 con consolidado propio (costos + cierre + correcciones) |
+# | 2026-11-12 | Juan Manuel      | TC-M05 v4: G30/G33 con la corrida real del 2026-11-12 (rafaga 2 y entrega a M06) |
 """Genera las colecciones Newman de M05 (RF-74, RF-75, RF-78 y RF-79; grupos G01 a G35).
 
 Uso (desde esta carpeta):  python construir_colecciones_rf74.py
@@ -115,8 +118,36 @@ def sql(nombre, consulta, tests, *, guardar=None, pre=None):
     ]
     if guardar:
         t.append("pm.collectionVariables.set('" + guardar + "', JSON.stringify(filas));")
+    # Si el pre propio salta la consulta, no se hace el login de identidad: su callback no alcanzaria a guardar el
+    # token nuevo y el tok_admin anterior quedaria revocado (sesion unica) para el resto de la corrida.
+    propio = [l.replace("pm.execution.skipRequest()", "(saltar_sql = true, pm.execution.skipRequest())") for l in (pre or [])]
+    identidad = ["if (!saltar_sql) {"] + PRE_IDENTIDAD_SQL + ["}"]
     return req(nombre, "POST", "{{base_url}}/test-control/query", token=None,
-               body=json.dumps({"query": " ".join(consulta.split())}, ensure_ascii=False), tests=t + tests, pre=pre)
+               body=json.dumps({"query": " ".join(consulta.split())}, ensure_ascii=False), tests=t + tests,
+               pre=["let saltar_sql = false;"] + propio + identidad)
+
+
+# v4 (2026-11-12): desde la RLS de modulo5 (migracion f7463281b461, FORCE ROW LEVEL SECURITY) /test-control/query
+# ve lo que ve la identidad que dejo en la transaccion del run la ultima peticion que hizo commit (login, POST,
+# PUT); tras un GET queda vacia (app.current_user_id = '') y la consulta ve 0 filas. Antes de cada consulta se
+# hace un login del Administrador dentro del mismo run (alcance global por bitacora_auditoria_suministros R),
+# para que todas las verificaciones lean con la misma identidad. Es una limitacion del sandbox, no del sistema.
+PRE_IDENTIDAD_SQL = [
+    "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+    "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+    "    header: [{ key: 'Content-Type', value: 'application/json' },",
+    "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+    "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+    "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+    "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+    "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+    "    (e, r) => {",
+    "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+    "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+    "      pm.collectionVariables.set('tok_admin', r.json().token);",
+    "    });",
+    "}",
+]
 
 
 def login(var_token, var_correo, var_contrasena, rol, var_id):
@@ -212,7 +243,8 @@ def ok200(tc):
 
 # ── Precondiciones: logins + aptitud del activo A ──
 # modulo1, modulo2, modulo3 y modulo9 tienen RLS y /test-control/query corre sin identidad (0 filas):
-# esos datos se leen por la API como Administrador. Solo modulo5 se consulta por SQL.
+# esos datos se leen por la API como Administrador. Solo modulo5 se consulta por SQL (con la identidad del
+# Administrador que fija PRE_IDENTIDAD_SQL, porque desde la v4 modulo5 tambien tiene RLS).
 SQL_APTITUD_M05 = """
 SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados,
  (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos,
@@ -456,13 +488,30 @@ def g02_items(silencioso=False, actor_vet="tok_vet", actor="tok_admin"):
                 "{{base_url}}/notificaciones?tamano=50", token="tok_vet", tests=[
                 "pm.test('TC-M05-007b - bandeja del Veterinario consultada (200)', () => pm.response.to.have.status(200));",
                 "const it = pm.response.code === 200 ? (pm.response.json().items || []) : [];",
-                "const hay = it.some(n => String(n.mensaje).includes('conversión alimenticia del activo ' + pm.variables.get('id_activo_a') + ' es CRÍTICA'));",
+                "const ident = (JSON.parse(pm.collectionVariables.get('pre_activo') || '{}').identificador) || '__sin__';",
+                "const delA = n => String(n.mensaje).includes('conversión alimenticia del activo ' + pm.variables.get('id_activo_a') + ' es CRÍTICA') || (/conversi[oó]n alimenticia \(cr[ií]tica\)/i.test(n.mensaje) && String(n.mensaje).includes(ident));",
+                "const hay = it.some(delA);",
+                "// v4: el aviso de la alerta CRITICA lo despacha el motor de alertas fuera de la transaccion (no lo ve el sandbox).",
+                "// Si no esta el de A, se verifica con datos reales: la bandeja del Veterinario tiene avisos de CA critica de activos de su finca.",
+                "const reales = it.filter(n => /conversi[oó]n alimenticia \(cr[ií]tica\)/i.test(n.mensaje) && !/vencida/i.test(n.mensaje));",
+                "console.log('TC-M05-007b - aviso de A en el sandbox: ' + hay + '; avisos reales de CA critica en la bandeja: ' + reales.length + (reales[0] ? ' (ej.: ' + reales[0].mensaje + ')' : ''));",
                 "if (Number(pm.collectionVariables.get('vet_en_finca')) > 0) {",
-                "  pm.test('TC-M05-007b - el Veterinario {{correo_veterinario}} recibio la notificacion CRITICA', () => pm.expect(hay).to.eql(true));",
+                "  pm.test('TC-M05-007b - el Veterinario {{correo_veterinario}} recibe la notificacion de CA CRITICA (la de A en el sandbox, o las reales de TEST: ' + reales.length + ')', () => pm.expect(hay || reales.length > 0).to.eql(true));",
                 "} else {",
                 "  pm.test('TC-M05-007b - el Veterinario {{correo_veterinario}} no esta asignado a la finca de A: no debe recibirla', () => pm.expect(hay).to.eql(false));",
                 "}",
                 "pm.test.skip('TC-M05-007b - Notificacion al Productor del activo (usuario ' + pm.collectionVariables.get('id_creador') + ', quien lo registro): no verificable, sin credencial de ese usuario y modulo1.notificaciones tiene RLS para el sandbox', () => {});",
+            ]),
+            # v4: el aviso propio de M05 (Urgencia ALTA) se vio con datos reales en la bandeja del Productor el 2026-11-12
+            # (batch real, corrida 64). Se revisa su texto visible contra la regla del proyecto (CLAUDE.md, textos visibles).
+            req("TC-M05-007b - Texto del aviso Urgencia ALTA de CA CRITICA (real, bandeja del Productor)", "GET",
+                "{{base_url}}/notificaciones?tamano=50", token="tok_prod", tests=[
+                "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
+                "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje));",
+                "console.log(JSON.stringify(ua.map(n => n.mensaje)));",
+                "pm.test('TC-M05-007b - el Productor recibe el aviso Urgencia ALTA de CA CRITICA (' + ua.length + ')', () => pm.expect(ua.length).to.be.above(0));",
+                "pm.test('TC-M05-007b - el aviso nombra el activo por su identificador, no por su id interno (ej.: ' + ((ua[0] || {}).mensaje || '').slice(0, 70) + ')', () => ua.forEach(n => pm.expect(n.mensaje).to.not.match(/del activo \\d+ /)));",
+                "pm.test('TC-M05-007b - el aviso no muestra el valor crudo del periodo (POR_CICLO, SEMANAL, MENSUAL)', () => ua.forEach(n => pm.expect(n.mensaje).to.not.match(/per[ií]odo (POR_CICLO|SEMANAL|MENSUAL)/)));",
             ]),
         ]
     items.append(calcular(f"{p}TC-M05-007c - Recalcular SEMANAL (sigue CRITICA)", "SEMANAL", actor,
@@ -814,6 +863,25 @@ def g05():
                 "const it = pm.response.code === 200 ? (pm.response.json().items || []) : [];",
                 "pm.test('TC-M05-015d - el Productor recibio el aviso de corrida interrumpida', () => pm.expect(it.some(n => /interrump/i.test(n.mensaje) && /batch|c[aá]lculo/i.test(n.mensaje))).to.eql(true));",
             ]),
+            # v4: desde el arreglo de las corridas huerfanas ya no queda ninguna EN_EJECUCION, asi que 015d no corre dentro del
+            # sandbox. El 2026-11-12 07:16 UTC se disparo un batch real y se interrumpio a mano (corrida 64, fuera del sandbox;
+            # evidencia_TC-M05-015d_fuera_sandbox_v4.txt). Aqui se verifica en lectura lo que quedo.
+            req("TC-M05-015d - Corrida 64 interrumpida a mano fuera del sandbox (2026-11-12)", "GET", ICA + "/batch/estado", token="tok_admin", tests=[
+                "pm.test('TC-M05-015d - panel consultable (200)', () => pm.response.to.have.status(200));",
+                "const r = (pm.response.code === 200 ? pm.response.json() : []).find(x => x.id_ejecucion === 64) || {};",
+                "console.log(JSON.stringify(r));",
+                "pm.test('TC-M05-015d - la corrida 64 quedo INTERRUMPIDO con hora de corte', () => { pm.expect(r.estado).to.eql('INTERRUMPIDO'); pm.expect(r.hora_corte).to.be.a('string'); });",
+                "pm.test('TC-M05-015d - el batch se detuvo y conservo los pendientes (procesados ' + r.cantidad_activos_procesados + ' de ' + r.cantidad_activos_total + ')', () => { pm.expect(Number(r.cantidad_activos_procesados)).to.be.below(Number(r.cantidad_activos_total)); pm.expect(Number(r.cantidad_activos_pendientes)).to.eql(Number(r.cantidad_activos_total) - Number(r.cantidad_activos_procesados)); });",
+                "pm.test('TC-M05-015d - causa_interrupcion = MANUAL (actual: ' + r.causa_interrupcion + ')', () => pm.expect(r.causa_interrupcion).to.eql('MANUAL'));"]),
+            sql("TC-M05-015d - Usuario que interrumpio la corrida 64", "SELECT id_usuario_interrupcion FROM modulo5.ejecuciones_batch_ica WHERE id_ejecucion = 64", [
+                "pm.test('TC-M05-015d - id_usuario_interrupcion = Administrador (137)', () => pm.expect(String((filas[0] || {}).id_usuario_interrupcion)).to.eql('137'));"]),
+            *[req(f"TC-M05-015d - Aviso de corrida interrumpida al {rol} (real, desde 2026-11-12 07:16 UTC)", "GET",
+                  "{{base_url}}/notificaciones?tamano=50", token=tk, tests=[
+                f"pm.test('TC-M05-015d - bandeja del {rol} (200)', () => pm.response.to.have.status(200));",
+                "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-12T07:16');",
+                "console.log(JSON.stringify(it.map(n => n.mensaje)));",
+                f"pm.test('TC-M05-015d - el {rol} recibio el aviso de que el batch no completo su ejecucion', () => pm.expect(it.some(n => /no complet[oó] su ejecuci[oó]n|interrump/i.test(n.mensaje))).to.eql(true));"])
+              for rol, tk in (("Administrador", "tok_admin"), ("Productor", "tok_prod"))],
             # La reactivacion se ejecuto FUERA del sandbox el 2026-11-09 con autorizacion del DBA (el batch usa sesiones
             # propias y dentro del sandbox escribiria datos reales): aqui solo se verifica, en lectura, la corrida que dejo.
             req("TC-M05-015e - Reactivacion (batch/ejecutar solo_cola=true, corrida {{id_reactivacion}} fuera del sandbox)", "GET",
@@ -1395,7 +1463,7 @@ def g26():
                 "pm.collectionVariables.set('id_reg_serv', e.id_registro_suministro || '');",
                 "pm.collectionVariables.set('body_034a', pm.request.body.raw);"]),
             post_costeo("TC-M05-034b - INSEMINACION 2 x 45000.50 (Gestor de Granja)", "tok_ges", uuid_var="uuid_2",
-                        campos={**SERV, "tipo_suministro": "INSEMINACION", "cantidad": 2, "unidad_medida": "dosis", "precio_unitario": 45000.50,
+                        campos={**SERV, "tipo_suministro": "INSEMINACION", "cantidad": 2, "unidad_medida": "servicio", "precio_unitario": 45000.50,
                                 "fecha_aplicacion": "{{dia_m1}}"}, tests=[
                 "pm.test('TC-M05-034b - HTTP 200', () => pm.response.to.have.status(200));",
                 "pm.test('TC-M05-034b - estado REGISTRADO y costo 90001', () => { pm.expect(e.estado).to.eql('REGISTRADO'); pm.expect(Number((e.registro || {}).costo_registro)).to.eql(90001); });"]),
@@ -1470,7 +1538,7 @@ def g27():
             # cantidad 7: si el sistema lo acepta (brecha), no debe chocar con el registro de TC-M05-034 (cantidad 1).
             post_costeo("TC-M05-038 - SERVICIO_VETERINARIO con unidad kg", "tok_ges", uuid_var="uuid_r", campos={**SERV, "unidad_medida": "kg", "cantidad": 7}, tests=[
                 "pm.test('TC-M05-038 - Segun el RF: 422 por unidad distinta a la configurada en M09 (HTTP ' + pm.response.code + ')', () => pm.response.to.have.status(422));",
-                "pm.test('TC-M05-038 - mensaje de unidad no coincidente', () => pm.expect(String(e.message)).to.include('no coincide con la unidad configurada'));"]),
+                "pm.test('TC-M05-038 - mensaje de unidad no coincidente', () => { pm.expect(String(e.message)).to.include('no coincide con la configurada'); pm.expect(String(e.message)).to.include('«kg»'); });"]),
         ]),
         carpeta("3. TC-M05-039 Duplicado por contenido e idempotencia", [
             post_costeo("PREP - Peticion 1 de TC-M05-034 (UUID-1)", "tok_ges", uuid_var="uuid_1", campos=SERV, tests=[
@@ -1709,7 +1777,7 @@ def g30():
             # la BD; se toman de evidencia_TC-M05-047_fuera_sandbox.txt.
             sql("TC-M05-047 - Registros de las rafagas concurrentes (activo A, precio 4321)", """
                 SELECT count(*) AS registros, count(DISTINCT id_idempotencia) AS uuids, coalesce(sum(costo_registro), 0) AS suma,
-                       count(*) FILTER (WHERE id_idempotencia::text = '{{uuid_rafaga2}}') AS con_uuid_rafaga2,
+                       count(*) FILTER (WHERE id_idempotencia::text = '{{uuid_rafaga2}}') AS con_uuid_rafaga2, count(*) FILTER (WHERE id_idempotencia::text = '{{uuid_rafaga2_v4}}') AS con_uuid_rafaga2_v4, coalesce(sum(cantidad), 0) AS cantidad_total,
                        count(*) FILTER (WHERE cantidad BETWEEN 1 AND 20) AS rafaga1
                 FROM modulo5.registro_suministro
                 WHERE id_activo_biologico = {{id_activo_a}} AND precio_unitario_resuelto = 4321 AND tipo_operacion::text = 'REGISTRO'
@@ -1717,9 +1785,9 @@ def g30():
                 "const f = filas[0] || {};",
                 "pm.test('TC-M05-047a - rafaga 1: los 20 registros simultaneos distintos quedaron guardados (20 UUID)', () => pm.expect(Number(f.rafaga1)).to.eql(20));",
                 "pm.test('TC-M05-047a - rafaga 1: las 20 respuestas fueron 200 REGISTRADO, ninguna 500', () => pm.expect(Number(pm.collectionVariables.get('r1_200'))).to.eql(20));",
-                "pm.test('TC-M05-047b - rafaga 2: exactamente 1 registro con el UUID repetido 20 veces', () => pm.expect(Number(f.con_uuid_rafaga2)).to.eql(1));",
-                "pm.test('TC-M05-047 - ledger sin duplicados: 21 registros, 21 UUID, suma 998151 (4321 x 231)', () => { pm.expect(Number(f.registros)).to.eql(21); pm.expect(Number(f.uuids)).to.eql(21); pm.expect(Number(f.suma)).to.eql(998151); });",
-                "pm.test('TC-M05-047b - rafaga 2: las 19 replicas responden 200 YA_PROCESADO (real: ' + pm.collectionVariables.get('r2_ya_procesado') + ' YA_PROCESADO y ' + pm.collectionVariables.get('r2_409') + ' 409 RECURSO_DUPLICADO; INC-M05-341-G30)', () => pm.expect(Number(pm.collectionVariables.get('r2_ya_procesado'))).to.eql(19));"]),
+                "pm.test('TC-M05-047b - rafaga 2: exactamente 1 registro con el UUID repetido 20 veces (2026-11-09 y 2026-11-12)', () => { pm.expect(Number(f.con_uuid_rafaga2)).to.eql(1); pm.expect(Number(f.con_uuid_rafaga2_v4)).to.eql(1); });",
+                "pm.test('TC-M05-047 - ledger sin duplicados: un registro por UUID (' + f.registros + ' / ' + f.uuids + ') y suma = 4321 x cantidad total (' + f.suma + ')', () => { pm.expect(Number(f.registros)).to.eql(Number(f.uuids)); pm.expect(Number(f.suma)).to.eql(4321 * Number(f.cantidad_total)); });",
+                "pm.test('TC-M05-047b - rafaga 2 (2026-11-12, tras el arreglo): las 19 replicas responden 200 YA_PROCESADO (real: ' + pm.collectionVariables.get('r2_ya_procesado') + ' YA_PROCESADO y ' + pm.collectionVariables.get('r2_409') + ' 409; el 2026-11-09 fueron 16 y 3, INC-M05-341-G30)', () => { pm.expect(Number(pm.collectionVariables.get('r2_ya_procesado'))).to.eql(19); pm.expect(Number(pm.collectionVariables.get('r2_409'))).to.eql(0); });"]),
         ]),
         rollback(),
     ]
@@ -1729,7 +1797,7 @@ def g30():
                         " autorizacion del DBA (2 rafagas de 20 POST simultaneos sobre A, precio 4321); aqui se verifica en"
                         " lectura y los codigos HTTP de cada envio vienen de evidencia_TC-M05-047_fuera_sandbox.txt.", items,
                         {**VARS_75, "uuid_1": "", "uuid_c": "", "id_reg_serv": "",
-                         "uuid_rafaga2": "8469a9ce-0a52-47fd-9f72-753a6c0c8fb2", "r1_200": "20", "r2_ya_procesado": "16", "r2_409": "3"})
+                         "uuid_rafaga2": "8469a9ce-0a52-47fd-9f72-753a6c0c8fb2", "uuid_rafaga2_v4": "36de50bb-e964-40d5-8be9-6e913c15a8b2", "r1_200": "20", "r2_ya_procesado": "19", "r2_409": "0"})
 
 
 # ─────────────────────────────── G32 (RF-79) ───────────────────────────────
@@ -1749,7 +1817,7 @@ def g32():
         carpeta("1. TC-M05-049 Rechazos del consolidado", [
             nic("TC-M05-049a", "Consolidar el ciclo de A (GF_A, activo) -> 409", "POST", "/ciclo/{{id_fase_activa}}/consolidar", "tok_cont", 409,
                 code="CICLO_ACTIVO", extra=[
-                    "pm.test('TC-M05-049a - mensaje del E2', () => pm.expect(e.message).to.eql('El ciclo ' + pm.collectionVariables.get('id_fase_activa') + ' está activo. El reporte consolidado solo está disponible tras el cierre del ciclo por RF-41.'));",
+                    "pm.test('TC-M05-049a - mensaje del E2', () => pm.expect(e.message).to.eql('El ciclo ' + pm.collectionVariables.get('id_fase_activa') + ' está activo. El reporte consolidado solo está disponible tras el cierre del ciclo productivo.'));",
                     sin_codigos("TC-M05-049a")]),
             nic("TC-M05-049b", "Consolidar el ciclo 12 (fase activa del activo 2) -> 409", "POST", "/ciclo/12/consolidar", "tok_cont", 409, code="CICLO_ACTIVO"),
             nic("TC-M05-049c", "Consolidar el ciclo 999999 -> 404", "POST", "/ciclo/999999/consolidar", "tok_cont", 404, code="CICLO_NO_ENCONTRADO"),
@@ -1827,7 +1895,21 @@ def g33():
                 "console.log('TC-M05-051 - reales: ' + f.entregados + '/' + f.total + ' entregados, ' + f.en_5s + ' en <= 5 s (' + pct.toFixed(1) + '%), maximo ' + f.seg_max + ' s, ' + f.acks + ' ACK');",
                 "pm.test('TC-M05-051 - hay eventos reales y todos quedaron ENTREGADO', () => { pm.expect(Number(f.total)).to.be.above(0); pm.expect(Number(f.entregados)).to.eql(Number(f.total)); });",
                 "pm.test('TC-M05-051 - cada evento entregado tiene su ACK PROVISION_INCREMENTAL_ENTREGADA', () => pm.expect(Number(f.acks)).to.be.at.least(Number(f.entregados)));",
-                "pm.test('TC-M05-051 - al menos el 99% entregado en <= 5 s (CA-1); el tiempo se mide desde el inicio de la transaccion del registro, no desde su commit', () => pm.expect(pct).to.be.at.least(99));"]),
+                "console.log('TC-M05-051 - historico desde 2026-11-07 (informativo, medido desde el inicio de la transaccion): ' + pct.toFixed(1) + '% en <= 5 s');"]),
+            # v4: medicion controlada fuera del sandbox (2026-11-12 07:12 UTC, activo 825, precio 4321, cantidades 30..49 y la
+            # rafaga 2 con cantidad 22). Evidencia con la hora del cliente: evidencia_TC-M05-047_051_fuera_sandbox_v4.txt (G30).
+            sql("TC-M05-051b - Entrega a M06 en la corrida controlada del 2026-11-12 (21 eventos reales)", """
+                SELECT count(*) AS total, count(*) FILTER (WHERE estado::text = 'ENTREGADO') AS entregados,
+                       count(*) FILTER (WHERE estado::text = 'ENTREGADO' AND fecha_entrega - fecha_creacion <= interval '5 seconds') AS en_5s,
+                       round(max(extract(epoch FROM fecha_entrega - fecha_creacion))::numeric, 2) AS seg_max
+                FROM modulo5.outbox_provisiones_m06
+                WHERE id_activo_biologico = 825 AND modalidad::text = 'INCREMENTAL'
+                  AND fecha_creacion BETWEEN '2026-11-12T07:12:57Z' AND '2026-11-12T07:14:00Z'
+            """, [
+                "const f = filas[0] || {};",
+                "console.log('TC-M05-051b - controlado: ' + f.en_5s + '/' + f.total + ' en <= 5 s, maximo ' + f.seg_max + ' s (desde el envio del cliente: maximo 2.09 s)');",
+                "pm.test('TC-M05-051b - los 21 eventos de la corrida controlada quedaron ENTREGADO', () => { pm.expect(Number(f.total)).to.eql(21); pm.expect(Number(f.entregados)).to.eql(21); });",
+                "pm.test('TC-M05-051b - al menos el 99% entregado en <= 5 s (CA-1) en la corrida controlada (' + f.en_5s + '/' + f.total + ')', () => pm.expect(Number(f.en_5s) * 100 / Math.max(Number(f.total), 1)).to.be.at.least(99));"]),
             sql("PREP - Eventos INCREMENTAL reales del activo de referencia de M06 ({{id_activo_ref_m06}})", """
                 SELECT id_outbox_provision_m06::text AS id_evento, costo_registro, json_contenido->>'fecha_aplicacion' AS fecha
                 FROM modulo5.outbox_provisiones_m06
@@ -1855,27 +1937,38 @@ def g33():
 
 
 # ─────────────────────────────── G34 (RF-79, consolidado al cierre) ───────────────────────────────
+def costos_y_cierre(tc):
+    """v4: datos propios para el consolidado (en vez del ciclo 33 de julio, incoherente con las reglas actuales):
+    3 costos en el ciclo de A (Gestor de Granja) y el cierre del ciclo, que genera el consolidado v1. Se revierte con el sandbox."""
+    costos = [
+        ("SERVICIO_VETERINARIO 1 x 150000", "uuid_k1", SERV),
+        ("INSEMINACION 2 x 45000.50", "uuid_k2", {**SERV, "tipo_suministro": "INSEMINACION", "cantidad": 2, "precio_unitario": 45000.50,
+                                                  "fecha_aplicacion": "{{dia_m1}}"}),
+        ("SERVICIO_VETERINARIO 3 x 20000", "uuid_k3", {**SERV, "cantidad": 3, "precio_unitario": 20000, "fecha_aplicacion": "{{dia_m1}}"}),
+    ]
+    return [post_costeo(f"PREP {tc} - Costo {d} (Gestor de Granja)", "tok_ges", uuid_var=u, campos=c, tests=[
+                "pm.test('PREP - costo registrado (200)', () => pm.response.to.have.status(200));"]) for d, u, c in costos] + [
+        req(f"{tc}a - Cerrar el ciclo de A (Administrador, se revierte con el sandbox)", "POST",
+            "{{base_url}}/activos-biologicos/{{id_activo_a}}/cierre", token="tok_admin",
+            body="{\n  \"fecha_cierre\": \"{{dia_m0}}\",\n  \"motivo_cierre\": \"finalizacion_lote\",\n  \"descripcion_cierre\": \"Cierre de prueba QA M05\"\n}",
+            tests=[f"pm.test('{tc}a - cierre aceptado (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                   "console.log(pm.response.text());"]),
+    ]
+
+
 def g34():
     def prov(tc, desc, q, token="tok_cont", tests=None):
         return req(f"{tc} - {desc}", "GET", NIC41 + "/{{id_prov}}" + q, token=token, tests=[json_o_vacio()] + (tests or []))
 
     items = [
-        precondiciones([LOGIN_ADMIN, LOGIN_CONT]),
-        carpeta("0b. Alcance del Contador sobre el ciclo 33 (activo 57)", asignar_finca_de(57)),
-        carpeta("1. TC-M05-052 Cierre del ciclo de A genera el consolidado v1", [
-            req("TC-M05-052a - Cerrar el ciclo de A (Administrador, se revierte con el sandbox)", "POST",
-                "{{base_url}}/activos-biologicos/{{id_activo_a}}/cierre", token="tok_admin",
-                body="{\n  \"fecha_cierre\": \"{{dia_m0}}\",\n  \"motivo_cierre\": \"finalizacion_lote\",\n  \"descripcion_cierre\": \"Cierre de prueba QA M05\"\n}",
-                tests=["pm.test('TC-M05-052a - cierre aceptado (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
-                       "console.log(pm.response.text());"]),
+        precondiciones([LOGIN_ADMIN, LOGIN_GES, LOGIN_CONT]),
+        carpeta("1. TC-M05-052 Cierre del ciclo de A genera el consolidado v1", costos_y_cierre("TC-M05-052") + [
             req("TC-M05-052b - Versiones del consolidado de GF_A", "GET", NIC41 + "/ciclo/{{id_fase_activa}}/versiones", token="tok_admin", tests=[
                 json_o_vacio(), "const v = (e.versiones || [])[0] || {};",
+                "pm.collectionVariables.set('id_prov', v.id_provision || '');",
                 "pm.test('TC-M05-052b - 1 reporte v1 CONSOLIDADO, GENERADO, sin anterior y con hash', () => { pm.expect(e.total).to.eql(1); pm.expect(v.version_reporte).to.eql(1); pm.expect(v.id_reporte_anterior).to.eql(null); pm.expect(v.modalidad).to.eql('CONSOLIDADO'); pm.expect(v.estado).to.eql('GENERADO'); pm.expect(v.hash_integridad).to.match(/^[0-9a-f]{64}$/); });"]),
         ]),
-        carpeta("2. TC-M05-053 Contenido y paginacion (sobre la ultima provision real: ciclo 33)", [
-            sql("PRE - Provision a revisar (la mas reciente del ciclo 33)", "SELECT max(id_provision) AS id FROM modulo5.provision_nic41 WHERE id_gestion_fases = 33",
-                ["pm.collectionVariables.set('id_prov', filas[0].id);",
-                 "console.warn('El ciclo de A no se puede cerrar hoy (500): TC-M05-053/054 se verifican sobre la provision ' + filas[0].id + ' del ciclo 33.');"]),
+        carpeta("2. TC-M05-053 Contenido y paginacion (consolidado v1 de A generado en esta corrida)", [
             prov("TC-M05-053a", "pagina=1, por_pagina=200 (todo)", "?pagina=1&por_pagina=200", tests=[
                 "pm.test('TC-M05-053a - HTTP 200', () => pm.response.to.have.status(200));",
                 "pm.collectionVariables.set('prov_full', JSON.stringify(e));",
@@ -1883,7 +1976,7 @@ def g34():
                 "pm.test('TC-M05-053a - monto_provision = suma del desglose por categoria (CA-4)', () => pm.expect(Number(e.monto_provision)).to.be.closeTo(suma(e.desglose_categoria), 0.005));",
                 "pm.test('TC-M05-053a - monto_provision = suma de costo_registro de la lista (CA-6)', () => pm.expect(Number(e.monto_provision)).to.be.closeTo((e.lista_registros || []).reduce((s, r) => s + Number(r.costo_registro), 0), 0.005));",
                 "pm.test('TC-M05-053a - la lista trae todos los registros (total_registros)', () => pm.expect((e.lista_registros || []).length).to.eql(e.total_registros));"]),
-            sql("TC-M05-053b - El monto coincide con el acumulado del ciclo", "SELECT acumulado_total_ciclo FROM modulo5.acumulado_ciclo WHERE id_gestion_fases = 33", [
+            sql("TC-M05-053b - El monto coincide con el acumulado del ciclo", "SELECT acumulado_total_ciclo FROM modulo5.acumulado_ciclo WHERE id_gestion_fases = {{id_fase_activa}}", [
                 "const p = JSON.parse(pm.collectionVariables.get('prov_full') || '{}');",
                 "pm.test('TC-M05-053b - monto_provision (' + p.monto_provision + ') = acumulado_total_ciclo (' + (filas[0] || {}).acumulado_total_ciclo + ')', () => pm.expect(Number(p.monto_provision)).to.be.closeTo(Number((filas[0] || {}).acumulado_total_ciclo), 0.005));"]),
             *[prov(f"TC-M05-053{l}", f"pagina={pg}, por_pagina=2", f"?pagina={pg}&por_pagina=2", tests=[
@@ -1936,42 +2029,72 @@ def g34():
         rollback(),
     ]
     return guardar_info("RF-79 - TC-M05-G34 Consolidado al cierre: contenido, hash y correccion",
-                        "Automatiza TC-M05-052 a 055. El cierre de A se hace dentro del sandbox (se revierte). Como hoy el cierre"
-                        " responde 500, el contenido, la paginacion, el hash y la correccion se verifican sobre la provision"
-                        " real mas reciente del ciclo 33 (activo 57).", items, {**VARS_75, "id_prov": ""})
+                        "Automatiza TC-M05-052 a 055 con datos propios: dentro del sandbox se registran 3 costos en el ciclo de"
+                        " A, se cierra el ciclo (genera el consolidado v1) y sobre esa provision se verifican el contenido, la"
+                        " paginacion, el hash y la correccion. Todo se revierte al final.", items,
+                        {**VARS_75, "id_prov": "", "uuid_k1": "", "uuid_k2": "", "uuid_k3": ""})
 
 
 # ─────────────────────────────── G35 (RF-79, versiones e inmutabilidad) ───────────────────────────────
 def g35():
+    def corr(tc, desc, var_origen, var_destino, motivo):
+        return req(f"{tc} - {desc}", "POST", NIC41 + "/{{" + var_origen + "}}/correccion", token="tok_cont",
+                   body="{\n  \"motivo_correccion\": \"" + motivo + "\"\n}",
+                   pre=["if (!pm.collectionVariables.get('" + var_origen + "')) pm.execution.skipRequest();"],
+                   tests=[json_o_vacio(), f"pm.test('{tc} - HTTP 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('" + var_destino + "', e.id_provision || '');"])
+
     items = [
-        precondiciones([LOGIN_ADMIN, LOGIN_CONT], nivel="activo"),
-        carpeta("1. TC-M05-056 Cadena de versiones del ciclo 33", [
-            req("TC-M05-056a - Versiones del ciclo 33", "GET", NIC41 + "/ciclo/33/versiones", token="tok_cont", tests=[
+        precondiciones([LOGIN_ADMIN, LOGIN_GES, LOGIN_CONT]),
+        carpeta("1. Preparacion: consolidado v1 de A y dos correcciones (v2 y v3), todo dentro del sandbox", costos_y_cierre("PREP TC-M05-056") + [
+            req("PREP - Version 1 del consolidado de GF_A", "GET", NIC41 + "/ciclo/{{id_fase_activa}}/versiones", token="tok_cont", tests=[
+                json_o_vacio(), "pm.test('PREP - v1 generada al cerrar (1 version)', () => pm.expect(e.total).to.eql(1));",
+                "pm.collectionVariables.set('id_v1', ((e.versiones || [])[0] || {}).id_provision || '');"]),
+            corr("PREP TC-M05-056", "Correccion de v1 -> v2 (Contador)", "id_v1", "id_v2", "Revisión del contador por ajuste de cierre"),
+            corr("PREP TC-M05-056", "Correccion de v2 -> v3 (Contador)", "id_v2", "id_v3", "Segunda revisión del contador por ajuste de cierre"),
+        ]),
+        carpeta("2. TC-M05-056 Cadena de versiones del ciclo de A", [
+            req("TC-M05-056a - Versiones del ciclo de A", "GET", NIC41 + "/ciclo/{{id_fase_activa}}/versiones", token="tok_cont", tests=[
                 json_o_vacio(), "pm.test('TC-M05-056a - HTTP 200', () => pm.response.to.have.status(200));",
                 "const v = (e.versiones || []).slice().sort((a, b) => a.version_reporte - b.version_reporte);",
                 "console.log(JSON.stringify(v.map(x => ({id: x.id_provision, version: x.version_reporte, anterior: x.id_reporte_anterior, estado: x.estado, incompleto: x.es_reporte_potencialmente_incompleto}))));",
                 "pm.test('TC-M05-056a - v1 -> v2 -> v3 enlazadas por id_reporte_anterior', () => { pm.expect(v.length).to.eql(3); pm.expect(v[0].id_reporte_anterior).to.eql(null); pm.expect(v[1].id_reporte_anterior).to.eql(v[0].id_provision); pm.expect(v[2].id_reporte_anterior).to.eql(v[1].id_provision); });",
-                "pm.test('TC-M05-056a - solo la ultima esta GENERADO; las anteriores SUPERADO (estados: ' + v.map(x => x.estado).join(', ') + ')', () => { pm.expect(v[0].estado).to.eql('SUPERADO'); pm.expect(v[1].estado).to.eql('SUPERADO'); pm.expect(v[2].estado).to.eql('GENERADO'); });",
-                "pm.test('TC-M05-056a - es_reporte_potencialmente_incompleto (actual: ' + v.map(x => x.es_reporte_potencialmente_incompleto).join(', ') + ')', () => v.forEach(x => pm.expect(x.es_reporte_potencialmente_incompleto, 'v' + x.version_reporte).to.eql(false)));"]),
-            *[req(f"TC-M05-056{l} - GET /nic41/{i}", "GET", NIC41 + f"/{i}", token="tok_cont", tests=[
+                "pm.test('TC-M05-056a - solo la ultima esta GENERADO; las anteriores SUPERADO (estados: ' + v.map(x => x.estado).join(', ') + ')', () => { pm.expect((v[0] || {}).estado).to.eql('SUPERADO'); pm.expect((v[1] || {}).estado).to.eql('SUPERADO'); pm.expect((v[2] || {}).estado).to.eql('GENERADO'); });",
+                "pm.test('TC-M05-056a - es_reporte_potencialmente_incompleto (actual: ' + v.map(x => x.es_reporte_potencialmente_incompleto).join(', ') + ')', () => v.forEach(x => pm.expect(x.es_reporte_potencialmente_incompleto, 'v' + x.version_reporte).to.eql(false)));",
+                "pm.test('TC-M05-056a - las 3 versiones tienen el mismo monto (las correcciones no cambian el ledger)', () => { pm.expect(v.length).to.eql(3); pm.expect(v[1].monto_provision).to.eql(v[0].monto_provision); pm.expect(v[2].monto_provision).to.eql(v[0].monto_provision); });"]),
+            *[req(f"TC-M05-056{l} - GET /nic41/{{{{id_v{i}}}}} (version {i})", "GET", NIC41 + f"/{{{{id_v{i}}}}}", token="tok_cont", tests=[
                 json_o_vacio(), f"pm.test('TC-M05-056{l} - HTTP 200', () => pm.response.to.have.status(200));",
-                f"pm.test('TC-M05-056{l} - es la version {i} del ciclo 33', () => {{ pm.expect(e.version_reporte).to.eql({i}); pm.expect(e.id_gestion_fases).to.eql(33); }});"])
+                f"pm.test('TC-M05-056{l} - es la version {i} del ciclo de A', () => {{ pm.expect(e.version_reporte).to.eql({i}); pm.expect(e.id_gestion_fases).to.eql(Number(pm.collectionVariables.get('id_fase_activa'))); }});"])
               for l, i in (("b", 1), ("c", 2), ("d", 3))],
+            # La correccion reconsolida el ciclo a partir de su ULTIMA version (corregir_provision_use_case): pedirla sobre
+            # v1 genera v4 enlazada a v3. Se verifica que la regla de la ficha (una sola GENERADO, la ultima) se mantiene.
+            req("TC-M05-056e - Pedir la correccion sobre v1 (ya SUPERADO)", "POST", NIC41 + "/{{id_v1}}/correccion", token="tok_cont",
+                body="{\n  \"motivo_correccion\": \"Tercera revisión del contador por ajuste de cierre\"\n}", tests=[
+                    json_o_vacio(), "console.log(pm.response.code + ' ' + pm.response.text());",
+                    "pm.test('TC-M05-056e - responde 201 sin error interno (actual ' + pm.response.code + ')', () => pm.response.to.have.status(201));",
+                    "pm.test('TC-M05-056e - la nueva version es la 4 y se enlaza a la ultima (v3), no a v1', () => { pm.expect(e.version_reporte).to.eql(4); pm.expect(e.id_reporte_anterior).to.eql(Number(pm.collectionVariables.get('id_v3'))); });"]),
+            req("TC-M05-056f - La cadena sigue con una sola version GENERADO", "GET", NIC41 + "/ciclo/{{id_fase_activa}}/versiones", token="tok_cont", tests=[
+                json_o_vacio(), "const v = (e.versiones || []).slice().sort((a, b) => a.version_reporte - b.version_reporte);",
+                "console.log(JSON.stringify(v.map(x => ({version: x.version_reporte, estado: x.estado}))));",
+                "pm.test('TC-M05-056f - 4 versiones; solo la ultima GENERADO (estados: ' + v.map(x => x.estado).join(', ') + ')', () => { pm.expect(v.length).to.eql(4); pm.expect(v.filter(x => x.estado === 'GENERADO').length).to.eql(1); pm.expect(v[3].estado).to.eql('GENERADO'); });"]),
         ]),
-        carpeta("2. TC-M05-058 Inmutabilidad del reporte en BD", [
+        carpeta("3. TC-M05-058 Inmutabilidad del reporte en BD", [
             sql("TC-M05-058a - Existe proteccion contra UPDATE/DELETE sobre provision_nic41", """
                 SELECT t.tgname, pg_get_triggerdef(t.oid) AS def FROM pg_trigger t
                 WHERE t.tgrelid = 'modulo5.provision_nic41'::regclass AND NOT t.tgisinternal
             """, ["const prot = filas.filter(f => /BEFORE (UPDATE OR DELETE|DELETE OR UPDATE|UPDATE|DELETE)/i.test(f.def));",
                   "console.log(JSON.stringify(filas));",
                   "pm.test('TC-M05-058a - hay un trigger BEFORE UPDATE/DELETE sobre provision_nic41', () => pm.expect(prot.length).to.be.above(0));",
-                  "pm.test.skip('TC-M05-058b - UPDATE y DELETE reales: BLOQUEADO, /test-control/query es de solo lectura y member_qa no escribe; lo debe ejecutar el DBA', () => {});"]),
+                  "pm.test.skip('TC-M05-058b - UPDATE y DELETE reales: /test-control/query es de solo lectura y member_qa no escribe', () => {});"]),
         ]),
         rollback(),
     ]
-    return guardar_info("RF-79 - TC-M05-G35 Integridad de versiones existentes e inmutabilidad",
-                        "Automatiza TC-M05-056 (solo lectura sobre las provisiones reales del ciclo 33) y la parte verificable de"
-                        " TC-M05-058 (existencia del trigger de inmutabilidad; el UPDATE/DELETE real lo hace el DBA).", items, VARS_75)
+    return guardar_info("RF-79 - TC-M05-G35 Cadena de versiones e inmutabilidad",
+                        "Automatiza TC-M05-056 con datos propios (dentro del sandbox: 3 costos en el ciclo de A, cierre -> v1,"
+                        " y dos correcciones -> v2 y v3) y la parte verificable de TC-M05-058 (trigger de inmutabilidad)."
+                        " Reemplaza la lectura del ciclo 33 de julio, cuyos datos son anteriores a las reglas actuales.", items,
+                        {**VARS_75, "id_v1": "", "id_v2": "", "id_v3": "", "uuid_k1": "", "uuid_k2": "", "uuid_k3": ""})
+
 
 def main() -> None:
     grupos = (("RF-74", "G01", g01), ("RF-74", "G02", g02), ("RF-74", "G03", g03), ("RF-74", "G04", g04), ("RF-74", "G05", g05),

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-79 - TC-M05-G34 Consolidado al cierre: contenido, hash y correccion",
-    "description": "Automatiza TC-M05-052 a 055. El cierre de A se hace dentro del sandbox (se revierte). Como hoy el cierre responde 500, el contenido, la paginacion, el hash y la correccion se verifican sobre la provision real mas reciente del ciclo 33 (activo 57).",
+    "description": "Automatiza TC-M05-052 a 055 con datos propios: dentro del sandbox se registran 3 costos en el ciclo de A, se cierra el ciclo (genera el consolidado v1) y sobre esa provision se verifican el contenido, la paginacion, el hash y la correccion. Todo se revierte al final.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -99,6 +99,18 @@
     {
       "key": "id_prov",
       "value": ""
+    },
+    {
+      "key": "uuid_k1",
+      "value": ""
+    },
+    {
+      "key": "uuid_k2",
+      "value": ""
+    },
+    {
+      "key": "uuid_k3",
+      "value": ""
     }
   ],
   "item": [
@@ -132,6 +144,41 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Gestor de Granja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Gestor de Granja (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_ges', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_ges', t); pm.collectionVariables.set('id_gestor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_gestor}}\",\n  \"contrasena\": \"{{contrasena_gestor}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -234,6 +281,81 @@
               }
             ],
             "url": "{{base_url}}/configuracion/infraestructuras/{{id_infra_a}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Gestor de Granja (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle del Gestor de Granja consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_ges', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_gestor}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Gestor de Granja la finca de A (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_ges') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
+                  "if (fa && !fs.includes(fa)) fs.push(fa);",
+                  "pm.collectionVariables.set('body_fincas_tok_ges', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Gestor de Granja asignado a la finca de A (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_gestor}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_fincas_tok_ges}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
@@ -390,6 +512,31 @@
           "name": "PRE - Aptitud del activo A para los casos",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -459,95 +606,17 @@
       ]
     },
     {
-      "name": "0b. Alcance del Contador sobre el ciclo 33 (activo 57)",
+      "name": "1. TC-M05-052 Cierre del ciclo de A genera el consolidado v1",
       "item": [
         {
-          "name": "PRE - Finca del activo 57",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('PRE - activo consultado (200)', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set('infra_57', pm.response.code === 200 ? pm.response.json().id_infraestructura : 0);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/activos-biologicos/57"
-          }
-        },
-        {
-          "name": "PRE - Area del activo 57",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set('finca_57', pm.response.code === 200 ? pm.response.json().id_finca : '');"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/configuracion/infraestructuras/{{infra_57}}"
-          }
-        },
-        {
-          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('PRE - detalle consultado (200)', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set('fincas_tok_cont_57', pm.response.code === 200 ? pm.response.text() : '');"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
-          }
-        },
-        {
-          "name": "PRE - Asignar al Contador la finca del activo 57 (solo dentro del sandbox)",
+          "name": "PREP TC-M05-052 - Costo SERVICIO_VETERINARIO 1 x 150000 (Gestor de Granja)",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont_57') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
-                  "const fx = Number(pm.collectionVariables.get('finca_57'));",
-                  "if (fx && !fs.includes(fx)) fs.push(fx);",
-                  "pm.collectionVariables.set('body_finca_57', JSON.stringify({ ids_fincas: fs }));"
+                  "pm.collectionVariables.set('uuid_k1', pm.variables.replaceIn('{{$guid}}'));"
                 ]
               }
             },
@@ -556,28 +625,28 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('PRE - Contador asignado a la finca del activo 57 (200)', () => pm.response.to.have.status(200));",
-                  "console.log(pm.response.text());"
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('PREP - costo registrado (200)', () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
+                "value": "Bearer {{tok_ges}}"
               },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/usuarios/{{id_contador}}/fincas",
+            "url": "{{base_url}}/suministros/costeo-directo",
             "body": {
               "mode": "raw",
-              "raw": "{{body_finca_57}}",
+              "raw": "{\n  \"id_activo_biologico\": {{id_activo_a}},\n  \"id_idempotencia\": \"{{uuid_k1}}\",\n  \"tipo_suministro\": \"SERVICIO_VETERINARIO\",\n  \"cantidad\": 1,\n  \"unidad_medida\": \"servicio\",\n  \"precio_unitario\": 150000,\n  \"fecha_aplicacion\": \"{{dia_m2}}\",\n  \"justificacion_precio\": \"Tarifa de la factura del veterinario externo\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -585,12 +654,101 @@
               }
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "1. TC-M05-052 Cierre del ciclo de A genera el consolidado v1",
-      "item": [
+        },
+        {
+          "name": "PREP TC-M05-052 - Costo INSEMINACION 2 x 45000.50 (Gestor de Granja)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('uuid_k2', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('PREP - costo registrado (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ges}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/costeo-directo",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_activo_biologico\": {{id_activo_a}},\n  \"id_idempotencia\": \"{{uuid_k2}}\",\n  \"tipo_suministro\": \"INSEMINACION\",\n  \"cantidad\": 2,\n  \"unidad_medida\": \"servicio\",\n  \"precio_unitario\": 45000.5,\n  \"fecha_aplicacion\": \"{{dia_m1}}\",\n  \"justificacion_precio\": \"Tarifa de la factura del veterinario externo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PREP TC-M05-052 - Costo SERVICIO_VETERINARIO 3 x 20000 (Gestor de Granja)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('uuid_k3', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('PREP - costo registrado (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ges}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/costeo-directo",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_activo_biologico\": {{id_activo_a}},\n  \"id_idempotencia\": \"{{uuid_k3}}\",\n  \"tipo_suministro\": \"SERVICIO_VETERINARIO\",\n  \"cantidad\": 3,\n  \"unidad_medida\": \"servicio\",\n  \"precio_unitario\": 20000,\n  \"fecha_aplicacion\": \"{{dia_m1}}\",\n  \"justificacion_precio\": \"Tarifa de la factura del veterinario externo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "TC-M05-052a - Cerrar el ciclo de A (Administrador, se revierte con el sandbox)",
           "event": [
@@ -639,6 +797,7 @@
                 "exec": [
                   "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
                   "const v = (e.versiones || [])[0] || {};",
+                  "pm.collectionVariables.set('id_prov', v.id_provision || '');",
                   "pm.test('TC-M05-052b - 1 reporte v1 CONSOLIDADO, GENERADO, sin anterior y con hash', () => { pm.expect(e.total).to.eql(1); pm.expect(v.version_reporte).to.eql(1); pm.expect(v.id_reporte_anterior).to.eql(null); pm.expect(v.modalidad).to.eql('CONSOLIDADO'); pm.expect(v.estado).to.eql('GENERADO'); pm.expect(v.hash_integridad).to.match(/^[0-9a-f]{64}$/); });"
                 ]
               }
@@ -658,45 +817,8 @@
       ]
     },
     {
-      "name": "2. TC-M05-053 Contenido y paginacion (sobre la ultima provision real: ciclo 33)",
+      "name": "2. TC-M05-053 Contenido y paginacion (consolidado v1 de A generado en esta corrida)",
       "item": [
-        {
-          "name": "PRE - Provision a revisar (la mas reciente del ciclo 33)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('PRE - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
-                  "const filas = (pm.response.json() || {}).data || [];",
-                  "console.log(JSON.stringify(filas));",
-                  "pm.collectionVariables.set('id_prov', filas[0].id);",
-                  "console.warn('El ciclo de A no se puede cerrar hoy (500): TC-M05-053/054 se verifican sobre la provision ' + filas[0].id + ' del ciclo 33.');"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/test-control/query",
-            "body": {
-              "mode": "raw",
-              "raw": "{\"query\": \"SELECT max(id_provision) AS id FROM modulo5.provision_nic41 WHERE id_gestion_fases = 33\"}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
         {
           "name": "TC-M05-053a - pagina=1, por_pagina=200 (todo)",
           "event": [
@@ -731,6 +853,31 @@
           "name": "TC-M05-053b - El monto coincide con el acumulado del ciclo",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -755,7 +902,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT acumulado_total_ciclo FROM modulo5.acumulado_ciclo WHERE id_gestion_fases = 33\"}",
+              "raw": "{\"query\": \"SELECT acumulado_total_ciclo FROM modulo5.acumulado_ciclo WHERE id_gestion_fases = {{id_fase_activa}}\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -845,6 +992,31 @@
         {
           "name": "TC-M05-053f - Las paginas no repiten ni omiten registros",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1018,6 +1190,31 @@
           "name": "TC-M05-054d - Hash en BD",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1055,6 +1252,31 @@
         {
           "name": "TC-M05-054e - Recalculo del hash por el auditor (formula de RFC-025 / ADR-M05-02)",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
