@@ -5,6 +5,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-83/85: elegibilidad de #1034 en la cola y en la cosecha pendiente de #1060 |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Adaptador de :class:`EventoM02Port`.
 
 Entran los eventos de activos con reconocimiento CONFIRMADO y posteriores a él: los anteriores ya
@@ -20,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.evento_m02_port import EventoM02, EventoM02Port
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.shared.nombre_activo import nombre_activo_sql
 
 _SELECT = """
 SELECT ea.id_eventos AS id_evento, ea.id_activo_biologico, ea.fecha,
@@ -70,8 +72,8 @@ LIMIT :limite
 """
 
 # Bandeja de cosechas pendientes (RF-85 FA-1/FA-2) con lo que el Contador necesita para resolverlas.
-_COSECHAS_PENDIENTES = """
-SELECT ea.id_eventos AS id_evento, ea.id_activo_biologico, a.identificador, e.nombre AS especie, f.nombre AS finca,
+_COSECHAS_PENDIENTES = f"""
+SELECT ea.id_eventos AS id_evento, ea.id_activo_biologico, {nombre_activo_sql()} AS identificador, e.nombre AS especie, f.nombre AS finca,
        ri.clasificacion::text AS clasificacion, mp.nombre AS producto_agricola, mp.unidad_medida,
        ep.cantidad AS cantidad_cosechada, ea.fecha AS fecha_cosecha, pr.detalle AS motivo,
        pr.fecha_procesamiento AS fecha_ultimo_intento, pr.intentos

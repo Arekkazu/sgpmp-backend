@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-10 | Arekkazu | INC-M06-345-G43 RF-87: cierre en espera de autorización |
+# | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 """Puerto de los períodos contables, sus cierres y comprobantes (RF-87)."""
 from __future__ import annotations
 
@@ -34,7 +35,12 @@ class PeriodoRepository(ABC):
     def cambiar_estado(self, id_periodo_contable: int, estado: str) -> None: ...
 
     @abstractmethod
-    def listar(self, numero_id_tributaria: Optional[str]) -> list[Periodo]: ...
+    def listar(self, numero_id_tributaria: Optional[str], sin_titular: bool = False) -> list[Periodo]:
+        """Del titular dado (todos si es None); con ``sin_titular`` solo los que no tienen titular."""
+
+    @abstractmethod
+    def titulares(self) -> list[dict]:
+        """NIT y razón social de cada titular con períodos visibles; los períodos sin titular, al final (NIT None)."""
 
     @abstractmethod
     def abierto_anterior(self, periodo: Periodo) -> Optional[Periodo]: ...
@@ -64,3 +70,7 @@ class PeriodoRepository(ABC):
 
     @abstractmethod
     def ultima_ejecucion(self, id_periodo_contable: int) -> Optional[dict]: ...
+
+    @abstractmethod
+    def ultimas_ejecuciones(self, ids_periodos: list[int]) -> dict[int, dict]:
+        """La última ejecución de cierre de cada período, en una sola consulta."""

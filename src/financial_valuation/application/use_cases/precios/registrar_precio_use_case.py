@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-89: registro append-only de precios de mercado (NIC 41 ¶17) |
 # | 2026-11-08 | Arekkazu | RFC-024 RF-89 v1.1 CA-5: justificación de estimación menor a 50 caracteres responde 400 |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: la corrección hereda la fecha del original y se compara contra él |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 """Caso de uso RF-89 pasos 3-8. El historial es inmutable: un precio erróneo se corrige con uno nuevo
 que referencia al anterior (FA-6) y ocupa su lugar: misma especie, categoría, producto, fuente y fecha de
 vigencia, de modo que corregir un precio histórico no desplaza al que está aplicado hoy. Una desviación
@@ -27,6 +28,7 @@ from src.financial_valuation.domain.services.precios import Precio, desviacion_p
 from src.financial_valuation.domain.value_objects.nic41 import CategoriaPrecio, FuentePrecio
 from src.shared.errors import ConflictError, NotFoundError, ValidationError
 from src.shared.fechas import hoy_usuario
+from src.supplies.application.use_cases.exportacion.generador_archivos import moneda, numero
 
 UNIDAD_POR_CATEGORIA = {CategoriaPrecio.PESO_KG.value: "kg", CategoriaPrecio.POR_CABEZA.value: "cabeza"}
 
@@ -67,8 +69,8 @@ class RegistrarPrecioUseCase:
         if desviacion is not None and desviacion > umbral and not s.confirmar_desviacion:  # FA-7
             referencia = "del precio que corrige" if corregido else "del vigente"
             raise ConflictError(code="DESVIACION_PRECIO_REQUIERE_CONFIRMACION", message=(
-                f"El precio difiere {desviacion:.1f}% {referencia} ({anterior.precio_unitario:,.2f} por {unidad}), más que "
-                f"el umbral de {umbral}%. Confirme que es correcto para guardarlo."))
+                f"El precio difiere {numero(desviacion, 1)} % {referencia} ({moneda(anterior.precio_unitario)} por {unidad}), más "
+                f"que el umbral de {numero(umbral)} %. Confirme que es correcto para guardarlo."))
         estado = "PROGRAMADO" if s.fecha_vigencia > hoy else "ACTIVO"
         try:
             precio = self.precios.agregar(Precio(

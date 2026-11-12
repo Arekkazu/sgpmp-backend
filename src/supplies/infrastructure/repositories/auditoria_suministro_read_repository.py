@@ -4,6 +4,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: hidratar UUID y versión de integridad en consulta y exportación. |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroReadPort` (RF-80, CU-06).
 
 Mismo patrón de paginación que ``evento_auditoria_m04_repository.py``:
@@ -13,10 +14,14 @@ CU-05) — no crea tabla ni modelo nuevo.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from src.configuration.infrastructure.repositories.nombre_usuario_lookup import nombres_usuarios
 from src.shared.errors import NotFoundError
+from src.shared.nombre_activo import nombres_activos
 from src.supplies.domain.entities.evento_auditoria_suministro import EventoAuditoriaSuministroConsulta
 from src.supplies.domain.repositories.auditoria_suministro_read_port import (
     AuditoriaSuministroReadPort,
@@ -97,7 +102,7 @@ class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
             .scalars()
             .all()
         )
-        return [_a_entidad(row) for row in items], total
+        return self._con_nombres([_a_entidad(row) for row in items]), total
 
     def obtener_por_id(self, id_auditoria_suministro: int) -> EventoAuditoriaSuministroConsulta:
         orm = self.db.get(AuditoriaSuministroModel, id_auditoria_suministro)
@@ -106,4 +111,11 @@ class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
                 code="AUDITORIA_SUMINISTRO_NO_ENCONTRADA",
                 message=f"No existe el evento de auditoría {id_auditoria_suministro}.",
             )
-        return _a_entidad(orm)
+        return self._con_nombres([_a_entidad(orm)])[0]
+
+    def _con_nombres(self, eventos: list[EventoAuditoriaSuministroConsulta]) -> list[EventoAuditoriaSuministroConsulta]:
+        """Quién y sobre qué activo, por su nombre (la pantalla no muestra ids)."""
+        activos = nombres_activos(self.db, (e.id_activo_biologico for e in eventos))
+        usuarios = nombres_usuarios(self.db, (e.id_usuario for e in eventos))
+        return [replace(e, nombre_activo=activos.get(e.id_activo_biologico), nombre_usuario=usuarios.get(e.id_usuario))
+                for e in eventos]

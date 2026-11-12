@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82: el monto del mensaje en formato colombiano |
 """INC-M06-317-G17 / RF-84 R3, FA-2: el valor neto ≤ 0 deja el cálculo en REVISION_REQUERIDA con alerta crítica
 y el Contador puede validarlo con justificación.
 
@@ -109,7 +110,7 @@ def test_confirmacion_deja_el_calculo_en_revision_con_alerta_critica() -> None:
     error, calculos, eventos, avisos, registro = _confirmar([])
 
     assert error.code == "VALOR_NETO_NO_POSITIVO" and error.status_code == 422
-    assert "-100,000.00 COP" in error.message and "quedó en revisión" in error.message
+    assert "−$ 100.000" in error.message and "quedó en revisión" in error.message
     assert [c.estado for c in calculos] == ["REVISION_REQUERIDA"] and calculos[0].id_periodo_contable == 4
     assert len(eventos) == 1
     evento = eventos[0]

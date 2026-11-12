@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 v2.0 / RF-79: costos del activo y bandeja de provisiones de M05 |
 # | 2026-11-05 | Arekkazu | M06 RF-90: filtro por tipo de costo, especie y finca del activo; mensaje sin códigos |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Implementación SQL de :class:`CostoRepository`."""
 from __future__ import annotations
 
@@ -13,10 +14,11 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.recepcion_provision import RecepcionProvision
 from src.financial_valuation.domain.repositories.costo_repository import CostoRepository
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.shared.nombre_activo import nombre_activo_sql
 
-_COLUMNAS = """c.id_registro_costo, c.naturaleza_costo::text AS naturaleza_costo, c.subtipo_costo::text AS subtipo_costo,
+_COLUMNAS = f"""c.id_registro_costo, c.naturaleza_costo::text AS naturaleza_costo, c.subtipo_costo::text AS subtipo_costo,
     c.origen_costo::text AS origen_costo, c.vehiculo_contable::text AS vehiculo_contable, c.id_activo_biologico,
-    a.identificador AS activo, c.monto_costo, c.fecha_costo, c.id_periodo_contable, c.estado::text AS estado,
+    {nombre_activo_sql()} AS activo, c.monto_costo, c.fecha_costo, c.id_periodo_contable, c.estado::text AS estado,
     c.politica_capitalizacion::text AS politica_capitalizacion, c.justificacion, c.id_origen_m05, c.tercero_nit,
     c.tercero_dv, c.tercero_razon_social, c.factura_prefijo, c.factura_numero, c.fecha_factura,
     c.fecha_vencimiento_factura, c.id_grupo_reparto, c.metodo_reparto::text AS metodo_reparto, c.cuenta_debito,

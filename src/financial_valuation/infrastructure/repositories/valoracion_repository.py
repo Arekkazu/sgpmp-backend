@@ -8,6 +8,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ from src.financial_valuation.domain.entities.valoracion import (
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
 from src.shared.fechas import nombre_zona_usuario
+from src.shared.nombre_activo import nombre_activo_sql
 
 _COLUMNAS_CALCULO = """id_calculo_valor_razonable, id_activo_biologico, id_precio_mercado, id_periodo_contable, magnitud,
     unidad_magnitud, precio_unitario, valor_razonable_bruto, costo_transporte, costo_comisiones,
@@ -46,7 +48,7 @@ ES_BASE = "COALESCE((json_metodo_costo->>'es_producto')::boolean, false) = false
 
 
 # Activo, especie, finca y clasificación de cada registro de los listados del período.
-_ACTIVO = """a.identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, f.nombre AS finca,
+_ACTIVO = f"""{nombre_activo_sql()} AS identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, f.nombre AS finca,
     ri.clasificacion::text AS clasificacion"""
 _JOIN_ACTIVO = """JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = x.id_activo_biologico
     JOIN modulo9.especies e ON e.id_especie = a.id_especie
@@ -284,10 +286,10 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     # --- Consulta ------------------------------------------------------------------------------
 
-    def activos_valorados(self) -> list[dict]:
-        """Activos reconocidos con su último valor razonable neto o su valor por costo."""
+    def activos_valorados(self, numero_id_tributaria: Optional[str] = None) -> list[dict]:
+        """Activos reconocidos con su último valor razonable neto o su valor por costo; del titular si se da."""
         return filas(self.db, f"""
-        SELECT a.id_activo_biologico, a.identificador, a.tipo::text AS tipo, e.nombre AS especie, f.nombre AS finca,
+        SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, e.nombre AS especie, f.nombre AS finca,
                est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento,
                ri.indicador_valoracion::text AS indicador_reconocimiento, ri.es_apertura,
                (vc.id_valoracion_por_costo IS NOT NULL) AS valorado_por_costo, vc.valor_contable_por_costo,
@@ -311,7 +313,8 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                            WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO'
                              AND COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false
                            ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) c ON true
-        WHERE ri.estado = 'CONFIRMADO' ORDER BY a.identificador""")
+        WHERE ri.estado = 'CONFIRMADO' AND (CAST(:nit AS varchar) IS NULL OR f.numero_id_tributaria = :nit)
+        ORDER BY a.identificador""", {"nit": numero_id_tributaria})
 
 
     def historial_activo(self, id_activo_biologico: int) -> dict:
