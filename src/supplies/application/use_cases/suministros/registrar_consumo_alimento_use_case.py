@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
+# | 2026-11-12 | Arekkazu | TC-DIS-211 RF-75: el duplicado (E8) nombra el activo por su identificador, no por su id |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -148,7 +149,7 @@ class RegistrarConsumoAlimentoUseCase:
                 dto.cantidad_alimento / Decimal(activo.cantidad_actual)
             ).quantize(_CUATRO_DECIMALES)
 
-        self._validar_no_duplicado(dto, tipo.nombre)
+        self._validar_no_duplicado(dto, tipo.nombre, activo.nombre_visible)
 
         consumo = ConsumoAlimento.crear(
             id_activo_biologico=dto.id_activo_biologico,
@@ -176,7 +177,7 @@ class RegistrarConsumoAlimentoUseCase:
 
         return guardado
 
-    def _validar_no_duplicado(self, dto: RegistrarConsumoAlimentoDTO, tipo_alimento: str) -> None:
+    def _validar_no_duplicado(self, dto: RegistrarConsumoAlimentoDTO, tipo_alimento: str, nombre_activo: str) -> None:
         """E8 (mismo activo, fecha, hora y alimento) y CA-10 (solo suministros posteriores)."""
         ultimo = self.consumo_repo.ultimo_validado(
             id_activo_biologico=dto.id_activo_biologico, tipo_alimento=tipo_alimento
@@ -196,7 +197,7 @@ class RegistrarConsumoAlimentoUseCase:
         raise ConflictError(
             code="CONSUMO_DUPLICADO",
             message=(
-                f"Ya existe un registro de {tipo_alimento} para el activo {dto.id_activo_biologico} el "
+                f"Ya existe un registro de {tipo_alimento} para el activo {nombre_activo} el "
                 f"{fecha.isoformat()} a las {_hora(hora)}. No se permiten registros duplicados. Si se trata "
                 "de un suministro subsecuente, registre una nueva entrada con fecha u hora posteriores a "
                 f"{ultimo[0].isoformat()} {_hora(ultimo[1])}."
