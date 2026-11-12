@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G10 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G10 con valores de la ficha (+/-300.000), evento pendiente + cierre y 8 activos con precio + 2 sin precio |
+# | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 053 revisado (solo valor razonable sin precio ni histórico queda pendiente) y caso nuevo 053b (activo por costo) |
 """
 TC-M06-G10 - Medición por cierre de período (RF-87): efecto precio, prioridad del evento y activos sin precio.
 RF-83 (CU02).   Casos: TC-M06-051 a TC-M06-053.
@@ -18,6 +19,8 @@ ejecutar dentro del sandbox (precondiciones, tiempo) el caso queda BLOQUEADO / N
   categoría que usa M09 (se cambia categoria_precio después de reconocer; no se puede borrar un precio). Prevalidación y cierre (con
   exclusiones autorizadas) deben dejar a esos 2 en la lista de pendientes, medir los 8 y no bloquear el cierre. El backend nombra la
   lista «activos_excluidos» con motivo PENDIENTE_PRECIO (el RF la llama MEDICION_PENDIENTE): se anota como observación.
+  RF-83 v1.2: quedan pendientes solo los activos a valor razonable sin precio ni histórico; en el cierre no se pasan a costo (NIC 41 ¶31).
+- 053b (nuevo, RF-83 v1.2): un activo valorado por costo (NIC 41 ¶30) no se mide en el cierre ni queda como pendiente de precio.
 
 Cómo correrlo:
     python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G10/TC-M06-G10.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G10/reporte-TC-M06-G10.html" --self-contained-html
@@ -163,3 +166,16 @@ def test_TC_M06_053_activos_sin_precio_quedan_pendientes_y_el_cierre_continua(en
     obs(f"medidos {len(con_precio)} activos con precio; pendientes {len(sin_precio)} (motivo PENDIENTE_PRECIO); "
         f"otros excluidos del titular en TEST: {extra}; activos_procesados del cierre: {r.data.get('activos_procesados')}")
     obs("el RF llama a la lista MEDICION_PENDIENTE; la API la devuelve como activos_excluidos con motivo PENDIENTE_PRECIO (y prevalidacion.activos_sin_precio).")
+
+
+def test_TC_M06_053b_activo_por_costo_no_se_mide_en_el_cierre_ni_queda_pendiente(env):
+    _asegurar(env, 120)
+    env.presupuesto(100)
+    esc, ida = env.activo_por_costo(costos=SIN_COSTOS)
+    id_periodo = _periodo(env, ida, {})
+    r = _cerrar(env, id_periodo, autorizar=True, incluir_sin_precio=True)
+    excluidos = {int(x["id_activo_biologico"]): x for x in (r.data or {}).get("activos_excluidos", [])}
+    obs(f"cierre del período {id_periodo}: estado {r.data.get('estado')}; activo por costo excluido: {ida in excluidos} {excluidos.get(ida, '')}")
+    assert not env.mediciones(ida), f"RF-83 v1.2: el activo por costo no se mide en el cierre: {env.mediciones(ida)}"
+    assert ida not in excluidos, f"el activo por costo no debe quedar como pendiente de precio (no usa precio): {excluidos.get(ida)}"
+    assert r.data.get("estado") == "CERRADO", f"el cierre debe completarse: {r.data.get('estado')}"

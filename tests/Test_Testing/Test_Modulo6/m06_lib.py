@@ -20,6 +20,7 @@ Opcionales: BASE_URL, QA_CORREO_ADMIN/INGENIERO/PRODUCTOR/VETERINARIO, QA_ID_FIN
 """
 from __future__ import annotations
 
+import atexit
 import os
 import re
 import time
@@ -111,6 +112,11 @@ def dv_nit(numero: str) -> int:
 
 
 def bloqueado(m: str):
+    """Precondición que no se pudo preparar: el caso se omite (skipped). Si el motivo es una funcionalidad que el RF exige y no existe (o no está
+    desplegada) es un ERROR del sistema bajo prueba: el caso FALLA (rojo) para que el reporte HTML coincida con el resultado real."""
+    bajo = m.lower()
+    if "funcionalidad no implementada" in bajo or "sin desplegar" in bajo:
+        pytest.fail(f"FUNCIONALIDAD NO IMPLEMENTADA (error): {m}", pytrace=False)
     pytest.skip(f"BLOQUEADO: {m}")
 
 
@@ -201,6 +207,8 @@ class Entorno:
         self.tokens: dict[str, str] = {}
         self.rol_actual: Optional[int] = None
         self._titular = False
+        self._fases: set = set()
+        atexit.register(self.cerrar)        # red de seguridad (regla del DBA): el run se cierra con ROLLBACK aunque la sesión termine mal o se interrumpa
         for rol in roles:
             self.tokens[rol] = self._login(rol)
 
@@ -243,11 +251,17 @@ class Entorno:
         return r
 
     def cerrar(self) -> None:
-        if self.inicio is not None:
+        """Cierra el run con ROLLBACK (DELETE /test-control/runs/{id}). Idempotente: el fixture, nuevo_run() y atexit pueden llamarlo sin riesgo.
+        Reintenta una vez si falla; el run también se cierra solo a los 180 s en el backend."""
+        if self.inicio is None:
+            return
+        for _ in range(2):
             try:
                 self.call("DELETE", f"/test-control/runs/{self.run_id}")
-            except Exception:
-                pass
+                break
+            except BaseException:
+                continue
+        self.inicio = None
 
     def nuevo_run(self) -> None:
         """Cierra el run actual (rollback) y abre uno nuevo con el reloj en cero. Los tokens se conservan: los logins
@@ -257,11 +271,14 @@ class Entorno:
         self.inicio = None
         self.rol_actual = None
         self._titular = False
+        self._fases = set()
 
     def asignar_fase(self, id_activo: int) -> R:
-        """Asigna la fase activa del ciclo productivo (RF-37) al activo y devuelve la respuesta (sin exigir éxito)."""
-        return self.call("POST", f"/activos-biologicos/{id_activo}/fases", "admin",
-                         json={"id_ciclo_productiva": ID_CICLO_PRODUCTIVO})
+        """Asigna la fase activa del ciclo productivo (RF-37) al activo y devuelve la respuesta (sin exigir éxito). Recuerda los activos con fase."""
+        r = self.call("POST", f"/activos-biologicos/{id_activo}/fases", "admin", json={"id_ciclo_productiva": ID_CICLO_PRODUCTIVO})
+        if r.status in (200, 201):
+            self._fases.add(id_activo)
+        return r
 
     def sql(self, consulta: str) -> list[dict]:
         r = self.call("POST", "/test-control/query", json={"query": consulta})
@@ -306,6 +323,10 @@ class Entorno:
         self.titular()
         self.contador()
         suf = _letras(8)
+        if categoria == "PESO_KG" and not especie_existente:
+            # M02 exige una fase activa de un ciclo de la especie para registrar un pesaje (SIN_FASE_ACTIVA) y QA no crea ciclos:
+            # las categorías por peso usan la especie productiva sembrada de TEST (ciclo ID_CICLO_PRODUCTIVO). Los datos se deshacen con el run.
+            especie_existente = ID_ESPECIE_PRODUCTIVA
         if especie_existente:
             id_esp = especie_existente
         else:
@@ -375,6 +396,7 @@ class Entorno:
         r = self.prep(self.activo_r(esc, **kw), (200, 201), f"registrar activo RF-33 ({kw})")
         ida = r.get("id_activo_biologico")
         if esc.categoria == "PESO_KG" and kw.get("tipo", "INDIVIDUAL") == "INDIVIDUAL":
+            self.asignar_fase(ida)                 # M02: sin fase activa el pesaje responde 422 SIN_FASE_ACTIVA
             self.pesaje(ida, peso_kg or "400")
         return ida
 
@@ -450,15 +472,45 @@ class Entorno:
         self.procesar_eventos()
         return ida
 
+    def activo_por_costo(self, costos=("0.02", "0.03", "0.01"), kg: str = "400") -> tuple:
+        """Activo reconocido por COSTO (RF-83 v1.2, NIC 41 ¶30): especie sin ningún precio RF-89, compra con costo y reconocimiento confirmado.
+        Devuelve (escenario, id_activo) con la cola de eventos vacía.
+        Abre un run nuevo: la especie productiva sembrada se comparte entre escenarios y un precio creado antes en el mismo run
+        haría que el activo se reconociera a valor razonable en vez de por costo."""
+        self.nuevo_run()
+        esc = self.escenario(categoria="PESO_KG", precio=None, costos=costos)
+        ida = self.activo(esc, origen="compra", costo="2500000.0000", soporte="Factura QA-M06-COSTO", peso_kg=kg)
+        r = self.prep(self.confirmar(ida), (200, 201), "reconocimiento por costo")
+        if r.get("indicador_valoracion") != "VALORACION_POR_COSTO":
+            bloqueado(f"precondición: el activo debía quedar reconocido por costo y respondió {r}")
+        self.procesar_eventos()
+        return esc, ida
+
+    def ultimo_procesamiento(self) -> Optional[dict]:
+        """Última fila de modulo6.procesamientos_eventos_m02 (resultado y detalle del último evento de M02 procesado)."""
+        pr = self.sql("SELECT id_evento, resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 "
+                      "ORDER BY fecha_procesamiento DESC, id_evento DESC LIMIT 1")
+        return pr[0] if pr else None
+
+    def procesamiento_de(self, id_evento: int) -> Optional[dict]:
+        pr = self.sql("SELECT id_evento, resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 "
+                      f"WHERE id_evento = {int(id_evento)}")
+        return pr[0] if pr else None
+
     def ultimo_evento(self, id_activo: int) -> Optional[int]:
         v = uno(self.sql(f"SELECT max(id_eventos) FROM modulo2.eventos_activos WHERE id_activo_biologico = {int(id_activo)}"))
         return int(v) if v is not None else None
 
-    def metrica(self, esc: Esc, nombre: str = "Leche QA", unidad: str = "kg", tipo: str = "PESO") -> int:
+    def metrica(self, esc: Esc, nombre: str = "Leche QA", unidad: str = "kg", tipo: str = "PESO", habilitar_ciclo: bool = False) -> int:
+        """Crea la métrica de producción (M09). Con habilitar_ciclo la deja habilitada en el ciclo productivo sembrado (M02 lo exige para el evento productivo)."""
         r = self.prep(self.call("POST", "/configuracion/metricas", "admin", json={
             "id_especie": esc.id_especie, "nombre": f"{re.sub(r'[^A-Za-zÁÉÍÓÚáéíóúÑñ ]', '', nombre).strip()} {_letras(4)}", "unidad_medida": unidad, "tipo_medicion": tipo,
             "aplica_a_tipo_activo": "AMBOS", "tipo_dato": "NUMERICO", "es_obligatorio": False}), (200, 201), "crear métrica de producción (M09)")
-        return r.get("id_metrica_produccion")
+        idm = r.get("id_metrica_produccion")
+        if habilitar_ciclo:
+            self.prep(self.call("PUT", f"/configuracion/metricas/{idm}/ciclos-productivos", "admin",
+                                json={"ids_ciclos_productivos": [ID_CICLO_PRODUCTIVO]}), (200, 201, 204), "habilitar la métrica en el ciclo productivo (M09)")
+        return idm
 
     def evento_productivo(self, id_activo: int, id_metrica: int, cantidad: str, unidad: str) -> R:
         return self.prep(self.call("POST", f"/activos-biologicos/{id_activo}/eventos/productivo", "admin", json={
@@ -495,10 +547,12 @@ class Entorno:
         """Activo reconocido, con la cola vacía y con una fase activa (RF-37) que habilita el evento productivo (RF-43)."""
         ida, _ = self.reconocer(esc, origen="nacimiento", costo=None, soporte=None, peso_kg=kg)
         self.procesar_eventos()
+        if ida in self._fases:                       # la fase ya se asignó al registrar el activo (activo() con categoría PESO_KG)
+            return ida
         r = self.call("POST", f"/activos-biologicos/{ida}/fases", "admin", json={"id_ciclo_productiva": ID_CICLO_PRODUCTIVO})
         if r.status >= 500:
             bloqueado(f"RF-37 (asignar fase al activo) responde {r.status}: sin fase activa M02 no acepta eventos productivos (defecto previo de M02).")
-        if r.status not in (200, 201):
+        if r.status not in (200, 201, 409):          # 409: la fase ya se asignó al registrar el activo
             bloqueado(f"no se pudo asignar la fase del ciclo {ID_CICLO_PRODUCTIVO} al activo: {r}")
         return ida
 
@@ -549,6 +603,9 @@ class Entorno:
         """Período contable del último cálculo del activo (SELECT de solo lectura)."""
         v = uno(self.sql("SELECT id_periodo_contable FROM modulo6.calculos_valor_razonable "
                          f"WHERE id_activo_biologico = {int(id_activo)} ORDER BY id_calculo_valor_razonable DESC LIMIT 1"))
+        if v is None:       # activo valorado por costo: no tiene cálculo de valor razonable; el período es el del reconocimiento inicial
+            v = uno(self.sql("SELECT id_periodo_contable FROM modulo6.reconocimientos_iniciales "
+                             f"WHERE id_activo_biologico = {int(id_activo)} ORDER BY 1 DESC LIMIT 1"))
         return int(v) if v is not None else None
 
     def contar(self, tabla: str, id_activo: int, extra: str = "") -> int:
