@@ -1,3 +1,11 @@
+## [1.4.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.55...v1.4.0-rc.56) (2026-11-12)
+
+### Bug Fixes
+
+* **rf74-rf88-rf92-mod5-mod6:** el Productor no ve el calculo automatico del ICA y el Administrador consulta valoracion sin mercado y revelaciones ([18072f9](https://github.com/Arekkazu/sgpmp-backend/commit/18072f9c216845fe1c3f8b60e2588f863b109fdd))
+* **rf75-rf76-rf80-rf82-rf87-rf89-mod5-mod6:** nombres en lugar de ids, periodo con razon social y formato colombiano ([3ff9225](https://github.com/Arekkazu/sgpmp-backend/commit/3ff9225bea9f1400e72fed55847dfbc62c4e7680))
+* **rf77-mod5:** el historial de reportes de gastos nombra el activo en lugar de su id ([7500b0f](https://github.com/Arekkazu/sgpmp-backend/commit/7500b0f89c34a934d689fa97151b35fad187e689))
+
 ## [1.4.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.54...v1.4.0-rc.55) (2026-11-11)
 
 ### Bug Fixes
