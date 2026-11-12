@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75 CA-10: último consumo validado      |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Implementación SQLAlchemy del puerto :class:`ConsumoAlimentoRepository` (RF-75).
 
 Único punto donde se cruza la frontera ORM ↔ dominio para el consumo de
@@ -18,6 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.nombre_activo import nombres_activos
 from src.supplies.domain.entities.consumo_alimento import ConsumoAlimento
 from src.supplies.domain.repositories.consumo_alimento_repository import (
     ConsumoAlimentoRepository,
@@ -198,4 +200,8 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
             RegistroConsumoAlimentoModel.fecha_consumo.desc(),
             RegistroConsumoAlimentoModel.id_consumo_alimeto.desc(),
         ).all()
-        return [self._a_entidad(o) for o in registros]
+        entidades = [self._a_entidad(o) for o in registros]
+        nombres = nombres_activos(self.db, (e.id_activo_biologico for e in entidades))
+        for e in entidades:
+            e.identificador_activo = nombres.get(e.id_activo_biologico)
+        return entidades

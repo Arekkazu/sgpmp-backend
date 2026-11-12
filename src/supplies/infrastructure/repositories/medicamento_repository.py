@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones y E11 tratamientos   |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Implementación SQLAlchemy del puerto :class:`MedicamentoRepository` (RF-76).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -16,6 +17,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.nombre_activo import nombres_activos
 from src.supplies.domain.entities.medicamento import Medicamento
 from src.supplies.domain.repositories.medicamento_repository import MedicamentoRepository
 from src.supplies.domain.value_objects.estado_registro import EstadoRegistro
@@ -203,4 +205,8 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             RegistroMedicamentoModel.fecha_aplicacion.desc(),
             RegistroMedicamentoModel.id_registro_medicamento.desc(),
         ).all()
-        return [self._a_entidad(o) for o in registros]
+        entidades = [self._a_entidad(o) for o in registros]
+        nombres = nombres_activos(self.db, (e.id_activo_biologico for e in entidades))
+        for e in entidades:
+            e.identificador_activo = nombres.get(e.id_activo_biologico)
+        return entidades

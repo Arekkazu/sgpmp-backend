@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Schemas de respuesta para los endpoints de consumo de alimento (RF-75)."""
 from __future__ import annotations
 
@@ -31,6 +32,7 @@ class ConsumoAlimentoResponse(BaseModel):
     fecha_registro: Optional[datetime.datetime]
     justificacion_anulacion: Optional[str]
     fecha_hora_anulacion: Optional[datetime.datetime]
+    identificador_activo: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

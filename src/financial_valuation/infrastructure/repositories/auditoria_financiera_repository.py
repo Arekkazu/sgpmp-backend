@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-94: escritura y consulta de la auditoría financiera |
 # | 2026-11-05 | Arekkazu | M06 RF-94: orden descendente, conteo por severidad e identificador del activo |
 # | 2026-11-08 | Arekkazu | INC-M06-330-G86 RF-94: filtros por usuario, referencia y origen del registro |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Implementación SQL de :class:`AuditoriaFinancieraRepository` sobre ``modulo6.auditorias_financieras``.
 
 El hash SHA-256 lo calcula el trigger ``trg_hash_auditoria``; ``tgr_m06_27`` corre antes y exige
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
 from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
+from src.shared.nombre_activo import nombre_activo_sql
 
 _LIMITE_PAYLOAD = 64 * 1024
 _MARCADOR_HASH = "0" * 64
@@ -77,7 +79,7 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
                    a.id_activo_biologico, a.id_periodo_contable, a.id_referencia, a.datos_nuevos AS payload_evento,
                    a.datos_anteriores, a.severidad::text AS severidad_evento, a.hash_integridad,
                    a.es_payload_truncado AS payload_truncado, a.origen_registro, a.monto_afectado,
-                   ab.identificador AS identificador_activo
+                   {nombre_activo_sql('ab')} AS identificador_activo
             FROM modulo6.auditorias_financieras a LEFT JOIN modulo1.usuarios u ON u.id_usuario = a.id_usuario
             LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = a.id_activo_biologico
             WHERE {donde} ORDER BY a.fecha_registro {orden}, a.id_auditoria_financiera {orden} LIMIT :limite OFFSET :offset

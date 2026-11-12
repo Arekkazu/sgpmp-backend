@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, existencia y bajas RF-45  |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Implementación de :class:`DetalleGastoReadPort` (RF-77).
 
 SQL propio con ``text()`` (patrón de ``historial_telemetria_repository.py``)
@@ -23,10 +24,11 @@ from sqlalchemy.orm import Session
 from src.supplies.domain.entities.reporte_gasto import LineaGasto
 from src.supplies.domain.repositories.detalle_gasto_read_port import DetalleGastoReadPort
 from src.shared.fechas import nombre_zona_usuario
+from src.shared.nombre_activo import nombre_activo_sql
 
 _SQL_ALCANCE = text(
-    """
-    SELECT a.identificador, a.tipo::text AS tipo_activo, e.nombre AS especie, i.nombre AS infraestructura
+    f"""
+    SELECT {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo_activo, e.nombre AS especie, i.nombre AS infraestructura
     FROM (SELECT CAST(:a AS integer) AS a, CAST(:i AS integer) AS i, CAST(:e AS integer) AS e) p
     LEFT JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = p.a
     LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = COALESCE(a.id_infraestructura, p.i)

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87: períodos por titular, ejecuciones de cierre y comprobantes |
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: cierre en espera de autorización y nombre de quien cerró |
+# | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -75,7 +76,10 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
 
     def listar(self, numero_id_tributaria: Optional[str]) -> list[Periodo]:
         return [Periodo(**f) for f in filas(self.db, f"""
-            SELECT {_COLUMNAS} FROM modulo6.periodos_contables
+            SELECT {_COLUMNAS},
+                   (SELECT max(f.razon_social) FROM modulo9.fincas f
+                     WHERE f.numero_id_tributaria = pc.numero_id_tributaria) AS razon_social
+            FROM modulo6.periodos_contables pc
             WHERE CAST(:n AS varchar) IS NULL OR numero_id_tributaria = :n
             ORDER BY numero_id_tributaria, fecha_inicio DESC""", {"n": numero_id_tributaria})]
 
