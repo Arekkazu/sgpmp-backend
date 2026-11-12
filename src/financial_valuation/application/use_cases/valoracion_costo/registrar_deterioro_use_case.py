@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-88 paso 5: deterioro de un activo valorado por costo (NIC 41 ¶30, ¶55) |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 """Caso de uso RF-88 paso 5: el Contador cuantifica el impacto económico de un evento sanitario de
 RF-41 sobre un activo valorado por costo. RF-41 aporta el hecho clínico; M06, el monto.
 
@@ -25,6 +26,7 @@ from src.financial_valuation.domain.services.nic41 import CERO, truncar2, valor_
 from src.financial_valuation.domain.value_objects.nic41 import Sentido, Severidad, TipoEvidencia, TipoHecho
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 from src.shared.fechas import hoy_usuario
+from src.supplies.application.use_cases.exportacion.generador_archivos import moneda
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +104,8 @@ class RegistrarDeterioroUseCase:
             return
         try:
             self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
-                f"El valor en libros del activo {activo.identificador} dio ${calculado:,.2f} (costo menos depreciación "
-                "y deterioro) y se ajustó a $0.00. Evalúe registrar su baja."), {
+                f"El valor en libros del activo {activo.identificador} dio {moneda(calculado)} (costo menos depreciación "
+                "y deterioro) y se ajustó a $ 0. Evalúe registrar su baja."), {
                 "id_activo_biologico": activo.id_activo_biologico, "valor_calculado": str(calculado),
                 "valor_aplicado": "0"}, id_finca=activo.id_finca)
         except Exception:

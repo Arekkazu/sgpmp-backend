@@ -15,6 +15,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: el cierre recibe la decisión por activo sin precio |
 # | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: los períodos los lee quien consulta el estado de resultados o las revelaciones |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: estado corregido en el historial de precios |
+# | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: listas del período filtradas por el titular (NIT validado) |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -179,13 +180,17 @@ def registrar_precio(dto: PrecioDTO, m: M06 = Depends(_m06), usuario: UsuarioAct
 
 # --- Reconocimiento inicial (RF-82, RF-88 escenario A) ------------------------------------------------
 
+# Titular del período (RF-19): las listas del período muestran solo sus activos. Mismo formato que en M07.
+_NIT_TITULAR = Query(None, pattern=r"^[0-9]{6,15}$", description="NIT del titular, solo dígitos y sin dígito de verificación.")
+
 TAG_RECON = "M06 · Reconocimiento inicial"
 
 
 @router.get("/reconocimientos/propuestas", tags=[TAG_RECON], dependencies=[Depends(permiso("reconocimiento_inicial", R))],
             summary="Propuestas de reconocimiento de los activos sin reconocimiento confirmado")
-def listar_propuestas(m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> list[dict]:
-    return m.propuestas().execute(usuario.id_usuario)
+def listar_propuestas(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06),
+                      usuario: UsuarioActual = Depends(get_current_user)) -> list[dict]:
+    return m.propuestas().execute(usuario.id_usuario, numero_id_tributaria)
 
 
 @router.get("/reconocimientos/propuestas/{id_activo_biologico}", tags=[TAG_RECON],
@@ -221,8 +226,8 @@ TAG_VALOR = "M06 · Valoración de activos"
 
 @router.get("/activos", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Activos reconocidos con su valor en libros y método de valoración")
-def listar_activos_valorados(m: M06 = Depends(_m06)) -> list[dict]:
-    return m.valoraciones.activos_valorados()
+def listar_activos_valorados(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.activos_valorados(numero_id_tributaria)
 
 
 @router.get("/activos/{id_activo_biologico}", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
@@ -434,7 +439,7 @@ TAG_CIERRE = "M06 · Períodos y cierre"
             dependencies=[Depends(require_alguno_m06([("cierre_periodo", R), ("estado_resultados", R), ("revelaciones_nic41", R)],
                                                      mensaje_denegado=_DENEGADO))],
             summary="Períodos contables por titular con su último cierre (también para quien solo consulta reportes)")
-def listar_periodos(numero_id_tributaria: Optional[str] = None, m: M06 = Depends(_m06)) -> list[dict]:
+def listar_periodos(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06)) -> list[dict]:
     return [{**p.__dict__, "ultimo_cierre": m.periodos.ultima_ejecucion(p.id_periodo_contable)}
             for p in m.periodos.listar(numero_id_tributaria)]
 

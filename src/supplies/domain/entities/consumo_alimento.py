@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Entidad de dominio ``ConsumoAlimento`` (RF-75).
 
 Python puro, sin SQLAlchemy ni FastAPI. Representa un registro de consumo de
@@ -39,6 +42,8 @@ class ConsumoAlimento:
     fecha_registro: Optional[datetime] = None
     justificacion_anulacion: Optional[str] = None
     fecha_hora_anulacion: Optional[datetime] = None
+    # Nombre visible del activo: solo lo llenan las consultas, para que la pantalla no muestre su id.
+    identificador_activo: Optional[str] = None
 
     @classmethod
     def crear(

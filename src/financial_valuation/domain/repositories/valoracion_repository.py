@@ -6,6 +6,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
+# | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 """Puerto de la valoración NIC 41: cálculos (RF-84), reconocimientos (RF-82), mediciones y
 variaciones (RF-83/86), productos agrícolas (RF-85) y valoración por costo (RF-88)."""
 from __future__ import annotations
@@ -78,7 +79,7 @@ class ValoracionRepository(ABC):
     def agregar_producto(self, datos: dict) -> int: ...
 
     @abstractmethod
-    def activos_valorados(self) -> list[dict]: ...
+    def activos_valorados(self, numero_id_tributaria: Optional[str] = None) -> list[dict]: ...
 
     @abstractmethod
     def historial_activo(self, id_activo_biologico: int) -> dict: ...

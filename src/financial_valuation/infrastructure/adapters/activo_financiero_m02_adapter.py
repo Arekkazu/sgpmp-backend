@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
 # | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
 # | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
@@ -21,9 +22,10 @@ from src.financial_valuation.domain.entities.activo_financiero import ESTADOS_VA
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.infrastructure.repositories.sql import fila, filas
 from src.shared.fechas import nombre_zona_usuario
+from src.shared.nombre_activo import nombre_activo_sql
 
-_BASE = """
-SELECT a.id_activo_biologico, a.identificador, a.tipo::text AS tipo, a.id_especie, e.nombre AS especie,
+_BASE = f"""
+SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, a.id_especie, e.nombre AS especie,
        est.nombre AS estado, a.id_infraestructura, i.id_finca, f.nombre AS finca, f.numero_id_tributaria,
        f.razon_social, (a.fecha_creacion AT TIME ZONE :tz)::date AS fecha_ingreso,
        a.origen_financiero::text AS origen_financiero, a.costo_adquisicion, a.soporte_documental,
@@ -82,10 +84,11 @@ class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
                  {"id": id_activo_biologico, "tz": nombre_zona_usuario()})
         return _activo(f) if f else None
 
-    def listar_sin_reconocimiento(self) -> list[DatosActivo]:
+    def listar_sin_reconocimiento(self, numero_id_tributaria: Optional[str] = None) -> list[DatosActivo]:
         return [_activo(f) for f in filas(
-            self.db, _BASE + f" WHERE NOT {_CONFIRMADO} AND est.nombre = ANY(:estados) ORDER BY a.id_activo_biologico",
-            {"tz": nombre_zona_usuario(), "estados": list(ESTADOS_VALORABLES)},
+            self.db, _BASE + f" WHERE NOT {_CONFIRMADO} AND est.nombre = ANY(:estados) AND (CAST(:nit AS varchar) IS NULL OR f.numero_id_tributaria = :nit)"
+                             " ORDER BY a.id_activo_biologico",
+            {"tz": nombre_zona_usuario(), "estados": list(ESTADOS_VALORABLES), "nit": numero_id_tributaria},
         )]
 
     def listar_reconocidos(self, numero_id_tributaria: str) -> list[DatosActivo]:

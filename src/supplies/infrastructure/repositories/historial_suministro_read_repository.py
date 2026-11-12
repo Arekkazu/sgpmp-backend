@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: tipo real del ledger y ciclo exacto |
 # | 2026-10-23 | Arekkazu | PR-667: SAST Bearer (timeout parametrizado y candados con nombre fijo) |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Implementación de :class:`HistorialSuministroReadPort` (RF-81).
 
 SQL propio con ``text()`` sobre ``modulo5.registro_suministro`` (no la vista
@@ -39,6 +40,7 @@ from src.supplies.domain.repositories.historial_suministro_read_port import (
     HistorialSuministroReadPort,
 )
 from src.supplies.domain.value_objects.historial_suministro_enums import TipoSuministroFiltro
+from src.shared.nombre_activo import nombre_activo_sql
 
 _JOINS = """
     FROM modulo5.registro_suministro rs
@@ -70,7 +72,7 @@ _SQL_PAGINA = text(
            rs.fecha_aplicacion, rs.cantidad, rs.unidad_medida,
            rs.precio_unitario_resuelto AS precio_unitario, rs.costo_registro, rs.origen_precio,
            rs.tipo_operacion, rs.observacion, rs.fecha_registro,
-           ab.identificador AS nombre_activo, esp.nombre AS especie, cp.nombre AS nombre_ciclo,
+           {nombre_activo_sql('ab')} AS nombre_activo, esp.nombre AS especie, cp.nombre AS nombre_ciclo,
            CASE WHEN gf.es_activa THEN 'ACTIVO' ELSE 'CERRADO' END AS estado_ciclo
     {_JOINS}
     {_WHERE}

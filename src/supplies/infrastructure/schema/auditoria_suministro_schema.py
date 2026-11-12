@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: exponer identidad UUID y versión verificable del hash. |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Response schemas para la bitácora de auditoría de M05 (RF-80, CU-06)."""
 from __future__ import annotations
 
@@ -42,6 +43,8 @@ class EventoAuditoriaSuministroResponse(BaseDTO):
     numero_reintentos: Optional[int] = None
     fecha_intentos: Optional[list[datetime]] = None
     id_gestion_fases: Optional[int] = None
+    nombre_activo: Optional[str] = None
+    nombre_usuario: Optional[str] = None
 
 
 class AuditoriaSuministrosListResponse(BaseDTO):

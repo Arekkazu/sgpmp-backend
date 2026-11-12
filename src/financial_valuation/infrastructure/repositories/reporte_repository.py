@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-92/RF-93: insumos y persistencia de revelaciones y estado de resultados |
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-10 | Arekkazu | TC-DIS-257 RF-92/93: nombre de quien aprobó el informe y el estado de resultados |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
 from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
+from src.shared.nombre_activo import nombre_activo_sql
 
 ES_BASE_C = "COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false"
 CONSUMIDO_C = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")  # RF-85 FA-4: vale 0
@@ -38,7 +40,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                 params[campo] = filtros[campo]
         return filas(self.db, f"""
             SELECT l.id_linea_asiento_nic41, COALESCE(l.tipo_hecho_corregido, l.tipo_hecho)::text AS tipo_hecho,
-                   l.sentido::text AS sentido, l.valor, l.es_reverso, l.id_activo_biologico, a.identificador AS activo,
+                   l.sentido::text AS sentido, l.valor, l.es_reverso, l.id_activo_biologico, {nombre_activo_sql()} AS activo,
                    l.id_especie, l.id_finca, a.id_infraestructura, l.id_comprobante_nic41
             FROM modulo6.lineas_asiento_nic41 l
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = l.id_activo_biologico
@@ -86,7 +88,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                    WHERE id_periodo_contable = :p""", p)
         rango = {**p, "nit": periodo["numero_id_tributaria"], "i": periodo["fecha_inicio"], "f": periodo["fecha_fin"]}
         activos = filas(self.db, f"""
-            SELECT a.id_activo_biologico, a.identificador, a.tipo::text AS tipo, e.id_especie, e.nombre AS especie,
+            SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, e.id_especie, e.nombre AS especie,
                    ri.clasificacion::text AS clasificacion, ri.indicador_valoracion::text AS indicador_valoracion,
                    ri.origen_financiero::text AS origen_financiero, ri.costo_adquisicion,
                    ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual,
