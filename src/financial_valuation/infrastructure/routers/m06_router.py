@@ -16,6 +16,7 @@
 # | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: los períodos los lee quien consulta el estado de resultados o las revelaciones |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: estado corregido en el historial de precios |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: listas del período filtradas por el titular (NIT validado) |
+# | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -435,13 +436,25 @@ def clasificar_costo(id_registro_costo: int, dto: ClasificarCostoDTO, m: M06 = D
 TAG_CIERRE = "M06 · Períodos y cierre"
 
 
-@router.get("/periodos", tags=[TAG_CIERRE],
-            dependencies=[Depends(require_alguno_m06([("cierre_periodo", R), ("estado_resultados", R), ("revelaciones_nic41", R)],
-                                                     mensaje_denegado=_DENEGADO))],
+# Leen períodos quien cierra y quien solo consulta los reportes del período (el Productor, RF-93).
+_LEE_PERIODOS = Depends(require_alguno_m06([("cierre_periodo", R), ("estado_resultados", R), ("revelaciones_nic41", R)],
+                                           mensaje_denegado=_DENEGADO))
+
+
+@router.get("/titulares", tags=[TAG_CIERRE], dependencies=[_LEE_PERIODOS],
+            summary="Titulares (NIT y razón social) con períodos contables, para elegir primero el titular")
+def listar_titulares(m: M06 = Depends(_m06)) -> list[dict]:
+    return m.periodos.titulares()
+
+
+@router.get("/periodos", tags=[TAG_CIERRE], dependencies=[_LEE_PERIODOS],
             summary="Períodos contables por titular con su último cierre (también para quien solo consulta reportes)")
-def listar_periodos(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06)) -> list[dict]:
-    return [{**p.__dict__, "ultimo_cierre": m.periodos.ultima_ejecucion(p.id_periodo_contable)}
-            for p in m.periodos.listar(numero_id_tributaria)]
+def listar_periodos(numero_id_tributaria: Optional[str] = _NIT_TITULAR,
+                    sin_titular: bool = Query(False, description="Solo los períodos sin titular asignado; ignora el NIT."),
+                    m: M06 = Depends(_m06)) -> list[dict]:
+    periodos = m.periodos.listar(numero_id_tributaria, sin_titular)
+    cierres = m.periodos.ultimas_ejecuciones([p.id_periodo_contable for p in periodos])
+    return [{**p.__dict__, "ultimo_cierre": cierres.get(p.id_periodo_contable)} for p in periodos]
 
 
 @router.get("/periodos/{id_periodo_contable}/prevalidacion", tags=[TAG_CIERRE],
