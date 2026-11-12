@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: verificar dosis decimal(10,4) desde HTTP hasta el ledger en PostgreSQL. |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: tras el rollback queda solo el incidente REGISTRO_FALLIDO |
 """Regresión #954 con restricciones activas y transacciones de prueba."""
 from __future__ import annotations
 import importlib
@@ -178,8 +179,11 @@ def test_rollback_del_outbox_revierte_toda_la_dosis(client,db_session,escenario,
     monkeypatch.setattr(Repo,'encolar',fallar)
     r=client.post('/suministros/medicamentos',headers=e['vet'],json=medicamento(e)|{'dosis_aplicada':'.0001'})
     assert r.status_code==503,r.text
-    for tabla in ('registros_medicamentos','registro_suministro','acumulado_ciclo','auditorias_suministros','outbox_provisiones_m06'):
+    for tabla in ('registros_medicamentos','registro_suministro','acumulado_ciclo','outbox_provisiones_m06'):
         assert db_session.execute(text('SELECT count(*) FROM modulo5.'+tabla)).scalar_one()==0,tabla
+    # La auditoría de la operación se revierte con ella; solo queda el incidente del fallo (INC-M05-352-G18).
+    auditoria=db_session.execute(text("SELECT tipo_operacion::text,resultado::text FROM modulo5.auditorias_suministros")).all()
+    assert [tuple(f) for f in auditoria]==[('REGISTRO_FALLIDO','FALLIDO')]
     assert db_session.execute(text('SELECT id_estado FROM modulo2.activos_biologicos WHERE id_activo_biologico=:a'),{'a':e['individual']['activo']}).scalar_one()==1
 
 

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75/76: wiring de consumo y medicamento |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: auditoría de fallos en el registro de medicamento |
 """Fábricas de wiring de RF-75/RF-76 (consumo de alimento y medicamentos).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -41,6 +42,9 @@ from src.supplies.infrastructure.adapters.rol_usuario_m01_adapter import RolUsua
 from src.supplies.infrastructure.factories.costeo_suministros_factory import (
     build_compensador_anulacion,
     build_registrador_movimiento,
+)
+from src.supplies.infrastructure.repositories.auditoria_suministro_repository import (
+    SqlAlchemyAuditoriaSuministroRepository,
 )
 from src.supplies.infrastructure.repositories.consumo_alimento_repository import (
     SqlAlchemyConsumoAlimentoRepository,
@@ -93,6 +97,7 @@ def build_registrar_medicamento_use_case(db: Session) -> RegistrarMedicamentoUse
         rol_port=RolUsuarioM01Adapter(db),
         registro_repo=SqlAlchemyRegistroSuministroRepository(db),
         movimiento=build_registrador_movimiento(db),
+        auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
     )
 
 
