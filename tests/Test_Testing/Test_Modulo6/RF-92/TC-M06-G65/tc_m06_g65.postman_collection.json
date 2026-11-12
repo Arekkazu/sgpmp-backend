@@ -1,0 +1,1128 @@
+{
+  "info": {
+    "name": "TC-M06-G65 - RF-92 Bloqueo sobre períodos no cerrados y validación del contrato de entrada (FA-1, Restricción",
+    "description": "RF-92 TCG-07 (TC-92-037 a TC-92-043, TC-92-082, TC-92-084), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login adm",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_adm', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_adm}}\",\n  \"contrasena\": \"{{clave_adm}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login cont",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_cont', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_cont}}\",\n  \"contrasena\": \"{{clave_cont}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login prod",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_prod', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prod}}\",\n  \"contrasena\": \"{{clave_prod}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login revfis",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('correo_revfis')) { console.log('PRECONDICION: sin cuenta revfis'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_revfis', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_revfis}}\",\n  \"contrasena\": \"{{clave_revfis}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Descubrir periodos contables (Contador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const arr = Array.isArray(j) ? j : [];",
+              "const de = (e) => arr.filter(x => x.estado === e).map(x => String(x.id_periodo_contable));",
+              "// Si QA indica el período con --env-var periodo_abierto_qa / periodo_cerrado_qa / periodo_en_cierre_qa, se usa ese en vez del primero que aparezca.",
+              "const qa = (k) => String(pm.environment.get(k) || '');",
+              "pm.collectionVariables.set('id_abierto', qa('periodo_abierto_qa') || de('ABIERTO')[0] || '');",
+              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || de('EN_CIERRE')[0] || '');",
+              "pm.collectionVariables.set('id_cerrado', qa('periodo_cerrado_qa') || de('CERRADO')[0] || '');",
+              "pm.collectionVariables.set('cerrados', JSON.stringify(de('CERRADO')));",
+              "pm.collectionVariables.set('id_periodo_lineas', pm.collectionVariables.get('id_abierto') || pm.collectionVariables.get('id_cerrado') || '');",
+              "console.log('PERIODOS', JSON.stringify({ total: arr.length, abiertos: de('ABIERTO'), en_cierre: de('EN_CIERRE'), cerrados: de('CERRADO') }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-037 Conteo inicial de versiones (periodo ABIERTO)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_abierto')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo ABIERTO'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('n_informes_antes', String(Array.isArray(j) ? j.length : -1));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_abierto}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_abierto}}",
+            "revelaciones"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-037 Generar sobre periodo ABIERTO -> 422",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_abierto')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo ABIERTO'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code PERIODO_NO_CERRADO\", () => { pm.expect(j.error_code).to.eql('PERIODO_NO_CERRADO'); });",
+              "pm.test(\"mensaje descriptivo\", () => { pm.expect(j.message).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_abierto}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_abierto}}",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-037 Sin informe parcial (conteo igual)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_abierto')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo ABIERTO'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.test(\"sin version nueva\", () => { pm.expect(String(Array.isArray(j) ? j.length : -1)).to.eql(pm.collectionVariables.get('n_informes_antes')); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_abierto}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_abierto}}",
+            "revelaciones"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-038 Generar sobre periodo EN_CIERRE -> 422",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_en_cierre')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo EN_CIERRE'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code PERIODO_NO_CERRADO\", () => { pm.expect(j.error_code).to.eql('PERIODO_NO_CERRADO'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_en_cierre}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_en_cierre}}",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-039 Periodo inexistente -> 404/422",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP en [404, 422]\", () => { pm.expect(pm.response.code).to.be.oneOf([404, 422]); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-039 Periodo no numerico -> 400/422",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP en [400, 422]\", () => { pm.expect(pm.response.code).to.be.oneOf([400, 422]); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/abc/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "abc",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-039 Informe inexistente -> 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 404\", () => { pm.response.to.have.status(404); });",
+              "pm.test(\"error_code INFORME_NO_ENCONTRADO\", () => { pm.expect(j.error_code).to.eql('INFORME_NO_ENCONTRADO'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/999999999",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "999999999"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-041 Descarga en formato ajeno -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/999999999/descarga?formato=docx",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "999999999",
+            "descarga"
+          ],
+          "query": [
+            {
+              "key": "formato",
+              "value": "docx"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-92-043 Compromiso con descripcion vacia -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"compromisos_vigentes\":[{\"descripcion\":\"\"}]}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-043 Compromiso sin descripcion -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"compromisos_vigentes\":[{\"monto_estimado\":1000,\"contraparte\":\"Banco QA\"}]}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-043 Compromiso con monto negativo -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"compromisos_vigentes\":[{\"descripcion\":\"QA M06 compromiso negativo\",\"monto_estimado\":-1000,\"contraparte\":\"Banco QA\"}]}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-043 Pignorado sin entidad acreedora -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"activos_pignorados\":[{\"id_activo_biologico\":1}]}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-043 Pignorado con activo 0 -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error controlado con error_code\", () => { pm.expect(j.error_code, pm.response.text().slice(0,300)).to.be.a('string').and.not.empty; });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"activos_pignorados\":[{\"id_activo_biologico\":0,\"entidad_acreedora\":\"Banco QA\"}]}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-084 Periodo CERRADO sin entradas manuales -> 422",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code REVELACIONES_MANUALES_REQUERIDAS\", () => { pm.expect(j.error_code).to.eql('REVELACIONES_MANUALES_REQUERIDAS'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      }
+    },
+    {
+      "name": "Administrador genera informe -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    },
+    {
+      "name": "Productor genera informe -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_prod}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    },
+    {
+      "name": "Sin token -> 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 401\", () => { pm.response.to.have.status(401); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/999999999/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "999999999",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"declaracion_sin_novedad\":true}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "permitir_escritura",
+      "value": "NO"
+    },
+    {
+      "key": "tok_adm",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_revfis",
+      "value": ""
+    },
+    {
+      "key": "correo_adm",
+      "value": ""
+    },
+    {
+      "key": "clave_adm",
+      "value": ""
+    },
+    {
+      "key": "correo_cont",
+      "value": ""
+    },
+    {
+      "key": "clave_cont",
+      "value": ""
+    },
+    {
+      "key": "correo_prod",
+      "value": ""
+    },
+    {
+      "key": "clave_prod",
+      "value": ""
+    },
+    {
+      "key": "correo_revfis",
+      "value": ""
+    },
+    {
+      "key": "clave_revfis",
+      "value": ""
+    }
+  ]
+}

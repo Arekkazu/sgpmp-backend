@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78/79: movimiento del ledger y outbox  |
+# | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: consultar activos visibles al auditar rechazos de costeo directo. |
 """Fábricas de wiring de RF-78 (Costeo Directo de Suministros — CU-05).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -21,6 +22,7 @@ from src.supplies.application.use_cases.costeo_suministros.registrar_correccion_
 from src.supplies.application.use_cases.costeo_suministros.registrar_suministro_directo_use_case import (
     RegistrarSuministroDirectoUseCase,
 )
+from src.supplies.infrastructure.adapters.activo_m02_adapter import ActivoM02Adapter
 from src.supplies.infrastructure.adapters.ciclo_m02_adapter import CicloM02Adapter
 from src.supplies.infrastructure.repositories.acumulado_ciclo_repository import (
     SqlAlchemyAcumuladoCicloRepository,
@@ -59,6 +61,7 @@ def build_registrar_suministro_directo_use_case(db: Session) -> RegistrarSuminis
         ciclo_port=CicloM02Adapter(db),
         auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
         movimiento=build_registrador_movimiento(db),
+        activo_port=ActivoM02Adapter(db),
     )
 
 

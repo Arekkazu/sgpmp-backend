@@ -2,6 +2,28 @@
 
 Generado el 2026-11-03 a partir de los resultados guardados en `Flujo/<Especie>/` y de las ejecuciones de la sesión del 2026-11-02. Es una foto del momento: DEV cambia (otros equipos escriben allí) y las cifras de abajo solo valen para esas corridas. Plan de origen: `planes_multiespecie/` (`plan_E*.md` y `datos_E*.md`).
 
+## Resumen de resultados
+
+Las seis especies pasaron todas las pruebas que se pudieron ejecutar: **0 fallos** en capacidad y en ciclo de vida de alertas. Lo que no pasó limpio son bloqueos y huecos de configuración en DEV, no errores de la lógica probada. Las cifras salen de las secciones 4 a 7.
+
+| Indicador | Resultado |
+|---|---|
+| B. Capacidad | 72 pasos en 6 especies, 0 fallos |
+| C. Fronteras de umbrales | 56 pasan, 33 informativas, **11 bloqueadas** (temperatura del agua de la cachama: 404) |
+| D. Lecturas sin umbral | 2 corridas (porcino y pollo): 14 aceptadas y 6 rechazadas por rango físico en cada una, 0 alertas |
+| E. Ciclo de vida de alertas | 40 pasos en 4 especies, 0 fallos |
+| A. Solo lectura (bovino de Potrero 1) | 36 pasan, 0 fallan, 11 informativas |
+| Fases del plan | F3, F5 y F6 completas en las seis; F4 en cuatro (faltan porcino y pollo); **F9 y F10 no se ejecutaron en ninguna** |
+| Hallazgos para Desarrollo | 16 (sección 7) |
+
+**Los cuatro que más pesan**
+1. La temperatura del agua (y amoniaco, nitrito, salinidad y turbidez) no tiene `codigo_telemetria`: no se puede enviar y bloquea la capa de fronteras de la cachama.
+2. Porcino y pollo no tienen umbrales en DEV: semáforo GRIS y sin alertas, así que no hay nada que probar en fronteras ni en alertas.
+3. `MODELO_ESPECIES_GRANDES` no tiene configuración del motor, lo que deja sin predicción a bovino y avestruz.
+4. El pH en ROJO no genera alerta (el oxígeno sí). Falta confirmar si es la regla esperada.
+
+**Conclusión:** la regla de capacidad, la regla multiespecie (manda la menor densidad), las fronteras `(inferior, superior]` y el ciclo de vida de alertas se comportan como se espera en todas las especies probadas. No se puede dar por cubierto el flujo completo mientras no se resuelvan los hallazgos 1 a 3 y no se ejecuten F9 y F10.
+
 ## 1. Alcance y condiciones
 
 | Aspecto | Valor |

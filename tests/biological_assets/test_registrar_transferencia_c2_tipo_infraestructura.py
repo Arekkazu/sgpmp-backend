@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48 (INC-M02-72-G80): no existia ningun modelo de compatibilidad entre
 tipo de infraestructura y especie del activo (C2) -- un bovino se aceptaba en
 un Estanque. Cubre execute() (E-07b) y el filtro del listado.
@@ -69,6 +70,9 @@ class InfraPortFake:
 
     def bloquear_capacidad(self, _id: int) -> None:
         pass
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def asociar_especie(self, _id_infraestructura: int, _id_especie: int) -> None:
         pass

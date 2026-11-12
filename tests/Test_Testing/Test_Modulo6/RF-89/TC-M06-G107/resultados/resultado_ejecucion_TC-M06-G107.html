@@ -1,0 +1,191 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G107</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}.b{font-weight:700}
+pre{white-space:pre-wrap;background:#fafafa;padding:.8rem}</style></head><body>
+<h1>Módulo 6 — RF-89 / M07 — TC-M06-G107</h1>
+<p>Recepción y confirmación de precios externos. Generado: 2026-11-08T08:47:18.503358+00:00. Escrituras de precios: no.</p>
+<table>
+<tr><th>Subcaso</th><td>TC-M06-31</td></tr>
+<tr><th>Estado</th><td class="b">REQUIERE ACLARACION</td></tr>
+<tr><th>Porcentaje</th><td>0 %</td></tr>
+<tr><th>Precios consultados</th><td>11</td></tr>
+<tr><th>Pendientes de confirmación</th><td>0</td></tr>
+<tr><th>Confirmación ejecutada</th><td>no</td></tr>
+</table>
+<h2>Motivo</h2><p>No se puede ejecutar la recepción ni la confirmación. El contrato publicado no define el endpoint, el estado persistible PENDIENTE_CONFIRMACION ni el evento de auditoría de ese flujo. GET /finanzas/precios tampoco informa el origen del registro. Confirmar o insertar un precio en el catálogo compartido cambiaría las valoraciones, y no hay un precio externo aislado.</p>
+<h2>Contrato observado</h2><pre>M07 publica la consulta AAEF y la administración de clientes, contratos y su propia auditoría. Ninguna ruta de /integracion recibe ni confirma precios. M06 solo publica GET y POST /finanzas/precios. El POST guarda el origen MANUAL y el estado PROGRAMADO o ACTIVO. La base declara el origen API_M07 y el comentario de la columna menciona PENDIENTE_CONFIRMACION, pero el enumerado de estado del precio solo admite ACTIVO, PROGRAMADO, VENCIDO y SUPERADO. No hay caso de uso que asigne API_M07 ni un endpoint para confirmar un precio externo. El selector usa la fuente y las fechas. No conoce un estado pendiente. DESVIACION_PRECIO_REQUIERE_CONFIRMACION es la confirmación de una desviación de un precio manual, no la aprobación de M07. La auditoría de precios contempla PRECIO_REGISTRADO, PRECIO_MARCADO_REEMPLAZADO y PRECIO_REFERENCIA_VENCIDO. La auditoría de M07 no tiene eventos de recepción ni de confirmación de precios.</pre>
+<h2>Rutas publicadas</h2><pre>[
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/roles&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/token&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/usuarios&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/tipos-documento&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/usuarios/{email}&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/usuarios/{usuario}/estado&quot;,
+    &quot;metodos&quot;: [
+      &quot;patch&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integraciones/agrofusion/usuarios/{usuario}&quot;,
+    &quot;metodos&quot;: [
+      &quot;put&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/finanzas/precios&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;,
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/aaef/productores/{nit}&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/aaef/vista-previa/productores/{nit}&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/clientes&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;,
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/clientes/{id_cliente_externo}&quot;,
+    &quot;metodos&quot;: [
+      &quot;patch&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/clientes/{id_cliente_externo}/suspender&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/clientes/{id_cliente_externo}/reactivar&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/clientes/{id_cliente_externo}/revocar&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/clientes/{id_cliente_externo}/rotar&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/anexos&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;,
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/anexos/{id_mapeo_anexo_aaef}/revision&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/anexos/{id_mapeo_anexo_aaef}/aprobar&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/contratos&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;,
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/contratos/{id_version_contrato_aaef}/activar&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/contratos/{id_version_contrato_aaef}/deprecar&quot;,
+    &quot;metodos&quot;: [
+      &quot;post&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/auditoria&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  },
+  {
+    &quot;ruta&quot;: &quot;/integracion/auditoria/exportar&quot;,
+    &quot;metodos&quot;: [
+      &quot;get&quot;
+    ]
+  }
+]</pre>
+<h2>Estados de los precios</h2><pre>{
+  &quot;ACTIVO&quot;: 4,
+  &quot;SUPERADO&quot;: 2,
+  &quot;VENCIDO&quot;: 5
+}</pre>
+<h2>Auditoría</h2><pre>{
+  &quot;PRECIO_REGISTRADO&quot;: {
+    &quot;http&quot;: 200,
+    &quot;total&quot;: 5
+  },
+  &quot;PRECIO_MARCADO_REEMPLAZADO&quot;: {
+    &quot;http&quot;: 200,
+    &quot;total&quot;: 2
+  },
+  &quot;PRECIO_REFERENCIA_VENCIDO&quot;: {
+    &quot;http&quot;: 200,
+    &quot;total&quot;: 0
+  },
+  &quot;integracion&quot;: {
+    &quot;http&quot;: 200,
+    &quot;total&quot;: 0
+  }
+}</pre>
+<h2>Hallazgos</h2><ul><li>QUESTION-M06-G107-01: el comentario de precios_mercado describe la recepción por API_M07 en estado PENDIENTE_CONFIRMACION, pero ese valor no existe en el enumerado de estado y ningún caso de uso lo utiliza.</li><li>QUESTION-M06-G107-02: M07 publicado intercambia el documento AAEF. No publica la entrega ni la confirmación de precios.</li><li>BLOQUEO DE PRUEBA: no hay un precio externo aislado ni un endpoint real sobre el cual completar TC-M06-31 sin modificar el catálogo compartido.</li></ul>
+</body></html>

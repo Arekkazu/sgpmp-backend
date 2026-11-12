@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: excluir respaldos de auditoría del contexto de construcción. |
+# | 2026-11-07 | Sebastián Sandoval (Implementación) | SSO AgroFusion: excluir *.pem y *.key de la imagen |
 .venv/
 __pycache__/
 *.pyc
@@ -17,3 +18,7 @@ docs/
 
 var/auditoria_iot/
 storage/auditoria_iot/
+
+# Claves y certificados: nunca dentro de la imagen (se montan en ejecución).
+**/*.pem
+**/*.key

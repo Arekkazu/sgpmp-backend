@@ -1,3 +1,9 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: rechazar rangos temporales invertidos antes de consultar o exportar. |
 """Puerto de lectura de la bitácora ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Complementa a ``AuditoriaSuministroPort`` (solo escritura). ``tipo_operacion``
@@ -10,8 +16,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
+
+from src.shared.errors import ValidationError
 
 if TYPE_CHECKING:
     from src.supplies.domain.entities.evento_auditoria_suministro import EventoAuditoriaSuministroConsulta
@@ -30,6 +38,28 @@ class FiltrosAuditoriaSuministro:
     clasificacion_registro: Optional[str] = None
     pagina: int = 1
     registros_por_pagina: int = 50
+    ordenar_por: str = "fecha_evento"  # RNF-08: fecha_evento (registro) o fecha_emision (emisión en M05)
+
+    def __post_init__(self) -> None:
+        if self.fecha_desde is None or self.fecha_hasta is None:
+            return
+        # Igual que el contrato de entrada: un instante sin zona representa UTC.
+        # Comparar instantes permite offsets diferentes sin alterar los filtros.
+        desde = self.fecha_desde
+        hasta = self.fecha_hasta
+        if desde.tzinfo is None:
+            desde = desde.replace(tzinfo=timezone.utc)
+        if hasta.tzinfo is None:
+            hasta = hasta.replace(tzinfo=timezone.utc)
+        if desde.astimezone(timezone.utc) > hasta.astimezone(timezone.utc):
+            raise ValidationError(
+                code="VAL_ENTRADA",
+                message=(
+                    "El inicio del rango no puede ser posterior al final. "
+                    "Corrige las fechas e intenta de nuevo."
+                ),
+                field="fecha_hasta",
+            )
 
 
 class AuditoriaSuministroReadPort(ABC):

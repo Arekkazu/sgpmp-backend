@@ -1,0 +1,59 @@
+{
+  "tc": "TC-M05-G21",
+  "summary": {
+    "total": 8,
+    "ok": 8,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base de historial del Administrador",
+      "esperado": "HTTP 200 en GET /suministros/reportes-gastos/historial, captura del total inicial de reportes",
+      "obtenido": "HTTP 200 en consulta de historial de Administrador. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Rango de fechas sin registros con costo (E1)",
+      "esperado": "HTTP 200; estado 'SIN_DATOS', sin_datos=True, gasto_total_acumulado = 0 COP y mensaje de RF-77 E1",
+      "obtenido": "Reporte en rango sin gastos retornó HTTP 200; estado = 'SIN_DATOS', sin_datos = True, total = 0 COP y mensaje explicativo E1 presente. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Tendencia escenario (a): anterior > 0 y actual > 0",
+      "esperado": "HTTP 200; estado 'CALCULADA', variación porcentual calculada exactamente según la fórmula (+50.00%)",
+      "obtenido": "Reporte con anterior=20.000 COP y actual=30.000 COP retornó HTTP 200; estado = 'CALCULADA', variacion_porcentual = +50.00% exacto según fórmula. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Tendencia escenario (b): anterior = 0 y actual > 0",
+      "esperado": "HTTP 200; estado 'SIN_BASE_COMPARATIVA', variacion_porcentual=None y nota de ausencia de gastos en período anterior",
+      "obtenido": "Reporte con anterior=0 y actual=25.000 COP retornó HTTP 200; estado = 'SIN_BASE_COMPARATIVA', variacion_porcentual = None y nota normativa presente. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Tendencia escenario (c): anterior = 0 y actual = 0",
+      "esperado": "HTTP 200; estado 'SIN_MOVIMIENTO' y variacion_porcentual=None",
+      "obtenido": "Reporte con anterior=0 y actual=0 retornó HTTP 200; estado = 'SIN_MOVIMIENTO' y variacion_porcentual = None. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04 Tendencia escenario (d): período anterior recortado al ciclo",
+      "esperado": "HTTP 200; estado 'CALCULADA', período recortado al inicio del ciclo y nota informativa con la fecha del ciclo",
+      "obtenido": "Reporte con período anterior recortado al ciclo (2026-08-10) retornó HTTP 200; estado = 'CALCULADA', anterior=10.000 COP, actual=15.000 COP (+50.00%) y nota de recorte presente. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre ordenado de sandbox Administrador",
+      "esperado": "DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Verificación de inocuidad final e integridad de la base",
+      "esperado": "Historial de reportes del Administrador fuera de sandbox coincide exactamente con la línea base capturada en T00 (0 efectos persistidos)",
+      "obtenido": "Verificación sin sandbox completada; historial final coincide 100% con línea base (0 efectos persistidos). Estado: OK.",
+      "estado": "OK"
+    }
+  ]
+}

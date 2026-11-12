@@ -1,8 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89: registro append-only de precios de mercado (NIC 41 ¶17) |
+# | 2026-11-08 | Arekkazu | RFC-024 RF-89 v1.1 CA-5: justificación de estimación menor a 50 caracteres responde 400 |
+# | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: la corrección hereda la fecha del original y se compara contra él |
 """Caso de uso RF-89 pasos 3-8. El historial es inmutable: un precio erróneo se corrige con uno nuevo
-que referencia al anterior (FA-6). Una desviación mayor al umbral exige confirmación (FA-7). Un
+que referencia al anterior (FA-6) y ocupa su lugar: misma especie, categoría, producto, fuente y fecha de
+vigencia, de modo que corregir un precio histórico no desplaza al que está aplicado hoy. Una desviación
+mayor al umbral exige confirmación (FA-7); en una corrección se mide contra el precio corregido. Un
 precio con vigencia futura queda PROGRAMADO (FA-9)."""
 from __future__ import annotations
 
@@ -21,7 +25,7 @@ from src.financial_valuation.domain.repositories.notificacion_financiera_port im
 from src.financial_valuation.domain.repositories.precio_repository import PrecioRepository
 from src.financial_valuation.domain.services.precios import Precio, desviacion_pct, precio_vigente
 from src.financial_valuation.domain.value_objects.nic41 import CategoriaPrecio, FuentePrecio
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import ConflictError, NotFoundError, ValidationError
 from src.shared.fechas import hoy_usuario
 
 UNIDAD_POR_CATEGORIA = {CategoriaPrecio.PESO_KG.value: "kg", CategoriaPrecio.POR_CABEZA.value: "cabeza"}
@@ -32,7 +36,7 @@ class SolicitudPrecio:
     id_especie: int
     categoria: str
     precio_unitario: Decimal
-    fecha_vigencia: date
+    fecha_vigencia: Optional[date]  # en una corrección se hereda del precio corregido
     fuente: str
     evidencia_documental: str
     fecha_vencimiento: Optional[date] = None
@@ -54,15 +58,17 @@ class RegistrarPrecioUseCase:
 
     def execute(self, s: SolicitudPrecio, id_usuario: int) -> dict:
         hoy = hoy_usuario()
-        unidad = self._validar(s, hoy)
         lista = self.precios.de_especie(s.id_especie, s.categoria, s.id_metrica_produccion)
-        anterior = precio_vigente([p for p in lista if p.fuente == s.fuente], hoy)
+        corregido = self._corregido(s, lista)
+        unidad = self._validar(s, hoy)
+        anterior = corregido or precio_vigente([p for p in lista if p.fuente == s.fuente], hoy)
         desviacion = desviacion_pct(s.precio_unitario, anterior.precio_unitario) if anterior else None
         umbral = self.config.obtener().pct_umbral_desviacion_precio
         if desviacion is not None and desviacion > umbral and not s.confirmar_desviacion:  # FA-7
+            referencia = "del precio que corrige" if corregido else "del vigente"
             raise ConflictError(code="DESVIACION_PRECIO_REQUIERE_CONFIRMACION", message=(
-                f"El precio difiere {desviacion:.1f}% del vigente ({anterior.precio_unitario:,.2f} por {unidad}), más que el "
-                f"umbral de {umbral}%. Confirme que es correcto para guardarlo."))
+                f"El precio difiere {desviacion:.1f}% {referencia} ({anterior.precio_unitario:,.2f} por {unidad}), más que "
+                f"el umbral de {umbral}%. Confirme que es correcto para guardarlo."))
         estado = "PROGRAMADO" if s.fecha_vigencia > hoy else "ACTIVO"
         try:
             precio = self.precios.agregar(Precio(
@@ -90,12 +96,40 @@ class RegistrarPrecioUseCase:
         except Exception:
             self.db.rollback()
             raise
-        if estado == "ACTIVO" and s.categoria != CategoriaPrecio.PRODUCTO.value:  # RF-88 CA-12 / ¶30
+        if corregido is not None:  # FA-6: las valoraciones ya hechas no se recalculan solas
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
+                "Se corrigió un precio de mercado. Las valoraciones ya registradas con el precio anterior no cambian: "
+                "revíselas y registre el ajuste si corresponde."), {"id_precio_mercado": precio.id_precio_mercado})
+        elif estado == "ACTIVO" and s.categoria != CategoriaPrecio.PRODUCTO.value:  # RF-88 CA-12 / ¶30
             self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
                 "Hay un nuevo precio de mercado vigente. Si tiene activos de esta especie valorados por costo, la NIC 41 "
                 "exige pasarlos a valor razonable (Valoración por costo)."), {"id_precio_mercado": precio.id_precio_mercado})
         return {"id_precio_mercado": precio.id_precio_mercado, "estado": estado, "unidad_medida": unidad,
                 "desviacion_pct": desviacion, "fecha_vigencia": s.fecha_vigencia}
+
+    def _corregido(self, s: SolicitudPrecio, lista: list[Precio]) -> Optional[Precio]:
+        """FA-6: la corrección ocupa el lugar del precio corregido y hereda su fecha de vigencia."""
+        if s.id_precio_corregido is None:
+            if s.fecha_vigencia is None:
+                raise ValidationError(code="FECHA_VIGENCIA_OBLIGATORIA", field="fecha_vigencia",
+                                      message="Indique la fecha de vigencia del precio.")
+            return None
+        original = self.precios.obtener(s.id_precio_corregido)
+        if original is None:
+            raise NotFoundError(code="PRECIO_CORREGIDO_NO_ENCONTRADO", message="El precio que se corrige no existe.")
+        if (original.id_especie, original.categoria, original.id_metrica_produccion, original.fuente) != (
+                s.id_especie, s.categoria, s.id_metrica_produccion, s.fuente):
+            raise ValidationError(code="CORRECCION_NO_COINCIDE", field="id_precio_corregido", message=(
+                "La corrección debe tener la misma especie, categoría, producto y fuente del precio que corrige."))
+        if s.fecha_vigencia is not None and s.fecha_vigencia != original.fecha_vigencia:
+            raise ValidationError(code="FECHA_VIGENCIA_CORRECCION", field="fecha_vigencia", message=(
+                f"La corrección conserva la fecha de vigencia del precio que corrige "
+                f"({original.fecha_vigencia:%d/%m/%Y}). Para un precio desde otra fecha registre un precio nuevo."))
+        if any(p.id_precio_corregido == original.id_precio_mercado for p in lista):
+            raise ConflictError(code="PRECIO_YA_CORREGIDO", field="id_precio_corregido", message=(
+                "Ese precio ya tiene una corrección. Si hay que ajustarlo otra vez, corrija la corrección más reciente."))
+        s.fecha_vigencia = original.fecha_vigencia
+        return original
 
     def _validar(self, s: SolicitudPrecio, hoy: date) -> str:
         especie = self.catalogo.especie(s.id_especie)
@@ -113,12 +147,10 @@ class RegistrarPrecioUseCase:
         if not (s.evidencia_documental or "").strip():
             raise ValidationError(code="EVIDENCIA_OBLIGATORIA", field="evidencia_documental",
                                   message="La evidencia documental de la fuente es obligatoria.")
-        if s.fuente == FuentePrecio.ESTIMADA.value and len((s.justificacion_estimacion or "").strip()) < 50:  # FA-2
-            raise BusinessRuleError(code="JUSTIFICACION_ESTIMACION_INSUFICIENTE", field="justificacion_estimacion", message=(
+        if s.fuente == FuentePrecio.ESTIMADA.value and len((s.justificacion_estimacion or "").strip()) < 50:  # FA-2, CA-5 v1.1: 400
+            raise ValidationError(code="JUSTIFICACION_ESTIMACION_INSUFICIENTE", field="justificacion_estimacion", message=(
                 "Para un precio estimado documente por qué no hay precio de mercado activo ni de UPRA y los comparables "
                 "usados (mínimo 50 caracteres)."))
-        if s.id_precio_corregido is not None and self.precios.obtener(s.id_precio_corregido) is None:
-            raise NotFoundError(code="PRECIO_CORREGIDO_NO_ENCONTRADO", message="El precio que se corrige no existe.")
         if s.categoria == CategoriaPrecio.PRODUCTO.value:
             metrica = self.catalogo.metrica_produccion(s.id_metrica_produccion) if s.id_metrica_produccion else None
             if metrica is None or metrica["id_especie"] != s.id_especie:

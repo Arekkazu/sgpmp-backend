@@ -1,0 +1,1485 @@
+{
+  "info": {
+    "name": "RF-79 - TC-M05-G32 Rechazos del consolidado y permisos NIC-41",
+    "description": "Automatiza TC-M05-049 y 057. id_v1 = la provision NIC-41 mas reciente de TEST. Ciclo 12 = fase activa del activo 2; ciclo 33 = cerrado y consolidado (activo 57).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar:  newman run <coleccion> --env-var \"sandbox_secret=<secreto>\"",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "// 'Hoy' del backend sale de esta cabecera (hoy_usuario); sin ella seria el dia UTC.",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ' (login fallido): se omite ' + pm.info.requestName); pm.execution.skipRequest(); }",
+          "// Fechas relativas a D (hoy en Bogota, UTC-05:00 sin horario de verano), calculadas una vez por corrida.",
+          "if (!pm.collectionVariables.get('dia_m0')) {",
+          "  const bog = new Date(Date.now() - 5 * 3600 * 1000);",
+          "  const dia = n => new Date(bog.getTime() - n * 86400000).toISOString().slice(0, 10);",
+          "  [0, 1, 2, 3, 4, 5, 6, 10, 20].forEach(n => pm.collectionVariables.set('dia_m' + n, dia(n)));",
+          "  pm.collectionVariables.set('dia_p1', dia(-1));",
+          "  pm.collectionVariables.set('dia_mes', bog.toISOString().slice(0, 8) + '01');",
+          "  // P3/P4 van en D a las 08:00 y 09:00; si todavia no son las 09:05 en Bogota serian fechas futuras",
+          "  // (FECHA_FUTURA), asi que se usan hace 4 y 2 minutos, manteniendo P4 despues de P3.",
+          "  const hhmmss = bog.toISOString().slice(11, 19);",
+          "  if (hhmmss >= '09:05:00') { pm.collectionVariables.set('hora_p3', '08:00:00'); pm.collectionVariables.set('hora_p4', '09:00:00'); }",
+          "  else {",
+          "    pm.collectionVariables.set('hora_p3', new Date(bog.getTime() - 240000).toISOString().slice(11, 19));",
+          "    pm.collectionVariables.set('hora_p4', new Date(bog.getTime() - 120000).toISOString().slice(11, 19));",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "id_activo_a",
+      "value": "825"
+    },
+    {
+      "key": "id_tipo_alimento",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_inactivo",
+      "value": "2"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "id_consumo_021",
+      "value": ""
+    },
+    {
+      "key": "id_consumo_existente",
+      "value": ""
+    },
+    {
+      "key": "id_v1",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins y activo A apto)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Veterinario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_vet', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_vet', t); pm.collectionVariables.set('id_veterinario', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Contador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Contador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_cont', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_cont', t); pm.collectionVariables.set('id_contador', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_contador}}\",\n  \"contrasena\": \"{{contrasena_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Revisor Fiscal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Revisor Fiscal (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_rev', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_rev', t); pm.collectionVariables.set('id_revisor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_revisor}}\",\n  \"contrasena\": \"{{contrasena_revisor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Activo A: detalle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_activo', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}"
+          }
+        },
+        {
+          "name": "PRE - Area de A (finca)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let a = {}; try { a = JSON.parse(pm.collectionVariables.get('pre_activo') || '{}'); } catch (e) {}",
+                  "pm.collectionVariables.set('id_infra_a', a.id_infraestructura || 0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('id_finca_a', pm.response.code === 200 ? pm.response.json().id_finca : '');",
+                  "pm.collectionVariables.set('vet_en_finca', 1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/infraestructuras/{{id_infra_a}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Productor (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle del Productor consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_prod', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_productor}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Productor la finca de A (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_prod') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
+                  "if (fa && !fs.includes(fa)) fs.push(fa);",
+                  "pm.collectionVariables.set('body_fincas_tok_prod', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Productor asignado a la finca de A (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_productor}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_fincas_tok_prod}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Veterinario (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle del Veterinario consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_vet', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_veterinario}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Veterinario la finca de A (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_vet') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
+                  "if (fa && !fs.includes(fa)) fs.push(fa);",
+                  "pm.collectionVariables.set('body_fincas_tok_vet', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Veterinario asignado a la finca de A (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_veterinario}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_fincas_tok_vet}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle del Contador consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_cont', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Contador la finca de A (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fa = Number(pm.collectionVariables.get('id_finca_a'));",
+                  "if (fa && !fs.includes(fa)) fs.push(fa);",
+                  "pm.collectionVariables.set('body_fincas_tok_cont', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Contador asignado a la finca de A (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_fincas_tok_cont}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Activo A: fases",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_fases', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/fases"
+          }
+        },
+        {
+          "name": "PRE - Activo A: eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_eventos', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos"
+          }
+        },
+        {
+          "name": "PRE - Activo A: alertas de conversion alimenticia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta respondida (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('pre_alertas', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_activo_biologico={{id_activo_a}}&tipo_alerta=CONVERSION_ALIMENTICIA"
+          }
+        },
+        {
+          "name": "PRE - Aptitud del activo A para los casos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "const m5 = filas[0] || {};",
+                  "const j = k => { try { return JSON.parse(pm.collectionVariables.get(k) || 'null'); } catch (e) { return null; } };",
+                  "const a = j('pre_activo') || {};",
+                  "const fallos = [];",
+                  "const crit = (ok, txt) => { pm.test('PRE - ' + txt, () => pm.expect(ok, txt).to.eql(true)); if (!ok) fallos.push(txt); };",
+                  "crit(String(pm.variables.get('id_activo_a')) !== '0', 'Se indico id_activo_a (correr con --env-var id_activo_a=<id>)');",
+                  "crit(a.id_activo_biologico !== undefined, 'El activo A (' + pm.variables.get('id_activo_a') + ') existe');",
+                  "crit(a.id_estado === 1, 'A en estado ACTIVO; actual ' + a.nombre_estado);",
+                  "pm.collectionVariables.set('id_creador', a.id_usuario);",
+                  "pm.collectionVariables.set('max_resultado', m5.max_resultado);",
+                  "['max_auditoria', 'prev_semanal', 'prev_ciclo', 'vig_semanal', 'vig_ciclo'].forEach(k => pm.collectionVariables.set(k, Number(m5[k] || 0)));",
+                  "const tsP1 = new Date(pm.variables.get('dia_m20') + 'T08:00:00-05:00');",
+                  "const inicioD20 = new Date(pm.variables.get('dia_m20') + 'T00:00:00-05:00');",
+                  "const fase = ((j('pre_fases') || {}).fases || []).find(f => f.es_activa) || {};",
+                  "const evs = (j('pre_eventos') || {}).eventos || [];",
+                  "const pes = evs.filter(e => e.crecimiento && ['PESO', 'PESO_VIVO'].includes(String(e.crecimiento.tipo_medicion).toUpperCase()));",
+                  "const ult = evs.map(e => new Date(e.fecha)).sort((x, y) => y - x)[0];",
+                  "const alertas = ((j('pre_alertas') || {}).items || []).filter(x => ['ACTIVA', 'EN_ATENCION'].includes(x.estado_alerta));",
+                  "crit(a.tipo === 'INDIVIDUAL', 'A es INDIVIDUAL (los valores esperados dependen del tipo); actual ' + a.tipo);",
+                  "crit(new Date(a.fecha_creacion) <= tsP1, 'A registrado antes de P1 (D-20 08:00); registrado ' + a.fecha_creacion);",
+                  "crit(fase.id_gestion_fases !== undefined && new Date(fase.fecha_inicio) < inicioD20, 'A con fase activa iniciada antes de D-20 (F); inicio ' + fase.fecha_inicio);",
+                  "crit(!ult || ult <= tsP1, 'Ultimo evento de A anterior a P1; ultimo ' + (ult ? ult.toISOString() : 'ninguno'));",
+                  "crit(pes.length === 0, 'A sin pesajes previos; tiene ' + pes.length);",
+                  "console.log('A tiene ' + m5.n_resultados + ' resultados ICA previos (del batch nocturno); los conteos usan solo los de esta corrida.');",
+                  "crit(Number(m5.n_consumos) === 0, 'A sin consumos registrados; tiene ' + m5.n_consumos);",
+                  "crit(alertas.length === 0, 'A sin alertas de conversion alimenticia abiertas; tiene ' + alertas.length);",
+                  "pm.collectionVariables.set('id_fase_activa', fase.id_gestion_fases);",
+                  "pm.collectionVariables.set('cantidad_actual_a', ((a.detalle_poblacional || {}).cantidad_actual) || '');",
+                  "// F = dia (Bogota) de inicio de la fase activa: es la cota inferior de la fecha de consumo (RF-75 E3).",
+                  "if (fase.fecha_inicio) {",
+                  "  const f0 = new Date(new Date(fase.fecha_inicio).getTime() - 5 * 3600 * 1000);",
+                  "  const df = n => new Date(f0.getTime() + n * 86400000).toISOString().slice(0, 10);",
+                  "  [['dia_Fm1', -1], ['dia_F', 0], ['dia_Fp1', 1], ['dia_Fp2', 2], ['dia_Fp3', 3]].forEach(([k, n]) => pm.collectionVariables.set(k, df(n)));",
+                  "}",
+                  "if (fallos.length) { console.error('A no es apto: ' + fallos.join(' | ')); pm.execution.setNextRequest('ROLLBACK - Revertir la transacción de la corrida'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}}) AS n_resultados, (SELECT count(*) FROM modulo5.registros_consumo_alimentos c WHERE c.id_activo_biologico = {{id_activo_a}}) AS n_consumos, (SELECT coalesce(max(id_resultado_ica), 0) FROM modulo5.resultado_ica) AS max_resultado, (SELECT coalesce(max(id_auditoria_suministro), 0) FROM modulo5.auditorias_suministros) AS max_auditoria, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL') AS prev_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO') AS prev_ciclo, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'SEMANAL' AND r.es_vigente) AS vig_semanal, (SELECT count(*) FROM modulo5.resultado_ica r WHERE r.id_activo_biologico = {{id_activo_a}} AND r.periodo_evaluacion::text = 'POR_CICLO' AND r.es_vigente) AS vig_ciclo\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "0b. Referencias",
+      "item": [
+        {
+          "name": "PRE - Finca del activo 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - activo consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('infra_2', pm.response.code === 200 ? pm.response.json().id_infraestructura : 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/2"
+          }
+        },
+        {
+          "name": "PRE - Area del activo 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('finca_2', pm.response.code === 200 ? pm.response.json().id_finca : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/infraestructuras/{{infra_2}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_cont_2', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Contador la finca del activo 2 (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont_2') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fx = Number(pm.collectionVariables.get('finca_2'));",
+                  "if (fx && !fs.includes(fx)) fs.push(fx);",
+                  "pm.collectionVariables.set('body_finca_2', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Contador asignado a la finca del activo 2 (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_finca_2}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Finca del activo 57",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - activo consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('infra_57', pm.response.code === 200 ? pm.response.json().id_infraestructura : 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/57"
+          }
+        },
+        {
+          "name": "PRE - Area del activo 57",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - area consultada (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('finca_57', pm.response.code === 200 ? pm.response.json().id_finca : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/infraestructuras/{{infra_57}}"
+          }
+        },
+        {
+          "name": "PRE - Fincas actuales del Contador (detalle, como Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - detalle consultado (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('fincas_tok_cont_57', pm.response.code === 200 ? pm.response.text() : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/detalle"
+          }
+        },
+        {
+          "name": "PRE - Asignar al Contador la finca del activo 57 (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fs = []; try { fs = (JSON.parse(pm.collectionVariables.get('fincas_tok_cont_57') || '{}').fincas || []).map(x => x.id_finca); } catch (e) {}",
+                  "const fx = Number(pm.collectionVariables.get('finca_57'));",
+                  "if (fx && !fs.includes(fx)) fs.push(fx);",
+                  "pm.collectionVariables.set('body_finca_57', JSON.stringify({ ids_fincas: fs }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Contador asignado a la finca del activo 57 (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_contador}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{{body_finca_57}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Ultima provision NIC-41 (id_v1) y reportes antes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "pm.collectionVariables.set('id_v1', filas[0].id_v1); pm.collectionVariables.set('n_prov_antes', filas[0].n);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT (SELECT max(id_provision) FROM modulo5.provision_nic41) AS id_v1, (SELECT count(*) FROM modulo5.provision_nic41) AS n\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M05-049 Rechazos del consolidado",
+      "item": [
+        {
+          "name": "TC-M05-049a - Consolidar el ciclo de A (GF_A, activo) -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-049a - HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('TC-M05-049a - code = CICLO_ACTIVO', () => pm.expect(e.error_code || e.code).to.eql('CICLO_ACTIVO'));",
+                  "pm.test('TC-M05-049a - mensaje del E2', () => pm.expect(e.message).to.eql('El ciclo ' + pm.collectionVariables.get('id_fase_activa') + ' está activo. El reporte consolidado solo está disponible tras el cierre del ciclo por RF-41.'));",
+                  "pm.test('TC-M05-049a - el mensaje visible no muestra codigos internos (RF-xx), regla de textos visibles de CLAUDE.md', () => pm.expect(String(e.message || '')).to.not.match(/\\bRF-?\\d+/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/ciclo/{{id_fase_activa}}/consolidar"
+          }
+        },
+        {
+          "name": "TC-M05-049b - Consolidar el ciclo 12 (fase activa del activo 2) -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-049b - HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('TC-M05-049b - code = CICLO_ACTIVO', () => pm.expect(e.error_code || e.code).to.eql('CICLO_ACTIVO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/ciclo/12/consolidar"
+          }
+        },
+        {
+          "name": "TC-M05-049c - Consolidar el ciclo 999999 -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-049c - HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('TC-M05-049c - code = CICLO_NO_ENCONTRADO', () => pm.expect(e.error_code || e.code).to.eql('CICLO_NO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/ciclo/999999/consolidar"
+          }
+        },
+        {
+          "name": "TC-M05-049d - Consultar la provision 999999 -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-049d - HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('TC-M05-049d - code = PROVISION_NO_ENCONTRADA', () => pm.expect(e.error_code || e.code).to.eql('PROVISION_NO_ENCONTRADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/999999"
+          }
+        },
+        {
+          "name": "TC-M05-049e - No se creo ningun reporte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-049e - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "pm.test('TC-M05-049e - mismas provisiones que antes', () => pm.expect(String(filas[0].n)).to.eql(String(pm.collectionVariables.get('n_prov_antes'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT count(*) AS n FROM modulo5.provision_nic41\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M05-057 Permisos NIC-41 por rol (recurso 56)",
+      "item": [
+        {
+          "name": "TC-M05-057a - Productor consolida -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057a - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/ciclo/33/consolidar"
+          }
+        },
+        {
+          "name": "TC-M05-057b - Veterinario consolida -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057b - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/ciclo/33/consolidar"
+          }
+        },
+        {
+          "name": "TC-M05-057c - Revisor Fiscal consolida -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057c - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_rev}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/ciclo/33/consolidar"
+          }
+        },
+        {
+          "name": "TC-M05-057d - Productor corrige -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057d - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/{{id_v1}}/correccion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo_correccion\": \"Correccion solicitada por auditoria externa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M05-057e - Veterinario corrige -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057e - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/{{id_v1}}/correccion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo_correccion\": \"Correccion solicitada por auditoria externa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M05-057f - Revisor Fiscal corrige -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057f - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_rev}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/{{id_v1}}/correccion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo_correccion\": \"Correccion solicitada por auditoria externa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M05-057g - Revisor Fiscal consulta id_v1 -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057g - HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_rev}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/{{id_v1}}"
+          }
+        },
+        {
+          "name": "TC-M05-057h - Productor consulta id_v1 -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057h - HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/{{id_v1}}"
+          }
+        },
+        {
+          "name": "TC-M05-057i - Veterinario consulta id_v1 -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (() => { try { return pm.response.json(); } catch (x) { return {}; } })(); console.log(pm.response.text().slice(0, 1500));",
+                  "pm.test('TC-M05-057i - HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/suministros/nic41/{{id_v1}}"
+          }
+        },
+        {
+          "name": "TC-M05-057j - Ningun rechazo creo reportes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-057j - consulta de auditoria respondida (200)', () => pm.response.to.have.status(200));",
+                  "const filas = (pm.response.json() || {}).data || [];",
+                  "console.log(JSON.stringify(filas));",
+                  "pm.test('TC-M05-057j - mismas provisiones que antes', () => pm.expect(String(filas[0].n)).to.eql(String(pm.collectionVariables.get('n_prov_antes'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/test-control/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT count(*) AS n FROM modulo5.provision_nic41\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

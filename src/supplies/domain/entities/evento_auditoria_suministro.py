@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: transportar UUID y versión del hash sin objetos ORM. |
 """Entidad de lectura de un evento de ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Distinta de ``EventoAuditoriaSuministro`` (``auditoria_suministro_port.py``),
@@ -11,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+from uuid import UUID
 
 
 @dataclass(frozen=True)
@@ -38,3 +42,5 @@ class EventoAuditoriaSuministroConsulta:
     numero_reintentos: Optional[int]
     fecha_intentos: Optional[list[datetime]]
     id_gestion_fases: Optional[int]
+    id_evento_m05: Optional[UUID] = None
+    version_hash_integridad: int = 1

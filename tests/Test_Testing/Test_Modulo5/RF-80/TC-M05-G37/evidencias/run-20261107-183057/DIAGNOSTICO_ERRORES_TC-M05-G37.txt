@@ -1,0 +1,62 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES: TC-M05-G37
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnostico: 2026-11-07 20:10:00 (America/Bogota)
+Caso Afectado: TC-M05-026 / 002 (G37-A02: Auditoria de Operaciones Fallidas / Reversiones)
+
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+--------------------------------------------------------------------------------
+- Peticion de prueba: POST /suministros/costeo-directo enviando un suministro sobre un
+  activo biologico cuyo ciclo productivo fue previamente cerrado.
+- Respuesta HTTP: 409 Conflict con codigo "CICLO_NO_ACTIVO" (o 422 con "FECHA_FUERA_DE_RANGO").
+- Consulta de prueba:
+  SELECT count(*) FROM modulo5.auditorias_suministros 
+  WHERE id_activo_biologico = <id_activo> AND tipo_operacion = 'REGISTRO_FALLIDO';
+- Resultado: 0 eventos registrados en la bitacora de auditoria tras el rechazo.
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+--------------------------------------------------------------------------------
+- Router: src/supplies/infrastructure/routers/costeo_suministros_router.py:48-69 (costeo_directo)
+- Dependencia / RBAC: src/shared/rbac.py:require_permission:104-115
+- Caso de Uso: src/supplies/application/use_cases/costeo_suministros/registrar_suministro_directo_use_case.py
+  * Validacion de ciclo: lineas 240-251 (_validar_fecha_aplicacion) lanza BusinessRuleError
+  * Flujo de persistencia: lineas 253-274 (_persistir_con_reintentos)
+- Puerto de Auditoria: src/supplies/domain/repositories/auditoria_suministro_port.py:42-48
+- Repositorio / Adaptador: src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:27-57
+- Tabla / Trigger: modulo5.auditorias_suministros (trigger trg_audit_hash)
+
+3. HIPOTESIS Y CONTRASTACION
+--------------------------------------------------------------------------------
+- Hipotesis 1: El caso de uso captura cualquier error y audita en un bloque generico.
+  DESCARTADA: En registrar_suministro_directo_use_case.py:271-273, los errores de tipo AppError
+  (incluyendo BusinessRuleError) se capturan unicamente para ejecutar self.db.rollback() y raise,
+  sin invocar la auditoria.
+- Hipotesis 2: _registrar_fallo solo se invoca tras agotar reintentos de errores transitorios.
+  CONFIRMADA: En registrar_suministro_directo_use_case.py:263-270, _registrar_fallo se invoca
+  exclusivamente en except _ERRORES_REINTENTABLES (InfrastructureError, ServiceUnavailableError)
+  cuando intento == _MAX_REINTENTOS. Las validaciones de negocio previas (activo cerrado, fecha
+  fuera de rango) escapan antes o durante la transaccion sin registrar fallo en auditoria.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ COMPARTIDA
+--------------------------------------------------------------------------------
+- Causa Mas Probable: Omision de captura y auditoria de rechazos de validacion y reglas de negocio
+  en la capa de aplicacion.
+- Clasificacion: Defecto de Producto.
+- Causa Raiz Compartida: Omision transversal de registro de eventos de rechazo/seguridad ante
+  excepciones controladas de negocio o permisos (compartida con G38-C02 y G39-B02).
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+--------------------------------------------------------------------------------
+- En registrar_suministro_directo_use_case.py (o en un decorador transversal de use case):
+  Capturar BusinessRuleError y llamar a self.auditoria_port.registrar(EventoAuditoriaSuministro(...))
+  con resultado='FALLIDO' o 'RECHAZADO', tipo_operacion='REGISTRO_FALLIDO', detalle_causa=str(exc.message),
+  empleando una sesion/transaccion SQLAlchemy independiente (SessionLocal) para que el rollback
+  de la operacion de negocio no descarte el evento de auditoria.
+
+6. CRITERIO DE RE-PRUEBA
+--------------------------------------------------------------------------------
+- Enviar POST /suministros/costeo-directo con datos invalidos (ej. activo cerrado -> 409).
+- Consultar GET /suministros/auditoria?id_activo_biologico=<id> y verificar que exista 1 evento
+  con resultado='FALLIDO', tipo_operacion='REGISTRO_FALLIDO' y detalle_causa no nulo.
+

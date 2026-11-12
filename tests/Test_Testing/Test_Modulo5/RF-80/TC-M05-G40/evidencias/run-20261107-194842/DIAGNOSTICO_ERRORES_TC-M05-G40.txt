@@ -1,0 +1,75 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES: TC-M05-G40
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnostico: 2026-11-07 20:10:00 (America/Bogota)
+Caso Afectado: TC-M05-095 (Agrupado: TC-M05-031)
+
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+--------------------------------------------------------------------------------
+- Consulta al catalogo PostgreSQL (information_schema.tables):
+  SELECT table_schema, table_name FROM information_schema.tables 
+  WHERE table_name ILIKE '%cola%' OR table_name ILIKE '%outbox%' OR table_name ILIKE '%m12%';
+- Resultado: Existen colas de aplicacion interna para ICA y reportes (cola_calculo_ica,
+  cola_generacion_reportes_gastos, cola_trabajos_historial_suministros).
+  NO existe tabla de cola persistente, outbox ni buffer de eventos para M12.
+- Inspeccion de dependencias y codigo Python:
+  No existen modulos, clientes, colas asyncio, BackgroundTasks ni brokers (RabbitMQ/Kafka) para M12.
+- Medicion de latencia en 20 operaciones secuenciales de suministro:
+  * Minima: 128.68 ms | Mediana (p50): 140.09 ms | Percentil 95 (p95): 250.02 ms | Maxima: 250.02 ms.
+  * Todas las llamadas persistieron sincronicamente el registro de suministro y el evento de auditoria
+    en la misma transaccion de PostgreSQL.
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+--------------------------------------------------------------------------------
+- Router: src/supplies/infrastructure/routers/costeo_suministros_router.py:48-69
+- Caso de Uso: src/supplies/application/use_cases/costeo_suministros/registrar_suministro_directo_use_case.py:253-262
+  * Linea 259: guardado = self.registro_repo.guardar(entidad)
+  * Linea 260: self.movimiento.registrar(...)
+  * Linea 261: self.db.commit()
+- Modulo Ledger: src/supplies/application/use_cases/costeo_suministros/movimiento_ledger.py:53-73
+  * Invoca self.auditoria_port.registrar(EventoAuditoriaSuministro(...))
+- Adaptador: src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:33-56
+  * Linea 54: self.db.add(orm)
+  * Linea 55: self.db.flush()
+- Acoplamiento transaccional: La escritura de auditoria usa la MISMA sesion SQLAlchemy y la MISMA
+  transaccion que el negocio. Si la persistencia de auditoria falla (excepcion en flush), el caso
+  de uso captura el error, ejecuta rollback y aborta el registro de suministro completo.
+
+3. HIPOTESIS Y CONTRASTACION
+--------------------------------------------------------------------------------
+- Hipotesis 1: La cola de 100k eventos esta implementada en memoria o mediante Redis/RabbitMQ.
+  DESCARTADA: No existe configuracion, variables de entorno, cliente ni conexion a ningun broker
+  en src/ para auditoria; todo se resuelve sincronicamente en la tabla modulo5.auditorias_suministros.
+- Hipotesis 2: Existe un mecanismo desacoplado para garantizar que la caida de auditoria no afecte suministros.
+  DESCARTADA: La persistencia de auditoria esta estrictamente acoplada via flush() en la transaccion de negocio.
+  Un fallo de auditoria revierte el registro de suministro.
+- Hipotesis 3: La especificacion requiere una arquitectura desacoplada (M05 -> Cola -> M12) no implementada.
+  CONFIRMADA: La arquitectura implementada es monolitica-relacional directa (M05 escribe directamente en su
+  propia tabla de base de datos). Las capacidades de desacoplamiento, cola de 100.000 eventos, alertas
+  al 90%/100% y retencion de 48h no existen en el codigo del producto.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ COMPARTIDA
+--------------------------------------------------------------------------------
+- Causa Mas Probable: Inexistencia de la infraestructura de integracion asincrona hacia M12
+  (desacoplamiento, buffer de 100k eventos, politicas de retencion y alertas de saturacion).
+- Clasificacion: Defecto de Producto / Arquitectura Incompleta.
+- Causa Raiz Compartida: Inexistencia de la capa M12 (cola persistente, id_evento_m05, deduplicacion,
+  alertas de saturacion) compartida con G39-C01.
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+--------------------------------------------------------------------------------
+- Implementar el patron Transactional Outbox:
+  1. Crear la tabla modulo5.outbox_auditorias_m12 (id_evento UUID, payload JSONB, estado, reintentos, creado_en).
+  2. En el use case o repositorio de auditoria, persistir en el outbox como parte de la transaccion.
+  3. Crear un worker/consumer en segundo plano (daemon o cron) que despache hacia M12 con capacidad
+     de hasta 100.000 eventos pendientes, aplicando retencion FIFO de 48 horas y disparando alertas
+     de umbral al superar 90.000 y 100.000 eventos.
+  4. Dejar desacoplado el endpoint de suministros para que la caida o latencia de M12 no bloquee la operacion.
+
+6. CRITERIO DE RE-PRUEBA
+--------------------------------------------------------------------------------
+- Simular la caida del servicio M12 o saturacion del destino.
+- Registrar un suministro y comprobar que la operacion responda HTTP 200 con latencia < 200 ms,
+  dejando el evento encolado en el buffer outbox con estado PENDIENTE.
+

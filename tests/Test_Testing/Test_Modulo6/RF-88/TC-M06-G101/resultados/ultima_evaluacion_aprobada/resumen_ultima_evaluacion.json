@@ -1,0 +1,53 @@
+{
+  "caso": "TC-M06-G101",
+  "identificador_vigente": "TC-M06-G101",
+  "identificador_historico": "TC-M06-G73",
+  "issue": "974",
+  "subcaso": "TC-M06-14",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fecha": "2026-11-10",
+  "zona": "America/Bogota",
+  "usuario": {"rol": "Contador"},
+  "resultado": "APROBADO",
+  "clasificacion": "APROBADO",
+  "post_ejecutado": true,
+  "post_repetido": false,
+  "sql": false,
+  "cierre_enviado": false,
+  "post": {
+    "ruta": "/finanzas/activos/1572/valor-razonable",
+    "http": 200,
+    "valor_razonable": "4042000.0000",
+    "valor_por_costo": "4200000.0000",
+    "diferencia": "-158000.0000"
+  },
+  "despues": {
+    "estado_activo": "ACTIVO",
+    "metodo": "VALOR_RAZONABLE",
+    "valoracion_costo_id": 25,
+    "valoracion_costo_activa": false,
+    "calculo_id": 874,
+    "valor_neto": "4042000.0000",
+    "linea_id": 2665,
+    "linea": "VARIACION_VR_PM",
+    "sentido": "PERDIDA",
+    "importe_linea": "158000.00",
+    "evento_id": 9660,
+    "evento": "METODO_VALORACION_CAMBIADO",
+    "evento_en": "2026-11-10T06:53:06.972356Z",
+    "periodo_220": "ABIERTO",
+    "activo_1573_valoracion_activa": true,
+    "activo_1573_valoracion_id": 26,
+    "activo_1573_valor": "4000000.0000"
+  },
+  "validaciones": [
+    {"id": "cambio_de_metodo", "resultado": "APROBADO"},
+    {"id": "valor_razonable", "resultado": "APROBADO"},
+    {"id": "costo_inactivo", "resultado": "APROBADO"},
+    {"id": "variacion", "resultado": "APROBADO"},
+    {"id": "auditoria", "resultado": "APROBADO"},
+    {"id": "sin_duplicados", "resultado": "APROBADO"},
+    {"id": "activo_1573_intacto", "resultado": "APROBADO"},
+    {"id": "periodo_220_abierto", "resultado": "APROBADO"}
+  ]
+}

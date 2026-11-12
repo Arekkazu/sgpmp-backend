@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "TC-M06-G43 RF-87",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "G43 lectura 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/8/prevalidacion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 3",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/219/prevalidacion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 4",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/220/prevalidacion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 5",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/lineas?id_periodo_contable=8"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 6",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/lineas?id_periodo_contable=219"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 7",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/lineas?id_periodo_contable=220"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 8",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/8/calculos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 9",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/219/comprobantes"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G43 lectura 10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/220/revelaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

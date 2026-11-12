@@ -1,0 +1,92 @@
+================================================================================
+INFORME DE EJECUCION FASE 2, 3 Y 4 — TC-M05-G22
+RF-77: Reporte de Gastos Acumulados por Activo (Validación de Rangos y Límites)
+================================================================================
+
+1. RESUMEN EJECUTIVO
+--------------------
+- Caso de Prueba: TC-M05-G22
+- Requerimiento: RF-77 (CU04)
+- Subcasos Evaluados: TC-M05-017 (validaciones de negocio), TC-M05-019 (umbrales síncronos/asíncronos)
+- Ambiente: API Staging (https://www.api.inmero.co/api-sgpmp-test)
+- Fecha y Hora de Ejecución: 2026-11-07 18:05:23
+- Total de Checkpoints: 12
+- Checkpoints Aprobados: 12
+- Checkpoints Fallidos: 0
+- Veredicto Global: APROBADO
+
+2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
+-----------------------------------------
+[OK] T00 Línea base de historial del Administrador y setup de activo
+  - Esperado: HTTP 200 en GET /suministros/reportes-gastos/historial, activo individual creado con ciclo en 2025-08-01
+  - Obtenido: HTTP 200 en consulta de historial de Administrador y activo QA con ciclo antiguo creado exitosamente. Estado: OK.
+
+[OK] A01 Rango de fechas invertido (inicio > fin, E2)
+  - Esperado: HTTP 400, error_code 'RANGO_FECHAS_INVALIDO' y el historial de reportes no crece
+  - Obtenido: HTTP 400 'RANGO_FECHAS_INVALIDO' obtenido; historial inalterado. Estado: OK.
+
+[OK] A02 Rango con fecha de fin futura (mañana, Restr. 2)
+  - Esperado: HTTP 400, error_code 'FECHA_FIN_FUTURA' y el historial de reportes no crece
+  - Obtenido: HTTP 400 'FECHA_FIN_FUTURA' obtenido ante fecha de fin de mañana; historial inalterado. Estado: OK.
+
+[OK] A03 Fecha de inicio anterior al ciclo productivo (E3)
+  - Esperado: HTTP 400, error_code 'FECHA_INICIO_ANTERIOR_CICLO' y el historial de reportes no crece
+  - Obtenido: HTTP 400 'FECHA_INICIO_ANTERIOR_CICLO' obtenido; historial inalterado. Estado: OK.
+
+[OK] A04 Activo biológico sin ciclo productivo registrado (E7)
+  - Esperado: HTTP 422, error_code 'ACTIVO_SIN_CICLO' y el historial de reportes no crece
+  - Obtenido: HTTP 422 'ACTIVO_SIN_CICLO' obtenido sobre activo 9 (fecha_inicio_ciclo null); historial inalterado. Estado: OK.
+
+[OK] A05 Consulta agregada sin rango de fechas obligatorio (E9)
+  - Esperado: HTTP 400, error_code 'VAL_ENTRADA' y el historial de reportes no crece
+  - Obtenido: HTTP 400 'VAL_ENTRADA' obtenido ante consulta agregada sin rango de fechas; historial inalterado. Estado: OK.
+
+[OK] B01 Límite síncrono para activo individual de 12 meses (<= 366 días)
+  - Esperado: HTTP 200 síncrono en tiempo <= 12 s (CA-7 / RNF)
+  - Obtenido: Reporte individual de 12 meses respondió HTTP 200 síncrono en <= 12 s con id_reporte_gasto_acumulado generado. Estado: OK.
+
+[OK] B02 Umbral asíncrono para activo individual que supera 12 meses (E4)
+  - Esperado: HTTP 202 con id_cola, estado 'PENDIENTE' y mensaje explicativo del procesamiento asíncrono
+  - Obtenido: Reporte individual de 380 días (> 12 meses) respondió HTTP 202 con id_cola y estado PENDIENTE. Estado: OK.
+
+[OK] B03 Límite síncrono para consulta agregada de 6 meses (<= 183 días)
+  - Esperado: HTTP 200 síncrono en tiempo <= 12 s (Restr. 13)
+  - Obtenido: Consulta agregada de 6 meses respondió HTTP 200 síncrono en <= 12 s con id_reporte_gasto_acumulado generado. Estado: OK.
+
+[OK] B04 Umbral asíncrono para consulta agregada que supera 6 meses (E8)
+  - Esperado: HTTP 202 con id_cola, estado 'PENDIENTE' y mensaje explicativo del procesamiento asíncrono
+  - Obtenido: Consulta agregada de 196 días (> 6 meses) respondió HTTP 202 con id_cola y estado PENDIENTE. Estado: OK.
+
+[OK] T98 Cierre ordenado de sandbox Administrador
+  - Esperado: DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'
+  - Obtenido: DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.
+
+[OK] T99 Verificación de inocuidad final e integridad de la base
+  - Esperado: Historial de reportes del Administrador fuera de sandbox coincide exactamente con la línea base capturada en T00 (0 efectos persistidos)
+  - Obtenido: Verificación sin sandbox completada; historial final coincide 100% con línea base (0 efectos persistidos). Estado: OK.
+
+3. DETALLE DE OBSERVACIONES Y ARQUITECTURA
+-----------------------------------------
+- Validación exhaustiva de códigos de error E2 (400), E3 (400), E7 (422), E9 (400) y fecha futura (400).
+- Confirmación de inocuidad en validaciones: el historial de reportes no creció en ningún fallo de validación.
+- Verificación de límites de procesamiento:
+  * Activo Individual: <= 12 meses síncrono (HTTP 200 en <= 12 s); > 12 meses asíncrono (HTTP 202 con id_cola).
+  * Consulta Agregada: <= 6 meses síncrono (HTTP 200 en <= 12 s); > 6 meses asíncrono (HTTP 202 con id_cola).
+- Inconsistencias documentadas formalmente para Análisis y Arquitectura.
+
+4. INTEGRIDAD DE ARCHIVOS Y HASHES SHA-256
+------------------------------------------
+- TC-M05-G22 Script: cbd5b58f324f53df7298459add3e6bb7a608f68c0aa292de7fe630bca9b24000
+- TC-M05-G21 Script: 4f90a333eb7589feddadce6851bc3e4cdb0c7ea8b6831367b030c636fb0e146b
+- TC-M05-G20 Script: bcb674ef267b6c45d7df2be8b0718589213395f9359d50dd5c6fb7fa4d969f61
+- TC-M05-G25 Script: 6c58e9b4963b0aaa93b55be903117957afe6d235a2252f8ce3eefdb473127cbe
+- TC-M05-G24 Script: 03c5b78f5de799e5afb83f8ebb81702fe0248e5f349953a9183e089238e6a9ea
+- TC-M05-G19 Script: 6a4496f457d044721a2bb2b19b7e348c467e142c49c333ca1259c7f0b049a92e
+- TC-M05-G17 Script: 1aa0483d04df67e1f3e4339492cbcbd3537fd23c800e594531202931b91d4043
+- TC-M05-G16 Script: ecbc14e9eedd17ea1cf29a4ab97476055dd47b7e2bf0dc2f3ded552ae8801112
+- TC-M05-G15 Script: 8f4040b7c431305dcad8b46f59dbf7dcedb4bbc73fdfa6ed24fb2788992bf480
+- TC-M05-G14 Script: a693e2df2229eb52501079e9bc9365b39e084c52c2c87699067db2f8079b680d
+
+================================================================================
+FIN DEL INFORME TC-M05-G22
+================================================================================

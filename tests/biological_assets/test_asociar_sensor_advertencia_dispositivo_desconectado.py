@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-49 CU11 Flujo Alterno "Dispositivo IoT Fuera de Línea" (INC-M02-35-G84 v2):
 sin heartbeat en los últimos 30 min, la asociación igual se crea (HTTP 201) pero
 la respuesta debe incluir una advertencia informativa -- antes hardcodeada a
@@ -51,6 +54,9 @@ class SensorPortFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Infra', tipo='Galpon',

@@ -1,0 +1,519 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "edbc4696-f831-4fbc-bf0f-123f3b4801d9",
+        "name": "configuracion",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "configuracion"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "c2c0315a-8fa8-4852-b5d1-ab21caa1c421",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Matriz', () => pm.expect(pm.response.json().matriz).to.be.an('array')); "
+              ],
+              "_lastExecutionId": "318080c2-906c-4c9b-b3d6-b90b76c6be6d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "347714cc-d6f6-41d1-a82e-0fa87b4001c4",
+        "name": "lineas",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "{{periodo}}"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "9fdb4aa5-4950-4a91-8195-18b35d87e510",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Lineas', () => pm.expect(pm.response.json()).to.be.an('array')); "
+              ],
+              "_lastExecutionId": "e85e278e-ca40-4d43-8243-f8f675c83713"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ef6a3a0c-aaab-43f0-b953-983e29150fac",
+        "name": "mediciones",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo}}",
+              "mediciones"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "cd73aa95-00dd-4a9c-a8ae-3cfd83283490",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Mediciones', () => pm.expect(pm.response.json()).to.be.an('array')); "
+              ],
+              "_lastExecutionId": "75e4c941-15c6-4789-85a9-ba34fee884e9"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "5856441c-de43-4878-85c6-b657a9aecb19",
+      "name": "TC-M06-G38 RF-86",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "6ea8f77a-6abb-4632-807c-639c220dd271",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G38-V1-20261109-025651",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "contador_token"
+      },
+      {
+        "type": "any",
+        "value": "8",
+        "key": "periodo"
+      }
+    ]
+  },
+  "globals": {
+    "id": "e421c80e-1666-42f8-9462-430a4dba168b",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 339.3333333333333,
+      "responseMin": 160,
+      "responseMax": 680,
+      "responseSd": 240.99976947891233,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794193021104,
+      "completed": 1794193022403
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "6c700de8-7c5f-4131-af67-ee91bde645c0",
+          "httpRequestId": "8c224b15-ccd1-42d7-9f20-462598061435"
+        },
+        "item": {
+          "id": "edbc4696-f831-4fbc-bf0f-123f3b4801d9",
+          "name": "configuracion",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "configuracion"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "c2c0315a-8fa8-4852-b5d1-ab21caa1c421",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Matriz', () => pm.expect(pm.response.json().matriz).to.be.an('array')); "
+                ],
+                "_lastExecutionId": "318080c2-906c-4c9b-b3d6-b90b76c6be6d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "configuracion"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "48500645-c287-4e0f-b229-0b0fd61d6c9a",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 680,
+          "responseSize": 61230
+        },
+        "id": "edbc4696-f831-4fbc-bf0f-123f3b4801d9",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Matriz",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "a47fb919-590f-4e9b-8d8d-45a366e7ac34",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "830eddc3-374f-4de5-a981-9932999ced7c"
+        },
+        "item": {
+          "id": "347714cc-d6f6-41d1-a82e-0fa87b4001c4",
+          "name": "lineas",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "{{periodo}}"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "9fdb4aa5-4950-4a91-8195-18b35d87e510",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Lineas', () => pm.expect(pm.response.json()).to.be.an('array')); "
+                ],
+                "_lastExecutionId": "e85e278e-ca40-4d43-8243-f8f675c83713"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "8"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "c4bcd3c9-c152-4418-8446-a53a6f651d83",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 178,
+          "responseSize": 7314
+        },
+        "id": "347714cc-d6f6-41d1-a82e-0fa87b4001c4",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Lineas",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "7a7b7026-b56f-424a-a579-972449ee54d7",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "92c2a791-38f8-4956-931f-f56b4d655629"
+        },
+        "item": {
+          "id": "ef6a3a0c-aaab-43f0-b953-983e29150fac",
+          "name": "mediciones",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo}}",
+                "mediciones"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "cd73aa95-00dd-4a9c-a8ae-3cfd83283490",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Mediciones', () => pm.expect(pm.response.json()).to.be.an('array')); "
+                ],
+                "_lastExecutionId": "75e4c941-15c6-4789-85a9-ba34fee884e9"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "8",
+              "mediciones"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "b0f068e5-6734-465d-8751-3a1f9a8139aa",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 160,
+          "responseSize": 2137
+        },
+        "id": "ef6a3a0c-aaab-43f0-b953-983e29150fac",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Mediciones",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 70681
+    },
+    "failures": [],
+    "error": null
+  }
+}

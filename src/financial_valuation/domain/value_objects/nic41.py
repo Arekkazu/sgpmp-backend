@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: catálogos NIC 41 del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06: rótulos legibles de hechos y sentidos para mensajes y archivos |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 """Catálogos cerrados de M06 (mismos valores que los ENUM de ``modulo6``)."""
 from __future__ import annotations
 
@@ -12,6 +13,8 @@ class TipoHecho(str, Enum):
     """RF-86 v2.0: hechos contables que producen líneas de asiento."""
 
     RECONOCIMIENTO_NACIMIENTO = "RECONOCIMIENTO_NACIMIENTO"
+    # INC-M06-302-G01: la donación tiene su propia cuenta de ingreso en la matriz (RF-109).
+    RECONOCIMIENTO_DONACION = "RECONOCIMIENTO_DONACION"
     RECONOCIMIENTO_DIFERENCIA = "RECONOCIMIENTO_DIFERENCIA"
     VARIACION_VR_TB = "VARIACION_VR_TB"
     VARIACION_VR_PM = "VARIACION_VR_PM"
@@ -38,6 +41,7 @@ class Sentido(str, Enum):
 # Rótulos para lo que lee el usuario (mensajes, PDF y CSV): el valor del enum nunca sale tal cual.
 ETIQUETA_HECHO = {
     "RECONOCIMIENTO_NACIMIENTO": "Reconocimiento por nacimiento",
+    "RECONOCIMIENTO_DONACION": "Reconocimiento por donación",
     "RECONOCIMIENTO_DIFERENCIA": "Diferencia en el reconocimiento inicial",
     "VARIACION_VR_TB": "Variación por transformación biológica",
     "VARIACION_VR_PM": "Variación por precio de mercado",

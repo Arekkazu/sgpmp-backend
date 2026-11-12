@@ -1,7 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
 """Schemas de respuesta para los endpoints de etapas del ciclo productivo (RF-16)."""
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
@@ -16,6 +20,9 @@ class CicloBiologicoResponse(BaseModel):
     id_especie: int
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
+    densidad_maxima: Optional[Decimal] = None
+    biomasa_maxima: Optional[Decimal] = None
+    aviso_preventivo_pct: int = 90
 
     model_config = {"from_attributes": True}
 

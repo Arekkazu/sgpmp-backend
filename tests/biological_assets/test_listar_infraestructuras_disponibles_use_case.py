@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: el doble del área declara sus especies (RFC-012) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48 (INC-M02-74-G80): 'disponibles' debia excluir solo la infraestructura
 origen, sin aplicar compatibilidad de especie (C1), capacidad (C3) ni alcance
 por finca -- el usuario podia elegir un destino que el POST luego rechazaba.
@@ -29,6 +30,9 @@ class ActivoRepoFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(
         self,
         origen: InfraestructuraConsulta,

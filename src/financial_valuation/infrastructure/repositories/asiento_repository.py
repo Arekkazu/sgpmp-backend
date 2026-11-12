@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-86 v2.0: persistencia de las líneas de asiento NIC 41 |
+# | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: lectura de una línea y de sus ajustes posteriores |
 """Implementación SQL de :class:`AsientoRepository`. Las líneas son inmutables salvo las
 transiciones que permite ``fn_proteger_linea_asiento_nic41`` (cuentas pendientes, trazabilidad,
 comprobante y traslado de período por exclusión autorizada)."""
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.entities.contabilidad import LineaAsiento
 from src.financial_valuation.domain.repositories.asiento_repository import AsientoRepository
-from src.financial_valuation.infrastructure.repositories.sql import escribir, filas
+from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
 
 _COLUMNAS = """id_linea_asiento_nic41, tipo_hecho::text AS tipo_hecho, sentido::text AS sentido, estado::text AS estado,
     valor, fecha_hecho, id_periodo_contable, id_activo_biologico, id_especie, id_finca, numero_id_tributaria,
@@ -53,6 +54,15 @@ class SqlAlchemyAsientoRepository(AsientoRepository):
             "cuenta_credito", "valor", "tabla_origen", "id_origen", "es_estimacion", "es_reverso",
             "tipo_hecho_corregido", "id_linea_corregida", "justificacion", "id_usuario")})
         return linea
+
+    def obtener(self, id_linea: int) -> Optional[LineaAsiento]:
+        f = fila(self.db, f"SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41 WHERE id_linea_asiento_nic41 = :id",
+                 {"id": id_linea})
+        return _linea(f) if f else None
+
+    def ajustes_de(self, id_linea: int) -> list[LineaAsiento]:
+        return [_linea(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41
+            WHERE id_linea_corregida = :id ORDER BY 1""", {"id": id_linea})]
 
     def lineas_de_origen(self, tabla_origen: str, id_origen: int) -> list[LineaAsiento]:
         return [_linea(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41

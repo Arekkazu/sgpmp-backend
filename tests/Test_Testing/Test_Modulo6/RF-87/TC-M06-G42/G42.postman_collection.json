@@ -1,0 +1,280 @@
+{
+  "info": {
+    "name": "TC-M06-G42 RF-87",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "periodos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "variaciones_8",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/8/variaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "lineas_8",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/lineas?id_periodo_contable=8"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "comprobantes_8",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/8/comprobantes"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "comprobantes_219",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/219/comprobantes"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "comprobantes_220",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/220/comprobantes"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "costos_220",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/costos?id_periodo_contable=220"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "estados_220",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/220/estados-resultados"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('respuesta array',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('sin secretos en URL',()=>pm.expect(pm.request.url.toString()).not.to.match(/Bearer|secret/i));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

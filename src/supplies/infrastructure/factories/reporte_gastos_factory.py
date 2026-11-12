@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, exportación y avisos      |
+# | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: inyectar auditoria en generacion y regeneracion de reportes. |
 """Fábricas de wiring de RF-77 (Reporte de Gastos Acumulados).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases
@@ -65,6 +66,7 @@ def build_generar_reporte_gastos_use_case(db: Session) -> GenerarReporteGastosUs
         trabajo_repo=SqlAlchemyTrabajoReporteGastoRepository(db),
         config_repo=SqlAlchemyConfiguracionBatchReporteGastoRepository(db),
         alcance_port=AlcanceActivoM02Adapter(db),
+        auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
     )
 
 
@@ -81,6 +83,8 @@ def build_exportar_reporte_gastos_use_case(db: Session) -> ExportarReporteGastos
 
 def build_consultar_reporte_gastos_use_case(db: Session) -> ConsultarReporteGastosUseCase:
     return ConsultarReporteGastosUseCase(
+        db=db,
+        auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
         reporte_repo=SqlAlchemyReporteGastoRepository(db),
         generador=build_generar_reporte_gastos_use_case(db),
     )

@@ -2,6 +2,10 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-94 Fase 7: consulta técnica y legible de la auditoría financiera |
 # | 2026-11-05 | Arekkazu | M06 RF-94: resumen por severidad, orden y activo por su identificador |
+# | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: descripción del intento de acceso sin permiso |
+# | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
+# | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
 filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13)."""
 from __future__ import annotations
@@ -20,6 +24,7 @@ DESCRIPCIONES = {
     "MEDICION_CON_ESTIMACION": "Medición con precio estimado",
     "MEDICION_SIN_VARIACION": "Medición sin variación de valor",
     "MEDICION_PENDIENTE": "Medición pendiente de revisión",
+    "MEDICION_EXCLUIDA": "Evento sin medición: activo no elegible",
     "VARIACION_REGISTRADA": "Variación de valor razonable registrada",
     "LINEA_ASIENTO_PENDIENTE_CUENTA": "Línea de asiento sin cuenta contable configurada",
     "LINEA_ASIENTO_REGISTRADA": "Línea de asiento registrada",
@@ -35,6 +40,7 @@ DESCRIPCIONES = {
     "ACTIVO_MARCADO_SIN_MERCADO": "Activo sin precio de mercado: método de costo",
     "METODO_VALORACION_CAMBIADO": "Cambio de método de valoración",
     "DEPRECIACION_REGISTRADA": "Depreciación del período registrada", "DETERIORO_REGISTRADO": "Deterioro registrado",
+    "VALOR_LIBROS_AJUSTADO_A_CERO": "Valor en libros negativo ajustado a cero",
     "COTIZACION_REGISTRADA": "Cotización registrada", "COTIZACION_MODIFICADA": "Cotización modificada",
     "COTIZACION_ANULADA": "Cotización anulada", "COTIZACION_VENCIDA": "Cotización vencida",
     "CIERRE_PERIODO_INICIADO": "Cierre del período contable iniciado",
@@ -48,6 +54,10 @@ DESCRIPCIONES = {
     "ERROR_CONSISTENCIA": "Inconsistencia entre fuentes", "ESTADO_RESULTADOS_GENERADO": "Estado de resultados generado",
     "ESTADO_RESULTADOS_APROBADO": "Estado de resultados aprobado", "ERROR_CONCILIACION": "Error de conciliación",
     "ERROR_TECNICO": "Error técnico",
+    "ACCESO_NO_AUTORIZADO": "Intento de operación sin permiso del rol",
+    "CORRECTIVO_VARIACION_SOLICITADO": "Correctivo de variación solicitado",
+    "CORRECTIVO_VARIACION_APROBADO": "Correctivo de variación aprobado",
+    "CORRECTIVO_VARIACION_RECHAZADO": "Correctivo de variación rechazado",
 }
 
 

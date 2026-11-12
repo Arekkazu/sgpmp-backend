@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: mantener el respaldo de auditoría independiente en volumen persistente. |
 # | 2026-11-06 | Arekkazu | M07 RF-101: SGPMP_ENTORNO; credenciales de AgroFusion pasan al registro de clientes |
+# | 2026-11-07 | Sebastián Sandoval (Implementación) | SSO AgroFusion: montar la clave pública RS256 en /app/secrets |
 services:
   db:
     # container_name único (no el genérico "db"): Dokploy conecta el backend
@@ -99,6 +100,12 @@ services:
       # debe apuntar a /app/secrets/firebase.json. Sin el archivo, Docker crea
       # una carpeta vacía y el backend solo deja el push deshabilitado.
       - ../files/firebase.json:/app/secrets/firebase.json:ro
+      # SSO AgroFusion (Mecanismo A): clave publica RS256 para verificar el
+      # token de handoff. Se carga como File Mount del compose en Dokploy con
+      # File Path `agrofusion_sso_public.pem` (Dokploy la guarda en ../files/).
+      # AGROFUSION_SSO_PUBLIC_KEY_PATH debe ser /app/secrets/agrofusion_sso_public.pem.
+      # Sin la variable, el SSO responde 503 y el resto del backend funciona igual.
+      - ../files/agrofusion_sso_public.pem:/app/secrets/agrofusion_sso_public.pem:ro
     expose:
       - "8000"
     depends_on:

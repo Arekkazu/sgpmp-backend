@@ -1,0 +1,67 @@
+{
+  "caso": "TC-M06-G105",
+  "generado_en": "2026-11-08T08:27:05.252103+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 939,
+      "en": "2026-11-08T08:27:06.192027+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 440,
+      "en": "2026-11-08T08:27:06.633077+00:00",
+      "respuesta": {
+        "total": 11,
+        "especies": [
+          "39",
+          "421",
+          "1",
+          "3",
+          "2"
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 623,
+      "en": "2026-11-08T08:27:07.256191+00:00",
+      "respuesta": {
+        "reconocidos": 9
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/943/simulacion",
+      "codigo": 200,
+      "duracion_ms": 502,
+      "en": "2026-11-08T08:27:07.758364+00:00",
+      "respuesta": {
+        "id_especie": 39,
+        "activo": 943,
+        "http": 200,
+        "es_valido": true,
+        "motivo": null,
+        "id_precio": 18,
+        "fuente": "MERCADO_ACTIVO",
+        "precio_unitario": "9600.00",
+        "fecha_vigencia": "2026-11-07"
+      }
+    }
+  ]
+}

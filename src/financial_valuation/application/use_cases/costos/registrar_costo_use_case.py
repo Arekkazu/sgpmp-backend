@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 v2.0: costo manual con naturaleza, origen, factura y reparto |
 # | 2026-11-05 | Arekkazu | M06: mensajes sin códigos de módulo ni valores de enum |
+# | 2026-11-08 | Arekkazu | INC-M06-329-G85 RF-90: reparto sin participación positiva responde 422 antes de tocar el período |
 """Caso de uso RF-90: registro manual de un costo (Contador o Administrador).
 
 Eje 1 (naturaleza, NIC 41) decide el tratamiento; eje 2 (origen) decide el vehículo:
@@ -95,6 +96,7 @@ class RegistrarCostoUseCase:
         if con_proveedor:
             self._validar_factura(s)
         activos = self._activos(s)
+        montos = self._repartir(s, activos)  # antes del período: un reparto inválido no deja efectos
         periodo = self.contabilizador.periodo_para(activos[0].numero_id_tributaria, s.fecha_costo, id_usuario)
         if not periodo.contiene(s.fecha_costo):  # FA-4
             raise BusinessRuleError(code="PERIODO_CONTABLE_CERRADO", field="fecha_costo", message=(
@@ -112,7 +114,6 @@ class RegistrarCostoUseCase:
                 raise BusinessRuleError(code="CUENTA_NO_CONFIGURADA", message=(
                     f"La matriz contable no tiene cuenta de gasto para {ETIQUETA_SUBTIPO.get(s.subtipo_costo, s.subtipo_costo)}. "
                     "Complétela en Configuración contable."))
-        montos = self._repartir(s, activos)
         grupo = uuid.uuid4() if len(activos) > 1 else None
         registros = []
         try:
@@ -186,6 +187,10 @@ class RegistrarCostoUseCase:
             return {activos[0].id_activo_biologico: Decimal(s.monto_costo)}
         biomasa = s.metodo_reparto == MetodoReparto.POR_BIOMASA.value and all(a.peso_kg for a in activos)
         pesos = {a.id_activo_biologico: (Decimal(a.peso_kg) * a.cabezas if biomasa else Decimal(a.cabezas)) for a in activos}
+        if sum(pesos.values()) <= 0:  # FA-11: sin cabezas ni biomasa no hay proporción que aplicar
+            raise BusinessRuleError(code="REPARTO_INVALIDO", field="activos_reparto", message=(
+                "Los activos del reparto no tienen cabezas ni biomasa registradas: no es posible repartir el costo "
+                "en proporción. Revise la población o el último pesaje de los activos."))
         return repartir(Decimal(s.monto_costo), pesos)
 
     def _registrar(self, activo, monto, s, naturaleza, politica, sentido, vehiculo, cuenta_factura, periodo, grupo,

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: 202 automático, PDF/Excel, 72 h    |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-283-G42 RF-81: más de 200 por página se limita a 200, no se rechaza |
 """Router FastAPI de RF-81 — Historial/Trazabilidad de Suministros.
 
   GET  /suministros/historial                           — Consulta paginada (200, o 202 en niveles 3-4)
@@ -38,7 +40,10 @@ from src.supplies.domain.value_objects.historial_suministro_enums import (
     TipoSuministroFiltro,
     TipoTrabajoHistorial,
 )
-from src.supplies.infrastructure.dto.solicitar_trabajo_historial_dto import SolicitarTrabajoHistorialDTO
+from src.supplies.infrastructure.dto.solicitar_trabajo_historial_dto import (
+    MAX_REGISTROS_POR_PAGINA,
+    SolicitarTrabajoHistorialDTO,
+)
 from src.supplies.infrastructure.factories.historial_suministros_factory import (
     build_consultar_estado_trabajo_historial_use_case,
     build_consultar_historial_use_case,
@@ -83,7 +88,7 @@ def _filtros_desde_query(
         costo_min=costo_min,
         costo_max=costo_max,
         pagina=pagina,
-        registros_por_pagina=min(registros_por_pagina, 200),
+        registros_por_pagina=min(registros_por_pagina, MAX_REGISTROS_POR_PAGINA),
     )
 
 
@@ -112,7 +117,8 @@ def consultar_historial(
     costo_min: Optional[Decimal] = Query(default=None, ge=0),
     costo_max: Optional[Decimal] = Query(default=None, ge=0),
     pagina: int = Query(default=1, ge=1),
-    registros_por_pagina: int = Query(default=50, ge=1, le=200),
+    # RF-81: un valor mayor a 200 no se rechaza; se aplica el máximo (min en _filtros_desde_query).
+    registros_por_pagina: int = Query(default=50, ge=1, description="Máximo 200; un valor mayor se limita a 200."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
@@ -182,7 +188,7 @@ def exportar_historial(
             estado=resultado.estado.value,
             mensaje=(
                 "La exportación supera 10.000 registros y se procesará de forma asíncrona. Recibirá una "
-                f"notificación al finalizar; el archivo estará disponible 72 horas (id_exportacion={resultado.id_cola})."
+                f"notificación al finalizar; el archivo estará disponible 72 horas (exportación n.º {resultado.id_cola})."
             ),
         )
     return StreamingResponse(

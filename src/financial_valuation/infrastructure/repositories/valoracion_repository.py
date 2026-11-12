@@ -2,6 +2,12 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculos, reconocimientos, mediciones, variaciones y valoración por costo |
 # | 2026-11-05 | Arekkazu | M06 RF-83..88: listados del período y datos del modelo de costo por activo |
+# | 2026-11-08 | Arekkazu | INC-M06-314-G15 RF-83: mediciones del período filtrables por evento y estimación, con id_evento e id_periodo_contable |
+# | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
+# | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
+# | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -19,7 +25,8 @@ from src.financial_valuation.domain.entities.valoracion import (
     VariacionRegistro,
 )
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
+from src.shared.fechas import nombre_zona_usuario
 
 _COLUMNAS_CALCULO = """id_calculo_valor_razonable, id_activo_biologico, id_precio_mercado, id_periodo_contable, magnitud,
     unidad_magnitud, precio_unitario, valor_razonable_bruto, costo_transporte, costo_comisiones,
@@ -47,6 +54,18 @@ _JOIN_ACTIVO = """JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = x
     JOIN modulo9.fincas f ON f.id_finca = i.id_finca
     LEFT JOIN modulo6.reconocimientos_iniciales ri
            ON ri.id_activo_biologico = a.id_activo_biologico AND ri.estado = 'CONFIRMADO'"""
+
+
+# Filtros del historial de productos agrícolas (RNF-85-05: activo, período, tipo de producto y rango de valores).
+_FILTROS_PRODUCTOS = (
+    ("id_periodo_contable", "x.id_periodo_contable = :id_periodo_contable"),
+    ("id_activo_biologico", "x.id_activo_biologico = :id_activo_biologico"),
+    ("tipo", "x.tipo::text = :tipo"),
+    ("id_especie", "a.id_especie = :id_especie"),
+    ("producto_agricola", "x.producto_agricola = :producto_agricola"),
+    ("valor_min", "x.valor_producto >= :valor_min"),
+    ("valor_max", "x.valor_producto <= :valor_max"),
+)
 
 
 def _calculo(f: dict) -> CalculoValor:
@@ -79,14 +98,35 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             "unidad_magnitud", "precio_unitario", "id_evento_magnitud", "tiene_valor_estimado")},
             "json_metodo_costo": a_json(calculo.json_metodo_costo)})
 
-    def ultimo_calculo(self, id_activo_biologico: int, hasta: Optional[date] = None) -> Optional[CalculoValor]:
-        """Último cálculo CALCULADO del activo (base de la siguiente medición)."""
+    def obtener_calculo(self, id_calculo_valor_razonable: int) -> Optional[CalculoValor]:
         f = fila(self.db, f"""SELECT {_COLUMNAS_CALCULO} FROM modulo6.calculos_valor_razonable
+                              WHERE id_calculo_valor_razonable = :id""", {"id": id_calculo_valor_razonable})
+        return _calculo(f) if f else None
+
+    def validar_calculo(self, id_calculo_valor_razonable: int, validacion: dict) -> None:
+        escribir(self.db, """
+            UPDATE modulo6.calculos_valor_razonable
+               SET estado = 'CALCULADO',
+                   json_metodo_costo = COALESCE(json_metodo_costo, '{}'::jsonb)
+                       || jsonb_build_object('validacion_valor_no_positivo', CAST(:validacion AS jsonb))
+             WHERE id_calculo_valor_razonable = :id AND estado = 'REVISION_REQUERIDA'
+        """, {"id": id_calculo_valor_razonable, "validacion": a_json(validacion)})
+
+    def ultimo_calculo(self, id_activo_biologico: int, hasta: Optional[date] = None) -> Optional[CalculoValor]:
+        """Último cálculo CALCULADO del activo (base de la siguiente medición).
+
+        ``None`` si ese cálculo lo consumió una cosecha del 100 % (RF-85 FA-4): el activo vale cero y una baja
+        posterior no vuelve a asentar su valor."""
+        consumido = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")
+        f = fila(self.db, f"""SELECT {_COLUMNAS_CALCULO}, {consumido} AS consumido_por_cosecha
+                              FROM modulo6.calculos_valor_razonable c
                               WHERE id_activo_biologico = :a AND estado = 'CALCULADO' AND {ES_BASE}
                                 AND (CAST(:h AS date) IS NULL OR fecha_calculo::date <= :h)
                               ORDER BY fecha_calculo DESC, id_calculo_valor_razonable DESC LIMIT 1""",
                  {"a": id_activo_biologico, "h": hasta})
-        return _calculo(f) if f else None
+        if f is None or f.pop("consumido_por_cosecha"):
+            return None
+        return _calculo(f)
 
     # --- RF-83 / RF-86 -------------------------------------------------------------------------
 
@@ -111,15 +151,16 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             INSERT INTO modulo6.variaciones_valor_razonable (id_activo_biologico, tipo, monto_variacion, variacion_transformacion,
                 variacion_precio_mercado, valor_razonable_anterior, valor_razonable_nuevo, id_evento, id_medicion_posterior,
                 id_periodo_contable, estado_trazabilidad, tiene_estimacion, id_usuario, fecha_registro, id_precio_mercado,
-                id_cierre)
+                id_cierre, id_variacion_corregida)
             VALUES (:a, CAST(:t AS modulo6.enum_variaciones_valor_razonable_tipo), :m, :tb, :pm, :vant, :vnue, :e, :med, :p,
-                'VERIFICACION_PENDIENTE', :est, :u, now(), :precio, :cierre)
+                'VERIFICACION_PENDIENTE', :est, :u, now(), :precio, :cierre, :corregida)
             RETURNING id_variacion_valor_razonable
         """, {"a": variacion.id_activo_biologico, "t": variacion.tipo, "m": variacion.monto_variacion,
               "tb": variacion.variacion_transformacion, "pm": variacion.variacion_precio_mercado,
               "vant": variacion.valor_razonable_anterior, "vnue": variacion.valor_razonable_nuevo, "e": variacion.id_evento,
               "med": variacion.id_medicion_posterior, "p": variacion.id_periodo_contable, "est": variacion.tiene_estimacion,
-              "u": variacion.id_usuario, "precio": variacion.id_precio_mercado, "cierre": variacion.id_cierre})
+              "u": variacion.id_usuario, "precio": variacion.id_precio_mercado, "cierre": variacion.id_cierre,
+              "corregida": variacion.id_variacion_corregida})
 
     # --- RF-82 ---------------------------------------------------------------------------------
 
@@ -245,7 +286,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     def activos_valorados(self) -> list[dict]:
         """Activos reconocidos con su último valor razonable neto o su valor por costo."""
-        return filas(self.db, """
+        return filas(self.db, f"""
         SELECT a.id_activo_biologico, a.identificador, a.tipo::text AS tipo, e.nombre AS especie, f.nombre AS finca,
                est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento,
                ri.indicador_valoracion::text AS indicador_reconocimiento, ri.es_apertura,
@@ -255,7 +296,8 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                a.id_especie, i.id_finca, a.id_infraestructura, i.nombre AS infraestructura,
                ri.costo_adquisicion, ri.origen_financiero::text AS origen_financiero,
                ri.valor_razonable_neto_inicial AS valor_inicial,
-               c.valor_neto AS valor_razonable_neto, c.fecha_calculo, c.tiene_valor_estimado
+               CASE WHEN c.consumido_por_cosecha THEN 0 ELSE c.valor_neto END AS valor_razonable_neto,
+               c.fecha_calculo, c.tiene_valor_estimado, COALESCE(c.consumido_por_cosecha, false) AS cosechado_completamente
         FROM modulo6.reconocimientos_iniciales ri
         JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = ri.id_activo_biologico
         JOIN modulo9.especies e ON e.id_especie = a.id_especie
@@ -263,7 +305,9 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
         JOIN modulo9.fincas f ON f.id_finca = i.id_finca
         JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = a.id_estado
         LEFT JOIN modulo6.valoraciones_por_costos vc ON vc.id_activo_biologico = a.id_activo_biologico AND vc.es_activa
-        LEFT JOIN LATERAL (SELECT valor_neto, fecha_calculo, tiene_valor_estimado FROM modulo6.calculos_valor_razonable c
+        LEFT JOIN LATERAL (SELECT valor_neto, fecha_calculo, tiene_valor_estimado,
+                                  {CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")} AS consumido_por_cosecha
+                           FROM modulo6.calculos_valor_razonable c
                            WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO'
                              AND COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false
                            ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) c ON true
@@ -294,15 +338,36 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     # --- Listados del período (vistas de medición, variaciones, cálculos y productos) ------------------
 
-    def mediciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+    def mediciones_del_periodo(self, id_periodo_contable: int, id_evento: Optional[int] = None,
+                               tiene_valor_estimado: Optional[bool] = None) -> list[dict]:
+        # Filtros en AND; uno omitido (NULL) no filtra.
         return filas(self.db, f"""
-            SELECT x.id_medicion_posterior, x.id_activo_biologico, {_ACTIVO}, x.origen_medicion::text AS origen_medicion,
+            SELECT x.id_medicion_posterior, x.id_activo_biologico, {_ACTIVO}, x.id_evento, x.id_periodo_contable,
+                   x.origen_medicion::text AS origen_medicion,
                    x.valor_razonable_anterior, x.valor_razonable_actual, x.ganancia_perdida_transformacion,
                    x.ganancia_perdida_precio_mercado, x.variacion_total, x.tiene_valor_estimado, x.estado::text AS estado,
                    x.fecha_medicion
             FROM modulo6.mediciones_posteriores x {_JOIN_ACTIVO}
-            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_medicion DESC, x.id_medicion_posterior DESC""",
-            {"p": id_periodo_contable})
+            WHERE x.id_periodo_contable = :p
+              AND (CAST(:e AS integer) IS NULL OR x.id_evento = :e)
+              AND (CAST(:est AS boolean) IS NULL OR x.tiene_valor_estimado = :est)
+            ORDER BY x.fecha_medicion DESC, x.id_medicion_posterior DESC""",
+            {"p": id_periodo_contable, "e": id_evento, "est": tiene_valor_estimado})
+
+    def eventos_pendientes_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        # El día del evento en la zona del usuario, igual que al procesarlo (fecha_usuario).
+        return filas(self.db, f"""
+            SELECT pr.id_evento, x.id_activo_biologico, {_ACTIVO}, x.fecha AS fecha_evento,
+                   pr.detalle AS motivo, pr.fecha_procesamiento
+            FROM modulo6.procesamientos_eventos_m02 pr
+            JOIN modulo2.eventos_activos x ON x.id_eventos = pr.id_evento
+            {_JOIN_ACTIVO}
+            JOIN modulo6.periodos_contables p
+              ON p.id_periodo_contable = :p AND p.numero_id_tributaria = f.numero_id_tributaria
+            WHERE pr.resultado = 'MEDICION_PENDIENTE'
+              AND (x.fecha AT TIME ZONE :tz)::date BETWEEN p.fecha_inicio AND p.fecha_fin
+            ORDER BY x.fecha DESC, pr.id_evento DESC""",
+            {"p": id_periodo_contable, "tz": nombre_zona_usuario()})
 
     def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
         # La verificación de trazabilidad actualiza la línea; la variación guarda el estado con que nació.
@@ -310,11 +375,15 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             SELECT x.id_variacion_valor_razonable, x.id_activo_biologico, {_ACTIVO}, x.tipo::text AS tipo,
                    x.monto_variacion, x.valor_razonable_anterior, x.valor_razonable_nuevo, x.tiene_estimacion,
                    x.fecha_registro, l.id_linea_asiento_nic41 AS id_linea, l.tipo_evidencia::text AS tipo_evidencia,
-                   COALESCE(l.estado_trazabilidad, x.estado_trazabilidad)::text AS estado_trazabilidad
+                   COALESCE(l.estado_trazabilidad, x.estado_trazabilidad)::text AS estado_trazabilidad,
+                   x.id_variacion_corregida, (x.id_variacion_corregida IS NOT NULL) AS es_correctivo,
+                   sc.id_solicitud_correctivo_variacion AS id_solicitud_correctivo, sc.estado AS estado_correctivo
             FROM modulo6.variaciones_valor_razonable x {_JOIN_ACTIVO}
+            LEFT JOIN modulo6.solicitudes_correctivos_variaciones sc
+                   ON sc.id_variacion_valor_razonable = x.id_variacion_valor_razonable AND sc.estado IN ('PENDIENTE', 'APROBADA')
             LEFT JOIN modulo6.lineas_asiento_nic41 l
                    ON l.tabla_origen = 'variaciones_valor_razonable' AND l.id_origen = x.id_variacion_valor_razonable
-                  AND NOT l.es_reverso
+                  AND l.es_reverso = (x.id_variacion_corregida IS NOT NULL)  -- la del correctivo es la inversa
             WHERE x.id_periodo_contable = :p ORDER BY x.fecha_registro DESC, x.id_variacion_valor_razonable DESC""",
             {"p": id_periodo_contable})
 
@@ -330,11 +399,20 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             WHERE x.id_periodo_contable = :p ORDER BY x.fecha_calculo DESC, x.id_calculo_valor_razonable DESC""",
             {"p": id_periodo_contable})
 
-    def productos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+    def productos_agricolas(self, filtros: dict) -> list[dict]:
+        """RF-85 RNF-85-05: historial de productos reconocidos; los filtros se combinan con AND y uno omitido no filtra."""
+        condiciones, params = [], {}
+        for campo, sql in _FILTROS_PRODUCTOS:
+            if filtros.get(campo) not in (None, ""):
+                condiciones.append(sql)
+                params[campo] = filtros[campo]
         return filas(self.db, f"""
-            SELECT x.id_reconocimiento_producto_agricola, x.id_activo_biologico, {_ACTIVO}, x.producto_agricola,
-                   x.cantidad_cosechada, x.unidad_medida, x.precio_mercado_producto, x.costo_venta_producto,
-                   x.valor_producto, x.valor_reduccion_activo, x.tipo::text AS tipo, x.fecha_cosecha
+            SELECT x.id_reconocimiento_producto_agricola, x.id_evento_productivo, x.id_activo_biologico, {_ACTIVO},
+                   x.producto_agricola, x.cantidad_cosechada, x.unidad_medida, x.precio_mercado_producto,
+                   x.costo_venta_producto, x.valor_producto, x.valor_reduccion_activo, x.tipo::text AS tipo,
+                   x.fecha_cosecha, x.id_periodo_contable, x.id_usuario,
+                   NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_usuario
             FROM modulo6.reconocimientos_productos_agricolas x {_JOIN_ACTIVO}
-            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC""",
-            {"p": id_periodo_contable})
+            LEFT JOIN modulo1.usuarios u ON u.id_usuario = x.id_usuario
+            WHERE {" AND ".join(condiciones) or "true"}
+            ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC LIMIT 500""", params)

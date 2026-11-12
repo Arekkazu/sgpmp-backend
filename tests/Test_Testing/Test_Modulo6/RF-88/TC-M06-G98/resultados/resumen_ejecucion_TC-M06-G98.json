@@ -1,0 +1,619 @@
+{
+  "caso": "TC-M06-G98",
+  "modulo": 6,
+  "rf": "RF-88 / RF-41",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-08T04:14:02.969070+00:00",
+  "login_http": 200,
+  "login": {
+    "tipo": "Bearer",
+    "expira_en": 28799,
+    "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+    "perfil_incompleto": false
+  },
+  "escrituras": false,
+  "datos_prueba_creados": [],
+  "integracion": {
+    "evento_sanitario": "POST /activos-biologicos/{id_activo}/eventos/sanitario",
+    "consulta_eventos": "GET /activos-biologicos/{id_activo}/eventos",
+    "eventos_para_deterioro": "GET /finanzas/activos/{id_activo_biologico}/eventos-sanitarios",
+    "deterioro": "POST /finanzas/activos/{id_activo_biologico}/deterioros",
+    "valor_en_libros": "GET /finanzas/activos y GET /finanzas/activos/{id_activo_biologico}",
+    "auditoria": "GET /finanzas/auditoria?tipo_evento=DETERIORO_REGISTRADO",
+    "monto_en_evento_rf41": false,
+    "monto_en_deterioro_rf88": true
+  },
+  "rutas_openapi": [
+    "DELETE,GET,PATCH,PUT /auditoria/",
+    "GET /activos-biologicos/auditoria",
+    "GET /activos-biologicos/parametros-especie",
+    "GET /activos-biologicos/{id_activo}/ciclos-productivos",
+    "GET /activos-biologicos/{id_activo}/datos-consolidados",
+    "GET /activos-biologicos/{id_activo}/eventos",
+    "GET /activos-biologicos/{id_activo}/ficha-integral",
+    "GET /activos-biologicos/{id_activo}/ficha-lote",
+    "GET /activos-biologicos/{id_activo}/historial",
+    "GET /activos-biologicos/{id_activo}/indicadores",
+    "GET /activos-biologicos/{id_activo}/infraestructura",
+    "GET /activos-biologicos/{id_activo}/metricas",
+    "GET /activos-biologicos/{id_activo}/patologias",
+    "GET /activos-biologicos/{id_activo}/transferencias/disponibles",
+    "GET /auditoria/archivado/",
+    "GET /auditoria/catalogo/tipos-evento",
+    "GET /auditoria/exportaciones/{id_cola}",
+    "GET /auditoria/exportaciones/{id_cola}/descargar",
+    "GET /auditoria/exportar",
+    "GET /configuracion/identidad-visual/{id_finca}/auditoria",
+    "GET /configuracion/plantillas/auditoria",
+    "GET /configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+    "GET /finanzas/activos",
+    "GET /finanzas/activos/{id_activo_biologico}",
+    "GET /finanzas/activos/{id_activo_biologico}/eventos-sanitarios",
+    "GET /finanzas/activos/{id_activo_biologico}/simulacion",
+    "GET /finanzas/auditoria",
+    "GET /integracion/auditoria",
+    "GET /integracion/auditoria/exportar",
+    "GET /iot/auditoria",
+    "GET /iot/auditoria/exportar",
+    "GET /iot/auditoria/{id_evento}",
+    "GET /prediccion/auditoria",
+    "GET /prediccion/auditoria/exportar",
+    "GET /prediccion/auditoria/{id_evento}",
+    "GET /prediccion/motor/activos/{id_activo}/lecturas",
+    "GET /prediccion/motor/activos/{id_activo}/retroalimentaciones",
+    "GET /suministros/auditoria",
+    "GET /suministros/auditoria/exportar",
+    "GET /suministros/auditoria/{id_auditoria_suministro}",
+    "GET /suministros/eficiencia-alimenticia/activos/{id_activo_biologico}/historial",
+    "GET /suministros/eficiencia-alimenticia/activos/{id_activo_biologico}/vigente",
+    "GET,PATCH /activos-biologicos/{id_activo}",
+    "GET,POST /activos-biologicos",
+    "GET,POST /activos-biologicos/{id_activo}/fases",
+    "GET,POST /activos-biologicos/{id_activo}/sensores",
+    "GET,POST /configuracion/topologia-sanitaria/aristas",
+    "GET,POST /iot/auditoria/verificar-integridad",
+    "PATCH /activos-biologicos/{id_activo}/estado",
+    "PATCH /activos-biologicos/{id_activo}/sensores/{id_asociacion}",
+    "PATCH /configuracion/topologia-sanitaria/aristas/{id_arista_transmision}",
+    "PATCH /configuracion/topologia-sanitaria/aristas/{id_arista_transmision}/desactivar",
+    "POST /activos-biologicos/auditoria/registros-correctivos",
+    "POST /activos-biologicos/{id_activo}/cierre",
+    "POST /activos-biologicos/{id_activo}/eventos/baja",
+    "POST /activos-biologicos/{id_activo}/eventos/crecimiento",
+    "POST /activos-biologicos/{id_activo}/eventos/ingreso",
+    "POST /activos-biologicos/{id_activo}/eventos/productivo",
+    "POST /activos-biologicos/{id_activo}/eventos/reproductivo",
+    "POST /activos-biologicos/{id_activo}/eventos/sanitario",
+    "POST /activos-biologicos/{id_activo}/transferencias",
+    "POST /auditoria/exportaciones",
+    "POST /finanzas/activos/{id_activo_biologico}/deterioros",
+    "POST /finanzas/activos/{id_activo_biologico}/valor-razonable",
+    "POST /finanzas/eventos/procesar",
+    "POST /iot/eventos-buffer",
+    "POST /iot/eventos-edge",
+    "POST /prediccion/motor/activos/{id_activo}/version",
+    "POST /suministros/eficiencia-alimenticia/batch/activos/{id_activo_biologico}/reintentar"
+  ],
+  "panorama": {
+    "activos": 13,
+    "fincas": 3,
+    "nits_en_periodos": 1,
+    "periodos": 8,
+    "valorados_por_costo": 2,
+    "aislado": false,
+    "deterioros_auditados": 1,
+    "openapi_http": 200
+  },
+  "deterioros": [
+    {
+      "id_activo_biologico": 951,
+      "id_evento_sanitario": 679,
+      "impacto": "300000",
+      "valor_contable_auditado": "4200000.0000",
+      "monto_afectado": "300000.0000"
+    }
+  ],
+  "http": [
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "resumen": {
+        "rutas_relevantes": 69
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "resumen": {
+        "registros": 13
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "resumen": {
+        "registros": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "consulta": "/finanzas/auditoria?tipo_evento=DETERIORO_REGISTRADO&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "resumen": {
+        "total_registros": 1,
+        "devueltos": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1/eventos-sanitarios",
+      "consulta": "/finanzas/activos/1/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:48.262943+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1/eventos",
+      "consulta": "/activos-biologicos/1/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 14,
+        "sanitarios_o_clinicos": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1",
+      "consulta": "/finanzas/activos/1",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/2/eventos-sanitarios",
+      "consulta": "/finanzas/activos/2/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:49.553745+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/2/eventos",
+      "consulta": "/activos-biologicos/2/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 25,
+        "sanitarios_o_clinicos": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/2",
+      "consulta": "/finanzas/activos/2",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/3/eventos-sanitarios",
+      "consulta": "/finanzas/activos/3/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:50.768093+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/3/eventos",
+      "consulta": "/activos-biologicos/3/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 1,
+        "sanitarios_o_clinicos": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/3",
+      "consulta": "/finanzas/activos/3",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/5/eventos-sanitarios",
+      "consulta": "/finanzas/activos/5/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:52.011408+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/5/eventos",
+      "consulta": "/activos-biologicos/5/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 9,
+        "sanitarios_o_clinicos": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/5",
+      "consulta": "/finanzas/activos/5",
+      "codigo": 200,
+      "resumen": {
+        "valorado": true,
+        "deterioro_acumulado": "0.0000",
+        "valor_contable_por_costo": "2660000.0000",
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943/eventos-sanitarios",
+      "consulta": "/finanzas/activos/943/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:53.293108+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "consulta": "/activos-biologicos/943/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 3,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "consulta": "/finanzas/activos/943",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944/eventos-sanitarios",
+      "consulta": "/finanzas/activos/944/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:54.517205+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/944/eventos",
+      "consulta": "/activos-biologicos/944/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 2,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "consulta": "/finanzas/activos/944",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945/eventos-sanitarios",
+      "consulta": "/finanzas/activos/945/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:55.705472+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/eventos",
+      "consulta": "/activos-biologicos/945/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 2,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "consulta": "/finanzas/activos/945",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946/eventos-sanitarios",
+      "consulta": "/finanzas/activos/946/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:56.965808+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/946/eventos",
+      "consulta": "/activos-biologicos/946/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 3,
+        "sanitarios_o_clinicos": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "consulta": "/finanzas/activos/946",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947/eventos-sanitarios",
+      "consulta": "/finanzas/activos/947/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:58.201279+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/947/eventos",
+      "consulta": "/activos-biologicos/947/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 1,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947",
+      "consulta": "/finanzas/activos/947",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/948/eventos-sanitarios",
+      "consulta": "/finanzas/activos/948/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:13:59.428864+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/948/eventos",
+      "consulta": "/activos-biologicos/948/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 2,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/948",
+      "consulta": "/finanzas/activos/948",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/951/eventos-sanitarios",
+      "consulta": "/finanzas/activos/951/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:14:00.626073+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/951/eventos",
+      "consulta": "/activos-biologicos/951/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 2,
+        "sanitarios_o_clinicos": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/951",
+      "consulta": "/finanzas/activos/951",
+      "codigo": 200,
+      "resumen": {
+        "valorado": true,
+        "deterioro_acumulado": "300000.0000",
+        "valor_contable_por_costo": "4200000.0000",
+        "lineas_deterioro": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/949/eventos-sanitarios",
+      "consulta": "/finanzas/activos/949/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:14:01.828917+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/949/eventos",
+      "consulta": "/activos-biologicos/949/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 1,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/949",
+      "consulta": "/finanzas/activos/949",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/950/eventos-sanitarios",
+      "consulta": "/finanzas/activos/950/eventos-sanitarios",
+      "codigo": 403,
+      "resumen": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T04:14:03.011982+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/950/eventos",
+      "consulta": "/activos-biologicos/950/eventos",
+      "codigo": 200,
+      "resumen": {
+        "eventos": 1,
+        "sanitarios_o_clinicos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/950",
+      "consulta": "/finanzas/activos/950",
+      "codigo": 200,
+      "resumen": {
+        "valorado": false,
+        "deterioro_acumulado": null,
+        "valor_contable_por_costo": null,
+        "lineas_deterioro": 0
+      }
+    }
+  ],
+  "subcasos": [
+    {
+      "id": "TC-M06-10",
+      "esperado": "El impacto económico del evento sanitario queda dentro del deterioro y del valor en libros.",
+      "obtenido": "valor_en_libros 4200000.0000 = max(0, 4500000.0000 - 0.0000 - 300000.0000)",
+      "estado": "APROBADO",
+      "motivo": "Activo 951, evento 679, impacto 300000. valor_en_libros 4200000.0000 = max(0, 4500000.0000 - 0.0000 - 300000.0000). Líneas DETERIORO_ACTIVO_COSTO: 1."
+    },
+    {
+      "id": "TC-M06-11",
+      "esperado": "Un evento clínico sin monto no genera deterioro ni reduce el valor en libros.",
+      "obtenido": "valor_en_libros 2660000.0000 = max(0, 2800000.0000 - 140000.0000 - 0.0000)",
+      "estado": "APROBADO",
+      "motivo": "Activo 5, evento 11, tipo DIAGNOSTICO. El evento no trae impacto económico y no aparece en DETERIORO_REGISTRADO. El deterioro acumulado es 0. valor_en_libros 2660000.0000 = max(0, 2800000.0000 - 140000.0000 - 0.0000)."
+    }
+  ],
+  "hallazgos": [],
+  "aprobados": 2,
+  "rechazados": 0,
+  "bloqueados": 0,
+  "total": 2,
+  "porcentaje_aprobacion": 100.0
+}

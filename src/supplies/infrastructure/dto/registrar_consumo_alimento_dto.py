@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: costo_unitario, E4 y observaciones |
+# | 2026-11-10 | Arekkazu         | INC-M05-339-G08 RF-75: cantidad con máximo 3 decimales (400, no 500) |
 """DTO de entrada para registrar un consumo de alimento (RF-75).
 
 El alimento se elige del catálogo ``modulo5.tipos_alimentos`` (su nombre es el
@@ -35,6 +36,8 @@ class RegistrarConsumoAlimentoDTO(BaseDTO):
     def validar_cantidad(cls, v: Decimal) -> Decimal:
         if v <= 0:
             raise ValueError(f"La cantidad de alimento debe ser mayor a cero kilogramos. Valor ingresado: {v} kg.")
+        if v != v.quantize(Decimal("0.001")):  # la BD guarda gramos: 0.0004 kg quedaría en 0
+            raise ValueError(f"La cantidad de alimento admite hasta 3 decimales (gramos). Valor ingresado: {v} kg.")
         return v
 
     @field_validator("costo_unitario")

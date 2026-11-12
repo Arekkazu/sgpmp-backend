@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "TC-M06-G34 RF-86",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "G34-API-006-A",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/{{periodo_id}}/variaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+              "pm.test('A sin variacion nueva', () => { const base = JSON.parse(pm.environment.get('ids_variaciones_base')); const nuevas = pm.response.json().filter(v => String(v.id_activo_biologico) === pm.environment.get('activo_id') && !base.includes(String(v.id_variacion_valor_razonable))); pm.expect(nuevas).to.have.length(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G34-API-006-B",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/{{periodo_id}}/variaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+              "pm.test('B conserva variacion TB sin PM', () => { const vs=pm.response.json().filter(v=>String(v.id_activo_biologico)===pm.environment.get('activo_b_id')); pm.expect(vs.some(v=>String(v.id_variacion_valor_razonable)===pm.environment.get('variacion_b_id') && v.tipo==='GANANCIA_TRANSFORMACION_BIOLOGICA')).to.equal(true); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

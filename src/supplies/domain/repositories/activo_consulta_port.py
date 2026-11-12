@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 """Puerto de consulta del activo biológico (RF-33 / RF-36) para el módulo de suministros.
 
 El dominio de suministros solo necesita leer ciertos atributos del activo para
@@ -27,6 +30,12 @@ class ActivoConsulta:
     nombre_estado: Optional[str]
     cantidad_actual: Optional[int]
     fecha_inicio_ciclo: Optional[date]
+    identificador: Optional[str] = None
+
+    @property
+    def nombre_visible(self) -> str:
+        """Cómo se nombra el activo en un mensaje: su identificador, nunca el id interno."""
+        return self.identificador or "seleccionado"
 
     @property
     def es_poblacional(self) -> bool:
