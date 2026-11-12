@@ -1,0 +1,227 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G106</title></head><body><h1>TC-M06-G106 — ultima_evaluacion</h1><p>Dictamen: APROBADO. Caso completo aprobado: True.</p><pre>{
+  "caso": "TC-M06-G106",
+  "subcaso": "TC-M06-30",
+  "rf": [
+    "RF-89"
+  ],
+  "rf_version_referencia": "RF-89 v1.2 (RFC-026, aprobado 2026-11-11; comentario PR #1074)",
+  "pr_referencia": "#1074",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fase": "ultima_evaluacion",
+  "dictamen_general": "APROBADO",
+  "caso_completo_aprobado": true,
+  "bloqueo": null,
+  "reglas_aplicadas": {
+    "hereda_fecha_vigencia": true,
+    "desviacion_contra": "precio_corregido_436",
+    "importe_correccion": "4200000.00",
+    "desviacion_esperada_pct": "5",
+    "sin_fecha_vencimiento": true,
+    "estados_esperados": {
+      "436": "CORREGIDO",
+      "correccion": "SUPERADO",
+      "645": "ACTIVO"
+    }
+  },
+  "precondiciones": {
+    "umbral": "50.00",
+    "original": {
+      "id_precio_mercado": 436,
+      "precio_unitario": "4000000.00",
+      "fecha_vigencia": "2026-11-01",
+      "fecha_vencimiento": null,
+      "estado": "SUPERADO",
+      "es_aplicado": false,
+      "id_precio_corregido": null,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    },
+    "aplicado": {
+      "id_precio_mercado": 645,
+      "precio_unitario": "7650000.00",
+      "fecha_vigencia": "2026-11-11",
+      "fecha_vencimiento": null,
+      "estado": "ACTIVO",
+      "es_aplicado": true,
+      "id_precio_corregido": null,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    },
+    "desviacion_calculada": "5"
+  },
+  "id_correccion": 677,
+  "escenarios": [
+    {
+      "escenario": "negativo_fuente_distinta",
+      "estado": "PASSED",
+      "esperado": {
+        "http": 400,
+        "error_code": "CORRECCION_NO_COINCIDE"
+      },
+      "obtenido": {
+        "http": 400,
+        "error_code": "CORRECCION_NO_COINCIDE"
+      },
+      "detalle": null
+    },
+    {
+      "escenario": "negativo_fecha_vigencia_distinta",
+      "estado": "PASSED",
+      "esperado": {
+        "http": 400,
+        "error_code": "FECHA_VIGENCIA_CORRECCION"
+      },
+      "obtenido": {
+        "http": 400,
+        "error_code": "FECHA_VIGENCIA_CORRECCION"
+      },
+      "detalle": null
+    },
+    {
+      "escenario": "positivo_correccion_historica",
+      "estado": "PASSED",
+      "esperado": {
+        "http": 201,
+        "importe": "4200000.00",
+        "fecha_vigencia_heredada": "2026-11-01",
+        "desviacion_pct": "5",
+        "436": "CORREGIDO",
+        "correccion": "SUPERADO",
+        "645": "ACTIVO_aplicado",
+        "sin_vencimiento": true
+      },
+      "obtenido": {
+        "http": 201,
+        "error_code": null,
+        "verificacion": {
+          "id_correccion": 677,
+          "correccion": {
+            "id_precio_mercado": 677,
+            "precio_unitario": "4200000.00",
+            "fecha_vigencia": "2026-11-01",
+            "fecha_vencimiento": null,
+            "estado": "SUPERADO",
+            "es_aplicado": false,
+            "id_precio_corregido": 436,
+            "fuente": "MERCADO_ACTIVO",
+            "categoria": "POR_CABEZA",
+            "id_especie": 424
+          },
+          "original": {
+            "id_precio_mercado": 436,
+            "precio_unitario": "4000000.00",
+            "fecha_vigencia": "2026-11-01",
+            "fecha_vencimiento": null,
+            "estado": "CORREGIDO",
+            "es_aplicado": false,
+            "id_precio_corregido": null,
+            "fuente": "MERCADO_ACTIVO",
+            "categoria": "POR_CABEZA",
+            "id_especie": 424
+          },
+          "aplicado": {
+            "id_precio_mercado": 645,
+            "precio_unitario": "7650000.00",
+            "fecha_vigencia": "2026-11-11",
+            "fecha_vencimiento": null,
+            "estado": "ACTIVO",
+            "es_aplicado": true,
+            "id_precio_corregido": null,
+            "fuente": "MERCADO_ACTIVO",
+            "categoria": "POR_CABEZA",
+            "id_especie": 424
+          },
+          "desviacion_pct_respuesta": "5.00",
+          "fecha_vigencia_respuesta": "2026-11-01"
+        }
+      },
+      "detalle": null
+    },
+    {
+      "escenario": "negativo_precio_ya_corregido",
+      "estado": "PASSED",
+      "esperado": {
+        "http": 409,
+        "error_code": "PRECIO_YA_CORREGIDO"
+      },
+      "obtenido": {
+        "http": 409,
+        "error_code": "PRECIO_YA_CORREGIDO"
+      },
+      "detalle": null
+    }
+  ],
+  "historial_por_cabeza_mercado_activo": [
+    {
+      "id_precio_mercado": 645,
+      "precio_unitario": "7650000.00",
+      "fecha_vigencia": "2026-11-11",
+      "fecha_vencimiento": null,
+      "estado": "ACTIVO",
+      "es_aplicado": true,
+      "id_precio_corregido": null,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    },
+    {
+      "id_precio_mercado": 493,
+      "precio_unitario": "5100000.00",
+      "fecha_vigencia": "2026-11-11",
+      "fecha_vencimiento": null,
+      "estado": "SUPERADO",
+      "es_aplicado": false,
+      "id_precio_corregido": null,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    },
+    {
+      "id_precio_mercado": 489,
+      "precio_unitario": "5000000.00",
+      "fecha_vigencia": "2026-11-10",
+      "fecha_vencimiento": null,
+      "estado": "SUPERADO",
+      "es_aplicado": false,
+      "id_precio_corregido": null,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    },
+    {
+      "id_precio_mercado": 677,
+      "precio_unitario": "4200000.00",
+      "fecha_vigencia": "2026-11-01",
+      "fecha_vencimiento": null,
+      "estado": "SUPERADO",
+      "es_aplicado": false,
+      "id_precio_corregido": 436,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    },
+    {
+      "id_precio_mercado": 436,
+      "precio_unitario": "4000000.00",
+      "fecha_vigencia": "2026-11-01",
+      "fecha_vencimiento": null,
+      "estado": "CORREGIDO",
+      "es_aplicado": false,
+      "id_precio_corregido": null,
+      "fuente": "MERCADO_ACTIVO",
+      "categoria": "POR_CABEZA",
+      "id_especie": 424
+    }
+  ],
+  "subcasos": [
+    {
+      "subcaso": "TC-M06-30",
+      "estado": "APROBADO",
+      "post_ejecutado": true,
+      "motivo": null
+    }
+  ],
+  "cierre_en": "2026-11-12T18:30:27.888155-05:00"
+}</pre></body></html>
