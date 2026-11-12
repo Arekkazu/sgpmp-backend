@@ -1,3 +1,9 @@
+## [1.4.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.57...v1.4.0-rc.58) (2026-11-12)
+
+### Bug Fixes
+
+* **rf75-rf78-mod5:** mensajes del duplicado de consumo y de la justificacion de precio sin ids ni codigos (2a evaluacion QA) ([182b190](https://github.com/Arekkazu/sgpmp-backend/commit/182b1903d86b40fd43ed06983a4b7dee71ea78d9))
+
 ## [1.4.0-rc.57](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.56...v1.4.0-rc.57) (2026-11-12)
 
 ### Bug Fixes
