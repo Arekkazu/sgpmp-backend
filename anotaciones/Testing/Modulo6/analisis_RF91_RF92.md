@@ -69,7 +69,7 @@ Corrección (2026-11-07): la primera versión de esta tabla daba lectura de reve
 
 ## 2. Viabilidad por grupo
 
-Las 24 carpetas existen (`Test_Modulo6/RF-91/TC-M06-G01…G12` y `RF-92/TC-M06-G01…G12`), cada una con `ficha.md`, colección Postman y `resultados/`. Las peticiones marcadas **[escritura]** solo corren con `--env-var permitir_escritura=SI`.
+Las 24 carpetas existen (`Test_Modulo6/RF-91/TC-M06-G47…G58` y `RF-92/TC-M06-G59…G70`), cada una con `ficha.md`, colección Postman y `resultados/`. Las peticiones marcadas **[escritura]** solo corren con `--env-var permitir_escritura=SI`.
 
 Leyenda:
 - **API**: ejecutable con Postman/Newman contra TEST.
@@ -77,47 +77,47 @@ Leyenda:
 - **pytest**: lógica de dominio, se puede probar en local con la función pura o con mocks.
 - **Bloqueado**: falta el endpoint, el módulo o la herramienta.
 
-Carpetas con la misma estructura que `Test_Modulo9/RF-21/TC-M09-G58`: `Test_Modulo6/RF-XX/TC-M06-G<nn>/` con `ficha.md`, `tc_m06_g<nn>.postman_collection.json` y `resultados/resultado_TC-M06-G<nn>.html`. El número `<nn>` es el del grupo TCG de la matriz (RF-91 TCG-09 → `RF-91/TC-M06-G09`; RF-92 TCG-07 → `RF-92/TC-M06-G07`); la carpeta `RF-XX` distingue los grupos que comparten número.
+Carpetas con la misma estructura que `Test_Modulo9/RF-21/TC-M09-G58`: `Test_Modulo6/RF-XX/TC-M06-G<id>/` con `ficha.md`, `tc_m06_g<id>.postman_collection.json` y `resultados/resultado_TC-M06-G<id>.html`. Los ids son los de la matriz general: RF-91 usa TC-M06-G47..G58 (TCG-01..TCG-12 de su matriz) y RF-92 usa TC-M06-G59..G70 (TCG-01..TCG-12 de la suya); los TCG son solo la referencia a la fila de la matriz de origen.
 
 ### RF-91
 
 | Carpeta | TCG | Tema | Viabilidad | Comentario |
 |---|---|---|---|---|
-| G01 | TCG-01 | Cadena IOT_DIRECTO completa | API+datos | Requiere un período ABIERTO con una línea IOT_DIRECTO cuyo activo tenga dispositivo y lecturas apto_para_nic41. **Escribe en TEST**: necesita sandbox o autorización. |
-| G02 | TCG-02 | Cardinalidad de lecturas (1 de 3, 0 de 3, etc.) | pytest + API+datos | Regla "al menos una" = `count(*) > 0` en SQL. La variante "lectura inexistente" no aplica (los IDs no se envían). |
-| G03 | TCG-03 | Matriz de niveles por tipo | **pytest** | `verificar_cadena` es Python puro: se cubren los 5 tipos en local sin TEST. |
-| G04 | TCG-04 | Coherencia semántica | pytest + API+datos | El SQL valida evento ↔ activo de la línea; **no compara fechas lectura/evento/variación** ni galpón en POBLACIONAL (posibles hallazgos TC-91-023/024/025/026). |
-| G05 | TCG-05 | Precio de referencia y fuente | API+datos | Exige evidencia no vacía y justificación si ESTIMADA. **No** comprueba "aprobación del Contador" (posible hallazgo TC-91-029/030). |
-| G06 | TCG-06 | Auditorías de módulos fuente (RF-52/63/73) | Revisar | El repositorio no consulta RF-52, RF-63 ni RF-73: solo eventos M02 y sanitarios. Posible hallazgo o cambio de alcance. |
-| G07 | TCG-07 | Re-verificación de pendientes | API+datos | Mismo POST del período. Escribe en TEST. |
-| G08 | TCG-08 | Indisponibilidad de fuente ≠ eslabón ausente | Bloqueado | Todo es SQL en la misma BD: no hay llamada remota que simular (sin WireMock/Toxiproxy). Una caída de BD está prohibida en TEST. |
+| TC-M06-G47 | (TCG-01 en la matriz de origen) | Cadena IOT_DIRECTO completa | API+datos | Requiere un período ABIERTO con una línea IOT_DIRECTO cuyo activo tenga dispositivo y lecturas apto_para_nic41. **Escribe en TEST**: necesita sandbox o autorización. |
+| TC-M06-G48 | (TCG-02 en la matriz de origen) | Cardinalidad de lecturas (1 de 3, 0 de 3, etc.) | pytest + API+datos | Regla "al menos una" = `count(*) > 0` en SQL. La variante "lectura inexistente" no aplica (los IDs no se envían). |
+| TC-M06-G49 | (TCG-03 en la matriz de origen) | Matriz de niveles por tipo | **pytest** | `verificar_cadena` es Python puro: se cubren los 5 tipos en local sin TEST. |
+| TC-M06-G50 | (TCG-04 en la matriz de origen) | Coherencia semántica | pytest + API+datos | El SQL valida evento ↔ activo de la línea; **no compara fechas lectura/evento/variación** ni galpón en POBLACIONAL (posibles hallazgos TC-91-023/024/025/026). |
+| TC-M06-G51 | (TCG-05 en la matriz de origen) | Precio de referencia y fuente | API+datos | Exige evidencia no vacía y justificación si ESTIMADA. **No** comprueba "aprobación del Contador" (posible hallazgo TC-91-029/030). |
+| TC-M06-G52 | (TCG-06 en la matriz de origen) | Auditorías de módulos fuente (RF-52/63/73) | Revisar | El repositorio no consulta RF-52, RF-63 ni RF-73: solo eventos M02 y sanitarios. Posible hallazgo o cambio de alcance. |
+| TC-M06-G53 | (TCG-07 en la matriz de origen) | Re-verificación de pendientes | API+datos | Mismo POST del período. Escribe en TEST. |
+| TC-M06-G54 | (TCG-08 en la matriz de origen) | Indisponibilidad de fuente ≠ eslabón ausente | Bloqueado | Todo es SQL en la misma BD: no hay llamada remota que simular (sin WireMock/Toxiproxy). Una caída de BD está prohibida en TEST. |
 | **G09** | TCG-09 | Estados y contrato de entrada | **API (sin escritura)** | |
-| G10 | TCG-10 | Cierre, exclusión, inmutabilidad | API+datos | La parte "período cerrado no se re-verifica" se cubre en RF-91/G09 sin escribir. |
-| G11 | TCG-11 | Escala y control de acceso | API (roles) + Bloqueado (M08) | La parte de roles se cubre en RF-91/G09 sin escribir. |
-| G12 | TCG-12 | Rendimiento y retención | k6 (con autorización) | Carga sobre TEST compartido: pedir visto bueno antes. |
+| TC-M06-G56 | (TCG-10 en la matriz de origen) | Cierre, exclusión, inmutabilidad | API+datos | La parte "período cerrado no se re-verifica" se cubre en RF-91 TC-M06-G55 sin escribir. |
+| TC-M06-G57 | (TCG-11 en la matriz de origen) | Escala y control de acceso | API (roles) + Bloqueado (M08) | La parte de roles se cubre en RF-91 TC-M06-G55 sin escribir. |
+| TC-M06-G58 | (TCG-12 en la matriz de origen) | Rendimiento y retención | k6 (con autorización) | Carga sobre TEST compartido: pedir visto bueno antes. |
 
 ### RF-92
 
 | Carpeta | TCG | Tema | Viabilidad | Comentario |
 |---|---|---|---|---|
-| G01 | TCG-01 | Informe BORRADOR con 9 secciones | API+datos | Necesita un período CERRADO. Escribe un BORRADOR. |
-| G02 | TCG-02 | Separación TB / precio | API+datos | Lectura del `contenido.parr_40…` y `parr_51…`. |
-| G03 | TCG-03 | Métodos y supuestos | API+datos | `niif13_93_metodos_y_supuestos` devuelve el texto "datos insuficientes" globalmente, no por activo (posible hallazgo de granularidad). |
-| G04 | TCG-04 | Cuadre del rollforward | API+datos + hoja de cálculo | Tolerancia real ±1 COP. |
-| G05 | TCG-05 | Precios y activos al costo | API+datos | `rango_valor_razonable` es siempre "No determinable" (comparar con el ¶54 y el RF-88). |
-| G06 | TCG-06 | Entradas manuales y riesgos | API+datos | Validación de la combinación contradictoria (`declaracion_sin_novedad=true` + compromisos) no está en el DTO (posible hallazgo TC-92-033/034). |
+| TC-M06-G59 | (TCG-01 en la matriz de origen) | Informe BORRADOR con 9 secciones | API+datos | Necesita un período CERRADO. Escribe un BORRADOR. |
+| TC-M06-G60 | (TCG-02 en la matriz de origen) | Separación TB / precio | API+datos | Lectura del `contenido.parr_40…` y `parr_51…`. |
+| TC-M06-G61 | (TCG-03 en la matriz de origen) | Métodos y supuestos | API+datos | `niif13_93_metodos_y_supuestos` devuelve el texto "datos insuficientes" globalmente, no por activo (posible hallazgo de granularidad). |
+| TC-M06-G62 | (TCG-04 en la matriz de origen) | Cuadre del rollforward | API+datos + hoja de cálculo | Tolerancia real ±1 COP. |
+| TC-M06-G63 | (TCG-05 en la matriz de origen) | Precios y activos al costo | API+datos | `rango_valor_razonable` es siempre "No determinable" (comparar con el ¶54 y el RF-88). |
+| TC-M06-G64 | (TCG-06 en la matriz de origen) | Entradas manuales y riesgos | API+datos | Validación de la combinación contradictoria (`declaracion_sin_novedad=true` + compromisos) no está en el DTO (posible hallazgo TC-92-033/034). |
 | **G07** | TCG-07 | Bloqueos y contrato de entrada | **API (sin escritura)** | |
-| G08 | TCG-08 | Consistencia y justificación | API+datos | 409 `ALERTA_CONSISTENCIA` (la matriz esperaba otro flujo; confirmar código esperado). |
-| G09 | TCG-09 | Secciones BLOQUEADAS | Revisar | El constructor no marca secciones BLOQUEADAS; posible hallazgo. |
-| G10 | TCG-10 | Versionado y aprobación | API+datos | Formato `V1` vs `V01`. |
-| G11 | TCG-11 | Inmutabilidad, descarga, acceso | API + SQL (con permiso) | Parte de roles en RF-92/G07. |
-| G12 | TCG-12 | PDF/A-1, Excel UPRA, rendimiento | veraPDF + k6 | Herramientas fuera del stack actual: declarar o instalar. |
+| TC-M06-G66 | (TCG-08 en la matriz de origen) | Consistencia y justificación | API+datos | 409 `ALERTA_CONSISTENCIA` (la matriz esperaba otro flujo; confirmar código esperado). |
+| TC-M06-G67 | (TCG-09 en la matriz de origen) | Secciones BLOQUEADAS | Revisar | El constructor no marca secciones BLOQUEADAS; posible hallazgo. |
+| TC-M06-G68 | (TCG-10 en la matriz de origen) | Versionado y aprobación | API+datos | Formato `V1` vs `V01`. |
+| TC-M06-G69 | (TCG-11 en la matriz de origen) | Inmutabilidad, descarga, acceso | API + SQL (con permiso) | Parte de roles en RF-92/G07. |
+| TC-M06-G70 | (TCG-12 en la matriz de origen) | PDF/A-1, Excel UPRA, rendimiento | veraPDF + k6 | Herramientas fuera del stack actual: declarar o instalar. |
 
 ## 3. Posibles hallazgos ya visibles en el código (pendientes de confirmar ejecutando)
 
 | Caso | Observación | Dónde |
 |---|---|---|
-| TC-92-043 | `CompromisoDTO.monto_estimado` no tiene restricción `> 0`: un monto negativo pasa la validación. **G07 (RF-92) lo prueba sin escribir**. | `m06_dto.py` |
+| TC-92-043 | `CompromisoDTO.monto_estimado` no tiene restricción `> 0`: un monto negativo pasa la validación. **RF-92 TC-M06-G65 lo prueba sin escribir**. | `m06_dto.py` |
 | TC-91-045 / TC-92-039 | Un período inexistente responde 422 (`PERIODO_NO_ABIERTO` / `PERIODO_NO_CERRADO`), no 404. La matriz acepta 404 o 422: **no es defecto**, pero el mensaje dice "no abierto" en vez de "no existe". | use cases RF-91 y RF-92 |
 | TC-91-024…026 | No hay validación temporal lectura ≤ evento ≤ variación. | `trazabilidad_repository.py` |
 | TC-91-029/030 | Precio ESTIMADA solo exige justificación, no aprobación del Contador. | `trazabilidad_repository.py` |
@@ -131,6 +131,6 @@ Ninguno es todavía una incidencia: según el plan de pruebas §6, primero se ej
 1. ¿URL vigente de TEST? La colección G58 usa `…sslip.io/api-sgpmp-test` y `cypress.config.cjs` usa `https://api.inmero.co`.
 2. ¿Cuentas de prueba de Contador, Administrador, Productor, Veterinario y **Revisor Fiscal**, vinculadas a una finca con titular (NIT + DV)?
 3. ¿Hay períodos contables ABIERTO, EN_CIERRE y CERRADO en TEST? Sin ellos las pruebas que dependen del estado se omiten.
-4. ¿Está habilitado el sandbox (`ENABLE_TEST_SANDBOX`, cabecera `X-Test-Run-Id`) para los grupos que escriben (RF-91 G01 y G07, RF-92 G01…)?
-5. Las dos matrices numeran sus grupos desde TCG-01: ¿basta con la carpeta `RF-91`/`RF-92` para distinguir, por ejemplo, `TC-M06-G07` de cada RF en el panel QA?
+4. ¿Está habilitado el sandbox (`ENABLE_TEST_SANDBOX`, cabecera `X-Test-Run-Id`) para los grupos que escriben (RF-91 TC-M06-G47 y TC-M06-G53, RF-92 TC-M06-G59 y siguientes)?
+5. Los ids de trabajo ya no se repiten entre RF-91 (G47..G58) y RF-92 (G59..G70).
 6. Los casos que dependen de la especificación y no de la API (inputs que no existen, M08): ¿se marcan "No aplica — diseño distinto" o se piden a desarrollo?

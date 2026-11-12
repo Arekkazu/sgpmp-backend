@@ -4,7 +4,7 @@
 |---|---|
 | Para | Responsable de insertar datos en TEST |
 | Ambiente | `https://api.inmero.co/api-sgpmp-test` |
-| Pruebas que lo usan | `tests/Test_Testing/Test_Modulo6/RF-91/TC-M06-G01…G12` y `RF-92/TC-M06-G01…G12` |
+| Pruebas que lo usan | `tests/Test_Testing/Test_Modulo6/RF-91/TC-M06-G47…G58` y `RF-92/TC-M06-G59…G70` |
 | Fecha | 2026-11-07 |
 
 ## Por qué hace falta
@@ -112,7 +112,7 @@ Si alguno no se puede preparar sin romper la integridad de la base, avisen y se 
 
 ### 4.4 No verificar el período
 
-**No ejecuten la verificación de trazabilidad del período** («Verificar trazabilidad» o `POST /finanzas/periodos/{id}/trazabilidad`): esa es justamente la prueba de QA (G01 y G07). Dejen las líneas en VERIFICACION_PENDIENTE.
+**No ejecuten la verificación de trazabilidad del período** («Verificar trazabilidad» o `POST /finanzas/periodos/{id}/trazabilidad`): esa es justamente la prueba de QA (RF-91 TC-M06-G47 y TC-M06-G53). Dejen las líneas en VERIFICACION_PENDIENTE.
 
 ## 5. RF-92 — Período CERRADO con informes de revelaciones
 
