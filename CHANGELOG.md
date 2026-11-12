@@ -1,3 +1,9 @@
+## [1.4.0-rc.57](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.56...v1.4.0-rc.57) (2026-11-12)
+
+### Bug Fixes
+
+* **rf87-rf93-mod6:** titulares para elegir el periodo y ultimo cierre de todos los periodos en una consulta ([31754be](https://github.com/Arekkazu/sgpmp-backend/commit/31754beec2435960af4ce96d9ece72c7029e86df))
+
 ## [1.4.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.55...v1.4.0-rc.56) (2026-11-12)
 
 ### Bug Fixes
