@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-93: generar y aprobar el estado de resultados del período agropecuario |
 # | 2026-11-10 | Arekkazu | INC-M06-337-G37 RF-86: acumulado del período abierto sin versión |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: el estado generado a pedido resta los activos excluidos del cierre |
 """Casos de uso RF-93. Solo sobre períodos CERRADOS (R1), salvo el acumulado de RF-86 (sin versión).
 Cada generación es una versión nueva; la anterior no cambia (R5). Los filtros (especie, activo, infraestructura, finca) suman al consolidado
 porque cada línea y cada costo pertenecen a un solo activo (CA-2, CA-11)."""
@@ -50,8 +51,10 @@ class GenerarEstadoResultadosUseCase:
         ejecucion = self.periodos.ultima_ejecucion(id_periodo_contable) or {}
         filtros = {k: v for k, v in filtros.items() if v}
         try:
-            resultado = self.constructor.guardar(id_periodo_contable, filtros, id_usuario,
-                                                 ejecucion.get("activos_excluidos") or [])
+            # Solo los activos excluidos del cierre: las líneas con trazabilidad pendiente (las que traen
+            # id_linea) ya pasaron al período siguiente y no cuentan en este (RF-87 paso 3).
+            excluidos = [e for e in (ejecucion.get("activos_excluidos") or []) if not e.get("id_linea")]
+            resultado = self.constructor.guardar(id_periodo_contable, filtros, id_usuario, excluidos)
             self.auditoria.registrar(EventoAuditoria(
                 tipo_evento="ESTADO_RESULTADOS_GENERADO", severidad="INFO", id_usuario=id_usuario,
                 payload={"filtros": filtros, "resultado_neto": str(resultado["resultado_neto"]), "version": resultado["version"]},
