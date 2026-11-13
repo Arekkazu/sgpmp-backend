@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: guardar el motivo por separado y conservar los pendientes al cortar. |
 """Entidad de dominio :class:`EjecucionBatchICA` (RF-74 / motor batch).
 
 Modela una corrida del batch de cálculo ICA y sus transiciones de estado:
@@ -33,6 +36,7 @@ class EjecucionBatchICA:
     id_usuario_disparo: Optional[int] = None
     id_usuario_interrupcion: Optional[int] = None
     id_ejecucion: Optional[int] = None
+    motivo_interrupcion: Optional[str] = None
 
     @property
     def esta_en_ejecucion(self) -> bool:
@@ -50,7 +54,10 @@ class EjecucionBatchICA:
             self.cantidad_activos_total - self.cantidad_activos_procesados, 0
         )
 
-    def interrumpir(self, *, causa: str, hora_corte: datetime, id_usuario: Optional[int] = None) -> None:
+    def interrumpir(
+        self, *, causa: str, hora_corte: datetime,
+        id_usuario: Optional[int] = None, motivo: Optional[str] = None,
+    ) -> None:
         if not self.esta_en_ejecucion:
             raise FlowError(
                 code="BATCH_NO_EN_EJECUCION",
@@ -58,9 +65,10 @@ class EjecucionBatchICA:
             )
         self.estado = EstadoEjecucionBatch.INTERRUMPIDO
         self.causa_interrupcion = causa
+        self.motivo_interrupcion = motivo
         self.hora_corte = hora_corte
         self.hora_fin = hora_corte
         self.id_usuario_interrupcion = id_usuario
-        self.cantidad_activos_pendientes = max(
+        self.cantidad_activos_pendientes += max(
             self.cantidad_activos_total - self.cantidad_activos_procesados, 0
         )

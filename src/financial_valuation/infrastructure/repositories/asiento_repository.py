@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-86 v2.0: persistencia de las líneas de asiento NIC 41 |
 # | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: lectura de una línea y de sus ajustes posteriores |
+# | 2026-11-12 | Arekkazu | TC-DIS-256 RF-91: cada línea trae el nombre y el tipo de su activo |
 """Implementación SQL de :class:`AsientoRepository`. Las líneas son inmutables salvo las
 transiciones que permite ``fn_proteger_linea_asiento_nic41`` (cuentas pendientes, trazabilidad,
 comprobante y traslado de período por exclusión autorizada)."""
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.contabilidad import LineaAsiento
 from src.financial_valuation.domain.repositories.asiento_repository import AsientoRepository
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.shared.nombre_activo import nombre_activo_sql
 
 _COLUMNAS = """id_linea_asiento_nic41, tipo_hecho::text AS tipo_hecho, sentido::text AS sentido, estado::text AS estado,
     valor, fecha_hecho, id_periodo_contable, id_activo_biologico, id_especie, id_finca, numero_id_tributaria,
@@ -86,11 +88,17 @@ class SqlAlchemyAsientoRepository(AsientoRepository):
 
     def del_periodo(self, id_periodo_contable: int) -> list[LineaAsiento]:
         resultado = []
+        # TC-DIS-256: la línea trae el nombre y el tipo de su activo; quien solo lee la trazabilidad (el auditor)
+        # no tiene acceso a la lista de activos valorados para buscarlos.
         for f in filas(self.db, f"""SELECT {_COLUMNAS}, estado_trazabilidad::text AS estado_trazabilidad,
-                                           id_comprobante_nic41
-                                    FROM modulo6.lineas_asiento_nic41 WHERE id_periodo_contable = :p ORDER BY 1""",
+                                           id_comprobante_nic41,
+                                           (SELECT {nombre_activo_sql('ab')} FROM modulo2.activos_biologicos ab
+                                             WHERE ab.id_activo_biologico = l.id_activo_biologico) AS identificador_activo,
+                                           (SELECT ab.tipo::text FROM modulo2.activos_biologicos ab
+                                             WHERE ab.id_activo_biologico = l.id_activo_biologico) AS tipo_activo
+                                    FROM modulo6.lineas_asiento_nic41 l WHERE id_periodo_contable = :p ORDER BY 1""",
                        {"p": id_periodo_contable}):
-            extra = {"estado_trazabilidad": f.pop("estado_trazabilidad"), "id_comprobante_nic41": f.pop("id_comprobante_nic41")}
+            extra = {k: f.pop(k) for k in ("estado_trazabilidad", "id_comprobante_nic41", "identificador_activo", "tipo_activo")}
             linea = _linea(f)
             linea.extra = extra
             resultado.append(linea)

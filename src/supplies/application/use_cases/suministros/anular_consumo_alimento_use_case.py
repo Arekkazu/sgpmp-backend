@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: anular compensa el ledger de RF-78 |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75: el aviso de consumo ya anulado da la fecha legible, sin id ni estado crudo |
 """Caso de uso: anular un registro de consumo de alimento VALIDADO (RF-75 pasos 10-13).
 
 Un registro ANULADO no puede reactivarse ni volver a anularse. La justificación
@@ -18,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError, NotFoundError
+from src.supplies.application.use_cases.exportacion.generador_archivos import fecha_hora
 from src.supplies.application.use_cases.costeo_suministros.compensar_anulacion import CompensadorAnulacion
 from src.supplies.domain.entities.consumo_alimento import ConsumoAlimento
 from src.supplies.domain.repositories.consumo_alimento_repository import ConsumoAlimentoRepository
@@ -48,13 +50,13 @@ class AnularConsumoAlimentoUseCase:
 
         if consumo.estado_registro == EstadoRegistro.ANULADO.value:
             desde = (
-                f" desde el {consumo.fecha_hora_anulacion.isoformat()}" if consumo.fecha_hora_anulacion else ""
+                f" desde el {fecha_hora(consumo.fecha_hora_anulacion)}" if consumo.fecha_hora_anulacion else ""
             )
             raise ConflictError(
                 code="CONSUMO_YA_ANULADO",
                 message=(
-                    f"El registro de consumo {id_consumo} ya se encuentra en estado ANULADO{desde}. "
-                    "Un registro ANULADO no puede ser reactivado; si necesita reemplazarlo, cree un nuevo registro."
+                    f"Este consumo ya está anulado{desde}. "
+                    "Un registro anulado no puede reactivarse; si necesita reemplazarlo, cree un nuevo registro."
                 ),
             )
 
