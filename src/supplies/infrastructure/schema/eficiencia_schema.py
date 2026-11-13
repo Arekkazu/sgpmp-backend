@@ -1,10 +1,12 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de la causa (E2-E6)        |
+# | 2026-11-12 | Arekkazu         | USAB-M05-M06 N-05 RF-74: fallos persistentes con el nombre del activo y la causa en palabras |
 """Schemas de respuesta del CU-02 — Eficiencia Alimenticia (ICA, RF-74)."""
 from __future__ import annotations
 
 import datetime
+import re
 from decimal import Decimal
 from typing import Optional
 
@@ -141,9 +143,35 @@ class ColaICAResponse(BaseModel):
     items: list[ItemColaResponse]
 
 
+# N-05: el batch guarda el error técnico tal cual (sirve para diagnosticar); en pantalla salía
+# «(psycopg2.OperationalError) server closed the connection… [SQL: …]». Se dice qué pasó y qué hacer.
+_REINTENTA = "Reintenta el cálculo; si vuelve a fallar, avisa al administrador del sistema."
+_CAUSAS_TECNICAS = (
+    (("statement timeout", "canceling statement", "querycanceled"),
+     f"La base de datos tardó demasiado en responder. {_REINTENTA}"),
+    (("server closed the connection", "could not connect", "connection refused", "connection reset",
+      "terminating connection", "operationalerror", "interfaceerror"),
+     f"Se perdió la conexión con la base de datos. {_REINTENTA}"),
+)
+_TECNICO = re.compile(r"psycopg|sqlalchemy|traceback|\[sql:|\w+(error|exception)\b", re.IGNORECASE)
+
+
+def causa_legible(causa: Optional[str]) -> str:
+    """Causa de un fallo del cálculo en palabras del usuario: sin trazas, SQL ni ids."""
+    texto = (causa or "").strip()
+    bajo = texto.lower()
+    for claves, mensaje in _CAUSAS_TECNICAS:
+        if any(c in bajo for c in claves):
+            return mensaje
+    if _TECNICO.search(texto):
+        return f"Error interno al calcular el ICA. {_REINTENTA}"
+    return re.sub(r" para el activo \d+", "", texto) or "No se registró la causa del fallo."
+
+
 class FalloICAResponse(BaseModel):
     id_fallo: Optional[int]
     id_activo_biologico: int
+    nombre_activo: Optional[str] = None
     periodo_evaluacion: Optional[str]
     causa_fallo: str
     intentos: int
@@ -151,12 +179,13 @@ class FalloICAResponse(BaseModel):
     timestamp_ultimo_intento: Optional[datetime.datetime]
 
     @classmethod
-    def desde_entidad(cls, f: FalloCalculoICA) -> "FalloICAResponse":
+    def desde_entidad(cls, f: FalloCalculoICA, nombre_activo: Optional[str] = None) -> "FalloICAResponse":
         return cls(
             id_fallo=f.id_fallo,
             id_activo_biologico=f.id_activo_biologico,
+            nombre_activo=nombre_activo,
             periodo_evaluacion=f.periodo_evaluacion.value if f.periodo_evaluacion else None,
-            causa_fallo=f.causa_fallo,
+            causa_fallo=causa_legible(f.causa_fallo),
             intentos=f.intentos,
             resuelto=f.resuelto,
             timestamp_ultimo_intento=f.timestamp_ultimo_intento,

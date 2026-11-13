@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -34,6 +35,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, InfrastructureError, NotFoundError, ValidationError
 from src.shared.fechas import hoy_usuario
+from src.supplies.application.use_cases.exportacion.generador_archivos import fecha as dia
 from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
 from src.supplies.domain.entities.medicamento import Medicamento
 from src.supplies.domain.repositories.activo_consulta_port import (
@@ -71,7 +73,7 @@ class ResultadoRegistroMedicamento:
         """Mensaje de RF-76 E11; ``None`` en el registro normal."""
         if not self.activo_ya_en_tratamiento:
             return None
-        hasta = self.fecha_fin_retiro_vigente.isoformat() if self.fecha_fin_retiro_vigente else "-"
+        hasta = dia(self.fecha_fin_retiro_vigente) if self.fecha_fin_retiro_vigente else "-"
         return (
             f"El medicamento fue registrado correctamente. El activo {self.nombre_activo} "
             f"tiene {self.tratamientos_activos} tratamientos activos. El período de retiro vigente se "
@@ -145,8 +147,8 @@ class RegistrarMedicamentoUseCase:
             raise ValidationError(
                 code="FECHA_FUTURA",
                 message=(
-                    f"La fecha de aplicación {dto.fecha_aplicacion.isoformat()} es posterior a la fecha actual "
-                    f"del sistema ({hoy.isoformat()}). No se permiten registros con fechas futuras."
+                    f"La fecha de aplicación {dia(dto.fecha_aplicacion)} es posterior a la fecha actual "
+                    f"del sistema ({dia(hoy)}). No se permiten registros con fechas futuras."
                 ),
                 field="fecha_aplicacion",
             )
@@ -154,8 +156,8 @@ class RegistrarMedicamentoUseCase:
             raise ValidationError(
                 code="FECHA_ANTERIOR_A_CICLO",
                 message=(
-                    f"La fecha de aplicación {dto.fecha_aplicacion.isoformat()} es anterior a la fecha de inicio "
-                    f"del ciclo productivo del activo ({activo.fecha_inicio_ciclo.isoformat()}). No es posible "
+                    f"La fecha de aplicación {dia(dto.fecha_aplicacion)} es anterior a la fecha de inicio "
+                    f"del ciclo productivo del activo ({dia(activo.fecha_inicio_ciclo)}). No es posible "
                     "registrar tratamientos fuera del ciclo vigente."
                 ),
                 field="fecha_aplicacion",
@@ -201,12 +203,12 @@ class RegistrarMedicamentoUseCase:
             fecha_aplicacion=dto.fecha_aplicacion,
             hora_aplicacion=dto.hora_aplicacion,
         ):
-            momento = f"{dto.fecha_aplicacion.isoformat()} {dto.hora_aplicacion.strftime('%H:%M')}"
+            momento = f"{dia(dto.fecha_aplicacion)} a las {dto.hora_aplicacion.strftime('%H:%M')}"
             raise ConflictError(
                 code="MEDICAMENTO_DUPLICADO",
                 message=(
                     f"Ya existe un registro de {dto.nombre_medicamento} para el activo {activo.nombre_visible} "
-                    f"el {dto.fecha_aplicacion.isoformat()} a las {dto.hora_aplicacion.strftime('%H:%M')}. No se "
+                    f"el {momento}. No se "
                     "permiten registros duplicados. Si se trata de una dosis subsecuente, registre una nueva "
                     f"aplicación con fecha y hora posteriores al {momento}."
                 ),

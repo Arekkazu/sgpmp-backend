@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-08 | Arekkazu | INC-M05-259-G07 / INC-M05-264-G31: reintentos del batch ICA y del costeo directo |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-74/80: el cálculo automático va firmado por el usuario de servicio |
 """Reintentos de M05 sin base de datos.
 
 - INC-M05-259-G07 (RF-74 E5): un error de BD traducido a 500 es fallo técnico (se reintenta y queda
@@ -37,6 +38,20 @@ def _batch(calculo, alertas: list, ejecucion: EjecucionBatchICA | None = None) -
 
 
 _CONFIG = SimpleNamespace(max_reintentos=3, backoff_minutos=[2, 4, 6])
+_ID_SERVICIO = 89
+
+
+@pytest.fixture(autouse=True)
+def _usuario_servicio(monkeypatch):
+    monkeypatch.setattr(batch, "id_usuario_servicio", lambda db: _ID_SERVICIO)
+
+
+def test_el_calculo_automatico_queda_firmado_por_el_usuario_de_servicio():
+    # N-07: con id_usuario=None la auditoría del ICA caía en el usuario 1 (un Administrador real).
+    llamadas: list = []
+    calculo = SimpleNamespace(execute=lambda **kw: llamadas.append(kw))
+    assert _batch(calculo, [])._procesar_activo(7, _CONFIG, id_ejecucion=1) is None
+    assert llamadas and all(kw["id_usuario"] == _ID_SERVICIO for kw in llamadas)
 
 
 def test_es_fallo_tecnico_separa_5xx_de_reglas_de_negocio():

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: alerta interna de batch y cola     |
 # | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: fallo técnico 500/503, aviso de fallo persistente y pendientes |
+# | 2026-11-12 | Arekkazu         | USAB-M05-M06 N-07 RF-74/80: el cálculo automático queda firmado por el usuario de servicio |
 """Caso de uso: motor batch de cálculo ICA (RF-74, Flujo C — alcance completo).
 
 Orquesta una corrida completa:
@@ -34,6 +35,7 @@ from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
+from src.shared.database import id_usuario_servicio
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, es_fallo_tecnico
 from src.supplies.application.use_cases.eficiencia.calcular_ica_use_case import CalcularICAUseCase
 from src.supplies.domain.entities.ejecucion_batch_ica import EjecucionBatchICA
@@ -256,7 +258,8 @@ class EjecutarBatchICAUseCase:
                         id_activo_biologico=id_activo,
                         periodo=periodo,
                         tipo_calculo=tipo,
-                        id_usuario=None,
+                        # N-07: lo calcula el Sistema; sin id, la auditoría lo firmaba con el usuario 1.
+                        id_usuario=id_usuario_servicio(db),
                         intento=intento,
                     )
                 return None
