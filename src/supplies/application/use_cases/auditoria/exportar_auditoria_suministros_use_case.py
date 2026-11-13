@@ -5,6 +5,7 @@
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: conservar UUID y versión de integridad al exportar auditoría. |
 # | 2026-11-10 | Arekkazu | CP111/TC-DIS-208 RF-80: PDF y Excel con encabezados y valores legibles; el PDF ya no recorta columnas |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: Excel y PDF nombran al usuario (o al Sistema) y al activo |
 """Caso de uso: exportar la bitácora de auditoría de M05 en CSV/Excel/PDF (RF-80, CU-06).
 
 Formatos elegidos por el usuario (no solo CSV, a diferencia del precedente de
@@ -140,8 +141,17 @@ def _legible(campo: str, valor) -> str:
     return str(valor)
 
 
+def _celda(e: EventoAuditoriaSuministroConsulta, campo: str) -> str:
+    """Quién y sobre qué activo, por su nombre (N-07); el CSV conserva los ids para cruzarlos."""
+    if campo == "id_usuario" and e.id_usuario is not None:
+        return e.nombre_usuario or "Otro usuario"
+    if campo == "id_activo_biologico" and e.id_activo_biologico is not None:
+        return e.nombre_activo or ""
+    return _legible(campo, getattr(e, campo))
+
+
 def _documento(items: list[EventoAuditoriaSuministroConsulta]) -> Documento:
-    filas = [[_legible(campo, getattr(e, campo)) for campo in _CAMPOS] for e in items]
+    filas = [[_celda(e, campo) for campo in _CAMPOS] for e in items]
     return Documento(
         titulo="Bitácora de auditoría de suministros",
         columnas=[_ETIQUETAS[c] for c in _CAMPOS],

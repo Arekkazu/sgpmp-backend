@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78 E2: justificación faltante → 422    |
+# | 2026-11-12 | Arekkazu | TC-DIS-215 RF-78: el mensaje de E2 sin nombre de columna ni código de módulo |
 """Value object ``JustificacionPrecio`` — justificación obligatoria de un precio manual.
 
 RF-78 Restricción 10 / E2: obligatoria cuando ``origen_precio=MANUAL`` (no hay
@@ -32,8 +33,8 @@ class JustificacionPrecio:
             raise BusinessRuleError(
                 code="JUSTIFICACION_PRECIO_REQUERIDA",
                 message=(
-                    "Se requiere justificación_precio cuando el precio no proviene de M40 con antigüedad "
-                    f"≤ 30 días (mínimo {MIN_LONGITUD} caracteres)."
+                    "Justifica el precio: no hay un precio de mercado automático de los últimos 30 días "
+                    f"para este suministro. Escribe al menos {MIN_LONGITUD} caracteres."
                 ),
                 field="justificacion_precio",
             )

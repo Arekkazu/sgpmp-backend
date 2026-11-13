@@ -47,7 +47,28 @@ async function proceso(programa,args,env=envGuard,entrada=null,timeout=240000){
 }
 async function paso(numero,nombre,categoria,fn){
   try{await fn();tabla.push({numero,nombre,estado:'OK',clasificacion_fallo:'NINGUNO'});}
-  catch(e){const detalle=String(e?.message??e);tabla.push({numero,nombre,estado:'FALLO',clasificacion_fallo:detalle.includes('EPERM')?'SANDBOX':categoria,detalle:detalle.slice(0,180)});}
+  catch(e){
+    let detalle=String(e?.message??e);
+    if(numero===2)for(const {panel} of paneles){
+      const dir=path.join(temporal,runId,'cypress',panel);
+      if(fs.existsSync(path.join(dir,`${grupo}-UI-${panel}.json`))&&!detalle.includes(`panel ${panel}:`)){
+        let acta;try{acta=JSON.parse(fs.readFileSync(path.join(dir,`${grupo}-UI-${panel}.json`),'utf8'));}catch{}
+        detalle+=`\n${diagnosticoCypress(panel,dir,{code:'desconocido',out:JSON.stringify({acta}),err:''})}`;
+      }
+    }
+    tabla.push({numero,nombre,estado:'FALLO',clasificacion_fallo:detalle.includes('EPERM')?'SANDBOX':categoria,detalle});
+  }
+}
+function diagnosticoCypress(panel,dir,salida){
+  let acta=null;
+  try{acta=JSON.parse(salida.out).acta;}catch{}
+  const log=path.join(dir,`${grupo}-cypress-salida.log`);
+  const texto=fs.existsSync(log)?fs.readFileSync(log,'utf8'):salida.err;
+  const lineas=texto.replace(/\u001b\[[0-9;]*m/g,'').split(/\r?\n/);
+  const inicio=lineas.findIndex(x=>/AssertionError|CypressError|Timed out|Error:/.test(x));
+  const primerError=inicio<0?texto:lineas.slice(inicio,inicio+8).join('\n');
+  const lineaSpec=lineas.find(x=>/g43\.cy\.js:\d+/.test(x))??'Línea del spec no indicada por Cypress';
+  return `panel ${panel}: código=${salida.code}; motivo=${acta?.motivo??'sin acta'}; bloqueo_entorno=${acta?.bloqueo_entorno??'ninguno'}; primer_error_cypress=${primerError}; linea_spec=${lineaSpec}; opciones_periodo=${JSON.stringify(acta?.opciones_periodo??[])}; respuestas_periodos=${JSON.stringify(acta?.respuestas_periodos??[])}; log=${log}`;
 }
 function fuentes(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
@@ -78,20 +99,40 @@ try{
     assert.notEqual(z.code,0);
     assert((z.out+z.err).includes('BLOQUEO_ENTORNO_CYPRESS'));
     assert(!/Webpack Compilation Error|Legacy octal literals/.test(z.out+z.err));
-    const sim=await simuladorBase(escenarios);
+    const sim=await simuladorBase(escenarios,{demoraOpcionMs:250});
     try{
       for(const {panel,esperado} of paneles){
         const dir=path.join(temporal,runId,'cypress',panel);
-        const input={dir,api:sim.url,front:sim.url,runId,panel,esperado,token:'LOCAL',secret:'LOCAL',localSmoke:true};
+        const periodo=Number(Object.keys(escenarios.paneles).find(id=>escenarios.paneles[id].panel===panel));
+        const input={dir,api:sim.url,front:sim.url,runId,panel,periodo,numeroIdTributaria:periodo===8?'111111111':'777777777',esperado,token:'LOCAL',secret:'LOCAL',localSmoke:true};
         const salida=await proceso(process.execPath,[path.join(base,'pruebas','cypress_hijo.mjs')],envGuard,JSON.stringify(input),180000);
-        assert.equal(salida.code,0,`panel ${panel}: ${(salida.out+salida.err).slice(-600)}`);
+        assert.equal(salida.code,0,diagnosticoCypress(panel,dir,salida));
         const meta=JSON.parse(fs.readFileSync(path.join(dir,`${grupo}-cypress.json`),'utf8'));
         assert.equal(meta.totalTests,1);
         const acta=JSON.parse(fs.readFileSync(path.join(dir,`${grupo}-UI-${panel}.json`),'utf8'));
         assert(['APROBADO','RECHAZADO'].includes(acta.estado));
         assert(acta.captura);
+        assert.equal(acta.titular_seleccionado,true);
+        assert(acta.consultas_periodos.some(x=>x.query.numero_id_tributaria===acta.titular_alias));
+        assert(!JSON.stringify(acta).includes(input.numeroIdTributaria),'acta sin NIT');
+        assert(!fs.readFileSync(path.join(dir,`${grupo}-cypress-salida.log`),'utf8').includes(input.numeroIdTributaria),'log sin NIT');
+        assert(acta.opciones_periodo.some(x=>x.value===String(Object.keys(escenarios.paneles).find(id=>escenarios.paneles[id].panel===panel))));
+        assert(acta.respuestas_periodos.some(xs=>xs.some(x=>Number(x.id)===Number(Object.keys(escenarios.paneles).find(id=>escenarios.paneles[id].panel===panel)))));
       }
     }finally{await sim.cerrar();}
+    const ausente=await simuladorBase(escenarios,{ausentes:[8]});
+    try{
+      const dir=path.join(temporal,runId,'cypress','ausente');
+      const input={dir,api:ausente.url,front:ausente.url,runId,panel:'027',numeroIdTributaria:'111111111',esperado:escenarios.paneles['8'].esperado,token:'LOCAL',secret:'LOCAL',localSmoke:true};
+      const salida=await proceso(process.execPath,[path.join(base,'pruebas','cypress_hijo.mjs')],envGuard,JSON.stringify(input),180000);
+      assert.notEqual(salida.code,0,'El período ausente debe quedar NO_CONCLUYENTE');
+      const acta=JSON.parse(fs.readFileSync(path.join(dir,`${grupo}-UI-027.json`),'utf8'));
+      assert.equal(acta.estado,'NO_CONCLUYENTE');
+      assert.match(acta.motivo,/PERIODO_8_AUSENTE_EN_GET_FINANZAS_PERIODOS/);
+      assert.equal(acta.titular_seleccionado,true);
+      assert.equal(acta.opciones_periodo.length,0);
+      assert(!acta.respuestas_periodos.at(-1).some(x=>Number(x.id)===8));
+    }finally{await ausente.cerrar();}
   });
   await paso(3,'CLI y preflight antes de red','PREFLIGHT_ENTORNO',async()=>{
     const z=await proceso(process.execPath,[path.join(base,'pruebas',`${stem}_cli.test.mjs`)]);
@@ -174,9 +215,20 @@ try{
       assert.equal(z.destino,d,u);assert.equal(z.ruta,r,u);
     }
   });
+  await paso(10,'Escenarios RF-87 V2 y ejemplo en proceso hijo','CONTRATO',async()=>{
+    const ejemplo=path.join(os.tmpdir(),'g43-verificar-ejemplo');
+    const z=await proceso(process.execPath,[path.join(base,'pruebas','g43_v2_escenarios.test.mjs')],{...envGuard,QA_VERIFICAR_EJEMPLO:ejemplo},null,300000);
+    if(z.error==='EPERM')throw Error('spawn EPERM');
+    assert.equal(z.code,0,(z.out+z.err).slice(-800));
+    assert(fs.existsSync(path.join(ejemplo,'capacidades.json')));
+    assert(fs.existsSync(path.join(ejemplo,'RUN-G43-V2-20261112-000000','resultado.json')));
+  });
   const bloqueos=fs.existsSync(guardLog)?fs.readFileSync(guardLog,'utf8').trim().split(/\r?\n/).filter(Boolean):[];
   tabla.push({numero:'RED',nombre:'Intentos externos',estado:bloqueos.length===0?'OK':'FALLO',clasificacion_fallo:bloqueos.length===0?'NINGUNO':'PREFLIGHT_ENTORNO',intentos:bloqueos.length});
   const infraestructura=['lib/infra.mjs','lib/contrato.mjs','lib/informe.mjs','pruebas/newman_hijo.mjs','pruebas/cypress_hijo.mjs','pruebas/simulador_base.mjs','pruebas/verificar.mjs'];
   process.stdout.write(JSON.stringify({tabla,sha256:{ejecutor:sha256(path.join(base,`${stem}.mjs`)),infraestructura:Object.fromEntries(infraestructura.map(x=>[x,sha256(path.join(base,x))]))}},null,2)+'\n');
   if(tabla.some(x=>x.estado==='FALLO'))process.exitCode=2;
-}finally{fs.rmSync(temporal,{recursive:true,force:true});}
+}finally{
+  if(tabla.some(x=>x.estado==='FALLO')&&process.env.QA_VERIFICAR_CONSERVAR!=='NO')process.stdout.write(`Temporal conservado: ${temporal}\n`);
+  else fs.rmSync(temporal,{recursive:true,force:true});
+}

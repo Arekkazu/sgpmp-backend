@@ -1,0 +1,15 @@
+{
+  "grupo": "G34",
+  "version": 2,
+  "intento": 7,
+  "run_id": "RUN-G34-V2-20261112-052510",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G34-V2-R4-20261112",
+  "casos": [
+    "TC-M06-006"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico de V2 (intento 4) de TC-M06-G34. Intento 3 (RUN-G34-V2-20261112-001039, AUT-G34-V2-R3-20261111): TC-M06-006 APROBADO por API y UI, seguimiento CORREGIDA x2, DELETE 200, rollback y costos verificados; aun así NO_OFICIAL/TECNICO, porque el ejecutor sumaba API (78) y Cypress (14) contra un tope único de 90, más estricto que lo autorizado en la SOL (90 API y Cypress por separado). ORD-G34-017 (ronda 5, aprobada) separa los límites: API 90 y Cypress 16. Intentos anteriores: 212017 (UI sin seleccionar el 241, ronda 3) y 235956 (contexto REINTENTAR rechazado, ronda 4). SHA-256: g34.mjs aff6398102517037e359e944532ea0f4f1d6e02c33ab2cc70d40b9b5cea7e6f6; lib/g34_core.mjs c66f6919b98566c3c92bc7dc0a756950fb858acf003b0e024ad2b2e45cbcb32b; g34.cy.js 9a5fd2193d6f2250ec7b072de8dc198a5bbfa8e37fa06271181d3f045b383f1e. Verificación del responsable QA: 8/8, 30/30 y validar del ejemplo A4 → OFICIAL. Mismos oráculos y efectos que SOL-G34-012/014/016."
+  },
+  "version_anterior": null
+}

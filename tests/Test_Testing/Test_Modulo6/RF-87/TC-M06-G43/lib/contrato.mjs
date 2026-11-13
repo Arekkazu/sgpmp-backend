@@ -12,6 +12,7 @@ export function rutaCanonica(ruta){return ruta.replace(/\/RUN-G\d+-V\d+-\d{8}-\d
 export function esquema(metodo,ruta){const canonical=rutaCanonica(ruta);return contrato.rutas.find(x=>x.metodo===metodo&&rutaCanonica(x.ruta)===canonical);}
 function tipoValido(valor,tipo){
   if(tipo==='integer')return Number.isInteger(valor);
+  if(tipo==='especie_estimacion')return Array.isArray(valor)&&valor.length===2&&Number.isInteger(valor[0])&&typeof valor[1]==='boolean';
   if(tipo==='decimal')return (typeof valor==='string'&&/^-?\d+(\.\d+)?$/.test(valor))||(typeof valor==='number'&&Number.isFinite(valor));
   if(tipo==='date')return typeof valor==='string'&&/^\d{4}-\d\d-\d\d$/.test(valor);
   if(tipo==='datetime')return typeof valor==='string'&&/^\d{4}-\d\d-\d\d[T ]/.test(valor);
@@ -21,6 +22,7 @@ function tipoValido(valor,tipo){
 }
 function revisar(dato,forma,prefijo){
   if(Array.isArray(forma)){
+    if(dato===null&&prefijo.endsWith('.precios_congelados'))return;
     if(!Array.isArray(dato))throw Error(`TIPO_INVALIDO_${prefijo}`);
     return;
   }
@@ -36,6 +38,7 @@ function revisar(dato,forma,prefijo){
 export function instrumentar(dato,forma,lecturas=[],prefijo='respuesta',opciones={estricto:true}){
   revisar(dato,forma,prefijo);
   const envolver=(valor,modelo,ruta)=>{
+    if(typeof modelo==='string')return valor;
     if(Array.isArray(valor))return new Proxy(valor,{get(o,k){if(typeof k==='string'&&/^\d+$/.test(k)){
       const hijo=`${ruta}[${k}]`;lecturas.push(hijo);revisar(o[k],modelo[0]??{},hijo);
       return envolver(o[k],modelo[0]??{},hijo);

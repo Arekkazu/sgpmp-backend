@@ -1,0 +1,1517 @@
+{
+  "caso": "TC-M06-G116",
+  "identificador_anterior": "TC-M06-G88",
+  "issue_antecedente": "#1019 / INC-M06-332-G88",
+  "issue_correccion": "#1024",
+  "subcasos": [
+    "TC-M06-46",
+    "TC-M06-47"
+  ],
+  "fase": "inspeccion_preparacion_solo_lectura",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-13T02:47:30.322357+00:00",
+  "restricciones": "Sin POST cotizaciones; solo GET + POST /sesiones/",
+  "expectativas_actualizadas": {
+    "activo_inexistente_entero": {
+      "http": 404,
+      "code": "ACTIVO_NO_ENCONTRADO"
+    },
+    "activo_baja": {
+      "http": 422,
+      "code": "ACTIVO_NO_DISPONIBLE"
+    },
+    "activo_sin_vr": {
+      "http": 422,
+      "code": "VALOR_RAZONABLE_NO_DISPONIBLE"
+    },
+    "periodo_cerrado": {
+      "http": 422,
+      "code": "PERIODO_CONTABLE_CERRADO"
+    }
+  },
+  "despliegue_1024": {
+    "openapi_version": "1.0.0",
+    "post_cotizaciones": true,
+    "confirmado_en_test": false,
+    "estado": "PENDIENTE_DE_CONFIRMACION",
+    "evidencia_codigo_origin_dev": {
+      "commit": "29512934",
+      "mensaje": "fix(rf83-rf94-mod6): ... cotizacion con 422",
+      "comportamiento": "tras periodo_para, si not periodo.contiene(hoy) -> 422 PERIODO_CONTABLE_CERRADO",
+      "en_rama_local_laura": false
+    },
+    "releases_recientes_contienen_merge_1024": false,
+    "releases_evaluados": [
+      "v1.4.0-rc.55",
+      "v1.4.0-rc.58",
+      "v1.4.0-rc.59"
+    ],
+    "merge_pr_1024": "e84650d37464db79e35d69d58f45c5aed7c78b60",
+    "nota": "origin/dev contiene el fix; tags rc.55-rc.59 no. OpenAPI TEST no expone SHA. Despliegue en TEST permanece PENDIENTE DE CONFIRMACION."
+  },
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "nota": "autenticacion_contador",
+      "respuesta": {
+        "ok": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/health",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "meta",
+      "respuesta": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/version",
+      "codigo": 404,
+      "escritura": false,
+      "nota": "meta",
+      "respuesta": {
+        "detail": "Not Found"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "openapi",
+      "respuesta": {
+        "title": "SGPMP API",
+        "version": "1.0.0",
+        "post_cotizaciones": true,
+        "tiene_CotizacionDTO": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "ok": true,
+        "keys": [
+          "general",
+          "especies",
+          "costos_venta",
+          "matriz",
+          "lineas_pendientes_cuenta"
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 1,
+        "periodos": [
+          {
+            "id_periodo_contable": 220,
+            "estado": "ABIERTO",
+            "fecha_inicio": "2026-11-01",
+            "fecha_fin": "2026-11-30",
+            "fecha_cierre": null,
+            "razon_social": "QA M06 Operaciones SAS"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 2,
+        "periodos": [
+          {
+            "id_periodo_contable": 260,
+            "estado": "ABIERTO",
+            "fecha_inicio": "2026-12-01",
+            "fecha_fin": "2026-12-31",
+            "fecha_cierre": null,
+            "razon_social": "QA M06 Cierre SAS"
+          },
+          {
+            "id_periodo_contable": 219,
+            "estado": "CERRADO",
+            "fecha_inicio": "2026-11-01",
+            "fecha_fin": "2026-11-30",
+            "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+            "razon_social": "QA M06 Cierre SAS"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 30
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/948",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "BAJA",
+        "indicador": "VALOR_RAZONABLE",
+        "vr": "2671480.0000",
+        "calc_estado": "CALCULADO",
+        "tiene_calculo": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/951",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1567",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1568",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALOR_RAZONABLE",
+        "vr": "3760000.0000",
+        "calc_estado": "CALCULADO",
+        "tiene_calculo": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1569",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALOR_RAZONABLE",
+        "vr": "3760000.0000",
+        "calc_estado": "CALCULADO",
+        "tiene_calculo": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1570",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALOR_RAZONABLE",
+        "vr": "3760000.0000",
+        "calc_estado": "CALCULADO",
+        "tiene_calculo": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALOR_RAZONABLE",
+        "vr": "3760000.0000",
+        "calc_estado": "CALCULADO",
+        "tiene_calculo": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1573",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1629",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1635",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1639",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1643",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1858",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "indicador": "VALORACION_POR_COSTO",
+        "vr": null,
+        "calc_estado": null,
+        "tiene_calculo": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/999999",
+      "codigo": 404,
+      "escritura": false,
+      "respuesta": {
+        "existe": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=5&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total_registros": 5
+      }
+    }
+  ],
+  "candidatos": {
+    "tc_m06_46_inexistente": {
+      "id": 999999,
+      "evidencia": "GET /finanzas/activos/999999 -> 404",
+      "apto": true
+    },
+    "tc_m06_46_baja": {
+      "apto": true,
+      "candidato": {
+        "codigo": 200,
+        "existe": true,
+        "estado": "BAJA",
+        "id_finca": 463,
+        "razon_social": "QA M06 SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "reconocimiento_estado": "CONFIRMADO",
+        "ultimo_calculo_estado": "CALCULADO",
+        "valor_razonable_neto": "2671480.0000",
+        "tiene_calculo": true,
+        "n_calculos": 1,
+        "n_reconocimientos": 1,
+        "id": 948
+      },
+      "alternativas": [
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "BAJA",
+          "id_finca": 463,
+          "razon_social": "QA M06 SAS",
+          "indicador_valoracion": "VALOR_RAZONABLE",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": "CALCULADO",
+          "valor_razonable_neto": "2671480.0000",
+          "tiene_calculo": true,
+          "n_calculos": 1,
+          "n_reconocimientos": 1,
+          "id": 948
+        }
+      ]
+    },
+    "tc_m06_47_sin_vr": {
+      "apto": true,
+      "candidato": {
+        "codigo": 200,
+        "existe": true,
+        "estado": "ACTIVO",
+        "id_finca": 463,
+        "razon_social": "QA M06 SAS",
+        "indicador_valoracion": "VALORACION_POR_COSTO",
+        "reconocimiento_estado": "CONFIRMADO",
+        "ultimo_calculo_estado": null,
+        "valor_razonable_neto": null,
+        "tiene_calculo": false,
+        "n_calculos": 0,
+        "n_reconocimientos": 1,
+        "id": 951
+      },
+      "alternativas": [
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 463,
+          "razon_social": "QA M06 SAS",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 951
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 466,
+          "razon_social": "QA M06 Cierre SAS",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1567
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 467,
+          "razon_social": "QA M06 Operaciones SAS",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1573
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 468,
+          "razon_social": "Agropecuaria El Rosal S.A.S.",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1629
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 469,
+          "razon_social": "Titular Qa Mseis",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1635
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 471,
+          "razon_social": "[SEED-QA-M06] Agropecuaria Aislada S.A.S.",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1639
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 472,
+          "razon_social": "Titular Qa Precios Aislado",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1643
+        },
+        {
+          "codigo": 200,
+          "existe": true,
+          "estado": "ACTIVO",
+          "id_finca": 475,
+          "razon_social": "Agropecuaria Medicion QA S.A.S.",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "reconocimiento_estado": "CONFIRMADO",
+          "ultimo_calculo_estado": null,
+          "valor_razonable_neto": null,
+          "tiene_calculo": false,
+          "n_calculos": 0,
+          "n_reconocimientos": 1,
+          "id": 1858
+        }
+      ]
+    },
+    "tc_m06_47_periodo_cerrado": {
+      "id_activo_sugerido_dev": 1568,
+      "activo": {
+        "codigo": 200,
+        "existe": true,
+        "estado": "ACTIVO",
+        "id_finca": 466,
+        "razon_social": "QA M06 Cierre SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "reconocimiento_estado": "CONFIRMADO",
+        "ultimo_calculo_estado": "CALCULADO",
+        "valor_razonable_neto": "3760000.0000",
+        "tiene_calculo": true,
+        "n_calculos": 1,
+        "n_reconocimientos": 1
+      },
+      "periodo_219": {
+        "id_periodo_contable": 219,
+        "estado": "CERRADO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30",
+        "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+        "razon_social": "QA M06 Cierre SAS"
+      },
+      "periodo_nov_2026": {
+        "id_periodo_contable": 219,
+        "estado": "CERRADO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30",
+        "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+        "razon_social": "QA M06 Cierre SAS"
+      },
+      "periodo_hoy_cerrado": true,
+      "apto": true,
+      "nota": "El rechazo PERIODO_CONTABLE_CERRADO aplica cuando el período que contiene la fecha de emisión (hoy) está cerrado; periodo_para traslada y el use case responde 422 si el período resuelto no contiene hoy. No basta con que 219 esté cerrado si noviembre está ABIERTO."
+    }
+  },
+  "baseline_verificacion": {
+    "consultas_antes_despues": [
+      "GET /finanzas/cotizaciones (total + ids; filtrar por activo si aplica)",
+      "GET /finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA (total_registros)",
+      "GET /finanzas/activos/{id} (estado + VR)",
+      "GET /finanzas/periodos?numero_id_tributaria=... (estado período)"
+    ],
+    "cotizaciones_total_actual": 7,
+    "cotizaciones_ids_actual": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "eventos_cotizacion_registrada_actual": 5,
+    "periodo_220_debe_permanecer": "ABIERTO",
+    "periodo_219_no_reabrir": true,
+    "no_usar_cotizaciones": [
+      6,
+      7
+    ],
+    "no_usar_activos_1022": [
+      1570,
+      1571
+    ]
+  },
+  "riesgos": [
+    "Despliegue #1024 en TEST no confirmado; releases rc.55-rc.59 no contienen el merge e84650d3.",
+    "Sin el fix, el escenario de periodo cerrado puede no devolver 422 PERIODO_CONTABLE_CERRADO.",
+    "No cerrar periodo 220 ni reabrir 219. No usar cotizaciones 6/7 ni activos 1570/1571.",
+    "Rama local laura sin el check; origin/dev si (29512934)."
+  ],
+  "dictamen_preparacion": {
+    "categoria": "PREPARADO_CONDICIONAL",
+    "motivo": "Candidatos de datos encontrados para los 4 escenarios, pero el despliegue de #1024 en TEST sigue PENDIENTE DE CONFIRMACIÓN. No ejecutar hasta confirmar.",
+    "listo_para_ejecutar": false,
+    "requiere": [
+      "Confirmacion verificable de despliegue #1024 en TEST",
+      "Autorizacion expresa para POST negativos"
+    ],
+    "escritura_en_test": false,
+    "datos_candidatos_listos": true
+  },
+  "periodos_ops_900000003": [
+    {
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    }
+  ],
+  "periodos_titular_900000002": [
+    {
+      "id_periodo_contable": 260,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-12-01",
+      "fecha_fin": "2026-12-31",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Cierre SAS"
+    },
+    {
+      "id_periodo_contable": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "razon_social": "QA M06 Cierre SAS"
+    }
+  ],
+  "periodo_220": {
+    "id_periodo_contable": 220,
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "fecha_cierre": null,
+    "razon_social": "QA M06 Operaciones SAS"
+  },
+  "periodo_219": {
+    "id_periodo_contable": 219,
+    "estado": "CERRADO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+    "razon_social": "QA M06 Cierre SAS"
+  },
+  "periodos_nov_2026_900000002": [
+    {
+      "id_periodo_contable": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "razon_social": "QA M06 Cierre SAS"
+    }
+  ],
+  "activos_listado": [
+    {
+      "id_activo_biologico": 1627,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3564480.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1629,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "3500000.0000",
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1634,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "2809848.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 943,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3015990.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 944,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "2779956.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 945,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "2761344.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 946,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "2884860.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 947,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "305970.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 948,
+      "estado": "BAJA",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "2671480.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1567,
+      "estado": "ACTIVO",
+      "especie": "Equino Qa Aislado",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "4387500.0000",
+      "id_finca": 466,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 951,
+      "estado": "ACTIVO",
+      "especie": "Equino",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "4200000.0000",
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1635,
+      "estado": "ACTIVO",
+      "especie": "Especie Qa Mseis Costo",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "2500000.0000",
+      "id_finca": 469,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1568,
+      "estado": "ACTIVO",
+      "especie": "Caprino Qa Aislado",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3760000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 466,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1831,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3248640.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1832,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3429120.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1833,
+      "estado": "ACTIVO",
+      "especie": "Bovino",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3609600.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1572,
+      "estado": "ACTIVO",
+      "especie": "Equino Qa Aislado",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "4042000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 467,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1573,
+      "estado": "ACTIVO",
+      "especie": "Equino Qa Aislado",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "4000000.0000",
+      "id_finca": 467,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1569,
+      "estado": "ACTIVO",
+      "especie": "Caprino Qa Aislado",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3760000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 467,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1570,
+      "estado": "ACTIVO",
+      "especie": "Caprino Qa Aislado",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3760000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 467,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1571,
+      "estado": "ACTIVO",
+      "especie": "Caprino Qa Aislado",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "3760000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 467,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1639,
+      "estado": "ACTIVO",
+      "especie": "Ovino Aislado Qa Mseis",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "1800000.0000",
+      "id_finca": 471,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1860,
+      "estado": "ACTIVO",
+      "especie": "Ovino Medicion Qa Rf",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "338400.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 475,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1859,
+      "estado": "ACTIVO",
+      "especie": "Ovino Medicion Qa Rf",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "354568.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 475,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1858,
+      "estado": "ACTIVO",
+      "especie": "Ovino Medicion Qa Rf",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "1700000.0000",
+      "id_finca": 475,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1632,
+      "estado": "ACTIVO",
+      "especie": "Tilapia Roja",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "183770.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 468,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1643,
+      "estado": "ACTIVO",
+      "especie": "Caprino Aislado Precios",
+      "valorado_por_costo": true,
+      "valor_razonable_neto": null,
+      "valor_contable_por_costo": "500000.0000",
+      "id_finca": 472,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 1644,
+      "estado": "ACTIVO",
+      "especie": "Caprino Aislado Precios",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "940000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 472,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 949,
+      "estado": "ACTIVO",
+      "especie": "Pollo De Engorde Qa Mseis",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "6960000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    },
+    {
+      "id_activo_biologico": 950,
+      "estado": "ACTIVO",
+      "especie": "Pollo De Engorde Qa Mseis",
+      "valorado_por_costo": false,
+      "valor_razonable_neto": "6960000.0000",
+      "valor_contable_por_costo": null,
+      "id_finca": 463,
+      "razon_social": null
+    }
+  ],
+  "cotizaciones": {
+    "total": 7,
+    "ids": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "reservadas_6_7": [
+      {
+        "id_cotizacion": 7,
+        "estado": "VENCIDA",
+        "activos_cotizados": [
+          1570
+        ],
+        "id_periodo_contable": 220,
+        "valor_cotizacion_propuesto": "3800000.0000",
+        "id_usuario": 132
+      },
+      {
+        "id_cotizacion": 6,
+        "estado": "COTIZADO",
+        "activos_cotizados": [
+          1571
+        ],
+        "id_periodo_contable": 220,
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "id_usuario": 132
+      }
+    ],
+    "muestra": [
+      {
+        "id_cotizacion": 10,
+        "estado": "COTIZADO",
+        "activos_cotizados": [
+          1569
+        ],
+        "id_periodo_contable": 220,
+        "valor_cotizacion_propuesto": "1000.0000",
+        "id_usuario": 137
+      },
+      {
+        "id_cotizacion": 9,
+        "estado": "COTIZADO",
+        "activos_cotizados": [
+          1569
+        ],
+        "id_periodo_contable": 220,
+        "valor_cotizacion_propuesto": "1000.0000",
+        "id_usuario": 141
+      },
+      {
+        "id_cotizacion": 8,
+        "estado": "COTIZADO",
+        "activos_cotizados": [
+          1627
+        ],
+        "id_periodo_contable": 241,
+        "valor_cotizacion_propuesto": "3700000.0000",
+        "id_usuario": 100
+      },
+      {
+        "id_cotizacion": 7,
+        "estado": "VENCIDA",
+        "activos_cotizados": [
+          1570
+        ],
+        "id_periodo_contable": 220,
+        "valor_cotizacion_propuesto": "3800000.0000",
+        "id_usuario": 132
+      },
+      {
+        "id_cotizacion": 6,
+        "estado": "COTIZADO",
+        "activos_cotizados": [
+          1571
+        ],
+        "id_periodo_contable": 220,
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "id_usuario": 132
+      },
+      {
+        "id_cotizacion": 4,
+        "estado": "VENCIDA",
+        "activos_cotizados": [
+          1
+        ],
+        "id_periodo_contable": 6,
+        "valor_cotizacion_propuesto": "4600000.0000",
+        "id_usuario": 1
+      },
+      {
+        "id_cotizacion": 5,
+        "estado": "VENCIDA",
+        "activos_cotizados": [
+          2,
+          3
+        ],
+        "id_periodo_contable": 6,
+        "valor_cotizacion_propuesto": "7000000.0000",
+        "id_usuario": 1
+      }
+    ]
+  },
+  "auditoria_cotizacion_registrada": {
+    "total_registros": 5,
+    "muestra": [
+      {
+        "id_evento": 20190,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T02:31:20.440127Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 137,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": null,
+        "id_periodo_contable": 220,
+        "id_referencia": 10,
+        "payload_evento": {
+          "activos": [
+            1569
+          ],
+          "valor_propuesto": "1000.0000",
+          "valor_razonable_referencia": "3760000.0000"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "1000.0000",
+        "identificador_activo": null
+      },
+      {
+        "id_evento": 20189,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T02:24:46.425401Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": null,
+        "id_periodo_contable": 220,
+        "id_referencia": 9,
+        "payload_evento": {
+          "activos": [
+            1569
+          ],
+          "valor_propuesto": "1000.0000",
+          "valor_razonable_referencia": "3760000.0000"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "1000.0000",
+        "identificador_activo": null
+      },
+      {
+        "id_evento": 17257,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-11T16:23:19.605168Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 100,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": null,
+        "id_periodo_contable": 241,
+        "id_referencia": 8,
+        "payload_evento": {
+          "activos": [
+            1627
+          ],
+          "valor_propuesto": "3700000",
+          "valor_razonable_referencia": "3564480.0000"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "3700000.0000",
+        "identificador_activo": null
+      },
+      {
+        "id_evento": 7072,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-08T21:25:15.761785Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 132,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": null,
+        "id_periodo_contable": 220,
+        "id_referencia": 7,
+        "payload_evento": {
+          "activos": [
+            1570
+          ],
+          "valor_propuesto": "3800000",
+          "valor_razonable_referencia": "3760000.0000"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "3800000.0000",
+        "identificador_activo": null
+      },
+      {
+        "id_evento": 7071,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-08T21:25:14.590377Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 132,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": null,
+        "id_periodo_contable": 220,
+        "id_referencia": 6,
+        "payload_evento": {
+          "activos": [
+            1571
+          ],
+          "valor_propuesto": "3900000",
+          "valor_razonable_referencia": "3760000.0000"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "3900000.0000",
+        "identificador_activo": null
+      }
+    ]
+  },
+  "detalles_activos": {
+    "948": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "BAJA",
+      "id_finca": 463,
+      "razon_social": "QA M06 SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "2671480.0000",
+      "tiene_calculo": true,
+      "n_calculos": 1,
+      "n_reconocimientos": 1
+    },
+    "951": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 463,
+      "razon_social": "QA M06 SAS",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1567": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 466,
+      "razon_social": "QA M06 Cierre SAS",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1568": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 466,
+      "razon_social": "QA M06 Cierre SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "tiene_calculo": true,
+      "n_calculos": 1,
+      "n_reconocimientos": 1
+    },
+    "1569": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "razon_social": "QA M06 Operaciones SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "tiene_calculo": true,
+      "n_calculos": 1,
+      "n_reconocimientos": 1
+    },
+    "1570": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "razon_social": "QA M06 Operaciones SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "tiene_calculo": true,
+      "n_calculos": 1,
+      "n_reconocimientos": 1
+    },
+    "1571": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "razon_social": "QA M06 Operaciones SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "tiene_calculo": true,
+      "n_calculos": 1,
+      "n_reconocimientos": 1
+    },
+    "1573": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "razon_social": "QA M06 Operaciones SAS",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1629": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 468,
+      "razon_social": "Agropecuaria El Rosal S.A.S.",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1635": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 469,
+      "razon_social": "Titular Qa Mseis",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1639": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 471,
+      "razon_social": "[SEED-QA-M06] Agropecuaria Aislada S.A.S.",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1643": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 472,
+      "razon_social": "Titular Qa Precios Aislado",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "1858": {
+      "codigo": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 475,
+      "razon_social": "Agropecuaria Medicion QA S.A.S.",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "tiene_calculo": false,
+      "n_calculos": 0,
+      "n_reconocimientos": 1
+    },
+    "999999": {
+      "codigo": 404,
+      "existe": false
+    }
+  },
+  "plan_ejecucion_futuro": {
+    "endpoint": "POST /finanzas/cotizaciones",
+    "cuerpo_base": {
+      "activos_cotizados": [
+        "<id>"
+      ],
+      "valor_cotizacion_propuesto": "1000.0000"
+    },
+    "escenarios": [
+      {
+        "id": "46a",
+        "subcaso": "TC-M06-46",
+        "descripcion": "Activo inexistente",
+        "activos_cotizados": [
+          999999
+        ],
+        "esperado": {
+          "http": 404,
+          "code": "ACTIVO_NO_ENCONTRADO"
+        }
+      },
+      {
+        "id": "46b",
+        "subcaso": "TC-M06-46",
+        "descripcion": "Activo BAJA",
+        "activos_cotizados": [
+          948
+        ],
+        "esperado": {
+          "http": 422,
+          "code": "ACTIVO_NO_DISPONIBLE"
+        }
+      },
+      {
+        "id": "47a",
+        "subcaso": "TC-M06-47",
+        "descripcion": "ACTIVO sin VR vigente",
+        "activos_cotizados": [
+          951
+        ],
+        "esperado": {
+          "http": 422,
+          "code": "VALOR_RAZONABLE_NO_DISPONIBLE"
+        }
+      },
+      {
+        "id": "47b",
+        "subcaso": "TC-M06-47",
+        "descripcion": "Período de emisión cerrado",
+        "activos_cotizados": [
+          1568
+        ],
+        "esperado": {
+          "http": 422,
+          "code": "PERIODO_CONTABLE_CERRADO"
+        },
+        "condicion": "período que contiene hoy para el titular del activo debe estar CERRADO",
+        "apto_ahora": true
+      }
+    ],
+    "criterio_aprobacion_comun": [
+      "HTTP y code exactos",
+      "total cotizaciones sin incremento",
+      "total eventos COTIZACION_REGISTRADA sin incremento",
+      "VR/estado activo sin cambio (cuando el activo existe)",
+      "período 220 sigue ABIERTO; 219 no reabierto"
+    ]
+  }
+}

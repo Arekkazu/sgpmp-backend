@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82 CA-1: bandeja de propuestas de reconocimiento inicial |
+# | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 """Caso de uso RF-82 pasos 1-6: propuestas calculadas al vuelo para los activos sin reconocimiento."""
 from __future__ import annotations
 
@@ -35,8 +36,9 @@ class ListarPropuestasReconocimientoUseCase:
         self.activos = activos
         self.proponedor = proponedor
 
-    def execute(self, id_usuario: int) -> list[dict]:
-        return [serializar_propuesta(self.proponedor.proponer(a, id_usuario)) for a in self.activos.listar_sin_reconocimiento()]
+    def execute(self, id_usuario: int, numero_id_tributaria: Optional[str] = None) -> list[dict]:
+        return [serializar_propuesta(self.proponedor.proponer(a, id_usuario))
+                for a in self.activos.listar_sin_reconocimiento(numero_id_tributaria)]
 
     def de_activo(self, id_activo_biologico: int, id_usuario: int, costos_manuales: Optional[dict] = None,
                   clasificacion: Optional[str] = None) -> dict:

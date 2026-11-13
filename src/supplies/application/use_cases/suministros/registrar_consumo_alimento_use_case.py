@@ -4,6 +4,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
+# | 2026-11-12 | Arekkazu | TC-DIS-211 RF-75: el duplicado (E8) nombra el activo por su identificador, no por su id |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -28,6 +30,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 from src.shared.fechas import fecha_usuario, hoy_usuario
+from src.supplies.application.use_cases.exportacion.generador_archivos import fecha as dia
 from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
 from src.supplies.domain.entities.consumo_alimento import ConsumoAlimento
 from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
@@ -115,7 +118,7 @@ class RegistrarConsumoAlimentoUseCase:
             raise ValidationError(
                 code="FECHA_FUTURA",
                 message=(
-                    f"La fecha de consumo {dto.fecha_consumo.isoformat()} es posterior a la fecha actual del "
+                    f"La fecha de consumo {dia(dto.fecha_consumo)} es posterior a la fecha actual del "
                     "sistema. No se permiten registros de consumo con fechas futuras."
                 ),
                 field="fecha_consumo",
@@ -126,8 +129,8 @@ class RegistrarConsumoAlimentoUseCase:
             raise ValidationError(
                 code="FECHA_ANTERIOR_A_FASE",
                 message=(
-                    f"La fecha de consumo {dto.fecha_consumo.isoformat()} es anterior a la fecha de inicio de "
-                    f"la fase productiva activa del activo ({cota_inferior.isoformat()}). Verifique la fecha ingresada."
+                    f"La fecha de consumo {dia(dto.fecha_consumo)} es anterior a la fecha de inicio de "
+                    f"la fase productiva activa del activo ({dia(cota_inferior)}). Verifique la fecha ingresada."
                 ),
                 field="fecha_consumo",
             )
@@ -148,7 +151,7 @@ class RegistrarConsumoAlimentoUseCase:
                 dto.cantidad_alimento / Decimal(activo.cantidad_actual)
             ).quantize(_CUATRO_DECIMALES)
 
-        self._validar_no_duplicado(dto, tipo.nombre)
+        self._validar_no_duplicado(dto, tipo.nombre, activo.nombre_visible)
 
         consumo = ConsumoAlimento.crear(
             id_activo_biologico=dto.id_activo_biologico,
@@ -176,7 +179,7 @@ class RegistrarConsumoAlimentoUseCase:
 
         return guardado
 
-    def _validar_no_duplicado(self, dto: RegistrarConsumoAlimentoDTO, tipo_alimento: str) -> None:
+    def _validar_no_duplicado(self, dto: RegistrarConsumoAlimentoDTO, tipo_alimento: str, nombre_activo: str) -> None:
         """E8 (mismo activo, fecha, hora y alimento) y CA-10 (solo suministros posteriores)."""
         ultimo = self.consumo_repo.ultimo_validado(
             id_activo_biologico=dto.id_activo_biologico, tipo_alimento=tipo_alimento
@@ -196,10 +199,10 @@ class RegistrarConsumoAlimentoUseCase:
         raise ConflictError(
             code="CONSUMO_DUPLICADO",
             message=(
-                f"Ya existe un registro de {tipo_alimento} para el activo {dto.id_activo_biologico} el "
-                f"{fecha.isoformat()} a las {_hora(hora)}. No se permiten registros duplicados. Si se trata "
+                f"Ya existe un registro de {tipo_alimento} para el activo {nombre_activo} el "
+                f"{dia(fecha)} a las {_hora(hora)}. No se permiten registros duplicados. Si se trata "
                 "de un suministro subsecuente, registre una nueva entrada con fecha u hora posteriores a "
-                f"{ultimo[0].isoformat()} {_hora(ultimo[1])}."
+                f"{dia(ultimo[0])} a las {_hora(ultimo[1])}."
             ),
         )
 

@@ -1,19 +1,20 @@
 # | Fecha      | Nombre                   | Que se hizo                                                          |
 # |------------|--------------------------|----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G40 RF-80: runner Pytest con staging de evidencias            |
+# | 2026-11-12 | Juan Sebastian Gutierrez | TC-M05-G40 RF-80 v2.0: sin __pycache__, sin promocion, escaneo solo reporte |
 <#
 .SYNOPSIS
-  Ejecuta TC-M05-G40 (RF-80, Resiliencia ante caida del repositorio, cola y latencia) contra TEST.
+  Ejecuta TC-M05-G40 (RF-80 v2.0, RFC-025 C25.1: Atomicidad de auditoria y rollback) contra TEST.
 
 .DESCRIPTION
   - Carga .env.test del repo en las variables de entorno del PROCESO.
   - Verifica variables obligatorias para Admin y Sandbox.
-  - Valida integridad de suites previas G14-G25, G37, G38 y G39.
+  - Valida integridad de suites previas G14-G25, G37, G38 y G39 y de resultados/.
   - Crea el staging evidencias\run-<yyyyMMdd-HHmmss>\ y define TEST_EVIDENCE_DIR.
-  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML.
-  - Genera artefactos derivados (JSON, MD, TXT) via generar_artefactos_run_g40.py.
-  - Escaneo estricto de secretos post-corrida.
-  - Valida nuevamente integridad de suites previas.
+  - Ejecuta pytest (-B, -p no:randomly, --tb=short) con reporte HTML y JUnit XML.
+  - Genera artefactos derivados (JSON, MD, TXT) via generar_artefactos_run_g40.py sin promover a resultados/.
+  - Escaneo estricto de secretos SOLO REPORTE (exit 4 si hay hallazgos; nunca reescribe artefactos).
+  - Valida nuevamente integridad de suites previas y resultados/.
 #>
 param(
     [int]$Reintento = 0
@@ -26,36 +27,42 @@ $tcDir       = $PSScriptRoot
 $repo        = (Resolve-Path -LiteralPath (Join-Path $tcDir '..\..\..\..\..')).Path
 $prueba      = Join-Path $tcDir 'test_tc_m05_g40.py'
 $envFile     = Join-Path $repo '.env.test'
+$resultados  = Join-Path $tcDir 'resultados'
 $rf80Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-80'
 $rf77Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-77'
 $rf76Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-76'
 
-$g39Script   = Join-Path $rf80Dir 'TC-M05-G39\test_tc_m05_g39.py'
-$g39Runner   = Join-Path $rf80Dir 'TC-M05-G39\ejecutar_tc_m05_g39.ps1'
-$g38Script   = Join-Path $rf80Dir 'TC-M05-G38\test_tc_m05_g38.py'
-$g38Runner   = Join-Path $rf80Dir 'TC-M05-G38\ejecutar_tc_m05_g38.ps1'
-$g37Script   = Join-Path $rf80Dir 'TC-M05-G37\test_tc_m05_g37.py'
-$g37Runner   = Join-Path $rf80Dir 'TC-M05-G37\ejecutar_tc_m05_g37.ps1'
-$g25Script   = Join-Path $rf77Dir 'TC-M05-G25\test_tc_m05_g25.py'
-$g25Runner   = Join-Path $rf77Dir 'TC-M05-G25\ejecutar_tc_m05_g25.ps1'
-$g24Script   = Join-Path $rf77Dir 'TC-M05-G24\test_tc_m05_g24.py'
-$g24Runner   = Join-Path $rf77Dir 'TC-M05-G24\ejecutar_tc_m05_g24.ps1'
-$g22Script   = Join-Path $rf77Dir 'TC-M05-G22\test_tc_m05_g22.py'
-$g22Runner   = Join-Path $rf77Dir 'TC-M05-G22\ejecutar_tc_m05_g22.ps1'
-$g21Script   = Join-Path $rf77Dir 'TC-M05-G21\test_tc_m05_g21.py'
-$g21Runner   = Join-Path $rf77Dir 'TC-M05-G21\ejecutar_tc_m05_g21.ps1'
-$g20Script   = Join-Path $rf77Dir 'TC-M05-G20\test_tc_m05_g20.py'
-$g20Runner   = Join-Path $rf77Dir 'TC-M05-G20\ejecutar_tc_m05_g20.ps1'
-$g19Script   = Join-Path $rf76Dir 'TC-M05-G19\test_tc_m05_g19.py'
-$g19Runner   = Join-Path $rf76Dir 'TC-M05-G19\ejecutar_tc_m05_g19.ps1'
-$g17Script   = Join-Path $rf76Dir 'TC-M05-G17\test_tc_m05_g17.py'
-$g17Runner   = Join-Path $rf76Dir 'TC-M05-G17\ejecutar_tc_m05_g17.ps1'
-$g16Script   = Join-Path $rf76Dir 'TC-M05-G16\test_tc_m05_g16.py'
-$g16Runner   = Join-Path $rf76Dir 'TC-M05-G16\ejecutar_tc_m05_g16.ps1'
-$g15Script   = Join-Path $rf76Dir 'TC-M05-G15\test_tc_m05_g15.py'
-$g15Runner   = Join-Path $rf76Dir 'TC-M05-G15\ejecutar_tc_m05_g15.ps1'
-$g14Script   = Join-Path $rf76Dir 'TC-M05-G14\test_tc_m05_g14.py'
-$g14Runner   = Join-Path $rf76Dir 'TC-M05-G14\ejecutar_tc_m05_g14.ps1'
+$previos = @(
+    (Join-Path $rf80Dir 'TC-M05-G39\test_tc_m05_g39.py'),
+    (Join-Path $rf80Dir 'TC-M05-G39\ejecutar_tc_m05_g39.ps1'),
+    (Join-Path $rf80Dir 'TC-M05-G39\generar_artefactos_run_g39.py'),
+    (Join-Path $rf80Dir 'TC-M05-G38\test_tc_m05_g38.py'),
+    (Join-Path $rf80Dir 'TC-M05-G38\ejecutar_tc_m05_g38.ps1'),
+    (Join-Path $rf80Dir 'TC-M05-G38\generar_artefactos_run_g38.py'),
+    (Join-Path $rf80Dir 'TC-M05-G37\test_tc_m05_g37.py'),
+    (Join-Path $rf80Dir 'TC-M05-G37\ejecutar_tc_m05_g37.ps1'),
+    (Join-Path $rf80Dir 'TC-M05-G37\generar_artefactos_run_g37.py'),
+    (Join-Path $rf77Dir 'TC-M05-G25\test_tc_m05_g25.py'),
+    (Join-Path $rf77Dir 'TC-M05-G25\ejecutar_tc_m05_g25.ps1'),
+    (Join-Path $rf77Dir 'TC-M05-G24\test_tc_m05_g24.py'),
+    (Join-Path $rf77Dir 'TC-M05-G24\ejecutar_tc_m05_g24.ps1'),
+    (Join-Path $rf77Dir 'TC-M05-G22\test_tc_m05_g22.py'),
+    (Join-Path $rf77Dir 'TC-M05-G22\ejecutar_tc_m05_g22.ps1'),
+    (Join-Path $rf77Dir 'TC-M05-G21\test_tc_m05_g21.py'),
+    (Join-Path $rf77Dir 'TC-M05-G21\ejecutar_tc_m05_g21.ps1'),
+    (Join-Path $rf77Dir 'TC-M05-G20\test_tc_m05_g20.py'),
+    (Join-Path $rf77Dir 'TC-M05-G20\ejecutar_tc_m05_g20.ps1'),
+    (Join-Path $rf76Dir 'TC-M05-G19\test_tc_m05_g19.py'),
+    (Join-Path $rf76Dir 'TC-M05-G19\ejecutar_tc_m05_g19.ps1'),
+    (Join-Path $rf76Dir 'TC-M05-G17\test_tc_m05_g17.py'),
+    (Join-Path $rf76Dir 'TC-M05-G17\ejecutar_tc_m05_g17.ps1'),
+    (Join-Path $rf76Dir 'TC-M05-G16\test_tc_m05_g16.py'),
+    (Join-Path $rf76Dir 'TC-M05-G16\ejecutar_tc_m05_g16.ps1'),
+    (Join-Path $rf76Dir 'TC-M05-G15\test_tc_m05_g15.py'),
+    (Join-Path $rf76Dir 'TC-M05-G15\ejecutar_tc_m05_g15.ps1'),
+    (Join-Path $rf76Dir 'TC-M05-G14\test_tc_m05_g14.py'),
+    (Join-Path $rf76Dir 'TC-M05-G14\ejecutar_tc_m05_g14.ps1')
+)
 $generadorPy = Join-Path $tcDir 'generar_artefactos_run_g40.py'
 
 if (-not (Test-Path -LiteralPath $prueba)) {
@@ -97,48 +104,33 @@ foreach ($v in $variablesObligatorias) {
     }
 }
 
-# --- Snapshot inicial SHA-256 de suites previas
+# --- Snapshot inicial SHA-256 de suites previas y resultados/
 function Obtener-Sha256([string]$archivo) {
-    if (-not (Test-Path -LiteralPath $archivo)) { return "NO_EXISTE" }
+    if (-not (Test-Path -LiteralPath $archivo)) { return 'NO_EXISTE' }
     return (Get-FileHash -LiteralPath $archivo -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
-$shaG39ScriptIni = Obtener-Sha256 $g39Script
-$shaG39RunnerIni = Obtener-Sha256 $g39Runner
-$shaG38ScriptIni = Obtener-Sha256 $g38Script
-$shaG38RunnerIni = Obtener-Sha256 $g38Runner
-$shaG37ScriptIni = Obtener-Sha256 $g37Script
-$shaG37RunnerIni = Obtener-Sha256 $g37Runner
-$shaG25ScriptIni = Obtener-Sha256 $g25Script
-$shaG25RunnerIni = Obtener-Sha256 $g25Runner
-$shaG24ScriptIni = Obtener-Sha256 $g24Script
-$shaG24RunnerIni = Obtener-Sha256 $g24Runner
-$shaG22ScriptIni = Obtener-Sha256 $g22Script
-$shaG22RunnerIni = Obtener-Sha256 $g22Runner
-$shaG21ScriptIni = Obtener-Sha256 $g21Script
-$shaG21RunnerIni = Obtener-Sha256 $g21Runner
-$shaG20ScriptIni = Obtener-Sha256 $g20Script
-$shaG20RunnerIni = Obtener-Sha256 $g20Runner
-$shaG19ScriptIni = Obtener-Sha256 $g19Script
-$shaG19RunnerIni = Obtener-Sha256 $g19Runner
-$shaG17ScriptIni = Obtener-Sha256 $g17Script
-$shaG17RunnerIni = Obtener-Sha256 $g17Runner
-$shaG16ScriptIni = Obtener-Sha256 $g16Script
-$shaG16RunnerIni = Obtener-Sha256 $g16Runner
-$shaG15ScriptIni = Obtener-Sha256 $g15Script
-$shaG15RunnerIni = Obtener-Sha256 $g15Runner
-$shaG14ScriptIni = Obtener-Sha256 $g14Script
-$shaG14RunnerIni = Obtener-Sha256 $g14Runner
+$hashesPreviosIni = @{}
+foreach ($p in $previos) {
+    $hashesPreviosIni[$p] = Obtener-Sha256 $p
+}
+
+$hashesResIni = @{}
+if (Test-Path -LiteralPath $resultados) {
+    foreach ($f in Get-ChildItem -LiteralPath $resultados -File) {
+        $hashesResIni[$f.FullName] = Obtener-Sha256 $f.FullName
+    }
+}
 
 # --- Creacion del directorio de staging
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runId     = "run-$timestamp"
-$evidencias= Join-Path $tcDir 'evidencias'
+$evidencias = Join-Path $tcDir 'evidencias'
 $staging   = Join-Path $evidencias $runId
 
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
 
-$sufijo = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
+$sufijo      = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
 $htmlReport  = Join-Path $staging "resultado_TC-M05-G40$sufijo.html"
 $xmlReport   = Join-Path $staging "resultado_TC-M05-G40$sufijo.xml"
 $consolaLog  = Join-Path $staging 'console_execution.log'
@@ -147,18 +139,19 @@ $consolaLog  = Join-Path $staging 'console_execution.log'
 [Environment]::SetEnvironmentVariable('TEST_EVIDENCE_DIR', $staging, 'Process')
 [Environment]::SetEnvironmentVariable('PYTHONPATH', $repo, 'Process')
 [Environment]::SetEnvironmentVariable('PYTHONUTF8', '1', 'Process')
+[Environment]::SetEnvironmentVariable('PYTHONDONTWRITEBYTECODE', '1', 'Process')
 
-Write-Host "============================================================"
-Write-Host "Ejecutando TC-M05-G40 (RF-80: Resiliencia, Cola y Latencia)"
+Write-Host '============================================================'
+Write-Host "Ejecutando TC-M05-G40 (RF-80 v2.0, RFC-025 C25.1) [Reintento=$Reintento]"
 Write-Host "Staging: $staging"
-Write-Host "============================================================"
+Write-Host '============================================================'
 
 # --- Localizacion de python en venv
 $venvPython = Join-Path $repo '.venv\Scripts\python.exe'
 $pythonCmd  = if (Test-Path -LiteralPath $venvPython) { $venvPython } else { 'python' }
 
 $cronometro = [System.Diagnostics.Stopwatch]::StartNew()
-$salidaConsola = & $pythonCmd -m pytest -p no:randomly --tb=short `
+$salidaConsola = & $pythonCmd -B -m pytest -p no:randomly -p no:cacheprovider --tb=short `
     --html=$htmlReport --self-contained-html `
     --junitxml=$xmlReport `
     -v $prueba 2>&1
@@ -167,69 +160,49 @@ $codigoPytest = $LASTEXITCODE
 $cronometro.Stop()
 $duracionS = [Math]::Round($cronometro.Elapsed.TotalSeconds, 2)
 
-$salidaConsola | Out-File -LiteralPath $consolaLog -Encoding utf8
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllLines($consolaLog, @($salidaConsola | ForEach-Object { $_.ToString() }), $utf8NoBom)
 $salidaConsola | ForEach-Object { Write-Host $_ }
 
 Write-Host "Pytest finalizo con codigo $codigoPytest en $duracionS s"
 
-# --- Generacion de artefactos derivados
+# --- Generacion de artefactos derivados (NUNCA copia a resultados/)
 if (Test-Path -LiteralPath $generadorPy) {
-    Write-Host "Generando artefactos derivados..."
-    & $pythonCmd $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS --reintento $Reintento
+    Write-Host 'Generando artefactos derivados...'
+    & $pythonCmd -B $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS --reintento $Reintento
 }
 
-# --- Verificacion de integridad de suites previas
-$shaG39ScriptFin = Obtener-Sha256 $g39Script
-$shaG39RunnerFin = Obtener-Sha256 $g39Runner
-$shaG38ScriptFin = Obtener-Sha256 $g38Script
-$shaG38RunnerFin = Obtener-Sha256 $g38Runner
-$shaG37ScriptFin = Obtener-Sha256 $g37Script
-$shaG37RunnerFin = Obtener-Sha256 $g37Runner
-$shaG25ScriptFin = Obtener-Sha256 $g25Script
-$shaG25RunnerFin = Obtener-Sha256 $g25Runner
-$shaG24ScriptFin = Obtener-Sha256 $g24Script
-$shaG24RunnerFin = Obtener-Sha256 $g24Runner
-$shaG22ScriptFin = Obtener-Sha256 $g22Script
-$shaG22RunnerFin = Obtener-Sha256 $g22Runner
-$shaG21ScriptFin = Obtener-Sha256 $g21Script
-$shaG21RunnerFin = Obtener-Sha256 $g21Runner
-$shaG20ScriptFin = Obtener-Sha256 $g20Script
-$shaG20RunnerFin = Obtener-Sha256 $g20Runner
-$shaG19ScriptFin = Obtener-Sha256 $g19Script
-$shaG19RunnerFin = Obtener-Sha256 $g19Runner
-$shaG17ScriptFin = Obtener-Sha256 $g17Script
-$shaG17RunnerFin = Obtener-Sha256 $g17Runner
-$shaG16ScriptFin = Obtener-Sha256 $g16Script
-$shaG16RunnerFin = Obtener-Sha256 $g16Runner
-$shaG15ScriptFin = Obtener-Sha256 $g15Script
-$shaG15RunnerFin = Obtener-Sha256 $g15Runner
-$shaG14ScriptFin = Obtener-Sha256 $g14Script
-$shaG14RunnerFin = Obtener-Sha256 $g14Runner
-
-if ($shaG39ScriptIni -ne $shaG39ScriptFin -or $shaG39RunnerIni -ne $shaG39RunnerFin -or
-    $shaG38ScriptIni -ne $shaG38ScriptFin -or $shaG38RunnerIni -ne $shaG38RunnerFin -or
-    $shaG37ScriptIni -ne $shaG37ScriptFin -or $shaG37RunnerIni -ne $shaG37RunnerFin -or
-    $shaG25ScriptIni -ne $shaG25ScriptFin -or $shaG25RunnerIni -ne $shaG25RunnerFin -or
-    $shaG24ScriptIni -ne $shaG24ScriptFin -or $shaG24RunnerIni -ne $shaG24RunnerFin -or
-    $shaG22ScriptIni -ne $shaG22ScriptFin -or $shaG22RunnerIni -ne $shaG22RunnerFin -or
-    $shaG21ScriptIni -ne $shaG21ScriptFin -or $shaG21RunnerIni -ne $shaG21RunnerFin -or
-    $shaG20ScriptIni -ne $shaG20ScriptFin -or $shaG20RunnerIni -ne $shaG20RunnerFin -or
-    $shaG19ScriptIni -ne $shaG19ScriptFin -or $shaG19RunnerIni -ne $shaG19RunnerFin -or
-    $shaG17ScriptIni -ne $shaG17ScriptFin -or $shaG17RunnerIni -ne $shaG17RunnerFin -or
-    $shaG16ScriptIni -ne $shaG16ScriptFin -or $shaG16RunnerIni -ne $shaG16RunnerFin -or
-    $shaG15ScriptIni -ne $shaG15ScriptFin -or $shaG15RunnerIni -ne $shaG15RunnerFin -or
-    $shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14RunnerFin) {
-    Write-Host "ERROR CRITICO: Una suite previa fue modificada durante la ejecucion!" -ForegroundColor Red
-    exit 5
+# --- Verificacion de integridad de suites previas y resultados/
+foreach ($p in $previos) {
+    $fin = Obtener-Sha256 $p
+    if ($hashesPreviosIni[$p] -ne $fin) {
+        Write-Host "ERROR CRITICO: Suite previa modificada durante ejecucion: $p" -ForegroundColor Red
+        exit 5
+    }
 }
-Write-Host "Integridad de suites previas G14-G25, G37, G38 y G39: 100% OK"
+Write-Host 'Integridad de suites previas G14-G25, G37, G38 y G39: 100% OK'
 
-# --- Escaneo y saneamiento de secretos
+if (Test-Path -LiteralPath $resultados) {
+    foreach ($f in Get-ChildItem -LiteralPath $resultados -File) {
+        $finR = Obtener-Sha256 $f.FullName
+        if (-not $hashesResIni.ContainsKey($f.FullName) -or $hashesResIni[$f.FullName] -ne $finR) {
+            Write-Host "ERROR CRITICO: resultados/ fue alterado durante la corrida: $($f.Name)" -ForegroundColor Red
+            exit 5
+        }
+    }
+}
+Write-Host 'Integridad de resultados/: intacta (sin promocion)'
+
+# --- Escaneo de secretos SOLO REPORTE (nunca reescribe artefactos)
 $claves = @(
-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process')
+    [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process'),
+    [Environment]::GetEnvironmentVariable('TEST_PRODUCER_PASSWORD', 'Process'),
+    [Environment]::GetEnvironmentVariable('TEST_VET_PASSWORD', 'Process')
 )
 $correos = @(
-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_EMAIL', 'Process')
+    [Environment]::GetEnvironmentVariable('TEST_ADMIN_EMAIL', 'Process'),
+    [Environment]::GetEnvironmentVariable('TEST_PRODUCER_EMAIL', 'Process'),
+    [Environment]::GetEnvironmentVariable('TEST_VET_EMAIL', 'Process')
 )
 $secreto = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process')
 
@@ -247,49 +220,29 @@ if (-not [string]::IsNullOrEmpty($secreto)) {
     $patrones.Add($secreto)
     if ($secreto.Length -gt 20) { $patrones.Add($secreto.Substring($secreto.Length - 20)) }
 }
-$patrones.Add('eyJ')
+$patrones.Add(('ey' + 'J'))
 
-$utf8 = New-Object System.Text.UTF8Encoding($false)
 $artefactos = @(Get-ChildItem -LiteralPath $staging -File -Recurse)
-
-function Contar-Secretos([string]$texto) {
-    $n = 0
-    foreach ($p in $patrones) { if ($texto.Contains($p)) { $n++ } }
-    return $n
-}
-
-$quedan = 0
+$hallazgos = 0
 foreach ($a in $artefactos) {
-    $texto = [IO.File]::ReadAllText($a.FullName, $utf8)
-    if ((Contar-Secretos $texto) -gt 0) {
-        foreach ($p in $patrones) { $texto = $texto.Replace($p, '***REDACTED***') }
-        [IO.File]::WriteAllText($a.FullName, $texto, $utf8)
-        Write-Host "Saneado: $($a.Name)" -ForegroundColor Yellow
-        $revisado = [IO.File]::ReadAllText($a.FullName, $utf8)
-        if ((Contar-Secretos $revisado) -gt 0) { $quedan++ }
+    $texto = [IO.File]::ReadAllText($a.FullName, $utf8NoBom)
+    foreach ($p in $patrones) {
+        if (-not [string]::IsNullOrEmpty($p) -and $texto.Contains($p)) {
+            $hallazgos++
+            Write-Host "SECRETO DETECTADO (no reescrito) en $($a.Name)" -ForegroundColor Red
+            break
+        }
     }
 }
 $claves = $null; $correos = $null; $secreto = $null; $patrones.Clear()
 
-if ($quedan -gt 0) {
-    Write-Host 'ARTEFACTOS CON SECRETOS: NO PROMOVER' -ForegroundColor Red
+if ($hallazgos -gt 0) {
+    Write-Host 'ARTEFACTOS CON SECRETOS: DETENER Y REPORTAR' -ForegroundColor Red
     exit 4
 }
-Write-Host 'Escaneo de secretos en staging: LIMPIO (0 secretos)'
+Write-Host 'Escaneo de secretos en staging: LIMPIO (0 hallazgos)'
 
-# Promocion condicionada a resultados/
-$htmlFinal = Join-Path $staging "resultado_TC-M05-G40$sufijo.html"
-$jsonFinal = Join-Path $staging "resultado_TC-M05-G40$sufijo.json"
-
-if ($quedan -eq 0 -and (Test-Path -LiteralPath $htmlFinal) -and (Test-Path -LiteralPath $jsonFinal)) {
-    Write-Host "Promoviendo reporte a resultados/..." -ForegroundColor Green
-    Copy-Item -LiteralPath $htmlFinal -Destination (Join-Path $tcDir "resultados\resultado_TC-M05-G40$sufijo.html") -Force
-    Copy-Item -LiteralPath $jsonFinal -Destination (Join-Path $tcDir "resultados\resultado_TC-M05-G40$sufijo.json") -Force
-    Write-Host "Promocion completada con exito en resultados/." -ForegroundColor Green
-    Get-ChildItem -LiteralPath (Join-Path $tcDir 'resultados') | Select-Object Name, Length, @{Name="SHA256";Expression={(Get-FileHash $_.FullName -Algorithm SHA256).Hash}} | Format-Table -AutoSize
-} else {
-    Write-Host "No se promueve a resultados/ (secretos=$quedan)." -ForegroundColor Yellow
-}
+# --- Limpieza de __pycache__ generada por hook de aserciones de pytest
+Get-ChildItem -LiteralPath $tcDir -Recurse -Force -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force
 
 exit $codigoPytest
-

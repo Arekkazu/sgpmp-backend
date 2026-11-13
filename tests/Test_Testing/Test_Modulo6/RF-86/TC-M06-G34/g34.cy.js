@@ -29,7 +29,7 @@ function interceptar() {
       req.continue();
       return;
     }
-    if (url.origin !== new URL(API || 'https://api.inmero.co/api-sgpmp-test').origin ||
+    if (!['api.inmero.co','www.api.inmero.co'].includes(url.hostname) ||
         !(url.pathname === new URL(API || 'https://api.inmero.co/api-sgpmp-test').pathname ||
           url.pathname.startsWith(new URL(API || 'https://api.inmero.co/api-sgpmp-test').pathname + '/'))) {
       acta.host_bloqueado = sanear(url.origin + url.pathname
@@ -64,6 +64,7 @@ function interceptar() {
       req.reply({forceNetworkError:true});return;
     }
     if (ruta === '/finanzas/periodos/'+PERIODO+'/mediciones') req.alias='medicionesPeriodo';
+    else if (ruta === '/finanzas/periodos/'+PERIODO+'/eventos-pendientes') req.alias='pendientesPeriodo';
     else if (ruta.startsWith('/finanzas/')) req.alias='finanzas';
     let liberar;const turno=cola;cola=new Promise(resolve=>{liberar=resolve;});
     return turno.then(()=>{
@@ -84,13 +85,14 @@ const fila = (body,id,identificador='') => {
       (identificador.length>=3 && (x.innerText||'').includes(identificador)));
   return candidatas.sort((x,y)=>(x.innerText||'').length-(y.innerText||'').length)[0]??null;
 };
-const estadoFila = x => x ? (x.innerText||'').match(/MEDICION_PENDIENTE|Medici[oó]n pendiente|Measurement pending|COMPLETADO|PROCESADO|Medido|Measured|SIN_MEDICION|Sin medici[oó]n|Not measured/ig)?.join(', ') ?? 'SIN_ESTADO' : 'SIN_FILA';
+const estadoFila = x => x ? (x.querySelector?.('td:nth-child(9) [class*="badge"],td:nth-child(9)')?.innerText ||
+  x.innerText || '').match(/Medición pendiente|Medido|Sin medición/ig)?.[0] ?? 'SIN_ESTADO' : 'SIN_FILA';
 const textoFila = (x, identificador) => x ? sanear(identificador)+' | '+estadoFila(x)+' | [RESTO_DE_FILA_OMITIDO]' : 'SIN_FILA';
 const evaluarFilas = (a,b) => {
   if (!b) return {estado:'NO_CONCLUYENTE',motivo:'No se cargó la fila B después de la lectura de mediciones y la búsqueda'};
   if (!a) return {estado:'NO_CONCLUYENTE',motivo:'No se cargó la fila A después de confirmar B'};
-  const bienA=/MEDICION_PENDIENTE|Medici[oó]n pendiente|Measurement pending/i.test(estadoFila(a));
-  const bienB=/COMPLETADO|PROCESADO|Medido|Measured/i.test(estadoFila(b));
+  const bienA=estadoFila(a)==='Medición pendiente';
+  const bienB=estadoFila(b)==='Medido';
   return {estado:bienA&&bienB?'APROBADO':'RECHAZADO',motivo:bienA&&bienB?
     'Filas A y B visibles con estado esperado':sanear('A '+estadoFila(a)+'; B '+estadoFila(b))};
 };
@@ -111,7 +113,13 @@ describe('[TC-M06-006] panel de medición M06',()=>{
     }
     cy.get('body').then($body=>{
       const body=$body[0];
-      body.querySelectorAll('input,button,nav,aside').forEach(x=>{x.style.filter='blur(8px)';});
+      body.querySelectorAll('input,button,nav,aside,#fin-periodo,.fin-periodo,[for="fin-periodo"]')
+        .forEach(x=>{x.style.filter='blur(8px)';});
+      const textos=body.ownerDocument.createTreeWalker(body,body.ownerDocument.defaultView.NodeFilter.SHOW_TEXT);
+      while (textos.nextNode()) {
+        if (/\bNIT\b|\b\d{8,12}(?:-\d)?\b/i.test(textos.currentNode.textContent||''))
+          textos.currentNode.parentElement.style.filter='blur(8px)';
+      }
       body.querySelectorAll('tr,[role="row"],article,li').forEach(x=>{
         if (x!==fila(body,A,IA) && x!==fila(body,B,IB)) x.style.filter='blur(8px)';
       });
@@ -150,15 +158,26 @@ describe('[TC-M06-006] panel de medición M06',()=>{
     });
     cy.window().then(win=>{
       const base=new URL(FRONT).pathname.replace(/\/+$/,'');
-      win.history.pushState({},'',base+'/finanzas/medicion?periodo='+PERIODO);
+      win.history.pushState({},'',base+'/finanzas/medicion');
       win.dispatchEvent(new win.PopStateEvent('popstate'));
     });
     cy.location('pathname').should('include','/finanzas/medicion');
-    cy.get('body').then($body=>{
-      const selector=[...$body[0].querySelectorAll('select')].find(x=>[...x.options].some(o=>o.value===PERIODO));
-      if (selector) cy.wrap(selector).select(PERIODO);
+    const opcionPeriodo='#fin-periodo option[value="'+PERIODO+'"]';
+    cy.on('fail',error=>{
+      if (error.message.includes(opcionPeriodo)) {
+        acta.estado='NO_CONCLUYENTE';
+        acta.motivo='Período '+PERIODO+' no disponible en el selector';
+      }
+      throw error;
     });
+    acta.motivo='Esperando período '+PERIODO+' en el selector';
+    cy.get(opcionPeriodo,{timeout:30000}).should('exist');
+    cy.get('#fin-periodo').select(PERIODO,{log:false}).should('have.value',PERIODO);
     cy.wait('@medicionesPeriodo',{requestTimeout:30000,responseTimeout:30000}).then(({response})=>{
+      expect(response?.statusCode).to.eq(200);
+      expect(response?.headers?.['x-test-run-id']).to.eq(RUN);
+    });
+    cy.wait('@pendientesPeriodo',{requestTimeout:30000,responseTimeout:30000}).then(({response})=>{
       expect(response?.statusCode).to.eq(200);
       expect(response?.headers?.['x-test-run-id']).to.eq(RUN);
     });

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: niveles de volumen y 202 automático |
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: activo ajeno → 403 de E2, no 404 |
 """Caso de uso: consultar el historial/trazabilidad de suministros (RF-81).
 
 Solo lectura. Aplica el alcance por fincas vía :class:`AlcanceActivoPort` (E2,
@@ -144,6 +145,15 @@ class ConsultarHistorialSuministrosUseCase:
 
         activo = self.activo_port.obtener(filtros.id_activo_biologico)
         if activo is None:
+            if self.activo_port.existe(filtros.id_activo_biologico):
+                # E2: existe pero está fuera de las unidades productivas del usuario (la RLS lo oculta).
+                raise AuthorizationError(
+                    code="ACCESO_DENEGADO",
+                    message=(
+                        f"No tiene permisos para consultar el historial del activo {filtros.id_activo_biologico}. "
+                        "Verifique su rol y unidades productivas asignadas."
+                    ),
+                )
             raise NotFoundError(
                 code="ACTIVO_NO_ENCONTRADO",
                 message=f"El activo biológico {filtros.id_activo_biologico} no existe.",

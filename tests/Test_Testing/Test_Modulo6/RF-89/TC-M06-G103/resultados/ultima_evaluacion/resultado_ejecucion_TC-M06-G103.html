@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Última evaluación — TC-M06-G103</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    a { color: #0b4f8a; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-89 · TC-M06-G103 · Issue #978</p>
+  <h1>Última evaluación — APROBADO</h1>
+  <p>Cierre del 10 de noviembre de 2026. El porcentaje se calcula sobre los tres subcasos.</p>
+  <table>
+    <tr><th>Aprobados</th><td>3</td></tr>
+    <tr><th>Bloqueados</th><td>0</td></tr>
+    <tr><th>Fallidos</th><td>0</td></tr>
+    <tr><th>Porcentaje del caso</th><td>100 %</td></tr>
+    <tr><th>Dictamen general</th><td>APROBADO</td></tr>
+  </table>
+  <table>
+    <tr><th>Subcaso</th><th>Dictamen</th><th>Tipo de evidencia</th><th>Detalle</th></tr>
+    <tr>
+      <td>TC-M06-22</td>
+      <td>APROBADO</td>
+      <td>HTTP 400 en TEST, 8 de noviembre de 2026</td>
+      <td>FECHA_VIGENCIA_FUERA_DE_RANGO. No se repitió. <a href="../primera_evaluacion/evidencia_peticiones_TC-M06-G103.json">Peticiones originales</a></td>
+    </tr>
+    <tr>
+      <td>TC-M06-23</td>
+      <td>APROBADO</td>
+      <td>Validación automatizada del caso de uso con dependencias simuladas</td>
+      <td>Decisión de QA. 2 passed en 0,73 s, fecha de negocio 2026-11-10. No hubo POST en TEST ni HTTP 201. <a href="evidencia_tc_m06_23_prueba_aislada.json">Evidencia técnica</a></td>
+    </tr>
+    <tr>
+      <td>TC-M06-24</td>
+      <td>APROBADO</td>
+      <td>HTTP 400 en TEST, 8 de noviembre de 2026</td>
+      <td>FECHA_VENCIMIENTO_INVALIDA. No se repitió. <a href="../primera_evaluacion/evidencia_peticiones_TC-M06-G103.json">Peticiones originales</a></td>
+    </tr>
+  </table>
+  <h2>TC-M06-23</h2>
+  <p>El objetivo queda satisfecho con <code>RegistrarPrecioUseCase.execute</code> y dependencias simuladas. Con vigencia 2025-11-10 el flujo continúa y el precio simulado queda ACTIVO. Con vigencia 2025-11-09 el caso de uso lanza <code>FECHA_VIGENCIA_FUERA_DE_RANGO</code> antes de persistir o notificar.</p>
+  <ul>
+    <li><code>test_vigencia_de_365_dias_sigue_el_alta_en_memoria</code>: PASSED.</li>
+    <li><code>test_vigencia_de_366_dias_se_rechaza_antes_de_persistir</code>: PASSED.</li>
+  </ul>
+  <p>Resultado de la suite: 2 passed in 0.73s. Esta evidencia no incluye un alta real, un HTTP 201 ni la ejecución del trigger de base de datos.</p>
+  <p><a href="resumen_ejecucion_TC-M06-G103.json">Resumen JSON</a> · <a href="evidencia_tc_m06_23_prueba_aislada.json">Evidencia de TC-M06-23</a> · <a href="../primera_evaluacion/resultado_ejecucion_TC-M06-G103.html">Primera evaluación</a> · <a href="../../test_tc_m06_23_limite_365_dias.py">Prueba automatizada</a></p>
+</body>
+</html>

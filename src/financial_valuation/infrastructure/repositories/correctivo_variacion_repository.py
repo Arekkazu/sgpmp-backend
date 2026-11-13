@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: solicitudes de correctivo de variaciones |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 """Implementación SQL de :class:`CorrectivoVariacionRepository`."""
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.valoracion import SolicitudCorrectivo, VariacionRegistro
 from src.financial_valuation.domain.repositories.correctivo_variacion_repository import CorrectivoVariacionRepository
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.shared.nombre_activo import nombre_activo_sql
 
 _COLUMNAS_SOLICITUD = """id_solicitud_correctivo_variacion, id_variacion_valor_razonable, motivo, estado, id_usuario_solicitante,
     fecha_solicitud, id_usuario_resolutor, fecha_resolucion, motivo_rechazo, id_variacion_correctiva"""
@@ -80,7 +82,7 @@ class SqlAlchemyCorrectivoVariacionRepository(CorrectivoVariacionRepository):
                    sc.fecha_resolucion, sc.id_usuario_resolutor,
                    NULLIF(trim(coalesce(ur.nombre, '') || ' ' || coalesce(ur.apellidos, '')), '') AS nombre_resolutor,
                    sc.motivo_rechazo, sc.id_variacion_correctiva,
-                   v.id_activo_biologico, a.identificador, v.id_periodo_contable, v.tipo::text AS tipo_variacion,
+                   v.id_activo_biologico, {nombre_activo_sql()} AS identificador, v.id_periodo_contable, v.tipo::text AS tipo_variacion,
                    v.monto_variacion, v.fecha_registro AS fecha_variacion
             FROM modulo6.solicitudes_correctivos_variaciones sc
             JOIN modulo6.variaciones_valor_razonable v ON v.id_variacion_valor_razonable = sc.id_variacion_valor_razonable

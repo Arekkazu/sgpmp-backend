@@ -3,13 +3,14 @@
 # | 2026-11-04 | Arekkazu | M06 RF-92/RF-93: construcción del estado de resultados y del informe de revelaciones |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: los activos excluidos del cierre salen de todos los componentes y los montos van con 4 decimales |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
 
 from collections import defaultdict
 from decimal import Decimal
-from typing import Optional
+from typing import Iterable, Optional
 
 from src.financial_valuation.domain.repositories.costo_repository import CostoRepository
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
@@ -18,7 +19,7 @@ from src.financial_valuation.domain.services.consolidacion import (
     MovimientoResultado,
     estado_resultados,
 )
-from src.financial_valuation.domain.services.nic41 import CERO, hash_sha256
+from src.financial_valuation.domain.services.nic41 import CERO, hash_sha256, q4
 
 ETIQUETAS_PERIODO = {"MENSUAL": "M", "TRIMESTRAL": "Q", "ANUAL": "A"}
 
@@ -28,23 +29,29 @@ class ConstructorEstadoResultados:
         self.reportes = reportes
         self.costos = costos
 
-    def calcular(self, id_periodo_contable: int, filtros: dict) -> dict:
-        movimientos = self.reportes.movimientos(id_periodo_contable, filtros)
-        costos = self.costos.del_periodo(id_periodo_contable, filtros)
+    def calcular(self, id_periodo_contable: int, filtros: dict, excluir_activos: Iterable[int] = ()) -> dict:
+        """``excluir_activos``: activos excluidos del cierre (RF-93 FA-3/FA-4); quedan fuera de todos los
+        componentes, no solo listados (INC-M06-359-G79)."""
+        consulta = {**filtros, "excluir_activos": sorted(set(excluir_activos))} if excluir_activos else filtros
+        movimientos = self.reportes.movimientos(id_periodo_contable, consulta)
+        costos = self.costos.del_periodo(id_periodo_contable, consulta)
         er = estado_resultados(
             [MovimientoResultado(m["tipo_hecho"], m["sentido"], Decimal(m["valor"]), m["es_reverso"]) for m in movimientos],
             [CostoPeriodo(c["naturaleza_costo"], c["politica_capitalizacion"], Decimal(c["monto_costo"]), c["es_reverso"],
                           c["subtipo_costo"]) for c in costos],
         )
-        return {"componentes": {k: str(v) for k, v in er.componentes.items()},
-                "desglose_costos_mantenimiento": {k: str(v) for k, v in er.desglose_mantenimiento.items()},
-                "total_ingresos": er.total_ingresos,
-                "total_gastos": er.total_gastos, "resultado_neto": er.resultado_neto,
+        # Montos con 4 decimales también cuando son cero: "0.0000", no "0" (INC-M06-359-G79).
+        return {"componentes": {k: str(q4(v)) for k, v in er.componentes.items()},
+                "desglose_costos_mantenimiento": {k: str(q4(v)) for k, v in er.desglose_mantenimiento.items()},
+                "total_ingresos": q4(er.total_ingresos),
+                "total_gastos": q4(er.total_gastos), "resultado_neto": q4(er.resultado_neto),
                 "sin_actividad": [k for k, v in er.componentes.items() if v == 0], "lineas": len(movimientos),
                 "costos": len(costos)}
 
     def guardar(self, id_periodo_contable: int, filtros: dict, id_usuario: int, excluidos: list) -> dict:
-        calculo = self.calcular(id_periodo_contable, filtros)
+        ids_excluidos = sorted({e["id_activo_biologico"] for e in excluidos if e.get("id_activo_biologico")})
+        calculo = self.calcular(id_periodo_contable, filtros, ids_excluidos)
+        excluidos = self._con_montos(id_periodo_contable, filtros, excluidos)
         componentes = {**calculo["componentes"], "desglose_costos_mantenimiento": calculo["desglose_costos_mantenimiento"],
                        "activos_excluidos_cierre": excluidos}
         c = {k: Decimal(v) for k, v in calculo["componentes"].items()}
@@ -58,6 +65,21 @@ class ConstructorEstadoResultados:
             "u": id_usuario, "hash": hash_sha256({"componentes": componentes, "filtros": filtros}),
         })
         return {**calculo, "id_estado": id_estado, "version": version, "activos_excluidos_cierre": excluidos}
+
+    def _con_montos(self, id_periodo_contable: int, filtros: dict, excluidos: list) -> list:
+        """RF-93: cada activo excluido se lista con los montos que quedaron fuera del estado."""
+        resultado = []
+        for e in excluidos:
+            fila = dict(e)
+            if e.get("id_activo_biologico"):
+                propio = self.calcular(id_periodo_contable, {**filtros, "id_activo_biologico": e["id_activo_biologico"]})
+                fila["montos_excluidos"] = {
+                    "componentes": {k: v for k, v in propio["componentes"].items() if Decimal(v) != 0},
+                    "total_ingresos": str(propio["total_ingresos"]), "total_gastos": str(propio["total_gastos"]),
+                    "resultado_neto": str(propio["resultado_neto"]),
+                }
+            resultado.append(fila)
+        return resultado
 
 
 class ConstructorInformeRevelaciones:

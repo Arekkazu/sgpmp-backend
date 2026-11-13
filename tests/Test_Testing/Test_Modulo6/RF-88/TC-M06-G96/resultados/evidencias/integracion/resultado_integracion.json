@@ -1,0 +1,60 @@
+{
+  "grupo": "TC-M06-G96",
+  "capa": "B_integracion_aislada",
+  "estado_capa": "PASS",
+  "ejecutada": true,
+  "fecha": "2026-11-13",
+  "aislamiento": {
+    "demostrado": true,
+    "mecanismo": "Docker PostgreSQL temporal exclusivo",
+    "container": "g96-ab-postgres-tmp",
+    "image": "g96-ab-postgres:tmp",
+    "volume": "g96_ab_pgdata_tmp",
+    "host": "127.0.0.1",
+    "port": 55496,
+    "database": "g96_ab_test",
+    "no_usa_bases_preexistentes": true,
+    "bases_preexistentes_no_tocadas": [
+      "g43-postgres / sgpmp_g43_test",
+      "infra-db-1 / sgpmp",
+      "api.inmero.co TEST compartido"
+    ],
+    "TEST_DATABASE_URL": "configurada solo en proceso (host/port/db verificados; credenciales no persistidas en evidencias)",
+    "rollback_fixture": "tests/integration/conftest.py — transacción exterior + savepoints + rollback"
+  },
+  "migracion": {
+    "c6e8a0b2d453_aplicada": true,
+    "alembic_head_observado": "0884ba08a944",
+    "enum_VALOR_LIBROS_AJUSTADO_A_CERO": true,
+    "solo_sobre_BD_temporal": true
+  },
+  "prueba": "tests/integration/test_inc_m06_281_g68_valor_libros_cero.py",
+  "harness_windows": {
+    "fcntl_stub": "_qa_harness_g96/fcntl.py",
+    "tests_init": "tests/__init__.py y tests/integration/__init__.py en worktree (evitar sombra de site-packages/tests)",
+    "nota": "No modifica codigo de produccion ni rama laura"
+  },
+  "resultado_pytest": {
+    "passed": 3,
+    "failed": 0,
+    "exit_code": 0,
+    "tests": [
+      "test_valor_en_libros_negativo_queda_en_cero_con_alerta_persistente PASS",
+      "test_la_depreciacion_del_cierre_que_lleva_a_negativo_genera_la_alerta PASS",
+      "test_deterioro_que_no_lleva_a_negativo_no_genera_la_alerta PASS"
+    ]
+  },
+  "cobertura_G96": {
+    "TC-M06-07_calculo_y_alerta": "PASS (test principal #968)",
+    "TC-M06-05_via_integracion_dedicada": "No hay test G96-05 dedicado en #968; el negativo-control `test_deterioro_que_no_lleva_a_negativo_no_genera_la_alerta` cubre deterioro sin alerta (libros positivos). Cálculo 05 demostrado en capa A.",
+    "TC-M06-06_via_integracion": "Cierre con ajuste cubierto por test de depreciacion del cierre; libros 0 por solo dep demostrado en capa A."
+  },
+  "alerta": {
+    "generada": true,
+    "consultable_via_use_case": true,
+    "persistida_en_BD_temporal_durante_transaccion": true,
+    "persistida_en_TEST_compartido": false
+  },
+  "modifico_TEST_compartido": false,
+  "http_escritura_TEST": false
+}

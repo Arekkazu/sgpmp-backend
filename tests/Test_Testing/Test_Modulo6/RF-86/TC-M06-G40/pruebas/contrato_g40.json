@@ -127,9 +127,7 @@
         "id_especie": "number",
         "especie": "string",
         "tipo": "string",
-        "estado": "string",
-        "valorado_por_costo": "boolean",
-        "valor_razonable_neto": "decimal|null"
+        "estado": "string"
       },
       "fuentes_campos": {
         "id_activo_biologico": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
@@ -155,8 +153,7 @@
         "numero_id_tributaria": "string|null",
         "fecha_inicio": "string",
         "fecha_fin": "string",
-        "estado": "string",
-        "ultimo_cierre": "object|null"
+        "estado": "string"
       },
       "fuentes_campos": {
         "id_periodo_contable": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
@@ -186,24 +183,12 @@
       "tipo": "object",
       "campos": {
         "activo": {
-          "numero_id_tributaria": "string",
-          "id_dispositivo_iot": "number|null"
+          "numero_id_tributaria": "string|null"
         },
         "calculos": [
           {
-            "id_calculo_valor_razonable": "number",
-            "id_precio_mercado": "number|null",
             "estado": "string",
-            "magnitud": "decimal|number",
-            "valor_neto": "decimal|number",
-            "fecha_calculo": "string",
             "json_metodo_costo": "object|null"
-          }
-        ],
-        "mediciones": [
-          {
-            "id_medicion_posterior": "number",
-            "id_evento": "number|null"
           }
         ]
       },
@@ -231,7 +216,7 @@
       "respuesta": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-440",
       "tipo": "object",
       "campos": {
-        "peso_actual": "decimal|null",
+        "peso_actual": "decimal|number|null",
         "unidad_peso": "string|null",
         "estado_actual": "string"
       },
@@ -251,11 +236,10 @@
       "respuesta": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60",
       "tipo": "array",
       "campos": {
-        "id_precio_mercado": "number",
         "id_especie": "number",
         "categoria": "string",
         "fuente": "string",
-        "precio_unitario": "decimal|number",
+        "precio_unitario": "decimal|number|null",
         "fecha_vigencia": "string",
         "fecha_vencimiento": "string|null"
       },
@@ -312,14 +296,7 @@
       "campos": {
         "id_variacion_valor_razonable": "number",
         "id_activo_biologico": "number",
-        "tipo": "string",
-        "monto_variacion": "decimal|number",
-        "valor_razonable_anterior": "decimal|number",
-        "valor_razonable_nuevo": "decimal|number",
-        "fecha_registro": "string",
-        "id_linea": "number|null",
-        "tipo_evidencia": "string|null",
-        "estado_trazabilidad": "string"
+        "tipo": "string"
       },
       "fuentes_campos": {
         "id_variacion_valor_razonable": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
@@ -348,28 +325,12 @@
         "tipo_hecho": "string",
         "sentido": "string",
         "estado": "string",
-        "valor": "decimal|number",
-        "fecha_hecho": "string",
         "id_periodo_contable": "number",
         "id_activo_biologico": "number",
         "id_especie": "number",
-        "id_finca": "number",
-        "numero_id_tributaria": "string|null",
-        "tabla_origen": "string",
         "id_origen": "number",
-        "tipo_evidencia": "string",
-        "subtipo_costo": "string|null",
-        "es_estimacion": "boolean",
-        "es_reverso": "boolean",
-        "tipo_hecho_corregido": "string|null",
-        "id_linea_corregida": "number|null",
         "cuenta_debito": "string|null",
-        "cuenta_credito": "string|null",
-        "justificacion": "string|null",
-        "id_usuario": "number|null",
-        "estado_trazabilidad": "string",
-        "id_comprobante_nic41": "number|null",
-        "extra": "object"
+        "cuenta_credito": "string|null"
       },
       "fuentes_campos": {
         "id_linea_asiento_nic41": "src/financial_valuation/domain/entities/contabilidad.py:72-105; src/financial_valuation/infrastructure/repositories/asiento_repository.py:17-19,77-87; src/financial_valuation/infrastructure/routers/m06_router.py:225-231",
@@ -421,16 +382,6 @@
             "cuenta_credito": "string"
           }
         ],
-        "costos_venta": [
-          {
-            "id_especie": "number",
-            "region": "string",
-            "es_activo": "boolean",
-            "pct_transporte": "decimal|number|null",
-            "pct_comisiones": "decimal|number|null",
-            "pct_impuestos": "decimal|number|null"
-          }
-        ],
         "lineas_pendientes_cuenta": "number"
       },
       "fuentes_campos": {
@@ -477,7 +428,6 @@
         "items": [
           {
             "id_notificacion": "number",
-            "fecha_envio": "string",
             "mensaje": "string"
           }
         ],

@@ -1,0 +1,45 @@
+{
+  "grupo": "TC-M06-G96",
+  "capa": "A_dominio",
+  "estado_capa": "PASS",
+  "ejecutada": true,
+  "fecha": "2026-11-13",
+  "worktree": "sgpmp-backend-g96-ab",
+  "codigo": {
+    "head": "91f79e75bd8f91fe399ab180e77aed1c614b09d3",
+    "incluye_8829599f": true,
+    "rama_laura_intacta": true
+  },
+  "funciones_reales": [
+    "valor_libros_calculado",
+    "valor_por_costo",
+    "CERO"
+  ],
+  "archivo_prueba": "tests/Test_Testing/Test_Modulo6/RF-88/TC-M06-G96/test_tc_m06_g96_dominio_A.py",
+  "comando": "python -m pytest tests/Test_Testing/Test_Modulo6/RF-88/TC-M06-G96/test_tc_m06_g96_dominio_A.py -v --noconftest --html=.../pytest_dominio_report.html",
+  "resultado_pytest": {
+    "passed": 3,
+    "failed": 0,
+    "exit_code": 0
+  },
+  "subcasos": {
+    "TC-M06-05": {
+      "resultado": "PASS",
+      "valor_libros_calculado": "7000000.0000",
+      "valor_aplicado": "7000000.0000"
+    },
+    "TC-M06-06": {
+      "resultado": "PASS",
+      "valor_libros_calculado": "0.0000",
+      "valor_aplicado": "0.0000"
+    },
+    "TC-M06-07": {
+      "resultado": "PASS",
+      "valor_libros_calculado": "-2000000.0000",
+      "valor_aplicado": "0",
+      "piso_en_cero": true,
+      "alerta_en_capa_A": false
+    }
+  },
+  "modifico_TEST_compartido": false
+}

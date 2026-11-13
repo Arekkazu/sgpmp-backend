@@ -1,0 +1,236 @@
+{
+  "caso": "TC-M06-G116",
+  "escenario_id": "46a",
+  "subcaso": "TC-M06-46",
+  "nombre": "Activo inexistente",
+  "activo": 999999,
+  "esperado": {
+    "http": 404,
+    "code": "ACTIVO_NO_ENCONTRADO"
+  },
+  "estado": "APROBADO",
+  "motivo": "HTTP 404 ACTIVO_NO_ENCONTRADO; sin persistencia.",
+  "precondiciones": {
+    "ok": true,
+    "motivo": "activo debe no existir (404)",
+    "activo": {
+      "http": 404,
+      "existe": false
+    },
+    "cotizaciones_del_activo": [],
+    "cotizaciones_ids": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "eventos": 5,
+    "periodo_219": null,
+    "periodo_220": null
+  },
+  "post": {
+    "http": 404,
+    "code": "ACTIVO_NO_ENCONTRADO",
+    "respuesta": {
+      "error_code": "ACTIVO_NO_ENCONTRADO",
+      "message": "El activo 999999 no existe.",
+      "fields": [],
+      "timestamp": "2026-11-13T03:12:01.557256+00:00"
+    },
+    "en": "2026-11-13T03:12:01.795176+00:00"
+  },
+  "verificaciones": {
+    "checks": {
+      "http_esperado": true,
+      "code_esperado": true,
+      "sin_cotizacion_nueva": true,
+      "sin_evento_nuevo": true,
+      "activo_sin_cambio": true,
+      "periodo_220_abierto": true,
+      "periodo_219_cerrado": true,
+      "reservadas_intactas": true
+    },
+    "http": 404,
+    "code": "ACTIVO_NO_ENCONTRADO",
+    "cotizaciones_antes": 7,
+    "cotizaciones_despues": 7,
+    "ids_nuevos": [],
+    "eventos_antes": 5,
+    "eventos_despues": 5,
+    "activo_antes": {
+      "http": 404,
+      "existe": false
+    },
+    "activo_despues": {
+      "http": 404,
+      "existe": false
+    },
+    "periodo_219": {
+      "id_periodo_contable": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "razon_social": "QA M06 Cierre SAS"
+    },
+    "periodo_220": {
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    }
+  },
+  "peticiones_relacionadas": [
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/999999",
+      "codigo": 404,
+      "escritura": false,
+      "en": "2026-11-13T03:12:00.590258+00:00",
+      "nota": "pre_46a_activo",
+      "respuesta": {
+        "http": 404,
+        "existe": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:00.973078+00:00",
+      "nota": "pre_46a_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "del_activo": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:01.383816+00:00",
+      "nota": "pre_46a_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 404,
+      "escritura": true,
+      "en": "2026-11-13T03:12:01.795131+00:00",
+      "nota": "post_46a",
+      "cuerpo": {
+        "activos_cotizados": [
+          999999
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "ACTIVO_NO_ENCONTRADO",
+        "message": "El activo 999999 no existe.",
+        "fields": [],
+        "timestamp": "2026-11-13T03:12:01.557256+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:02.186051+00:00",
+      "nota": "post_46a_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "del_activo": [],
+        "nuevos_ids": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:02.589256+00:00",
+      "nota": "post_46a_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/999999",
+      "codigo": 404,
+      "escritura": false,
+      "en": "2026-11-13T03:12:02.992006+00:00",
+      "nota": "post_46a_activo",
+      "respuesta": {
+        "http": 404,
+        "existe": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:03.763900+00:00",
+      "nota": "post_46a_p219",
+      "respuesta": {
+        "periodo_219": {
+          "id_periodo_contable": 219,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:03.763929+00:00",
+      "nota": "post_46a_p220",
+      "respuesta": {
+        "periodo_220": {
+          "id_periodo_contable": 220,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": null,
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    }
+  ],
+  "fuente": "extracto verbatim de resumen/evidencias vigentes; sin datos inventados"
+}

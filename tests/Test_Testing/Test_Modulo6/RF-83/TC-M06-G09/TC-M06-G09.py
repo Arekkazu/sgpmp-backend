@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G09 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G09 con los valores de la ficha (10.000.000 / 10.500.000 / 9.200.000), especie con ciclo, 048 real |
+# | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: caso nuevo 050b: evento de crecimiento sobre un activo por costo queda SIN_EFECTO |
 """
 TC-M06-G09 - Medición posterior por evento biológico y encadenamiento del historial.   RF-83 (CU02).   Casos: TC-M06-046 a TC-M06-050.
 
@@ -186,3 +187,23 @@ def test_TC_M06_050_encadenamiento_del_historial(env):
     assert len({str(m["valor_razonable_actual"]) for m in ms}) == len(ms), "hay valores repetidos"
     assert sum(dec(m["variacion_total"]) for m in ms) == dec(ms[-1]["valor_razonable_actual"]) - inicial
     obs("la ficha pide CRECIMIENTO, PRODUCCION y DETERIORO; PRODUCCION no mide el activo (RNF-85-02): se usaron CRECIMIENTO, CRECIMIENTO y DETERIORO.")
+
+
+def test_TC_M06_050b_crecimiento_sobre_activo_por_costo_queda_sin_efecto(env):
+    """RF-83 v1.2 (C24.2, NIC 41 ¶30): un activo valorado por costo no se mide por evento biológico: el evento queda SIN_EFECTO
+    «Activo valorado por costo (NIC 41 ¶30)», sin medición, sin variación y sin líneas de asiento nuevas."""
+    _asegurar(env, 90)
+    env.presupuesto(70)
+    esc, ida = env.activo_por_costo(costos=SIN_COSTOS)
+    antes_lineas = len(lineas_de(env.historial(ida)))
+    antes_calculos = len(env.historial(ida)["calculos"])
+    env.pesaje(ida, "450")                                           # evento CRECIMIENTO
+    assert env.procesar_eventos().status == 200
+    pr = env.ultimo_procesamiento()
+    obs(f"procesamiento del evento: {pr}")
+    assert pr and "SIN_EFECTO" in str(pr["resultado"]).upper(), f"el evento debía quedar SIN_EFECTO: {pr}"
+    assert "costo" in str(pr.get("detalle")).lower(), f"el detalle debía decir «Activo valorado por costo (NIC 41 ¶30)»: {pr}"
+    assert not env.mediciones(ida), f"un activo por costo no se mide por evento: {env.mediciones(ida)}"
+    assert len(env.historial(ida)["calculos"]) == antes_calculos, "no debe calcularse un valor razonable"
+    assert not env.sql(f"SELECT 1 FROM modulo6.variaciones_valor_razonable WHERE id_activo_biologico = {int(ida)}"), "no debe registrarse variación"
+    assert len(lineas_de(env.historial(ida))) == antes_lineas, "no debe generarse ninguna línea de asiento nueva"

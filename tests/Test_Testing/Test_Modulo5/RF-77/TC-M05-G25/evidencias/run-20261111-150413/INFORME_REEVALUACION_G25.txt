@@ -1,0 +1,858 @@
+================================================================================
+INFORME DE REEVALUACION - TC-M05-G25 (RF-77 / TC-M05-024, TC-M05-025)
+================================================================================
+Fecha de ejecucion: 2026-11-11
+Staging validado:   tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/
+INC corregido:      INC-M05-272-G25 (Dev #958, commit 293786267f; sin migracion)
+Ambiente objetivo:  TEST (TEST_BASE_URL desde .env.test; sin promocion a resultados/)
+
+--------------------------------------------------------------------------------
+1. VEREDICTO GENERAL Y CONTROL DE DESPLIEGUE (HECHO OBSERVADO VS INFERENCIA)
+--------------------------------------------------------------------------------
+- Veredicto oficial de la suite TC-M05-G25 (reintento 1): RECHAZADO
+  (18 tests recolectados: 17 passed, 1 failed, 0 skipped, duracion 22.05 s, exit=1).
+- Veredicto tecnico sobre el incidente INC-M05-272-G25: CORREGIDO EN TEST.
+  * HECHO OBSERVADO: En codigo local el commit 293786267f agrega auditoria transaccional
+    en generar_reporte_gastos_use_case.py (_persistir), exportar_reporte_gastos_use_case.py
+    (exportar y _auditar_fallo_pdf) y consultar_reporte_gastos_use_case.py (regenerar).
+    Contra TEST, GET /health respondio HTTP 200 ({"status":"ok","message":"API funcionando correctamente"},
+    X-Request-Id: 8d8758c0-432d-44d7-a831-a388b03f1ee7; el API no expone endpoint /version ni /info).
+    En el Gate de Paso 1 y en Paso 2/Paso 3 contra TEST, la generacion, exportacion CSV/PDF y
+    regeneracion de reportes de gastos generaron eventos reales en GET /suministros/auditoria
+    en <= 0.384 s.
+  * INFERENCIA: La correccion de INC-M05-272-G25 (Dev #958) esta desplegada y activa en TEST.
+- Causa raiz del unico fallo en la suite oficial (test_d02_idor_descarga_exportacion_ajena_retorna_403):
+  * DEFECTO DEL SCRIPT OFICIAL / DATO DURO OBSOLETO (no regresion del producto ni de auditoria):
+    test_tc_m05_g25.py linea 557 consulta un UUID fijo ("4952e75b-9299-459f-bbad-506b58f63f77")
+    fuera de sandbox (Clase 4: Sin Sandbox). En TEST hoy (2026-11-11) ese archivo ya no existe,
+    respondiendo HTTP 404 ARCHIVO_NO_ENCONTRADO en vez de HTTP 403 ARCHIVO_DE_OTRO_USUARIO.
+- Decision de promocion: NO se promueve a resultados/ (se conserva ronda 1 intacta).
+
+--------------------------------------------------------------------------------
+2. INTEGRIDAD SHA-256 (ANTES Y DESPUES) Y CONFORMIDAD DEL REPO
+--------------------------------------------------------------------------------
+Ningun archivo oficial ni de resultados/ fue modificado:
+- test_tc_m05_g25.py:
+  Paso 0 y Final: 6C58E9B4963B0AAA93B55BE903117957AFE6D235A2252F8CE3EEFDB473127CBE (SIN CAMBIOS)
+- ejecutar_tc_m05_g25.ps1:
+  Paso 0 y Final: 429EB3C404AC5853498E2C5BDFC9E95B660062EFFC9ECB25AFE8C5E1E6F54624 (SIN CAMBIOS)
+- resultados/.gitkeep:
+  Paso 0 y Final: E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855 (SIN CAMBIOS)
+- resultados/resultado_TC-M05-G25.html:
+  Paso 0 y Final: 7C045A998AE91BFC3C5471549DCC847C94FF3129AEACE47710D2F2D60DCD66EF (SIN CAMBIOS)
+- resultados/resultado_TC-M05-G25.json:
+  Paso 0 y Final: 252231D230BE7E486A9AFDAC52F1119AD4F171D81153B9BF661BED159C87C112 (SIN CAMBIOS)
+
+Observaciones de calidad sobre el script oficial (sin modificarlo):
+- test_c02_verificacion_auditoria_ca11_postcondicion3 (lineas 457-493): asercion debil. Recorre los
+  ultimos 50 eventos y hace break en el primero cuyo entidad_afectada contenga "reporte_gasto" /
+  "reportes_gastos" / "exportacion_reporte" o tipo_operacion contenga "REPORTE_GASTOS" /
+  "EXPORTACION_REPORTE". No valida id_usuario actor, ni id_reporte_gasto_acumulado en datos_nuevos,
+  ni ventana de latencia <= 2 s, ni verifica por separado el evento de exportacion CSV
+  (entidad_afectada="archivos_exportacion_suministros", que ademas no coincide con esos substrings).
+  Podia incluso dar falso positivo con eventos historicos de otros reportes (ej. id=72001).
+- Clase 4 (test_d01..test_d04, lineas 507-633): se ejecuta Sin Sandbox, hace 4 POST /sesiones/
+  sin X-Test-Run-Id/X-Sandbox-Secret ni rollback, test_d02 usa UUID hardcodeado y test_d04
+  solo verifica isinstance(int) e id_reporte_gasto_acumulado is not None sin cruzar listas entre roles.
+
+--------------------------------------------------------------------------------
+3. COMPARACION RONDA 1 (2026-11-07) VS REINTENTO 1 (2026-11-11)
+--------------------------------------------------------------------------------
+Resumen Ronda 1 (resultados/resultado_TC-M05-G25.json): 18 total | 17 ok | 1 falla | Rechazado | 27.94 s
+Resumen Reintento 1 (run-20261111-150413):               18 total | 17 ok | 1 falla | Rechazado | 22.05 s
+
+Cambio entre rondas:
+- A01..A05, A98 (Productor): OK -> OK (todos pasaron; A98 DELETE sandbox HTTP 200 "Rollback exitoso")
+- B01..B04, B98 (Veterinario): OK -> OK (403 ACCESO_DENEGADO en todo; B98 HTTP 200 "Rollback exitoso")
+- C01 (Admin genera y exporta CSV): OK -> OK (HTTP 200 id_reporte=240; HTTP 201 id_archivo=01c64652-f89e-43e9-93de-73e22348349a)
+- C02 (Auditoria RF-77 CA-11 / Postcondicion 3): FALLA -> OK (0.555 s)
+  Eventos observados en trazas_http.jsonl de C02 (Admin id_usuario=104):
+  * id=72115 | entidad_afectada="reporte_gastos_acumulados" | tipo_operacion="INSERT"
+    id_usuario=104 | resultado="EXITOSO" | accion="GENERACION" | id_reporte=240
+    fecha_evento="2026-11-11T20:04:23.356767Z" | fecha_emision="2026-11-11T20:04:23.816218Z"
+  * id=72116 | entidad_afectada="archivos_exportacion_suministros" | tipo_operacion="INSERT"
+    id_usuario=104 | resultado="EXITOSO" | accion="EXPORTACION" | id_reporte=240 | formato="CSV"
+    id_archivo="01c64652-f89e-43e9-93de-73e22348349a"
+    fecha_evento="2026-11-11T20:04:23.356767Z" | fecha_emision="2026-11-11T20:04:23.946561Z"
+- C98 (Teardown Admin): OK -> OK (HTTP 200 "Rollback exitoso")
+- D01 (No autenticado 401): OK -> OK
+- D02 (IDOR descarga ajena 403): OK -> FALLA
+  Obtenido en reintento 1: HTTP 404 ARCHIVO_NO_ENCONTRADO
+  ("El archivo 4952e75b-9299-459f-bbad-506b58f63f77 no existe.")
+- D03 (Manipulacion IDs sin 500): OK -> OK
+- D04 (Aislamiento historial por usuario): OK -> OK
+
+--------------------------------------------------------------------------------
+4. CONTROL DE DESPLIEGUE / GATE EN TEST (PASO 1)
+--------------------------------------------------------------------------------
+- Endpoints globales verificados:
+  * GET /health -> HTTP 200 (X-Request-Id: 8d8758c0-432d-44d7-a831-a388b03f1ee7)
+- Corrida Gate (tc-m05-g25-paso1c-bbc42710, Administrador):
+  * Verificacion de paginacion real en GET /suministros/auditoria:
+    registros_por_pagina=5  -> total=65966, len(items)=5 (X-Request-Id: aa042f35-2eb3-441c-a385-0ec983296f81)
+    registros_por_pagina=20 -> total=65966, len(items)=20
+    Confirmado: "total" representa el conteo real completo y no esta truncado al tamano de pagina.
+  * Setup en sandbox: activo INDIVIDUAL id=1836 (HTTP 201), fase (HTTP 201), consumo alimento (HTTP 201).
+  * POST /suministros/reportes-gastos (activo_biologico_id=1836, 2026-08-01..2026-08-31, MENSUAL):
+    HTTP 200 | id_reporte_gasto_acumulado=238 | X-Request-Id: ccfd474a-c4fc-4aec-bacf-09b39d6290d4
+  * Polling inmediato t=0 (elapsed=0.384 s, X-Request-Id: b747a418-d705-4d6a-9696-ebd798ad3dfc):
+    total=65970, nuevo evento id=72111:
+    entidad_afectada="reporte_gastos_acumulados", tipo_operacion="INSERT", id_usuario=104,
+    resultado="EXITOSO", id_activo_biologico=1836, accion="GENERACION", id_reporte=238.
+  * Teardown Gate: DELETE /test-control/runs/tc-m05-g25-paso1c-bbc42710 -> HTTP 200 "Rollback exitoso".
+  * Resultado del Gate: APROBADO.
+
+--------------------------------------------------------------------------------
+5. RESULTADOS DEL DIAGNOSTICO E01-E07 (diag_auditoria.py)
+--------------------------------------------------------------------------------
+Ejecucion: pytest -p no:randomly --tb=short -v diag_auditoria.py -> 4 passed en 13.78 s.
+Setup en Run 3 (tc-m05-g25-diag-main-2ceb16d5, Admin id_usuario=104):
+Activo INDIVIDUAL creado en sandbox id=1837 (Especie 5, Infraestructura 389), consumo 10.000 COP.
+
+- E01 (Generacion exitosa): PASSED
+  * POST /suministros/reportes-gastos -> HTTP 200 (id_reporte=242, X-Request-Id: dcf2b8a8-9464-43a8-98dc-fa6af6092862)
+  * Evento auditoria id=72122 en 0.192 s (<= 2.0 s):
+    entidad="reporte_gastos_acumulados", op="INSERT", accion="GENERACION", id_usuario=104,
+    id_activo_biologico=1837, resultado="EXITOSO", hash_integridad=True,
+    fecha_evento="2026-11-11T20:06:22.070804Z", fecha_emision="2026-11-11T20:06:23.638235Z".
+
+- E02 (Exportacion CSV exitosa + descarga): PASSED
+  * POST /suministros/reportes-gastos/242/exportacion (CSV) -> HTTP 201
+    id_archivo="212720c9-121f-4954-87fe-dbd62e448d8e" (X-Request-Id: edd99b6e-4d62-4be3-a170-e5a368441c52)
+  * Evento auditoria id=72123 en 0.297 s (<= 2.0 s):
+    entidad="archivos_exportacion_suministros", op="INSERT", accion="EXPORTACION", formato="CSV",
+    id_reporte=242, id_archivo="212720c9-121f-4954-87fe-dbd62e448d8e", id_usuario=104,
+    resultado="EXITOSO", hash_integridad=True.
+  * Descarga GET /exportaciones/212720c9-... -> HTTP 200; delta_auditoria=0 (la descarga no inserta evento).
+
+- E03 (Exportacion PDF exitosa + descarga): PASSED
+  * POST /suministros/reportes-gastos/242/exportacion (PDF) -> HTTP 201
+    id_archivo="40d712f0-e24c-4e55-9655-c7f089df53c3" (X-Request-Id: f0d0f3c6-5c24-4b28-996a-4fe9337999f0)
+  * Evento auditoria id=72124 en 0.218 s (<= 2.0 s):
+    entidad="archivos_exportacion_suministros", op="INSERT", accion="EXPORTACION", formato="PDF",
+    id_reporte=242, id_archivo="40d712f0-e24c-4e55-9655-c7f089df53c3", id_usuario=104,
+    resultado="EXITOSO", hash_integridad=True.
+  * Descarga GET /exportaciones/40d712f0-... -> HTTP 200, 6172 bytes, cabecera "%PDF" valida.
+
+- E04 (Regeneracion de reporte): PASSED
+  * Consumo adicional de 10.000 COP -> gasto actual=20000.0000; snapshot guardado permanece en 10000.0000.
+  * GET /suministros/reportes-gastos/242/regenerar -> HTTP 200 (X-Request-Id: 669d2c5d-f289-4c72-8592-1518ed9a2fd7),
+    gasto_total_acumulado="20000.0000", advertencia presente, snapshot posterior GET /242 intacto ("10000.0000").
+  * Evento auditoria id=72128 en 0.310 s (<= 2.0 s):
+    entidad="reporte_gastos_acumulados", op="SELECT", accion="REGENERACION", id_reporte=242,
+    id_usuario=104, resultado="EXITOSO", hash_integridad=True.
+
+- E05 (Consulta normal historial y detalle): PASSED
+  * GET /suministros/reportes-gastos/historial -> HTTP 200 (X-Request-Id: d9a9b973-dd2c-4e32-9336-6d62a69b4a87)
+  * GET /suministros/reportes-gastos/242 -> HTTP 200 (X-Request-Id: 9c08ff74-9bbb-4180-8494-d87941534b63)
+  * Conteo bitacora: pre=65976, post=65976, delta=0, top_id sin cambios. Confirmado: las lecturas
+    normales no crean filas en auditoria (solo regenerar audita lectura activa).
+
+- E06 (Errores controlados de exportacion y analisis E6a): DOCUMENTADO / VERIFICADO PARCIALMENTE
+  * Formato invalido ("XML") -> HTTP 400 VAL_ENTRADA (X-Request-Id: e92ef1c2-2a6a-455e-90d6-b83f7588585b), delta_auditoria=0.
+  * Reporte inexistente (999999999) -> HTTP 404 REPORTE_NO_ENCONTRADO (X-Request-Id: 9e2bbfb3-2c88-4763-b8d1-f325e8966b2a), delta_auditoria=0.
+  * E6a (_auditar_fallo_pdf en exportar_reporte_gastos_use_case.py, que ante excepcion interna de
+    generar_pdf registra entidad="exportacion_reporte_gastos", tipo_operacion="REGISTRO_FALLIDO",
+    resultado="FALLIDO" y responde HTTP 500 ERROR_GENERACION_PDF): no es inyectable ni reproducible de
+    forma determinista por HTTP publico contra TEST sin mocking o instrumentacion de codigo.
+
+- E07 (Factibilidad IDOR dinamico bajo DEF-04): NO FACTIBLE EN SANDBOX SECUENCIAL / VERIFICADO
+  * Verificacion en codigo (src/identity_access/infrastructure/dependencies.py lineas 80-99):
+    get_current_user consulta modulo1.tokens por id_token; si el token no existe o fecha_uso no es NULL,
+    rechaza con 401 TOKEN_REVOCADO.
+  * Consecuencia bajo corridas sandbox secuenciales con rollback y DEF-04 (un solo POST /sesiones/ por run_id):
+    al cerrar la corrida del Productor (Run 2 tc-m05-g25-diag-prod-e07-64b4be0a, id_reporte=241,
+    uuid="76d9219c-7fb9-43b3-af19-7355d9601df1") mediante DELETE /test-control/runs/..., tanto la sesion/token
+    del Productor como el archivo exportado se revierten atomicamente. En Run 3 (Admin), consultar ese UUID
+    devuelve HTTP 404 ARCHIVO_NO_ENCONTRADO (X-Request-Id: 1324b331-b3e8-4ad3-992c-6727a602169c), confirmando
+    el rollback y la imposibilidad de cruzar dos usuarios con archivos sandbox efimeros respetando DEF-04.
+  * Consulta de solo lectura en auditoria sobre archivos_exportacion_suministros en TEST: no existia ningun
+    archivo historico vigente de otro usuario distinto de id_usuario=104 (archivo_historico_ajeno_en_test=null).
+
+--------------------------------------------------------------------------------
+6. INOCUIDAD Y ROLLBACK
+--------------------------------------------------------------------------------
+Todas las corridas sandbox se ejecutaron estrictamente en secuencia y cerraron con HTTP 200 "Rollback exitoso":
+- Suite oficial (run-20261111-150413):
+  * A98 Productor (tc-m05-g25-prod-f7e6a2ea): HTTP 200 "Rollback exitoso"
+  * B98 Veterinario (tc-m05-g25-vet-a0cd2036): HTTP 200 "Rollback exitoso"
+  * C98 Admin (tc-m05-g25-adm-d5362f3c): HTTP 200 "Rollback exitoso"
+- Diagnostico (diag_auditoria.py):
+  * Run 1 Base (tc-m05-g25-diag-base-ffe2ec21): HTTP 200 "Rollback exitoso"
+  * Run 2 Prod E07 (tc-m05-g25-diag-prod-e07-64b4be0a): HTTP 200 "Rollback exitoso"
+  * Run 3 Main (tc-m05-g25-diag-main-2ceb16d5): HTTP 200 "Rollback exitoso"
+  * Run 4 Final (tc-m05-g25-diag-final-d6405de3): HTTP 200 "Rollback exitoso"
+- Conteo base vs final de auditoria en TEST:
+  * Base  (Run 1): total=65966, top_id=72003 (X-Request-Id: 3a868b61-17a7-4ca8-8662-59f16caf48eb)
+  * Final (Run 4): total=65966, top_id=72003 (X-Request-Id: 9899812d-ca7a-4a64-8911-8ab91c4257ff)
+- Verificacion HTTP 404 por identificador en Run 4 (6/6 inexistentes):
+  * GET /activos-biologicos/1837 -> 404 (X-Request-Id: 6fa12cbf-4080-4ea8-b39d-f4af3129f241)
+  * GET /suministros/reportes-gastos/241 -> 404 (X-Request-Id: f1bff98a-49c4-4970-a13e-0668e11c2a48)
+  * GET /suministros/reportes-gastos/242 -> 404 (X-Request-Id: 584dbef3-82b4-4d1b-8c76-64c9eb10e91b)
+  * GET /suministros/reportes-gastos/exportaciones/76d9219c-7fb9-43b3-af19-7355d9601df1 -> 404 (X-Request-Id: 9e655994-e05f-4c5e-a6ab-874c4f1b96df)
+  * GET /suministros/reportes-gastos/exportaciones/212720c9-121f-4954-87fe-dbd62e448d8e -> 404 (X-Request-Id: 00c9c698-3750-42f9-bf28-d92dc416abd7)
+  * GET /suministros/reportes-gastos/exportaciones/40d712f0-e24c-4e55-9655-c7f089df53c3 -> 404 (X-Request-Id: a53efb37-3acc-41c4-92ae-b8b1efe17ba4)
+
+--------------------------------------------------------------------------------
+7. ESCANEO DE SECRETOS SOBRE ARTEFACTOS GENERADOS
+--------------------------------------------------------------------------------
+Patrones verificados desde .env.test (en memoria, sin imprimir valores):
+contrasena admin, contrasena productor, contrasena veterinario, secreto sandbox,
+ultimos 20 caracteres de cada uno y prefijo de token JWT (3 caracteres).
+Resultado en TODOS los archivos generados en evidencias/run-20261111-150413/:
+- consola_pytest.log: no encontrado
+- INFORME_FASE234_TC-M05-G25.txt: no encontrado
+- repro: no encontrado
+- resultado_TC-M05-G25.html: no encontrado
+- resultado_TC-M05-G25.json: no encontrado
+- resultado_TC-M05-G25.xml: no encontrado
+- TC-M05-G25_resultado.md: no encontrado
+- trazas_http.jsonl: no encontrado
+- diagnostico_reintento1/diag_auditoria.py: no encontrado
+- diagnostico_reintento1/diag_resultados.json: no encontrado
+- diagnostico_reintento1/consola_diag_auditoria.log: no encontrado
+- INFORME_REEVALUACION_G25.txt: (verificacion ejecutada inmediatamente al cierre)
+
+================================================================================
+ANEXO A: SCRIPT COMPLETO diag_auditoria.py
+================================================================================
+# | Fecha      | Nombre    | Que se hizo                                                            |
+# |------------|-----------|------------------------------------------------------------------------|
+# | 2026-11-11 | Antigravy | Diagnostico reintento 1 TC-M05-G25 (RF-77 auditoria E01-E07 e inocuidad) |
+"""Diagnostico aislado para TC-M05-G25 (RF-77 / TC-M05-025) en TEST.
+
+Cobertura:
+- E01: Generacion de reporte de gastos -> evento INSERT / accion GENERACION en <= 2 s.
+- E02: Exportacion CSV -> evento INSERT / accion EXPORTACION (CSV) en <= 2 s + descarga.
+- E03: Exportacion PDF -> evento INSERT / accion EXPORTACION (PDF) en <= 2 s + descarga.
+- E04: Regeneracion de reporte -> evento SELECT / accion REGENERACION en <= 2 s y snapshot intacto.
+- E05: Consulta normal (historial / detalle) -> sin incremento en auditoria.
+- E06: Error controlado en exportacion (formato invalido 422, reporte inexistente 404; analisis E6a).
+- E07: Factibilidad IDOR bajo DEF-04 (evidencia post-rollback y verificacion read-only de ajenos si existen).
+- Inocuidad completa: total base == total final de auditoria y 404 para todos los IDs creados.
+"""
+from __future__ import annotations
+
+import json
+import os
+import time
+import uuid
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import pytest
+import requests
+from dotenv import dotenv_values
+
+_ZONA_HORARIA = "America/Bogota"
+_TIMEOUT_S = 25
+_RAIZ_REPO = Path(__file__).resolve().parents[7]
+if not (_RAIZ_REPO / ".env.test").exists():
+    _RAIZ_REPO = Path.cwd()
+_ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test") if (_RAIZ_REPO / ".env.test").exists() else {}
+_SALIDA_DIR = Path(__file__).resolve().parent
+
+
+def _env(nombre: str) -> str:
+    val = os.environ.get(nombre) or _ENV_TEST.get(nombre) or ""
+    assert val, f"Falta variable obligatoria en .env.test: {nombre}"
+    return val
+
+
+def _req_id(resp: requests.Response) -> str:
+    return resp.headers.get("X-Request-Id") or resp.headers.get("x-request-id") or ""
+
+
+class SandboxCliente:
+    """Cliente sandbox secuencial (DEF-04: un solo POST /sesiones/ por run_id)."""
+
+    def __init__(self, sufijo: str, email_var: str, pass_var: str) -> None:
+        self.run_id = f"tc-m05-g25-diag-{sufijo}-{uuid.uuid4().hex[:8]}"
+        self.email_var = email_var
+        self.pass_var = pass_var
+        self.base = _env("TEST_BASE_URL").rstrip("/")
+        self.secret = _env("TEST_SANDBOX_SECRET")
+        self._ya_autenticado = False
+        self.cerrada = False
+        self.http = requests.Session()
+        self.http.headers.update({
+            "X-Test-Run-Id": self.run_id,
+            "X-Sandbox-Secret": self.secret,
+            "X-Zona-Horaria": _ZONA_HORARIA,
+        })
+
+    def login(self) -> dict[str, Any]:
+        assert not self._ya_autenticado, "DEF-04: solo un POST /sesiones/ por run_id"
+        self._ya_autenticado = True
+        r = self.http.post(
+            f"{self.base}/sesiones/",
+            json={"correo_electronico": _env(self.email_var), "contrasena": _env(self.pass_var)},
+            timeout=_TIMEOUT_S,
+        )
+        assert r.status_code == 200, f"Login {self.email_var} fallo: HTTP {r.status_code}"
+        body = r.json()
+        token = body.get("token") or body.get("access_token")
+        assert token, f"Login {self.email_var} sin credencial de sesion"
+        self.http.headers["Authorization"] = f"Bearer {token}"
+        return {"status": r.status_code, "x_request_id": _req_id(r)}
+
+    def get(self, ruta: str, params: dict[str, Any] | None = None) -> requests.Response:
+        return self.http.get(f"{self.base}{ruta}", params=params, timeout=_TIMEOUT_S)
+
+    def post(self, ruta: str, payload: dict[str, Any]) -> requests.Response:
+        return self.http.post(f"{self.base}{ruta}", json=payload, timeout=_TIMEOUT_S)
+
+    def cerrar(self) -> dict[str, Any]:
+        if self.cerrada:
+            return {"status": None, "ya_cerrada": True}
+        self.cerrada = True
+        try:
+            r = self.http.delete(f"{self.base}/test-control/runs/{self.run_id}", timeout=_TIMEOUT_S)
+            info = {"run_id": self.run_id, "status": r.status_code, "x_request_id": _req_id(r), "body": r.text[:200]}
+            assert r.status_code == 200 and "Rollback exitoso" in r.text, (
+                f"Teardown invalido para {self.run_id}: {info}"
+            )
+            return info
+        finally:
+            self.http.close()
+
+
+def _resumen_evento(ev: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id_auditoria_suministro": ev.get("id_auditoria_suministro"),
+        "entidad_afectada": ev.get("entidad_afectada"),
+        "tipo_operacion": ev.get("tipo_operacion"),
+        "id_usuario": ev.get("id_usuario"),
+        "resultado": ev.get("resultado"),
+        "fecha_evento": ev.get("fecha_evento"),
+        "fecha_emision": ev.get("fecha_emision"),
+        "id_activo_biologico": ev.get("id_activo_biologico"),
+        "hash_integridad_presente": bool(ev.get("hash_integridad")),
+        "detalle_causa": ev.get("detalle_causa"),
+        "datos_nuevos": ev.get("datos_nuevos"),
+    }
+
+
+def _esperar_evento_auditoria(
+    adm: SandboxCliente,
+    top_id_previo: int,
+    t_accion_fin: float,
+    predicado,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]], float]:
+    """Consulta /suministros/auditoria en 0 s, 1 s y 2 s hasta encontrar el evento."""
+    pausas = [0.0, 1.0, 1.0]
+    ultimo_poll_nuevos: list[dict[str, Any]] = []
+    for pausa in pausas:
+        if pausa > 0:
+            time.sleep(pausa)
+        r = adm.get("/suministros/auditoria", params={"registros_por_pagina": 20})
+        elapsed_s = round(time.perf_counter() - t_accion_fin, 3)
+        assert r.status_code == 200, f"GET /suministros/auditoria fallo: HTTP {r.status_code}"
+        items = r.json().get("items", [])
+        nuevos = [it for it in items if (it.get("id_auditoria_suministro") or 0) > top_id_previo]
+        ultimo_poll_nuevos = [_resumen_evento(x) for x in nuevos]
+        for ev in nuevos:
+            if predicado(ev):
+                return _resumen_evento(ev), ultimo_poll_nuevos, elapsed_s
+    return None, ultimo_poll_nuevos, round(time.perf_counter() - t_accion_fin, 3)
+
+
+def _snapshot_auditoria(adm: SandboxCliente) -> tuple[int, int, str]:
+    r = adm.get("/suministros/auditoria", params={"registros_por_pagina": 20})
+    assert r.status_code == 200, f"Error consultando auditoria: HTTP {r.status_code}"
+    j = r.json()
+    items = j.get("items", [])
+    top_id = (items[0].get("id_auditoria_suministro") if items else 0) or 0
+    return int(j.get("total", 0)), int(top_id), _req_id(r)
+
+
+_ESTADO: dict[str, Any] = {
+    "base_auditoria": {},
+    "prod_e07": {},
+    "main": {},
+    "final_inocuidad": {},
+    "ids_creados": {
+        "activos": [],
+        "reportes": [],
+        "archivos": [],
+    },
+}
+
+
+@pytest.fixture(scope="module")
+def guardar_resultado_diag():
+    yield
+    destino = _SALIDA_DIR / "diag_resultados.json"
+    destino.write_text(json.dumps(_ESTADO, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def test_01_linea_base_auditoria_admin(guardar_resultado_diag):
+    """Run 1 (Admin, solo lectura): captura total y top_id base reales antes de crear recursos."""
+    adm = SandboxCliente("base", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
+    try:
+        login_info = adm.login()
+        total, top_id, xid = _snapshot_auditoria(adm)
+        _ESTADO["base_auditoria"] = {
+            "run_id": adm.run_id,
+            "login": login_info,
+            "total": total,
+            "top_id": top_id,
+            "x_request_id": xid,
+        }
+        assert total >= 0
+    finally:
+        _ESTADO["base_auditoria"]["teardown"] = adm.cerrar()
+
+
+def test_02_e07_productor_exportacion_y_rollback(guardar_resultado_diag):
+    """Run 2 (Productor): genera/exporta archivo ajeno en sandbox y cierra run antes del Run 3."""
+    prod = SandboxCliente("prod-e07", "TEST_PRODUCER_EMAIL", "TEST_PRODUCER_PASSWORD")
+    try:
+        login_info = prod.login()
+        r_rep = prod.post(
+            "/suministros/reportes-gastos",
+            {
+                "id_infraestructura": 2,
+                "fecha_inicio_reporte": "2026-06-01",
+                "fecha_fin_reporte": "2026-11-01",
+                "tipo_periodo": "MENSUAL",
+            },
+        )
+        assert r_rep.status_code == 200, f"Productor generar reporte fallo: HTTP {r_rep.status_code}"
+        id_rep = r_rep.json().get("id_reporte_gasto_acumulado")
+        assert id_rep is not None
+        _ESTADO["ids_creados"]["reportes"].append(id_rep)
+
+        r_exp = prod.post(f"/suministros/reportes-gastos/{id_rep}/exportacion", {"formato_exportacion": "CSV"})
+        assert r_exp.status_code == 201, f"Productor exportar CSV fallo: HTTP {r_exp.status_code}"
+        uuid_prod = r_exp.json().get("id_archivo") or r_exp.json().get("id_archivo_exportacion")
+        assert uuid_prod
+        _ESTADO["ids_creados"]["archivos"].append(uuid_prod)
+
+        r_dl = prod.get(f"/suministros/reportes-gastos/exportaciones/{uuid_prod}")
+        assert r_dl.status_code == 200
+
+        _ESTADO["prod_e07"] = {
+            "run_id": prod.run_id,
+            "login": login_info,
+            "id_reporte_prod": id_rep,
+            "uuid_archivo_prod": uuid_prod,
+            "descarga_propia_status": r_dl.status_code,
+        }
+    finally:
+        _ESTADO["prod_e07"]["teardown"] = prod.cerrar()
+
+
+def test_03_admin_e01_a_e07_auditoria(guardar_resultado_diag):
+    """Run 3 (Admin): valida E01..E07 en sandbox unico y registra latencias/campos exactos."""
+    adm = SandboxCliente("main", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
+    det: dict[str, Any] = {"run_id": adm.run_id}
+    try:
+        det["login"] = adm.login()
+
+        # Setup dentro del sandbox: activo INDIVIDUAL + fase + consumo inicial (10.000 COP)
+        r_act = adm.post(
+            "/activos-biologicos",
+            {
+                "tipo_activo": "INDIVIDUAL",
+                "id_especie": 5,
+                "id_infraestructura": 389,
+                "identificador": f"QA-G25-DIAG-{uuid.uuid4().hex[:6]}",
+                "raza": "Holstein",
+                "sexo": "Hembra",
+                "fecha_inicio_ciclo": "2026-07-01",
+                "origen_financiero": "nacimiento",
+            },
+        )
+        assert r_act.status_code == 201, f"Crear activo fallo: HTTP {r_act.status_code}: {r_act.text[:200]}"
+        id_act = r_act.json()["id_activo_biologico"]
+        _ESTADO["ids_creados"]["activos"].append(id_act)
+
+        r_fase = adm.post(
+            f"/activos-biologicos/{id_act}/fases",
+            {
+                "id_ciclo_productiva": 5,
+                "motivo_cambio": "Diagnostico G25",
+                "fecha_inicio": "2026-07-01T05:00:00Z",
+            },
+        )
+        assert r_fase.status_code in (200, 201), f"Abrir fase fallo: HTTP {r_fase.status_code}"
+
+        r_con1 = adm.post(
+            "/suministros/consumo-alimentos",
+            {
+                "id_activo_biologico": id_act,
+                "id_tipo_alimento": 1,
+                "fecha_consumo": "2026-08-10",
+                "hora_suministro": "08:00:00",
+                "cantidad_alimento": 10,
+                "costo_unitario": 1000,
+            },
+        )
+        assert r_con1.status_code == 201, f"Consumo 1 fallo: HTTP {r_con1.status_code}"
+
+        tot_pre, top_pre, _ = _snapshot_auditoria(adm)
+        det["setup"] = {"id_activo": id_act, "auditoria_total_pre": tot_pre, "auditoria_top_pre": top_pre}
+
+        # --- E01: Generacion exitosa de reporte ---
+        r_rep = adm.post(
+            "/suministros/reportes-gastos",
+            {
+                "activo_biologico_id": id_act,
+                "fecha_inicio_reporte": "2026-08-01",
+                "fecha_fin_reporte": "2026-08-31",
+                "tipo_periodo": "MENSUAL",
+            },
+        )
+        t_gen = time.perf_counter()
+        assert r_rep.status_code == 200, f"E01 generacion fallo: HTTP {r_rep.status_code}: {r_rep.text[:200]}"
+        id_rep = r_rep.json()["id_reporte_gasto_acumulado"]
+        _ESTADO["ids_creados"]["reportes"].append(id_rep)
+
+        ev_e01, _, lat_e01 = _esperar_evento_auditoria(
+            adm,
+            top_pre,
+            t_gen,
+            lambda e: (
+                e.get("entidad_afectada") == "reporte_gastos_acumulados"
+                and (e.get("datos_nuevos") or {}).get("accion") == "GENERACION"
+                and (e.get("datos_nuevos") or {}).get("id_reporte_gasto_acumulado") == id_rep
+            ),
+        )
+        assert ev_e01 is not None, "E01: no aparecio evento GENERACION en auditoria en <= 2 s"
+        assert lat_e01 <= 2.0, f"E01 latencia fuera de SLA (<=2s): {lat_e01}s"
+        assert ev_e01["resultado"] == "EXITOSO"
+        assert ev_e01["id_usuario"] is not None
+        assert ev_e01["fecha_evento"] is not None
+        id_actor = ev_e01["id_usuario"]
+        det["E01"] = {
+            "status": r_rep.status_code,
+            "x_request_id": _req_id(r_rep),
+            "id_reporte": id_rep,
+            "latencia_s": lat_e01,
+            "evento": ev_e01,
+        }
+
+        tot_post_e01, top_post_e01, _ = _snapshot_auditoria(adm)
+
+        # --- E02: Exportacion exitosa CSV + Descarga ---
+        r_csv = adm.post(f"/suministros/reportes-gastos/{id_rep}/exportacion", {"formato_exportacion": "CSV"})
+        t_csv = time.perf_counter()
+        assert r_csv.status_code == 201, f"E02 exportacion CSV fallo: HTTP {r_csv.status_code}"
+        uuid_csv = r_csv.json()["id_archivo"]
+        _ESTADO["ids_creados"]["archivos"].append(uuid_csv)
+
+        ev_e02, _, lat_e02 = _esperar_evento_auditoria(
+            adm,
+            top_post_e01,
+            t_csv,
+            lambda e: (
+                (e.get("datos_nuevos") or {}).get("accion") == "EXPORTACION"
+                and (e.get("datos_nuevos") or {}).get("id_archivo") == uuid_csv
+            ),
+        )
+        assert ev_e02 is not None, "E02: no aparecio evento EXPORTACION CSV en auditoria en <= 2 s"
+        assert lat_e02 <= 2.0, f"E02 latencia fuera de SLA (<=2s): {lat_e02}s"
+        assert ev_e02["id_usuario"] == id_actor
+        assert (ev_e02["datos_nuevos"] or {}).get("formato") == "CSV"
+
+        tot_pre_dl_csv, top_pre_dl_csv, _ = _snapshot_auditoria(adm)
+        r_dl_csv = adm.get(f"/suministros/reportes-gastos/exportaciones/{uuid_csv}")
+        assert r_dl_csv.status_code == 200
+        tot_post_dl_csv, top_post_dl_csv, _ = _snapshot_auditoria(adm)
+
+        det["E02"] = {
+            "status": r_csv.status_code,
+            "x_request_id": _req_id(r_csv),
+            "id_archivo_csv": uuid_csv,
+            "latencia_s": lat_e02,
+            "evento": ev_e02,
+            "descarga_status": r_dl_csv.status_code,
+            "descarga_delta_auditoria": tot_post_dl_csv - tot_pre_dl_csv,
+        }
+
+        # --- E03: Exportacion exitosa PDF + Descarga ---
+        r_pdf = adm.post(f"/suministros/reportes-gastos/{id_rep}/exportacion", {"formato_exportacion": "PDF"})
+        t_pdf = time.perf_counter()
+        assert r_pdf.status_code == 201, f"E03 exportacion PDF fallo: HTTP {r_pdf.status_code}"
+        uuid_pdf = r_pdf.json()["id_archivo"]
+        _ESTADO["ids_creados"]["archivos"].append(uuid_pdf)
+
+        ev_e03, _, lat_e03 = _esperar_evento_auditoria(
+            adm,
+            top_post_dl_csv,
+            t_pdf,
+            lambda e: (
+                (e.get("datos_nuevos") or {}).get("accion") == "EXPORTACION"
+                and (e.get("datos_nuevos") or {}).get("id_archivo") == uuid_pdf
+            ),
+        )
+        assert ev_e03 is not None, "E03: no aparecio evento EXPORTACION PDF en auditoria en <= 2 s"
+        assert lat_e03 <= 2.0, f"E03 latencia fuera de SLA (<=2s): {lat_e03}s"
+        assert ev_e03["id_usuario"] == id_actor
+        assert (ev_e03["datos_nuevos"] or {}).get("formato") == "PDF"
+
+        r_dl_pdf = adm.get(f"/suministros/reportes-gastos/exportaciones/{uuid_pdf}")
+        assert r_dl_pdf.status_code == 200
+        assert r_dl_pdf.content.startswith(b"%PDF")
+        tot_post_e03, top_post_e03, _ = _snapshot_auditoria(adm)
+
+        det["E03"] = {
+            "status": r_pdf.status_code,
+            "x_request_id": _req_id(r_pdf),
+            "id_archivo_pdf": uuid_pdf,
+            "latencia_s": lat_e03,
+            "evento": ev_e03,
+            "descarga_status": r_dl_pdf.status_code,
+            "pdf_bytes": len(r_dl_pdf.content),
+        }
+
+        # --- E04: Regeneracion de reporte con cambio de datos + snapshot intacto ---
+        r_con2 = adm.post(
+            "/suministros/consumo-alimentos",
+            {
+                "id_activo_biologico": id_act,
+                "id_tipo_alimento": 1,
+                "fecha_consumo": "2026-08-15",
+                "hora_suministro": "09:00:00",
+                "cantidad_alimento": 5,
+                "costo_unitario": 2000,
+            },
+        )
+        assert r_con2.status_code == 201
+        _, top_pre_reg, _ = _snapshot_auditoria(adm)
+
+        r_reg = adm.get(f"/suministros/reportes-gastos/{id_rep}/regenerar")
+        t_reg = time.perf_counter()
+        assert r_reg.status_code == 200, f"E04 regenerar fallo: HTTP {r_reg.status_code}"
+        reg_j = r_reg.json()
+        assert reg_j.get("advertencia"), "E04: respuesta sin advertencia"
+        assert Decimal(str(reg_j.get("gasto_total_acumulado"))) == Decimal("20000.0000")
+
+        r_snap = adm.get(f"/suministros/reportes-gastos/{id_rep}")
+        assert r_snap.status_code == 200
+        snap_total = Decimal(str(r_snap.json().get("gasto_total_acumulado")))
+        assert snap_total == Decimal("10000.0000"), f"Snapshot mutado: {snap_total}"
+
+        ev_e04, _, lat_e04 = _esperar_evento_auditoria(
+            adm,
+            top_pre_reg,
+            t_reg,
+            lambda e: (
+                e.get("entidad_afectada") == "reporte_gastos_acumulados"
+                and (e.get("datos_nuevos") or {}).get("accion") == "REGENERACION"
+                and (e.get("datos_nuevos") or {}).get("id_reporte_gasto_acumulado") == id_rep
+            ),
+        )
+        assert ev_e04 is not None, "E04: no aparecio evento REGENERACION en auditoria en <= 2 s"
+        assert lat_e04 <= 2.0, f"E04 latencia fuera de SLA (<=2s): {lat_e04}s"
+        assert ev_e04["tipo_operacion"] == "SELECT"
+        assert ev_e04["id_usuario"] == id_actor
+
+        det["E04"] = {
+            "status": r_reg.status_code,
+            "x_request_id": _req_id(r_reg),
+            "gasto_regenerado": str(reg_j.get("gasto_total_acumulado")),
+            "gasto_snapshot_original": str(snap_total),
+            "latencia_s": lat_e04,
+            "evento": ev_e04,
+        }
+
+        # --- E05: Consulta normal (historial y detalle) no debe mutar bitacora ---
+        tot_pre_e05, top_pre_e05, _ = _snapshot_auditoria(adm)
+        r_hist = adm.get("/suministros/reportes-gastos/historial", params={"limite": 20})
+        assert r_hist.status_code == 200
+        r_det = adm.get(f"/suministros/reportes-gastos/{id_rep}")
+        assert r_det.status_code == 200
+        tot_post_e05, top_post_e05, _ = _snapshot_auditoria(adm)
+
+        det["E05"] = {
+            "historial_status": r_hist.status_code,
+            "historial_x_request_id": _req_id(r_hist),
+            "detalle_status": r_det.status_code,
+            "detalle_x_request_id": _req_id(r_det),
+            "auditoria_total_pre": tot_pre_e05,
+            "auditoria_total_post": tot_post_e05,
+            "delta_auditoria": tot_post_e05 - tot_pre_e05,
+            "top_id_sin_cambios": top_pre_e05 == top_post_e05,
+        }
+        assert tot_post_e05 == tot_pre_e05
+
+        # --- E06: Errores controlados en exportacion ---
+        tot_pre_e06, top_pre_e06, _ = _snapshot_auditoria(adm)
+        r_fmt_inv = adm.post(f"/suministros/reportes-gastos/{id_rep}/exportacion", {"formato_exportacion": "XML"})
+        r_rep_404 = adm.post("/suministros/reportes-gastos/999999999/exportacion", {"formato_exportacion": "CSV"})
+        tot_post_e06, top_post_e06, _ = _snapshot_auditoria(adm)
+
+        det["E06"] = {
+            "formato_invalido": {
+                "status": r_fmt_inv.status_code,
+                "x_request_id": _req_id(r_fmt_inv),
+                "error_code": r_fmt_inv.json().get("error_code"),
+            },
+            "reporte_inexistente": {
+                "status": r_rep_404.status_code,
+                "x_request_id": _req_id(r_rep_404),
+                "error_code": r_rep_404.json().get("error_code"),
+            },
+            "delta_auditoria": tot_post_e06 - tot_pre_e06,
+            "nota_e6a": (
+                "E6a (fallo interno del motor PDF -> HTTP 500 ERROR_GENERACION_PDF y evento FALLIDO) "
+                "no es inyectable por HTTP publico en TEST sin mock/instrumentacion."
+            ),
+        }
+
+        # --- E07: Factibilidad IDOR bajo DEF-04 y rollback ---
+        uuid_prod_rollback = (_ESTADO.get("prod_e07") or {}).get("uuid_archivo_prod")
+        r_idor_rollback = None
+        if uuid_prod_rollback:
+            r_post_rb = adm.get(f"/suministros/reportes-gastos/exportaciones/{uuid_prod_rollback}")
+            r_idor_rollback = {
+                "uuid": uuid_prod_rollback,
+                "status": r_post_rb.status_code,
+                "x_request_id": _req_id(r_post_rb),
+                "error_code": r_post_rb.json().get("error_code") if r_post_rb.headers.get("content-type", "").startswith("application/json") else None,
+            }
+
+        # Buscar solo lectura en bitacora por si existe algun archivo historico vigente de otro usuario
+        r_exp_hist = adm.get(
+            "/suministros/auditoria",
+            params={"entidad_afectada": "archivos_exportacion_suministros", "registros_por_pagina": 20},
+        )
+        otro_uuid = None
+        otro_uid = None
+        if r_exp_hist.status_code == 200:
+            for it in r_exp_hist.json().get("items", []):
+                dn = it.get("datos_nuevos") or {}
+                if it.get("id_usuario") != id_actor and dn.get("id_archivo"):
+                    otro_uuid = dn.get("id_archivo")
+                    otro_uid = it.get("id_usuario")
+                    break
+        prueba_otro_historico = None
+        if otro_uuid:
+            tot_pre_idor, _, _ = _snapshot_auditoria(adm)
+            r_aj = adm.get(f"/suministros/reportes-gastos/exportaciones/{otro_uuid}")
+            tot_post_idor, _, _ = _snapshot_auditoria(adm)
+            prueba_otro_historico = {
+                "uuid": otro_uuid,
+                "id_usuario_propietario": otro_uid,
+                "status": r_aj.status_code,
+                "x_request_id": _req_id(r_aj),
+                "error_code": r_aj.json().get("error_code") if r_aj.headers.get("content-type", "").startswith("application/json") else None,
+                "delta_auditoria": tot_post_idor - tot_pre_idor,
+            }
+
+        det["E07"] = {
+            "factible_dinamico_con_def04": False,
+            "motivo_codigo": (
+                "get_current_user valida el JWT contra modulo1.tokens en BD (TOKEN_REVOCADO si falta o "
+                "fecha_uso IS NOT NULL). Bajo corridas sandbox secuenciales con rollback y DEF-04 (un "
+                "solo POST /sesiones/ por run_id), los registros creados por Productor (Tokens y "
+                "archivos_exportacion_suministros) se revierten al cerrar Run 2, por lo que en Run 3 Admin "
+                "el UUID de Productor no existe (HTTP 404) y no es posible tener ambos usuarios con "
+                "sesion+archivo en la misma transaccion sandbox sin violar DEF-04 o escribir fuera del sandbox."
+            ),
+            "post_rollback_prod_uuid": r_idor_rollback,
+            "archivo_historico_ajeno_en_test": prueba_otro_historico,
+        }
+    finally:
+        det["teardown"] = adm.cerrar()
+        _ESTADO["main"] = det
+
+
+def test_04_inocuidad_final_y_404_por_id(guardar_resultado_diag):
+    """Run 4 (Admin, solo lectura): total final auditoria == base y 404 en cada ID creado."""
+    adm = SandboxCliente("final", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
+    try:
+        login_info = adm.login()
+        tot_fin, top_fin, xid = _snapshot_auditoria(adm)
+        base = _ESTADO["base_auditoria"]
+        verificaciones_id = []
+
+        for id_act in _ESTADO["ids_creados"]["activos"]:
+            r = adm.get(f"/activos-biologicos/{id_act}")
+            verificaciones_id.append({"recurso": f"/activos-biologicos/{id_act}", "status": r.status_code, "x_request_id": _req_id(r)})
+            assert r.status_code == 404, f"Posible contaminacion activo {id_act}: HTTP {r.status_code}"
+
+        for id_rep in _ESTADO["ids_creados"]["reportes"]:
+            r = adm.get(f"/suministros/reportes-gastos/{id_rep}")
+            verificaciones_id.append({"recurso": f"/suministros/reportes-gastos/{id_rep}", "status": r.status_code, "x_request_id": _req_id(r)})
+            assert r.status_code == 404, f"Posible contaminacion reporte {id_rep}: HTTP {r.status_code}"
+
+        for uid_arch in _ESTADO["ids_creados"]["archivos"]:
+            r = adm.get(f"/suministros/reportes-gastos/exportaciones/{uid_arch}")
+            verificaciones_id.append({"recurso": f"/suministros/reportes-gastos/exportaciones/{uid_arch}", "status": r.status_code, "x_request_id": _req_id(r)})
+            assert r.status_code == 404, f"Posible contaminacion archivo {uid_arch}: HTTP {r.status_code}"
+
+        _ESTADO["final_inocuidad"] = {
+            "run_id": adm.run_id,
+            "login": login_info,
+            "auditoria_total_base": base["total"],
+            "auditoria_top_base": base["top_id"],
+            "auditoria_total_final": tot_fin,
+            "auditoria_top_final": top_fin,
+            "x_request_id": xid,
+            "verificaciones_id_404": verificaciones_id,
+        }
+        assert tot_fin == base["total"], f"Total auditoria cambio: base={base['total']}, final={tot_fin}"
+        assert top_fin == base["top_id"], f"top_id auditoria cambio: base={base['top_id']}, final={top_fin}"
+    finally:
+        _ESTADO["final_inocuidad"]["teardown"] = adm.cerrar()
+
+================================================================================
+ANEXO B1: SALIDA DE CONSOLA - SUITE OFICIAL (consola_pytest.log)
+================================================================================
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collected 18 items
+
+tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G25\test_tc_m05_g25.py .... [ 22%]
+...........F..                                                           [100%]
+
+================================== FAILURES ===================================
+_ TestTC_M05_G25_IDOR_Y_Aislamiento.test_d02_idor_descarga_exportacion_ajena_retorna_403 _
+tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G25\test_tc_m05_g25.py:560: in test_d02_idor_descarga_exportacion_ajena_retorna_403
+    assert r.status_code == 403, (
+E   AssertionError: Se esperaba HTTP 403 por descarga IDOR ajena, obtenido: 404: {"error_code":"ARCHIVO_NO_ENCONTRADO","message":"El archivo 4952e75b-9299-459f-bbad-506b58f63f77 no existe.","fields":[],"timestamp":"2026-11-11T20:04:30.162745+00:00"}
+E   assert 404 == 403
+E    +  where 404 = <Response [404]>.status_code
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G25\evidencias\run-20261111-150413\resultado_TC-M05-G25.xml -
+- Generated html report: file:///C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/resultado_TC-M05-G25.html -
+=========================== short test summary info ===========================
+FAILED tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_IDOR_Y_Aislamiento::test_d02_idor_descarga_exportacion_ajena_retorna_403
+================== 1 failed, 17 passed, 1 warning in 22.05s ===================
+
+================================================================================
+ANEXO B2: SALIDA DE CONSOLA - DIAGNOSTICO (consola_diag_auditoria.log)
+================================================================================
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 4 items
+
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/diagnostico_reintento1/diag_auditoria.py::test_01_linea_base_auditoria_admin PASSED [ 25%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/diagnostico_reintento1/diag_auditoria.py::test_02_e07_productor_exportacion_y_rollback PASSED [ 50%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/diagnostico_reintento1/diag_auditoria.py::test_03_admin_e01_a_e07_auditoria PASSED [ 75%]
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/diagnostico_reintento1/diag_auditoria.py::test_04_inocuidad_final_y_404_por_id PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 4 passed, 1 warning in 13.78s ========================

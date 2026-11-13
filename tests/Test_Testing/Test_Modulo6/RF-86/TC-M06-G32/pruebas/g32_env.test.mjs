@@ -25,15 +25,17 @@ test('leerEnv tolera archivo ausente', () => {
   assert.equal(e.QA_AUTORIZADO, 'SI');
   assert.equal(e.QA_CONTADOR_EMAIL, undefined);
 });
-test('período cerrado deriva al primer abierto posterior; EN_CIERRE impide procesar', () => {
+test('solo el período que contiene hoy ABIERTO es elegible', () => {
   const periodos = [
     { id_periodo_contable: 6, numero_id_tributaria: 'titular-local', estado: 'ABIERTO', fecha_inicio: '2026-10-01', fecha_fin: '2026-10-31' },
     { id_periodo_contable: 7, numero_id_tributaria: 'titular-local', estado: 'CERRADO', fecha_inicio: '2026-11-01', fecha_fin: '2026-11-30' },
     { id_periodo_contable: 8, numero_id_tributaria: 'titular-local', estado: 'ABIERTO', fecha_inicio: '2026-12-01', fecha_fin: '2026-12-31' },
   ];
-  assert.equal(periodoDestino(periodos, 'titular-local', '2026-11-08').periodo.id_periodo_contable, 8);
+  assert.match(periodoDestino(periodos, 'titular-local', '2026-11-08').motivo, /CERRADO/);
   periodos[1].estado = 'EN_CIERRE';
   assert.match(periodoDestino(periodos, 'titular-local', '2026-11-08').motivo, /EN_CIERRE/);
+  periodos[1].estado = 'ABIERTO';
+  assert.equal(periodoDestino(periodos, 'titular-local', '2026-11-08').periodo.id_periodo_contable, 7);
 });
 test('precio RF-89 elige la última fecha y mayor ID de la fuente prioritaria', () => {
   const base = { id_especie: 39, categoria: 'PESO_KG', fuente: 'MERCADO_ACTIVO', fecha_vencimiento: null };

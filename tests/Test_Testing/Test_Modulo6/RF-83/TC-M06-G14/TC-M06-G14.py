@@ -3,6 +3,7 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G14 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G14 reescrito según ficha y CU02 (FA-04, FA-06, FA-07): auditoría del intento, estados, estimación, invariante propio |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G14 corregido: VARIACION_REGISTRADA no cuenta como auditoría del intento/exclusión; 070 con rol Contador antes de las peticiones inválidas |
+# | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 067a revisado: sin precio, sin histórico ni costo queda MEDICION_PENDIENTE (no se estima con el costo) |
 """
 TC-M06-G14 - Restricciones y validación de la medición: período cerrado, estados no elegibles, recuperación, invariante e inválidos.
 RF-83 (FA-04, FA-06, FA-07; restricciones 2 y 5).   Casos: TC-M06-065 a TC-M06-070.
@@ -15,9 +16,9 @@ Adaptaciones al backend (se documentan en la evidencia):
 - 066: M02 no admite eventos sobre un activo que ya no está ACTIVO. INACTIVO y PENDIENTE_RECONOCIMIENTO se prueban con el pesaje ya registrado
   (INACTIVO: el activo cambia de estado antes de procesar la cola). BAJA: el pesaje anterior a la baja se mide legítimamente (el activo estaba ACTIVO
   al ocurrir el evento), así que se prueba que, ya dada la baja, un nuevo evento y el cierre del período no miden el activo (RF-83 restricción 5).
-- 067: la ficha pide «sin precio»; el RF-83 dice que en ese caso se estima con el último precio (valor_estimado=true) y no se bloquea. 067a reproduce
-  eso (precio solo histórico, como G12) y la recuperación al cargar el precio; 067b reproduce el bloqueo real con costos de venta = 100 %
-  (VALOR_NETO_NO_POSITIVO) y su recuperación.
+- 067 (RF-83 v1.2): «sin precio, sin histórico ni costo»: el activo a valor razonable cuya especie nunca tuvo precio en la categoría vigente queda
+  MEDICION_PENDIENTE (sin medición parcial, sin pasar a costo); al cargar el precio el reintento crea una sola medición (067a). 067b reproduce el
+  bloqueo real con costos de venta = 100 % (VALOR_NETO_NO_POSITIVO) y su recuperación.
 - 068: se construyen en el run mediciones por evento, por estimación y por cierre (los escenarios de G09 a G13 corren en otros runs y se deshacen).
   FA-06 (alerta de inconsistencia) no se puede provocar desde QA: se cubre con este invariante.
 
@@ -208,23 +209,26 @@ def test_TC_M06_066_control_activo_si_se_mide(env):
 
 
 # ------------------------------------------------------------------------------------------------------------------- 067
-def test_TC_M06_067a_sin_precio_vigente_estima_y_al_cargar_precio_el_reintento_crea_una_sola(env):
+def test_TC_M06_067a_sin_precio_ni_historico_queda_pendiente_y_al_cargar_precio_el_reintento_crea_una_sola(env):
     _nuevo(env)
     env.presupuesto(90)
     esc = env.escenario(categoria="PESO_KG", precio=P)
     ida = env.base_medible(esc, "400")
     calculos = env.contar("calculos_valor_razonable", ida)
-    _dejar_sin_precio_vigente(env, esc)
+    valor_previo = dec(env.calculo(ida)["valor_neto"])
+    # La especie pasa a una categoría en la que nunca tuvo precio (no se registra ninguno): sin precio vigente ni histórico y sin usar el costo.
+    env.prep(env.call("PUT", f"/finanzas/configuracion/especies/{esc.id_especie}", "contador", json={
+        "clasificacion": "PRODUCCION", "categoria_precio": "POR_CABEZA", "vida_util_meses": 60}), (200, 201), "especie sin precio en la categoría vigente")
     env.pesaje(ida, "450")
     assert env.procesar_eventos().status == 200
     n1 = _n(env, ida)
-    ms = env.mediciones(ida)
-    if n1:
-        assert ms[-1]["tiene_valor_estimado"] is True, f"CA-5: sin precio vigente la medición debe marcarse valor_estimado=true: {ms[-1]}"
-        obs(f"Sin precio vigente se estimó con el último precio histórico (valor_estimado=true): {n1} medición.")
-    else:
-        assert env.contar("calculos_valor_razonable", ida) == calculos, "no debe quedar cálculo parcial"
-        obs("Sin precio vigente el sistema bloqueó: sin medición parcial.")
+    if n1 and env.mediciones(ida)[-1]["tiene_valor_estimado"] is True:
+        no_concluyente("el backend tomó el precio por kg anterior como histórico, así que la especie no queda sin ningún precio; "
+                       f"no se pudo preparar el escenario «sin precio ni histórico»: {env.mediciones(ida)[-1]}")
+    assert n1 == 0, f"RF-83 v1.2: sin precio ni histórico no debe crearse medición (tampoco con el costo): {env.mediciones(ida)}"
+    assert env.contar("calculos_valor_razonable", ida) == calculos, "no debe quedar cálculo parcial"
+    assert dec(env.calculo(ida)["valor_neto"]) == valor_previo, "el valor del activo no debe cambiar mientras la medición está bloqueada"
+    assert "MEDICION_PENDIENTE" in env.tipos_auditoria(ida), env.tipos_auditoria(ida)
     env.precio(esc, "2100000.00", desde=hoy(), categoria="POR_CABEZA")             # el Administrador/Contador carga el precio
     assert env.procesar_eventos().status == 200
     if _n(env, ida) == n1:

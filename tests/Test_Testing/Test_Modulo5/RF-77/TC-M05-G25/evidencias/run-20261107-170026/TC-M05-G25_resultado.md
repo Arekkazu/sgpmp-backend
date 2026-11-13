@@ -43,3 +43,5 @@
 - La especificación RF-77 exige en CA-11 y Postcondición 3 que toda generación y exportación de reportes quede registrada de forma inmutable en la bitácora de auditoría con usuario y timestamp.
 - **Hallazgo / Defecto de Producto**: La implementación actual del caso de uso (`GenerarReporteGastosUseCase` y `ExportarReporteGastosUseCase`) no invoca el puerto de auditoría (`auditoria_port.registrar`) durante la generación o exportación exitosa de reportes.
 - **Clasificación**: DEFECTO DE PRODUCTO (GAP normativo frente a RF-77 CA-11 / Postcondición 3). No promovible a producción hasta que se implemente la auditoría de RF-77.
+
+Actualización 2026-11-11: INC-M05-272-G25 corregido (Dev #958); reintento 1 Aprobado 23/23 en run-20261111-154122 con el script corregido (fase 3).

@@ -394,6 +394,31 @@
           "name": "PRE - Aptitud del activo B para los casos",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -606,6 +631,31 @@
           "name": "PRE - Consumos del activo sin individuos antes",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -683,6 +733,31 @@
         {
           "name": "TC-M05-027c - No se persiste",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {

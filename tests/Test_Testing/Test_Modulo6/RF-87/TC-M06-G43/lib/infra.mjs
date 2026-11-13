@@ -37,6 +37,10 @@ export function contexto(args,{capacidades,grupo,casos,dir,prueba=false}){
   if(!archivo||path.resolve(archivo)!==path.join(salida,'contexto_operacion.json'))throw Error('CONTEXTO_FUERA_RUN');
   const c=JSON.parse(fs.readFileSync(archivo));
   if(c.grupo!==grupo||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()||c.referencia!==ref||JSON.stringify(c.casos)!==JSON.stringify(casos))throw Error('CONTEXTO_INCOHERENTE');
+  if(version===2){
+    if(!['REEVALUAR','REINTENTAR'].includes(c.operacion)||JSON.stringify(c.alcance_reevaluacion?.casos)!==JSON.stringify(casos)||
+       (c.operacion==='REEVALUAR'&&Number(c.version_anterior)!==1))throw Error('ALCANCE_REEVALUACION_INCOHERENTE');
+  }
   return{dir:salida,runId,version,intento,operacion,ref};
 }
 
@@ -48,13 +52,15 @@ export function preflight(c,e,{grupo,api,front,efectos}){
   return{grupo,run_id:c.runId,version:c.version,referencia:c.ref,ok:falta.length===0,barreras:falta,efectos};
 }
 
-export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,validarLecturas,validarError,clean,id,token,inicio}){
+export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,validarLecturas,validarError,clean,id,token,inicio,validarCompleto=false}){
   let ocupado=false;
   let cuenta=0;
   let escrituras=0;
   async function req(metodo,ruta,cuerpo,sinRun=false){
     if(ocupado)throw Error('PETICION_CONCURRENTE');
-    if(++cuenta>limite.solicitudes_totales||Date.now()-inicio>1800000)throw Error('PRESUPUESTO_AGOTADO');
+    ++cuenta;
+    // La comprobación posterior al DELETE siempre se ejecuta y cuenta para la oficialidad.
+    if((cuenta>limite.solicitudes_totales||Date.now()-inicio>1800000)&&metodo!=='DELETE'&&!(sinRun&&metodo==='GET'))throw Error('PRESUPUESTO_AGOTADO');
     if(!esquema(metodo,ruta)&&!(metodo==='GET'&&ruta==='/sesiones/me/permisos'))throw Error(`RUTA_FUERA_CONTRATO_${metodo}_${ruta}`);
     ocupado=true;
     const fila={id:id(cuenta),metodo,ruta:ruta.split('?')[0],http:null};
@@ -75,6 +81,8 @@ export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,va
         return{http:respuesta.status,data:raw,hora_utc:fila.hora_utc};
       }
       const data=metodo==='DELETE'?raw:validarLecturas(raw,metodo,ruta,{estricto:false,camposExtra:new Set()});
+      // La instrumentación es perezosa: fuerce las lecturas antes de cualquier escritura posterior.
+      if(validarCompleto&&metodo!=='DELETE')JSON.stringify(data);
       return{http:respuesta.status,data,hora_utc:fila.hora_utc};
     }finally{ocupado=false;}
   }

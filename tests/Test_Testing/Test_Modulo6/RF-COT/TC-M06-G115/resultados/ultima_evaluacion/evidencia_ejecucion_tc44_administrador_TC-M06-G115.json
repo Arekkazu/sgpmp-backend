@@ -1,0 +1,438 @@
+{
+  "caso": "TC-M06-G115",
+  "subcaso": "TC-M06-44",
+  "fase": "ejecucion_administrador_unica",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-13T02:31:16.190595+00:00",
+  "alcance": {
+    "rol": "Administrador",
+    "activo": 1569,
+    "nit": "900000003",
+    "finca": 467,
+    "periodo": 220,
+    "valor_cotizacion_propuesto": "1000.0000",
+    "valor_razonable_referencia_esperado": "3760000.0000",
+    "reutilizacion_1569": "Permitida: RegistrarCotizacionUseCase no exige unicidad por activo; solo ACTIVO + reconocimiento + VR vigente. Cotización 9 no se modifica."
+  },
+  "analisis_segunda_cotizacion": {
+    "fuente": "registrar_cotizacion_use_case.py",
+    "restriccion_unicidad_activo": false,
+    "condiciones": [
+      "activo.estado == ACTIVO",
+      "reconocimiento_confirmado",
+      "ultimo_calculo (VR) disponible",
+      "mismo titular si varios activos"
+    ],
+    "conclusion": "1569 admite segunda cotización válida sin invalidar cotización 9"
+  },
+  "precondiciones": {
+    "administrador_ok": true,
+    "id_usuario": 137,
+    "puede_crear_cotizaciones": true,
+    "periodo_220_abierto": true,
+    "activo_1569_apto": true,
+    "vr_antes": "3760000.0000",
+    "cotizacion_9_intacta": true,
+    "cotizacion_9_snapshot": {
+      "id_cotizacion": 9,
+      "estado": "COTIZADO",
+      "valor_cotizacion_propuesto": "1000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "id_periodo_contable": 220,
+      "activos_cotizados": [
+        1569
+      ],
+      "id_usuario": 141,
+      "version": 1
+    },
+    "segunda_cotizacion_1569_permitida_por_codigo": true,
+    "reservadas_6_7_presentes": true,
+    "eventos_antes": 4,
+    "lineas_antes": 0,
+    "todas_ok": true
+  },
+  "post": {
+    "http": 201,
+    "respuesta": {
+      "id_cotizacion": 10,
+      "valor_razonable_referencia": "3760000.0000",
+      "estado": "COTIZADO",
+      "id_periodo_contable": 220
+    },
+    "id_cotizacion": 10,
+    "estado": "COTIZADO",
+    "valor_razonable_referencia": "3760000.0000",
+    "id_periodo_contable": 220
+  },
+  "verificaciones": {
+    "via_get": true,
+    "via_sql_directo": false,
+    "sql_select": "NO_EJECUTADO — sin conexión SQL directa; verificación vía GET API",
+    "id_cotizacion": 10,
+    "id_usuario_admin": 137,
+    "vr_antes": "3760000.0000",
+    "vr_despues": "3760000.0000",
+    "eventos_antes": 4,
+    "eventos_despues": 5,
+    "delta_eventos": 1,
+    "lineas_antes": 0,
+    "lineas_despues": 0,
+    "checks": {
+      "http_201": true,
+      "id_cotizacion_presente": true,
+      "estado_cotizado": true,
+      "valor_propuesto_1000": true,
+      "valor_referencia_3760000": true,
+      "periodo_220": true,
+      "activo_1569_en_cotizacion": true,
+      "actor_administrador": true,
+      "evento_delta_1": true,
+      "vr_sin_cambio": true,
+      "periodo_sigue_abierto": true,
+      "sin_asientos_nuevos": true,
+      "cotizacion_9_intacta": true,
+      "reservadas_6_7_intactas": true,
+      "distinta_de_cotizacion_9": true
+    },
+    "cotizacion_creada": {
+      "id_cotizacion": 10,
+      "fecha_emision": "2026-11-12",
+      "id_periodo_contable": 220,
+      "activos_cotizados": [
+        1569
+      ],
+      "valor_razonable_referencia": "3760000.0000",
+      "valor_cotizacion_propuesto": "1000.0000",
+      "condiciones": "TC-M06-G115 / TC-M06-44 Administrador — cotización de prueba QA aislada activo 1569",
+      "estado": "COTIZADO",
+      "estado_al_cierre": null,
+      "fecha_vencimiento": null,
+      "motivo_anulacion": null,
+      "id_usuario": 137,
+      "fecha_registro": "2026-11-13T02:31:20.440127Z",
+      "version": 1,
+      "fecha_actualizacion": null,
+      "estado_periodo": "ABIERTO"
+    },
+    "evento": {
+      "id_evento": 20190,
+      "tipo_evento": "COTIZACION_REGISTRADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-13T02:31:20.440127Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 137,
+      "nombre_usuario": {
+        "omitido": true
+      },
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": 220,
+      "id_referencia": 10,
+      "payload_evento": {
+        "activos": [
+          1569
+        ],
+        "valor_propuesto": "1000.0000",
+        "valor_razonable_referencia": "3760000.0000"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": {
+        "omitido": true
+      },
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": "1000.0000",
+      "identificador_activo": null
+    },
+    "cotizacion_9": {
+      "id_cotizacion": 9,
+      "fecha_emision": "2026-11-12",
+      "id_periodo_contable": 220,
+      "activos_cotizados": [
+        1569
+      ],
+      "valor_razonable_referencia": "3760000.0000",
+      "valor_cotizacion_propuesto": "1000.0000",
+      "condiciones": "TC-M06-G115 / TC-M06-44 Contador — cotización de prueba QA aislada activo 1569",
+      "estado": "COTIZADO",
+      "estado_al_cierre": null,
+      "fecha_vencimiento": null,
+      "motivo_anulacion": null,
+      "id_usuario": 141,
+      "fecha_registro": "2026-11-13T02:24:46.425401Z",
+      "version": 1,
+      "fecha_actualizacion": null,
+      "estado_periodo": "ABIERTO"
+    }
+  },
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "en": "2026-11-13T02:31:17.110347+00:00",
+      "nota": "autenticacion_administrador",
+      "respuesta": {
+        "ok": true,
+        "tipo": "Bearer"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:17.696938+00:00",
+      "respuesta": {
+        "id_usuario": 137,
+        "nombre_rol": "Administrador",
+        "estado_cuenta": "Activo"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:18.242792+00:00",
+      "respuesta": {
+        "total": 190,
+        "cotizaciones": [
+          "crear",
+          "desactivar",
+          "leer"
+        ],
+        "puede_crear": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:18.660206+00:00",
+      "respuesta": {
+        "estado_220": "ABIERTO",
+        "nit_coincide": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1569",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:19.056680+00:00",
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "vr_neto": "3760000.0000",
+        "apto": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:19.470686+00:00",
+      "respuesta": {
+        "total": 6,
+        "cotizacion_9": {
+          "id_cotizacion": 9,
+          "estado": "COTIZADO",
+          "valor_cotizacion_propuesto": "1000.0000",
+          "valor_razonable_referencia": "3760000.0000",
+          "id_periodo_contable": 220,
+          "activos_cotizados": [
+            1569
+          ],
+          "id_usuario": 141,
+          "version": 1
+        },
+        "cot9_intacta": true,
+        "reservadas_6_7": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:19.864845+00:00",
+      "nota": "auditoria_antes",
+      "respuesta": {
+        "total_registros": 4
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_activo_biologico=1569&tamano=50",
+      "codigo": 400,
+      "escritura": false,
+      "en": "2026-11-13T02:31:20.268618+00:00",
+      "nota": "lineas_antes",
+      "respuesta": {
+        "total_o_len": 0
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 201,
+      "escritura": true,
+      "en": "2026-11-13T02:31:20.699967+00:00",
+      "nota": "unico_post_autorizado_administrador",
+      "cuerpo": {
+        "activos_cotizados": [
+          1569
+        ],
+        "valor_cotizacion_propuesto": "1000.0000",
+        "condiciones": "TC-M06-G115 / TC-M06-44 Administrador — cotización de prueba QA aislada activo 1569"
+      },
+      "respuesta": {
+        "id_cotizacion": 10,
+        "valor_razonable_referencia": "3760000.0000",
+        "estado": "COTIZADO",
+        "id_periodo_contable": 220
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:21.123975+00:00",
+      "nota": "cotizaciones_despues",
+      "respuesta": {
+        "total": 7,
+        "creada": {
+          "id_cotizacion": 10,
+          "fecha_emision": "2026-11-12",
+          "id_periodo_contable": 220,
+          "activos_cotizados": [
+            1569
+          ],
+          "valor_razonable_referencia": "3760000.0000",
+          "valor_cotizacion_propuesto": "1000.0000",
+          "condiciones": "TC-M06-G115 / TC-M06-44 Administrador — cotización de prueba QA aislada activo 1569",
+          "estado": "COTIZADO",
+          "estado_al_cierre": null,
+          "fecha_vencimiento": null,
+          "motivo_anulacion": null,
+          "id_usuario": 137,
+          "fecha_registro": "2026-11-13T02:31:20.440127Z",
+          "version": 1,
+          "fecha_actualizacion": null,
+          "estado_periodo": "ABIERTO"
+        },
+        "cot9_despues": {
+          "id_cotizacion": 9,
+          "estado": "COTIZADO",
+          "version": 1,
+          "valor_cotizacion_propuesto": "1000.0000",
+          "id_usuario": 141
+        },
+        "cot9_intacta": true,
+        "reservadas_6_7": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1569",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:21.527755+00:00",
+      "nota": "activo_despues",
+      "respuesta": {
+        "vr_neto": "3760000.0000",
+        "sin_cambio_vr": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:21.917165+00:00",
+      "nota": "periodo_despues",
+      "respuesta": {
+        "estado_220": "ABIERTO"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T02:31:22.326515+00:00",
+      "nota": "auditoria_despues",
+      "respuesta": {
+        "total_registros": 5,
+        "delta": 1,
+        "evento_relacionado": {
+          "id_evento": 20190,
+          "tipo_evento": "COTIZACION_REGISTRADA",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-13T02:31:20.440127Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 137,
+          "nombre_usuario": {
+            "omitido": true
+          },
+          "id_sistema": null,
+          "id_activo_biologico": null,
+          "id_periodo_contable": 220,
+          "id_referencia": 10,
+          "payload_evento": {
+            "activos": [
+              1569
+            ],
+            "valor_propuesto": "1000.0000",
+            "valor_razonable_referencia": "3760000.0000"
+          },
+          "datos_anteriores": null,
+          "severidad_evento": "INFO",
+          "hash_integridad": {
+            "omitido": true
+          },
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": "1000.0000",
+          "identificador_activo": null
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_activo_biologico=1569&tamano=50",
+      "codigo": 400,
+      "escritura": false,
+      "en": "2026-11-13T02:31:22.700976+00:00",
+      "nota": "lineas_despues",
+      "respuesta": {
+        "total_o_len": 0
+      }
+    }
+  ],
+  "dictamen": {
+    "categoria": "APROBADO",
+    "subcaso_tc_m06_44_administrador": "APROBADO",
+    "motivo": "POST Administrador 201; cotización 10 COTIZADO; referencia 3760000.0000; actor 137; VR sin cambio; evento +1; cotización 9 intacta.",
+    "post_ejecutado": true,
+    "http": 201,
+    "id_cotizacion": 10,
+    "checks_fallidos": [],
+    "checks_pendientes": []
+  },
+  "estado_g115": {
+    "tc_m06_44_contador": "APROBADO",
+    "tc_m06_44_administrador": "APROBADO",
+    "tc_m06_45": "APROBADO_HISTORICO",
+    "g115": "APROBADO 2/2",
+    "denominador": "2/2 = TC-M06-44 (Contador+Admin) + TC-M06-45",
+    "g115_aprobado": true
+  }
+}

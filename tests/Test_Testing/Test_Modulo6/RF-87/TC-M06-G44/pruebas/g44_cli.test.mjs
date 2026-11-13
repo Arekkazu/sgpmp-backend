@@ -21,5 +21,11 @@ try{
   assert.equal(contexto(argsV2,true).version,2);
   assert.throws(()=>contexto(argsV2.map(x=>x==='LOCAL-V2'?'OTRA':x),true));
   assert(!fs.existsSync(path.join(dirV2,'resultado.json')));
+  const v3='RUN-G44-V3-20261113-000001',dirV3=path.join(raiz,v3);fs.mkdirSync(dirV3);
+  const archivoV3=path.join(dirV3,'contexto_operacion.json');
+  fs.writeFileSync(archivoV3,JSON.stringify({grupo:'G44',run_id:v3,version:3,intento:1,operacion:'REEVALUAR',referencia:'LOCAL-V3',casos:CAPACIDADES.casos}));
+  const argsV3=['--operacion','reevaluar','--version','3','--intento','1','--run-id',v3,'--autorizacion','LOCAL-V3','--contexto',archivoV3];
+  assert.equal(contexto(argsV3,true).version,3);
+  assert(!fs.existsSync(path.join(dirV3,'resultado.json')));
   console.log('OK CLI y preflight local');
 }finally{fs.rmSync(raiz,{recursive:true,force:true});}

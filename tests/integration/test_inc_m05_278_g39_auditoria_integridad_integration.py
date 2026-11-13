@@ -2,6 +2,8 @@
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: validar migración histórica, deduplicación concurrente, hash e inmutabilidad HTTP en PostgreSQL. |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RLS modulo5: bitácora sin UPDATE/DELETE para la API, identidad RLS y fn_ en la función de hash |
+# | 2026-11-12 | Leandro | INC-M05-354-G39 RF-80: verificar cierre, contexto de los triggers y campos mínimos en PostgreSQL. |
+# | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-80: campos faltantes con nombres legibles y sin repetir los de la app |
 """Regresión de #964 con rol real de API y restricciones activas."""
 from __future__ import annotations
 
@@ -75,9 +77,12 @@ def test_migracion_preserva_columnas_originales_y_hash_legado(db_migracion, pass
     integration_engine = db_session.get_bind()
     assert integration_engine.url.host in ('127.0.0.1', 'localhost')
     assert integration_engine.url.database.startswith('dev28_concurrency_test_')
-    revision = ScriptDirectory.from_config(Config('alembic.ini')).get_revision('d96480a11e01').module
+    script = ScriptDirectory.from_config(Config('alembic.ini'))
+    revision = script.get_revision('d96480a11e01').module
+    revision_contexto = script.get_revision('a107980ae001').module
     usuario = {'id_usuario': crear_usuario_efimero(db_session, password_hash)}
     with Operations.context(MigrationContext.configure(db_session.connection())):
+        revision_contexto.downgrade()
         revision.downgrade()
     id_antiguo = db_session.execute(text("""INSERT INTO modulo5.auditorias_suministros(
         entidad_afectada,tipo_operacion,id_usuario,resultado,registro_incompleto)
@@ -86,6 +91,15 @@ def test_migracion_preserva_columnas_originales_y_hash_legado(db_migracion, pass
     original = db_session.execute(text('SELECT to_jsonb(a) FROM modulo5.auditorias_suministros a WHERE id_auditoria_suministro=:i'), {'i': id_antiguo}).scalar_one()
     with Operations.context(MigrationContext.configure(db_session.connection())):
         revision.upgrade()
+    legado_v2 = db_session.execute(text("""
+        INSERT INTO modulo5.auditorias_suministros (entidad_afectada, tipo_operacion, id_usuario, resultado)
+        VALUES ('resultado_ica', 'INSERT', :usuario, 'EXITOSO') RETURNING id_evento_m05
+    """), {'usuario': usuario['id_usuario']}).scalar_one()
+    antes_v2 = fila(db_session, legado_v2)
+    with Operations.context(MigrationContext.configure(db_session.connection())):
+        revision_contexto.upgrade()
+    assert fila(db_session, legado_v2) == antes_v2
+    assert antes_v2['fecha_emision'] is None and antes_v2['id_ciclo_productivo'] is None
     nuevo = db_session.execute(text('SELECT to_jsonb(a) FROM modulo5.auditorias_suministros a WHERE id_auditoria_suministro=:i'), {'i': id_antiguo}).scalar_one()
     assert nuevo['version_hash_integridad'] == 1 and nuevo['id_evento_m05']
     assert {k: v for k, v in nuevo.items() if k not in ('id_evento_m05', 'version_hash_integridad')} == original
@@ -98,7 +112,7 @@ def test_migracion_preserva_columnas_originales_y_hash_legado(db_migracion, pass
         with db_session.begin_nested():
             with Operations.context(MigrationContext.configure(db_session.connection())):
                 revision.downgrade()
-    assert db_session.execute(text('SELECT count(*) FROM modulo5.auditorias_suministros')).scalar_one() == 2
+    assert db_session.execute(text('SELECT count(*) FROM modulo5.auditorias_suministros')).scalar_one() == 3
 
 
 def test_evento_incompleto_nuevo_se_consulta_con_causa_y_uuid(client, escenario):
@@ -206,7 +220,7 @@ def test_sql_bajo_rol_api_no_puede_alterar_la_bitacora(db_session, escenario, op
 def test_sql_nuevo_incompleto_sin_causa_se_rechaza_sin_desactivar_triggers(db_session, escenario):
     with pytest.raises(DBAPIError) as rechazo:
         with db_session.begin_nested():
-            db_session.execute(text("INSERT INTO modulo5.auditorias_suministros(entidad_afectada,tipo_operacion,id_usuario,resultado,registro_incompleto) VALUES('prueba','REGISTRO_FALLIDO',:u,'FALLIDO',true)"), {'u': escenario['usuarios'][1]['id_usuario']})
+            db_session.execute(text("INSERT INTO modulo5.auditorias_suministros(entidad_afectada,tipo_operacion,id_usuario,resultado,registro_incompleto,fecha_emision) VALUES('prueba','REGISTRO_FALLIDO',:u,'FALLIDO',true,clock_timestamp())"), {'u': escenario['usuarios'][1]['id_usuario']})
     assert rechazo.value.orig.pgcode == '23514'
 
 
@@ -342,9 +356,136 @@ def test_emisor_sql_de_rf75_recibe_uuid_y_hash_sin_pasarlo_por_python(client, db
         'id_activo_biologico': a['activo'], 'id_tipo_alimento': alimento, 'fecha_consumo': hoy.isoformat(),
         'hora_suministro': '08:00', 'cantidad_alimento': '2', 'costo_unitario': '100'})
     assert r.status_code == 201, r.text
-    nuevos = db_session.execute(text('SELECT tipo_operacion,id_evento_m05,version_hash_integridad,hash_integridad FROM modulo5.auditorias_suministros WHERE id_auditoria_suministro>:i'), {'i': ultimo}).all()
-    assert any(x[0] == 'INSERT' for x in nuevos)
-    assert all(x[1] and x[2] == 2 and len(x[3]) == 64 for x in nuevos)
+    nuevo, = db_session.execute(text("""
+        SELECT a.id_evento_m05, a.version_hash_integridad, a.hash_integridad, a.fecha_emision,
+               a.id_activo_biologico, a.id_ciclo_productivo, a.id_gestion_fases, a.registro_incompleto,
+               f.id_ciclo_productiva
+        FROM modulo5.auditorias_suministros a
+        JOIN modulo2.gestiones_fases f ON f.id_gestion_fases = :fase
+        WHERE a.id_auditoria_suministro > :ultimo
+          AND a.entidad_afectada = 'registros_consumo_alimentos' AND a.tipo_operacion = 'INSERT'
+    """), {'ultimo': ultimo, 'fase': a['fase']}).all()
+    assert nuevo.id_evento_m05 and nuevo.version_hash_integridad == 2 and len(nuevo.hash_integridad) == 64
+    assert nuevo.fecha_emision and not nuevo.registro_incompleto
+    assert (nuevo.id_activo_biologico, nuevo.id_gestion_fases) == (a['activo'], a['fase'])
+    assert nuevo.id_ciclo_productivo == nuevo.id_ciclo_productiva
+
+
+def test_cierre_rf38_publica_ica_con_fecha_ciclo_y_sello(client, db_session, escenario, integration_app):
+    from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activos
+    from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo
+
+    for router, path in ((activos, '/activos-biologicos/{id_activo}/cierre'),
+                         (costeo, '/suministros/costeo-directo')):
+        if not any(getattr(r, 'path', None) == path for r in integration_app.routes):
+            integration_app.include_router(router)
+            integration_app.openapi_schema = None
+    usuario = escenario['usuarios'][1]['id_usuario']
+    headers = escenario['headers'][1] | {'X-Zona-Horaria': 'America/Bogota'}
+    db_session.execute(text("""
+        INSERT INTO modulo2.estados_activos_biologicos(id_estado_activo_biologico, nombre)
+        VALUES (1, 'ACTIVO'), (5, 'CERRADO') ON CONFLICT DO NOTHING
+    """))
+    activo = sembrar_activo(db_session, usuario, tipo='POBLACIONAL')
+    ciclo = db_session.scalar(text("""
+        SELECT id_ciclo_productiva FROM modulo2.gestiones_fases WHERE id_gestion_fases = :fase
+    """), {'fase': activo['fase']})
+    hoy = db_session.scalar(text("SELECT (clock_timestamp() AT TIME ZONE 'America/Bogota')::date"))
+    db_session.commit()
+    suministro = client.post('/suministros/costeo-directo', headers=headers, json={
+        'id_activo_biologico': activo['activo'], 'id_idempotencia': str(uuid4()),
+        'tipo_suministro': 'SERVICIO_VETERINARIO', 'fecha_aplicacion': hoy.isoformat(),
+        'cantidad': '2', 'precio_unitario': '500', 'unidad_medida': 'servicio',
+        'justificacion_precio': 'Precio documentado con el profesional responsable',
+    })
+    assert suministro.status_code == 200, suministro.text
+    inicio = db_session.scalar(text('SELECT clock_timestamp()'))
+    cierre = client.post(f"/activos-biologicos/{activo['activo']}/cierre", headers=headers, json={
+        'fecha_cierre': hoy.isoformat(), 'motivo_cierre': 'Cierre por venta del lote',
+    })
+    assert cierre.status_code == 200, cierre.text
+    filtro = {'id_activo_biologico': activo['activo'], 'entidad_afectada': 'resultado_ica',
+              'ordenar_por': 'fecha_emision'}
+    lista = client.get('/suministros/auditoria', headers=headers, params=filtro)
+    assert lista.status_code == 200, lista.text
+    evento, = lista.json()['items']
+    assert evento['fecha_emision'], evento
+    assert evento['id_ciclo_productivo'] == ciclo
+    assert evento['id_gestion_fases'] == activo['fase']
+    assert evento['tipo_operacion'] == 'INSERT' and evento['resultado'] == 'EXITOSO'
+    assert evento['id_usuario'] == usuario and not evento['registro_incompleto']
+    assert datetime.fromisoformat(evento['fecha_emision']) >= inicio
+    con_ciclo = client.get('/suministros/auditoria', headers=headers,
+                           params=filtro | {'id_ciclo_productivo': ciclo})
+    assert con_ciclo.json()['items'] == [evento]
+    detalle = client.get(f"/suministros/auditoria/{evento['id_auditoria_suministro']}", headers=headers)
+    assert detalle.status_code == 200 and detalle.json() == evento
+    datos = db_session.execute(text("""
+        SELECT f.es_activa, r.id_gestion_fases,
+               a.hash_integridad = modulo5.fn_hash_evento_auditoria_m05(to_jsonb(a), a.version_hash_integridad)
+        FROM modulo5.auditorias_suministros a
+        JOIN modulo5.resultado_ica r ON r.id_resultado_ica = (a.datos_nuevos->>'id_resultado_ica')::integer
+        JOIN modulo2.gestiones_fases f ON f.id_gestion_fases = r.id_gestion_fases
+        WHERE a.id_auditoria_suministro = :evento
+    """), {'evento': evento['id_auditoria_suministro']}).one()
+    assert datos == (False, activo['fase'], True)
+    db_session.execute(text("""
+        UPDATE modulo5.resultado_ica SET es_vigente = false WHERE id_activo_biologico = :activo
+    """), {'activo': activo['activo']})
+    actualizado = db_session.execute(text("""
+        SELECT id_ciclo_productivo, id_gestion_fases, fecha_emision,
+               datos_anteriores->>'es_vigente', datos_nuevos->>'es_vigente'
+        FROM modulo5.auditorias_suministros
+        WHERE id_activo_biologico = :activo AND entidad_afectada = 'resultado_ica'
+          AND tipo_operacion = 'UPDATE'
+    """), {'activo': activo['activo']}).one()
+    assert actualizado[:2] == (ciclo, activo['fase']) and actualizado.fecha_emision
+    assert actualizado[3:] == ('true', 'false')
+
+
+def test_costo_productivo_audita_el_ciclo_del_registro(db_session, escenario):
+    usuario = escenario['usuarios'][1]['id_usuario']
+    db_session.execute(text("""
+        INSERT INTO modulo2.estados_activos_biologicos(id_estado_activo_biologico, nombre)
+        VALUES (1, 'ACTIVO') ON CONFLICT DO NOTHING
+    """))
+    activo = sembrar_activo(db_session, usuario)
+    ciclo = db_session.scalar(text("""
+        SELECT id_ciclo_productiva FROM modulo2.gestiones_fases WHERE id_gestion_fases = :fase
+    """), {'fase': activo['fase']})
+    db_session.execute(text("""
+        INSERT INTO modulo5.costos_productivos (
+            id_activo_biologico, id_ciclo_productivo, fecha_inicio_calculo, fecha_final_calculo,
+            costo_medicamento, costo_mano_obra, costo_infraestructura, costo_total,
+            tipo_operacion, id_usuario
+        ) VALUES (:activo, :ciclo, current_date - 1, current_date, 0, 0, 50, 50, 'REGISTRO', :usuario)
+    """), {'activo': activo['activo'], 'ciclo': ciclo, 'usuario': usuario})
+    evento = db_session.execute(text("""
+        SELECT id_ciclo_productivo, fecha_emision, registro_incompleto
+        FROM modulo5.auditorias_suministros
+        WHERE id_activo_biologico = :activo AND entidad_afectada = 'costos_productivos'
+    """), {'activo': activo['activo']}).one()
+    assert evento.id_ciclo_productivo == ciclo and evento.fecha_emision and not evento.registro_incompleto
+
+
+def test_rechaza_fecha_emision_ausente_y_marca_contexto_faltante(db_session, escenario):
+    usuario = escenario['usuarios'][1]['id_usuario']
+    insercion = """
+        INSERT INTO modulo5.auditorias_suministros
+            (entidad_afectada, tipo_operacion, id_usuario, resultado, detalle_causa, fecha_emision)
+        VALUES ('prueba', 'REGISTRO_FALLIDO', :usuario, 'FALLIDO', 'Causa original', {fecha})
+        RETURNING registro_incompleto, detalle_causa,
+                  id_activo_biologico, id_ciclo_productivo
+    """
+    with pytest.raises(DBAPIError) as rechazo:
+        with db_session.begin_nested():
+            db_session.execute(text(insercion.format(fecha='NULL')), {'usuario': usuario})
+    assert rechazo.value.orig.diag.constraint_name == 'ck_auditorias_suministros_fecha_emision'
+    incompleto, causa, activo, ciclo = db_session.execute(
+        text(insercion.format(fecha='clock_timestamp()')), {'usuario': usuario}
+    ).one()
+    assert incompleto and activo is None and ciclo is None
+    assert causa == 'Causa original. Campos faltantes: activo biológico, ciclo productivo.'
 
 
 def crear_usuario_efimero(db, password_hash):

@@ -1,0 +1,318 @@
+================================================================================
+EXTRACCION SOLO LECTURA - TC-M05-G42 REINTENTO 1
+================================================================================
+Staging: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/evidencias/run-20261112-075631/
+Nota metodologica: Todas las cifras y textos siguientes son HECHOS observados directamente en archivos locales, salvo donde se indique explicitamente [INFERENCIA].
+
+================================================================================
+1. SHA-256 ACTUALES DE LOS 3 SCRIPTS VS INFORME
+================================================================================
+[HECHO] Comparacion de hashes SHA-256:
+- test_tc_m05_g42.py
+  * Actual:  39C5D2847C55C109F5A847FAEA22F62C3FE51D2524110D29E3454EA56F9EB186
+  * Informe: 39C5D284...
+  * Coincide: SI
+- generar_artefactos_run_g42.py
+  * Actual:  F1A125BD51E43CD0AF518BEA7234F6157BBEEE11D5C938DB740927DD5347D840
+  * Informe: F1A125BD...
+  * Coincide: SI
+- ejecutar_tc_m05_g42.ps1
+  * Actual:  B4F55BA60D0DCBF29FFAC5EAA2C7F5C266749544A41F48724B073B8DF1C931FB
+  * Informe: B4F55BA6...
+  * Coincide: SI
+
+================================================================================
+2. CODIGO LITERAL DE test_tc_m05_g42.py (CON NUMERO DE LINEA)
+================================================================================
+2.a) Funciones completas de B01a, B01b, B01c y B01d:
+
+--- B01a (lineas 517-588) ---
+517:     def test_b01a_paginacion_activo_con_mas_de_205_registros(self, corrida_g42: CorridaSandboxG42):
+518:         """B01a (TC-M05-101 / 036): Paginacion obligatoria.
+519:         Fuente: RF-81 Entradas (registros_por_pagina) y RNF-04 (metadatos de paginacion)."""
+520:         c = corrida_g42
+521:         id_grande = _CONTEXTO["activo_grande_id"]  # 1042
+522: 
+523:         # 1. Peticion con registros_por_pagina=200 (Pagina 1)
+524:         r_200 = c.get(
+525:             "/suministros/historial",
+526:             params={"id_activo_biologico": id_grande, "pagina": 1, "registros_por_pagina": 200},
+527:             paso="B01a_tamano_200_p1",
+528:         )
+529:         assert r_200.status_code == 200, f"Error paginacion 200: HTTP {r_200.status_code}: {c.seguro(r_200.text)}"
+530:         data_200 = r_200.json()
+531:         items_p1 = data_200.get("items", [])
+532:         resumen_200 = data_200.get("resumen", {})
+533: 
+534:         assert len(items_p1) == 200, f"Se esperaban exactamente 200 items en pagina 1, obtenidos {len(items_p1)}"
+535:         total_filtrados = resumen_200.get("total_registros_filtrados", 0)
+536:         assert total_filtrados >= 205, f"El activo debe tener >= 205 registros, observados {total_filtrados}"
+537:         _CONTEXTO["activo_grande_total"] = total_filtrados
+538: 
+539:         paginas_esperadas = math.ceil(total_filtrados / 200)
+540:         assert resumen_200.get("total_paginas") == paginas_esperadas, (
+541:             f"total_paginas esperado {paginas_esperadas}, obtenido {resumen_200.get('total_paginas')}"
+542:         )
+543:         assert resumen_200.get("pagina_actual") == 1
+544: 
+545:         # 2. Recorrido completo de todas las paginas
+546:         todas_filas = list(items_p1)
+547:         ids_vistos = {it["id_registro_suministro"] for it in items_p1}
+548: 
+549:         for pag in range(2, paginas_esperadas + 1):
+550:             r_pag = c.get(
+551:                 "/suministros/historial",
+552:                 params={"id_activo_biologico": id_grande, "pagina": pag, "registros_por_pagina": 200},
+553:                 paso=f"B01a_pagina_{pag}",
+554:             )
+555:             assert r_pag.status_code == 200
+556:             items_pag = r_pag.json().get("items", [])
+557:             for it in items_pag:
+558:                 it_id = it["id_registro_suministro"]
+559:                 assert it_id not in ids_vistos, f"ID duplicado en pagina {pag}: {it_id}"
+560:                 ids_vistos.add(it_id)
+561:             todas_filas.extend(items_pag)
+562: 
+563:         assert len(todas_filas) == total_filtrados, (
+564:             f"Se esperaban {total_filtrados} items en total recorriendo todas las paginas, obtenidos {len(todas_filas)}"
+565:         )
+566: 
+567:         # 3. Validar orden fecha_aplicacion DESC
+568:         fechas = [it["fecha_aplicacion"] for it in todas_filas]
+569:         assert fechas == sorted(fechas, reverse=True), "El orden de los registros debe ser fecha_aplicacion DESC"
+570: 
+571:         # 4. Validar monto_total_filtrado = suma de costo_registro de TODOS los registros
+572:         monto_resumen = Decimal(str(resumen_200.get("monto_total_filtrado", "0")))
+573:         suma_calculada = sum(Decimal(str(it.get("costo_registro", "0"))) for it in todas_filas)
+574:         assert monto_resumen == suma_calculada, (
+575:             f"monto_total_filtrado ({monto_resumen}) no coincide con suma de registros ({suma_calculada})"
+576:         )
+577: 
+578:         # 5. Observacion sobre limites no definidos: registros_por_pagina=0 y pagina=0
+579:         r_p0 = c.get(
+580:             "/suministros/historial",
+581:             params={"id_activo_biologico": id_grande, "pagina": 0, "registros_por_pagina": 50},
+582:             paso="B01a_obs_pagina_cero",
+583:         )
+584:         r_t0 = c.get(
+585:             "/suministros/historial",
+586:             params={"id_activo_biologico": id_grande, "pagina": 1, "registros_por_pagina": 0},
+587:             paso="B01a_obs_tamano_cero",
+588:         )
+
+--- B01b (lineas 590-618) ---
+590:     def test_b01b_tope_maximo_registros_por_pagina(self, corrida_g42: CorridaSandboxG42):
+591:         """B01b (REDISEÑO): registros_por_pagina=201, pagina=1 -> HTTP 200 aplicando tope de 200.
+592:         Fuente: RF-81 Entradas, 'registros_por_pagina | max: 200 | El sistema aplica el limite maximo si se excede'; RNF-04 (metadatos de paginacion)."""
+593:         c = corrida_g42
+594:         id_grande = _CONTEXTO["activo_grande_id"]  # 1042
+595: 
+596:         r_201 = c.get(
+597:             "/suministros/historial",
+598:             params={"id_activo_biologico": id_grande, "pagina": 1, "registros_por_pagina": 201},
+599:             paso="B01b_tamano_201_p1",
+600:         )
+601:         # Fuente: RF-81 Entradas ("El sistema aplica el limite maximo si se excede")
+602:         assert r_201.status_code == 200, (
+603:             f"Esperado HTTP 200 con tope maximo 200 para param=201, obtenido HTTP {r_201.status_code}: {c.seguro(r_201.text)}"
+604:         )
+605:         data_201 = r_201.json()
+606:         items_201 = data_201.get("items", [])
+607:         resumen_201 = data_201.get("resumen", {})
+608:         # Fuente: RF-81 Entradas (max: 200) y RNF-04 (metadatos de paginacion)
+609:         assert len(items_201) == 200, f"Se esperaban 200 registros en pagina 1 con param=201, obtenidos {len(items_201)}"
+610:         assert resumen_201.get("total_registros_filtrados") == 500, (
+611:             f"total_registros_filtrados esperado 500, obtenido {resumen_201.get('total_registros_filtrados')}"
+612:         )
+613:         assert resumen_201.get("total_paginas") == 3, (
+614:             f"total_paginas esperado 3, obtenido {resumen_201.get('total_paginas')}"
+615:         )
+616:         assert resumen_201.get("pagina_actual") == 1, (
+617:             f"pagina_actual esperada 1, obtenida {resumen_201.get('pagina_actual')}"
+618:         )
+
+--- B01c (lineas 620-670) ---
+620:     def test_b01c_paginacion_completa_con_exceso_201(self, corrida_g42: CorridaSandboxG42):
+621:         """B01c (NUEVO): registros_por_pagina=201 en paginas 1, 2 y 3 -> conteos [200, 200, 100], 500 ids distintos, orden DESC.
+622:         Fuente: RF-81 Entradas (el limite se aplica como tamano de pagina) y Fase 3 (orden por fecha_aplicacion DESC, paginacion maxima de 200)."""
+623:         c = corrida_g42
+624:         id_grande = _CONTEXTO["activo_grande_id"]  # 1042
+625: 
+626:         conteos = []
+627:         ids_paginas = []
+628:         fechas_por_pagina = []
+629:         todas_las_fechas = []
+630: 
+631:         for pag in (1, 2, 3):
+632:             r_pag = c.get(
+633:                 "/suministros/historial",
+634:                 params={"id_activo_biologico": id_grande, "pagina": pag, "registros_por_pagina": 201},
+635:                 paso=f"B01c_tamano_201_p{pag}",
+636:             )
+637:             # Fuente: RF-81 Entradas (el limite se aplica como tamano de pagina)
+638:             assert r_pag.status_code == 200, f"Pagina {pag} con param=201 fallo: HTTP {r_pag.status_code}: {c.seguro(r_pag.text)}"
+639:             items_pag = r_pag.json().get("items", [])
+640:             conteos.append(len(items_pag))
+641:             ids_paginas.append([it["id_registro_suministro"] for it in items_pag])
+642:             fechas_pag = [it["fecha_aplicacion"] for it in items_pag]
+643:             fechas_por_pagina.append(fechas_pag)
+644:             todas_las_fechas.extend(fechas_pag)
+645: 
+646:         # Fuente: RF-81 Entradas y Fase 3 (paginacion maxima de 200 sobre 500 registros)
+647:         assert conteos == [200, 200, 100], f"Conteos por pagina esperados [200, 200, 100], obtenidos {conteos}"
+648: 
+649:         ids_planos = [i for sub in ids_paginas for i in sub]
+650:         ids_unicos = set(ids_planos)
+651:         # Fuente: RF-81 Fase 3 (sin repeticion entre paginas)
+652:         assert len(ids_planos) == 500 and len(ids_unicos) == 500, (
+653:             f"Se esperaban 500 ids distintos sin duplicados; total={len(ids_planos)}, unicos={len(ids_unicos)}"
+654:         )
+655: 
+656:         # Orden fecha_aplicacion DESC dentro de cada pagina y entre paginas (ultima de p >= primera de p+1)
+657:         comparaciones_orden = 0
+658:         for fechas_pag in fechas_por_pagina:
+659:             for idx in range(len(fechas_pag) - 1):
+660:                 assert fechas_pag[idx] >= fechas_pag[idx + 1], (
+661:                     f"Orden DESC violado dentro de pagina: {fechas_pag[idx]} < {fechas_pag[idx + 1]}"
+662:                 )
+663:                 comparaciones_orden += 1
+664:         for idx in range(len(fechas_por_pagina) - 1):
+665:             assert fechas_por_pagina[idx][-1] >= fechas_por_pagina[idx + 1][0], (
+666:                 f"Orden DESC violado entre paginas {idx+1} y {idx+2}: "
+667:                 f"{fechas_por_pagina[idx][-1]} < {fechas_por_pagina[idx + 1][0]}"
+668:             )
+669:             comparaciones_orden += 1
+670:         assert comparaciones_orden >= 1, "El bucle de orden exige >= 1 comparacion"
+
+--- B01d (lineas 672-693) ---
+672:     def test_b01d_tope_maximo_extremo_1000(self, corrida_g42: CorridaSandboxG42):
+673:         """B01d (NUEVO): registros_por_pagina=1000, pagina=1 -> HTTP 200; len(registros)=200; total_paginas=3.
+674:         Fuente: RF-81 Entradas ('si se excede')."""
+675:         c = corrida_g42
+676:         id_grande = _CONTEXTO["activo_grande_id"]  # 1042
+677: 
+678:         r_1000 = c.get(
+679:             "/suministros/historial",
+680:             params={"id_activo_biologico": id_grande, "pagina": 1, "registros_por_pagina": 1000},
+681:             paso="B01d_tamano_1000_p1",
+682:         )
+683:         # Fuente: RF-81 Entradas ("si se excede")
+684:         assert r_1000.status_code == 200, (
+685:             f"Esperado HTTP 200 para param=1000, obtenido HTTP {r_1000.status_code}: {c.seguro(r_1000.text)}"
+686:         )
+687:         data_1000 = r_1000.json()
+688:         items_1000 = data_1000.get("items", [])
+689:         resumen_1000 = data_1000.get("resumen", {})
+690:         assert len(items_1000) == 200, f"Se esperaban 200 items para param=1000, obtenidos {len(items_1000)}"
+691:         assert resumen_1000.get("total_paginas") == 3, (
+692:             f"total_paginas esperado 3 para param=1000, obtenido {resumen_1000.get('total_paginas')}"
+693:         )
+
+2.b) En B01a, asercion de orden DESC y de suma de costo_registro vs monto_total_filtrado:
+- Orden DESC (lineas 567-569):
+  567:         # 3. Validar orden fecha_aplicacion DESC
+  568:         fechas = [it["fecha_aplicacion"] for it in todas_filas]
+  569:         assert fechas == sorted(fechas, reverse=True), "El orden de los registros debe ser fecha_aplicacion DESC"
+- Suma vs monto_total_filtrado (lineas 571-576):
+  571:         # 4. Validar monto_total_filtrado = suma de costo_registro de TODOS los registros
+  572:         monto_resumen = Decimal(str(resumen_200.get("monto_total_filtrado", "0")))
+  573:         suma_calculada = sum(Decimal(str(it.get("costo_registro", "0"))) for it in todas_filas)
+  574:         assert monto_resumen == suma_calculada, (
+  575:             f"monto_total_filtrado ({monto_resumen}) no coincide con suma de registros ({suma_calculada})"
+  576:         )
+
+2.c) En B01c, bucle de orden intra e inter pagina y asercion >= 1 comparacion (lineas 656-670):
+  656:         # Orden fecha_aplicacion DESC dentro de cada pagina y entre paginas (ultima de p >= primera de p+1)
+  657:         comparaciones_orden = 0
+  658:         for fechas_pag in fechas_por_pagina:
+  659:             for idx in range(len(fechas_pag) - 1):
+  660:                 assert fechas_pag[idx] >= fechas_pag[idx + 1], (
+  661:                     f"Orden DESC violado dentro de pagina: {fechas_pag[idx]} < {fechas_pag[idx + 1]}"
+  662:                 )
+  663:                 comparaciones_orden += 1
+  664:         for idx in range(len(fechas_por_pagina) - 1):
+  665:             assert fechas_por_pagina[idx][-1] >= fechas_por_pagina[idx + 1][0], (
+  666:                 f"Orden DESC violado entre paginas {idx+1} y {idx+2}: "
+  667:                 f"{fechas_por_pagina[idx][-1]} < {fechas_por_pagina[idx + 1][0]}"
+  668:             )
+  669:             comparaciones_orden += 1
+  670:         assert comparaciones_orden >= 1, "El bucle de orden exige >= 1 comparacion"
+
+2.d) Busqueda de "skip", "xfail", "pytest.mark", "if " dentro de test_*, "try:" y "except" en test_tc_m05_g42.py:
+- Coincidencias de "skip": 0
+- Coincidencias de "xfail": 0
+- Coincidencias de "pytest.mark": 0
+- Coincidencias de "try:" / "except":
+  * L157 [try:] y L161 [except Exception:] dentro de _trazar() (parseo JSON de respuesta HTTP para logging). NO debilita ninguna asercion.
+  * L182 [try:] y L185 [except Exception:] dentro de _trazar() (escritura en trazas_http.jsonl). NO debilita ninguna asercion.
+  * L230 [try:] y L232 [except requests.RequestException as exc:] dentro de CorridaSandboxG42._enviar() (convierte error de red en ErrorConexion(AssertionError)). NO debilita ninguna asercion.
+  * L263 [try:] (con finally: en L265) dentro de CorridaSandboxG42.cerrar(). NO debilita ninguna asercion.
+  * L282 [try:] (con finally: en L297) dentro de fixture corrida_g42 (cierre T00). NO debilita ninguna asercion.
+  * L308 [try:] (con finally: en L310) dentro de fixture corrida_g42 (cierre run principal). NO debilita ninguna asercion.
+  * L718 [try:] (con finally: en L757) dentro de test_99_inocuidad_final() (garantiza DELETE de T99 incluso si falla una asercion previa; la asercion de DELETE corre tras el finally en L764). NO debilita ninguna asercion.
+- Coincidencias de "if " dentro de funciones test_*:
+  * L759 [if r_del_t99 is not None:] dentro del finally de test_99_inocuidad_final() (solo guarda el dict de respuesta si cerrar() devolvio respuesta; inmediatamente seguido en L764 por `assert del_t99.get("status_code") == 200 and "Rollback exitoso" in del_t99.get("body", "")` que exige que exista). NO debilita ninguna asercion.
+
+================================================================================
+3. EXTRACCION DESDE trazas_http.jsonl DEL STAGING
+================================================================================
+[HECHO] Las trazas SI guardan el cuerpo de respuesta completo (response_body).
+
+3.a) B01a:
+  - B01a_tamano_200_p1: HTTP=200, len(registros)=200, suma_pagina=3600000.0000, monto_total_filtrado=9000000.0000
+  - B01a_pagina_2:      HTTP=200, len(registros)=200, suma_pagina=3600000.0000, monto_total_filtrado=9000000.0000
+  - B01a_pagina_3:      HTTP=200, len(registros)=100, suma_pagina=1800000.0000, monto_total_filtrado=9000000.0000
+  - Suma total calculada sobre las 3 paginas: 9000000.0000
+  - monto_total_filtrado en respuesta:      9000000.0000
+  - Son iguales: SI (9000000.0000 == 9000000.0000)
+
+3.b) B01c (recalculado sobre fecha_aplicacion de las 3 respuestas guardadas):
+  - B01c_tamano_201_p1: HTTP=200, len=200, primera=2026-10-24, ultima=2026-09-21
+  - B01c_tamano_201_p2: HTTP=200, len=200, primera=2026-09-20, ultima=2026-08-18
+  - B01c_tamano_201_p3: HTTP=200, len=100, primera=2026-08-18, ultima=2026-08-02
+  - Comparaciones intra pagina: 497 ((200-1) + (200-1) + (100-1)) -> 0 violaciones al orden DESC.
+  - Comparaciones entre paginas: 2 (p1_ultima >= p2_primera: 2026-09-21 >= 2026-09-20; p2_ultima >= p3_primera: 2026-08-18 >= 2026-08-18) -> 0 violaciones al orden DESC.
+  - Total comparaciones: 499 (0 violaciones).
+
+================================================================================
+4. AUDITORIA DEL DIFF (git_diff_HEAD_G42.txt)
+================================================================================
+[HECHO] Archivos modificados en el diff: UNICAMENTE 3 archivos, todos dentro de tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/:
+No se toco ningun archivo fuera de TC-M05-G42 ni en resultados/.
+
+1) tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/ejecutar_tc_m05_g42.ps1 (8 hunks):
+   - Hunk 1 (@@ -1,6 +1,7 @@): Agrega fila de historial 12/11/2026 en cabecera.
+   - Hunk 2 (@@ -12,6 +13,7 @@): Declara $resDir = Join-Path $tcDir 'resultados'.
+   - Hunk 3 (@@ -27,9 +29,9 @@): Actualiza titulo de consola incluyendo (Reintento=$Reintento).
+   - Hunk 4 (@@ -44,7 +46,7 @@): Comentario carga .env.test en memoria.
+   - Hunk 5 (@@ -58,6 +60,13 @@): Captura hashes SHA-256 iniciales de resultados/.
+   - Hunk 6 (@@ -86,14 +95,18 @@): Mide duracion de pytest y pasa --reintento $Reintento al generador.
+   - Hunk 7 (@@ -106,35 +119,58 @@): Actualiza escaneo de secretos con longitudes/omision de vacios y exit 4 si hallazgos > 0.
+   - Hunk 8 (@@ -151,19 +187,22 @@): Elimina promocion/copia a resultados/ y valida que SHA-256 de resultados/ siga intacto (exit 5 si cambia).
+
+2) tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/generar_artefactos_run_g42.py (7 hunks):
+   - Hunk 1 (@@ -1,13 +1,13 @@): Agrega fila de historial 12/11/2026 y documenta sufijo [_reintentoN].
+   - Hunk 2 (@@ -19,79 +19,308 @@): Actualiza TEST_METADATA a los 8 checkpoints vigentes y agrega helpers para extraer metricas reales y observaciones A02a/A02b/OBS-0 desde trazas_http.jsonl.
+   - Hunk 3 (@@ -116,23 +345,12 @@): Agrega sufijo _reintentoN a las rutas de staging y pasa -Reintento en repro.
+   - Hunk 4 (@@ -145,37 +363,7 @@): Elimina bloques fijos de texto "obtenido" por test.
+   - Hunk 5 (@@ -183,9 +371,9 @@): Reemplaza formato de "obtenido" con _formatear_obtenido() y agrega observaciones.
+   - Hunk 6 (@@ -195,203 +383,51 @@): Agrega "observaciones" al JSON final, inyecta data-jsonblob en HTML con sufijo y simplifica el .md narrativo sin diagnosticos fijos.
+   - Hunk 7 (@@ -410,18 +446,8 @@): Agrega argumento --reintento al CLI main().
+
+3) tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/test_tc_m05_g42.py (12 hunks):
+   - Hunk 1 (@@ -1,6 +1,7 @@): Agrega fila de historial 12/11/2026 en cabecera.
+   - Hunk 2 (@@ -61,7 +62,14 @@): Agrega campos de T00/T99 y run_ids/deletes a _CONTEXTO.
+   - Hunk 3 (@@ -126,6 +134,7 @@): Agrega parametro paso a _trazar().
+   - Hunk 4 (@@ -139,10 +148,12 @@): Captura x_request_id de headers de respuesta en _trazar().
+   - Hunk 5 (@@ -153,8 +164,10 @@): Guarda x_request_id y paso en el JSONL de traza.
+   - Hunk 6 (@@ -186,8 +199,8 @@): Parametriza prefijo_run en CorridaSandboxG42.__init__.
+   - Hunk 7 (@@ -217,9 +230,9 @@): Pasa paso=paso a _trazar() en CorridaSandboxG42._enviar().
+   - Hunk 8 (@@ -263,7 +276,34 @@): Ejecuta run de sandbox aparte T00 (GET /suministros/auditoria + DELETE) en corrida_g42 antes del run principal.
+   - Hunk 9 (@@ -275,8 +315,14 @@): Verifica en test_00 cierre exitoso de T00 y auditoria inicial.
+   - Hunk 10 (@@ -454,52 +500,23 @@): Retira test_a02a y test_a02b como checkpoints y envia sus requests como observaciones al final de A01.
+   - Hunk 11 (@@ -571,31 +588,119 @@): Redisena B01b (param=201) y agrega B01c (paginas 1-3 con 201 y orden DESC) y B01d (param=1000).
+   - Hunk 12 (@@ -603,23 +708,60 @@): Guarda delete_principal en T98 y reescribe T99 en run de sandbox aparte (auditoria igual a T00, activos/historial 404, DELETE 200).
+================================================================================
+FIN DE EXTRACCION
+================================================================================
+

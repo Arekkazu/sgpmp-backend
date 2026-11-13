@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/88/109: configuración contable, costos de venta y matriz |
+# | 2026-11-12 | Arekkazu | M06 RF-82: 403 si la RLS oculta la configuración contable (antes 500) |
 """Implementación SQL de :class:`ConfiguracionContableRepository`."""
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from src.financial_valuation.domain.repositories.configuracion_contable_reposito
 )
 from src.financial_valuation.domain.value_objects.nic41 import REGION_GENERAL
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.shared.errors import AuthorizationError
 
 
 
@@ -31,6 +33,11 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         f = fila(self.db, """SELECT tipo_cierre::text AS tipo_cierre, pct_umbral_desviacion_precio,
                                     dias_alerta_vencimiento_precio, fecha_inicio_operacion, fecha_actualizacion
                              FROM modulo6.configuraciones_contables WHERE id_configuracion_contable = 1""")
+        if f is None:
+            # La fila 1 la siembra la migración; si no llega es la RLS: el rol no lee configuracion_contable.
+            raise AuthorizationError(code="SIN_PERMISO_CONFIGURACION_CONTABLE", message=(
+                "Tu rol no tiene permiso para consultar la configuración contable, que esta operación necesita. "
+                "Pide a un administrador que te lo asigne."))
         return ConfiguracionContable(**f)
 
     def actualizar(self, tipo_cierre: str, pct_umbral: Decimal, dias_alerta: int, id_usuario: int) -> ConfiguracionContable:

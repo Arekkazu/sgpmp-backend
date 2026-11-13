@@ -26,3 +26,5 @@
   * `gasto_promedio_individuo`: `null`
   * `causa_no_calculable_promedio`: `"La cantidad actual del lote es cero. No es posible calcular el promedio por individuo."`
   * `estado`: `"GENERADO"`
+
+Actualización 2026-11-11: INC-M05-277-G20 corregido (Dev #963); reintento 1 Aprobado 7/7 en run-20261111-142549.

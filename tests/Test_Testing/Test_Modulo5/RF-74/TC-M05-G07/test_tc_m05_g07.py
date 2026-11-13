@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-11-06 | Juan Manuel      | TC-M05-G07 RF-74: fallos, reintentos, ventana y límite del batch |
 # | 2026-11-06 | Juan Manuel      | TC-M05-G07: fallo técnico traducido (InfrastructureError) en el batch |
+# | 2026-11-12 | Juan Manuel      | TC-M05 v4: intento inicial + 3 reintentos (arreglo de la 259/264) |
 """TC-M05-G07 / TC-M05-018 (RF-74, CU02 E5, FA-04…FA-07): fallo técnico del cálculo, reintentos del batch,
 ventana de ejecución y límite de activos.
 
@@ -210,9 +211,9 @@ def test_018b_batch_reintenta_3_veces_con_backoff_y_registra_fallo_persistente(m
     b = _batch(_config(), [ActivoBatchRef(id_activo_biologico=825, fecha_inicio_ciclo=date(2026, 10, 12))],
                calculo_falla=True, monkeypatch=monkeypatch)
     ejecucion = asyncio.run(b.uc.ejecutar(tipo_disparo="AUTOMATICO"))
-    assert [i[3] for i in b.intentos] == [1, 2, 3], "3 intentos (max_reintentos=3)"
-    assert [i[2] for i in b.intentos] == [TipoCalculo.AUTOMATICO, TipoCalculo.REINTENTO_AUTOMATICO, TipoCalculo.REINTENTO_AUTOMATICO]
-    assert b.esperas == [120.0, 240.0], "backoff de 2 y 4 minutos entre intentos (el 6 no se usa con 3 intentos)"
+    assert [i[3] for i in b.intentos] == [1, 2, 3, 4], "intento inicial + 3 reintentos (max_reintentos=3)"
+    assert [i[2] for i in b.intentos] == [TipoCalculo.AUTOMATICO] + [TipoCalculo.REINTENTO_AUTOMATICO] * 3
+    assert b.esperas == [120.0, 240.0, 360.0], "backoff de 2, 4 y 6 minutos, una espera antes de cada reintento"
     assert len(b.fallos.eventos) == 1, "tras agotar los reintentos queda fila en fallos_calculo_ica (CA_FALLO_PERSISTENTE)"
     f = b.fallos.eventos[0]
     assert f.id_activo_biologico == 825 and f.intentos == 3 and f.id_ejecucion_batch == 900 and "BD caída" in f.causa_fallo
@@ -278,7 +279,7 @@ def test_018h_fallo_tecnico_traducido_tambien_se_reintenta(monkeypatch):
                error=InfrastructureError(code="ERROR_INTERNO", message="permission denied for schema public"),
                monkeypatch=monkeypatch)
     ejecucion = asyncio.run(b.uc.ejecutar(tipo_disparo="AUTOMATICO"))
-    assert len(b.intentos) == 3, f"un fallo técnico debe reintentarse 3 veces; intentos: {len(b.intentos)}"
+    assert len(b.intentos) == 4, f"un fallo técnico: intento inicial + 3 reintentos; intentos: {len(b.intentos)}"
     assert len(b.fallos.eventos) == 1 and ejecucion.cantidad_fallidos == 1, (
         f"debe quedar como fallo persistente; fallos={len(b.fallos.eventos)}, cantidad_fallidos={ejecucion.cantidad_fallidos}")
 

@@ -36,7 +36,7 @@ function revisar(dato,forma,prefijo){
 export function instrumentar(dato,forma,lecturas=[],prefijo='respuesta',opciones={estricto:true}){
   revisar(dato,forma,prefijo);
   const envolver=(valor,modelo,ruta)=>{
-    if(Array.isArray(valor))return new Proxy(valor,{get(o,k){if(typeof k==='string'&&/^\d+$/.test(k)){
+    if(Array.isArray(valor)&&Array.isArray(modelo))return new Proxy(valor,{get(o,k){if(typeof k==='string'&&/^\d+$/.test(k)){
       const hijo=`${ruta}[${k}]`;lecturas.push(hijo);revisar(o[k],modelo[0]??{},hijo);
       return envolver(o[k],modelo[0]??{},hijo);
     }return Reflect.get(o,k);}});

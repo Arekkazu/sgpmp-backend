@@ -1,0 +1,217 @@
+{
+  "id_activo_c": 1879,
+  "id_ciclo_c": 5,
+  "id_usuario_ref": 104,
+  "auditoria_inicial_total": 69503,
+  "auditoria_inicial_ultimo_id": 76708,
+  "eventos_setup": [
+    {
+      "id": 76859,
+      "id_usuario": 104
+    },
+    {
+      "id": 76856,
+      "id_usuario": 104
+    },
+    {
+      "id": 76853,
+      "id_usuario": 104
+    }
+  ],
+  "corridas_cerradas": {
+    "t00": {
+      "run_id": "tc-m05-g43-t00-8efb5941",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "admin": {
+      "run_id": "tc-m05-g43-admin-d281f473",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "productor": {
+      "run_id": "tc-m05-g43-productor-de2089a6",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "gestor": {
+      "run_id": "tc-m05-g43-gestor-fc43b126",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "a03_admin": {
+      "run_id": "tc-m05-g43-a03-817e7fa1",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "t99": {
+      "run_id": "tc-m05-g43-t99-c3b85314",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "runs_orden": [
+    "tc-m05-g43-t00-8efb5941",
+    "tc-m05-g43-admin-d281f473",
+    "tc-m05-g43-gestor-fc43b126",
+    "tc-m05-g43-productor-de2089a6",
+    {
+      "rol": "a03_shared",
+      "run_id": "tc-m05-g43-a03-817e7fa1"
+    },
+    {
+      "rol": "t99",
+      "run_id": "tc-m05-g43-t99-c3b85314"
+    }
+  ],
+  "a03": {
+    "intento_http": 404,
+    "intento_error_code": "ACTIVO_NO_ENCONTRADO",
+    "x_request_id": "7707d804-f129-46cf-a88f-4cb4e73bec16",
+    "id_base": 76708,
+    "eventos_nuevos": [],
+    "no_exitosos_count": 0
+  },
+  "observaciones": {
+    "obs_pag": {
+      "http": 200,
+      "items_en_respuesta": 2,
+      "id_auditoria_suministro": 76867,
+      "total_registros_retornados": 2,
+      "total_registros_filtrados": 3,
+      "pagina": 1,
+      "registros_por_pagina": 2
+    },
+    "obs_r8": [
+      {
+        "origen": "B01",
+        "id_auditoria_suministro": 76861,
+        "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B02",
+        "id_auditoria_suministro": 76862,
+        "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B03_PDF",
+        "id_auditoria_suministro": 76863,
+        "tipo_operacion": "EXPORTACION_HISTORIAL_GENERADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B03_EXCEL",
+        "id_auditoria_suministro": 76864,
+        "tipo_operacion": "EXPORTACION_HISTORIAL_GENERADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      }
+    ],
+    "obs_hash": [
+      {
+        "origen": "B01",
+        "id_auditoria_suministro": 76861,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B02",
+        "id_auditoria_suministro": 76862,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B03_PDF",
+        "id_auditoria_suministro": 76863,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B03_EXCEL",
+        "id_auditoria_suministro": 76864,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      }
+    ],
+    "obs_otros": [],
+    "datos_nuevos_literales": {
+      "B01": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "pagina": 1,
+        "registros_por_pagina": 50,
+        "total_registros_retornados": 3,
+        "total_registros_filtrados": 3
+      },
+      "B02": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-05",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "pagina": 1,
+        "registros_por_pagina": 50,
+        "total_registros_retornados": 0,
+        "total_registros_filtrados": 0
+      },
+      "B03_PDF": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "formato_exportacion": "PDF",
+        "total_registros_retornados": 3
+      },
+      "B03_EXCEL": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "formato_exportacion": "EXCEL",
+        "total_registros_retornados": 3
+      }
+    }
+  }
+}

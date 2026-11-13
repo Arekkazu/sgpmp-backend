@@ -19,3 +19,6 @@ export function listaFaltantes(z,patron){const texto=[z?.data?.message,...(z?.da
 export const rolEnMensaje=(mensaje,rol)=>new RegExp(`\\b${rol}\\b`,'i').test(String(mensaje??''));
 export const fechaEnMensaje=mensaje=>/\b\d{4}-\d{2}-\d{2}\b/.test(String(mensaje??''));
 export const horaEnMensaje=mensaje=>/\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(String(mensaje??''));
+export const contiene=(mensaje,dato)=>dato!=null&&String(dato).length>0&&String(mensaje??'').toLocaleLowerCase('es').includes(String(dato).toLocaleLowerCase('es'));
+export const horaBogota=fecha=>new Intl.DateTimeFormat('es-CO',{timeZone:'America/Bogota',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(fecha));
+export const fechaBogota=fecha=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bogota',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(fecha));

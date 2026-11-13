@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas, archivo y aviso  |
 # | 2026-11-08 | Leandro | INC-M05-277-G20 RF-77: representar el promedio no calculable y conservar el contrato numérico. |
+# | 2026-11-11 | Arekkazu | USAB-M05 T-01 RF-77: el historial de reportes nombra el activo, no su id |
 """Schemas de respuesta de RF-77 — Reporte de Gastos Acumulados."""
 from __future__ import annotations
 
@@ -68,6 +69,7 @@ class ReporteGastoResponse(BaseModel):
     registros_sin_costo: list[RegistroSinCostoResponse]
     tendencia: Optional[TendenciaGastoResponse]
     fecha_generacion: Optional[datetime.datetime]
+    nombre_activo: Optional[str] = None
 
     @model_validator(mode="after")
     def representar_promedio_no_calculable(self) -> "ReporteGastoResponse":

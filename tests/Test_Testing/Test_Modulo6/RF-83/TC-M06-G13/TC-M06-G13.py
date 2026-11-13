@@ -2,16 +2,15 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G13 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G13 con resultado por baja, clasificación, cuentas y exclusión del cierre |
+# | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 061b y 063b reescritos (la baja deja BAJA_ACTIVO por el valor en libros; sin valor_baja ni medición final) |
 """
 TC-M06-G13 - Baja del activo en la medición posterior: venta, pérdida y exclusión posterior.   RF-83 (FA-3, CA-9, RFC-018).   Casos: TC-M06-061 a TC-M06-064.
 
-Lo que pide el RF (FA-3 + RFC-018): el evento BAJA no invoca RF-84; la variación final = valor_baja - último valor razonable; si la baja es por venta
-se considera resultado por baja y si es por deterioro o pérdida se clasifica como pérdida por transformación biológica; además se emite a RF-86 el
-hecho BAJA_ACTIVO por el valor en libros (débito costo de venta / pérdida por baja, crédito activo biológico); en una venta SGPMP no registra
-ingreso ni cuenta por cobrar; el historial queda cerrado.
-Lo que existe en el backend: el hecho BAJA_ACTIVO por el valor en libros (UNICO para venta y sacrificio, PERDIDA para el resto). El evento de baja de M02
-no trae valor_baja (solo tipo_baja, fecha_baja, motivo_baja y cantidad_afectada) y M06 no registra el resultado por baja ni la variación clasificada:
-esas partes se prueban y, si no existen, el caso queda BLOQUEADO como funcionalidad no implementada (se reporta como error).
+Lo que pide el RF-83 v1.2 (C24.2, aprobado 2026-11-08): la baja (RF-45) no invoca RF-84 ni hace una medición final; SGPMP ya no recibe valor_baja ni
+registra una variación final. La baja queda trazada con el hecho BAJA_ACTIVO por el valor en libros (UNICO para venta y sacrificio, PERDIDA para el
+resto; débito costo de venta / pérdida por baja, crédito activo biológico) y el evento de auditoría BAJA_ACTIVO_REGISTRADA; M02 rechaza después cualquier
+evento con 409 ESTADO_NO_PERMITE_EVENTOS. En una venta SGPMP no registra ingreso ni cuenta por cobrar (la utilidad sale de la factura contable).
+Ya no se marca el historial como CERRADO.
 Activo de 400 kg a 20.000,00 por kg con costos 2/3/1 %: valor en libros 7.520.000,0000 (la ficha usa 10.000.000 como escala).
 
 Cómo correrlo:
@@ -80,14 +79,23 @@ def test_TC_M06_061a_baja_por_venta_emite_baja_activo_por_el_valor_en_libros(env
     assert len(env.historial(ida)["calculos"]) == calculos, "la baja no debe calcular un nuevo valor razonable (RF-84)"
 
 
-def test_TC_M06_061b_resultado_por_baja_variacion_valor_baja_menos_anterior(env):
-    esc, ida, _ = _dar_de_baja(env, "venta")
+def _trazas_de_baja(env, ida):
+    tipos = env.tipos_auditoria(ida)
+    if "BAJA_ACTIVO_REGISTRADA" not in tipos:
+        bloqueado("funcionalidad no implementada: RF-83 v1.2 pide registrar el evento de auditoría BAJA_ACTIVO_REGISTRADA al dar de baja el activo; "
+                  f"los eventos de auditoría del activo son {tipos}.")
+    return tipos
+
+
+def test_TC_M06_061b_baja_por_venta_queda_trazada_al_valor_en_libros_sin_medicion_final(env):
+    esc, ida, calculos = _dar_de_baja(env, "venta")
     variaciones = _variaciones(env, ida)
-    if not variaciones:
-        bloqueado("funcionalidad no implementada: RF-83 FA-3 / CA-9 piden registrar la variación final (valor_baja - último valor razonable) como "
-                  "resultado por baja. El evento de baja de M02 no trae valor_baja (solo tipo_baja, fecha_baja, motivo_baja, cantidad_afectada) y M06 "
-                  f"solo emite BAJA_ACTIVO por el valor en libros; no hay variación registrada del activo ({variaciones}).")
-    assert any("BAJA" in v["tipo"] for v in variaciones), f"debe registrarse el resultado por baja: {variaciones}"
+    assert not variaciones, f"RF-83 v1.2: SGPMP ya no recibe valor_baja ni registra variación final de la baja: {variaciones}"
+    assert not env.mediciones(ida), "la baja no debe hacer una medición final"
+    assert len(env.historial(ida)["calculos"]) == calculos, "la baja no debe calcular un nuevo valor razonable"
+    lineas = _lineas(env, ida, "BAJA_ACTIVO")
+    assert len(lineas) == 1 and dec(lineas[0]["valor"]) == trunc2(LIBROS), f"la baja queda al valor en libros {LIBROS}: {lineas}"
+    _trazas_de_baja(env, ida)
 
 
 def test_TC_M06_062_baja_por_venta_no_registra_ingreso_ni_cuenta_por_cobrar(env):
@@ -109,15 +117,15 @@ def test_TC_M06_063a_baja_por_perdida_emite_baja_activo_perdida(env, tipo):
     assert not env.mediciones(ida)
 
 
-def test_TC_M06_063b_la_variacion_de_la_baja_se_clasifica_como_perdida_por_transformacion(env):
-    esc, ida, _ = _dar_de_baja(env, "muerte")
+def test_TC_M06_063b_baja_por_perdida_queda_trazada_sin_variacion_ni_medicion_final(env):
+    esc, ida, calculos = _dar_de_baja(env, "muerte")
     variaciones = _variaciones(env, ida)
-    esperado = dec(-LIBROS)
-    if not variaciones:
-        bloqueado("funcionalidad no implementada: RF-83 FA-3 (deterioro o pérdida) pide registrar la variación final (0 - último valor razonable = "
-                  f"{esperado}) clasificada como pérdida por transformación biológica; M06 solo emite BAJA_ACTIVO PERDIDA por el valor en libros y no "
-                  "registra variación ni medición final del activo.")
-    assert any(v["tipo"] == "PERDIDA_TRANSFORMACION_BIOLOGICA" and dec(v["monto"]) == esperado for v in variaciones), variaciones
+    assert not variaciones, f"RF-83 v1.2: la baja por pérdida no registra variación final (antes PERDIDA_TRANSFORMACION_BIOLOGICA): {variaciones}"
+    assert not env.mediciones(ida), "la baja no debe hacer una medición final"
+    assert len(env.historial(ida)["calculos"]) == calculos
+    lineas = _lineas(env, ida, "BAJA_ACTIVO")
+    assert len(lineas) == 1 and lineas[0]["sentido"] == "PERDIDA" and dec(lineas[0]["valor"]) == trunc2(LIBROS), lineas
+    _trazas_de_baja(env, ida)
 
 
 def test_TC_M06_064a_crecimiento_sobre_activo_dado_de_baja_no_crea_medicion(env):
@@ -125,7 +133,7 @@ def test_TC_M06_064a_crecimiento_sobre_activo_dado_de_baja_no_crea_medicion(env)
     n_lineas = len(_lineas(env, ida, "BAJA_ACTIVO"))
     r = env.call("POST", f"/activos-biologicos/{ida}/eventos/crecimiento", "admin", json={
         "tipo_medicion": "PESO", "valor_medicion": "500", "unidad_medida": "kg"})
-    assert r.status < 500, f"error de servidor: {r}"
+    assert r.status == 409 and r.err == "ESTADO_NO_PERMITE_EVENTOS", f"M02 debe rechazar el evento con 409 ESTADO_NO_PERMITE_EVENTOS: {r}"
     env.procesar_eventos()
     assert not env.mediciones(ida), "no debe crearse ninguna medición para un activo dado de baja"
     assert len(_lineas(env, ida, "BAJA_ACTIVO")) == n_lineas, "no debe emitirse otro BAJA_ACTIVO ni reabrirse el historial"

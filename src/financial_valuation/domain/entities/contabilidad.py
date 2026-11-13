@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-86/87/109: período, configuración y línea de asiento |
+# | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 """Entidades contables de M06: período, configuración, parámetros y líneas de asiento."""
 from __future__ import annotations
 
@@ -21,6 +22,8 @@ class Periodo:
     fecha_fin: date
     estado: str
     fecha_cierre: Optional[datetime] = None
+    # Razón social del titular (solo la trae el listado, para distinguir los períodos por algo más que el NIT).
+    razon_social: Optional[str] = None
 
     @property
     def esta_abierto(self) -> bool:

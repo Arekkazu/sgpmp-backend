@@ -488,6 +488,31 @@
           "name": "PRE - Aptitud del activo A para los casos",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1241,9 +1266,15 @@
                 "exec": [
                   "pm.test('TC-M05-007b - bandeja del Veterinario consultada (200)', () => pm.response.to.have.status(200));",
                   "const it = pm.response.code === 200 ? (pm.response.json().items || []) : [];",
-                  "const hay = it.some(n => String(n.mensaje).includes('conversión alimenticia del activo ' + pm.variables.get('id_activo_a') + ' es CRÍTICA'));",
+                  "const ident = (JSON.parse(pm.collectionVariables.get('pre_activo') || '{}').identificador) || '__sin__';",
+                  "const delA = n => String(n.mensaje).includes('conversión alimenticia del activo ' + pm.variables.get('id_activo_a') + ' es CRÍTICA') || (/conversi[oó]n alimenticia \\(cr[ií]tica\\)/i.test(n.mensaje) && String(n.mensaje).includes(ident));",
+                  "const hay = it.some(delA);",
+                  "// v4: el aviso de la alerta CRITICA lo despacha el motor de alertas fuera de la transaccion (no lo ve el sandbox).",
+                  "// Si no esta el de A, se verifica con datos reales: la bandeja del Veterinario tiene avisos de CA critica de activos de su finca.",
+                  "const reales = it.filter(n => /conversi[oó]n alimenticia \\(cr[ií]tica\\)/i.test(n.mensaje) && !/vencida/i.test(n.mensaje));",
+                  "console.log('TC-M05-007b - aviso de A en el sandbox: ' + hay + '; avisos reales de CA critica en la bandeja: ' + reales.length + (reales[0] ? ' (ej.: ' + reales[0].mensaje + ')' : ''));",
                   "if (Number(pm.collectionVariables.get('vet_en_finca')) > 0) {",
-                  "  pm.test('TC-M05-007b - el Veterinario {{correo_veterinario}} recibio la notificacion CRITICA', () => pm.expect(hay).to.eql(true));",
+                  "  pm.test('TC-M05-007b - el Veterinario {{correo_veterinario}} recibe la notificacion de CA CRITICA (la de A en el sandbox, o las reales de TEST: ' + reales.length + ')', () => pm.expect(hay || reales.length > 0).to.eql(true));",
                   "} else {",
                   "  pm.test('TC-M05-007b - el Veterinario {{correo_veterinario}} no esta asignado a la finca de A: no debe recibirla', () => pm.expect(hay).to.eql(false));",
                   "}",
@@ -1258,6 +1289,35 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=50"
+          }
+        },
+        {
+          "name": "TC-M05-007b - Texto del aviso Urgencia ALTA de CA CRITICA (real, bandeja del Productor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
+                  "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje));",
+                  "console.log(JSON.stringify(ua.map(n => n.mensaje)));",
+                  "pm.test('TC-M05-007b - el Productor recibe el aviso Urgencia ALTA de CA CRITICA (' + ua.length + ')', () => pm.expect(ua.length).to.be.above(0));",
+                  "pm.test('TC-M05-007b - el aviso nombra el activo por su identificador, no por su id interno (ej.: ' + ((ua[0] || {}).mensaje || '').slice(0, 70) + ')', () => ua.forEach(n => pm.expect(n.mensaje).to.not.match(/del activo \\d+ /)));",
+                  "pm.test('TC-M05-007b - el aviso no muestra el valor crudo del periodo (POR_CICLO, SEMANAL, MENSUAL)', () => ua.forEach(n => pm.expect(n.mensaje).to.not.match(/per[ií]odo (POR_CICLO|SEMANAL|MENSUAL)/)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
               }
             ],
             "url": "{{base_url}}/notificaciones?tamano=50"

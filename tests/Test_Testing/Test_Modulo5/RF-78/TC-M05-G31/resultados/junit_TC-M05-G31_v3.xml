@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="4" time="4.291" timestamp="2026-11-11T00:08:22.739684-05:00" hostname="Juanma"><testcase classname="tests.Test_Testing.Test_Modulo5.RF-78.TC-M05-G31.test_tc_m05_g31" name="test_048a_fallo_de_bd_reintenta_3_veces_y_luego_500" time="0.002" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-78.TC-M05-G31.test_tc_m05_g31" name="test_048b_backoff_de_1_3_y_5_segundos" time="0.001"><failure message="AssertionError: esperas aplicadas entre reintentos: [1, 3]&#10;assert [1, 3] == [1, 3, 5]&#10;  &#10;  Right contains one more item: 5&#10;  Use -v to get more diff">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FC6C270110&gt;
+
+    def test_048b_backoff_de_1_3_y_5_segundos(monkeypatch):
+        """La ficha pide 1 s / 3 s / 5 s. Con 3 intentos solo hay 2 esperas: el 5 s nunca se aplica."""
+        t = _registro(InfrastructureError(code="BD_FALLO", message="fallo inyectado"), monkeypatch)
+        with pytest.raises(InfrastructureError):
+            t.uc.execute(_dto(), USUARIO)
+&gt;       assert t.esperas == [1, 3, 5], f"esperas aplicadas entre reintentos: {t.esperas}"
+E       AssertionError: esperas aplicadas entre reintentos: [1, 3]
+E       assert [1, 3] == [1, 3, 5]
+E         
+E         Right contains one more item: 5
+E         Use -v to get more diff
+
+tests\Test_Testing\Test_Modulo5\RF-78\TC-M05-G31\test_tc_m05_g31.py:121: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-78.TC-M05-G31.test_tc_m05_g31" name="test_048c_tras_agotar_reintentos_queda_registro_fallido_con_3_reintentos" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-78.TC-M05-G31.test_tc_m05_g31" name="test_048e_correccion_con_bloqueo_responde_409_conflicto_concurrencia" time="0.002" /></testsuite></testsuites>

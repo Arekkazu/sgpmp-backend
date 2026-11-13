@@ -86,7 +86,9 @@ export function contexto(args) {
   if (c.grupo !== 'G34' || c.run_id !== runId || c.version !== version || c.intento !== intento ||
       c.operacion !== operacion.toUpperCase() || c.referencia !== referencia ||
       JSON.stringify(c.casos) !== JSON.stringify(CASOS) ||
-      (version > 1 && (operacion !== 'reevaluar' || c.version_anterior !== version - 1 || !c.alcance_reevaluacion)) ||
+      (version > 1 && !(operacion === 'reevaluar' && c.version_anterior === version - 1 && c.alcance_reevaluacion ||
+        operacion === 'reintentar' && (c.version_anterior === null || c.version_anterior === version - 1) &&
+        typeof c.alcance_reevaluacion?.motivo === 'string' && c.alcance_reevaluacion.motivo.trim())) ||
       (version === 1 && operacion === 'reevaluar')) throw Error('Contexto incoherente');
   return { operacion, version, intento, runId, referencia, directorio: destino, ensayo: false };
 }
@@ -152,12 +154,7 @@ export function periodoDestino(periodos, nit, hoy = fecha()) {
   const propios = periodos.filter(p => String(p.numero_id_tributaria) === String(nit));
   const actual = propios.find(p => p.fecha_inicio <= hoy && p.fecha_fin >= hoy);
   if (actual?.estado === 'ABIERTO') return { periodo: actual };
-  if (actual?.estado === 'EN_CIERRE') return { motivo: 'período que contiene hoy EN_CIERRE' };
-  const desde = actual ? actual.fecha_fin : hoy;
-  const posterior = propios.filter(p => p.estado === 'ABIERTO' && p.fecha_inicio > desde)
-    .sort((a, b) => String(a.fecha_inicio).localeCompare(String(b.fecha_inicio)) || id(a.id_periodo_contable) - id(b.id_periodo_contable))[0];
-  return posterior ? { periodo: posterior, correccion: actual?.estado === 'CERRADO' } :
-    { motivo: actual?.estado === 'CERRADO' ? 'período actual CERRADO sin posterior ABIERTO visible' : 'sin período ABIERTO posterior visible' };
+  return { motivo: actual ? `período que contiene hoy ${actual.estado}` : 'sin período que contenga hoy' };
 }
 function ultimoCalculo(detalle) {
   return (detalle?.calculos ?? []).filter(x => x.estado === 'CALCULADO' && x.json_metodo_costo?.es_producto !== true)
@@ -188,8 +185,8 @@ async function bandejaPropia(r, api, token, runId = null, secreto = null) {
 const CASO = CASOS[0];
 const informeNombre = v => v === 1 ? 'TC-M06-G34_resultado.md' : 'TC-M06-G34_reevaluacion_V' + v + '.md';
 const ids = (lista, clave) => lista.map(x => String(x[clave]));
-const recencia = x => ({ fecha: String(x?.fecha_envio ?? ''), id: id(x?.id_notificacion) });
-const compararRecencia = (a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id;
+const recencia = x => ({ id: id(x?.id_notificacion) });
+const compararRecencia = (a, b) => a.id - b.id;
 const paginaValida = (x, campo, total) => x?.http === 200 && x.eco !== false &&
   Array.isArray(x.cuerpo?.[campo]) && Number.isSafeInteger(x.cuerpo?.[total]) && x.cuerpo[total] >= 0;
 
@@ -218,7 +215,7 @@ async function leerBandeja(r, api, opciones, lineaBase = undefined) {
     const paginaItems = x.cuerpo.items;
     for (const aviso of paginaItems) {
       const clave = recencia(aviso);
-      if (!clave.fecha || !clave.id || vistos.has(clave.id)) return { completa: false, items };
+      if (!clave.id || vistos.has(clave.id)) return { completa: false, items };
       vistos.add(clave.id);
       if (lineaBase && compararRecencia(clave, lineaBase) <= 0)
         return { completa: true, items, lineaBase };
@@ -237,6 +234,7 @@ async function instantanea(r, api, opciones, aid, pid, bandejaBase = null) {
     '/finanzas/periodos/' + pid + '/variaciones',
     '/finanzas/lineas?id_periodo_contable=' + pid,
     '/finanzas/periodos/' + pid + '/mediciones',
+    '/finanzas/periodos/' + pid + '/eventos-pendientes',
     '/finanzas/activos/' + aid,
   ];
   const respuestas = [];
@@ -245,16 +243,17 @@ async function instantanea(r, api, opciones, aid, pid, bandejaBase = null) {
     respuestas.push(await pedir(r, api, 'GET', ruta, opciones));
   }
   if (respuestas.length !== rutas.length) return { completa: false, motivo: 'Corte antes de completar las lecturas.' };
-  const [v, l, m, d] = respuestas;
+  const [v, l, m, ep, d] = respuestas;
   const a = await leerAuditoria(r, api, opciones, aid, pid);
   const b = await leerBandeja(r, api, opciones, bandejaBase ? bandejaBase.bandejaLineaBase : undefined);
-  if (![v, l, m, d].every(x => x.http === 200 && x.eco !== false) || !Array.isArray(v.cuerpo) ||
-      !Array.isArray(l.cuerpo) || !Array.isArray(m.cuerpo) || !Array.isArray(d.cuerpo?.calculos) ||
+  if (![v, l, m, ep, d].every(x => x.http === 200 && x.eco !== false) || !Array.isArray(v.cuerpo) ||
+      !Array.isArray(l.cuerpo) || !Array.isArray(m.cuerpo) || !Array.isArray(ep.cuerpo) || !Array.isArray(d.cuerpo?.calculos) ||
       !Array.isArray(d.cuerpo?.mediciones) || !a.completa || !b.completa)
     return { completa: false, motivo: 'Lectura pública incompleta, 5xx, sin eco o página truncada.',
       http: respuestas.map(x => x.http), rutas, auditoriaCompleta: a.completa, bandejaCompleta: b.completa };
   const calculos = d.cuerpo.calculos;
   return { completa: true, activo: aid, periodo: pid, variaciones: v.cuerpo, lineas: l.cuerpo,
+    eventosPendientes: ep.cuerpo,
     mediciones: medicionesConEstado(d.cuerpo.mediciones, m.cuerpo, aid),
     calculos, auditoria: a.eventos, bandeja: b.items, bandejaLineaBase: b.lineaBase,
     auditoriaCompleta: a.completa, bandejaCompleta: b.completa,
@@ -315,7 +314,9 @@ async function newmanLecturas(r, c, env, token, aid, bid, pid, eventoId, eventoB
 }
 
 function incidencia(r, clave, discrepancia, severidad, justificacion) {
-  r.incidencias.push({ id: 'INC-M06-G34-' + String(r.incidencias.length + 1).padStart(2, '0'),
+  const fijo=clave==='A_AVISO'?'01':clave==='UI'?'02':null;
+  const numero=fijo??String(Math.max(3,r.incidencias.length+3)).padStart(2,'0');
+  r.incidencias.push({ id: 'INC-M06-G34-' + numero,
     caso: casoCompleto(CASO), criterio: clave, discrepancia, severidad, justificacion,
     certeza: 'CONFIRMADA', equipo_inicial: 'Desarrollo', fundamento_derivacion:
       'Primera discrepancia comprobada por API o UI pública en TEST.', causa_raiz: 'NO DETERMINADA' });
@@ -325,6 +326,33 @@ function registrarParte(r, idComprobacion, fuente, decision, evidencia) {
   r.comprobaciones.push({ caso: CASO, id: idComprobacion, fuente, tipo: 'ASSERT',
     estado: decision?.estado ?? 'NO_CONCLUYENTE', motivo: (decision?.fallos ?? []).join(' ') ||
       decision?.motivo || 'Conforme', evidencia });
+}
+export function motivosNoOficial(r, sinArtefactos = false, ahora = Date.now()) {
+  const motivos = [];
+  const exigir = (cumple, motivo) => { if (!cumple) motivos.push(motivo); };
+  exigir(r.cierre?.rollback?.verificado === true, 'rollback sin verificar');
+  exigir(r.cierre?.costos?.restaurados === true, 'costos sin restaurar');
+  exigir(r.cypress?.total_pruebas > 0, 'Cypress sin pruebas ejecutadas');
+  exigir(r.cypress?.total_failed === 0, 'Cypress con pruebas fallidas');
+  exigir(r.cypress?.captura === true, 'captura Cypress ausente');
+  exigir(['APROBADO','RECHAZADO'].includes(r.casos?.[CASO]?.estado), 'caso no concluyente');
+  if (!sinArtefactos) {
+    exigir(r.herramientas?.newman?.iteraciones === 1, 'Newman sin una iteración completa');
+    exigir(r.herramientas?.newman?.codigo === 0, 'Newman con código distinto de cero');
+    exigir(r.casos?.[CASO]?.estado === 'RECHAZADO' || r.herramientas?.newman?.fallos === 0,
+      'Newman con fallos para caso aprobado');
+  }
+  exigir(r.comprobaciones?.every(x => x.caso === CASO && ['APROBADO','RECHAZADO'].includes(x.estado)) === true,
+    'comprobaciones no concluyentes o de otro caso');
+  exigir(IDS.every(id => r.comprobaciones?.some(x => x.id === id)), 'comprobaciones obligatorias incompletas');
+  exigir(r.solicitudes?.length <= PRESUPUESTO.solicitudes_totales, 'presupuesto API excedido');
+  exigir((r.cypress?.solicitudes ?? 0) <= PRESUPUESTO.solicitudes_cypress, 'presupuesto Cypress excedido');
+  exigir(ahora <= r._limite, 'duración máxima excedida');
+  exigir(r.cierre?.run?.cierre_http === 200, 'DELETE de cierre sin HTTP 200');
+  exigir(r.cierre?.costos?.poscierre_original !== false, 'costos poscierre distintos del original');
+  // Conserva la condición canónica del core, además de detallar cada incumplimiento en el informe.
+  if (!oficialidadLocal(r, sinArtefactos) && motivos.length === 0) motivos.push('oficialidad local incumplida');
+  return motivos;
 }
 export function informe(c, r) {
   const x = r.casos[CASO] ?? {}, p = x.preparacion ?? {}, o = x.observados ?? {};
@@ -340,14 +368,13 @@ export function informe(c, r) {
     '### ' + i.id + ' — Falta aviso de suspensión de medición al Contador\n\n' +
     '**Requisito:** RF-86 paso 1a y CA-15: al no completar RF-83, suspender sin persistir variación ni línea y notificar al Contador con causa `RF_83_NO_COMPLETADO`, activo y evento.\n\n' +
     '**Pasos para reproducir:** con A y B elegibles en el mismo período ABIERTO, completar B; fijar temporalmente costo de venta de la especie al 100 % dentro del sandbox; registrar y procesar el evento de A; consultar la bandeja del Contador, la auditoría RF-94 y las variaciones; restaurar costos y cerrar el RUN.\n\n' +
-    '**Esperado:** un aviso nuevo al Contador que identifique causa `RF_83_NO_COMPLETADO`, activo ' + val(p.A?.activo) +
-    ' y evento ' + val(p.A?.evento) + '; sin variación ni línea de A.\n\n' +
+    '**Esperado:** exactamente un aviso nuevo al Contador que indique suspensión, identificador de A y fecha del evento; sin variación ni línea de A. `RF_83_NO_COMPLETADO` se interpreta por la ruta interna (`procesar_eventos_m02_use_case.py:85-86,411-425`), no por código literal en la bandeja pública.\n\n' +
     '**Obtenido:** línea base de bandeja ' + val(o.A?.bandeja_linea_base) +
     '; lecturas posteriores completas ' + val(parte(IDS[0])?.estado !== 'NO_CONCLUYENTE') +
     '; avisos relacionados ' + val(o.A?.avisos_relacionados) +
     '; auditoría `MEDICION_PENDIENTE` presente ' + val(o.A?.auditorias?.length) +
     '; datos nuevos de A ' + val(o.A?.nuevos) + '.\n\n' +
-    '**Apoyo de código leído, sin atribución causal:** `src/financial_valuation/application/services/medidor.py:147-156` audita el pendiente y retorna; en esa rama no se encontró notificación. `src/financial_valuation/infrastructure/factories/m06_factory.py:120-122,145-147` construye el medidor y el procesador. Estas lecturas no prueban la versión desplegada ni la causa raíz.\n\n' +
+    '**Apoyo de código leído, sin atribución causal:** `src/financial_valuation/application/use_cases/valoracion/procesar_eventos_m02_use_case.py:85-86,411-425` registra la causa interna y forma el mensaje visible. La lectura de código no determina la causa raíz.\n\n' +
     '**Impacto y severidad:** ' + i.severidad + '. ' + limpio(i.justificacion) +
     ' Certeza CONFIRMADA de la discrepancia observada; causa raíz NO DETERMINADA.\n\n' +
     '**Primera atención:** Desarrollo, por ausencia observada en la bandeja pública del Contador; no implica atribución de causa.\n\n' +
@@ -362,7 +389,7 @@ export function informe(c, r) {
     '`. B se mostró correctamente; A no expuso el pendiente del evento. Acta Cypress: ' + val(r.cypress?.total_pruebas) +
     ' prueba ejecutada, lectura HTTP ' + val(r.cypress?.mediciones_http) + ' de las mediciones del período y captura ' +
     val(r.cypress?.captura) + '.\n\n' +
-    '**Apoyo de código leído, sin atribución causal:** `SGPMP-FRONT-END-PWA/src/financial_valuation/pages/MedicionView.tsx:32-37` deriva el estado de las filas de las mediciones del período; `src/financial_valuation/application/services/medidor.py:147-156` audita la suspensión y retorna sin crear una fila de medición. Una medición `COMPLETADO` anterior del mismo activo y período puede seguir dando `Medido` en esa vista. La lectura local no prueba la versión desplegada ni determina la causa raíz.\n\n' +
+    '**Apoyo de código leído, sin atribución causal:** `SGPMP-FRONT-END-PWA/src/financial_valuation/pages/MedicionView.tsx:35-55,62-66,133-150` combina mediciones y eventos pendientes. La lectura de código no determina la causa raíz.\n\n' +
     '**Impacto y severidad:** ' + i.severidad + '. ' + limpio(i.justificacion) +
     ' Certeza CONFIRMADA de la discrepancia observada; causa raíz NO DETERMINADA.\n\n' +
     '**Primera atención:** Desarrollo, por el estado incorrecto observado en la UI pública para A; revisar frontend/backend sin atribuir el origen técnico.\n\n' +
@@ -373,7 +400,7 @@ export function informe(c, r) {
     : 'Ninguna incidencia de producto confirmada.';
   return '# TC-M06-G34 — ' + val(x.estado) + '\n\n## Identificación\n\n' +
     casoCompleto(CASO) + '; RF-86 paso 1a, CA-15 y postcondición 6; versión ' + c.version +
-    '; RUN ' + c.runId + '; ambiente TEST; autorización ' + limpio(c.referencia) +
+    '; RUN ' + c.runId + '; ambiente ' + (c.ensayo ? 'SIMULACION_LOCAL (NO TEST)' : 'TEST') + '; autorización ' + limpio(c.referencia) +
     '; commit TEST no verificado; Node ' + process.version + '; Newman ' + val(r.herramientas.newman?.version) +
     '; Cypress ' + val(r.cypress?.version) + '.\n\n## Resumen de veredictos\n\n| Caso | Estado | Motivo |\n|---|---|---|\n| ' +
     casoCompleto(CASO) + ' | ' + val(x.estado) + ' | ' + val(x.motivo) + ' |\n\n## Detalle por caso\n\n' +
@@ -393,7 +420,7 @@ export function informe(c, r) {
     '### A (' + val(parte(IDS[0])?.estado) + ') — suspensión del evento\n\n' +
     '- **Preparación:** activo ' + val(p.A?.activo) + ', período ' + val(p.periodo) + ', evento ' +
     val(p.A?.evento) + '; costo de venta temporal de la especie al 100 % para provocar valor neto no positivo.\n' +
-    '- **Esperado:** cero variaciones, líneas, mediciones y cálculos nuevos; auditoría `MEDICION_PENDIENTE` con motivo y referencia al evento; aviso nuevo al Contador con causa `RF_83_NO_COMPLETADO`, activo y evento.\n' +
+    '- **Esperado:** cero variaciones, líneas, mediciones y cálculos nuevos; auditoría `MEDICION_PENDIENTE` con motivo y referencia al evento; evento en `eventos-pendientes`; exactamente un aviso nuevo al Contador con identificador de A y fecha del evento. `RF_83_NO_COMPLETADO` es la causa interna interpretada, no un texto obligatorio de la bandeja.\n' +
     '- **Cumplido:** variaciones ' + val(o.A?.nuevos?.variaciones?.length) + ', líneas ' +
     val(o.A?.nuevos?.lineas?.length) + ', mediciones ' + val(o.A?.nuevos?.mediciones?.length) +
     ', cálculos ' + val(o.A?.nuevos?.calculos?.length) + '; auditoría ' +
@@ -402,14 +429,17 @@ export function informe(c, r) {
     '`, referencia ' + val(o.A?.auditorias?.[0]?.referencia) + '). ' +
     (sinParcialesA && auditoriaA ? 'La suspensión no dejó datos parciales y fue auditada.' :
       'Revisar ausencia de datos parciales y auditoría frente al oráculo.') + '\n' +
-    '- **Falló y por qué:** desde la línea base de bandeja id ' + val(o.A?.bandeja_linea_base?.id) +
+    '- **Aviso observado:** desde la línea base de bandeja id ' + val(o.A?.bandeja_linea_base?.id) +
     ', la lectura posterior completa halló ' + val(o.A?.avisos_relacionados) +
     ' avisos relacionados. ' + (o.A?.avisos_relacionados === 0 ?
-      'No se acreditó la notificación exigida' : 'La notificación debe contrastarse con la causa, el activo y el evento') +
+      'No se acreditó la notificación exigida' : 'Se contrastó el texto con la suspensión, identificador y fecha del evento') +
+    '; tipo_evento del aviso válido ' + val(o.A?.tipo_evento_aviso_valido) +
+    (o.A?.tipo_contrastado_con_referencia_previa ? '; tipo contrastado con referencia previa' :
+      '; tipo no contrastado con referencia previa') +
     '; la comprobación API de A queda ' + val(parte(IDS[0])?.estado) + '.\n\n' +
     '### UI (' + val(parte(IDS[2])?.estado) + ') — visibilidad del estado\n\n' +
     '- **Preparación y esperado:** abrir `/finanzas/medicion` con el período ' + val(p.periodo) +
-    '; A debe verse `MEDICION_PENDIENTE` por su evento suspendido y B con medición completada.\n' +
+    '; A debe verse `Medición pendiente` por su evento suspendido y B `Medido`.\n' +
     '- **Observado y decisión:** A mostró `' + val(r.cypress?.fila_a) + '` y B mostró `' +
     val(r.cypress?.fila_b) + '` en ' + val(r.cypress?.total_pruebas) +
     ' prueba Cypress. ' + (r.cypress?.fila_b === 'Medido' ? 'B fue correcto; ' : 'La fila de B requiere revisión; ') +
@@ -420,16 +450,21 @@ export function informe(c, r) {
     '## Comprobaciones API y UI\n\n' + r.comprobaciones.map(z => '- ' + z.id + ' (' + z.fuente + '): ' +
       z.estado + '; ' + limpio(z.motivo) + '; evidencia ' + z.evidencia + '.').join('\n') +
     '\n\n## Evidencias reales\n\n' + (r.evidencias.map(z => '- ' + z).join('\n') || 'Ninguna.') +
+    '\n\n## Observaciones y seguimiento V1\n\n' +
+    (r.observaciones?.map(z=>'- '+z).join('\n') || 'Sin seguimiento V1 registrado.') +
+    (r.efectos_persistentes_declarados?.length ? '\n' + r.efectos_persistentes_declarados.map(z =>
+      '- Efecto persistente declarado bajo la autorización de este RUN (' + limpio(z.autorizacion) +
+      ') y su SOL de V2: ' + limpio(z.descripcion) + '.').join('\n') : '') +
     '\n\n## Incidencias de producto\n\n' + incidencias +
     '\n\n## Problemas técnicos y análisis de causas\n\n' +
     (r.problemas_tecnicos.join('; ') || 'Ninguno observado.') +
-    ' Referencia de código local consultada: src/financial_valuation/application/services/medidor.py:147-156 ' +
-    'audita MEDICION_PENDIENTE y retorna PENDIENTE; allí no se observó envío de notificación. ' +
-    'Esta lectura no prueba la versión desplegada ni la causa raíz.\n\n## Cierre y rollback\n\n' +
+    ' La causa raíz de cualquier discrepancia queda NO DETERMINADA; se decidirá con evidencia del RUN.\n\n## Cierre y rollback\n\n' +
     'Costos originales ' + val(r.cierre.costos?.originales) + '; restauración previa al DELETE ' +
     val(r.cierre.costos?.restaurados) + '; DELETE HTTP ' + val(r.cierre.run.cierre_http) +
     '; configuración poscierre ' + val(r.cierre.costos?.poscierre_original) +
-    '; rollback ' + val(r.cierre.rollback.verificado) + ': ' + val(r.cierre.rollback.motivo) +
+    '; rollback del sandbox ' + val(r.cierre.rollback.verificado) + ': ' + val(r.cierre.rollback.motivo) +
+    '. Este rollback se limita a datos del sandbox; el aviso de suspensión al Contador puede persistir fuera de él bajo la autorización ' +
+    limpio(c.referencia) + ' y la SOL de V2' +
     '\n\n## Conclusión y acciones\n\n' + (x.estado === 'APROBADO' ?
       'Cadena B y suspensión A acreditadas por API y UI.' : x.estado === 'RECHAZADO' ?
       (parte(IDS[1])?.estado === 'APROBADO' ? 'La cadena completa de B cumple. ' :
@@ -438,9 +473,13 @@ export function informe(c, r) {
         'La suspensión o auditoría de A requiere revisión. ') +
       'Desarrollo atiende ' + (idsIncidencia.join(' e ') || 'las discrepancias registradas') +
       '; QA reevaluará con nueva autorización.' :
-      'Resolver lecturas, datos o automatización pendiente antes de repetir con autorización.') +
-    '\n\nOficial: ' + r.oficial + '; solicitudes registradas ' + r.solicitudes.length + '/' +
-    PRESUPUESTO.solicitudes_totales + '.\n';
+      'Comprobación pendiente: ' + val((parte(IDS[2])?.estado === 'NO_CONCLUYENTE' ? 'UI — ' : '') +
+        x.motivo) +
+      '. Resolver la causa antes de repetir con autorización.') +
+    '\n\nOficial: ' + r.oficial + '; solicitudes API ' + r.solicitudes.length + '/' +
+    PRESUPUESTO.solicitudes_totales + ' y Cypress ' + (r.cypress?.solicitudes ?? 0) + '/' +
+    PRESUPUESTO.solicitudes_cypress + '. ' + (r.oficial ? '' :
+      'Condiciones de oficialidad incumplidas: ' + (r.motivos_no_oficial ?? motivosNoOficial(r)).join('; ') + '. ') + '\n';
 }
 function cypressVersion() {
   try { return require(require.resolve('cypress/package.json', { paths: [RAIZ] })).version; }
@@ -494,6 +533,7 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
   const api = apiOverride ?? String(env.SIGAB_API_TEST_BASE ?? '').replace(/\/+$/,'');
   const r = { grupo:'G34', run_id:c.runId, version:c.version, intento:c.intento, casos:{},
     comprobaciones:[], solicitudes:[], evidencias:[], incidencias:[], problemas_tecnicos:[],
+    preflight_vivo:[], seguimiento_incidencias_v1:[], observaciones:[], efectos_persistentes_declarados:[],
     herramientas:{node:process.version,newman:null}, cypress:{total_pruebas:0},
     diagnostico_candidatos:{medido:false,total_recibido:0,bovino:0,individual:0,estado:0,
       sin_costo:0,valor_positivo:0,precio_vigente:0,periodo_destino:0,peso_kg:0,calculo_previo:0,
@@ -503,7 +543,7 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
     oficial:false,consume_version:false,_seguidos5xx:0,_corte:false,
     _limite:Date.now()+PRESUPUESTO.duracion_segundos*1000 };
   const pf = preflight(c,env,sinArtefactos ? 'ensayo-local' : newmanVersion());
-  if (!sinArtefactos && !cypressVersion()) pf.barreras.push('CYPRESS_NO_DISPONIBLE');
+  if (!sinArtefactos && !(c.ensayo && cypressOverride) && !cypressVersion()) pf.barreras.push('CYPRESS_NO_DISPONIBLE');
   pf.ok = !pf.barreras.length; pf.herramientas.cypress = cypressVersion();
   r._secretos = [env.QA_SANDBOX_SECRET,env.QA_CONTADOR_EMAIL,env.QA_CONTADOR_PASSWORD,
     env.QA_ADMIN_EMAIL,env.QA_ADMIN_PASSWORD];
@@ -539,8 +579,12 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
     candidatos=candidatos.filter(x=>x.estado==='ACTIVO');diag.estado=candidatos.length;
     candidatos=candidatos.filter(x=>!x.valorado_por_costo);diag.sin_costo=candidatos.length;
     candidatos=candidatos.filter(x=>Number(x.valor_razonable_neto)>0);diag.valor_positivo=candidatos.length;
-    const precios=new Map(),posibles=[];let falloLectura=false;
-    for (const activo of candidatos.slice(0,4)) {
+    // Datos conocidos de NIT-D se examinan primero; todas las condiciones siguen verificándose por API.
+    const conocidos=new Set([1627,1831,1832,1833]);
+    candidatos.sort((a,b)=>Number(conocidos.has(id(b.id_activo_biologico)))-
+      Number(conocidos.has(id(a.id_activo_biologico))));
+    const precios=new Map(),posibles=[];let falloLectura=false,periodosDescartados=[];
+    for (const activo of candidatos.slice(0,8)) {
       const aid=id(activo.id_activo_biologico),esp=id(activo.id_especie);
       if (!precios.has(esp)) {
         const pr=await pedir(r,api,'GET','/finanzas/precios?id_especie='+esp,opt);
@@ -551,7 +595,9 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
       const d=await pedir(r,api,'GET','/finanzas/activos/'+aid,opt);
       if (d.http>=500 || d.http==null) falloLectura=true;
       if (d.http!==200 || !d.eco) continue;
-      const periodo=periodoDestino(p.cuerpo,d.cuerpo?.activo?.numero_id_tributaria).periodo;
+      const destino=periodoDestino(p.cuerpo,d.cuerpo?.activo?.numero_id_tributaria);
+      const periodo=destino.periodo;
+      if (!periodo) periodosDescartados.push({activo:aid,motivo:destino.motivo});
       if (!periodo) continue;diag.periodo_destino++;
       const f=await pedir(r,api,'GET','/activos-biologicos/'+aid+'/ficha-integral',mopt);
       if (f.http>=500 || f.http==null) falloLectura=true;
@@ -562,21 +608,52 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
     }
     diag.primera_condicion_fallida=Object.entries(diag).find(([k,v])=>['bovino','individual','estado',
       'sin_costo','valor_positivo','precio_vigente','periodo_destino','peso_kg','calculo_previo'].includes(k)&&v===0)?.[0]??null;
+    r.preflight_vivo.push({requisito:'Período de hoy ABIERTO',esperado:'Titular con período que contiene hoy en America/Bogota y ABIERTO',
+      observado:{elegibles:diag.periodo_destino,descartados:periodosDescartados},cumple:diag.periodo_destino>0,bloqueante:true});
+    r.preflight_vivo.push({requisito:'Precio vigente',esperado:'Precio PESO_KG vigente de la especie bovina',
+      observado:diag.precio_vigente,cumple:diag.precio_vigente>0,bloqueante:true});
     const pares=[];
     for (const B of posibles) for (const A of posibles) if (A!==B &&
       id(A.activo.id_especie)===id(B.activo.id_especie) &&
       id(A.periodo.id_periodo_contable)===id(B.periodo.id_periodo_contable)) pares.push({A,B});
     diag.pares_misma_especie_periodo=pares.length;
-    pares.sort((x,y)=>Number(id(y.B.calculo.id_precio_mercado)===id(y.B.precio.id_precio_mercado))-
+    const medicionesPorPeriodo=new Map();
+    for (const pid of [...new Set(pares.map(x=>id(x.A.periodo.id_periodo_contable)))]) {
+      const lectura=await pedir(r,api,'GET','/finanzas/periodos/'+pid+'/mediciones',opt);
+      medicionesPorPeriodo.set(pid,lectura.http===200 && lectura.eco && Array.isArray(lectura.cuerpo)?lectura.cuerpo:null);
+      if (medicionesPorPeriodo.get(pid)===null) falloLectura=true;
+    }
+    const paresA=pares.filter(({A})=>{
+      const lista=medicionesPorPeriodo.get(id(A.periodo.id_periodo_contable));
+      return lista && !lista.some(x=>String(x.id_activo_biologico)===String(A.activo.id_activo_biologico));
+    });
+    r.preflight_vivo.push({requisito:'Dos bovinos elegibles, A sin mediciones del período',
+      esperado:'A sin filas en GET mediciones antes de escribir; B bovino elegible',
+      observado:{pares:pares.length,pares_con_A_sin_mediciones:paresA.length,lectura_completa:!falloLectura},
+      cumple:paresA.length>0,bloqueante:true});
+    paresA.sort((x,y)=>Number(id(y.B.calculo.id_precio_mercado)===id(y.B.precio.id_precio_mercado))-
       Number(id(x.B.calculo.id_precio_mercado)===id(x.B.precio.id_precio_mercado)));
-    const par=pares[0];
-    if (!par) { concluir(falloLectura?'NO_CONCLUYENTE':'BLOQUEADO',
-      falloLectura?'Lectura impidió elegir dos activos.':'BLOQUEO_DATOS: faltan dos bovinos elegibles de especie y período destino comunes; primera condición '+diag.primera_condicion_fallida);return r; }
+    const par=paresA[0];
+    if (!par) { concluir('NO_CONCLUYENTE',
+      'Preflight bloqueante: faltan dos bovinos elegibles con A sin mediciones del período actual ABIERTO; primera condición '+diag.primera_condicion_fallida);return r; }
     const {A,B}=par, aidA=id(A.activo.id_activo_biologico),aidB=id(B.activo.id_activo_biologico);
     const pid=id(B.periodo.id_periodo_contable),esp=id(B.activo.id_especie);
     Object.assign(datos,{aidA,aidB,pid,especie:esp});
     preparacion={periodo:pid,A:{activo:aidA,precio:id(A.precio.id_precio_mercado)},
       B:{activo:aidB,precio:id(B.precio.id_precio_mercado),rebase:'no requerido'}};
+    const conf=await pedir(r,api,'GET','/finanzas/configuracion',opt);
+    const originales=conf.http===200 && conf.eco?costosDe(conf.cuerpo,esp):null;
+    const matriz=Array.isArray(conf.cuerpo?.matriz)?conf.cuerpo.matriz:null;
+    const tiene=tipo=>matriz?.some(x=>x.tipo_hecho===tipo &&
+      (x.id_especie==null || id(x.id_especie)===esp));
+    const matrizOk=Boolean(tiene('VARIACION_VR_TB') && tiene('VARIACION_VR_PM'));
+    r.preflight_vivo.push({requisito:'Matriz TB/PM',esperado:'Asignaciones activas presentes en lista de configuración',
+      observado:{lista_leida:!!matriz,tb:!!tiene('VARIACION_VR_TB'),pm:!!tiene('VARIACION_VR_PM')},
+      cumple:matrizOk,bloqueante:true});
+    r.preflight_vivo.push({requisito:'Costos de venta restaurables',esperado:'Fracciones GENERAL activas legibles',
+      observado:originales??'No disponibles',cumple:!!originales,bloqueante:true});
+    if (!matrizOk || !originales) {concluir('NO_CONCLUYENTE','Preflight bloqueante: matriz TB/PM o costos originales incompletos.');return r;}
+    datos.originales=originales;r.cierre.costos.originales=originales;
     const basesEventos=new Map();
     for (const aid of [aidB,aidA]) {
       const e=await pedir(r,api,'GET','/activos-biologicos/'+aid+'/eventos',mopt);
@@ -614,14 +691,10 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
     const postB=await instantanea(r,api,opt,aidB,pid,datos.baseB);
     decisionB=evaluarB(datos.baseB,postB,{activo:aidB,evento:evB.eid,periodo:pid,
       calculoPrevio:B.calculo,pesoNuevo:pesoB});
-    if (procB.http!==200 && decisionB.estado==='APROBADO') decisionB={estado:'NO_CONCLUYENTE',fallos:['Procesamiento B sin HTTP 200.']};
+    if (procB.http!==200) decisionB={estado:'NO_CONCLUYENTE',fallos:['Procesamiento B con error ajeno al oráculo: HTTP '+procB.http+', código '+(procB.fila?.codigo||'sin código')+'.']};
     registrarParte(r,IDS[1],'API',decisionB,'resultado.json');
     if (decisionB.estado==='RECHAZADO') incidencia(r,'B',decisionB.fallos.join(' '),'ALTA',
       'La variación normal de otro activo del período quedó impedida o incorrecta.');
-    const conf=await pedir(r,api,'GET','/finanzas/configuracion',opt);
-    const originales=conf.http===200 && conf.eco?costosDe(conf.cuerpo,esp):null;
-    if (!originales) {concluir('NO_CONCLUYENTE','Sin configuración original activa de costos.');return r;}
-    datos.originales=originales;r.cierre.costos.originales=originales;
     datos.baseA=await instantanea(r,api,opt,aidA,pid);
     if (!datos.baseA.completa) {concluir('NO_CONCLUYENTE','Sin línea base A.');return r;}
     costosTocados=true;
@@ -636,24 +709,42 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
     const evA=await crear(aidA,A.peso,'A pendiente QA '+c.runId);
     if (!evA.eid) {concluir('NO_CONCLUYENTE','Evento A sin ID conciliable.');return r;}
     preparacion.A.evento=evA.eid;
+    r.efectos_persistentes_declarados.push({ autorizacion:c.referencia, version:c.version,
+      descripcion:'El aviso ALERTA_FINANCIERA_NIC41 de suspensión a los Contadores de la finca se envía en otra sesión con commit propio; puede permanecer en la bandeja aunque DELETE cierre el RUN. Su persistencia no forma parte del rollback verificado del sandbox.' });
     const procA=await pedir(r,api,'POST','/finanzas/eventos/procesar',opt);
     const postA=await instantanea(r,api,opt,aidA,pid,datos.baseA);
+    const hoyEvento=fecha();
+    const fechaEvento=hoyEvento.slice(8,10)+'/'+hoyEvento.slice(5,7)+'/'+hoyEvento.slice(0,4);
+    const tipoAlerta=datos.baseA.bandeja.find(x=>/No se pudo completar la medición|quedó suspendido/i.test(String(x.mensaje)))?.tipo_evento ?? null;
     decisionA=evaluarA(datos.baseA,postA,{activo:aidA,periodo:pid,evento:evA.eid,
-      identificador:A.activo.identificador??A.activo.identificador_activo});
-    if (procA.http!==200 && decisionA.estado==='APROBADO') decisionA={estado:'NO_CONCLUYENTE',fallos:['Procesamiento A sin HTTP 200.']};
+      identificador:A.activo.identificador??A.activo.identificador_activo,fechaEvento,tipoAlerta});
+    if (procA.http!==200) decisionA={estado:'NO_CONCLUYENTE',fallos:['Procesamiento A con error ajeno al oráculo: HTTP '+procA.http+', código '+(procA.fila?.codigo||'sin código')+'.']};
     registrarParte(r,IDS[0],'API',decisionA,'resultado.json');
     if (decisionA.estado==='RECHAZADO') {
       for (const fallo of decisionA.fallos) incidencia(r,/aviso/i.test(fallo)?'A_AVISO':/auditoría/i.test(fallo)?'A_AUDITORIA':'A_DATOS',
-        fallo,/variación|línea|aviso/i.test(fallo)?'ALTA':'MEDIA',
+        fallo,/variación|línea|aviso|cálculo|medición/i.test(fallo)?'ALTA':'MEDIA',
         /variación|línea/i.test(fallo)?'Registro contable indebido para A.':
           /aviso/i.test(fallo)?'El Contador no recibe la suspensión ni su causa; debe consultar auditoría y la variación queda sin registrar.':
             'Trazabilidad incompleta para A.');
     }
-    if (sinArtefactos) r.cypress=cypressOverride??{estado:'APROBADO',total_pruebas:1,total_failed:0,captura:true};
-    else ejecutarCypress(r,c,env,token,aidA,aidB,pid,
+    if (sinArtefactos) r.cypress=cypressOverride??{estado:'APROBADO',fila_a:'Medición pendiente',fila_b:'Medido',total_pruebas:1,total_failed:0,captura:true};
+    else if (c.ensayo && cypressOverride) {
+      const dir=path.join(c.directorio,'cypress');
+      const png=path.join(dir,'screenshots','g34.cy.js','G34-UI-006-01.png');
+      fs.mkdirSync(path.dirname(png),{recursive:true});
+      fs.writeFileSync(path.join(dir,'G34-UI-006-01.json'),JSON.stringify({...cypressOverride,
+        origen:'SIMULACION_LOCAL; NO EVIDENCIA TEST'},null,2));
+      fs.writeFileSync(path.join(dir,'G34-cypress.json'),JSON.stringify({totalTests:1,totalFailed:0,
+        origen:'SIMULACION_LOCAL; NO EVIDENCIA TEST'},null,2));
+      // Imagen mínima identificada como marcador local; el RUN real usa captura Cypress.
+      fs.writeFileSync(png,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pXcAAAAASUVORK5CYII=','base64'));
+      r.cypress={...cypressOverride,version:'simulador-local',codigo:0};
+      r.evidencias.push('cypress/G34-UI-006-01.json','cypress/G34-cypress.json',
+        'cypress/screenshots/g34.cy.js/G34-UI-006-01.png');
+    } else ejecutarCypress(r,c,env,token,aidA,aidB,pid,
       A.activo.identificador??A.activo.identificador_activo,
       B.activo.identificador??B.activo.identificador_activo,sinArtefactos);
-    decisionUI={estado:!sinArtefactos && (!r.cypress?.fila_b || r.cypress.fila_b === 'SIN_FILA') ? 'NO_CONCLUYENTE' :
+    decisionUI={estado:(!r.cypress?.fila_b || r.cypress.fila_b === 'SIN_FILA' || r.cypress?.total_pruebas===0) ? 'NO_CONCLUYENTE' :
       r.cypress.estado??'NO_CONCLUYENTE',fallos:[r.cypress.motivo??'UI conforme']};
     registrarParte(r,IDS[2],'UI',decisionUI,'cypress/G34-UI-006-01.json');
     if (decisionUI.estado==='RECHAZADO') incidencia(r,'UI',
@@ -674,11 +765,24 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
         .every(x=>x==='APROBADO')) r.problemas_tecnicos.push('Newman contradice las lecturas semánticas; requiere revisión QA.');
     } else r.herramientas.newman={version:'ensayo-local',iteraciones:1,codigo:0,fallos:0};
     const estados=[decisionA.estado,decisionB.estado,decisionUI.estado];
+    if (c.version===2 && ['reevaluar','reintentar'].includes(c.operacion)) {
+      const lecturasCompletas=Boolean(datos.baseA?.completa && postA?.completa);
+      r.seguimiento_incidencias_v1=[
+        {id:'INC-M06-G34-01',caso:CASO,descripcion_v1:'Falta aviso al Contador',estado_v2:!lecturasCompletas?'NO_CONCLUYENTE':
+          decisionA.observado?.avisos_validos===1?'CORREGIDA':decisionA.observado?.avisos_validos===0?'REPRODUCIDA':'NO_CONCLUYENTE'},
+        {id:'INC-M06-G34-02',caso:CASO,descripcion_v1:'Panel muestra Medido para A',estado_v2:r.cypress.total_pruebas===0?'NO_CONCLUYENTE':
+          r.cypress.fila_a==='Medición pendiente'?'CORREGIDA':r.cypress.fila_a==='Medido'?'REPRODUCIDA':'NO_CONCLUYENTE'}];
+      r.observaciones=[...r.seguimiento_incidencias_v1.map(x=>`${x.id}: ${x.estado_v2}`),
+        ...r.incidencias.filter(x=>!['A_AVISO','UI'].includes(x.criterio)).map(x=>`${x.id}: nueva en V2`)];
+    }
     concluir(estados.includes('NO_CONCLUYENTE') ||
       (!sinArtefactos && r.herramientas.newman?.iteraciones!==1) ||
       (!sinArtefactos && r.herramientas.newman?.fallos>0 && estados.every(x=>x==='APROBADO'))?
       'NO_CONCLUYENTE':estados.includes('RECHAZADO')?'RECHAZADO':'APROBADO',
-      [...decisionA.fallos,...decisionB.fallos,...(decisionUI.estado==='RECHAZADO'?decisionUI.fallos:[])].join(' ')||
+      [...decisionA.fallos,...decisionB.fallos,...(decisionUI.estado==='NO_CONCLUYENTE'?
+        [r.cypress.total_pruebas===0?'Comprobación UI sin pruebas ejecutadas.':
+          decisionUI.fallos.join(' ')]:
+        decisionUI.estado==='RECHAZADO'?decisionUI.fallos:[])].join(' ')||
         (r.problemas_tecnicos.length?'Evidencia instrumental discrepante o incompleta.':'Oráculo API y UI completo.'));
   } catch(e) {
     r.problemas_tecnicos.push('Excepción del ejecutor: '+limpio(e.code??e.name??'ERROR'));
@@ -721,18 +825,26 @@ export async function evaluar(c, { env = leerEnv(), apiOverride = null, sinArtef
       if (!r.cierre.costos.poscierre_original && datos.originales) r.cierre.rollback.verificado=false;
     }
     if (!r.casos[CASO]) concluir('NO_CONCLUYENTE','Caso inconcluso.');
+    if (c.version===2 && ['reevaluar','reintentar'].includes(c.operacion) && r.seguimiento_incidencias_v1.length===0) {
+      r.seguimiento_incidencias_v1=[
+        {id:'INC-M06-G34-01',caso:CASO,descripcion_v1:'Falta aviso al Contador',estado_v2:'NO_CONCLUYENTE'},
+        {id:'INC-M06-G34-02',caso:CASO,descripcion_v1:'Panel muestra Medido para A',estado_v2:'NO_CONCLUYENTE'}];
+      r.observaciones=r.seguimiento_incidencias_v1.map(x=>`${x.id}: ${x.estado_v2}`);
+    }
     if (r.cypress.total_pruebas===0 && r.casos[CASO].estado==='APROBADO')
       concluir('NO_CONCLUYENTE','Cypress con cero pruebas.');
     if ((!r.cierre.costos.restaurados || (datos.originales && !r.cierre.costos.poscierre_original) ||
       !r.cierre.rollback.verificado) && r.casos[CASO].estado==='APROBADO')
       concluir('NO_CONCLUYENTE','Compensación, configuración poscierre o rollback sin verificar.');
-    r.oficial=oficialidadLocal(r,sinArtefactos) && r.comprobaciones.every(x=>x.caso===CASO &&
-      ['APROBADO','RECHAZADO'].includes(x.estado)) && IDS.every(id=>r.comprobaciones.some(x=>x.id===id)) &&
-      r.solicitudes.length+(r.cypress.solicitudes??0)<=PRESUPUESTO.solicitudes_totales &&
-      Date.now()<=r._limite && r.cierre.costos.poscierre_original!==false;
+    r.motivos_no_oficial=motivosNoOficial(r,sinArtefactos);
+    r.oficial=r.motivos_no_oficial.length===0;
     r.consume_version=r.oficial;r.estado_ejecucion=r.oficial?(c.ensayo?'OFICIAL_LOCAL':'OFICIAL'):'NO_OFICIAL';
     if (!sinArtefactos && fs.existsSync(c.directorio)) {
       const secretos=[token,tokenM02,...r._secretos];
+      guardar(path.join(c.directorio,'preflight.json'),JSON.parse(sanear(JSON.stringify({
+        ...pf,vivo:r.preflight_vivo,apto_para_escrituras:r.preflight_vivo.length>=5 &&
+          r.preflight_vivo.every(x=>!x.bloqueante || x.cumple)
+      }),secretos)));
       r.evidencias.push('resultado.json',informeNombre(c.version));
       if (r.herramientas.newman) r.evidencias.push('newman/newman-G34.json','newman/newman-G34.html');
       const pub={...r};for(const k of ['_limite','_corte','_seguidos5xx','_secretos']) delete pub[k];

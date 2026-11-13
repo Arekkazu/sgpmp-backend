@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: 202 del RF, exportación y descarga |
+# | 2026-11-11 | Arekkazu | USAB-M05 T-01 RF-77: el historial de reportes nombra el activo, no su id |
 """Router FastAPI de RF-77 — Reporte de Gastos Acumulados.
 
   POST /suministros/reportes-gastos                         — Generar (200, o 202 si es asíncrono)
@@ -23,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.nombre_activo import nombres_activos
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.supplies.domain.entities.reporte_gasto import FiltrosReporteGasto
@@ -173,7 +175,9 @@ def listar_historial(
 ) -> HistorialReportesResponse:
     use_case = build_listar_historial_reportes_use_case(db)
     reportes = use_case.execute(usuario_actual.id_usuario, limite)
-    items = [ReporteGastoResponse.desde_entidad(r) for r in reportes]
+    nombres = nombres_activos(db, (r.id_activo_biologico for r in reportes))
+    items = [ReporteGastoResponse.desde_entidad(r).model_copy(update={"nombre_activo": nombres.get(r.id_activo_biologico)})
+             for r in reportes]
     return HistorialReportesResponse(total=len(items), items=items)
 
 

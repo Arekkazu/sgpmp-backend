@@ -1,0 +1,511 @@
+================================================================================
+INFORME DE REEVALUACION OFICIAL - TC-M05-G38 (REINTENTO 1)
+RF-80 v2.0 (RFC-025) - INC-M05-276-G38 (Dev #961) | Staging: run-20261111-213418
+================================================================================
+Fecha: 2026-11-11 (America/Bogota)
+Parametro D08_MODO: retirar (D08 retirado de suite y TEST_METADATA por falta de credenciales Contador/Revisor Fiscal en .env.test)
+Resultado oficial: 12 checkpoints | 12 OK | 0 FALLA | Veredicto: Aprobado | pytest 14.77s | runner 18.71s
+Corrida previa archivada: evidencias/run-20261111-212529/LEEME_ARCHIVADA.md
+Politica: NO promovido a resultados/, NO git add/commit, NO creacion de INC.
+
+1) HASHES SHA-256, VERIFICACION ESTATICA Y DIFF FRENTE AL ESTADO DE PARTIDA
+--------------------------------------------------------------------------------
+  - test_tc_m05_g38.py (actualizado):
+      PARTIDA: EAC25DA0A6CD3B9F779ADC737A53429F24591DE00B7E31A21BF528E5C7781934
+      ACTUAL:  8136678FCB496F0ACF13BB9E8D558FDC4320DB3F04BA8F17091AFA54B64B1214 (1030 lineas, 44825 bytes)
+  - ejecutar_tc_m05_g38.ps1 (sin cambios):
+      PARTIDA: 46FDED59421630714CCC3319B55B6856D347AC6C1D717E31F7F9586FAF3BC23F
+      ACTUAL:  46FDED59421630714CCC3319B55B6856D347AC6C1D717E31F7F9586FAF3BC23F (243 lineas, 10334 bytes)
+  - generar_artefactos_run_g38.py (actualizado):
+      PARTIDA: F11323B6B7D8242126E05F287C32D6ABBC2D16BE67DDD2F8816FF9758FEF6951
+      ACTUAL:  6228973AAC06A3A75000F708C79988112148B0B815C488561D9059DC48145E29 (331 lineas, 15044 bytes)
+
+Verificaciones estaticas pre-ejecucion:
+  - python -m py_compile test_tc_m05_g38.py generar_artefactos_run_g38.py -> OK
+  - pytest -p no:randomly --collect-only -q -> 12 tests collected in 1.05s
+  - ejecutar_tc_m05_g38.ps1 -> Parser::ParseFile 0 errores, HasBOM=False, NonAscii=0
+
+Diff completo frente al estado de partida (no frente a HEAD):
+----------------------------------------
+--- partida/test_tc_m05_g38.py
++++ actual/test_tc_m05_g38.py
+@@ -2,6 +2,7 @@
+ # |------------|--------------------------|----------------------------------------------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G38: Consulta de bitacora y cadena de custodia RF-80 (CU06)                                       |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G38 reevaluacion v2.0: custodia y exportacion, rangos invertidos (INC-276), permisos, sandbox en T99 |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G38 correccion: T00/T99/D07 sin SQL (RLS), D08 segun ambiente |
+ """Suite de pruebas para TC-M05-G38 (RF-80 v2.0, RFC-025): Consulta y exportacion de bitacora M05.
+ 
+ Cubre los casos agrupados de TC-M05-G38 v2.0:
+@@ -15,10 +16,10 @@
+   (1) Rango invertido (INC-M05-276-G38 / Dev #961 -> 400 VAL_ENTRADA en consulta y exportacion, offsets UTC),
+       formato invalido ("2026-13-45" -> 4xx) y limites validos (extremos iguales, solo desde, solo hasta -> 200).
+   (2) Consulta valida sin coincidencias -> 200 con items=[], total=0 (observacion sobre mensaje/auditoria de consulta).
+-  (3) Usuario sin permiso (Productor y Veterinario) -> 403 ACCESO_DENEGADO sin fuga de datos (observacion M05/M01).
++  (3) Usuario sin permiso (Productor y Veterinario) -> 403 ACCESO_DENEGADO sin fuga de datos (observacion API M05/M01).
+   (4) Fallo forzado de la consulta a BD: NO ejecutable en TEST (no es inyectable por la API publica).
+-- Permisos de lectura RF-80 Actores 3 (Contador y Revisor Fiscal) -> 200 (si existen credenciales; PRECONDICION_NO_CUMPLIDA si faltan).
+-- T00 (linea base) y T99 (inocuidad post-rollback) en corridas sandbox independientes de solo lectura.
++- D08 (lectura de la bitacora por Contador y Revisor Fiscal, RF-80 Actores 3) no ejecutable: faltan cuentas de prueba en .env.test (ambiente). Pendiente para una ronda posterior.
++- T00 (linea base) y T99 (inocuidad post-rollback) en corridas sandbox independientes de solo lectura via API autenticada.
+ """
+ from __future__ import annotations
+ 
+@@ -340,13 +341,24 @@
+     return _PRINCIPAL
+ 
+ 
+-def _consultar_sql(corrida: CorridaSandbox, rol_key: str, sql: str, paso: str) -> list[dict[str, Any]]:
+-    r = corrida.post(rol_key, "/test-control/query", {"query": sql}, paso=paso)
+-    assert r.status_code == 200, (
+-        f"Error en /test-control/query ({paso}): HTTP {r.status_code} "
+-        f"[X-Request-Id={r.headers.get('X-Request-Id', '')}]: {corrida.seguro(r.text)}"
+-    )
+-    return r.json().get("data", [])
++def _leer_estado_auditoria_api(corrida: CorridaSandbox, paso: str) -> tuple[int, int]:
++    """Obtiene total y ultimo id_auditoria_suministro mediante GET /suministros/auditoria."""
++    r_aud = corrida.get(
++        "admin",
++        "/suministros/auditoria",
++        paso=paso,
++        params={"pagina": 1, "registros_por_pagina": 1, "ordenar_por": "fecha_evento"},
++    )
++    assert r_aud.status_code == 200, (
++        f"{paso} fallo en GET /suministros/auditoria: HTTP {r_aud.status_code} "
++        f"[X-Request-Id={r_aud.headers.get('X-Request-Id', '')}]"
++    )
++    body = r_aud.json()
++    total_api = body.get("total")
++    assert isinstance(total_api, int), f"{paso} esperaba total entero, obtenido {total_api!r}"
++    items = body.get("items") or []
++    ultimo_id_api = int(items[0]["id_auditoria_suministro"]) if items else 0
++    return total_api, ultimo_id_api
+ 
+ 
+ # =============================================================================
+@@ -354,36 +366,13 @@
+ # =============================================================================
+ 
+ def test_t00_linea_base():
+-    """T00 (Harness / Inocuidad): Total y ultimo id base de modulo5.auditorias_suministros en sandbox propio."""
++    """T00 (Harness / Inocuidad): /test-control/query no ve filas de modulo5 (FORCE RLS sin app.current_user_id); la linea base se toma por la API autenticada."""
+     c = CorridaSandbox("inobase")
+     try:
+         c.login_actor("admin", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
+-        r_aud = c.get(
+-            "admin",
+-            "/suministros/auditoria",
+-            paso="t00_get_auditoria_base",
+-            params={"pagina": 1, "registros_por_pagina": 1, "ordenar_por": "fecha_evento"},
+-        )
+-        assert r_aud.status_code == 200, (
+-            f"T00 fallo en GET /suministros/auditoria: HTTP {r_aud.status_code} "
+-            f"[X-Request-Id={r_aud.headers.get('X-Request-Id', '')}]"
+-        )
+-        total_api = r_aud.json().get("total")
+-        assert isinstance(total_api, int), f"T00 esperaba total entero, obtenido {total_api!r}"
+-
+-        rows = _consultar_sql(
+-            c,
+-            "admin",
+-            "SELECT COUNT(*)::int AS total, COALESCE(MAX(id_auditoria_suministro), 0)::int AS ultimo_id FROM modulo5.auditorias_suministros",
+-            paso="t00_sql_linea_base",
+-        )
+-        assert len(rows) == 1, f"T00 SQL linea base devolvio {rows!r}"
+-        total_sql = int(rows[0]["total"])
+-        ultimo_id_sql = int(rows[0]["ultimo_id"])
+-        assert total_api == total_sql, f"Diferencia total API ({total_api}) vs SQL ({total_sql}) en T00"
+-
+-        _CONTEXTO["total_base"] = total_sql
+-        _CONTEXTO["ultimo_id_base"] = ultimo_id_sql
++        total_api, ultimo_id_api = _leer_estado_auditoria_api(c, "t00_get_auditoria_base")
++        _CONTEXTO["total_base"] = total_api
++        _CONTEXTO["ultimo_id_base"] = ultimo_id_api
+     finally:
+         r_close = c.cerrar()
+         assert r_close is not None and r_close.status_code == 200, (
+@@ -925,7 +914,7 @@
+ 
+     Nota: Ni RF-80 v2.0 (que solo exige evento de seguridad al intentar modificar/eliminar en CA-2)
+     ni CU06 literal (ausente del repositorio) exigen evento de seguridad por 403 de lectura;
+-    por ello se observa e informa el delta antes/despues tanto en modulo5.auditorias_suministros como en modulo1.eventos.
++    como observacion sin asercion se registra el total antes/despues por API en M05 y M01.
+     """
+     c = _principal()
+ 
+@@ -933,10 +922,12 @@
+     c.login_actor("productor", "TEST_PRODUCER_EMAIL", "TEST_PRODUCER_PASSWORD")
+     c.login_actor("veterinario", "TEST_VET_EMAIL", "TEST_VET_PASSWORD")
+ 
+-    # Linea base despues de los logins y justo antes de las solicitudes denegadas (para aislar el efecto de los 403)
+-    m5_antes_tot = int(_consultar_sql(c, "admin", "SELECT COUNT(*)::int AS c FROM modulo5.auditorias_suministros", "d07_sql_m5_tot_antes")[0]["c"])
+-    m5_antes_rech = int(_consultar_sql(c, "admin", "SELECT COUNT(*)::int AS c FROM modulo5.auditorias_suministros WHERE resultado = 'RECHAZADO'", "d07_sql_m5_rech_antes")[0]["c"])
+-    m1_antes_tot = int(_consultar_sql(c, "admin", "SELECT COUNT(*)::int AS c FROM modulo1.eventos", "d07_sql_m1_tot_antes")[0]["c"])
++    # Observacion previa (API Admin, sin asercion) justo antes de las solicitudes denegadas
++    r_m5_antes = c.get("admin", "/suministros/auditoria", paso="d07_obs_m5_antes", params={"pagina": 1, "registros_por_pagina": 1})
++    m5_antes = r_m5_antes.json().get("total") if r_m5_antes.status_code == 200 else None
++
++    r_m1_antes = c.get("admin", "/auditoria/", paso="d07_obs_m1_antes", params={"pagina": 1, "tamano": 1})
++    m1_antes = r_m1_antes.json().get("total") if r_m1_antes.status_code in (200, 206) else None
+ 
+     # Intentos de Productor (recurso 57 sin permiso)
+     for sufijo_paso, ruta, params in (
+@@ -968,53 +959,25 @@
+         assert body.get("error_code") == "ACCESO_DENEGADO", f"error_code={body.get('error_code')!r}"
+         assert "items" not in body, "Fuga de datos en respuesta 403: clave 'items' presente"
+ 
+-    m5_desp_tot = int(_consultar_sql(c, "admin", "SELECT COUNT(*)::int AS c FROM modulo5.auditorias_suministros", "d07_sql_m5_tot_despues")[0]["c"])
+-    m5_desp_rech = int(_consultar_sql(c, "admin", "SELECT COUNT(*)::int AS c FROM modulo5.auditorias_suministros WHERE resultado = 'RECHAZADO'", "d07_sql_m5_rech_despues")[0]["c"])
+-    m1_desp_tot = int(_consultar_sql(c, "admin", "SELECT COUNT(*)::int AS c FROM modulo1.eventos", "d07_sql_m1_tot_despues")[0]["c"])
++    # Observacion posterior (API Admin, sin asercion)
++    r_m5_desp = c.get("admin", "/suministros/auditoria", paso="d07_obs_m5_despues", params={"pagina": 1, "registros_por_pagina": 1})
++    m5_desp = r_m5_desp.json().get("total") if r_m5_desp.status_code == 200 else None
++
++    r_m1_desp = c.get("admin", "/auditoria/", paso="d07_obs_m1_despues", params={"pagina": 1, "tamano": 1})
++    m1_desp = r_m1_desp.json().get("total") if r_m1_desp.status_code in (200, 206) else None
+ 
+     _CONTEXTO["d07_observacion"] = {
+-        "m5_total_antes": m5_antes_tot,
+-        "m5_total_despues": m5_desp_tot,
+-        "m5_delta_total": m5_desp_tot - m5_antes_tot,
+-        "m5_rechazados_antes": m5_antes_rech,
+-        "m5_rechazados_despues": m5_desp_rech,
+-        "m5_delta_rechazados": m5_desp_rech - m5_antes_rech,
+-        "m1_eventos_antes": m1_antes_tot,
+-        "m1_eventos_despues": m1_desp_tot,
+-        "m1_delta_eventos": m1_desp_tot - m1_antes_tot,
++        "m5_status_antes": r_m5_antes.status_code,
++        "m5_status_despues": r_m5_desp.status_code,
++        "m5_total_antes": m5_antes,
++        "m5_total_despues": m5_desp,
++        "m5_delta_total": (m5_desp - m5_antes) if isinstance(m5_antes, int) and isinstance(m5_desp, int) else None,
++        "m1_status_antes": r_m1_antes.status_code,
++        "m1_status_despues": r_m1_desp.status_code,
++        "m1_total_antes": m1_antes,
++        "m1_total_despues": m1_desp,
++        "m1_delta_total": (m1_desp - m1_antes) if isinstance(m1_antes, int) and isinstance(m1_desp, int) else None,
+     }
+-
+-
+-def test_d08_permisos_contador_y_revisor_fiscal():
+-    """D08 (RF-80 v2.0 Actores 3 / RBAC recurso 57): Contador y Revisor Fiscal consultan con HTTP 200."""
+-    c = _principal()
+-    faltantes = [
+-        k for k in (
+-            "TEST_ACCOUNTANT_EMAIL",
+-            "TEST_ACCOUNTANT_PASSWORD",
+-            "TEST_FISCAL_REVIEWER_EMAIL",
+-            "TEST_FISCAL_REVIEWER_PASSWORD",
+-        )
+-        if not _env(k, obligatoria=False)
+-    ]
+-    assert not faltantes, (
+-        "PRECONDICION_NO_CUMPLIDA: faltan credenciales en .env.test para roles RF-80 Actores 3: "
+-        + ", ".join(faltantes)
+-    )
+-
+-    c.login_actor("contador", "TEST_ACCOUNTANT_EMAIL", "TEST_ACCOUNTANT_PASSWORD")
+-    r_cont = c.get("contador", "/suministros/auditoria", paso="d08_contador_lista", params={"pagina": 1, "registros_por_pagina": 5})
+-    assert r_cont.status_code == 200, (
+-        f"RF-80 Actores 3 (Contador): esperado HTTP 200, obtenido {r_cont.status_code} "
+-        f"[X-Request-Id={r_cont.headers.get('X-Request-Id', '')}]"
+-    )
+-
+-    c.login_actor("revisor_fiscal", "TEST_FISCAL_REVIEWER_EMAIL", "TEST_FISCAL_REVIEWER_PASSWORD")
+-    r_rev = c.get("revisor_fiscal", "/suministros/auditoria", paso="d08_revisor_fiscal_lista", params={"pagina": 1, "registros_por_pagina": 5})
+-    assert r_rev.status_code == 200, (
+-        f"RF-80 Actores 3 (Revisor Fiscal): esperado HTTP 200, obtenido {r_rev.status_code} "
+-        f"[X-Request-Id={r_rev.headers.get('X-Request-Id', '')}]"
+-    )
+ 
+ 
+ def test_t98_cierre_corrida_principal():
+@@ -1031,7 +994,7 @@
+ 
+ 
+ def test_t99_inocuidad():
+-    """T99 (Harness / Inocuidad): Corrida sandbox aparte de solo lectura verifica reversion total tras T98."""
++    """T99 (Harness / Inocuidad): Corrida sandbox aparte de solo lectura verifica reversion total via API tras T98."""
+     total_base = _CONTEXTO.get("total_base")
+     ultimo_id_base = _CONTEXTO.get("ultimo_id_base")
+     id_activo = _CONTEXTO.get("id_activo")
+@@ -1041,29 +1004,13 @@
+     c = CorridaSandbox("inofin")
+     try:
+         c.login_actor("admin", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
+-        r_aud = c.get(
+-            "admin",
+-            "/suministros/auditoria",
+-            paso="t99_get_auditoria_final",
+-            params={"pagina": 1, "registros_por_pagina": 1, "ordenar_por": "fecha_evento"},
+-        )
+-        assert r_aud.status_code == 200
+-        total_api = r_aud.json().get("total")
+-
+-        rows = _consultar_sql(
+-            c,
+-            "admin",
+-            "SELECT COUNT(*)::int AS total, COALESCE(MAX(id_auditoria_suministro), 0)::int AS ultimo_id FROM modulo5.auditorias_suministros",
+-            paso="t99_sql_inocuidad",
+-        )
+-        total_sql = int(rows[0]["total"])
+-        ultimo_id_sql = int(rows[0]["ultimo_id"])
+-
+-        assert total_api == total_base and total_sql == total_base, (
+-            f"Inocuidad fallida en total: base={total_base}, api_fin={total_api}, sql_fin={total_sql}"
+-        )
+-        assert ultimo_id_sql == ultimo_id_base, (
+-            f"Inocuidad fallida en ultimo_id: base={ultimo_id_base}, fin={ultimo_id_sql}"
++        total_api, ultimo_id_api = _leer_estado_auditoria_api(c, "t99_get_auditoria_final")
++
++        assert total_api == total_base, (
++            f"Inocuidad fallida en total API: base={total_base}, api_fin={total_api}"
++        )
++        assert ultimo_id_api == ultimo_id_base, (
++            f"Inocuidad fallida en ultimo_id API: base={ultimo_id_base}, api_fin={ultimo_id_api}"
+         )
+ 
+         if id_activo is not None:
+--- partida/generar_artefactos_run_g38.py
++++ actual/generar_artefactos_run_g38.py
+@@ -2,6 +2,7 @@
+ # |------------|--------------------------|------------------------------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G38 (JSON, repro, MD, TXT)                     |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G38 reevaluacion v2.0: --reintento, obtenido real por trazas, sin diagnosticos fijos |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G38 correccion: T00/T99/D07 sin SQL (RLS), D08 segun ambiente |
+ """Generador de artefactos de corrida para TC-M05-G38 (RF-80 v2.0, RFC-025).
+ 
+ Lee el JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
+@@ -72,11 +73,6 @@
+         "paso": "D07 Control de acceso sin permiso (Productor y Veterinario)",
+         "esperado": "HTTP 403 ACCESO_DENEGADO sin clave items ni fuga de datos en lista, detalle y exportar",
+         "fuente": "TC-M05-097 (3) / RF-80 v2.0 RNF-05 / RBAC recurso 57",
+-    },
+-    "test_d08_permisos_contador_y_revisor_fiscal": {
+-        "paso": "D08 Control de acceso con permiso (Contador y Revisor Fiscal)",
+-        "esperado": "HTTP 200 para Contador y Revisor Fiscal (PRECONDICION_NO_CUMPLIDA si faltan credenciales)",
+-        "fuente": "RF-80 v2.0 Actores 3 / RBAC recurso 57",
+     },
+     "test_t98_cierre_corrida_principal": {
+         "paso": "T98 Cierre de la corrida sandbox principal",
+----------------------------------------
+
+2) BUSQUEDA PUNTO 5 (/test-control/query Y SQL EN LOS SCRIPTS)
+--------------------------------------------------------------------------------
+Patrones buscados: 'test-control/query', '_consultar_sql', 'SELECT ', 'modulo5.', 'modulo1.'
+  - test_tc_m05_g38.py (1 coincidencia unicamente en docstring de T00, 0 llamadas ejecutables):
+      L369: """T00 (Harness / Inocuidad): /test-control/query no ve filas de modulo5 (FORCE RLS sin app.current_user_id); la linea base se toma por la API autenticada."""
+  - ejecutar_tc_m05_g38.ps1: 0 coincidencias
+  - generar_artefactos_run_g38.py (1 coincidencia solo etiqueta descriptiva):
+      L28: "paso": "T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)",
+
+3) TABLA DE CHECKPOINTS (OBTENIDO REAL)
+--------------------------------------------------------------------------------
+[T00] Estado: OK
+  Fuente:   Harness / Inocuidad (API autenticada)
+  Esperado: HTTP 200 GET /suministros/auditoria (registros_por_pagina=1, ordenar_por=fecha_evento) + DELETE -> 200
+  Obtenido: POST /sesiones/ 200 [83dce5a9-cc4b-4433-af65-aa2acec5bd79]; GET /suministros/auditoria 200 total=69267 ultimo_id=75494 [e8d6cfd8-f4d2-4f90-99a3-e465a1f18b7a]; DELETE /test-control/runs/tc-m05-g38-inobase-b2fe4f9c 200 Rollback exitoso [13c348e5-cdaf-4b30-924f-8d420adab958]
+
+[C01] Estado: OK
+  Fuente:   TC-M05-096 / RF-80 v2.0 CA-4, CA-13, RNF-08
+  Esperado: Cadena de custodia completa de id_activo+id_ciclo sin ajenos, orden fecha_emision consistente, doble timestamp, costo_afectado y origen_precio, ordenar_por=fecha_evento 200
+  Obtenido: id_activo=1854 [d45395b7], fase=836 [d901dee8], costeos 55000/80000 MANUAL [60c1452c, 66b25f4a], historial [4531e317], GET /suministros/auditoria orden fecha_emision 200 total=7 ids=[75501..75495] [5eaafe32], orden fecha_evento 200 total=7 ids=[75501..75495] [da166d86]
+
+[C02] Estado: OK
+  Fuente:   TC-M05-096 / RF-80 v2.0 CA-4
+  Esperado: HTTP 200 en CSV, XLSX y PDF con los exactos 7 eventos del filtro de C01 (RF-80 no define formatos)
+  Obtenido: GET base C01 [3040913f]; CSV 200 [a27ba49b]; XLSX 200 6794 bytes [2b131cf8]; PDF 200 32083 bytes [0a6bc6d7]
+
+[D01] Estado: OK
+  Fuente:   TC-M05-097 (1) / INC-M05-276-G38
+  Esperado: GET /suministros/auditoria rango invertido -> HTTP 400 VAL_ENTRADA, field fecha_hasta
+  Obtenido: HTTP 400 VAL_ENTRADA, field='fecha_hasta' [afc7d8ba-e695-4824-8217-f28c4add7114]
+
+[D02] Estado: OK
+  Fuente:   INC-M05-276-G38 offsets UTC
+  Esperado: fecha_desde=10:00-05:00 (15:00Z) > fecha_hasta=14:00Z -> HTTP 400 VAL_ENTRADA
+  Obtenido: HTTP 400 VAL_ENTRADA [44be6e44-7e7e-480b-a994-7b911aee3dda]
+
+[D03] Estado: OK
+  Fuente:   TC-M05-097 (1) / INC-M05-276-G38 exportar
+  Esperado: GET /suministros/auditoria/exportar rango invertido -> HTTP 400 VAL_ENTRADA sin archivo
+  Obtenido: HTTP 400 VAL_ENTRADA [78cfdf4e-bfac-414d-adea-7d17e233c4a3]
+
+[D04] Estado: OK
+  Fuente:   TC-M05-097 (1)
+  Esperado: fecha_desde='2026-13-45' -> HTTP 400 o 422 con field fecha_desde; nunca 200 ni 500
+  Obtenido: HTTP 400 VAL_ENTRADA field='fecha_desde' [c60328ad-7096-4fd7-910a-6b28ea1db87a]
+
+[D05] Estado: OK
+  Fuente:   RF-80 v2.0 / INC-M05-276-G38 limites
+  Esperado: HTTP 200 en fecha_desde==fecha_hasta, solo desde y solo hasta
+  Obtenido: 3x HTTP 200: iguales total=0 [affe5cb7]; solo desde total=3331 [a3fa8aab]; solo hasta total=65967 [af367294]
+
+[D06] Estado: OK
+  Fuente:   TC-M05-097 (2) + C13
+  Esperado: HTTP 200 con items=[] y total=0 para activo de prueba sin eventos
+  Obtenido: id_activo_vacio=1855 [3e5c394b]; total_antes=69274 [64166654]; consulta vacia HTTP 200 total=0 items=[] claves=['total','pagina','registros_por_pagina','items'] [ceec6888]; total_despues=69274 [25f4e9ca]
+
+[D07] Estado: OK
+  Fuente:   TC-M05-097 (3) / RNF-05 / RBAC recurso 57
+  Esperado: Productor y Veterinario en lista, detalle y exportar -> 6x HTTP 403 ACCESO_DENEGADO sin items; observacion API M05 y M01 antes/despues
+  Obtenido: Logins Prod [9853b75f] y Vet [6cf4754e]; obs antes M05 total=69274 (HTTP 200 [64b62d31]) y M01 total=73802 (HTTP 206 [d94bdfad]); 6x 403 ACCESO_DENEGADO sin items [1ce43630, 75d844f3, 3f147853, 6d4d6169, 59ccb441, d435c801]; obs despues M05 total=69274 (HTTP 200 [9381e6b1]) y M01 total=73803 (HTTP 206 [8a1edbfe])
+
+[T98] Estado: OK
+  Fuente:   Harness / Sandbox Control
+  Esperado: DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso
+  Obtenido: DELETE /test-control/runs/tc-m05-g38-adm-d99f905f -> HTTP 200 {'status': 'Rollback exitoso'} [a0860a8d-a89f-4dde-8d0a-20d1b7d83f6b]
+
+[T99] Estado: OK
+  Fuente:   Harness / Inocuidad (API autenticada)
+  Esperado: total y ultimo_id iguales a T00; GET de activos 1854/1855 y acumulado 1854 -> HTTP 404; DELETE -> 200
+  Obtenido: POST /sesiones/ 200 [6968f33c]; GET /suministros/auditoria 200 total=69267 ids=[75494] [7726585e]; GET /activos-biologicos/1854 404 ACTIVO_NO_ENCONTRADO [991168e5]; GET /suministros/costeo-directo/acumulado/activo/1854 404 CICLO_NO_ACTIVO [54c00bce]; GET /activos-biologicos/1855 404 ACTIVO_NO_ENCONTRADO [c0009afc]; DELETE /test-control/runs/tc-m05-g38-inofin-f36bb14e 200 [8d2f7029]
+
+4) FALLOS Y COBERTURA PENDIENTE
+--------------------------------------------------------------------------------
+  - Fallos en la corrida ejecutada (12 tests): 0.
+  - Cobertura declarada fuera de corrida (D08_MODO=retirar): D08 (lectura de
+    la bitacora por Contador y Revisor Fiscal, RF-80 Actores 3) no ejecutable en
+    esta ronda por falta de cuentas de prueba en .env.test (ambiente). Pendiente
+    para una ronda posterior. TC-M05-097 (4) fallo forzado a BD no ejecutable por API.
+
+5) OBSERVACIONES D06 / D07
+--------------------------------------------------------------------------------
+5.1 Mensaje 'sin eventos' (D06):
+  - GET /suministros/auditoria para activo vacio id=1855 [X-Request-Id=ceec6888-f50d-47af-900c-51ddf11304b8]
+    respondio HTTP 200 con claves ['total', 'pagina', 'registros_por_pagina', 'items'],
+    total=0 e items=[]. No devuelve clave 'mensaje' ni texto 'sin eventos'.
+5.2 Auditoria de la consulta (D06):
+  - Total en bitacora M05 antes de D06: 69274 [X-Request-Id=64166654-f512-4cde-be85-f9f4e807ead0].
+  - Total en bitacora M05 despues de D06: 69274 [X-Request-Id=25f4e9ca-8318-4610-930b-b2d4ff6f31e7].
+  - Delta = 0 (no hay auto-auditoria de consultas en bitacora M05; acorde con TC-M05-097 C13).
+5.3 Evento de seguridad y totales observados ante 403 ACCESO_DENEGADO (D07):
+  - 6 rechazos 403 ACCESO_DENEGADO sin clave 'items': Productor [1ce43630, 75d844f3, 3f147853]
+    y Veterinario [6d4d6169, 59ccb441, d435c801].
+  - Observacion API M05 (GET /suministros/auditoria): total_antes=69274 [64b62d31, HTTP 200] ->
+    total_despues=69274 [9381e6b1, HTTP 200], delta = 0.
+  - Observacion API M01 (GET /auditoria/?pagina=1&tamano=1): total_antes=73802 [d94bdfad, HTTP 206] ->
+    total_despues=73803 [8a1edbfe, HTTP 206], delta = +1.
+    Nota explicativa verificada en codigo (ConsultarAuditoriaUseCase.execute): cada invocacion a
+    GET /auditoria/ auto-registra 1 evento TIPO_CONSULTA_AUDITORIA (16) en modulo1.eventos, por
+    lo que el +1 corresponde a la propia lectura previa d94bdfad y no a 6 eventos por los 403.
+
+6) INOCUIDAD (T00, T98, T99)
+--------------------------------------------------------------------------------
+  - Corrida T00 (tc-m05-g38-inobase-b2fe4f9c): linea base API total=69267, ultimo_id=75494;
+    cierre DELETE -> HTTP 200 Rollback exitoso [13c348e5-cdaf-4b30-924f-8d420adab958].
+  - Corrida principal (tc-m05-g38-adm-d99f905f): 1 login por cuenta (Admin + Prod + Vet);
+    cierre en T98 DELETE -> HTTP 200 Rollback exitoso [a0860a8d-a89f-4dde-8d0a-20d1b7d83f6b].
+  - Corrida T99 post-rollback (tc-m05-g38-inofin-f36bb14e):
+    * GET /suministros/auditoria -> HTTP 200 total=69267, ultimo_id=75494 (identicos a T00) [7726585e].
+    * GET /activos-biologicos/1854 -> HTTP 404 ACTIVO_NO_ENCONTRADO [991168e5].
+    * GET /suministros/costeo-directo/acumulado/activo/1854 -> HTTP 404 CICLO_NO_ACTIVO [54c00bce].
+    * GET /activos-biologicos/1855 -> HTTP 404 ACTIVO_NO_ENCONTRADO [c0009afc].
+    * Cierre DELETE -> HTTP 200 Rollback exitoso [8d2f7029-9984-44e3-b167-e2eadd05790b].
+
+7) ESTADO DE resultados/ Y ARCHIVOS DE STAGING
+--------------------------------------------------------------------------------
+resultados/ (intacto, sin promocion):
+  - .gitkeep: SHA-256=E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855 (0 bytes)
+  - resultado_TC-M05-G38.html: SHA-256=DC37B6658492BC962485CB5CD826EA3546FA7CEAB4D5924E6480D7EBF801F486 (48351 bytes)
+  - resultado_TC-M05-G38.json: SHA-256=3AA003B7F4346B78B0976BFFB6D655615E1BF47BA09F38783B5F7A3CCB89864D (4458 bytes)
+
+Escaneo de secretos del runner:
+  - 'Escaneo de secretos en staging: LIMPIO (0 hallazgos)' (el escaneo independiente sobre
+    TODOS los archivos incluido este INFORME_REINTENTO1_G38.txt se reporta en la respuesta final).
+
+Archivos en evidencias/run-20261111-213418/:
+  - console_execution.log | 2931 bytes | SHA-256=CD96DE3879069EA064D8E6327D2DB30E06DC7C936ED0B673E0BEC00B3B7E3CB1
+  - INFORME_FASE234_TC-M05-G38_reintento1.txt | 7945 bytes | SHA-256=D90B170D8989C7981EA36205287820DFBC729FE77BF6AD2A6BEF7377CC5A73F4
+  - resultado_TC-M05-G38_reintento1.html | 49425 bytes | SHA-256=51101ACFF288C11C02CF0B92DBFA261FE66F8AF5C440263A06E8FA48A29261C4
+  - resultado_TC-M05-G38_reintento1.json | 7897 bytes | SHA-256=0E10989F1A75D37D7BCA743E2DCDF9F34B7A99B16093C57EDDC7074DC4654544
+  - resultado_TC-M05-G38_reintento1.xml | 1903 bytes | SHA-256=0501CC0BDC8D130F60C6C775A55C21801C6D7CBEB5DBCD72FFD9E9789FFAD7D0
+  - TC-M05-G38_reintento1_resultado.md | 7412 bytes | SHA-256=D400085264F2936B29B4C1387FD8BC9E03F4CC3E9099181BF77EBE0AA2B9A29C
+  - trazas_http.jsonl | 69643 bytes | SHA-256=A25358B8B57BF820811D80002E5C99B5BECB80175AEC6C7314FC2B2267E9BD54
+  - INFORME_REINTENTO1_G38.txt (este informe)
+
+ANEXO - JSON COMPLETO resultado_TC-M05-G38_reintento1.json
+================================================================================
+{
+  "tc": "TC-M05-G38",
+  "summary": {
+    "total": 12,
+    "ok": 12,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)",
+      "esperado": "HTTP 200 GET /suministros/auditoria + conteo total y ultimo_id base; DELETE -> 200 Rollback exitoso",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=83dce5a9-cc4b-4433-af65-aa2acec5bd79]; GET /suministros/auditoria -> HTTP 200 (total=69267, ids=[75494]) [X-Request-Id=e8d6cfd8-f4d2-4f90-99a3-e465a1f18b7a]; DELETE /test-control/runs/tc-m05-g38-inobase-b2fe4f9c -> HTTP 200 [X-Request-Id=13c348e5-cdaf-4b30-924f-8d420adab958]",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Cadena de custodia por activo y ciclo con orden por fecha_emision y RNF-08",
+      "esperado": "Todos los eventos del activo y ciclo sin ajenos, orden fecha_emision consistente, doble timestamp presente, costo_afectado y origen_precio en registro, ordenar_por=fecha_evento 200",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=b70206cf-4f19-4c83-9526-4a670cbd4501]; POST /activos-biologicos -> HTTP 201 (id_activo=1854) [X-Request-Id=d45395b7-0a68-4864-b543-2b7dd4a22d83]; POST /activos-biologicos/1854/fases -> HTTP 201 (id_activo=1854) [X-Request-Id=d901dee8-956f-485d-b951-abe5e3a81954]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=60c1452c-bd93-4887-8170-9bf4de83e525]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=66b25f4a-c098-4908-afd9-e94d15c8a7a2]; GET /suministros/historial -> HTTP 200 [X-Request-Id=4531e317-4d62-4ab6-a548-841a3af8cd5d]; GET /suministros/auditoria -> HTTP 200 (total=7, ids=[75501, 75500, 75499, 75498, 75497, 75496, 75495]) [X-Request-Id=5eaafe32-46f0-4fec-89a5-5be2bca5debf]; GET /suministros/auditoria -> HTTP 200 (total=7, ids=[75501, 75500, 75499, 75498, 75497, 75496, 75495]) [X-Request-Id=da166d86-bd0d-4bc1-b71b-95777ed62a74]",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Exportacion filtrada en formatos soportados (CSV, XLSX, PDF)",
+      "esperado": "HTTP 200 en CSV, XLSX y PDF conteniendo exactamente los eventos del filtro de C01 (RF-80 no define formatos)",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 (total=7, ids=[75501, 75500, 75499, 75498, 75497, 75496, 75495]) [X-Request-Id=3040913f-24f5-4597-a8d4-a91c89453d87]; GET /suministros/auditoria/exportar -> HTTP 200 [X-Request-Id=a27ba49b-72c2-4c72-ad0c-03944de6c082]; GET /suministros/auditoria/exportar -> HTTP 200 (<archivo binario content_type=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet bytes=6794>) [X-Request-Id=2b131cf8-86c3-4e3c-ad63-0e3a0291f218]; GET /suministros/auditoria/exportar -> HTTP 200 (<archivo binario content_type=application/pdf bytes=32083>) [X-Request-Id=0a6bc6d7-3e29-4785-80a0-404c81f027b8]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D01 Rango invertido en GET /suministros/auditoria (fecha_desde > fecha_hasta)",
+      "esperado": "HTTP 400 VAL_ENTRADA, field fecha_hasta, mensaje que pida corregir, sin items",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 400 VAL_ENTRADA [X-Request-Id=afc7d8ba-e695-4824-8217-f28c4add7114]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D02 Rango invertido con offsets distintos (10:00-05:00 = 15:00Z > 14:00Z)",
+      "esperado": "HTTP 400 VAL_ENTRADA comparando instantes UTC",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 400 VAL_ENTRADA [X-Request-Id=44be6e44-7e7e-480b-a994-7b911aee3dda]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D03 Rango invertido en GET /suministros/auditoria/exportar",
+      "esperado": "HTTP 400 VAL_ENTRADA y ningun archivo exportado",
+      "obtenido": "HTTP: GET /suministros/auditoria/exportar -> HTTP 400 VAL_ENTRADA [X-Request-Id=78cfdf4e-bfac-414d-adea-7d17e233c4a3]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D04 Formato de fecha incorrecto (fecha_desde='2026-13-45')",
+      "esperado": "HTTP 400 o 422 con campo fecha_desde identificado; nunca 200 ni 500",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 400 VAL_ENTRADA [X-Request-Id=c60328ad-7096-4fd7-910a-6b28ea1db87a]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05 Limites temporales validos (iguales, solo desde, solo hasta)",
+      "esperado": "HTTP 200 en los tres escenarios",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 (total=0) [X-Request-Id=affe5cb7-36ae-4ecf-94a6-270617378456]; GET /suministros/auditoria -> HTTP 200 (total=3331, ids=[75501, 75500, 75499, 75498, 75497]) [X-Request-Id=a3fa8aab-9a70-4154-a522-bb4f8110fd86]; GET /suministros/auditoria -> HTTP 200 (total=65967, ids=[72129, 72003, 72002, 72001, 72000]) [X-Request-Id=af367294-18db-4da3-bd82-2e59a83c2f95]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D06 Consulta valida sin coincidencias (activo de prueba sin eventos)",
+      "esperado": "HTTP 200 con items=[] y total=0",
+      "obtenido": "HTTP: POST /activos-biologicos -> HTTP 201 (id_activo=1855) [X-Request-Id=3e5c394b-30fc-4c08-8140-d28dd2fbcbfc]; GET /suministros/auditoria -> HTTP 200 (total=69274, ids=[75501]) [X-Request-Id=64166654-f512-4cde-be85-f9f4e807ead0]; GET /suministros/auditoria -> HTTP 200 (total=0) [X-Request-Id=ceec6888-f50d-47af-900c-51ddf11304b8]; GET /suministros/auditoria -> HTTP 200 (total=69274, ids=[75501]) [X-Request-Id=25f4e9ca-8318-4610-930b-b2d4ff6f31e7]",
+      "estado": "OK"
+    },
+    {
+      "paso": "D07 Control de acceso sin permiso (Productor y Veterinario)",
+      "esperado": "HTTP 403 ACCESO_DENEGADO sin clave items ni fuga de datos en lista, detalle y exportar",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=9853b75f-082b-4890-bc11-118c20bffb0b]; POST /sesiones/ -> HTTP 200 [X-Request-Id=6cf4754e-e955-4a96-93bd-e13d5818221d]; GET /suministros/auditoria -> HTTP 200 (total=69274, ids=[75501]) [X-Request-Id=64b62d31-4878-409f-8ed9-f34daa8034bf]; GET /auditoria/ -> HTTP 206 (total=73802) [X-Request-Id=d94bdfad-21ec-4c38-a007-a473397572a6]; GET /suministros/auditoria -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=1ce43630-4a00-45a5-9ace-901d59fb2de5]; GET /suministros/auditoria/1 -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=75d844f3-b498-4a34-8a84-ad89fd396ee5]; GET /suministros/auditoria/exportar -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=3f147853-41d1-452c-a06b-6922f9a9089f]; GET /suministros/auditoria -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=6d4d6169-4ac9-4329-9f9f-1c425484d0cc]; (+4 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre de la corrida sandbox principal",
+      "esperado": "DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso",
+      "obtenido": "HTTP: DELETE /test-control/runs/tc-m05-g38-adm-d99f905f -> HTTP 200 [X-Request-Id=a0860a8d-a89f-4dde-8d0a-20d1b7d83f6b]",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura",
+      "esperado": "total y ultimo_id iguales a T00; GET de activos y acumulado creados -> HTTP 404; DELETE -> 200",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=6968f33c-b4a1-4c6d-8cae-48f748dd3adb]; GET /suministros/auditoria -> HTTP 200 (total=69267, ids=[75494]) [X-Request-Id=7726585e-70e9-48bf-b81f-7b20d6d6c0bd]; GET /activos-biologicos/1854 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=991168e5-9734-40ba-9745-1755fe5bb6ab]; GET /suministros/costeo-directo/acumulado/activo/1854 -> HTTP 404 CICLO_NO_ACTIVO [X-Request-Id=54c00bce-b1fa-483e-ad92-39717216a381]; GET /activos-biologicos/1855 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=c0009afc-15e0-47ed-b644-8d561e3f2559]; DELETE /test-control/runs/tc-m05-g38-inofin-f36bb14e -> HTTP 200 [X-Request-Id=8d2f7029-9984-44e3-b167-e2eadd05790b]",
+      "estado": "OK"
+    }
+  ]
+}

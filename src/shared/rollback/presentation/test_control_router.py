@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel
 
-from src.shared.database import get_db
+from src.shared.database import get_db, declarar_identidad_sistema, _CLAVE_IDENTIDAD
 from src.shared.rollback.infraestructure.testing_sandbox import cleanup_test_session
 
 
@@ -50,6 +50,14 @@ def execute_test_query(
     sandbox, en una sub-transacción de solo lectura con timeout de 2s.
     El aislamiento READ ONLY + statement_timeout protege la transacción
     principal del run_id, sin depender de filtrar palabras en el texto.
+
+    Identidad RLS: las tablas con RLS forzada (p. ej. modulo6) no devuelven
+    filas sin identidad. La consulta corre como el usuario de servicio
+    (rol Administrador), declarado DENTRO del savepoint. Al terminar:
+    1) ROLLBACK TO SAVEPOINT revierte los set_config y SET LOCAL;
+    2) se restaura la identidad previa solo en memoria (session.info), sin
+       ejecutar SQL, para no tocar una transacción abortada ni tapar el
+       error real de la consulta.
     """
     cleaned_query = payload.query.strip()
 
@@ -67,18 +75,29 @@ def execute_test_query(
 
     safe_query = f"SELECT * FROM ({cleaned_query}) AS query_sandbox LIMIT 100"
 
+    # Identidad que tenía la sesión antes de la consulta (se restaura al final).
+    identidad_anterior = db.info.get(_CLAVE_IDENTIDAD)
+
     try:
         db.execute(text("SAVEPOINT sandbox_query"))
         try:
+            declarar_identidad_sistema(db)
             db.execute(text("SET LOCAL transaction_read_only = on"))
             db.execute(text("SET LOCAL statement_timeout = '2s'"))
             result = db.execute(text(safe_query))
             rows = [dict(row) for row in result.mappings().all()]
         finally:
-            # Siempre se revierte al savepoint: descarta los SET LOCAL y limpia
-            # el estado abortado si la consulta falló. No afecta los datos de la corrida.
-            db.execute(text("ROLLBACK TO SAVEPOINT sandbox_query"))
-            db.execute(text("RELEASE SAVEPOINT sandbox_query"))
+            try:
+                # Primero el rollback al savepoint: descarta los SET LOCAL, la
+                # identidad de servicio y el estado abortado si la consulta falló.
+                db.execute(text("ROLLBACK TO SAVEPOINT sandbox_query"))
+                db.execute(text("RELEASE SAVEPOINT sandbox_query"))
+            finally:
+                # Después, restaurar la identidad previa solo en memoria (sin SQL).
+                if identidad_anterior is not None:
+                    db.info[_CLAVE_IDENTIDAD] = identidad_anterior
+                else:
+                    db.info.pop(_CLAVE_IDENTIDAD, None)
         return {"data": rows}
     except Exception as e:
         raise HTTPException(

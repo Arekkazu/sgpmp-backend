@@ -1,0 +1,1843 @@
+{
+  "caso": "TC-M06-G113",
+  "subcaso": "TC-M06-42",
+  "rf": [
+    "RF-90"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fase": "ejecucion_positiva_autorizada",
+  "generado_en": "2026-11-12T20:28:07.353011-05:00",
+  "precondiciones": {
+    "periodo": {
+      "id_periodo_contable": 220,
+      "numero_id_tributaria": {
+        "omitido": true
+      },
+      "tipo_cierre": "MENSUAL",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS",
+      "ultimo_cierre": null
+    },
+    "activo_1569": {
+      "ok": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "peso_kg": "100.00",
+      "biomasa": "100.00",
+      "esperada": "100"
+    },
+    "costos_antes_1569": {
+      "total": 1,
+      "ids": [
+        4448
+      ],
+      "grupos_reparto": [],
+      "montos": [
+        "150000.0000"
+      ]
+    },
+    "activo_1570": {
+      "ok": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "peso_kg": "200.00",
+      "biomasa": "200.00",
+      "esperada": "200"
+    },
+    "costos_antes_1570": {
+      "total": 0,
+      "ids": [],
+      "grupos_reparto": [],
+      "montos": []
+    },
+    "activo_1571": {
+      "ok": true,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "peso_kg": "300.00",
+      "biomasa": "300.00",
+      "esperada": "300"
+    },
+    "costos_antes_1571": {
+      "total": 0,
+      "ids": [],
+      "grupos_reparto": [],
+      "montos": []
+    }
+  },
+  "contrato": {
+    "ruta": "POST /finanzas/costos",
+    "campos_requeridos_observados": {
+      "subtipo_costo": "ALIMENTO (enum CostoDTO; escenario G113 histórico)",
+      "origen_costo": "MANO_OBRA_PROPIA (sin factura; genera ASIENTO_NIC41)",
+      "monto_costo": "900000",
+      "fecha_costo": "fecha dentro del período 220",
+      "activos_reparto": [
+        1569,
+        1570,
+        1571
+      ],
+      "metodo_reparto": "POR_BIOMASA"
+    },
+    "CostoDTO_enums": {
+      "subtipo_costo": [
+        "ALIMENTO",
+        "MEDICAMENTO",
+        "MANO_OBRA",
+        "VETERINARIO",
+        "INVERSION_DIRECTA",
+        "TRANSPORTE",
+        "COMISION",
+        "IMPUESTO_TRANSACCION",
+        "SACRIFICIO",
+        "OTRO"
+      ],
+      "origen_costo": [
+        "MANO_OBRA_PROPIA",
+        "COMPRA_PROVEEDOR",
+        "SERVICIO_TERCERO",
+        "CONSUMO_INVENTARIO"
+      ],
+      "metodo_reparto": [
+        "POR_CABEZAS",
+        "POR_BIOMASA"
+      ]
+    },
+    "nota": "No se envían biomasa ni porcentajes; se derivan del activo."
+  },
+  "solicitud_post": {
+    "subtipo_costo": "ALIMENTO",
+    "origen_costo": "MANO_OBRA_PROPIA",
+    "monto_costo": "900000.00",
+    "fecha_costo": "2026-11-12",
+    "activos_reparto": [
+      1569,
+      1570,
+      1571
+    ],
+    "metodo_reparto": "POR_BIOMASA"
+  },
+  "respuesta_post": {
+    "http": 201,
+    "en": "2026-11-12T20:28:54.383536-05:00",
+    "duracion_ms": 536,
+    "cuerpo": {
+      "registros": [
+        {
+          "id_registro_costo": 4453,
+          "id_activo_biologico": 1569,
+          "monto_costo": "150000.00",
+          "naturaleza_costo": "MANTENIMIENTO",
+          "vehiculo_contable": "ASIENTO_NIC41",
+          "estado": "REGISTRADO",
+          "id_linea_asiento": 5799
+        },
+        {
+          "id_registro_costo": 4454,
+          "id_activo_biologico": 1570,
+          "monto_costo": "300000.00",
+          "naturaleza_costo": "MANTENIMIENTO",
+          "vehiculo_contable": "ASIENTO_NIC41",
+          "estado": "REGISTRADO",
+          "id_linea_asiento": 5800
+        },
+        {
+          "id_registro_costo": 4455,
+          "id_activo_biologico": 1571,
+          "monto_costo": "450000.00",
+          "naturaleza_costo": "MANTENIMIENTO",
+          "vehiculo_contable": "ASIENTO_NIC41",
+          "estado": "REGISTRADO",
+          "id_linea_asiento": 5801
+        }
+      ],
+      "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+      "aviso": null
+    }
+  },
+  "verificacion": {
+    "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+    "comparacion_importes": [
+      {
+        "activo": 1569,
+        "biomasa": "100",
+        "esperado": "150000.00",
+        "real": "150000.00",
+        "ok": true,
+        "id_registro_costo": 4453,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA"
+      },
+      {
+        "activo": 1570,
+        "biomasa": "200",
+        "esperado": "300000.00",
+        "real": "300000.00",
+        "ok": true,
+        "id_registro_costo": 4454,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA"
+      },
+      {
+        "activo": 1571,
+        "biomasa": "300",
+        "esperado": "450000.00",
+        "real": "450000.00",
+        "ok": true,
+        "id_registro_costo": 4455,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA"
+      }
+    ],
+    "suma_real": "900000.00",
+    "suma_ok": true,
+    "registros_del_grupo_periodo": [
+      {
+        "id_registro_costo": 4455,
+        "naturaleza_costo": "MANTENIMIENTO",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 1571,
+        "activo": "QA-M06O-VR-03",
+        "monto_costo": "450000.0000",
+        "fecha_costo": "2026-11-12",
+        "id_periodo_contable": 220,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": null,
+        "id_origen_m05": null,
+        "tercero_nit": {
+          "omitido": true
+        },
+        "tercero_dv": null,
+        "tercero_razon_social": {
+          "omitido": true
+        },
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T01:28:54.109380Z",
+        "id_especie": 422,
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "especie": "Caprino Qa Aislado",
+        "finca": {
+          "omitido": true
+        }
+      },
+      {
+        "id_registro_costo": 4454,
+        "naturaleza_costo": "MANTENIMIENTO",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 1570,
+        "activo": "QA-M06O-VR-02",
+        "monto_costo": "300000.0000",
+        "fecha_costo": "2026-11-12",
+        "id_periodo_contable": 220,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": null,
+        "id_origen_m05": null,
+        "tercero_nit": {
+          "omitido": true
+        },
+        "tercero_dv": null,
+        "tercero_razon_social": {
+          "omitido": true
+        },
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T01:28:54.109380Z",
+        "id_especie": 422,
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "especie": "Caprino Qa Aislado",
+        "finca": {
+          "omitido": true
+        }
+      },
+      {
+        "id_registro_costo": 4453,
+        "naturaleza_costo": "MANTENIMIENTO",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 1569,
+        "activo": "QA-M06O-VR-01",
+        "monto_costo": "150000.0000",
+        "fecha_costo": "2026-11-12",
+        "id_periodo_contable": 220,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": null,
+        "id_origen_m05": null,
+        "tercero_nit": {
+          "omitido": true
+        },
+        "tercero_dv": null,
+        "tercero_razon_social": {
+          "omitido": true
+        },
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T01:28:54.109380Z",
+        "id_especie": 422,
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "especie": "Caprino Qa Aislado",
+        "finca": {
+          "omitido": true
+        }
+      }
+    ],
+    "lineas_alimento_objetivos": [
+      {
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "UNICO",
+        "valor": "150000.00",
+        "fecha_hecho": "2026-11-12",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1569,
+        "id_especie": 422,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "registros_costos",
+        "id_origen": 4453,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": "ALIMENTO",
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505",
+        "justificacion": null,
+        "id_usuario": 141,
+        "id_linea_asiento_nic41": 5799,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      },
+      {
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "UNICO",
+        "valor": "300000.00",
+        "fecha_hecho": "2026-11-12",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1570,
+        "id_especie": 422,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "registros_costos",
+        "id_origen": 4454,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": "ALIMENTO",
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505",
+        "justificacion": null,
+        "id_usuario": 141,
+        "id_linea_asiento_nic41": 5800,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      },
+      {
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "UNICO",
+        "valor": "450000.00",
+        "fecha_hecho": "2026-11-12",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1571,
+        "id_especie": 422,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "registros_costos",
+        "id_origen": 4455,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": "ALIMENTO",
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505",
+        "justificacion": null,
+        "id_usuario": 141,
+        "id_linea_asiento_nic41": 5801,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      }
+    ],
+    "auditoria_total_antes": 1,
+    "auditoria_total_despues": 4,
+    "eventos_auditoria_grupo": [
+      {
+        "id_evento": 19673,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": "Contador Financiero",
+        "id_sistema": null,
+        "id_activo_biologico": 1571,
+        "id_periodo_contable": 220,
+        "id_referencia": 4455,
+        "payload_evento": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "450000.0000",
+        "identificador_activo": "QA-M06O-VR-03"
+      },
+      {
+        "id_evento": 19672,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": "Contador Financiero",
+        "id_sistema": null,
+        "id_activo_biologico": 1570,
+        "id_periodo_contable": 220,
+        "id_referencia": 4454,
+        "payload_evento": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "300000.0000",
+        "identificador_activo": "QA-M06O-VR-02"
+      },
+      {
+        "id_evento": 19671,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": "Contador Financiero",
+        "id_sistema": null,
+        "id_activo_biologico": 1569,
+        "id_periodo_contable": 220,
+        "id_referencia": 4453,
+        "payload_evento": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "150000.0000",
+        "identificador_activo": "QA-M06O-VR-01"
+      }
+    ],
+    "periodo_final": {
+      "id_periodo_contable": 220,
+      "numero_id_tributaria": {
+        "omitido": true
+      },
+      "tipo_cierre": "MENSUAL",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS",
+      "ultimo_cierre": null
+    },
+    "costo_4448": {
+      "id_registro_costo": 4448,
+      "naturaleza_costo": "MANTENIMIENTO",
+      "subtipo_costo": "ALIMENTO",
+      "origen_costo": "COMPRA_PROVEEDOR",
+      "vehiculo_contable": "FACTURA_COMPRA",
+      "id_activo_biologico": 1569,
+      "activo": "QA-M06O-VR-01",
+      "monto_costo": "150000.0000",
+      "fecha_costo": "2026-11-12",
+      "id_periodo_contable": 220,
+      "estado": "REGISTRADO",
+      "politica_capitalizacion": "GASTO",
+      "justificacion": null,
+      "id_origen_m05": null,
+      "tercero_nit": {
+        "omitido": true
+      },
+      "tercero_dv": "1",
+      "tercero_razon_social": {
+        "omitido": true
+      },
+      "factura_prefijo": "QA",
+      "factura_numero": "G11011202601",
+      "fecha_factura": "2026-11-12",
+      "fecha_vencimiento_factura": "2026-12-12",
+      "id_grupo_reparto": null,
+      "metodo_reparto": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": null,
+      "es_cuenta_manual": false,
+      "es_reverso": false,
+      "id_usuario": 141,
+      "fecha_registro": "2026-11-12T23:49:37.168426Z",
+      "id_especie": 422,
+      "id_infraestructura": 1016,
+      "id_finca": 467,
+      "especie": "Caprino Qa Aislado",
+      "finca": {
+        "omitido": true
+      }
+    }
+  },
+  "validaciones": [
+    {
+      "validacion": "ambiente_test",
+      "resultado": "OK",
+      "detalle": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "validacion": "periodo_220_abierto_titular",
+      "resultado": "OK",
+      "detalle": {
+        "id_periodo_contable": 220,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tipo_cierre": "MENSUAL",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30",
+        "estado": "ABIERTO",
+        "fecha_cierre": null,
+        "razon_social": "QA M06 Operaciones SAS",
+        "ultimo_cierre": null
+      }
+    },
+    {
+      "validacion": "activo_1569_biomasa",
+      "resultado": "OK",
+      "detalle": {
+        "ok": true,
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "100.00",
+        "biomasa": "100.00",
+        "esperada": "100"
+      }
+    },
+    {
+      "validacion": "activo_1570_biomasa",
+      "resultado": "OK",
+      "detalle": {
+        "ok": true,
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "200.00",
+        "biomasa": "200.00",
+        "esperada": "200"
+      }
+    },
+    {
+      "validacion": "activo_1571_biomasa",
+      "resultado": "OK",
+      "detalle": {
+        "ok": true,
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "300.00",
+        "biomasa": "300.00",
+        "esperada": "300"
+      }
+    },
+    {
+      "validacion": "sin_distribucion_previa_g113",
+      "resultado": "OK",
+      "detalle": {
+        "grupos": []
+      }
+    },
+    {
+      "validacion": "antecedente_g110_4448",
+      "resultado": "OK",
+      "detalle": {
+        "ids_1569": [
+          4448
+        ]
+      }
+    },
+    {
+      "validacion": "post_201",
+      "resultado": "OK",
+      "detalle": {
+        "http": 201
+      }
+    },
+    {
+      "validacion": "respuesta_tres_registros_y_grupo",
+      "resultado": "OK",
+      "detalle": {
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "registros": [
+          {
+            "id_registro_costo": 4453,
+            "id_activo_biologico": 1569,
+            "monto_costo": "150000.00",
+            "naturaleza_costo": "MANTENIMIENTO",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 5799
+          },
+          {
+            "id_registro_costo": 4454,
+            "id_activo_biologico": 1570,
+            "monto_costo": "300000.00",
+            "naturaleza_costo": "MANTENIMIENTO",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 5800
+          },
+          {
+            "id_registro_costo": 4455,
+            "id_activo_biologico": 1571,
+            "monto_costo": "450000.00",
+            "naturaleza_costo": "MANTENIMIENTO",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 5801
+          }
+        ]
+      }
+    },
+    {
+      "validacion": "periodo_220_sigue_abierto",
+      "resultado": "OK",
+      "detalle": {
+        "id_periodo_contable": 220,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tipo_cierre": "MENSUAL",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30",
+        "estado": "ABIERTO",
+        "fecha_cierre": null,
+        "razon_social": "QA M06 Operaciones SAS",
+        "ultimo_cierre": null
+      }
+    },
+    {
+      "validacion": "importes_proporcionales",
+      "resultado": "OK",
+      "detalle": [
+        {
+          "activo": 1569,
+          "biomasa": "100",
+          "esperado": "150000.00",
+          "real": "150000.00",
+          "ok": true,
+          "id_registro_costo": 4453,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+          "metodo_reparto": "POR_BIOMASA",
+          "subtipo_costo": "ALIMENTO",
+          "origen_costo": "MANO_OBRA_PROPIA"
+        },
+        {
+          "activo": 1570,
+          "biomasa": "200",
+          "esperado": "300000.00",
+          "real": "300000.00",
+          "ok": true,
+          "id_registro_costo": 4454,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+          "metodo_reparto": "POR_BIOMASA",
+          "subtipo_costo": "ALIMENTO",
+          "origen_costo": "MANO_OBRA_PROPIA"
+        },
+        {
+          "activo": 1571,
+          "biomasa": "300",
+          "esperado": "450000.00",
+          "real": "450000.00",
+          "ok": true,
+          "id_registro_costo": 4455,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+          "metodo_reparto": "POR_BIOMASA",
+          "subtipo_costo": "ALIMENTO",
+          "origen_costo": "MANO_OBRA_PROPIA"
+        }
+      ]
+    },
+    {
+      "validacion": "suma_900000",
+      "resultado": "OK",
+      "detalle": {
+        "suma": "900000.00",
+        "esperado": "900000.00"
+      }
+    },
+    {
+      "validacion": "mismo_grupo_reparto",
+      "resultado": "OK",
+      "detalle": {
+        "grupo": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "registros_periodo_grupo": 3
+      }
+    },
+    {
+      "validacion": "costo_4448_intacto_no_en_g113",
+      "resultado": "OK",
+      "detalle": {
+        "veces": 1,
+        "registro": {
+          "id_registro_costo": 4448,
+          "naturaleza_costo": "MANTENIMIENTO",
+          "subtipo_costo": "ALIMENTO",
+          "origen_costo": "COMPRA_PROVEEDOR",
+          "vehiculo_contable": "FACTURA_COMPRA",
+          "id_activo_biologico": 1569,
+          "activo": "QA-M06O-VR-01",
+          "monto_costo": "150000.0000",
+          "fecha_costo": "2026-11-12",
+          "id_periodo_contable": 220,
+          "estado": "REGISTRADO",
+          "politica_capitalizacion": "GASTO",
+          "justificacion": null,
+          "id_origen_m05": null,
+          "tercero_nit": {
+            "omitido": true
+          },
+          "tercero_dv": "1",
+          "tercero_razon_social": {
+            "omitido": true
+          },
+          "factura_prefijo": "QA",
+          "factura_numero": "G11011202601",
+          "fecha_factura": "2026-11-12",
+          "fecha_vencimiento_factura": "2026-12-12",
+          "id_grupo_reparto": null,
+          "metodo_reparto": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": null,
+          "es_cuenta_manual": false,
+          "es_reverso": false,
+          "id_usuario": 141,
+          "fecha_registro": "2026-11-12T23:49:37.168426Z",
+          "id_especie": 422,
+          "id_infraestructura": 1016,
+          "id_finca": 467,
+          "especie": "Caprino Qa Aislado",
+          "finca": {
+            "omitido": true
+          }
+        }
+      }
+    },
+    {
+      "validacion": "solo_activos_objetivo_en_grupo",
+      "resultado": "OK",
+      "detalle": {
+        "activos_en_grupo": [
+          1569,
+          1570,
+          1571
+        ]
+      }
+    },
+    {
+      "validacion": "solo_tres_costos_nuevos_en_periodo",
+      "resultado": "OK",
+      "detalle": {
+        "nuevos": [
+          4455,
+          4454,
+          4453
+        ],
+        "del_grupo": [
+          4453,
+          4454,
+          4455
+        ],
+        "inesperados": []
+      }
+    }
+  ],
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 982,
+      "escritura": false,
+      "en": "2026-11-12T20:28:08.335011-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "ok": true
+      },
+      "escenario": "sesion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/openapi.json",
+      "codigo": 200,
+      "duracion_ms": 39771,
+      "escritura": false,
+      "en": "2026-11-12T20:28:48.104620-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "tiene_CostoDTO": true,
+        "enums": {
+          "subtipo_costo": [
+            "ALIMENTO",
+            "MEDICAMENTO",
+            "MANO_OBRA",
+            "VETERINARIO",
+            "INVERSION_DIRECTA",
+            "TRANSPORTE",
+            "COMISION",
+            "IMPUESTO_TRANSACCION",
+            "SACRIFICIO",
+            "OTRO"
+          ],
+          "origen_costo": [
+            "MANO_OBRA_PROPIA",
+            "COMPRA_PROVEEDOR",
+            "SERVICIO_TERCERO",
+            "CONSUMO_INVENTARIO"
+          ],
+          "metodo_reparto": [
+            "POR_CABEZAS",
+            "POR_BIOMASA"
+          ]
+        }
+      },
+      "escenario": "contrato"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "duracion_ms": 779,
+      "escritura": false,
+      "en": "2026-11-12T20:28:48.884041-05:00",
+      "cuerpo": null,
+      "respuesta": [
+        {
+          "id_periodo_contable": 220,
+          "numero_id_tributaria": {
+            "omitido": true
+          },
+          "tipo_cierre": "MENSUAL",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "estado": "ABIERTO",
+          "fecha_cierre": null,
+          "razon_social": "QA M06 Operaciones SAS",
+          "ultimo_cierre": null
+        }
+      ],
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/1569",
+      "codigo": 200,
+      "duracion_ms": 615,
+      "escritura": false,
+      "en": "2026-11-12T20:28:49.499070-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "100.00",
+        "tipo": "INDIVIDUAL"
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1569",
+      "codigo": 200,
+      "duracion_ms": 1778,
+      "escritura": false,
+      "en": "2026-11-12T20:28:51.276651-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 1,
+        "ids": [
+          4448
+        ],
+        "grupos": []
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/1570",
+      "codigo": 200,
+      "duracion_ms": 387,
+      "escritura": false,
+      "en": "2026-11-12T20:28:51.663719-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "200.00",
+        "tipo": "INDIVIDUAL"
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1570",
+      "codigo": 200,
+      "duracion_ms": 374,
+      "escritura": false,
+      "en": "2026-11-12T20:28:52.038110-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 0,
+        "ids": [],
+        "grupos": []
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/1571",
+      "codigo": 200,
+      "duracion_ms": 513,
+      "escritura": false,
+      "en": "2026-11-12T20:28:52.550728-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "300.00",
+        "tipo": "INDIVIDUAL"
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1571",
+      "codigo": 200,
+      "duracion_ms": 376,
+      "escritura": false,
+      "en": "2026-11-12T20:28:52.926711-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 0,
+        "ids": [],
+        "grupos": []
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_periodo_contable=220",
+      "codigo": 200,
+      "duracion_ms": 541,
+      "escritura": false,
+      "en": "2026-11-12T20:28:53.467624-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 1,
+        "ids": [
+          4448
+        ]
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_periodo_contable=220&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "duracion_ms": 379,
+      "escritura": false,
+      "en": "2026-11-12T20:28:53.847206-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 1
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/costos",
+      "codigo": 201,
+      "duracion_ms": 536,
+      "escritura": true,
+      "en": "2026-11-12T20:28:54.383490-05:00",
+      "cuerpo": {
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": "900000.00",
+        "fecha_costo": "2026-11-12",
+        "activos_reparto": [
+          1569,
+          1570,
+          1571
+        ],
+        "metodo_reparto": "POR_BIOMASA"
+      },
+      "respuesta": {
+        "registros": [
+          {
+            "id_registro_costo": 4453,
+            "id_activo_biologico": 1569,
+            "monto_costo": "150000.00",
+            "naturaleza_costo": "MANTENIMIENTO",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 5799
+          },
+          {
+            "id_registro_costo": 4454,
+            "id_activo_biologico": 1570,
+            "monto_costo": "300000.00",
+            "naturaleza_costo": "MANTENIMIENTO",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 5800
+          },
+          {
+            "id_registro_costo": 4455,
+            "id_activo_biologico": 1571,
+            "monto_costo": "450000.00",
+            "naturaleza_costo": "MANTENIMIENTO",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 5801
+          }
+        ],
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "aviso": null
+      },
+      "escenario": "tc_m06_42_positivo"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_periodo_contable=220",
+      "codigo": 200,
+      "duracion_ms": 1338,
+      "escritura": false,
+      "en": "2026-11-12T20:28:55.721262-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 4,
+        "del_grupo": 3,
+        "detalle_grupo": [
+          {
+            "id_registro_costo": 4455,
+            "naturaleza_costo": "MANTENIMIENTO",
+            "subtipo_costo": "ALIMENTO",
+            "origen_costo": "MANO_OBRA_PROPIA",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "id_activo_biologico": 1571,
+            "activo": "QA-M06O-VR-03",
+            "monto_costo": "450000.0000",
+            "fecha_costo": "2026-11-12",
+            "id_periodo_contable": 220,
+            "estado": "REGISTRADO",
+            "politica_capitalizacion": "GASTO",
+            "justificacion": null,
+            "id_origen_m05": null,
+            "tercero_nit": {
+              "omitido": true
+            },
+            "tercero_dv": null,
+            "tercero_razon_social": {
+              "omitido": true
+            },
+            "factura_prefijo": null,
+            "factura_numero": null,
+            "fecha_factura": null,
+            "fecha_vencimiento_factura": null,
+            "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+            "metodo_reparto": "POR_BIOMASA",
+            "cuenta_debito": null,
+            "cuenta_credito": null,
+            "es_cuenta_manual": false,
+            "es_reverso": false,
+            "id_usuario": 141,
+            "fecha_registro": "2026-11-13T01:28:54.109380Z",
+            "id_especie": 422,
+            "id_infraestructura": 1016,
+            "id_finca": 467,
+            "especie": "Caprino Qa Aislado",
+            "finca": {
+              "omitido": true
+            }
+          },
+          {
+            "id_registro_costo": 4454,
+            "naturaleza_costo": "MANTENIMIENTO",
+            "subtipo_costo": "ALIMENTO",
+            "origen_costo": "MANO_OBRA_PROPIA",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "id_activo_biologico": 1570,
+            "activo": "QA-M06O-VR-02",
+            "monto_costo": "300000.0000",
+            "fecha_costo": "2026-11-12",
+            "id_periodo_contable": 220,
+            "estado": "REGISTRADO",
+            "politica_capitalizacion": "GASTO",
+            "justificacion": null,
+            "id_origen_m05": null,
+            "tercero_nit": {
+              "omitido": true
+            },
+            "tercero_dv": null,
+            "tercero_razon_social": {
+              "omitido": true
+            },
+            "factura_prefijo": null,
+            "factura_numero": null,
+            "fecha_factura": null,
+            "fecha_vencimiento_factura": null,
+            "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+            "metodo_reparto": "POR_BIOMASA",
+            "cuenta_debito": null,
+            "cuenta_credito": null,
+            "es_cuenta_manual": false,
+            "es_reverso": false,
+            "id_usuario": 141,
+            "fecha_registro": "2026-11-13T01:28:54.109380Z",
+            "id_especie": 422,
+            "id_infraestructura": 1016,
+            "id_finca": 467,
+            "especie": "Caprino Qa Aislado",
+            "finca": {
+              "omitido": true
+            }
+          },
+          {
+            "id_registro_costo": 4453,
+            "naturaleza_costo": "MANTENIMIENTO",
+            "subtipo_costo": "ALIMENTO",
+            "origen_costo": "MANO_OBRA_PROPIA",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "id_activo_biologico": 1569,
+            "activo": "QA-M06O-VR-01",
+            "monto_costo": "150000.0000",
+            "fecha_costo": "2026-11-12",
+            "id_periodo_contable": 220,
+            "estado": "REGISTRADO",
+            "politica_capitalizacion": "GASTO",
+            "justificacion": null,
+            "id_origen_m05": null,
+            "tercero_nit": {
+              "omitido": true
+            },
+            "tercero_dv": null,
+            "tercero_razon_social": {
+              "omitido": true
+            },
+            "factura_prefijo": null,
+            "factura_numero": null,
+            "fecha_factura": null,
+            "fecha_vencimiento_factura": null,
+            "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+            "metodo_reparto": "POR_BIOMASA",
+            "cuenta_debito": null,
+            "cuenta_credito": null,
+            "es_cuenta_manual": false,
+            "es_reverso": false,
+            "id_usuario": 141,
+            "fecha_registro": "2026-11-13T01:28:54.109380Z",
+            "id_especie": 422,
+            "id_infraestructura": 1016,
+            "id_finca": 467,
+            "especie": "Caprino Qa Aislado",
+            "finca": {
+              "omitido": true
+            }
+          }
+        ]
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1569",
+      "codigo": 200,
+      "duracion_ms": 407,
+      "escritura": false,
+      "en": "2026-11-12T20:28:56.128140-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2,
+        "del_grupo": [
+          {
+            "id_registro_costo": 4453,
+            "naturaleza_costo": "MANTENIMIENTO",
+            "subtipo_costo": "ALIMENTO",
+            "origen_costo": "MANO_OBRA_PROPIA",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "id_activo_biologico": 1569,
+            "activo": "QA-M06O-VR-01",
+            "monto_costo": "150000.0000",
+            "fecha_costo": "2026-11-12",
+            "id_periodo_contable": 220,
+            "estado": "REGISTRADO",
+            "politica_capitalizacion": "GASTO",
+            "justificacion": null,
+            "id_origen_m05": null,
+            "tercero_nit": {
+              "omitido": true
+            },
+            "tercero_dv": null,
+            "tercero_razon_social": {
+              "omitido": true
+            },
+            "factura_prefijo": null,
+            "factura_numero": null,
+            "fecha_factura": null,
+            "fecha_vencimiento_factura": null,
+            "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+            "metodo_reparto": "POR_BIOMASA",
+            "cuenta_debito": null,
+            "cuenta_credito": null,
+            "es_cuenta_manual": false,
+            "es_reverso": false,
+            "id_usuario": 141,
+            "fecha_registro": "2026-11-13T01:28:54.109380Z",
+            "id_especie": 422,
+            "id_infraestructura": 1016,
+            "id_finca": 467,
+            "especie": "Caprino Qa Aislado",
+            "finca": {
+              "omitido": true
+            }
+          }
+        ],
+        "ids": [
+          4453,
+          4448
+        ]
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1570",
+      "codigo": 200,
+      "duracion_ms": 559,
+      "escritura": false,
+      "en": "2026-11-12T20:28:56.687039-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 1,
+        "del_grupo": [
+          {
+            "id_registro_costo": 4454,
+            "naturaleza_costo": "MANTENIMIENTO",
+            "subtipo_costo": "ALIMENTO",
+            "origen_costo": "MANO_OBRA_PROPIA",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "id_activo_biologico": 1570,
+            "activo": "QA-M06O-VR-02",
+            "monto_costo": "300000.0000",
+            "fecha_costo": "2026-11-12",
+            "id_periodo_contable": 220,
+            "estado": "REGISTRADO",
+            "politica_capitalizacion": "GASTO",
+            "justificacion": null,
+            "id_origen_m05": null,
+            "tercero_nit": {
+              "omitido": true
+            },
+            "tercero_dv": null,
+            "tercero_razon_social": {
+              "omitido": true
+            },
+            "factura_prefijo": null,
+            "factura_numero": null,
+            "fecha_factura": null,
+            "fecha_vencimiento_factura": null,
+            "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+            "metodo_reparto": "POR_BIOMASA",
+            "cuenta_debito": null,
+            "cuenta_credito": null,
+            "es_cuenta_manual": false,
+            "es_reverso": false,
+            "id_usuario": 141,
+            "fecha_registro": "2026-11-13T01:28:54.109380Z",
+            "id_especie": 422,
+            "id_infraestructura": 1016,
+            "id_finca": 467,
+            "especie": "Caprino Qa Aislado",
+            "finca": {
+              "omitido": true
+            }
+          }
+        ],
+        "ids": [
+          4454
+        ]
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1571",
+      "codigo": 200,
+      "duracion_ms": 568,
+      "escritura": false,
+      "en": "2026-11-12T20:28:57.255247-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 1,
+        "del_grupo": [
+          {
+            "id_registro_costo": 4455,
+            "naturaleza_costo": "MANTENIMIENTO",
+            "subtipo_costo": "ALIMENTO",
+            "origen_costo": "MANO_OBRA_PROPIA",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "id_activo_biologico": 1571,
+            "activo": "QA-M06O-VR-03",
+            "monto_costo": "450000.0000",
+            "fecha_costo": "2026-11-12",
+            "id_periodo_contable": 220,
+            "estado": "REGISTRADO",
+            "politica_capitalizacion": "GASTO",
+            "justificacion": null,
+            "id_origen_m05": null,
+            "tercero_nit": {
+              "omitido": true
+            },
+            "tercero_dv": null,
+            "tercero_razon_social": {
+              "omitido": true
+            },
+            "factura_prefijo": null,
+            "factura_numero": null,
+            "fecha_factura": null,
+            "fecha_vencimiento_factura": null,
+            "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+            "metodo_reparto": "POR_BIOMASA",
+            "cuenta_debito": null,
+            "cuenta_credito": null,
+            "es_cuenta_manual": false,
+            "es_reverso": false,
+            "id_usuario": 141,
+            "fecha_registro": "2026-11-13T01:28:54.109380Z",
+            "id_especie": 422,
+            "id_infraestructura": 1016,
+            "id_finca": 467,
+            "especie": "Caprino Qa Aislado",
+            "finca": {
+              "omitido": true
+            }
+          }
+        ],
+        "ids": [
+          4455
+        ]
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/lineas?id_periodo_contable=220",
+      "codigo": 200,
+      "duracion_ms": 408,
+      "escritura": false,
+      "en": "2026-11-12T20:28:57.663363-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 7,
+        "alimento_objetivos": [
+          {
+            "tipo_hecho": "MANO_OBRA_PROPIA",
+            "sentido": "UNICO",
+            "valor": "150000.00",
+            "fecha_hecho": "2026-11-12",
+            "id_periodo_contable": 220,
+            "id_activo_biologico": 1569,
+            "id_especie": 422,
+            "id_finca": 467,
+            "numero_id_tributaria": {
+              "omitido": true
+            },
+            "tabla_origen": "registros_costos",
+            "id_origen": 4453,
+            "tipo_evidencia": "REGISTRO_MANUAL",
+            "subtipo_costo": "ALIMENTO",
+            "es_estimacion": false,
+            "es_reverso": false,
+            "tipo_hecho_corregido": null,
+            "id_linea_corregida": null,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "250505",
+            "justificacion": null,
+            "id_usuario": 141,
+            "id_linea_asiento_nic41": 5799,
+            "estado": "REGISTRADA",
+            "extra": {
+              "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+              "id_comprobante_nic41": null
+            },
+            "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+            "id_comprobante_nic41": null
+          },
+          {
+            "tipo_hecho": "MANO_OBRA_PROPIA",
+            "sentido": "UNICO",
+            "valor": "300000.00",
+            "fecha_hecho": "2026-11-12",
+            "id_periodo_contable": 220,
+            "id_activo_biologico": 1570,
+            "id_especie": 422,
+            "id_finca": 467,
+            "numero_id_tributaria": {
+              "omitido": true
+            },
+            "tabla_origen": "registros_costos",
+            "id_origen": 4454,
+            "tipo_evidencia": "REGISTRO_MANUAL",
+            "subtipo_costo": "ALIMENTO",
+            "es_estimacion": false,
+            "es_reverso": false,
+            "tipo_hecho_corregido": null,
+            "id_linea_corregida": null,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "250505",
+            "justificacion": null,
+            "id_usuario": 141,
+            "id_linea_asiento_nic41": 5800,
+            "estado": "REGISTRADA",
+            "extra": {
+              "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+              "id_comprobante_nic41": null
+            },
+            "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+            "id_comprobante_nic41": null
+          },
+          {
+            "tipo_hecho": "MANO_OBRA_PROPIA",
+            "sentido": "UNICO",
+            "valor": "450000.00",
+            "fecha_hecho": "2026-11-12",
+            "id_periodo_contable": 220,
+            "id_activo_biologico": 1571,
+            "id_especie": 422,
+            "id_finca": 467,
+            "numero_id_tributaria": {
+              "omitido": true
+            },
+            "tabla_origen": "registros_costos",
+            "id_origen": 4455,
+            "tipo_evidencia": "REGISTRO_MANUAL",
+            "subtipo_costo": "ALIMENTO",
+            "es_estimacion": false,
+            "es_reverso": false,
+            "tipo_hecho_corregido": null,
+            "id_linea_corregida": null,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "250505",
+            "justificacion": null,
+            "id_usuario": 141,
+            "id_linea_asiento_nic41": 5801,
+            "estado": "REGISTRADA",
+            "extra": {
+              "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+              "id_comprobante_nic41": null
+            },
+            "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+            "id_comprobante_nic41": null
+          }
+        ]
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos/220/comprobantes",
+      "codigo": 200,
+      "duracion_ms": 933,
+      "escritura": false,
+      "en": "2026-11-12T20:28:58.596031-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 0,
+        "muestra": []
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_periodo_contable=220&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "duracion_ms": 1287,
+      "escritura": false,
+      "en": "2026-11-12T20:28:59.882967-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 4,
+        "eventos_grupo": [
+          {
+            "id_evento": 19673,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": "Contador Financiero",
+            "id_sistema": null,
+            "id_activo_biologico": 1571,
+            "id_periodo_contable": 220,
+            "id_referencia": 4455,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "450000.0000",
+            "identificador_activo": "QA-M06O-VR-03"
+          },
+          {
+            "id_evento": 19672,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": "Contador Financiero",
+            "id_sistema": null,
+            "id_activo_biologico": 1570,
+            "id_periodo_contable": 220,
+            "id_referencia": 4454,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "300000.0000",
+            "identificador_activo": "QA-M06O-VR-02"
+          },
+          {
+            "id_evento": 19671,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": "Contador Financiero",
+            "id_sistema": null,
+            "id_activo_biologico": 1569,
+            "id_periodo_contable": 220,
+            "id_referencia": 4453,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "150000.0000",
+            "identificador_activo": "QA-M06O-VR-01"
+          }
+        ]
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "duracion_ms": 381,
+      "escritura": false,
+      "en": "2026-11-12T20:29:00.264092-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "estado": "ABIERTO"
+      },
+      "escenario": "verificacion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_activo_biologico=1569",
+      "codigo": 200,
+      "duracion_ms": 409,
+      "escritura": false,
+      "en": "2026-11-12T20:29:00.673395-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "ids": [
+          4453,
+          4448
+        ],
+        "4448": {
+          "id_registro_costo": 4448,
+          "naturaleza_costo": "MANTENIMIENTO",
+          "subtipo_costo": "ALIMENTO",
+          "origen_costo": "COMPRA_PROVEEDOR",
+          "vehiculo_contable": "FACTURA_COMPRA",
+          "id_activo_biologico": 1569,
+          "activo": "QA-M06O-VR-01",
+          "monto_costo": "150000.0000",
+          "fecha_costo": "2026-11-12",
+          "id_periodo_contable": 220,
+          "estado": "REGISTRADO",
+          "politica_capitalizacion": "GASTO",
+          "justificacion": null,
+          "id_origen_m05": null,
+          "tercero_nit": {
+            "omitido": true
+          },
+          "tercero_dv": "1",
+          "tercero_razon_social": {
+            "omitido": true
+          },
+          "factura_prefijo": "QA",
+          "factura_numero": "G11011202601",
+          "fecha_factura": "2026-11-12",
+          "fecha_vencimiento_factura": "2026-12-12",
+          "id_grupo_reparto": null,
+          "metodo_reparto": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": null,
+          "es_cuenta_manual": false,
+          "es_reverso": false,
+          "id_usuario": 141,
+          "fecha_registro": "2026-11-12T23:49:37.168426Z",
+          "id_especie": 422,
+          "id_infraestructura": 1016,
+          "id_finca": 467,
+          "especie": "Caprino Qa Aislado",
+          "finca": {
+            "omitido": true
+          }
+        }
+      },
+      "escenario": "verificacion_4448"
+    }
+  ],
+  "estado_final": "APROBADO",
+  "motivo": "Se verificó la distribución proporcional del costo compartido de 900000 por biomasa (150000/300000/450000) con conservación exacta del importe, mismo id_grupo_reparto, período 220 ABIERTO y costo histórico 4448 de G110 intacto.",
+  "ids_generados": {
+    "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+    "registros": [
+      {
+        "id_registro_costo": 4453,
+        "id_activo_biologico": 1569,
+        "monto_costo": "150000.00",
+        "naturaleza_costo": "MANTENIMIENTO",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "estado": "REGISTRADO",
+        "id_linea_asiento": 5799
+      },
+      {
+        "id_registro_costo": 4454,
+        "id_activo_biologico": 1570,
+        "monto_costo": "300000.00",
+        "naturaleza_costo": "MANTENIMIENTO",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "estado": "REGISTRADO",
+        "id_linea_asiento": 5800
+      },
+      {
+        "id_registro_costo": 4455,
+        "id_activo_biologico": 1571,
+        "monto_costo": "450000.00",
+        "naturaleza_costo": "MANTENIMIENTO",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "estado": "REGISTRADO",
+        "id_linea_asiento": 5801
+      }
+    ]
+  },
+  "analisis": "# TC-M06-G113 — APROBADO\n\n**Caso:** TC-M06-G113  \n**Subcaso:** TC-M06-42 — APROBADO  \n**RF:** RF-90  \n**Ambiente:** TEST (`https://api.inmero.co/api-sgpmp-test`)  \n**Ejecución:** COMPLETADA  \n**Resultado:** SATISFACTORIO  \n\n## Alcance\n\nValidación de la distribución proporcional de costos compartidos y conservación de la integridad de los importes.\n\n## Resultado de TC-M06-42\n\n- HTTP 201 en `POST /finanzas/costos`.\n- Monto: 900000.00 — método `POR_BIOMASA`.\n- Grupo: `97e56560-f488-41e9-a5eb-b9a93455f275`.\n- Distribución: 1569 → 150000 (4453 / línea 5799); 1570 → 300000 (4454 / 5800); 1571 → 450000 (4455 / 5801).\n- Suma distribuida = 900000.00.\n- Período 220 permaneció ABIERTO.\n- Costo histórico 4448 de G110 intacto y fuera del grupo.\n\n## Conclusión\n\nG113 queda **APROBADO**. Su único subcaso TC-M06-42 se ejecutó satisfactoriamente en TEST.\n",
+  "dictamen_general": "APROBADO",
+  "caso_completo_aprobado": true,
+  "ejecucion": "COMPLETADA",
+  "resultado": "SATISFACTORIO",
+  "aprobados": 1,
+  "fallidos": 0,
+  "bloqueados": 0,
+  "porcentaje_aprobacion": 100,
+  "alcance": "Validación de la distribución proporcional de costos compartidos y conservación de la integridad de los importes (RF-90 / TC-M06-42).",
+  "subcasos": [
+    {
+      "id": "TC-M06-42",
+      "estado": "APROBADO",
+      "http": 201,
+      "monto": "900000.00",
+      "metodo_reparto": "POR_BIOMASA",
+      "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+      "costos": [
+        {
+          "id_activo_biologico": 1569,
+          "biomasa": "100",
+          "monto": "150000.00",
+          "id_registro_costo": 4453,
+          "id_linea_asiento": 5799
+        },
+        {
+          "id_activo_biologico": 1570,
+          "biomasa": "200",
+          "monto": "300000.00",
+          "id_registro_costo": 4454,
+          "id_linea_asiento": 5800
+        },
+        {
+          "id_activo_biologico": 1571,
+          "biomasa": "300",
+          "monto": "450000.00",
+          "id_registro_costo": 4455,
+          "id_linea_asiento": 5801
+        }
+      ]
+    }
+  ],
+  "consolidado_en": "2026-11-13T01:38:49.931232+00:00"
+}

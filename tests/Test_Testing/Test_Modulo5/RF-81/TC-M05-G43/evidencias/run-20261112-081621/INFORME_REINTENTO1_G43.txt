@@ -1,0 +1,325 @@
+================================================================================
+INFORME DE REEVALUACION - TC-M05-G43 (RF-81 / RF-80) - REINTENTO 1
+INC-M05-284-G43 | Commit #971 (21513288)
+Fecha: 12/11/2026 | Autor: Juan Sebastian Gutierrez
+Staging: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-081621/
+================================================================================
+
+--------------------------------------------------------------------------------
+SECCION 0. LINEA BASE DE RONDA 1 Y DIAGNOSTICO PREVIO (PARTE 0)
+--------------------------------------------------------------------------------
+[HECHO] Ronda 1 (evidencias/run-20261107-230054/):
+- Veredicto: RECHAZADO (5/10).
+- Checkpoints Ronda 1: T00 OK, B01 FALLA, B02 FALLA, B03 FALLA, B04 OK, A01 OK,
+  A02 FALLA (404 ACTIVO_NO_ENCONTRADO en lugar de 403), A03 FALLA (0 eventos tras el
+  intento denegado), T98 OK, T99 OK.
+- SQL (/test-control/query) detectado en Ronda 1: B01 L423; B02 L468, L482, L496;
+  B03 L538; A03 L640, L644, L648, L657, L661, L665.
+- T99 hacia login FUERA de sandbox.
+
+--------------------------------------------------------------------------------
+SECCION 1. AUDITORIA DEL COMMIT DE DESARROLLO (#971 / 21513288) (PARTE 0)
+--------------------------------------------------------------------------------
+[HECHO] Commit 21513288 (#971):
+- consultar_historial_suministros_use_case.py:190-214 (_auditar_consulta:
+  datos_nuevos con filtros_aplicados, pagina, registros_por_pagina,
+  total_registros_retornados = len(lineas), total_registros_filtrados;
+  tambien en consulta vacia).
+- exportar_historial_sincrono_use_case.py (_auditar_exportacion: solo
+  EXPORTACION_HISTORIAL_GENERADA, con filtros_aplicados, formato y
+  total_registros_retornados = total_registros_filtrados).
+- historial_suministro.py:39-50 (fechas .isoformat(), decimales str()).
+- Sin migracion de trigger.
+
+--------------------------------------------------------------------------------
+SECCION 2. VERIFICACION DE DESPLIEGUE Y BASELINE INICIAL (PARTE 0)
+--------------------------------------------------------------------------------
+[HECHO]
+- Despliegue OK: run tc-m05-g43-ctrl-20cc899c27, evento 76815 con datos_nuevos
+  completo; DELETE 200.
+- El openapi tiene /usuarios/me; /suministros/historial/exportar declara 200 y 202.
+- SHA-256 originales de Parte 0.1 (antes de Parte A):
+  * ejecutar_tc_m05_g43.ps1:     660CFDBDACCAC47569C200D6F44073A07E783A53607FC7510C718D0DF2BE087B
+  * generar_artefactos_run_g43.py: 87AA334BF4E1A0D4763604AF1C76A6978C4E4BC0CE51EE7422938D90867AD69A
+  * test_tc_m05_g43.py:          F755ED85BEF57C9CE44622DD1A2DC68C8EA468BB36954BBD66693216259B1F12
+  * resultado_TC-M05-G43.html:   CFABCFA25D28565377FE45CDC1620802D10F8B1E4D94C39C33963C9E06D4ECA5
+  * resultado_TC-M05-G43.json:   D23E3D9E5C60397ADC4A36BBF42AFFEB820BC2F21C8D05FB48B678B647FFDD7C
+  * resultados/.gitkeep:         01BA4719C80B6FE911B091A7C05124B64EEECE964E09C058EF8F9805DACA546B
+
+--------------------------------------------------------------------------------
+SECCION 3. CAMBIOS DE PARTE A, INCIDENTE PREVIO Y VERIFICACION ESTATICA A.10
+--------------------------------------------------------------------------------
+3.1 Cambios realizados en Parte A:
+- test_tc_m05_g43.py:
+  * Migrados B01, B02, B03 y T00 a 100% API autenticada (GET /usuarios/me,
+    GET /suministros/auditoria), eliminando todas las llamadas /test-control/query.
+  * T00 ejecutado en run de solo lectura previo (c_t00) antes del run admin.
+  * Agregada observacion OBS-PAG al final de test_b04_solo_lectura_restr_4.
+  * Retirado test_a03_auditoria_intento_rechazado de TestTC_M05_G43_Roles_Unidades y
+    movido a TestTC_M05_G43_Teardown_Inocuidad en run compartido propio (a03_shared)
+    consultando GET /suministros/auditoria en lugar de SQL.
+  * Actualizado test_99_inocuidad_final para ejecutarse dentro de run propio (t99)
+    en sandbox verificando total/max_id de auditoria y 404 para activo C e historial.
+- generar_artefactos_run_g43.py:
+  * Agregado soporte --reintento (_reintentoN en XML/JSON/HTML), lectura real de
+    trazas_http.jsonl y contexto_g43.json, PENDIENTE_DIAGNOSTICO y data-jsonblob.
+- ejecutar_tc_m05_g43.ps1:
+  * Agregado -Reintento, proteccion por SHA-256 de resultados/ y runs previos,
+    codificacion ASCII sin BOM y escaneo completo de secretos (solo reporte).
+
+3.2 Incidente previo (antes de la ejecucion oficial):
+- En el primer intento de lanzar Parte B, .\ejecutar_tc_m05_g43.ps1 -Reintento 1
+  salio inmediatamente con exit 1 (codigo interno 2) antes de crear carpeta de
+  staging, antes de ejecutar pytest y sin realizar ninguna peticion HTTP:
+  "No existe .env.test en C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\.env.test"
+- Causa: $RepoRoot subia 4 niveles ("..\..\..\..") hasta tests\ en lugar de 5
+  niveles ("..\..\..\..\..") hasta sgpmp-backend\.
+- Verificacion post-incidente: evidencias/ solo contenia las 4 corridas de
+  2026-11-07 y 0 artefactos *_reintento1*.
+- Unico cambio aplicado: correccion de 1 linea en ejecutar_tc_m05_g43.ps1
+  ("..\..\..\..\..") + fila en tabla de historial.
+- Tabla de Test-Path previa al lanzamiento oficial (todas True):
+  * C:\Users\Juansegutt\Integrador\sgpmp-backend -> True
+  * C:\Users\Juansegutt\Integrador\sgpmp-backend\.env.test -> True
+  * C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe -> True
+  * ...\TC-M05-G43\test_tc_m05_g43.py -> True
+  * ...\TC-M05-G43\generar_artefactos_run_g43.py -> True
+  * ...\TC-M05-G43\resultados -> True
+  * ...\TC-M05-G43\evidencias -> True
+  * 35 archivos previos monitoreados por SHA-256 -> todos True
+
+3.3 Verificacion estatica A.10 (aprobada) y SHA-256 finales de los 3 scripts:
+- py_compile OK (test_tc_m05_g43.py, generar_artefactos_run_g43.py).
+- PowerShell Parser::ParseFile OK (0 errores).
+- ejecutar_tc_m05_g43.ps1: hasBom=False, nonAscii=0.
+- pytest --collect-only --tb=short: 11 tests collected in 0.35s.
+- Busqueda de /test-control/query e information_schema en los 3 scripts: 0 hits.
+- SHA-256 finales:
+  * test_tc_m05_g43.py:          5D4562F68960454E23E5F7534DCBC5D2B262483AE560D48E764C8EB2EF0CDCB5
+  * generar_artefactos_run_g43.py: EA069C584ABA5ED788ED4BFABDEEB53469C22BC3ADDEAD587045AEC09C856D43
+  * ejecutar_tc_m05_g43.ps1:     98D524DC22171B07D7AA7ADEFE3C7E8E30D1FB11001E3F96C1FB4290EE7CDC8F
+
+--------------------------------------------------------------------------------
+SECCION 4. EJECUCION OFICIAL Y VEREDICTO
+--------------------------------------------------------------------------------
+[HECHO]
+- Comando: powershell -ExecutionPolicy Bypass -File "tests\Test_Testing\Test_Modulo5\RF-81\TC-M05-G43\ejecutar_tc_m05_g43.ps1" -Reintento 1
+- Staging: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-081621/
+- Resultado pytest (--tb=short): 8 passed, 3 failed en 18.45s (exit code 1).
+- Veredicto generado: RECHAZADO (7/10 OK, 3 FALLA en summary; A04 = OBS).
+- Escaneo de secretos: [SCAN] 0 hallazgos en 5 archivos de staging.
+
+--------------------------------------------------------------------------------
+SECCION 5. DETALLE POR CHECKPOINT (HECHOS OBSERVADOS EN TRAZAS HTTP)
+--------------------------------------------------------------------------------
+- T00 (PASSED):
+  * T00_auditoria_inicial: total = 69503, max_id = 76708.
+  * T00_usuarios_me: id_usuario = 104.
+  * T00_crear_activo_c: id_activo_biologico = 1877 (creado en sandbox).
+- B01 (PASSED - Defecto #971 VERIFICADO CORREGIDO):
+  * GET /suministros/historial -> HTTP 200; GET /suministros/auditoria -> HTTP 200.
+  * Evento id=76825, resultado="EXITOSO", datos_nuevos literal:
+    {"filtros_aplicados": {"id_activo_biologico": 1877, "id_ciclo_productivo": 5,
+     "fecha_inicio_filtro": "2026-08-01", "fecha_fin_filtro": "2026-08-31",
+     "tipo_suministro_filtro": "TODOS", "origen_precio_filtro": "TODOS",
+     "costo_min": null, "costo_max": null},
+     "pagina": 1, "registros_por_pagina": 50,
+     "total_registros_retornados": 3, "total_registros_filtrados": 3}
+- B02 (PASSED - Defecto #971 VERIFICADO CORREGIDO):
+  * Consulta vacia (2026-08-01 a 2026-08-05) -> HTTP 200; GET /suministros/auditoria -> HTTP 200.
+  * Evento id=76826, resultado="EXITOSO", datos_nuevos literal:
+    {"filtros_aplicados": {"id_activo_biologico": 1877, "id_ciclo_productivo": 5,
+     "fecha_inicio_filtro": "2026-08-01", "fecha_fin_filtro": "2026-08-05",
+     "tipo_suministro_filtro": "TODOS", "origen_precio_filtro": "TODOS",
+     "costo_min": null, "costo_max": null},
+     "pagina": 1, "registros_por_pagina": 50,
+     "total_registros_retornados": 0, "total_registros_filtrados": 0}
+- B03 (PASSED - Defecto #971 VERIFICADO CORREGIDO):
+  * Exportacion PDF -> HTTP 200; evento id=76827, resultado="EXITOSO", datos_nuevos:
+    {"filtros_aplicados": {...}, "formato_exportacion": "PDF", "total_registros_retornados": 3}
+  * Exportacion EXCEL -> HTTP 200; evento id=76828, resultado="EXITOSO", datos_nuevos:
+    {"filtros_aplicados": {...}, "formato_exportacion": "EXCEL", "total_registros_retornados": 3}
+- B04 (PASSED):
+  * POST/PUT/PATCH/DELETE sobre /suministros/auditoria -> todos HTTP 405; sin eventos nuevos.
+  * OBS-PAG (id=76831): registros_por_pagina=2 -> total_registros_retornados=2, total_registros_filtrados=3.
+- A01 (PASSED): Gestor de Granja consulta activo 1042 -> HTTP 200 (PUT -> HTTP 405).
+- A02 (FAILED - Defecto de producto preexistente, ajeno a #971):
+  * Gestor de Granja consulta activo 957 -> HTTP 404 (ACTIVO_NO_ENCONTRADO) en lugar de 403.
+- A03 (FAILED - Defecto de producto preexistente + error en finally del test):
+  * Gestor intenta consultar activo 957 -> HTTP 404; eventos nuevos en
+    GET /suministros/auditoria desde id 76708 = 0 (esperado >= 1 con resultado != EXITOSO).
+  * Adicionalmente, en el bloque finally de test_a03_auditoria_intento_rechazado,
+    `assert res_cierre["status_code"] == 200` lanzo TypeError ('Response' object is
+    not subscriptable) porque CorridaG43.cerrar() retorna un requests.Response.
+    El DELETE /test-control/runs/tc-m05-g43-a03-29791702 si se ejecuto antes del
+    TypeError y devolvio HTTP 200 {'status': 'Rollback exitoso'}.
+- A04 (OBS / PASSED): Productor consulta activo 957 -> HTTP 200.
+- T98 (PASSED): Todas las corridas previas (t00, admin, productor, gestor) cerradas con HTTP 200.
+- T99 (FAILED - Error en finally del test; aserciones de inocuidad pasaron):
+  * Las 3 aserciones funcionales de inocuidad pasaron:
+    - T99_audit_inocuidad: total=69503, max_id=76708 (identicos a T00).
+    - T99_activo_c_404: GET /activos-biologicos/1877 -> HTTP 404.
+    - T99_historial_c_404: GET /suministros/historial?id_activo_biologico=1877 -> HTTP 404.
+  * En el bloque finally de test_99_inocuidad_final, `assert res_cierre["status_code"] == 200`
+    lanzo TypeError ('Response' object is not subscriptable), lo que impidio
+    escribir contexto_g43.json. Sin embargo, DELETE /test-control/runs/tc-m05-g43-t99-b46a90f5
+    si se ejecuto antes del TypeError y devolvio HTTP 200 {'status': 'Rollback exitoso'}.
+
+--------------------------------------------------------------------------------
+SECCION 6. CIERRE DE SANDBOX E INOCUIDAD (TRAZAS DE DELETE)
+--------------------------------------------------------------------------------
+[HECHO] Todas las 6 corridas de sandbox se cerraron con HTTP 200 {'status': 'Rollback exitoso'}:
+1. teardown_t00:       DELETE /test-control/runs/tc-m05-g43-t00-831c8749       -> 200 {'status': 'Rollback exitoso'}
+2. teardown_admin:     DELETE /test-control/runs/tc-m05-g43-admin-e0b4e520     -> 200 {'status': 'Rollback exitoso'}
+3. teardown_productor: DELETE /test-control/runs/tc-m05-g43-productor-668a7051 -> 200 {'status': 'Rollback exitoso'}
+4. teardown_gestor:    DELETE /test-control/runs/tc-m05-g43-gestor-6e5a472b    -> 200 {'status': 'Rollback exitoso'}
+5. teardown_a03_admin: DELETE /test-control/runs/tc-m05-g43-a03-29791702       -> 200 {'status': 'Rollback exitoso'}
+6. teardown_t99:       DELETE /test-control/runs/tc-m05-g43-t99-b46a90f5       -> 200 {'status': 'Rollback exitoso'}
+
+--------------------------------------------------------------------------------
+SECCION 7. INTEGRIDAD DE RESULTADOS/ Y ARTEFACTOS DEL STAGING
+--------------------------------------------------------------------------------
+[HECHO]
+- resultados/ no fue modificado (validado por SHA-256 antes/despues en el runner).
+- Artefactos en evidencias/run-20261112-081621/:
+  * pytest_TC-M05-G43_reintento1.log
+  * pytest_TC-M05-G43_reintento1.xml
+  * resultado_TC-M05-G43_reintento1.json
+  * resultado_TC-M05-G43_reintento1.html
+  * trazas_http.jsonl (52 trazas HTTP sanitizadas)
+  * git_diff_HEAD_G43.txt
+  * INFORME_REINTENTO1_G43.txt (este archivo)
+
+--------------------------------------------------------------------------------
+SECCION 8. CONCLUSIONES (HECHO VS INFERENCIA)
+--------------------------------------------------------------------------------
+- [HECHO] El defecto de INC-M05-284-G43 (commit #971 / 21513288) queda VERIFICADO
+  COMO CORREGIDO en B01, B02 y B03: los eventos CONSULTA_HISTORIAL_EJECUTADA
+  (incluyendo consulta vacia con total_registros_retornados=0) y
+  EXPORTACION_HISTORIAL_GENERADA (PDF y EXCEL) registran datos_nuevos completos
+  y legibles via GET /suministros/auditoria.
+- [HECHO] Persisten los 2 defectos de producto preexistentes ajenos a #971:
+  A02 (404 ACTIVO_NO_ENCONTRADO en lugar de 403) y A03 (0 eventos de auditoria
+  tras intento rechazado).
+- [HECHO] Se detecto un defecto menor en el codigo del test en los bloques
+  finally de A03 y T99 (`res_cierre["status_code"]` sobre un `requests.Response`
+  en lugar de `res_cierre.status_code`), lo que ademas impidio generar
+  contexto_g43.json. Se requiere una correccion puntual en esos 2 finally (y en
+  los nombres de paso en generar_artefactos_run_g43.py) si se desea promover un
+  reporte libre de TypeError en T99.
+
+--------------------------------------------------------------------------------
+ANEXO: resultado_TC-M05-G43_reintento1.json
+--------------------------------------------------------------------------------
+{
+  "tc": "TC-M05-G43",
+  "titulo": "RF-81 / RF-80 - Auditoria de consultas y exportaciones de historial de suministros",
+  "reintento": 1,
+  "fecha_utc": "2026-11-12T13:16:43.208735+00:00",
+  "staging": "C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-081621",
+  "repro": "powershell -ExecutionPolicy Bypass -File \"tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1\" -Reintento 1",
+  "summary": {
+    "total": 10,
+    "ok": 7,
+    "falla": 3,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00",
+      "test_fn": "test_00_setup_linea_base_y_activo_c",
+      "esperado": "Linea base de auditoria en T00, usuario autenticado y creacion de activo C + suministro en sandbox",
+      "obtenido": "T00 OK (auditoria_inicial_total=None, ultimo_id=None); activo_c=None, ciclo_c=None, id_usuario_ref=None",
+      "estado": "OK",
+      "tiempo_s": 4.594
+    },
+    {
+      "paso": "B01",
+      "test_fn": "test_b01_consulta_con_resultados_auditoria",
+      "esperado": "CONSULTA_HISTORIAL_EJECUTADA en GET /suministros/auditoria con filtros_aplicados, pagina, registros_por_pagina, total_registros_retornados y total_registros_filtrados",
+      "obtenido": "GET /suministros/historial HTTP None; GET /suministros/auditoria HTTP None con CONSULTA_HISTORIAL_EJECUTADA y datos_nuevos completos",
+      "estado": "OK",
+      "tiempo_s": 0.449
+    },
+    {
+      "paso": "B02",
+      "test_fn": "test_b02_consulta_sin_resultados_auditoria",
+      "esperado": "Consulta vacia genera CONSULTA_HISTORIAL_EJECUTADA con total_registros_retornados=0 y total_registros_filtrados=0",
+      "obtenido": "GET /suministros/historial (vacia) HTTP 200; GET /suministros/auditoria HTTP None con CONSULTA_HISTORIAL_EJECUTADA y total_registros_retornados=0",
+      "estado": "OK",
+      "tiempo_s": 0.418
+    },
+    {
+      "paso": "B03",
+      "test_fn": "test_b03_exportacion_sincrona_auditoria",
+      "esperado": "Exportaciones PDF y EXCEL generan EXPORTACION_HISTORIAL_GENERADA con filtros_aplicados, formato y total_registros_retornados",
+      "obtenido": "Export PDF HTTP None, EXCEL HTTP None; GET /suministros/auditoria HTTP None con EXPORTACION_HISTORIAL_GENERADA PDF y EXCEL",
+      "estado": "OK",
+      "tiempo_s": 1.444
+    },
+    {
+      "paso": "B04",
+      "test_fn": "test_b04_solo_lectura_restr_4",
+      "esperado": "Restr. 4: PUT y DELETE sobre /suministros/auditoria rechazados con 405",
+      "obtenido": "PUT HTTP None, DELETE HTTP None rechazados sin modificar bitacora",
+      "estado": "OK",
+      "tiempo_s": 1.537
+    },
+    {
+      "paso": "A01",
+      "test_fn": "test_a01_gestor_granja_consulta_su_unidad",
+      "esperado": "CA-2: Gestor de Granja consulta activo 1042 de su unidad -> HTTP 200",
+      "obtenido": "Gestor de Granja consulta activo 1042 -> HTTP 200",
+      "estado": "OK",
+      "tiempo_s": 1.968
+    },
+    {
+      "paso": "A02",
+      "test_fn": "test_a02_gestor_granja_rechazo_sin_unidad",
+      "esperado": "CA-3 / E2: Gestor de Granja consulta activo 957 ajeno -> HTTP 403",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | AssertionError: DEFECTO DE PRODUCTO (E2 / CA-3): Se esperaba HTTP 403 con mensaje de permisos por rol y unidades, pero el backend respondio HTTP 404 ({\"error_code\":\"ACTIVO_NO_ENCONTRADO\",\"message\":\"El activo biológico 957 no existe.\",\"field",
+      "estado": "FALLA",
+      "tiempo_s": 0.129,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A03",
+      "test_fn": "test_a03_auditoria_intento_rechazado",
+      "esperado": "CU04 FA-04 / RF-80: Intento rechazado registra evento con resultado != EXITOSO en /suministros/auditoria",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | TypeError: 'Response' object is not subscriptable",
+      "estado": "FALLA",
+      "tiempo_s": 3.714,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A04",
+      "test_fn": "test_a04_observacion_productor_consulta_su_unidad",
+      "esperado": "Observacion: Productor consulta activo 957 de su unidad -> HTTP 200",
+      "obtenido": "Productor consulta activo 957 -> HTTP 200 (observacion fuera de spec RF-81)",
+      "estado": "OBS",
+      "tiempo_s": 1.647
+    },
+    {
+      "paso": "T98",
+      "test_fn": "test_98_cierre_corridas",
+      "esperado": "Todas las corridas previas cerradas con DELETE /test-control/runs/{run_id} -> 200 Rollback exitoso",
+      "obtenido": "Corridas cerradas con DELETE 200 Rollback exitoso ()",
+      "estado": "OK",
+      "tiempo_s": 0.005
+    },
+    {
+      "paso": "T99",
+      "test_fn": "test_99_inocuidad_final",
+      "esperado": "Inocuidad en sandbox: total y max id de auditoria restaurados a T00; activo C y su historial retornan 404",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | TypeError: 'Response' object is not subscriptable",
+      "estado": "FALLA",
+      "tiempo_s": 1.86,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    }
+  ],
+  "observaciones": [],
+  "runs_orden": [],
+  "corridas_cerradas": {},
+  "total_trazas_http": 52
+}
+
