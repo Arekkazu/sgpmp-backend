@@ -8,7 +8,7 @@
   "login": {
     "tipo": "Bearer",
     "expira_en": 28799,
-    "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+    "message": "Sesi├│n iniciada exitosamente. Se ha cerrado autom├íticamente la sesi├│n activa en otros dispositivos por pol├¡ticas de seguridad de sesi├│n ├║nica.",
     "perfil_incompleto": false
   },
   "escrituras_financieras": false,
@@ -89,7 +89,7 @@
       "resumen": {
         "codigo": 400,
         "error_code": "FILTRO_OBLIGATORIO",
-        "message": "Indique al menos un filtro: tipo de evento, período contable o activo."
+        "message": "Indique al menos un filtro: tipo de evento, per├¡odo contable o activo."
       }
     },
     {
@@ -121,7 +121,7 @@
       "obtenido": null,
       "estado": "BLOQUEADO",
       "persistido": false,
-      "motivo": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro."
+      "motivo": "El administrador autentic├│ y ley├│ el m├│dulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 per├¡odos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoci├│, no se cerr├│ un per├¡odo y no se registr├│ deterioro."
     },
     {
       "id": "TC-M06-06",
@@ -130,7 +130,7 @@
       "obtenido": null,
       "estado": "BLOQUEADO",
       "persistido": false,
-      "motivo": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro."
+      "motivo": "El administrador autentic├│ y ley├│ el m├│dulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 per├¡odos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoci├│, no se cerr├│ un per├¡odo y no se registr├│ deterioro."
     },
     {
       "id": "TC-M06-07",
@@ -139,32 +139,32 @@
       "obtenido": null,
       "estado": "BLOQUEADO",
       "persistido": false,
-      "motivo": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro. GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento genérico."
+      "motivo": "El administrador autentic├│ y ley├│ el m├│dulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 per├¡odos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoci├│, no se cerr├│ un per├¡odo y no se registr├│ deterioro. GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento gen├®rico."
     }
   ],
   "hallazgos": [
     {
       "id": "QUESTION-M06-003",
       "titulo": "No hay titular aislado para el costo de 10000000",
-      "descripcion": "El administrador autenticó y leyó el módulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 períodos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoció, no se cerró un período y no se registró deterioro.",
+      "descripcion": "El administrador autentic├│ y ley├│ el m├│dulo. Hay 13 activos reconocidos, 3 fincas, 1 NIT y 8 per├¡odos. Activos o propuestas con costo 10000000: 0 y 0. Ese conjunto es el ya inspeccionado y no es un titular exclusivo. No se reconoci├│, no se cerr├│ un per├¡odo y no se registr├│ deterioro.",
       "rf": "RF-88",
       "categoria": "Capacidad de prueba",
       "tipo": "QUESTION",
       "equipo": "QA, con un titular nuevo preparado por DBA si el NIT actual no puede segregarse",
       "severidad": "Medio",
-      "tiempo_maximo": "2 días hábiles",
-      "correccion": "Disponer de una finca, un NIT, un activo de costo 10000000 y un período que no compartan los 13 reconocimientos ni los 8 períodos actuales."
+      "tiempo_maximo": "2 d├¡as h├íbiles",
+      "correccion": "Disponer de una finca, un NIT, un activo de costo 10000000 y un per├¡odo que no compartan los 13 reconocimientos ni los 8 per├¡odos actuales."
     },
     {
       "id": "HALL-M06-G96-02",
       "titulo": "No hay alerta persistente cuando el valor en libros se lleva a cero",
-      "descripcion": "GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento genérico.",
+      "descripcion": "GET /finanzas/auditoria sin filtro responde FILTRO_OBLIGATORIO. DETERIORO_REGISTRADO tiene 1 evento(s) y DEPRECIACION_REGISTRADA tiene 0. No aparece una alerta persistente distinta de ese evento gen├®rico.",
       "rf": "RF-88",
       "categoria": "FLUJO",
       "tipo": "BUG",
       "equipo": "Desarrollo Backend",
       "severidad": "Medio",
-      "tiempo_maximo": "2 días hábiles",
+      "tiempo_maximo": "2 d├¡as h├íbiles",
       "correccion": "Guardar una alerta consultable por activo, distinta de DETERIORO_REGISTRADO y del texto aviso de la respuesta."
     }
   ],
