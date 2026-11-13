@@ -37,7 +37,7 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-04 (TC-
 - **Pasos:** «TC-92-018..024 Cuadre del rollforward (APROBADO)»; «TC-92-018..024 Cuadre del rollforward (BORRADOR)».
 
 ## Ejecución automatizada
-- Colección: `tc_m06_g62.postman_collection.json`
+- Colección: `tc_m06_g04.postman_collection.json`
 - Reporte: `resultados/resultado_TC-M06-G62.html`
 - Aserciones: pendiente (sin ejecutar en TEST)
 - Roles: Contador.

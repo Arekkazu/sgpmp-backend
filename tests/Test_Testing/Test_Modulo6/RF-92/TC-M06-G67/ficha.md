@@ -27,7 +27,7 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-09 (TC-
 - **Esperado (matriz):** rechazo de la aprobación.
 
 ## Ejecución automatizada
-- Colección: `tc_m06_g67.postman_collection.json`
+- Colección: `tc_m06_g09.postman_collection.json`
 - Reporte: `resultados/resultado_TC-M06-G67.html`
 - Aserciones: pendiente (sin ejecutar en TEST)
 - Roles: Contador.
