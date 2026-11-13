@@ -1,3 +1,11 @@
+## [1.4.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.58...v1.4.0-rc.59) (2026-11-13)
+
+### Bug Fixes
+
+* **rf74-rf75-rf76-rf80-mod5:** calculo automatico firmado por el sistema, fallos legibles y fechas en formato local (usabilidad N-05 N-07 B-01) ([6b3984a](https://github.com/Arekkazu/sgpmp-backend/commit/6b3984afef09f33a30eef99eda630dbf09e62c3a))
+* **rf91-rf92-rf93-mod6:** excel con encabezados en la fila 1 y lineas de asiento para el auditor externo (TC-DIS-256 TC-DIS-259 TC-DIS-264) ([05fcef1](https://github.com/Arekkazu/sgpmp-backend/commit/05fcef118f4055e6870fedfc677ed888bf39b3ab))
+* **rf92-rf93-mod6:** el productor solo ve titulares, periodos, estados e informes de sus fincas (usabilidad N-04) ([163fa8f](https://github.com/Arekkazu/sgpmp-backend/commit/163fa8fa11623ca7ccb3463514f51d7886f22221))
+
 ## [1.4.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.57...v1.4.0-rc.58) (2026-11-12)
 
 ### Bug Fixes
