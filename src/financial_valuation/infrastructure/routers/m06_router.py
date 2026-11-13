@@ -17,6 +17,7 @@
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: estado corregido en el historial de precios |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: listas del período filtradas por el titular (NIT validado) |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
+# | 2026-11-12 | Arekkazu | TC-DIS-256 RF-91: las líneas también las lee quien solo consulta la trazabilidad (auditor externo) |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -283,7 +284,11 @@ def reconocer_cosecha_pendiente(id_evento: int, dto: ReconocerCosechaDTO, m: M06
     return m.reconocer_cosecha_pendiente().execute(id_evento, manuales, dto.justificacion, usuario.id_usuario)
 
 
-@router.get("/lineas", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
+# TC-DIS-256 / RF-91: también las lee quien solo consulta la trazabilidad (el auditor externo); la RLS de
+# `lineas_asiento_nic41` le muestra únicamente las de períodos cerrados.
+@router.get("/lineas", tags=[TAG_VALOR],
+            dependencies=[Depends(require_alguno_m06([("valoracion_activos", R), ("trazabilidad_contable", R)],
+                                                     mensaje_denegado=_DENEGADO))],
             summary="Líneas de asiento NIC 41 de un período (filtrables por estado)")
 def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[EstadoLinea] = None,
                   m: M06 = Depends(_m06)) -> list[dict]:

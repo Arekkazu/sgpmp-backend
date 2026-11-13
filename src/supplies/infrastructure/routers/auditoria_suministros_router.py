@@ -4,9 +4,11 @@
 # | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |
 # | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: documentar rechazo 400 por filtros temporales inválidos. |
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: registrar intentos autenticados conservando el rechazo 405. |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
+  GET  /suministros/auditoria/actores     — Usuarios de la bitácora, por nombre (filtro)
   GET  /suministros/auditoria/exportar    — Exportar CSV/Excel/PDF
   GET  /suministros/auditoria/{id}        — Detalle de un evento
 
@@ -32,6 +34,7 @@ from src.supplies.infrastructure.factories.auditoria_suministros_factory import 
     build_registrar_intento_modificacion_auditoria_use_case,
 )
 from src.supplies.infrastructure.schema.auditoria_suministro_schema import (
+    ActorAuditoriaResponse,
     AuditoriaSuministrosListResponse,
     EventoAuditoriaSuministroResponse,
 )
@@ -93,6 +96,18 @@ def listar_auditoria(
         registros_por_pagina=registros_por_pagina,
         items=[EventoAuditoriaSuministroResponse.model_validate(e) for e in items],
     )
+
+
+@router.get(
+    "/actores",
+    response_model=list[ActorAuditoriaResponse],
+    status_code=200,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Usuarios que aparecen en la bitácora de M05, por nombre, para el filtro (RF-80)",
+)
+def listar_actores(db: Session = Depends(get_db)) -> list[ActorAuditoriaResponse]:
+    return [ActorAuditoriaResponse(id_usuario=i, nombre=n) for i, n in build_consultar_auditoria_use_case(db).actores()]
 
 
 @router.get(

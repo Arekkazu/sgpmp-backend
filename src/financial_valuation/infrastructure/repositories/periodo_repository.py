@@ -4,6 +4,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: cierre en espera de autorización y nombre de quien cerró |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: el Productor solo ve los titulares y períodos de sus fincas |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.contabilidad import Periodo
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.services.consolidacion import Comprobante
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import a_json, alcance_titular, escribir, fila, filas
 from src.shared.errors import ConflictError
 
 _COLUMNAS = """id_periodo_contable, numero_id_tributaria, tipo_cierre::text AS tipo_cierre, fecha_inicio, fecha_fin,
@@ -40,7 +41,9 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
     def obtener(self, id_periodo_contable: int, bloquear: bool = False) -> Optional[Periodo]:
         sql = f"SELECT {_COLUMNAS} FROM modulo6.periodos_contables WHERE id_periodo_contable = :id"
         try:
-            f = fila(self.db, sql + (" FOR UPDATE NOWAIT" if bloquear else ""), {"id": id_periodo_contable})
+            # Bloquear es del cierre (exige leer el cierre): el alcance solo aplica a las lecturas.
+            sufijo = " FOR UPDATE NOWAIT" if bloquear else f" AND {alcance_titular('numero_id_tributaria')}"
+            f = fila(self.db, sql + sufijo, {"id": id_periodo_contable})
         except OperationalError as exc:  # lock_not_available: otro cierre tiene el período (RF-87 FA-5)
             raise ConflictError(code="CIERRE_EN_EJECUCION",
                                 message="El período está siendo procesado por otro cierre. Espere a que termine.") from exc
@@ -86,13 +89,15 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
             FROM modulo6.periodos_contables pc
             WHERE CASE WHEN :sin THEN numero_id_tributaria IS NULL
                        ELSE CAST(:n AS varchar) IS NULL OR numero_id_tributaria = :n END
+              AND {alcance_titular('pc.numero_id_tributaria')}
             ORDER BY numero_id_tributaria, fecha_inicio DESC""", {"n": numero_id_tributaria, "sin": sin_titular})]
 
     def titulares(self) -> list[dict]:
-        return filas(self.db, """
+        return filas(self.db, f"""
             SELECT pc.numero_id_tributaria, max(f.razon_social) AS razon_social
             FROM modulo6.periodos_contables pc
             LEFT JOIN modulo9.fincas f ON f.numero_id_tributaria = pc.numero_id_tributaria
+            WHERE {alcance_titular('pc.numero_id_tributaria')}
             GROUP BY pc.numero_id_tributaria
             ORDER BY pc.numero_id_tributaria IS NULL, max(f.razon_social) NULLS LAST, pc.numero_id_tributaria""")
 

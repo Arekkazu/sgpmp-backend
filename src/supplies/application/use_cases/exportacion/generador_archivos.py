@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: CSV, Excel y PDF             |
 # | 2026-11-10 | Arekkazu         | CP088/CP111/TC-DIS-204 RF-77/80/81: PDF sin recorte, celdas con salto de línea, idioma y título; moneda legible |
 # | 2026-11-11 | Arekkazu         | TC-DIS-204 RF-77: PDF etiquetado para lector de pantalla (encabezado, párrafos y tabla con TH/TD) |
+# | 2026-11-12 | Arekkazu | TC-DIS-259/264 RF-92/93: Excel con encabezados en la fila 1 y título y totales en otra hoja |
 """Generación de archivos de exportación de M05 (RF-77 y RF-81).
 
 - CSV en bloques de 1.000 filas (RF-77 "chunking" para > 5.000 registros): el
@@ -17,8 +18,9 @@
   texto alternativo y cada tabla con TR/TH/TD en orden de lectura; fondos y
   líneas de la tabla y el encabezado repetido en otra hoja se marcan como
   decoración (Artifact) para que el lector no los lea.
-- Excel con encabezado en negrita, ancho de columna según el contenido y la fila
-  de encabezados fija al desplazarse.
+- Excel con la tabla en la hoja «Datos» (encabezados en negrita en la fila 1, fija
+  al desplazarse, ancho de columna según el contenido) y el título, las líneas de
+  encabezado y el pie en la hoja «Información».
 """
 from __future__ import annotations
 
@@ -62,24 +64,25 @@ def generar_excel(doc: Documento) -> bytes:
     from openpyxl.styles import Font
 
     libro = Workbook()
+    # TC-DIS-264/259: la primera hoja es la tabla, con los encabezados en la fila 1 (un lector de pantalla y
+    # un filtro de Excel la leen como tabla); el título, el alcance y los totales van en «Información». El
+    # nombre de la hoja no sale del título: Excel lo cortaba a 31 caracteres.
     hoja = libro.active
-    hoja.title = doc.titulo[:31]
-    for linea in [doc.titulo, *doc.encabezado]:
-        hoja.append([linea])
-    hoja.append([])
+    hoja.title = "Datos"
     hoja.append(doc.columnas)
-    fila_encabezado = hoja.max_row
-    for celda in hoja[fila_encabezado]:
+    for celda in hoja[1]:
         celda.font = Font(bold=True)
     for fila in doc.filas:
         hoja.append(_texto(fila))
-    hoja.freeze_panes = hoja.cell(row=fila_encabezado + 1, column=1)
+    hoja.freeze_panes = "A2"
     for indice, ancho in enumerate(_anchos(doc), start=1):
-        hoja.column_dimensions[hoja.cell(row=fila_encabezado, column=indice).column_letter].width = ancho
-    if doc.pie:
-        hoja.append([])
-        for linea in doc.pie:
-            hoja.append([linea])
+        hoja.column_dimensions[hoja.cell(row=1, column=indice).column_letter].width = ancho
+    info = libro.create_sheet("Información")
+    info.append([doc.titulo])
+    info["A1"].font = Font(bold=True)
+    for linea in [*doc.encabezado, *doc.pie]:
+        info.append([linea])
+    info.column_dimensions["A"].width = min(100, max(len(str(x)) for x in [doc.titulo, *doc.encabezado, *doc.pie]) + 2)
     salida = io.BytesIO()
     libro.save(salida)
     return salida.getvalue()
