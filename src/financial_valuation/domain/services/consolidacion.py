@@ -3,7 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1 / RF-93: comprobante NIC 41 y estado de resultados desde las líneas |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
-# | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: la baja sin venta suma en gastos |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: ventas y bajas sin recuperación en componentes de gasto separados |
 """Consolidaciones del cierre (RF-87 v1.1) y del estado de resultados (RF-93). Python puro."""
 from __future__ import annotations
 
@@ -70,8 +70,8 @@ def consolidar_comprobantes(lineas: Iterable[LineaContable], fin_periodo: date) 
 INGRESOS = ("ganancia_transformacion_biologica", "ganancia_precio_mercado", "ganancia_reconocimiento_inicial",
             "ingresos_productos_agricolas", "ganancia_ajustes_periodos_anteriores")
 GASTOS = ("perdida_transformacion_biologica", "perdida_precio_mercado", "perdida_reconocimiento_inicial",
-          "costos_mantenimiento", "inversiones_llevadas_a_gasto", "bajas_activos", "depreciacion_activos_costo",
-          "deterioro_activos_costo", "perdida_ajustes_periodos_anteriores")
+          "costos_mantenimiento", "inversiones_llevadas_a_gasto", "bajas_activos", "perdidas_bajas_sin_recuperacion",
+          "depreciacion_activos_costo", "deterioro_activos_costo", "perdida_ajustes_periodos_anteriores")
 
 SUBTIPOS_MANTENIMIENTO = ("ALIMENTO", "MEDICAMENTO", "MANO_OBRA", "VETERINARIO")
 
@@ -85,10 +85,11 @@ _COMPONENTE_LINEA = {
     (TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, Sentido.GANANCIA.value): "ganancia_reconocimiento_inicial",
     (TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, Sentido.PERDIDA.value): "perdida_reconocimiento_inicial",
     (TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.UNICO.value): "ingresos_productos_agricolas",
+    # Toda baja sale por su valor en libros y va a GASTOS; SGPMP no reconoce ganancia por venta (RFC-018:
+    # la utilidad la determina la contabilidad desde la factura). INC-M06-358-G71/G72: la venta y la baja
+    # sin venta (muerte, pérdida) van en componentes separados.
     (TipoHecho.BAJA_ACTIVO.value, Sentido.UNICO.value): "bajas_activos",
-    # INC-M06-358-G71/G72: la baja sin venta (muerte, pérdida) se asienta como PERDIDA y su valor en libros
-    # también es gasto; sin esta entrada el monto se descartaba del estado de resultados.
-    (TipoHecho.BAJA_ACTIVO.value, Sentido.PERDIDA.value): "bajas_activos",
+    (TipoHecho.BAJA_ACTIVO.value, Sentido.PERDIDA.value): "perdidas_bajas_sin_recuperacion",
     (TipoHecho.DEPRECIACION_ACTIVO_COSTO.value, Sentido.UNICO.value): "depreciacion_activos_costo",
     (TipoHecho.DETERIORO_ACTIVO_COSTO.value, Sentido.UNICO.value): "deterioro_activos_costo",
     (TipoHecho.AJUSTE_PERIODO_ANTERIOR.value, Sentido.GANANCIA.value): "ganancia_ajustes_periodos_anteriores",
