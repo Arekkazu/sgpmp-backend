@@ -6,6 +6,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: estados e informes solo de los titulares de las fincas de quien consulta |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: excluir_activos en los movimientos del estado de resultados |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: conciliación con la baja total en cero y los ingresos de individuos sin costo |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -21,6 +22,22 @@ from src.shared.nombre_activo import nombre_activo_sql
 
 ES_BASE_C = "COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false"
 CONSUMIDO_C = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")  # RF-85 FA-4: vale 0
+
+
+def _dado_de_baja(limite: str) -> str:
+    """TC-M06-G62: el activo salió por una baja total hasta ``limite``. La baja total no deja un cálculo nuevo
+    (la parcial sí, con el resto), así que su último cálculo no es su valor: vale 0. Que fue total lo dice la
+    auditoría de la baja (``proporcion`` = 1), que es inmutable."""
+    return f"""EXISTS (SELECT 1 FROM modulo6.lineas_asiento_nic41 lb
+        WHERE lb.id_activo_biologico = a.id_activo_biologico AND lb.tipo_hecho = 'BAJA_ACTIVO' AND NOT lb.es_reverso
+          AND lb.fecha_hecho {limite}
+          AND NOT EXISTS (SELECT 1 FROM modulo6.lineas_asiento_nic41 r
+                          WHERE r.es_reverso AND r.tipo_hecho = lb.tipo_hecho AND r.id_activo_biologico = lb.id_activo_biologico
+                            AND r.tabla_origen = lb.tabla_origen AND r.id_origen = lb.id_origen)
+          AND EXISTS (SELECT 1 FROM modulo6.auditorias_financieras af
+                      WHERE af.tipo_evento::text = 'BAJA_ACTIVO_REGISTRADA' AND af.id_referencia = lb.id_origen
+                        AND af.id_activo_biologico = lb.id_activo_biologico
+                        AND (af.datos_nuevos->>'proporcion')::numeric >= 1))"""
 
 _FILTROS = (("id_especie", "l.id_especie = :id_especie"), ("id_activo_biologico", "l.id_activo_biologico = :id_activo_biologico"),
             ("id_infraestructura", "a.id_infraestructura = :id_infraestructura"), ("id_finca", "l.id_finca = :id_finca"))
@@ -101,12 +118,14 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                    ri.clasificacion::text AS clasificacion, ri.indicador_valoracion::text AS indicador_valoracion,
                    ri.origen_financiero::text AS origen_financiero, ri.costo_adquisicion,
                    ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual,
+                   CASE WHEN {_dado_de_baja("< :i")} THEN 0 ELSE
                    (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date < :i
-                     ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_inicio,
+                     ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) END AS valor_inicio,
+                   CASE WHEN {_dado_de_baja("<= :f")} THEN 0 ELSE
                    (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date <= :f
-                     ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_cierre,
+                     ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) END AS valor_cierre,
                    vc.valor_contable_por_costo, vc.razon_sin_mercado, vc.vida_util_meses, vc.depreciacion_acumulada,
                    vc.deterioro_acumulado, vc.costos_adquisicion AS costo_base
             FROM modulo6.reconocimientos_iniciales ri
@@ -123,6 +142,13 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                    l.sentido::text AS sentido, l.es_reverso, sum(l.valor) AS valor
             FROM modulo6.lineas_asiento_nic41 l WHERE l.id_periodo_contable = :p
             GROUP BY 1, 2, 3, 4""", p)
+        # TC-M06-G62: ingresos de individuos sin costo (compra, donación, traslado) que subieron la base del activo.
+        ingresos = filas(self.db, """
+            SELECT c.id_activo_biologico, c.json_metodo_costo->'ingreso_individuos'->>'tipo_ingreso' AS tipo_ingreso,
+                   sum((c.json_metodo_costo->'ingreso_individuos'->>'incremento')::numeric) AS valor
+            FROM modulo6.calculos_valor_razonable c
+            WHERE c.id_periodo_contable = :p AND c.estado = 'CALCULADO' AND c.json_metodo_costo ? 'ingreso_individuos'
+            GROUP BY 1, 2""", p)
         precios = filas(self.db, """
             SELECT DISTINCT pm.id_precio_mercado, e.nombre AS especie, pm.categoria[1]::text AS categoria, pm.precio_unitario,
                    pm.unidad_medida, pm.fuente::text AS fuente, pm.fecha_vigencia, pm.evidencia, pm.justificacion
@@ -164,7 +190,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         costos = fila(self.db, """SELECT COALESCE(sum(CASE WHEN es_reverso THEN -monto_costo ELSE monto_costo END), 0) AS total
                                   FROM modulo6.registros_costos WHERE id_periodo_contable = :p
                                     AND naturaleza_costo = 'MANTENIMIENTO' AND estado = 'REGISTRADO'""", p)
-        return {"periodo": periodo, "activos": activos, "movimientos": movimientos, "precios": precios,
+        return {"periodo": periodo, "activos": activos, "movimientos": movimientos, "ingresos": ingresos, "precios": precios,
                 "supuestos": supuestos, "riesgos": riesgos, "cierre": cierre,
                 "resultado_neto_estado": estado["resultado_neto"] if estado else None,
                 "costos_mantenimiento": costos["total"]}

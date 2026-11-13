@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: los activos excluidos del cierre salen de todos los componentes y los montos van con 4 decimales |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: la conciliación suma los ingresos de individuos sin costo y omite los activos dados de baja antes |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -93,13 +94,21 @@ class ConstructorInformeRevelaciones:
         for m in d["movimientos"]:
             signo = -1 if m["es_reverso"] else 1
             mov_activo[m["id_activo_biologico"]][f"{m['tipo_hecho']}:{m['sentido']}"] += signo * Decimal(m["valor"])
-        rollforward, alertas = [], []
+        # TC-M06-G62: el ingreso de individuos sin costo sube el valor sin asentar líneas; entra a la conciliación
+        # como compra o, si fue donación o traslado, como otro ingreso.
+        ingresos: dict[int, dict] = defaultdict(lambda: {"compra": CERO, "otros": CERO})
+        for i in d.get("ingresos") or []:
+            ingresos[i["id_activo_biologico"]]["compra" if i["tipo_ingreso"] == "compra" else "otros"] += Decimal(i["valor"] or 0)
+        rollforward, alertas, activos = [], [], []
         for a in d["activos"]:
             mov = mov_activo.get(a["id_activo_biologico"], {})
+            ingreso = ingresos.get(a["id_activo_biologico"], {"compra": CERO, "otros": CERO})
             inicio = Decimal(a["valor_inicio"] or 0)
             reconocido_en_periodo = a["fecha_reconocimiento"] >= periodo["fecha_inicio"]
             compras = Decimal(a["costo_adquisicion"] or 0) if reconocido_en_periodo and a["origen_financiero"] == "compra" else CERO
+            compras += ingreso["compra"]
             nacimientos = sum((v for k, v in mov.items() if k.startswith(("RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION"))), CERO)
+            nacimientos += ingreso["otros"]
             diferencia = mov.get("RECONOCIMIENTO_DIFERENCIA:GANANCIA", CERO) - mov.get("RECONOCIMIENTO_DIFERENCIA:PERDIDA", CERO)
             tb = mov.get("VARIACION_VR_TB:GANANCIA", CERO) - mov.get("VARIACION_VR_TB:PERDIDA", CERO)
             pm = mov.get("VARIACION_VR_PM:GANANCIA", CERO) - mov.get("VARIACION_VR_PM:PERDIDA", CERO)
@@ -109,6 +118,9 @@ class ConstructorInformeRevelaciones:
             es_costo = a["valor_contable_por_costo"] is not None
             cierre = Decimal(a["valor_contable_por_costo"] if es_costo else (a["valor_cierre"] or 0))
             calculado = inicio + compras + nacimientos + diferencia + tb + pm - cosechas - bajas - depreciacion
+            if not (inicio or cierre or compras or mov):  # dado de baja antes del período: nada que conciliar
+                continue
+            activos.append(a)
             if not es_costo and abs(calculado - cierre) > 1:
                 alertas.append({"campo": "rollforward", "id_activo_biologico": a["id_activo_biologico"],
                                 "detalle": f"Conciliación {calculado:.2f} vs valor al cierre {cierre:.2f}"})
@@ -118,7 +130,7 @@ class ConstructorInformeRevelaciones:
                                 "transformacion_biologica": tb, "precio_mercado": pm, "cosechas": cosechas,
                                 "bajas": bajas, "depreciacion_y_deterioro": depreciacion, "valor_cierre": cierre})
         por_especie: dict[str, dict] = defaultdict(lambda: {"cantidad_activos": 0, "valor_cierre": CERO, "clasificaciones": set()})
-        for fila_rf, a in zip(rollforward, d["activos"]):
+        for fila_rf, a in zip(rollforward, activos):
             g = por_especie[a["especie"]]
             g["cantidad_activos"] += 1
             g["valor_cierre"] += fila_rf["valor_cierre"]
@@ -128,7 +140,7 @@ class ConstructorInformeRevelaciones:
         total_reconocimiento = sum((r["nacimientos_y_otros_ingresos"] for r in rollforward), CERO)
         if d["resultado_neto_estado"] is None:
             alertas.append({"campo": "estado_resultados", "detalle": "El estado de resultados del período no está generado."})
-        a_costo = [a for a in d["activos"] if a["valor_contable_por_costo"] is not None]
+        a_costo = [a for a in activos if a["valor_contable_por_costo"] is not None]
         contenido = {
             "parr_41_43_descripcion": [{"especie": k, "cantidad_activos": v["cantidad_activos"],
                                         "valor_cierre": v["valor_cierre"], "clasificacion": sorted(v["clasificaciones"])}
