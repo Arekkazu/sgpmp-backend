@@ -1,0 +1,24 @@
+{
+  "grupo": "G43",
+  "version": 2,
+  "intento": 12,
+  "run_id": "RUN-G43-V2-20261113-074459",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G43-V2-R8-20261113",
+  "casos": [
+    "TC-M06-024",
+    "TC-M06-025",
+    "TC-M06-026",
+    "TC-M06-027"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-024",
+      "TC-M06-025",
+      "TC-M06-026",
+      "TC-M06-027"
+    ],
+    "motivo": "Reintento técnico de V2 (intento 8 de V2, último intento ordenado por el responsable QA) de TC-M06-G43, grupo completo. El intento anterior (RUN-G43-V2-20261113-070927, AUT-G43-V2-R7-20261113 consumida) quedó NO OFICIAL: 241 solicitudes API > 230 (157 GET /notificaciones por leer la bandeja completa antes y después de cada cierre) y rollback NO_VERIFICADO porque el corte de presupuesto bloqueó las lecturas poscierre; además los paneles UI de 026 y 027 se capturaron con el período EN_CIERRE (el frontal oculta los controles si no está ABIERTO, CierreView.tsx:289) y el resumen DOM del 025 salió vacío. ORD-G43-032 (ronda 11): bandeja solo página 1 (estimado 109 solicitudes), lecturas poscierre nunca bloqueadas, paneles 027 y 026 con el período ABIERTO y prevalidación cargada, criterios UI exactos sin POST desde Cypress, informe con ficha Esperado/Observado/Evidencia. Oráculos sin cambios; precondición vigente: usuarios_fincas 3440. Ensayo Windows: verificar.mjs 10/10 OK, 0 intentos de red. SHA-256: g43.mjs 437821b57e556b4e51b8f8fb099e32d9dde59b2863dd5e17727a925e7c79d5ca; lib/g43_v2.mjs 56a07a12d11ca5a45c1bfef41cbd7ac6085300c748016c05a71a2f028e18349b; lib/g43_core.mjs 60555e995675c897ceccc055aeb41dd2df8aa2a5e3eeff4a115aa13d22216ebe; spec 0b3c6e3040381b74e474373e292eca8d7a34f3c130d7c2c80320e4e8c00f1e99; lib/vista_cierre.cjs 348a628e876df716716eb149f30f944f2e03ebd79f1e1c538001c00a02386c75; lib/infra.mjs f7383fdc8bbddf3a59f56c9bce6c5acf18646f8bbad1ab4724866e855f835bbb."
+  },
+  "version_anterior": null
+}

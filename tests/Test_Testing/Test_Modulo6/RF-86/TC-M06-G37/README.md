@@ -1,3 +1,19 @@
+# Preparación V2 — ORD-G37-026 (2026-11-12)
+
+**Alcance vigente:** REEVALUAR V2 de TC-M06-011 y TC-M06-013. TC-M06-012 fue APROBADO en V1 (RUN-G37-V1-20261108-233956) y queda fuera de las comprobaciones, la colección y el registro V2. Las secciones históricas de V1 más abajo documentan la preparación anterior. Un único informe se genera dentro de EvaluacionV2/Resultados/RUN-G37-V2-<timestamp>/TC-M06-G37_reevaluacion_V2.md solo durante un RUN autorizado; esta preparación no crea RUN ni consulta TEST.
+
+La matriz original consultada fue Casos_Prueba(Modulo6Agrup).csv:380 en Windows-1252. RF-86 se consultó en Especificacion-Requerimientos-Modulo6.md:1222+. La V1 se leyó dentro de su RUN. El oráculo 011 compara el GET de acumulado del período 241 antes y después de las variaciones, por componente, total de ingresos y gastos, y otro período ABIERTO sin cambios. El 013 exige VERIFICACION_PENDIENTE inicial, POST RF-91 HTTP 200, VERIFICADO final y cadena con el evento M02 y la lectura M03. El POST RF-93 versionado no participa.
+
+**Precondiciones preparadas:** el responsable QA autorizó vincular por SQL el dispositivo 856 al bovino 1831 y crear la lectura 120035 (2026-11-12 07:06:25 UTC) con apto_para_nic41=true; telemetria_calidad figura INDETERMINADA. No existe API para vincular el dispositivo. Se aceptó TEMP_CORPORAL como desviación del pesaje IoT de la matriz porque el producto no ofrece variable de peso. El ejecutor consulta el detalle del activo, el período ABIERTO actual, el historial M03 y la ventana de 24 h; la aptitud se acredita por GET cadena. Son precondiciones persistentes fuera del rollback.
+
+**Código consultado realmente en origin/test mediante git show (solo lectura):** src/financial_valuation/infrastructure/routers/m06_router.py:587-591 expone el acumulado con permiso estado_resultados:R; application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46 admite período ABIERTO; application/services/reportes.py:31-43 arma componentes y totales; domain/services/consolidacion.py:69-79 mapea tipo y sentido; application/use_cases/valoracion/procesar_eventos_m02_use_case.py:193 usa IOT_DIRECTO cuando el activo tiene dispositivo; infrastructure/repositories/trazabilidad_repository.py:38-93,127-138 relaciona evento, dispositivo y lectura en ventana de 24 h; application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:108-119 devuelve verificadas y pendientes. Las rutas abreviadas parten de src/financial_valuation/. No se verificó el despliegue ni se consultó TEST.
+
+**Oficialidad:** resultado.json registra exactamente 011 y 013, seguimiento de INC-M06-G37-01 e INC-M06-G32-01, montos, cuatro acumulados y cadena completa. El informe declara las condiciones de oficialidad fallidas. El presupuesto de 150 cuenta solicitudes del ejecutor y Newman; logins fuera del RUN y DELETE/lecturas poscierre se consignan aparte. El ensayo conforme local consumió 52/150 solicitudes y validó el registro con pruebas/registro_qa.mjs; el conteo real deberá comprobarse en TEST. DELETE y lecturas sin cabeceras del RUN comprueban ausencia de variaciones, líneas, precios, eventos y auditorías, estado y peso de activos y período 241 ABIERTO.
+
+**Validación local:** node --check de módulos activos, node g37.mjs --comprobar, node pruebas/g37_env.test.mjs, node pruebas/g37_decisiones.test.mjs y node pruebas/g37_ensayo.mjs. El simulador cubre conforme con y sin campos adicionales, código V1, deltas incorrectos, otro período alterado, cadena sin lectura, dispositivo ausente, ventana vencida, período cerrado, REINTENTAR V2 y DELETE fallido. El proceso hijo para copiar el ejemplo completo a %TEMP%/g37-verificar-ejemplo devuelve spawn EPERM en el entorno de Codex; queda pendiente ejecutarlo donde se permitan subprocesos. Los escenarios simulan API local y no son evidencia de TEST.
+
+---
+
 # TC-M06-G37 — preparación local ORD-G37-007
 
 ## Corrección de arranque ORD-G37-007

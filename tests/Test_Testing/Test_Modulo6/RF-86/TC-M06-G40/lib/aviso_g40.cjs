@@ -1,17 +1,13 @@
 // Cadenas de es-CO/finanzas.json: hecho.VARIACION_VR_TB y sentido.GANANCIA.
 const normalizar = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
 
-function coincideCombinacion(mensaje, especieId, especieNombre = '') {
+function coincideCombinacion(mensaje, especieId, especieNombre = '', sentidoElegido = 'GANANCIA') {
   const texto = normalizar(mensaje);
   const hecho = texto.includes('VARIACION_VR_TB') || texto.includes('VARIACION POR TRANSFORMACION BIOLOGICA');
-  const sentido = /\bGANANCIA\b/.test(texto);
+  const sentido = ['GANANCIA','PERDIDA'].includes(sentidoElegido) && new RegExp(`\\b${sentidoElegido}\\b`).test(texto);
   if (!hecho || !sentido) return false;
-  const id = String(especieId ?? '');
   const nombre = normalizar(especieNombre).trim();
-  const mencionaEspecie = /\bESPECIE\b|\bID[_ ]?ESPECIE\b/.test(texto);
-  if (!mencionaEspecie) return true;
-  const idPresente = id && new RegExp(`(?:^|\\D)${id}(?:\\D|$)`).test(texto);
-  return Boolean(idPresente || (nombre && texto.includes(nombre)));
+  return Boolean(nombre && texto.includes(nombre));
 }
 
 const normalizarBase = ruta => ruta.replace(/\/+$/, '');

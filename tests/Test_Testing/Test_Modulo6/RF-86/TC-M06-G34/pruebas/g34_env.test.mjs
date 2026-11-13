@@ -4,9 +4,45 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
-import { leerEnv, sanear, periodoDestino, preciosVigentes } from '../g34.mjs';
+import { fileURLToPath } from 'node:url';
+import { leerEnv, sanear, periodoDestino, preciosVigentes, contexto } from '../g34.mjs';
 import { CASOS, evaluarA, evaluarB, costosDe, mismosCostos, oficialidadLocal } from '../lib/g34_core.mjs';
 import { ejecutarNewman } from './newman_hijo.mjs';
+
+test('contexto acepta REINTENTAR V2 con motivo y conserva rechazos',()=>{
+  const grupo=fileURLToPath(new URL('../',import.meta.url));
+  const runId='RUN-G34-V2-20261111-000000';
+  const archivo=path.resolve(grupo,'EvaluacionV2','Resultados',runId,'contexto_operacion.json');
+  const v1run='RUN-G34-V1-20261111-000000';
+  const v1archivo=path.resolve(grupo,'Resultados',v1run,'contexto_operacion.json');
+  const original=fs.readFileSync;
+  const c={grupo:'G34',run_id:runId,version:2,intento:2,operacion:'REINTENTAR',
+    referencia:'ENSAYO_LOCAL',casos:CASOS,version_anterior:null,alcance_reevaluacion:{motivo:'Reintento autorizado'}};
+  fs.readFileSync=(ruta,...resto)=>[archivo,v1archivo].includes(path.resolve(ruta))?JSON.stringify(c):original(ruta,...resto);
+  try {
+    const args=['--operacion','reintentar','--version','2','--intento','2','--run-id',runId,
+      '--autorizacion','ENSAYO_LOCAL','--contexto',archivo];
+    assert.equal(contexto(args).operacion,'reintentar');
+    c.version_anterior=1;
+    assert.equal(contexto(args).operacion,'reintentar');
+    c.version_anterior=0;
+    assert.throws(()=>contexto(args),/Contexto incoherente/);
+    delete c.version_anterior;
+    assert.throws(()=>contexto(args),/Contexto incoherente/);
+    c.version_anterior=null;
+    c.alcance_reevaluacion=null;
+    assert.throws(()=>contexto(args),/Contexto incoherente/);
+    c.alcance_reevaluacion={motivo:'  '};
+    assert.throws(()=>contexto(args),/Contexto incoherente/);
+    c.alcance_reevaluacion={motivo:123};
+    assert.throws(()=>contexto(args),/Contexto incoherente/);
+    Object.assign(c,{operacion:'REEVALUAR',version_anterior:1,alcance_reevaluacion:{motivo:'Reevaluación'}});
+    assert.equal(contexto(args.map(x=>x==='reintentar'?'reevaluar':x)).operacion,'reevaluar');
+    Object.assign(c,{run_id:v1run,version:1,operacion:'REEVALUAR'});
+    assert.throws(()=>contexto(['--operacion','reevaluar','--version','1','--intento','2',
+      '--run-id',v1run,'--autorizacion','ENSAYO_LOCAL','--contexto',v1archivo]),/Contexto incoherente/);
+  } finally {fs.readFileSync=original;}
+});
 
 test('leerEnv prioriza autorización del proceso y sanea secretos',()=>{
   const f=path.join(os.tmpdir(),'g34-env-'+process.pid+'.txt');
@@ -20,7 +56,9 @@ test('leerEnv prioriza autorización del proceso y sanea secretos',()=>{
 test('período destino y precio vigente',()=>{
   const p=[{id_periodo_contable:1,numero_id_tributaria:'x',estado:'CERRADO',fecha_inicio:'2026-11-01',fecha_fin:'2026-11-30'},
     {id_periodo_contable:2,numero_id_tributaria:'x',estado:'ABIERTO',fecha_inicio:'2026-12-01',fecha_fin:'2026-12-31'}];
-  assert.equal(periodoDestino(p,'x','2026-11-08').periodo.id_periodo_contable,2);
+  assert.equal(periodoDestino(p,'x','2026-11-08').periodo,undefined);
+  assert.match(periodoDestino(p,'x','2026-11-08').motivo,/CERRADO/);
+  assert.equal(periodoDestino(p,'x','2026-12-08').periodo.id_periodo_contable,2);
   const pr={id_especie:3,categoria:'PESO_KG',fuente:'MERCADO_ACTIVO',fecha_vigencia:'2026-11-08'};
   assert.equal(preciosVigentes([{...pr,id_precio_mercado:5},{...pr,id_precio_mercado:6}],3,'2026-11-08').id_precio_mercado,6);
 });
@@ -32,13 +70,17 @@ test('costos activos de GENERAL y restauración exacta',()=>{
   assert.ok(!mismosCostos(original,{pct_transporte:1,pct_comisiones:0,pct_impuestos:0}));
 });
 test('A exige ausencias, auditoría y aviso del evento',()=>{
-  const base={completa:true,variaciones:[],lineas:[],mediciones:[],calculos:[],auditoria:[],bandeja:[],bandejaLineaBase:null};
+  const base={completa:true,variaciones:[],lineas:[],mediciones:[],calculos:[],auditoria:[],bandeja:[],eventosPendientes:[],bandejaLineaBase:null};
   const post={...base,auditoria:[{id_evento:7,tipo_evento:'MEDICION_PENDIENTE',severidad_evento:'WARNING',
     id_activo_biologico:2,id_periodo_contable:3,id_referencia:9,payload_evento:{motivo:'VALOR_NETO_NO_POSITIVO',id_evento:9}}],
-    bandeja:[{id_notificacion:1,mensaje:'RF_83_NO_COMPLETADO activo 2 evento 9'}]};
-  const p={activo:2,periodo:3,evento:9,identificador:'A'};
+    eventosPendientes:[{id_evento:9,id_activo_biologico:2,fecha_evento:'2026-11-11T12:00:00Z',motivo:'VALOR_NETO_NO_POSITIVO'}],
+    bandeja:[{id_notificacion:1,id_evento:200,tipo_evento:41,fecha_envio:'2026-11-11T12:00:00Z',es_leido:false,
+      mensaje:'No se pudo completar la medición del activo QA-A por el evento biológico del 11/11/2026; el registro financiero quedó suspendido.'}]};
+  const p={activo:2,periodo:3,evento:9,identificador:'QA-A',fechaEvento:'11/11/2026',tipoAlerta:41};
   assert.equal(evaluarA(base,post,p).estado,'APROBADO');
   assert.equal(evaluarA(base,{...post,bandeja:[]},p).estado,'RECHAZADO');
+  assert.equal(evaluarA(base,{...post,bandeja:[post.bandeja[0],{...post.bandeja[0],id_notificacion:2}]},p).estado,'RECHAZADO');
+  assert.equal(evaluarA(base,{...post,bandeja:[{...post.bandeja[0],mensaje:'No se pudo completar la medición del activo QA-A'}]},p).estado,'RECHAZADO');
   assert.equal(evaluarA(base,{...post,variaciones:[{id_variacion_valor_razonable:10,id_activo_biologico:2}]},p).estado,'RECHAZADO');
   assert.equal(evaluarA(base,{...post,completa:false},p).estado,'NO_CONCLUYENTE');
 });

@@ -1,41 +1,29 @@
-// Plantilla de informe extraída del ejecutor original del grupo; sin casos fijos.
-const clean=x=>String(x??'').replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+|[\w.+-]+@[\w.-]+/g,'[RESERVADO]').slice(0,240);
-export function informe(r){const CASOS=Object.keys(r.casos??{});
-  const lines=[
-    `# TC-M06-${r.grupo} — ${r.run_id}`,'',
-    `${r.grupo} | ${r.rf} | ${CASOS.join(', ')} | V${r.version} | TEST | autorización ${r.autorizacion_referencia} | commit no consultado (Git prohibido).`,'',
-    '## Preflight de datos','',
-    '| Requisito | Esperado | Observado | Cumple | Bloqueante |','|---|---|---|---|---|',
-    ...(r.preflight_datos??[]).map(x=>`| ${x.requisito} | ${clean(x.esperado)} | ${clean(JSON.stringify(x.observado))} | ${x.cumple?'SI':'NO'} | ${x.bloqueante?'SI':'NO'} |`),'',
-    `028-b depende de los activos por costo de finca 467: ${clean(JSON.stringify(r.activos_por_costo_467??[]))}.`,'',
-    '## Resumen','',
-    '| Caso | Estado | Motivo |','|---|---|---|',
-    ...CASOS.map(c=>`| ${c} | ${r.casos[c]?.estado??'NO_CONCLUYENTE'} | ${clean(r.casos[c]?.motivo??'')} |`),'',
-    '## Criterios API y UI','',
-    '| Caso | Criterio | Esperado | Observado | Cumple |','|---|---|---|---|---|',
-  ];
-  for(const c of CASOS)for(const z of r.casos[c]?.comprobaciones??[])lines.push(`| ${c} | ${z.id} | ${clean(z.esperado)} | ${clean(z.observado)} | ${z.estado} |`);
-  lines.push('','## Precios','','| Especie | P_ini id/fecha | P_nuevo id/fecha | Congelado id/fecha |','|---|---|---|---|',
-    ...r.precios.map(x=>`| ${x.especie} | ${x.p_ini??''} / ${x.p_ini_fecha??''} | ${x.p_nuevo??''} / ${x.p_nuevo_fecha??''} | ${x.congelado??''} / ${x.congelado_fecha??''} |`),
-    '','## Activos sin precio','','| Periodo | Prevalidacion | Excluidos | Procesados |','|---|---|---|---|',
-    ...r.activos.map(x=>`| ${x.periodo} | ${x.prevalidacion} | ${x.excluidos} | ${x.procesados} |`),
-    '','## Lineas','','| Linea | Activo | Eslabon faltante | Excluida | Destino |','|---|---|---|---|---|',
-    ...r.lineas.map(x=>`| ${x.id} | ${x.id_activo??''} | ${x.faltantes??''} | ${x.excluida} | ${x.destino} |`),
-    '','## UI','','| Panel | Pruebas ejecutadas | Estado | Acta |','|---|---|---|---|',
-    ...Object.entries(r.cypress?.paneles??{}).map(([k,x])=>`| ${k} | ${x.totalTests??0} | ${x.estado??'NO_CONCLUYENTE'} | ${clean(x.evidencia??'')} |`),
-    '','## Incidencias','',
-    ...r.incidencias.map(x=>`- ${x.id} (casos ${(x.casos??[]).join(',')}): esperado ${x.esperado}; obtenido ${x.obtenido}. Evidencia: ${x.evidencia}. Impacto: ${x.impacto}. Severidad ${x.severidad}: ${x.justificacion_severidad}; certeza ${x.certeza}. Equipo inicial ${x.equipo}: ${x.fundamento}. Hipótesis, sin atribuir causa raíz: ${x.hipotesis}. Acción: ${x.accion}.`),
-    '','## Herramientas y evidencias','',
-    `Node ${r.herramientas.node}; Newman codigo ${r.herramientas.newman?.codigo??'no ejecutado'}; Cypress codigo ${r.herramientas.cypress?.codigo??'no ejecutado'}, pruebas ${r.herramientas.cypress?.totalTests??0}.`,
-    ...r.evidencias.map(x=>`- ${x}`),
-    '','## Problemas tecnicos','',...r.problemas_tecnicos.map(x=>`- ${clean(x)}`),
-    '','## Observaciones','',
-    ...(r.observaciones??[]).map(x=>`- ${clean(x)}`),
-    '','## Cierre, rollback y accion','',
-    `Registro ${r.oficial?'OFICIAL':'NO OFICIAL'}. Rollback verificado: ${r.rollback.verificado?'si':'no'}. ${clean(r.rollback.motivo??'')}`,
-    'Las incidencias requieren correccion y reevaluacion expresamente autorizada.',''
-  );
-  const texto=lines.join('\n');
-  if(/\u00C3|\uFFFD/u.test(texto))throw Error('INFORME_UTF8_INVALIDO');
-  return texto;
+const safe=x=>String(x??'').replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+|[\w.+-]+@[\w.-]+/g,'[RESERVADO]').replace(/\|/g,'/').slice(0,500);
+
+export function informe(r){
+  const casos=Object.keys(r.casos??{});
+  const titulo=r.oficial?casos.some(c=>r.casos[c].estado==='RECHAZADO')?'reevaluación V3 oficial - RECHAZADO':'reevaluación V3 oficial - APROBADO':'reevaluación V3 NO OFICIAL';
+  const out=[`# TC-M06-G44 — ${titulo}`,'',`Grupo G44; casos ${casos.join(', ')}; RF-87; versión ${r.version}; RUN ${r.run_id}; TEST; autorización ${safe(r.autorizacion_referencia)}.`,
+    'Corrección informada: Desarrollo 0fcde3bb (#1065), origin/test 453277e4. El despliegue requiere verificación en RUN autorizado.','',
+    '## Resumen','',...casos.map(c=>`- ${c}: ${r.casos[c].estado}. ${safe(r.casos[c].motivo)}`),'',
+    '## Preflight de datos','', '| Requisito | Esperado | Observado | Cumple | Bloqueante |','|---|---|---|---|---|',
+    ...(r.preflight_datos??[]).map(x=>`| ${x.requisito} | ${safe(x.esperado)} | ${safe(JSON.stringify(x.observado))} | ${x.cumple?'SÍ':'NO'} | ${x.bloqueante?'SÍ':'NO'} |`),'',
+    '## Casos y comprobaciones API',''];
+  for(const c of casos){out.push(`### ${c}`,'');for(const q of r.casos[c]?.comprobaciones??[]){
+    const rutas={
+      '028_a':['/finanzas/periodos/220/cierre'],'028_b':['/finanzas/periodos/260/cierre'],'028_c':['/finanzas/periodos/220/cierre'],
+      '029_acceso':['/finanzas/periodos/220/cierre'],'029_mensaje':['/finanzas/periodos/220/cierre'],'029_admin':['/finanzas/periodos/220/prevalidacion'],
+      '030_cerrado':['/finanzas/periodos/7/cierre'],'030_concurrencia':['/finanzas/periodos/8/cierre'],'030_sin_segundo':['/finanzas/periodos/8/cierre']};
+    const ids=(r.solicitudes??[]).filter(s=>rutas[q.id]?.includes(s.ruta)).map(s=>s.id);
+    out.push(`**${q.id} — ${q.estado}.** Se verifica ${safe(q.esperado)}. Preparación: preflight_datos. Solicitudes ${ids.join(', ')||'sin solicitud de cierre'}. Observado: ${safe(q.observado)}. Decisión: ${q.estado==='APROBADO'?'contenido y estado conformes':q.estado==='RECHAZADO'?'discrepancia del producto':'precondición insuficiente'}. Evidencia: resultado.json.`, '');
+  }}
+  out.push('## Seguimiento V2','',...(r.seguimiento_incidencias_v2??[]).map(x=>`- ${x.id}: ${x.estado_v3}.`),'',
+    '## Incidencias de producto','');
+  for(const x of r.incidencias??[])out.push(`### ${x.id}`,'',`Esperado: ${safe(x.esperado)}.`,`Observado: ${safe(x.obtenido)}.`,`Evidencia: ${safe(x.evidencia)}; solicitudes ${r.solicitudes.filter(s=>s.ruta?.includes('/cierre')).map(s=>s.id).join(', ')}.`,`Equipo inicial ${x.equipo}: ${safe(x.fundamento)}.`,`Severidad ${x.severidad} (${x.certeza}): ${safe(x.justificacion_severidad)}`,`Causa raíz no determinada. Acción: ${safe(x.accion)}`,'');
+  out.push('## Observaciones','',...(r.observaciones??[]).map(x=>`- ${safe(x)}`),'',
+    '## Herramientas y evidencias','',`Node ${safe(r.herramientas.node)}; Newman ${r.herramientas.newman?.codigo??'no ejecutado'}; Cypress no aplica.`,...(r.evidencias??[]).map(x=>`- ${safe(x)}`),'',
+    '## Problemas técnicos','',...(r.problemas_tecnicos??[]).map(x=>`- ${safe(x)}`),'',
+    '## Cierre, rollback y acciones','',`Registro ${r.oficial?'OFICIAL':'NO OFICIAL'}. Cierre del RUN HTTP ${r.cierre?.run?.cierre_http??'no comprobado'}. Rollback ${r.rollback?.verificado?'verificado':'no verificado'}: ${safe(r.rollback?.motivo)}.`,
+    'Desarrollo revisa las discrepancias confirmadas. QA decide la siguiente acción con evidencia del RUN autorizado.','');
+  return out.join('\n');
 }

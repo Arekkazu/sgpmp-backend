@@ -1,0 +1,28 @@
+{
+  "grupo": "G32",
+  "version": 2,
+  "intento": 8,
+  "run_id": "RUN-G32-V2-20261111-203044",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G32-V2-20261111",
+  "casos": [
+    "TC-M06-001",
+    "TC-M06-002",
+    "TC-M06-003",
+    "TC-M06-004"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-001",
+      "TC-M06-002",
+      "TC-M06-003",
+      "TC-M06-004"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 de TC-M06-G32 (RF-86), ordenada por el responsable QA el 2026-11-11, tras el despliegue en TEST de la corrección de Desarrollo de INC-M06-G32-01 (issue #975, INC-M06-288-G32, PR #1036; rama test 453277e4, confirmada por el responsable QA). Se mantienen la prueba y los oráculos de la matriz (csv:375): bovinos, período contable ABIERTO y solo API. Como #999 hace que un evento M02 con fecha en un período CERRADO quede MEDICION_PENDIENTE (RF-86 :1290, FA-2 :1393, CA-7 :1444), el escenario pasa de NIT-A (período 7 CERRADO) a NIT-D (período 241 ABIERTO, finca 468), con los bovinos 1627, 1831, 1832 y 1833 preparados por API oficial. Ejecutor preparado en ORD-G32-018/019/020 (ronda 3 aprobada): SHA-256 g32.mjs b7af40d742b8f0846fe133439d8b967c1ec49946d2683b40a0558577f3f5b621; lib/g32_core.mjs 5159bd328054bcd437b147fa84efe8c40f36df674b673021c841a77439adc4a5; colección f4e5b79546d56a7acec0eb525a9c0602d6d87c6140e7d511949dfb1b10d8b692; pruebas/g32_ensayo.mjs 5bcafee717e983527a317f5172d9e4b8f793fe61ee63aec3a8da9ee84dc97e88. En el equipo del responsable QA: g32_env.test 8/8, ensayo 16/16 y registro_qa.py validar del ejemplo A4 → OFICIAL.",
+    "incumplimientos_previos": "V1 oficial RUN-G32-V1-20261108-061927: TC-M06-001 a 004 RECHAZADOS por INC-M06-G32-01 (ALTA, Desarrollo). POST /finanzas/periodos/8/trazabilidad respondió 500 ERROR_INTERNO (TGR-M06-26: la línea 9 está ligada a la variación 4 de un período CERRADO) y las cadenas GET /finanzas/lineas/{id}/cadena quedaron sin eslabones: el origen de las variaciones no se podía consultar (RF-86 Salida, CA-6). Tipos, montos, período y estado inicial ya eran conformes con RF-83.",
+    "correcciones_informadas": "Documento de lanzamiento backend 1.4.0 / frontend 1.5.0 (11-nov-2026), sección 4.2: #975 INC-M06-288-G32 — 'Una cadena de período cerrado abortaba la verificación de trazabilidad (500)' → 'Cada línea se verifica por separado' (PR #1036). En test: verificar_trazabilidad_use_case.py:54-97 y trazabilidad_repository.py:95-125 (savepoint por línea). También desplegado y con impacto en el escenario: #999 (evento en período cerrado → MEDICION_PENDIENTE).",
+    "resultado_esperado": "Si la corrección funciona: los 4 casos APROBADO (tipos y montos de RF-83, período 241 ABIERTO, VERIFICACION_PENDIENTE al crear y origen consultable por GET cadena tras un POST de verificación con 200: TB → evento M02 del caso; PM → precio RF-89 del caso). INC-M06-G32-01 se clasifica CORREGIDA (si el período 8 está ABIERTO con su línea conflictiva) o NO_REPRODUCIDA por condición ausente (hoy el 8 está EN_CIERRE); pasa a REPRODUCIDA si la verificación del 241 da 5xx o el origen no se puede consultar. Severidad según la regla de ORD-G32-018 (C7). Solo TEST lo confirma."
+  },
+  "version_anterior": 1
+}

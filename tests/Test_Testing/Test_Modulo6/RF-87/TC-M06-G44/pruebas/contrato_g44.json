@@ -67,6 +67,10 @@
                                             "ultimo_cierre":  {
                                                                   "id_cierre":  "integer|null",
                                                                   "id_usuario_ejecutor":  "integer|null",
+                                                                  "nombre_usuario_ejecutor": "string|null?",
+                                                                  "estado": "string?",
+                                                                  "paso_actual": "integer|null?",
+                                                                  "fecha_inicio": "datetime|null?",
                                                                   "fecha_fin":  "datetime|null",
                                                                   "_nullable":  true,
                                                                   "precios_congelados":  [
@@ -121,6 +125,7 @@
                                         {
                                             "id_linea_asiento_nic41":  "integer",
                                             "id_activo_biologico":  "integer",
+                                            "id_finca": "integer?",
                                             "estado":  "string",
                                             "tipo_hecho":  "string",
                                             "sentido":  "string",
@@ -238,6 +243,13 @@
                                                      }
                                     },
                       "cita":  "src/financial_valuation/infrastructure/dto/m06_dto.py:132-134; src/financial_valuation/infrastructure/routers/m06_router.py:312-318; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:298-302"
+                  },
+                  {
+                      "metodo": "POST",
+                      "ruta": "/finanzas/periodos/{id}/cierre/cancelacion",
+                      "http": 200,
+                      "respuesta": {"id_periodo_contable":"integer", "id_cierre":"integer", "estado":"string"},
+                      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:462-467; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:307-330"
                   },
                   {
                       "metodo":  "DELETE",

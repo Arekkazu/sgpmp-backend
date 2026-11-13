@@ -179,6 +179,7 @@
           "id_activo_biologico": "integer",
           "estado": "string",
           "tipo_hecho": "string",
+          "tipo_hecho_corregido": "string|null",
           "sentido": "string",
           "id_especie": "integer|null",
           "subtipo_costo": "string|null",
@@ -312,9 +313,10 @@
         "cuenta_credito": "string"
       },
       "respuesta": {
-        "id_asignacion_cuenta_contable": "integer"
+        "id_asignacion_cuenta_contable": "integer",
+        "lineas_resueltas": "integer"
       },
-      "cita": "src/financial_valuation/infrastructure/dto/m06_dto.py:49-61; src/financial_valuation/infrastructure/routers/m06_router.py:115-121"
+      "cita": "src/financial_valuation/infrastructure/dto/m06_dto.py:49-61; src/financial_valuation/infrastructure/routers/m06_router.py:146-152; src/financial_valuation/application/use_cases/configuracion/guardar_asignacion_cuenta_use_case.py:29-53"
     },
     {
       "metodo": "POST",
@@ -424,6 +426,7 @@
           "subtipo_costo": "string",
           "naturaleza_costo": "string",
           "monto_costo": "decimal",
+          "es_reverso": "boolean",
           "fecha_costo": "date",
           "id_periodo_contable": "integer",
           "id_activo_biologico": "integer"

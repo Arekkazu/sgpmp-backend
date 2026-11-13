@@ -35,10 +35,10 @@ test('RF-91 HTTP 500 rechaza aun sin historial M03', () => {
 test('RF-91 422 PERIODO_NO_ABIERTO queda NO_CONCLUYENTE técnico', () => {
   const decision = decidirVerificacion(422, 'PERIODO_NO_ABIERTO');
   assert.equal(decision.estado, 'NO_CONCLUYENTE');
-  assert.match(decision.motivo, /período 8.*ABIERTO/);
+  assert.match(decision.motivo, /período 241.*ABIERTO/);
 });
 
-test('RF-91 nivel 1 bloquea sin precondición; 2 a 4 rechazan', () => {
+test('RF-91 niveles 1 a 4 rechazan con precondicion preparada', () => {
   const inicial = { estado_trazabilidad: 'VERIFICACION_PENDIENTE' };
   const cadenaInicial = { ...mock('cadena'), estado_trazabilidad: 'VERIFICACION_PENDIENTE',
     estado_verificacion: null, nivel_fallo: null, eslabones: null };
@@ -46,16 +46,16 @@ test('RF-91 nivel 1 bloquea sin precondición; 2 a 4 rechazan', () => {
   for (const nivel_fallo of [1, 2, 3, 4]) {
     const cadena = { ...mock('cadena'), nivel_fallo, estado_verificacion: 'FALLIDO' };
     assert.equal(oraculo013({ inicial, cadenaInicial, final, cadena, evento: 1, lecturaApta: null }).estado,
-      nivel_fallo === 1 ? 'BLOQUEADO' : 'RECHAZADO');
+      'RECHAZADO');
   }
 });
 
-test('Newman acepta lista vacía y eslabones null sin asignar línea cero', () => {
+test('Newman V2 consulta acumulado y cadena sin linea ficticia', () => {
   const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const col = JSON.parse(fs.readFileSync(path.join(dir, 'G37.postman_collection.json'), 'utf8'));
-  assert.equal(col.item.length, 3);
+  assert.equal(col.item.length, 2);
   const scripts = col.item.map(x => x.event[0].script.exec.join('\n'));
-  assert.match(scripts[0], /an\('array'\)/);
-  assert.match(scripts[2], /property\('eslabones'\)/);
+  assert.match(scripts[0], /Acumulado RF-86/);
+  assert.match(scripts[1], /property\('eslabones'\)/);
   assert.doesNotMatch(fs.readFileSync(path.join(dir, 'g37.mjs'), 'utf8'), /linea: String\(linea \?\? 0\)/);
 });

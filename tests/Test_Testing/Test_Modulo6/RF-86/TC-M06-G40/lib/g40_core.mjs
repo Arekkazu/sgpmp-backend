@@ -78,7 +78,6 @@ export function mock(id) {
   const crear = t => typeof t === 'string' ? ({ number: 1, decimal: '1.00', string: 'x', boolean: false, object: {} })[t.split('|')[0]] ?? null
     : Array.isArray(t) ? [crear(t[0])] : Object.fromEntries(Object.entries(t).map(([k, v]) => [k, crear(v)]));
   const cuerpo = p.tipo === 'array' ? [crear(p.campos)] : crear(p.campos);
-  if (id === 'periodos') cuerpo[0].ultimo_cierre = null;
   if (id === 'cadena') cuerpo.eslabones = crear(p.subcampos_eslabones);
   validarMock(id, cuerpo);
   return cuerpo;
@@ -114,7 +113,7 @@ export const idsNuevos = (antes, despues, campo) => {
 };
 export function vigente(precios, especie, hoy) {
   const lista = precios.filter(p => Number(p.id_especie) === Number(especie) && p.categoria === 'PESO_KG' &&
-    p.fecha_vigencia <= hoy && (!p.fecha_vencimiento || p.fecha_vencimiento >= hoy));
+    Number(p.precio_unitario)>0 && p.fecha_vigencia <= hoy && (!p.fecha_vencimiento || p.fecha_vencimiento >= hoy));
   for (const fuente of ['MERCADO_ACTIVO', 'UPRA', 'ESTIMADA']) {
     const p = lista.filter(x => x.fuente === fuente).sort((a, b) =>
       String(b.fecha_vigencia).localeCompare(String(a.fecha_vigencia)) || b.id_precio_mercado - a.id_precio_mercado)[0];
@@ -125,9 +124,7 @@ export function vigente(precios, especie, hoy) {
 export function periodoDestino(periodos, nit, hoy) {
   const propios = periodos.filter(p => String(p.numero_id_tributaria) === String(nit));
   const actual = propios.find(p => p.fecha_inicio <= hoy && p.fecha_fin >= hoy);
-  if (actual?.estado === 'ABIERTO') return actual;
-  return propios.filter(p => p.estado === 'ABIERTO' && p.fecha_inicio > (actual?.fecha_fin ?? hoy))
-    .sort((a, b) => String(a.fecha_inicio).localeCompare(String(b.fecha_inicio)))[0] ?? null;
+  return actual?.estado === 'ABIERTO' ? actual : null;
 }
 export function seleccionarCandidatos(candidatos, cantidad = 4, precondicion = null) {
   const motivos = [], elegibles = [];

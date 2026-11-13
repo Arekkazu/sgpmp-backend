@@ -15,7 +15,7 @@ const args=[path.join(DIR,'..','..','..','..','..','node_modules','cypress','bin
   '--headless','--browser','electron'];
 const vars={API_BASE:input.api,FRONT_BASE:input.front,RUN_ID:input.runId,ARTIFACTS_DIR:input.dir,
   PROD_LOGIN_TOKEN:input.token,SANDBOX_SECRET:input.secret,EXPECTED_COUNT:input.expected.conteo,
-  SPECIES_ID:input.expected.especie,SPECIES_NAME:input.expected.especieNombre,
+   SPECIES_ID:input.expected.especie,SPECIES_NAME:input.expected.especieNombre,SENTIDO:input.expected.sentido,
   BASE_NOTICE_IDS:JSON.stringify(input.expected.avisosBase),LOCAL_SMOKE:input.localSmoke?'SI':'NO'};
 const env={...process.env,CYPRESS_ARTIFACTS_DIR:input.dir,
   ...Object.fromEntries(Object.entries(vars).map(([k,v])=>['CYPRESS_'+k,String(v)]))};

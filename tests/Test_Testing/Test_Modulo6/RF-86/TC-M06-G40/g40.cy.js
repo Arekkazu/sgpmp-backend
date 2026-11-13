@@ -4,6 +4,7 @@ const env=k=>Cypress.env(k),API=String(env('API_BASE')||'').replace(/\/+$/,''),F
 const RUN=String(env('RUN_ID')||''),DIR=env('ARTIFACTS_DIR'),EXPECTED=Number(env('EXPECTED_COUNT'));
 const SPECIES=String(env('SPECIES_ID')||'');
 const SPECIES_NAME=String(env('SPECIES_NAME')||'');
+const SENTIDO=String(env('SENTIDO')||'GANANCIA');
 const ALERT_SELECTOR='.ds-alert.ds-alert--warning[role="alert"]';
 const TITLE=/^(\d+)\s+l[ií]neas?\s+de asiento sin cuenta contable$/i;
 const rawBase=env('BASE_NOTICE_IDS')||[];
@@ -14,7 +15,7 @@ const loopback=u=>{try{const x=new URL(u);return x.protocol==='http:'&&['127.0.0
 const allowed=/^RUN-G40-V\d+-\d{8}-\d{6}$/.test(RUN)&&
   (trial?loopback(API)&&loopback(FRONT):canonical.test(API)&&
   /^https:\/\/(?:www\.)?api\.inmero\.co\/sigab-test$/.test(FRONT))&&DIR&&
-  env('PROD_LOGIN_TOKEN')&&env('SANDBOX_SECRET')&&Number.isInteger(EXPECTED)&&EXPECTED>=0;
+  env('PROD_LOGIN_TOKEN')&&env('SANDBOX_SECRET')&&['GANANCIA','PERDIDA'].includes(SENTIDO)&&Number.isInteger(EXPECTED)&&EXPECTED>=0;
 const acta={caso:'TC-M06-018',id:'G40-UI-018-01',estado:'NO_CONCLUYENTE',motivo:'No iniciado',
   panel_visible:false,conteo:null,campana_visible:false,bandeja_abierta:false,avisos_en_ui:0,
   avisos_nuevos_api:0,combinacion_visible:false,captura:false,
@@ -74,7 +75,7 @@ describe('[TC-M06-018] configuración y alerta',()=>{
     });}
     leerPanel();
     cy.get('body').then($body=>{const text=$body[0].innerText||'';
-      acta.combinacion_visible=coincideCombinacion(text,SPECIES,SPECIES_NAME);});
+      acta.combinacion_visible=coincideCombinacion(text,SPECIES,SPECIES_NAME,SENTIDO);});
     cy.get('body').then($body=>{const bell=$body[0].querySelector('button[aria-controls="notification-tray"]');
       if(bell)cy.wrap(bell).click();});
     let avisosNuevos=[];
@@ -82,7 +83,7 @@ describe('[TC-M06-018] configuración y alerta',()=>{
       expect(response?.statusCode).eq(200);expect(response?.headers?.['x-test-run-id']).eq(RUN);
       avisosNuevos=(response?.body?.items||[]).map((x,index)=>({index,id:x.id_notificacion,mensaje:String(x.mensaje)}))
         .filter(x=>!BASE_NOTICE_IDS.has(String(x.id)))
-        .filter(x=>coincideCombinacion(x.mensaje,SPECIES,SPECIES_NAME));
+        .filter(x=>coincideCombinacion(x.mensaje,SPECIES,SPECIES_NAME,SENTIDO));
       acta.avisos_nuevos_api=avisosNuevos.length;});
     function leerBandeja(restantes){return cy.get('body').then($body=>{
       const tray=$body[0].querySelector('#notification-tray');
