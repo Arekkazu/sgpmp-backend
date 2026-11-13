@@ -4,7 +4,7 @@
 """rbac m06: el rol Auditor lee la configuración contable
 
 Revision ID: 0884ba08a944
-Revises: 603631775892
+Revises: 810b1e4eb4f9
 Create Date: 2026-11-12
 
 El rol «Auditor» (creado desde la gestión de roles, no por el seed) lee el reconocimiento
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = '0884ba08a944'
-down_revision: Union[str, Sequence[str], None] = '603631775892'
+down_revision: Union[str, Sequence[str], None] = '810b1e4eb4f9'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
