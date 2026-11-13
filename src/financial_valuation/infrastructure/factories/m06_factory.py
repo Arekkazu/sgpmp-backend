@@ -10,6 +10,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | Arekkazu | INC-M06-342/351 RF-86/87: avisos de cuenta faltante y ajuste de período anterior |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: conectar la notificación financiera de supuestos faltantes. |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -210,7 +211,9 @@ class M06:
     def estado_resultados(self):
         return GenerarEstadoResultadosUseCase(self.db, self.periodos, self.reportes, self.constructor_estado, self.auditoria)
     def informe_revelaciones(self):
-        return GenerarInformeRevelacionesUseCase(self.db, self.periodos, self.reportes, self.constructor_informe, self.auditoria)
+        return GenerarInformeRevelacionesUseCase(
+            self.db, self.periodos, self.reportes, self.constructor_informe, self.auditoria, self.notificador,
+        )
     def exportar(self): return ExportarReporteUseCase(self.periodos, self.reportes)
     def consultar_auditoria(self): return ConsultarAuditoriaFinancieraUseCase(self.auditoria)
     def consultar_productos(self): return ConsultarProductosAgricolasUseCase(self.valoraciones)

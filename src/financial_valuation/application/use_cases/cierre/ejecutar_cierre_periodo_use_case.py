@@ -8,6 +8,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: EN_CIERRE en espera de autorización, cancelación, matriz y titular |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-02 RF-87: las líneas sin trazabilidad de la prevalidación nombran su activo |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio (excluir o estimar) |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar los supuestos faltantes del borrador creado al cerrar. |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -29,7 +30,11 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.application.services.contabilizador import Contabilizador
 from src.financial_valuation.application.services.medidor import Medidor
-from src.financial_valuation.application.services.reportes import ConstructorEstadoResultados, ConstructorInformeRevelaciones
+from src.financial_valuation.application.services.reportes import (
+    ConstructorEstadoResultados,
+    ConstructorInformeRevelaciones,
+    avisar_supuestos_insuficientes,
+)
 from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazabilidad_use_case import VerificadorTrazabilidad
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento, Periodo
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
@@ -208,6 +213,9 @@ class EjecutarCierrePeriodoUseCase:
             raise InfrastructureError(code="CIERRE_PERIODO_FALLIDO", message=(
                 f"El proceso de cierre falló en el paso {paso}. Se revirtieron todos los cambios y el período permanece "
                 "ABIERTO. Corrija el problema y reinicie el cierre.")) from exc
+        informe = resultado.pop("_informe_revelaciones")
+        if informe is not None:
+            avisar_supuestos_insuficientes(self.notificador, id_periodo_contable, informe)
         self.notificador.a_contadores("CIERRE_PERIODO_CONTABLE", (
             f"Período {resultado['periodo']} cerrado: listo para transferir desde Agrofusión."),
             {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
@@ -425,7 +433,7 @@ class EjecutarCierrePeriodoUseCase:
         self._paso = 9
         self.periodos.cambiar_estado(periodo.id_periodo_contable, EstadoPeriodo.CERRADO.value)
         hash_cierre = hash_sha256({"periodo": periodo.id_periodo_contable, "comprobantes": codigos, "excluidos": excluidos})
-        reportes = self._reportes(periodo, id_usuario, excluidos)
+        reportes, informe = self._reportes(periodo, id_usuario, excluidos)
         self.periodos.finalizar_cierre(id_cierre, "COMPLETADO", {
             "paso": 9, "procesados": procesados, "pendientes": len(excluidos), "excluidos": excluidos + pendientes,
             "precios": [{"id_especie": k, "id_precio_mercado": p.id_precio_mercado, "precio_unitario": str(p.precio_unitario),
@@ -441,6 +449,7 @@ class EjecutarCierrePeriodoUseCase:
                  "periodo": f"{periodo.fecha_inicio:%Y-%m}", "estado": EstadoPeriodo.CERRADO.value,
                  "activos_procesados": procesados, "activos_excluidos": excluidos, "lineas_excluidas": pendientes,
                  "comprobantes": codigos, "hash_cierre": hash_cierre, "reportes": reportes,
+                 "_informe_revelaciones": informe,
                  "id_periodo_siguiente": siguiente.id_periodo_contable, "activos_al_costo_con_precio": al_costo_con_precio})
 
     def _depreciar(self, activo, costo, periodo, dia, id_cierre, id_usuario, precio_vigente) -> None:
@@ -487,9 +496,10 @@ class EjecutarCierrePeriodoUseCase:
         return existente or self.periodos.crear(periodo.numero_id_tributaria, self.contabilizador.config.obtener().tipo_cierre,
                                                 inicio, fin, id_usuario)
 
-    def _reportes(self, periodo: Periodo, id_usuario: int, excluidos: list) -> dict:
+    def _reportes(self, periodo: Periodo, id_usuario: int, excluidos: list) -> tuple[dict, dict | None]:
         """Paso 8: si RF-92 o RF-93 fallan, el cierre se completa y quedan PENDIENTE_GENERACION (CA-11)."""
         estado = {"estado_resultados": "PENDIENTE_GENERACION", "informe_revelaciones": "PENDIENTE_GENERACION"}
+        informe = None
         try:
             with self.db.begin_nested():
                 er = self.estado_resultados.guardar(periodo.id_periodo_contable, {}, id_usuario, excluidos)
@@ -501,8 +511,9 @@ class EjecutarCierrePeriodoUseCase:
                 informe = self.revelaciones.guardar(periodo.id_periodo_contable, {}, id_usuario)
             estado["informe_revelaciones"] = {"id_informe": informe["id_informe"], "version": informe["version_informe"]}
         except Exception:
+            informe = None
             logger.exception("RF-87 paso 8: no se pudo generar el informe de revelaciones del período %s.", periodo.id_periodo_contable)
-        return estado
+        return estado, informe
 
     def _fallar(self, id_periodo, id_cierre, paso, exc, id_usuario) -> None:
         try:

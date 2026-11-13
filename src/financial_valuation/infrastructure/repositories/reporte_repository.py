@@ -6,6 +6,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: estados e informes solo de los titulares de las fincas de quien consulta |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: excluir_activos en los movimientos del estado de resultados |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: recuperar los supuestos al corte y la fuente de precio. |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -100,7 +101,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, e.id_especie, e.nombre AS especie,
                    ri.clasificacion::text AS clasificacion, ri.indicador_valoracion::text AS indicador_valoracion,
                    ri.origen_financiero::text AS origen_financiero, ri.costo_adquisicion,
-                   ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual,
+                   ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual, f.id_finca,
                    (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
                      WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date < :i
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) AS valor_inicio,
@@ -130,14 +131,26 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             JOIN modulo6.precios_mercado pm ON pm.id_precio_mercado = c.id_precio_mercado
             JOIN modulo9.especies e ON e.id_especie = pm.id_especie
             WHERE c.id_periodo_contable = :p ORDER BY 2, 6""", p)
-        supuestos = filas(self.db, """
-            SELECT c.id_activo_biologico, c.magnitud, c.unidad_magnitud, c.precio_unitario, c.valor_razonable_bruto,
-                   c.valor_neto, c.metodo_costo::text AS metodo_costo, c.tiene_valor_estimado, c.json_metodo_costo
+        supuestos = filas(self.db, f"""
+            SELECT DISTINCT ON (c.id_activo_biologico)
+                   c.id_activo_biologico, c.magnitud, c.unidad_magnitud, c.precio_unitario, c.valor_razonable_bruto,
+                   c.valor_neto, c.metodo_costo::text AS metodo_costo, c.tiene_valor_estimado, c.json_metodo_costo,
+                   m.supuestos_aplicados,
+                   COALESCE(NULLIF(btrim(c.json_metodo_costo->>'fuente_precio'), ''),
+                            NULLIF(btrim(m.supuestos_aplicados->>'fuente'), ''), pm.fuente::text) AS fuente
             FROM modulo6.calculos_valor_razonable c
-            WHERE c.id_periodo_contable = :p AND c.estado = 'CALCULADO'
-              AND c.id_calculo_valor_razonable = (SELECT max(c2.id_calculo_valor_razonable) FROM modulo6.calculos_valor_razonable c2
-                                                  WHERE c2.id_activo_biologico = c.id_activo_biologico
-                                                    AND c2.id_periodo_contable = :p AND c2.estado = 'CALCULADO')""", p)
+            LEFT JOIN modulo6.precios_mercado pm ON pm.id_precio_mercado = c.id_precio_mercado
+            LEFT JOIN LATERAL (
+                SELECT supuestos_aplicados FROM modulo6.mediciones_posteriores mp
+                 WHERE mp.id_calculo_actual = c.id_calculo_valor_razonable
+                   AND mp.id_activo_biologico = c.id_activo_biologico
+                   AND mp.id_periodo_contable = c.id_periodo_contable
+                 ORDER BY mp.fecha_medicion DESC, mp.id_medicion_posterior DESC LIMIT 1
+            ) m ON true
+            WHERE c.id_activo_biologico = ANY(:activos) AND c.estado = 'CALCULADO'
+              AND {ES_BASE_C} AND c.fecha_calculo::date <= :f
+            ORDER BY c.id_activo_biologico, c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC
+        """, {**rango, "activos": [a["id_activo_biologico"] for a in activos]})
         riesgos = filas(self.db, """
             SELECT 'SANITARIO' AS categoria, es.tipo::text AS tipo, count(*) AS cantidad
             FROM modulo2.eventos_sanitarios es JOIN modulo2.eventos_activos ea ON ea.id_eventos = es.id_evento
