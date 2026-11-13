@@ -1,0 +1,105 @@
+================================================================================
+INFORME DE EJECUCION: TC-M05-G40 (REINTENTO 1)
+RF-80 v2.0 (RFC-025 C25.1) "Atomicidad de Auditoria y Rollback"
+================================================================================
+Fecha/Hora: 2026-11-12 00:20:48 (America/Bogota)
+Total tests: 8 | Aprobados: 7 | Fallidos: 1
+Veredicto: Rechazado | Duracion: 21.26 s
+
+CHECKPOINTS:
+--------------------------------------------------------------------------------
+[01] T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura) -> OK
+     Esperado: GET /suministros/auditoria 200 con total y ultimo_id base; DELETE -> 200 Rollback exitoso
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=b92b0ec0-de22-475a-a6b0-364d22a86681]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=6e7113f3-1005-4982-a97f-7a33f222081a]; DELETE /test-control/runs/tc-m05-g40-inopre-db4047d5 -> HTTP 200 [X-Request-Id=9d0f5b4a-af56-482f-aef3-ca3119cef598]
+
+[02] A01 Atomicidad en commit RF-78 (POST /suministros/costeo-directo) -> OK
+     Esperado: HTTP 200 (RF-78 CA-14/E8); exactamente 1 SUMINISTRO_REGISTRADO, 1 PRECIO_MANUAL_INGRESADO y 1 ACUMULADO_ACTUALIZADO con hash_integridad (64 hex), version in {1,2} y <= 2.0 s
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=b1ad04aa-d4a8-4b07-83ff-4087be102f2d]; POST /activos-biologicos -> HTTP 201 [X-Request-Id=786a7487-73f5-4438-b092-f61300158202]; POST /activos-biologicos/1863/fases -> HTTP 201 [X-Request-Id=742d0130-01a3-4f4f-a091-29d11cf2d267]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=89709efd-df22-444c-9ccb-2ee0f170243d]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=fdf51df3-ebfa-429e-aeb5-ff2e7aaa70c8]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=60a46b2d-5932-415f-9d06-af31892fcb88]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=ae031531-8f78-4aaf-8093-9bb85afbeb31]; GET /suministros/costeo-directo/acumulado/activo/1863 -> HTTP 200 [X-Request-Id=2b38e971-1adc-49a9-9f3a-c87f2ad34143]
+
+[03] A02 Atomicidad en commit RF-79 (POST /activos-biologicos/{id}/cierre) -> FALLA
+     Esperado: HTTP 200 (OpenAPI); exactamente 1 CICLO_CONSOLIDADO y 1 REPORTE_COSTOS_GENERADO (entidad_afectada='provision_nic41') en secuencia y con hash <= 2.0 s; resultado_ica solo conteo
+     Obtenido: AssertionError: A02 esperaba al menos 1 provision NIC-41 persistida tras cierre [TC-M05-031 v2.0] | HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1fca26c4-04f7-4895-aec5-7ebe2597333f]; POST /activos-biologicos/1863/cierre -> HTTP 200 [X-Request-Id=468d0075-ebfb-4545-9030-8a1bfaeb5088]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=53e34a6c-d316-46de-b252-9c21a81099bd]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=8618119c-981f-4b28-ab86-3d1db2f2ec62]; GET /suministros/nic41/ciclo/838/versiones -> HTTP 200 [X-Request-Id=a3921e4f-de2b-4d83-9b21-8b85127494b3]
+
+[04] A03 Atomicidad en commit RF-81 (GET /suministros/historial) -> OK
+     Esperado: HTTP 200 (OpenAPI); exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo del Admin (entidad_afectada='historial_suministros', EXITOSO) con hash <= 2.0 s
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=d7f63958-a51c-400e-9524-e7738cccfda1]; GET /suministros/historial -> HTTP 200 [X-Request-Id=79088d50-6b88-4472-9be7-3ea9adaa15b9]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1fed1fc0-041d-4e96-9b9f-01e9ecc8c687]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=c43403b8-780c-425c-8ae4-67d469df89e8]
+
+[05] B01 Rollback / no persistencia parcial en errores RF-78 y RF-81 -> OK
+     Esperado: (a) RF-78 invalido -> 400/422 y 0 EXITOSO/acumulado 404; (b) RF-78 activo cerrado -> 409/422 y 0 EXITOSO/acumulado intacto; (c) RF-81 rango invertido -> 422 COMBINACION_FILTROS_INVALIDA y 0 CONSULTA_HISTORIAL_EJECUTADA EXITOSO
+     Obtenido: HTTP: POST /activos-biologicos -> HTTP 201 [X-Request-Id=4bfa5fa7-28a6-40b6-a7fe-af9772193417]; POST /activos-biologicos/1865/fases -> HTTP 201 [X-Request-Id=1f206082-1106-47d6-82f1-8fda5bee0d5b]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=6584a2f9-0a91-435c-bb36-ae2cb46afe20]; POST /suministros/costeo-directo -> HTTP 422 COSTO_REGISTRO_INVALIDO [X-Request-Id=8693be17-7085-4434-9a67-f5d87b403c81]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=dd8c6617-5cd8-49c6-85a8-4bcb0c053e51]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=5e56ee11-1f4c-4d4a-9ec0-a7c067c9a6c7]; GET /suministros/costeo-directo/acumulado/activo/1865 -> HTTP 404 ACUMULADO_NO_ENCONTRADO [X-Request-Id=651202b5-8c8d-46ce-aa51-113a2e66e5a9]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=c77a2629-466a-47ed-9b25-5674bcf12585]; (+7 requests)
+
+[06] A04 Latencia secuencial (20 POST /suministros/costeo-directo) e integridad atomica -> OK
+     Esperado: 20 HTTP 200 (RF-78 CA-14/E8), metricas p50/p95/min/max y 60 eventos nuevos con hash_integridad <= 2.0 s
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=649093f8-b374-4973-80ba-4f4710bc4300]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=b6c22f3b-02cd-4d9f-b59b-0010388e8ed2]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=443ce527-6cf1-431f-8446-fd8c7ad2687b]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=784f980c-503d-4132-915a-4a35b1600c97]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=649b850d-822d-4d02-8301-8986ad404cb5]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=35826d41-ea32-44bf-9ac1-5b654e0921d0]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=2adac766-bafd-4533-af88-a4af2e919d9b]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=881197da-6b8f-4404-9996-ade95f29d3f1]; (+15 requests)
+
+[07] C01 / T98 Rollback tecnico y cierre de corrida sandbox principal -> OK
+     Esperado: DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso
+     Obtenido: HTTP: DELETE /test-control/runs/tc-m05-g40-adm-6ae9c1ba -> HTTP 200 [X-Request-Id=ee83ce34-d9e4-4fef-9bfe-0bc4834dc979]
+
+[08] T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura -> OK
+     Esperado: total y ultimo_id iguales a T00; activos y acumulados creados -> HTTP 404; DELETE -> 200
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=d37f3a64-3121-42da-8d85-2c84e2667ba7]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=f0064d83-7d08-4ea8-a59e-9e4d519f67b7]; GET /activos-biologicos/1863 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=b5233535-d73f-4483-9435-d35b45197412]; GET /suministros/costeo-directo/acumulado/activo/1863 -> HTTP 404 CICLO_NO_ACTIVO [X-Request-Id=4a12bfbe-1df3-426d-800c-0cbcf51061fa]; GET /activos-biologicos/1865 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=473d7646-c3f3-43ee-a32e-b97a6009bcaa]; GET /suministros/costeo-directo/acumulado/activo/1865 -> HTTP 404 CICLO_NO_ACTIVO [X-Request-Id=2489e9b0-5310-4436-85a1-4e1cc8aa53de]; DELETE /test-control/runs/tc-m05-g40-inopost-ca39bde3 -> HTTP 200 [X-Request-Id=6e585fd8-e2a7-438c-9162-11aafc9511a7]
+
+LATENCIA A04 (POST /suministros/costeo-directo -> 200):
+  muestras=20 min=126.99ms p50=136.87ms p95=305.56ms max=305.56ms
+
+RESULTADO JSON:
+{
+  "tc": "TC-M05-G40",
+  "summary": {
+    "total": 8,
+    "ok": 7,
+    "falla": 1,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)",
+      "esperado": "GET /suministros/auditoria 200 con total y ultimo_id base; DELETE -> 200 Rollback exitoso",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=b92b0ec0-de22-475a-a6b0-364d22a86681]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=6e7113f3-1005-4982-a97f-7a33f222081a]; DELETE /test-control/runs/tc-m05-g40-inopre-db4047d5 -> HTTP 200 [X-Request-Id=9d0f5b4a-af56-482f-aef3-ca3119cef598]",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Atomicidad en commit RF-78 (POST /suministros/costeo-directo)",
+      "esperado": "HTTP 200 (RF-78 CA-14/E8); exactamente 1 SUMINISTRO_REGISTRADO, 1 PRECIO_MANUAL_INGRESADO y 1 ACUMULADO_ACTUALIZADO con hash_integridad (64 hex), version in {1,2} y <= 2.0 s",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=b1ad04aa-d4a8-4b07-83ff-4087be102f2d]; POST /activos-biologicos -> HTTP 201 [X-Request-Id=786a7487-73f5-4438-b092-f61300158202]; POST /activos-biologicos/1863/fases -> HTTP 201 [X-Request-Id=742d0130-01a3-4f4f-a091-29d11cf2d267]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=89709efd-df22-444c-9ccb-2ee0f170243d]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=fdf51df3-ebfa-429e-aeb5-ff2e7aaa70c8]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=60a46b2d-5932-415f-9d06-af31892fcb88]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=ae031531-8f78-4aaf-8093-9bb85afbeb31]; GET /suministros/costeo-directo/acumulado/activo/1863 -> HTTP 200 [X-Request-Id=2b38e971-1adc-49a9-9f3a-c87f2ad34143]",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Atomicidad en commit RF-79 (POST /activos-biologicos/{id}/cierre)",
+      "esperado": "HTTP 200 (OpenAPI); exactamente 1 CICLO_CONSOLIDADO y 1 REPORTE_COSTOS_GENERADO (entidad_afectada='provision_nic41') en secuencia y con hash <= 2.0 s; resultado_ica solo conteo",
+      "obtenido": "AssertionError: A02 esperaba al menos 1 provision NIC-41 persistida tras cierre [TC-M05-031 v2.0] | HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1fca26c4-04f7-4895-aec5-7ebe2597333f]; POST /activos-biologicos/1863/cierre -> HTTP 200 [X-Request-Id=468d0075-ebfb-4545-9030-8a1bfaeb5088]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=53e34a6c-d316-46de-b252-9c21a81099bd]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=8618119c-981f-4b28-ab86-3d1db2f2ec62]; GET /suministros/nic41/ciclo/838/versiones -> HTTP 200 [X-Request-Id=a3921e4f-de2b-4d83-9b21-8b85127494b3]",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "A03 Atomicidad en commit RF-81 (GET /suministros/historial)",
+      "esperado": "HTTP 200 (OpenAPI); exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo del Admin (entidad_afectada='historial_suministros', EXITOSO) con hash <= 2.0 s",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=d7f63958-a51c-400e-9524-e7738cccfda1]; GET /suministros/historial -> HTTP 200 [X-Request-Id=79088d50-6b88-4472-9be7-3ea9adaa15b9]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1fed1fc0-041d-4e96-9b9f-01e9ecc8c687]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=c43403b8-780c-425c-8ae4-67d469df89e8]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Rollback / no persistencia parcial en errores RF-78 y RF-81",
+      "esperado": "(a) RF-78 invalido -> 400/422 y 0 EXITOSO/acumulado 404; (b) RF-78 activo cerrado -> 409/422 y 0 EXITOSO/acumulado intacto; (c) RF-81 rango invertido -> 422 COMBINACION_FILTROS_INVALIDA y 0 CONSULTA_HISTORIAL_EJECUTADA EXITOSO",
+      "obtenido": "HTTP: POST /activos-biologicos -> HTTP 201 [X-Request-Id=4bfa5fa7-28a6-40b6-a7fe-af9772193417]; POST /activos-biologicos/1865/fases -> HTTP 201 [X-Request-Id=1f206082-1106-47d6-82f1-8fda5bee0d5b]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=6584a2f9-0a91-435c-bb36-ae2cb46afe20]; POST /suministros/costeo-directo -> HTTP 422 COSTO_REGISTRO_INVALIDO [X-Request-Id=8693be17-7085-4434-9a67-f5d87b403c81]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=dd8c6617-5cd8-49c6-85a8-4bcb0c053e51]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=5e56ee11-1f4c-4d4a-9ec0-a7c067c9a6c7]; GET /suministros/costeo-directo/acumulado/activo/1865 -> HTTP 404 ACUMULADO_NO_ENCONTRADO [X-Request-Id=651202b5-8c8d-46ce-aa51-113a2e66e5a9]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=c77a2629-466a-47ed-9b25-5674bcf12585]; (+7 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Latencia secuencial (20 POST /suministros/costeo-directo) e integridad atomica",
+      "esperado": "20 HTTP 200 (RF-78 CA-14/E8), metricas p50/p95/min/max y 60 eventos nuevos con hash_integridad <= 2.0 s",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=649093f8-b374-4973-80ba-4f4710bc4300]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=b6c22f3b-02cd-4d9f-b59b-0010388e8ed2]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=443ce527-6cf1-431f-8446-fd8c7ad2687b]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=784f980c-503d-4132-915a-4a35b1600c97]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=649b850d-822d-4d02-8301-8986ad404cb5]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=35826d41-ea32-44bf-9ac1-5b654e0921d0]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=2adac766-bafd-4533-af88-a4af2e919d9b]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=881197da-6b8f-4404-9996-ade95f29d3f1]; (+15 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 / T98 Rollback tecnico y cierre de corrida sandbox principal",
+      "esperado": "DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso",
+      "obtenido": "HTTP: DELETE /test-control/runs/tc-m05-g40-adm-6ae9c1ba -> HTTP 200 [X-Request-Id=ee83ce34-d9e4-4fef-9bfe-0bc4834dc979]",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura",
+      "esperado": "total y ultimo_id iguales a T00; activos y acumulados creados -> HTTP 404; DELETE -> 200",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=d37f3a64-3121-42da-8d85-2c84e2667ba7]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=f0064d83-7d08-4ea8-a59e-9e4d519f67b7]; GET /activos-biologicos/1863 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=b5233535-d73f-4483-9435-d35b45197412]; GET /suministros/costeo-directo/acumulado/activo/1863 -> HTTP 404 CICLO_NO_ACTIVO [X-Request-Id=4a12bfbe-1df3-426d-800c-0cbcf51061fa]; GET /activos-biologicos/1865 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=473d7646-c3f3-43ee-a32e-b97a6009bcaa]; GET /suministros/costeo-directo/acumulado/activo/1865 -> HTTP 404 CICLO_NO_ACTIVO [X-Request-Id=2489e9b0-5310-4436-85a1-4e1cc8aa53de]; DELETE /test-control/runs/tc-m05-g40-inopost-ca39bde3 -> HTTP 200 [X-Request-Id=6e585fd8-e2a7-438c-9162-11aafc9511a7]",
+      "estado": "OK"
+    }
+  ]
+}

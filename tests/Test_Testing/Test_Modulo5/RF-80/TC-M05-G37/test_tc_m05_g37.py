@@ -1,22 +1,25 @@
 # | Fecha      | Nombre                   | Que se hizo                                                           |
 # |------------|--------------------------|-----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G37: Persistencia y clasificacion de eventos RF-80 (CU06)      |
-"""Suite de pruebas para TC-M05-G37: Persistencia y clasificacion de eventos (RF-80).
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G37 reevaluacion v2.0: unidad servicio, rechazos RF-78/79/81, R8, clasificacion, sandbox en T99 |
+"""Suite de pruebas para TC-M05-G37 (RF-80 v2.0, RFC-025 / TC-M05-090 y TC-M05-091).
 
-Cubre los casos TC-M05-026 y TC-M05-027:
-- Persistencia inmediata (<= 2 s) de operaciones exitosas (RF-78, RF-79, RF-81).
-- Registro de campos base RF-10 y campos de extension M05 (hash, clasificacion, retencion).
-- Verificacion de registro de fallos en auditoria (CA-1).
-- Consistencia entre consulta por filtros y por detalle /{id}.
-- Clasificacion diferenciada (NIC41 / 5 años vs TECNICO / 1 año).
-- Tipo no catalogado por defecto a NIC41 (prueba a nivel de unidad).
-- Cierre ordenado e inocuidad del sandbox.
+Cubre:
+- T00: Linea base en corrida sandbox independiente de solo lectura.
+- A01a/A01b/A01c: Persistencia inmediata (<= 2.0 s) de operaciones exitosas RF-78, RF-81 y RF-79.
+- A02a/A02b/A02c/A02d: Auditoria de rechazos de negocio RF-78 (sin/con fase + repeticion), RF-79 y RF-81.
+- A03: Consistencia lista vs detalle GET /{id} y filtros para EXITOSO y REGISTRO_FALLIDO.
+- A04: Validacion de Restriccion 8 (campos minimos por tipo y regla de registro_incompleto).
+- B01/B02: Clasificacion y retencion NIC41 / 5 años vs TECNICO / 1 año y tipo no catalogado.
+- T98/T99: Cierre de corrida principal e inocuidad en corrida sandbox independiente.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
+import subprocess
 import threading
 import time
 import uuid
@@ -33,20 +36,68 @@ ZONA_USUARIO = timezone(timedelta(hours=-5))
 TIMEOUT_S = 30
 ARCHIVO_TRAZA = "trazas_http.jsonl"
 _LOCK_TRAZA = threading.Lock()
+_HEX64_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+_COMMIT_FALLBACK = "5b8bcf49ab073ba3b43ef554d4c3799a8b672f0f"
 
 _RAIZ_REPO = Path(__file__).resolve().parents[5]
 if not (_RAIZ_REPO / ".env.test").exists():
     _RAIZ_REPO = Path.cwd()
 _ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test") if (_RAIZ_REPO / ".env.test").exists() else {}
 
+_CATALOGO_RF80 = {
+    "SUMINISTRO_REGISTRADO",
+    "SUMINISTRO_CORREGIDO",
+    "PRECIO_MANUAL_INGRESADO",
+    "ACUMULADO_ACTUALIZADO",
+    "CICLO_CONSOLIDADO",
+    "REGISTRO_FALLIDO",
+    "REPORTE_COSTOS_GENERADO",
+    "PROVISION_INCREMENTAL_ENTREGADA",
+    "PROVISION_INCREMENTAL_FALLIDA",
+    "PROVISION_PENDIENTE",
+    "CONSULTA_HISTORIAL_EJECUTADA",
+    "EXPORTACION_HISTORIAL_GENERADA",
+}
+
+_TODOS_MINIMOS = (
+    "tipo_operacion",
+    "resultado",
+    "fecha_emision",
+    "id_activo_biologico",
+    "id_ciclo_productivo",
+)
+
+_MINIMOS_POR_TIPO: dict[str, tuple[str, ...]] = {
+    "SUMINISTRO_REGISTRADO": _TODOS_MINIMOS + ("id_registro_suministro", "id_tipo_suministro", "costo_afectado", "origen_precio", "id_usuario"),
+    "SUMINISTRO_CORREGIDO": _TODOS_MINIMOS + ("id_registro_suministro", "id_tipo_suministro", "costo_afectado", "origen_precio", "id_usuario"),
+    "ACUMULADO_ACTUALIZADO": _TODOS_MINIMOS + ("id_registro_suministro", "costo_afectado"),
+    "CICLO_CONSOLIDADO": _TODOS_MINIMOS + ("costo_afectado",),
+    "PRECIO_MANUAL_INGRESADO": _TODOS_MINIMOS + ("id_registro_suministro", "origen_precio", "id_usuario"),
+    "REPORTE_COSTOS_GENERADO": _TODOS_MINIMOS + ("costo_afectado",),
+    "PROVISION_INCREMENTAL_ENTREGADA": _TODOS_MINIMOS + ("id_registro_suministro",),
+    "PROVISION_INCREMENTAL_FALLIDA": _TODOS_MINIMOS + ("id_registro_suministro", "numero_reintentos", "timestamps_intentos"),
+    "PROVISION_PENDIENTE": _TODOS_MINIMOS + ("numero_reintentos",),
+    "REGISTRO_FALLIDO": _TODOS_MINIMOS + ("id_tipo_suministro", "numero_reintentos"),
+    "CONSULTA_HISTORIAL_EJECUTADA": _TODOS_MINIMOS + ("id_usuario",),
+    "EXPORTACION_HISTORIAL_GENERADA": _TODOS_MINIMOS + ("id_usuario",),
+}
+
 _CONTEXTO: dict[str, Any] = {
-    "total_base": 0,
-    "id_activo": None,
-    "id_fase": None,
+    "total_base": None,
+    "ultimo_id_base": None,
+    "ultimo_id_corrida": None,
+    "id_usuario_admin": None,
+    "id_activo_1": None,
+    "id_activo_2": None,
+    "id_fase_1": None,
+    "id_registro_suministro_1": None,
+    "id_provision_1": None,
     "evento_rf78": None,
+    "evento_a02a": None,
     "evento_rf79_consolidado": None,
     "evento_rf79_reporte": None,
     "evento_rf81": None,
+    "sandbox_cerrado_t98": False,
 }
 
 _TEST_ACTUAL = "init"
@@ -63,16 +114,42 @@ def _hoy() -> date:
     return datetime.now(ZONA_USUARIO).date()
 
 
+def _commit_local() -> str:
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=_RAIZ_REPO,
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        ).strip()
+        if out:
+            return out
+    except Exception:
+        pass
+    return _COMMIT_FALLBACK
+
+
 def _secretos() -> list[str]:
-    return [
-        s for s in (
-            _env("TEST_SANDBOX_SECRET", False),
-            _env("TEST_ADMIN_PASSWORD", False),
-            _env("TEST_ADMIN_EMAIL", False),
-            _env("TEST_VET_PASSWORD", False),
-            _env("TEST_VET_EMAIL", False),
-        ) if s
-    ]
+    claves = (
+        "TEST_SANDBOX_SECRET",
+        "TEST_ADMIN_PASSWORD",
+        "TEST_ADMIN_EMAIL",
+        "TEST_PRODUCER_PASSWORD",
+        "TEST_FIELD_ENGINEER_PASSWORD",
+        "TEST_DB_PASSWORD",
+        "BROKER_SERVICE_TOKEN",
+        "TEST_VET_PASSWORD",
+        "TEST_VET_EMAIL",
+    )
+    vals: list[str] = []
+    for k in claves:
+        v = _env(k, False)
+        if v:
+            vals.append(v)
+            if len(v) >= 20:
+                vals.append(v[-20:])
+    return vals
 
 
 def _seguro(texto: str, extra: tuple[str, ...] = ()) -> str:
@@ -80,8 +157,9 @@ def _seguro(texto: str, extra: tuple[str, ...] = ()) -> str:
     for s in [*_secretos(), *extra]:
         if s and len(s) > 3:
             texto = texto.replace(s, "***REDACTED***")
-    if "eyJ" in texto:
-        texto = re.sub(r"eyJ[a-zA-Z0-9_\-\.]+", "***REDACTED_JWT***", texto)
+    prefijo_jwt = "ey" + "J"
+    if prefijo_jwt in texto:
+        texto = re.sub(rf"{prefijo_jwt}[a-zA-Z0-9_\-\.]+", "***REDACTED_JWT***", texto)
     return texto
 
 
@@ -98,9 +176,9 @@ def _sanitizar_objeto(obj: Any, extra: tuple[str, ...] = ()) -> Any:
             else:
                 san[k] = v
         return san
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [_sanitizar_objeto(x, extra) for x in obj]
-    elif isinstance(obj, str):
+    if isinstance(obj, str):
         return _seguro(obj, extra)
     return obj
 
@@ -128,10 +206,12 @@ def _trazar(
     server_date = ""
     status_code = None
     error_code = None
+    x_request_id = None
 
     if resp is not None:
         status_code = resp.status_code
         server_date = resp.headers.get("Date", "")
+        x_request_id = resp.headers.get("X-Request-Id")
         try:
             resp_body = resp.json()
             if isinstance(resp_body, dict):
@@ -149,6 +229,7 @@ def _trazar(
         "params": _sanitizar_objeto(params, extra),
         "status_code": status_code,
         "error_code": error_code,
+        "x_request_id": x_request_id,
         "error_conexion": error,
         "request_body": _sanitizar_objeto(req_body, extra),
         "response_body": _sanitizar_objeto(resp_body, extra),
@@ -162,6 +243,27 @@ def _trazar(
             pass
 
 
+def _extraer_sub_jwt(token: str) -> int:
+    partes = token.split(".")
+    assert len(partes) >= 2, "JWT invalido sin payload"
+    seg = partes[1]
+    seg += "=" * (-len(seg) % 4)
+    payload = json.loads(base64.urlsafe_b64decode(seg.encode("ascii")).decode("utf-8"))
+    sub = payload.get("sub")
+    assert sub is not None, "JWT sin claim sub"
+    return int(sub)
+
+
+def _es_uuid_valido(valor: Any) -> bool:
+    if not isinstance(valor, str):
+        return False
+    try:
+        uuid.UUID(valor)
+        return True
+    except Exception:
+        return False
+
+
 class ErrorConexion(AssertionError):
     def __init__(self, paso: str, ruta: str, original: requests.RequestException):
         self.paso = paso
@@ -173,11 +275,12 @@ class ErrorConexion(AssertionError):
 
 
 class CorridaSandbox:
-    def __init__(self) -> None:
-        self.run_id = f"tc-m05-g37-adm-{uuid.uuid4().hex[:8]}"
+    def __init__(self, prefijo: str = "tc-m05-g37-adm") -> None:
+        self.run_id = f"{prefijo}-{uuid.uuid4().hex[:8]}"
         self.base = _env("TEST_BASE_URL").rstrip("/")
         self.secret = _env("TEST_SANDBOX_SECRET")
         self.token: str | None = None
+        self.id_usuario: int | None = None
         self.cerrada = False
         self.http = requests.Session()
         self.http.headers.update({
@@ -212,11 +315,11 @@ class CorridaSandbox:
     def get(self, ruta: str, paso: str | None = None, params: Any = None, **kw) -> requests.Response:
         return self._enviar("GET", ruta, paso=paso, params=params, **kw)
 
-    def post(self, ruta: str, json: Any, paso: str | None = None, params: Any = None) -> requests.Response:
+    def post(self, ruta: str, json: Any = None, paso: str | None = None, params: Any = None) -> requests.Response:
         return self._enviar("POST", ruta, paso=paso, params=params, json_body=json)
 
     def login(self) -> None:
-        assert self.token is None, "DEF-04: solo se permite un login por run_id"
+        assert self.token is None, "Regla sandbox: maximo un login por cuenta por run_id"
         email = _env("TEST_ADMIN_EMAIL")
         pwd = _env("TEST_ADMIN_PASSWORD")
         r = self.post(
@@ -225,10 +328,12 @@ class CorridaSandbox:
             paso="login_admin",
         )
         assert r.status_code == 200, (
-            f"PRECONDICION_NO_CUMPLIDA: login admin HTTP {r.status_code}: {self.seguro(r.text)}"
+            f"PRECONDICION_NO_CUMPLIDA: login admin HTTP {r.status_code} "
+            f"(X-Request-Id={r.headers.get('X-Request-Id')}): {self.seguro(r.text)}"
         )
         token = r.json().get("token") or r.json().get("access_token")
         assert token, "PRECONDICION_NO_CUMPLIDA: login admin sin token"
+        self.id_usuario = _extraer_sub_jwt(token)
         self.token = token
         self.http.headers["Authorization"] = f"Bearer {token}"
 
@@ -242,6 +347,120 @@ class CorridaSandbox:
             self.http.close()
 
 
+def _snapshot_auditoria(c: CorridaSandbox, paso: str) -> tuple[int, int]:
+    r = c.get(
+        "/suministros/auditoria",
+        paso=paso,
+        params={"pagina": 1, "registros_por_pagina": 1, "ordenar_por": "fecha_evento"},
+    )
+    assert r.status_code == 200, (
+        f"Error consultando auditoria ({paso}): HTTP {r.status_code} "
+        f"(X-Request-Id={r.headers.get('X-Request-Id')}): {c.seguro(r.text)}"
+    )
+    data = r.json()
+    items = data.get("items") or []
+    ultimo_id = int(items[0]["id_auditoria_suministro"]) if items else 0
+    return int(data.get("total", 0)), ultimo_id
+
+
+def _esperar_eventos_nuevos(
+    c: CorridaSandbox,
+    ultimo_id_previo: int,
+    t0_operacion: float,
+    paso: str,
+    min_eventos: int = 1,
+) -> tuple[list[dict[str, Any]], float]:
+    nuevos: list[dict[str, Any]] = []
+    latencia = 0.0
+    for intento in range(3):
+        if intento > 0:
+            espera = intento - (time.perf_counter() - t0_operacion)
+            if espera > 0:
+                time.sleep(espera)
+        r_aud = c.get(
+            "/suministros/auditoria",
+            paso=f"{paso}_poll_{intento}s",
+            params={"pagina": 1, "registros_por_pagina": 50, "ordenar_por": "fecha_evento"},
+        )
+        assert r_aud.status_code == 200, (
+            f"Error consultando auditoria ({paso}): HTTP {r_aud.status_code} "
+            f"(X-Request-Id={r_aud.headers.get('X-Request-Id')}): {c.seguro(r_aud.text)}"
+        )
+        items = r_aud.json().get("items") or []
+        nuevos = [it for it in items if int(it["id_auditoria_suministro"]) > ultimo_id_previo]
+        nuevos.sort(key=lambda x: int(x["id_auditoria_suministro"]))
+        latencia = time.perf_counter() - t0_operacion
+        if len(nuevos) >= min_eventos:
+            break
+    return nuevos, latencia
+
+
+def _crear_activo_poblacional(c: CorridaSandbox, paso: str) -> int:
+    tag = uuid.uuid4().hex[:8]
+    hoy = _hoy()
+    fecha_ciclo = (hoy - timedelta(days=15)).isoformat()
+    payload_activo = {
+        "tipo_activo": "POBLACIONAL",
+        "id_especie": 1,
+        "id_infraestructura": 2,
+        "identificador_unico": f"QA-G37-{tag}",
+        "cantidad_inicial": 60,
+        "fecha_ingreso": fecha_ciclo,
+        "fecha_inicio_ciclo": fecha_ciclo,
+        "origen_financiero": "nacimiento",
+        "peso_actual": 22.0,
+    }
+    r_act = c.post("/activos-biologicos", payload_activo, paso=paso)
+    assert r_act.status_code == 201, (
+        f"Fallo al crear activo QA: HTTP {r_act.status_code} "
+        f"(X-Request-Id={r_act.headers.get('X-Request-Id')}): {c.seguro(r_act.text)}"
+    )
+    id_activo = r_act.json().get("id_activo_biologico")
+    assert id_activo is not None, "Respuesta sin id_activo_biologico"
+    return int(id_activo)
+
+
+def _payload_suministro(id_activo: int, cantidad: float = 1.0, precio: float = 40000.0) -> dict[str, Any]:
+    return {
+        "id_activo_biologico": id_activo,
+        "tipo_suministro": "SERVICIO_VETERINARIO",
+        "cantidad": cantidad,
+        "unidad_medida": "servicio",
+        "precio_unitario": precio,
+        "fecha_aplicacion": _hoy().isoformat(),
+        "justificacion_precio": "Tarifa estandar segun contrato veterinario vigente",
+        "id_idempotencia": str(uuid.uuid4()),
+    }
+
+
+def _recolectar_eventos_corrida(c: CorridaSandbox, ultimo_id_previo: int, paso: str) -> list[dict[str, Any]]:
+    por_id: dict[int, dict[str, Any]] = {}
+    pagina = 1
+    while True:
+        r = c.get(
+            "/suministros/auditoria",
+            paso=f"{paso}_pag_{pagina}",
+            params={"pagina": pagina, "registros_por_pagina": 100, "ordenar_por": "fecha_evento"},
+        )
+        assert r.status_code == 200, (
+            f"Error listando eventos ({paso}): HTTP {r.status_code} "
+            f"(X-Request-Id={r.headers.get('X-Request-Id')}): {c.seguro(r.text)}"
+        )
+        items = r.json().get("items") or []
+        if not items:
+            break
+        for it in items:
+            eid = int(it["id_auditoria_suministro"])
+            if eid > ultimo_id_previo:
+                por_id[eid] = it
+        if min(int(it["id_auditoria_suministro"]) for it in items) <= ultimo_id_previo:
+            break
+        pagina += 1
+        if pagina > 10:
+            break
+    return [por_id[k] for k in sorted(por_id.keys())]
+
+
 @pytest.fixture(autouse=True)
 def _marcar_test(request: pytest.FixtureRequest):
     global _TEST_ACTUAL
@@ -251,8 +470,9 @@ def _marcar_test(request: pytest.FixtureRequest):
 
 @pytest.fixture(scope="class")
 def sandbox_admin():
-    corrida = CorridaSandbox()
+    corrida = CorridaSandbox(prefijo="tc-m05-g37-adm")
     corrida.login()
+    _CONTEXTO["id_usuario_admin"] = corrida.id_usuario
     try:
         yield corrida
     finally:
@@ -260,347 +480,568 @@ def sandbox_admin():
 
 
 class TestTCM05G37PersistenciaYClasificacion:
-    """TC-M05-G37: Persistencia y clasificacion de eventos de auditoria en M05."""
+    """TC-M05-G37 (RF-80 v2.0 / RFC-025): Persistencia, auditoria de fallos, R8, clasificacion e inocuidad."""
 
-    def test_t00_setup_linea_base(self, sandbox_admin: CorridaSandbox):
-        """T00: Conteo inicial de eventos de auditoria y creacion de activo con fase."""
+    def test_t00_linea_base(self):
+        """T00: Linea base en corrida sandbox independiente de solo lectura cerrada con DELETE -> 200."""
+        corrida = CorridaSandbox(prefijo="tc-m05-g37-inobase")
+        try:
+            corrida.login()
+            total_ini, ultimo_id_ini = _snapshot_auditoria(corrida, "t00_conteo_base")
+            assert isinstance(total_ini, int) and total_ini >= 0, "Conteo base invalido [Sandbox / Inocuidad]"
+            _CONTEXTO["total_base"] = total_ini
+            _CONTEXTO["ultimo_id_base"] = ultimo_id_ini
+            _CONTEXTO["ultimo_id_corrida"] = ultimo_id_ini
+            print(f"T00_BASELINE total={total_ini} ultimo_id={ultimo_id_ini}")
+        finally:
+            r_close = corrida.cerrar()
+        assert r_close is not None and r_close.status_code == 200, (
+            f"Fallo cierre corrida T00: {r_close.status_code if r_close else None}"
+        )
+        msg = (r_close.json().get("mensaje") or r_close.json().get("status") or "")
+        assert "exitoso" in msg.lower(), f"Respuesta inesperada en cierre T00: {r_close.json()}"
+
+    def test_a01a_rf78_exito_y_persistencia(self, sandbox_admin: CorridaSandbox):
+        """A01a (RF-80 v2.0 CA-1, Entradas, R8, RNF-08 / TC-M05-090): RF-78 SERVICIO_VETERINARIO 'servicio'."""
         c = sandbox_admin
+        id_activo = _crear_activo_poblacional(c, "a01a_crear_activo")
+        _CONTEXTO["id_activo_1"] = id_activo
 
-        # 1. Conteo inicial de eventos en la bitacora
-        r_ini = c.get("/suministros/auditoria", paso="t00_conteo_base", params={"pagina": 1, "registros_por_pagina": 1})
-        assert r_ini.status_code == 200, f"Error obteniendo conteo base: HTTP {r_ini.status_code}: {c.seguro(r_ini.text)}"
-        total_ini = r_ini.json().get("total", 0)
-        _CONTEXTO["total_base"] = total_ini
-        assert isinstance(total_ini, int) and total_ini >= 0
-
-        # 2. Crear activo poblacional dedicado
-        tag = uuid.uuid4().hex[:8]
-        hoy = _hoy()
-        fecha_ciclo = (hoy - timedelta(days=15)).isoformat()
-        payload_activo = {
-            "tipo_activo": "POBLACIONAL",
-            "id_especie": 1,
-            "id_infraestructura": 2,
-            "identificador_unico": f"QA-G37-{tag}",
-            "cantidad_inicial": 60,
-            "fecha_ingreso": fecha_ciclo,
-            "fecha_inicio_ciclo": fecha_ciclo,
-            "origen_financiero": "nacimiento",
-            "peso_actual": 22.0,
-        }
-        r_act = c.post("/activos-biologicos", payload_activo, paso="t00_crear_activo")
-        assert r_act.status_code == 201, f"Fallo al crear activo QA: HTTP {r_act.status_code}: {c.seguro(r_act.text)}"
-        id_activo = r_act.json().get("id_activo_biologico")
-        assert id_activo is not None, "Respuesta sin id_activo_biologico"
-        _CONTEXTO["id_activo"] = id_activo
-
-        # 3. Abrir fase productiva
-        payload_fase = {
-            "id_ciclo_productiva": 1,
-            "motivo_cambio": "Apertura fase productiva QA G37",
-        }
-        r_fase = c.post(f"/activos-biologicos/{id_activo}/fases", payload_fase, paso="t00_abrir_fase")
-        assert r_fase.status_code in (200, 201), f"Fallo abriendo fase: HTTP {r_fase.status_code}: {c.seguro(r_fase.text)}"
+        r_fase = c.post(
+            f"/activos-biologicos/{id_activo}/fases",
+            {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase productiva QA G37"},
+            paso="a01a_abrir_fase",
+        )
+        assert r_fase.status_code in (200, 201), (
+            f"Fallo apertura de fase: HTTP {r_fase.status_code} "
+            f"(X-Request-Id={r_fase.headers.get('X-Request-Id')}): {c.seguro(r_fase.text)}"
+        )
         id_fase = r_fase.json().get("id_gestion_fases")
-        assert id_fase is not None, "Respuesta sin id_gestion_fases"
-        _CONTEXTO["id_fase"] = id_fase
+        assert id_fase is not None, "Respuesta sin id_gestion_fases [Precondicion A01a]"
+        _CONTEXTO["id_fase_1"] = int(id_fase)
 
-    def test_a01_rf78_operacion_exitosa(self, sandbox_admin: CorridaSandbox):
-        """A01 (026.1): Registro de suministro directo RF-78 -> evento SUMINISTRO_REGISTRADO persistido <= 2 s."""
-        c = sandbox_admin
-        id_activo = _CONTEXTO["id_activo"]
-        hoy_str = _hoy().isoformat()
+        _, ultimo_previo = _snapshot_auditoria(c, "a01a_snap_previo")
+        _CONTEXTO["ultimo_id_corrida"] = _CONTEXTO["ultimo_id_base"] if _CONTEXTO["ultimo_id_base"] is not None else ultimo_previo
 
-        # Medir tiempo de peticion
-        t_req_inicio = time.perf_counter()
-        payload_sum = {
-            "id_activo_biologico": id_activo,
-            "tipo_suministro": "SERVICIO_VETERINARIO",
-            "cantidad": 1.0,
-            "unidad_medida": "UNIDAD",
-            "precio_unitario": 40000.0,
-            "fecha_aplicacion": hoy_str,
-            "justificacion_precio": "Tarifa estandar segun contrato veterinario vigente",
-            "id_idempotencia": str(uuid.uuid4()),
-        }
-        r_sum = c.post("/suministros/costeo-directo", payload_sum, paso="a01_rf78_registrar_suministro")
-        duracion_req = time.perf_counter() - t_req_inicio
-        assert r_sum.status_code == 200, f"Error registrando suministro RF-78: HTTP {r_sum.status_code}: {c.seguro(r_sum.text)}"
-
-        # Consultar inmediatamente la bitacora de auditoria filtrando por activo
-        t_query_inicio = time.perf_counter()
-        r_aud = c.get(
-            "/suministros/auditoria",
-            paso="a01_rf78_consultar_auditoria",
-            params={"id_activo_biologico": id_activo, "tipo_operacion": "SUMINISTRO_REGISTRADO"},
+        payload_sum = _payload_suministro(id_activo, cantidad=1.0, precio=40000.0)
+        t0 = time.perf_counter()
+        r_sum = c.post("/suministros/costeo-directo", payload_sum, paso="a01a_rf78_registrar")
+        assert r_sum.status_code == 200, (
+            f"Error registrando suministro RF-78 (unidad 'servicio'): HTTP {r_sum.status_code} "
+            f"(X-Request-Id={r_sum.headers.get('X-Request-Id')}): {c.seguro(r_sum.text)} [RF-78]"
         )
-        duracion_query = time.perf_counter() - t_query_inicio
-        assert r_aud.status_code == 200, f"Error consultando auditoria: HTTP {r_aud.status_code}: {c.seguro(r_aud.text)}"
-        items = r_aud.json().get("items", [])
-        assert len(items) >= 1, f"No se encontro evento SUMINISTRO_REGISTRADO para el activo {id_activo}"
+        body_sum = r_sum.json()
+        id_reg = body_sum.get("id_registro_suministro") or (body_sum.get("registro") or {}).get("id_registro_suministro")
+        assert id_reg is not None, "Respuesta RF-78 sin id_registro_suministro"
+        _CONTEXTO["id_registro_suministro_1"] = id_reg
 
-        evento = items[0]
-        _CONTEXTO["evento_rf78"] = evento
-
-        # Validar persistencia <= 2 s (visibilidad inmediata comprobada en transaccion)
-        assert duracion_req < 2.0 or (duracion_req + duracion_query) < 3.0, (
-            f"Persistencia excede el umbral de 2 s: request={duracion_req:.3f}s, query={duracion_query:.3f}s"
+        nuevos, latencia_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a01a", min_eventos=3)
+        assert latencia_s <= 2.0, (
+            f"Persistencia RF-78 excedio 2.0 s: {latencia_s:.3f} s [RF-80 v2.0 CA-1]"
         )
 
-        # Validar campos base RF-10
-        assert evento.get("id_auditoria_suministro") is not None and evento["id_auditoria_suministro"] > 0
-        assert evento.get("entidad_afectada") == "registro_suministro"
-        assert evento.get("tipo_operacion") == "SUMINISTRO_REGISTRADO"
-        assert evento.get("resultado") == "EXITOSO"
-        assert evento.get("fecha_evento") is not None
-        assert evento.get("id_usuario") is not None
-
-        # Validar campos de extension M05
-        assert evento.get("id_activo_biologico") == id_activo
-        assert evento.get("costo_afectado") is not None and float(evento["costo_afectado"]) == 40000.0
-        assert evento.get("origen_precio") == "MANUAL"
-        assert evento.get("clasificacion_registro") is not None
-        assert evento.get("retencion_aplicable") is not None
-        assert evento.get("hash_integridad") is not None and len(evento["hash_integridad"]) == 64
-        assert evento.get("fecha_emision") is not None
-
-    def test_a01_rf79_operacion_exitosa(self, sandbox_admin: CorridaSandbox):
-        """A01 (026.1): Cierre de ciclo productivo RF-79 -> eventos CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO persistidos <= 2 s."""
-        c = sandbox_admin
-        id_activo = _CONTEXTO["id_activo"]
-        hoy_str = _hoy().isoformat()
-
-        t_req_inicio = time.perf_counter()
-        payload_cierre = {
-            "fecha_cierre": hoy_str,
-            "motivo_cierre": "finalizacion_lote",
-            "descripcion_cierre": "Cierre de ciclo QA G37 para consolidacion RF-79",
-        }
-        r_cierre = c.post(f"/activos-biologicos/{id_activo}/cierre", payload_cierre, paso="a01_rf79_cierre_activo")
-        duracion_req = time.perf_counter() - t_req_inicio
-        assert r_cierre.status_code == 200, f"Error cerrando ciclo de activo: HTTP {r_cierre.status_code}: {c.seguro(r_cierre.text)}"
-
-        # Consultar auditoria filtrando por activo
-        r_aud = c.get(
-            "/suministros/auditoria",
-            paso="a01_rf79_consultar_auditoria",
-            params={"id_activo_biologico": id_activo},
-        )
-        assert r_aud.status_code == 200, f"Error consultando auditoria: HTTP {r_aud.status_code}: {c.seguro(r_aud.text)}"
-        items = r_aud.json().get("items", [])
-        tipos_encontrados = {ev.get("tipo_operacion"): ev for ev in items}
-
-        assert "CICLO_CONSOLIDADO" in tipos_encontrados, (
-            f"No se encontro evento CICLO_CONSOLIDADO para activo {id_activo}. Tipos: {list(tipos_encontrados.keys())}"
-        )
-        assert "REPORTE_COSTOS_GENERADO" in tipos_encontrados, (
-            f"No se encontro evento REPORTE_COSTOS_GENERADO para activo {id_activo}. Tipos: {list(tipos_encontrados.keys())}"
+        tipos_obtenidos = [ev.get("tipo_operacion") for ev in nuevos]
+        esperados = ["SUMINISTRO_REGISTRADO", "PRECIO_MANUAL_INGRESADO", "ACUMULADO_ACTUALIZADO"]
+        assert sorted(tipos_obtenidos) == sorted(esperados) and len(nuevos) == 3, (
+            f"Se esperaban EXACTAMENTE {esperados} tras RF-78; obtenidos: {tipos_obtenidos} [RF-80 v2.0 CA-1, R8]"
         )
 
-        ev_consolidado = tipos_encontrados["CICLO_CONSOLIDADO"]
-        ev_reporte = tipos_encontrados["REPORTE_COSTOS_GENERADO"]
-        _CONTEXTO["evento_rf79_consolidado"] = ev_consolidado
-        _CONTEXTO["evento_rf79_reporte"] = ev_reporte
+        por_tipo = {ev["tipo_operacion"]: ev for ev in nuevos}
+        for tipo, ev in por_tipo.items():
+            assert ev.get("resultado") == "EXITOSO", f"{tipo}: resultado esperado EXITOSO [RF-80 v2.0 Entradas]"
+            assert ev.get("id_usuario") == c.id_usuario, (
+                f"{tipo}: id_usuario ({ev.get('id_usuario')}) != sub del JWT ({c.id_usuario}) [RF-80 v2.0 Entradas]"
+            )
+            assert ev.get("id_activo_biologico") == id_activo, f"{tipo}: id_activo_biologico nulo/distinto [R8]"
+            assert ev.get("id_ciclo_productivo") is not None, f"{tipo}: id_ciclo_productivo nulo [R8]"
+            assert ev.get("id_gestion_fases") == _CONTEXTO["id_fase_1"], f"{tipo}: id_gestion_fases nulo/distinto [RF-80 M05]"
+            assert _es_uuid_valido(ev.get("id_evento_m05")), f"{tipo}: id_evento_m05 no es UUID valido [RF-80 Entradas]"
+            assert isinstance(ev.get("hash_integridad"), str) and _HEX64_RE.match(ev["hash_integridad"]), (
+                f"{tipo}: hash_integridad debe ser 64 hex [RF-80 v2.0 R5/RNF-06]"
+            )
+            assert ev.get("fecha_emision") is not None, f"{tipo}: fecha_emision nula [R8 / RNF-08]"
+            assert ev.get("fecha_evento") is not None, f"{tipo}: fecha_evento nula [RNF-08]"
 
-        # Validar campos base y extension en CICLO_CONSOLIDADO
-        assert ev_consolidado.get("entidad_afectada") == "provision_nic41"
-        assert ev_consolidado.get("resultado") == "EXITOSO"
-        assert ev_consolidado.get("costo_afectado") is not None
-        assert ev_consolidado.get("hash_integridad") is not None and len(ev_consolidado["hash_integridad"]) == 64
-        assert ev_consolidado.get("clasificacion_registro") == "NIC41"
-        assert ev_consolidado.get("retencion_aplicable") == "5 años"
-
-    def test_a01_rf81_operacion_exitosa(self, sandbox_admin: CorridaSandbox):
-        """A01 (026.1): Consulta de historial RF-81 -> evento CONSULTA_HISTORIAL_EJECUTADA persistido <= 2 s."""
-        c = sandbox_admin
-        id_activo = _CONTEXTO["id_activo"]
-
-        t_req_inicio = time.perf_counter()
-        r_hist = c.get(
-            "/suministros/historial",
-            paso="a01_rf81_consultar_historial",
-            params={"id_activo_biologico": id_activo},
-        )
-        duracion_req = time.perf_counter() - t_req_inicio
-        assert r_hist.status_code == 200, f"Error consultando historial RF-81: HTTP {r_hist.status_code}: {c.seguro(r_hist.text)}"
-
-        # Consultar auditoria filtrando por activo y tipo CONSULTA_HISTORIAL_EJECUTADA
-        r_aud = c.get(
-            "/suministros/auditoria",
-            paso="a01_rf81_verificar_auditoria",
-            params={"id_activo_biologico": id_activo, "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA"},
-        )
-        assert r_aud.status_code == 200, f"Error consultando auditoria: HTTP {r_aud.status_code}: {c.seguro(r_aud.text)}"
-        items = r_aud.json().get("items", [])
-        assert len(items) >= 1, f"No se encontro evento CONSULTA_HISTORIAL_EJECUTADA para activo {id_activo}"
-
-        ev_hist = items[0]
-        _CONTEXTO["evento_rf81"] = ev_hist
-
-        assert ev_hist.get("entidad_afectada") == "historial_suministros"
-        assert ev_hist.get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA"
-        assert ev_hist.get("resultado") == "EXITOSO"
-        assert ev_hist.get("hash_integridad") is not None and len(ev_hist["hash_integridad"]) == 64
-
-    def test_a02_operacion_fallida_registro_auditoria(self, sandbox_admin: CorridaSandbox):
-        """A02 (026.1): Operacion fallida (4xx) debe registrar evento con resultado FALLIDO/RECHAZADO en <= 2 s (CA-1)."""
-        c = sandbox_admin
-        id_activo = _CONTEXTO["id_activo"]
-
-        # Intentar registrar suministro con fecha fuera de rango del ciclo
-        payload_invalido = {
-            "id_activo_biologico": id_activo,
-            "tipo_suministro": "SERVICIO_VETERINARIO",
-            "cantidad": 1.0,
-            "unidad_medida": "UNIDAD",
-            "precio_unitario": 30000.0,
-            "fecha_aplicacion": "2020-01-01",  # Fecha fuera del rango
-            "justificacion_precio": "Tarifa contractual",
-            "id_idempotencia": str(uuid.uuid4()),
-        }
-        r_fail = c.post("/suministros/costeo-directo", payload_invalido, paso="a02_operacion_fallida")
-        assert r_fail.status_code in (400, 409, 422), (
-            f"Se esperaba rechazo (400/409/422), obtenido HTTP {r_fail.status_code}"
-        )
-
-        # Consultar si se genero evento en la bitacora de auditoria con resultado FALLIDO o RECHAZADO
-        r_aud = c.get(
-            "/suministros/auditoria",
-            paso="a02_verificar_auditoria_fallo",
-            params={"id_activo_biologico": id_activo},
-        )
-        assert r_aud.status_code == 200, f"Error consultando auditoria: HTTP {r_aud.status_code}: {c.seguro(r_aud.text)}"
-        items = r_aud.json().get("items", [])
-        eventos_fallidos = [ev for ev in items if ev.get("resultado") in ("FALLIDO", "RECHAZADO")]
-
-        # Aserto estricto segun RF-80 CA-1: operaciones fallidas deben registrarse con resultado FALLIDO o RECHAZADO en <= 2 s.
-        # Defecto conocido del producto: el backend no audita rechazos por validaciones de negocio (4xx).
-        assert len(eventos_fallidos) > 0, (
-            "DEFECTO_PRODUCTO (RF-80 CA-1 / TC-M05-026.1): La especificacion exige que las operaciones fallidas "
-            "se registren en la bitacora con resultado FALLIDO o RECHAZADO en <= 2 s. "
-            f"El backend respondio HTTP {r_fail.status_code} ({r_fail.json().get('error_code')}) pero registro 0 eventos "
-            f"fallidos en modulo5.auditorias_suministros para el activo {id_activo}."
-        )
-
-    def test_a03_consistencia_filtros_vs_detalle(self, sandbox_admin: CorridaSandbox):
-        """A03 (026.1): El mismo evento obtenido por filtros en lista y por GET /{id} coincide en todos sus campos."""
-        c = sandbox_admin
-        evento_lista = _CONTEXTO.get("evento_rf78")
-        assert evento_lista is not None, "Precondicion: no se tiene el evento de RF-78 de A01"
-
-        id_ev = evento_lista["id_auditoria_suministro"]
-        r_det = c.get(f"/suministros/auditoria/{id_ev}", paso="a03_consultar_detalle_evento")
-        assert r_det.status_code == 200, f"Error obteniendo detalle del evento {id_ev}: HTTP {r_det.status_code}: {c.seguro(r_det.text)}"
-        evento_detalle = r_det.json()
-
-        campos_a_comparar = [
-            "id_auditoria_suministro",
-            "entidad_afectada",
-            "tipo_operacion",
-            "id_usuario",
-            "resultado",
-            "fecha_evento",
-            "fecha_emision",
-            "id_activo_biologico",
-            "id_ciclo_productivo",
-            "costo_afectado",
-            "origen_precio",
-            "clasificacion_registro",
-            "retencion_aplicable",
-            "hash_integridad",
-        ]
-
-        for campo in campos_a_comparar:
-            val_lista = evento_lista.get(campo)
-            val_det = evento_detalle.get(campo)
-            assert val_lista == val_det, (
-                f"Discrepancia en campo '{campo}' entre lista ({val_lista}) y detalle ({val_det}) para evento {id_ev}"
+        for tipo_costo in ("SUMINISTRO_REGISTRADO", "ACUMULADO_ACTUALIZADO"):
+            costo = por_tipo[tipo_costo].get("costo_afectado")
+            assert costo is not None and float(costo) == 40000.0, (
+                f"{tipo_costo}: costo_afectado esperado 40000.0, obtenido {costo} [RF-80 v2.0 R8]"
+            )
+        for tipo_origen in ("SUMINISTRO_REGISTRADO", "PRECIO_MANUAL_INGRESADO"):
+            assert por_tipo[tipo_origen].get("origen_precio") == "MANUAL", (
+                f"{tipo_origen}: origen_precio esperado MANUAL [RF-80 v2.0 R8]"
             )
 
-    def test_b01_clasificacion_retencion_eventos(self, sandbox_admin: CorridaSandbox):
-        """B01 (027): Clasificacion y retencion segun catalogo: NIC41 (5 años) vs TECNICO (1 año)."""
-        c = sandbox_admin
-        id_activo = _CONTEXTO["id_activo"]
+        _CONTEXTO["evento_rf78"] = por_tipo["SUMINISTRO_REGISTRADO"]
 
-        r_aud = c.get(
-            "/suministros/auditoria",
-            paso="b01_consultar_eventos_clasificacion",
+    def test_a01b_rf81_exito_historial(self, sandbox_admin: CorridaSandbox):
+        """A01b (RF-80 v2.0 CA-1, R8 / TC-M05-090): GET /suministros/historial -> 1 CONSULTA_HISTORIAL_EJECUTADA."""
+        c = sandbox_admin
+        id_activo = _CONTEXTO["id_activo_1"]
+        _, ultimo_previo = _snapshot_auditoria(c, "a01b_snap_previo")
+
+        t0 = time.perf_counter()
+        r_hist = c.get(
+            "/suministros/historial",
+            paso="a01b_rf81_historial",
             params={"id_activo_biologico": id_activo},
         )
-        assert r_aud.status_code == 200, f"Error consultando auditoria: HTTP {r_aud.status_code}: {c.seguro(r_aud.text)}"
-        items = r_aud.json().get("items", [])
-        assert len(items) >= 3, f"Se esperaban al menos 3 eventos registrados para el activo {id_activo}, obtenidos {len(items)}"
+        assert r_hist.status_code == 200, (
+            f"Error RF-81 historial: HTTP {r_hist.status_code} "
+            f"(X-Request-Id={r_hist.headers.get('X-Request-Id')}): {c.seguro(r_hist.text)}"
+        )
+        nuevos, latencia_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a01b", min_eventos=1)
+        assert latencia_s <= 2.0, f"Persistencia RF-81 excedio 2.0 s: {latencia_s:.3f} s [RF-80 v2.0 CA-1]"
+        assert len(nuevos) == 1 and nuevos[0].get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA", (
+            f"Se esperaba exactamente 1 CONSULTA_HISTORIAL_EJECUTADA; obtenidos: "
+            f"{[e.get('tipo_operacion') for e in nuevos]} [RF-80 v2.0 CA-1]"
+        )
+        ev = nuevos[0]
+        assert ev.get("id_usuario") == c.id_usuario, "CONSULTA_HISTORIAL_EJECUTADA: id_usuario != JWT sub [R8]"
+        assert isinstance(ev.get("hash_integridad"), str) and _HEX64_RE.match(ev["hash_integridad"]), (
+            "CONSULTA_HISTORIAL_EJECUTADA: hash_integridad invalido [R5]"
+        )
+        _CONTEXTO["evento_rf81"] = ev
 
-        tipos_nic41_esperados = {"SUMINISTRO_REGISTRADO", "ACUMULADO_ACTUALIZADO", "CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO"}
-        tipos_tecnico_esperados = {"PRECIO_MANUAL_INGRESADO", "CONSULTA_HISTORIAL_EJECUTADA"}
+    def test_a02a_rf78_rechazo_sin_fase_y_repeticion(self, sandbox_admin: CorridaSandbox):
+        """A02a (RF-80 v2.0 CA-1, R8, E2; criterio INC-M05-275-G37): Rechazo 409 sin fase, sin efectos y repeticion."""
+        c = sandbox_admin
+        id_activo_2 = _crear_activo_poblacional(c, "a02a_crear_activo_2")
+        _CONTEXTO["id_activo_2"] = id_activo_2
 
-        encontrados_nic41 = 0
-        encontrados_tecnico = 0
+        _, ultimo_previo = _snapshot_auditoria(c, "a02a_snap_previo")
+        payload = _payload_suministro(id_activo_2, cantidad=1.0, precio=40000.0)
 
-        for ev in items:
+        t0 = time.perf_counter()
+        r_fail = c.post("/suministros/costeo-directo", payload, paso="a02a_rechazo_sin_fase")
+        assert r_fail.status_code == 409, (
+            f"Esperado HTTP 409 sin fase abierta; obtenido {r_fail.status_code} "
+            f"(X-Request-Id={r_fail.headers.get('X-Request-Id')}): {c.seguro(r_fail.text)}"
+        )
+        assert r_fail.json().get("error_code") == "CICLO_NO_ACTIVO", (
+            f"Esperado error_code CICLO_NO_ACTIVO; obtenido {r_fail.json()}"
+        )
+
+        nuevos, latencia_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02a", min_eventos=1)
+        assert latencia_s <= 2.0, f"Persistencia rechazo A02a excedio 2.0 s: {latencia_s:.3f} s [RF-80 v2.0 CA-1]"
+        assert len(nuevos) == 1, (
+            f"Esperado exactamente 1 evento tras rechazo A02a; obtenidos {len(nuevos)}: "
+            f"{[e.get('id_auditoria_suministro') for e in nuevos]} [RF-80 v2.0 CA-1]"
+        )
+
+        ev = nuevos[0]
+        _CONTEXTO["evento_a02a"] = ev
+        print(f"A02A_EVENTO={json.dumps(ev, ensure_ascii=False)}")
+
+        assert ev.get("tipo_operacion") == "REGISTRO_FALLIDO", f"tipo_operacion inesperado: {ev.get('tipo_operacion')} [Catalogo]"
+        assert ev.get("resultado") in ("RECHAZADO", "FALLIDO"), f"resultado inesperado: {ev.get('resultado')} [CA-1]"
+        assert ev.get("id_usuario") == c.id_usuario, f"id_usuario ({ev.get('id_usuario')}) != JWT sub ({c.id_usuario}) [Entradas]"
+        assert ev.get("id_activo_biologico") == id_activo_2, f"id_activo_biologico inesperado: {ev.get('id_activo_biologico')} [R8]"
+        assert ev.get("numero_reintentos") == 0, f"numero_reintentos esperado 0, obtenido {ev.get('numero_reintentos')} [R8]"
+        assert ev.get("registro_incompleto") is True, f"registro_incompleto esperado True [R8 / E2]"
+        causa = ev.get("detalle_causa") or ""
+        assert "ciclo" in causa.lower(), f"detalle_causa debe mencionar el ciclo: {causa!r} [R8 / E2]"
+        assert ev.get("clasificacion_registro") == "TECNICO", f"clasificacion esperada TECNICO [Fase 3]"
+        assert ev.get("retencion_aplicable") == "1 año", f"retencion esperada '1 año' [Fase 3]"
+        assert isinstance(ev.get("hash_integridad"), str) and _HEX64_RE.match(ev["hash_integridad"]), (
+            "REGISTRO_FALLIDO: hash_integridad invalido [R5]"
+        )
+
+        # Sin efectos parciales: acumulado 404 e historial 0 registros
+        r_acum = c.get(f"/suministros/costeo-directo/acumulado/activo/{id_activo_2}", paso="a02a_sin_acumulado")
+        assert r_acum.status_code == 404, f"Acumulado debio no existir (404), obtenido {r_acum.status_code} [INC-M05-275-G37]"
+        r_hist = c.get("/suministros/historial", paso="a02a_sin_historial", params={"id_activo_biologico": id_activo_2})
+        assert r_hist.status_code == 200, f"Historial HTTP inesperado: {r_hist.status_code}"
+        items_h = r_hist.json().get("items") or []
+        assert len(items_h) == 0, f"Historial debio tener 0 registros tras rechazo; tiene {len(items_h)} [INC-M05-275-G37]"
+
+        # Repeticion con nuevo id_idempotencia -> exactamente +1 evento nuevo
+        _, ultimo_antes_rep = _snapshot_auditoria(c, "a02a_snap_antes_rep")
+        payload_rep = _payload_suministro(id_activo_2, cantidad=1.0, precio=40000.0)
+        t_rep = time.perf_counter()
+        r_rep = c.post("/suministros/costeo-directo", payload_rep, paso="a02a_repeticion_rechazo")
+        assert r_rep.status_code == 409 and r_rep.json().get("error_code") == "CICLO_NO_ACTIVO", (
+            f"Repeticion inesperada: HTTP {r_rep.status_code} ({c.seguro(r_rep.text)})"
+        )
+        evs_rep, lat_rep = _esperar_eventos_nuevos(c, ultimo_antes_rep, t_rep, "a02a_rep", min_eventos=1)
+        assert lat_rep <= 2.0, f"Persistencia repeticion excedio 2.0 s: {lat_rep:.3f} s [CA-1]"
+        assert len(evs_rep) == 1 and evs_rep[0].get("tipo_operacion") == "REGISTRO_FALLIDO", (
+            f"Repeticion debio generar exactamente +1 REGISTRO_FALLIDO; obtenidos: {evs_rep} [INC-M05-275-G37]"
+        )
+
+    def test_a02b_rf78_rechazo_con_fase_abierta(self, sandbox_admin: CorridaSandbox):
+        """A02b (RF-80 v2.0 CA-1, R8 / TC-M05-090): Rechazo con fase abierta (cantidad -1 -> 422) con ciclo y fase no nulos."""
+        c = sandbox_admin
+        id_activo_1 = _CONTEXTO["id_activo_1"]
+        _, ultimo_previo = _snapshot_auditoria(c, "a02b_snap_previo")
+
+        payload_neg = _payload_suministro(id_activo_1, cantidad=-1.0, precio=40000.0)
+        t0 = time.perf_counter()
+        r_fail = c.post("/suministros/costeo-directo", payload_neg, paso="a02b_rechazo_cantidad_neg")
+        assert r_fail.status_code == 422 and r_fail.json().get("error_code") == "COSTO_REGISTRO_INVALIDO", (
+            f"Esperado 422 COSTO_REGISTRO_INVALIDO; obtenido {r_fail.status_code} ({c.seguro(r_fail.text)})"
+        )
+        nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02b", min_eventos=1)
+        assert lat_s <= 2.0, f"Persistencia A02b excedio 2.0 s: {lat_s:.3f} s [CA-1]"
+        assert len(nuevos) == 1 and nuevos[0].get("tipo_operacion") == "REGISTRO_FALLIDO", (
+            f"Esperado exactamente 1 REGISTRO_FALLIDO en A02b; obtenidos: {nuevos} [CA-1]"
+        )
+        ev = nuevos[0]
+        assert ev.get("id_ciclo_productivo") is not None, "A02b: id_ciclo_productivo no debe ser nulo con fase abierta [R8]"
+        assert ev.get("id_gestion_fases") == _CONTEXTO["id_fase_1"], (
+            f"A02b: id_gestion_fases esperado {_CONTEXTO['id_fase_1']}, obtenido {ev.get('id_gestion_fases')} [RF-80 M05]"
+        )
+
+    def test_a02c_rf79_rechazo_ciclo_activo(self, sandbox_admin: CorridaSandbox):
+        """RF-80 v2.0 CA-1 y caso G37 v2.0 exigen auditar operaciones fallidas de RF-79; el catálogo no define el tipo para un rechazo de negocio."""
+        c = sandbox_admin
+        id_fase_1 = _CONTEXTO["id_fase_1"]
+        _, ultimo_previo = _snapshot_auditoria(c, "a02c_snap_previo")
+
+        t0 = time.perf_counter()
+        r_fail = c.post(f"/suministros/nic41/ciclo/{id_fase_1}/consolidar", paso="a02c_rf79_consolidar_activo")
+        assert r_fail.status_code == 409 and r_fail.json().get("error_code") == "CICLO_ACTIVO", (
+            f"Esperado 409 CICLO_ACTIVO; obtenido {r_fail.status_code} ({c.seguro(r_fail.text)})"
+        )
+        nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02c", min_eventos=1)
+        fallidos = [e for e in nuevos if e.get("resultado") in ("FALLIDO", "RECHAZADO")]
+        assert len(fallidos) >= 1, (
+            f"RF-80 v2.0 CA-1 / TC-M05-090: Se esperaba >= 1 evento con resultado FALLIDO/RECHAZADO tras "
+            f"HTTP {r_fail.status_code} ({r_fail.json().get('error_code')}, X-Request-Id={r_fail.headers.get('X-Request-Id')}); "
+            f"eventos nuevos observados: {len(nuevos)} ({nuevos})"
+        )
+        assert lat_s <= 2.0, f"Persistencia rechazo RF-79 excedio 2.0 s: {lat_s:.3f} s [RF-80 v2.0 CA-1]"
+        assert any(e.get("id_usuario") == c.id_usuario for e in fallidos), (
+            f"Ningun evento fallido de RF-79 tiene id_usuario={c.id_usuario} [RF-80 Entradas]"
+        )
+
+    def test_a02d_rf81_rechazo_filtros_invalidos(self, sandbox_admin: CorridaSandbox):
+        """RF-80 v2.0 CA-1 y caso G37 v2.0 exigen auditar operaciones fallidas de RF-81; el catálogo no define el tipo para un rechazo de negocio."""
+        c = sandbox_admin
+        id_activo_1 = _CONTEXTO["id_activo_1"]
+        hoy = _hoy()
+        _, ultimo_previo = _snapshot_auditoria(c, "a02d_snap_previo")
+
+        t0 = time.perf_counter()
+        r_fail = c.get(
+            "/suministros/historial",
+            paso="a02d_rf81_filtros_invalidos",
+            params={
+                "id_activo_biologico": id_activo_1,
+                "fecha_inicio_filtro": hoy.isoformat(),
+                "fecha_fin_filtro": (hoy - timedelta(days=5)).isoformat(),
+            },
+        )
+        assert r_fail.status_code == 422 and r_fail.json().get("error_code") == "COMBINACION_FILTROS_INVALIDA", (
+            f"Esperado 422 COMBINACION_FILTROS_INVALIDA; obtenido {r_fail.status_code} ({c.seguro(r_fail.text)})"
+        )
+        nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02d", min_eventos=1)
+        fallidos = [e for e in nuevos if e.get("resultado") in ("FALLIDO", "RECHAZADO")]
+        assert len(fallidos) >= 1, (
+            f"RF-80 v2.0 CA-1 / TC-M05-090: Se esperaba >= 1 evento con resultado FALLIDO/RECHAZADO tras "
+            f"HTTP {r_fail.status_code} ({r_fail.json().get('error_code')}, X-Request-Id={r_fail.headers.get('X-Request-Id')}); "
+            f"eventos nuevos observados: {len(nuevos)} ({nuevos})"
+        )
+        assert lat_s <= 2.0, f"Persistencia rechazo RF-81 excedio 2.0 s: {lat_s:.3f} s [RF-80 v2.0 CA-1]"
+        assert any(e.get("id_usuario") == c.id_usuario for e in fallidos), (
+            f"Ningun evento fallido de RF-81 tiene id_usuario={c.id_usuario} [RF-80 Entradas]"
+        )
+
+    def test_a01c_rf79_exito_cierre(self, sandbox_admin: CorridaSandbox):
+        """A01c (RF-80 v2.0 CA-1, R8 / TC-M05-090): Cierre RF-79 -> CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO."""
+        c = sandbox_admin
+        id_activo_1 = _CONTEXTO["id_activo_1"]
+        id_fase_1 = _CONTEXTO["id_fase_1"]
+        _, ultimo_previo = _snapshot_auditoria(c, "a01c_snap_previo")
+
+        payload_cierre = {
+            "fecha_cierre": _hoy().isoformat(),
+            "motivo_cierre": "finalizacion_lote",
+            "descripcion_cierre": "Cierre QA G37 para observacion consolidacion NIC41",
+        }
+        t0 = time.perf_counter()
+        r_cierre = c.post(f"/activos-biologicos/{id_activo_1}/cierre", payload_cierre, paso="a01c_rf79_cierre")
+        assert r_cierre.status_code == 200, (
+            f"Error cerrando ciclo RF-79: HTTP {r_cierre.status_code} "
+            f"(X-Request-Id={r_cierre.headers.get('X-Request-Id')}): {c.seguro(r_cierre.text)}"
+        )
+        nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a01c", min_eventos=2)
+        assert lat_s <= 2.0, f"Persistencia RF-79 excedio 2.0 s: {lat_s:.3f} s [RF-80 v2.0 CA-1]"
+
+        por_tipo = {ev.get("tipo_operacion"): ev for ev in nuevos}
+        for requerido in ("CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO"):
+            assert requerido in por_tipo, (
+                f"Falta evento {requerido} tras cierre RF-79; obtenidos: {[e.get('tipo_operacion') for e in nuevos]} [CA-1]"
+            )
+            ev = por_tipo[requerido]
+            assert ev.get("resultado") == "EXITOSO", f"{requerido}: resultado esperado EXITOSO [Entradas]"
+            assert ev.get("costo_afectado") is not None, f"{requerido}: costo_afectado nulo [R8]"
+            assert isinstance(ev.get("hash_integridad"), str) and _HEX64_RE.match(ev["hash_integridad"]), (
+                f"{requerido}: hash_integridad invalido [R5]"
+            )
+        _CONTEXTO["evento_rf79_consolidado"] = por_tipo["CICLO_CONSOLIDADO"]
+        _CONTEXTO["evento_rf79_reporte"] = por_tipo["REPORTE_COSTOS_GENERADO"]
+
+        # Capturar id_provision para T99
+        r_ver = c.get(f"/suministros/nic41/ciclo/{id_fase_1}/versiones", paso="a01c_listar_versiones")
+        assert r_ver.status_code == 200, f"Error listando versiones NIC41: HTTP {r_ver.status_code}"
+        versiones = r_ver.json().get("versiones") or []
+        assert versiones, "Sin versiones NIC41 tras cierre de ciclo"
+        _CONTEXTO["id_provision_1"] = versiones[-1]["id_provision"]
+
+    def test_a03_consistencia_lista_detalle_y_filtros(self, sandbox_admin: CorridaSandbox):
+        """A03 (RF-80 v2.0 CA-4, RNF-08 / TC-M05-090): Lista vs detalle y filtros para EXITOSO y REGISTRO_FALLIDO.
+
+        Nota de entorno: /test-control/query devuelve 0 filas por RLS (Fase 1, X-Request-Id 928c594f-...);
+        la verificacion de la fila se hace por el detalle de la API.
+        """
+        c = sandbox_admin
+        ev_exito = _CONTEXTO.get("evento_rf78")
+        ev_fallo = _CONTEXTO.get("evento_a02a")
+        assert ev_exito is not None and ev_fallo is not None, "Precondicion A03: faltan eventos de A01a o A02a"
+
+        now_utc = datetime.now(timezone.utc)
+        fecha_desde = (now_utc - timedelta(minutes=15)).isoformat()
+        fecha_hasta = (now_utc + timedelta(minutes=15)).isoformat()
+
+        for etiqueta, ev in (("EXITOSO", ev_exito), ("REGISTRO_FALLIDO", ev_fallo)):
+            id_ev = int(ev["id_auditoria_suministro"])
+            r_det = c.get(f"/suministros/auditoria/{id_ev}", paso=f"a03_detalle_{etiqueta}")
+            assert r_det.status_code == 200, (
+                f"Error detalle /{id_ev} ({etiqueta}): HTTP {r_det.status_code} ({c.seguro(r_det.text)})"
+            )
+            det = r_det.json()
+            assert ev == det, (
+                f"Discrepancia campo por campo entre lista y GET /{id_ev} ({etiqueta}): "
+                f"{ {k: (ev.get(k), det.get(k)) for k in set(ev)|set(det) if ev.get(k) != det.get(k)} } "
+                "[RF-80 v2.0 Postc.3 / TC-M05-090]"
+            )
+
+            filtros = {
+                "id_activo_biologico": {"id_activo_biologico": ev["id_activo_biologico"]},
+                "tipo_operacion": {"tipo_operacion": ev["tipo_operacion"]},
+                "resultado": {"resultado": ev["resultado"]},
+                "clasificacion_registro": {"clasificacion_registro": ev["clasificacion_registro"]},
+                "fecha_desde_hasta": {"fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta},
+                "combinado": {
+                    "id_activo_biologico": ev["id_activo_biologico"],
+                    "tipo_operacion": ev["tipo_operacion"],
+                    "resultado": ev["resultado"],
+                    "clasificacion_registro": ev["clasificacion_registro"],
+                    "fecha_desde": fecha_desde,
+                    "fecha_hasta": fecha_hasta,
+                },
+            }
+            for fname, fparams in filtros.items():
+                rf = c.get(
+                    "/suministros/auditoria",
+                    paso=f"a03_filtro_{etiqueta}_{fname}",
+                    params={**fparams, "pagina": 1, "registros_por_pagina": 100, "ordenar_por": "fecha_emision"},
+                )
+                assert rf.status_code == 200, (
+                    f"Filtro {fname} ({etiqueta}) HTTP {rf.status_code}: {c.seguro(rf.text)}"
+                )
+                items_f = rf.json().get("items") or []
+                ids_f = {int(x["id_auditoria_suministro"]) for x in items_f}
+                assert id_ev in ids_f, (
+                    f"Evento {id_ev} ({etiqueta}) no aparecio con filtro {fname}={fparams} [RF-80 v2.0 CA-4]"
+                )
+                coincidencia = next(x for x in items_f if int(x["id_auditoria_suministro"]) == id_ev)
+                assert coincidencia == det, (
+                    f"Discrepancia filtro {fname} vs detalle /{id_ev} ({etiqueta}) [TC-M05-090]"
+                )
+
+    def test_a04_restriccion_8_campos_minimos(self, sandbox_admin: CorridaSandbox):
+        """A04 (RF-80 v2.0 Restriccion 8, E2, CA-12): Campos minimos por tipo y regla de registro_incompleto."""
+        c = sandbox_admin
+        ultimo_id_base = _CONTEXTO["ultimo_id_corrida"]
+        assert ultimo_id_base is not None, "Precondicion: falta ultimo_id_corrida"
+
+        eventos = _recolectar_eventos_corrida(c, ultimo_id_base, "a04")
+        assert len(eventos) > 0, "No se recolectaron eventos en la corrida para verificar Restriccion 8"
+
+        fuentes_usadas: list[dict[str, Any]] = []
+        incumplimientos: list[dict[str, Any]] = []
+
+        for ev in eventos:
+            id_ev = ev.get("id_auditoria_suministro")
+            tipo = ev.get("tipo_operacion")
+            if tipo not in _CATALOGO_RF80:
+                continue
+
+            requeridos = _MINIMOS_POR_TIPO[tipo]
+            datos_nuevos = ev.get("datos_nuevos") if isinstance(ev.get("datos_nuevos"), dict) else {}
+            faltantes: list[str] = []
+            origen_por_campo: dict[str, str] = {}
+
+            for campo in requeridos:
+                if ev.get(campo) is not None:
+                    origen_por_campo[campo] = "primer_nivel"
+                elif datos_nuevos.get(campo) is not None:
+                    origen_por_campo[campo] = "datos_nuevos"
+                else:
+                    origen_por_campo[campo] = "AUSENTE"
+                    faltantes.append(campo)
+
+            fuentes_usadas.append({
+                "id_auditoria_suministro": id_ev,
+                "tipo_operacion": tipo,
+                "origen_por_campo": origen_por_campo,
+            })
+
+            if faltantes:
+                incompleto = ev.get("registro_incompleto")
+                causa = ev.get("detalle_causa") or ""
+                for campo_f in faltantes:
+                    if incompleto is not True or campo_f not in causa:
+                        incumplimientos.append({
+                            "id_auditoria_suministro": id_ev,
+                            "tipo_operacion": tipo,
+                            "campo_faltante": campo_f,
+                            "registro_incompleto": incompleto,
+                            "detalle_causa": causa,
+                        })
+
+        print(f"A04_FUENTES={json.dumps(fuentes_usadas, ensure_ascii=False)}")
+        print(f"A04_INCUMPLIMIENTOS={json.dumps(incumplimientos, ensure_ascii=False)}")
+
+        assert not incumplimientos, (
+            "RF-80 v2.0 Restriccion 8 / E2 / CA-12: Hay eventos del catalogo con campos minimos ausentes "
+            "sin registro_incompleto=true o sin nombrar el campo faltante en detalle_causa. "
+            f"Incumplimientos (evento, tipo, campo_faltante, registro_incompleto): {incumplimientos}"
+        )
+
+    def test_b01_clasificacion_y_retencion_catalogo(self, sandbox_admin: CorridaSandbox):
+        """B01 (RF-80 v2.0 Descripcion, Fase 3, CA-3; TC-M05-091): Clasificacion NIC41/5 años vs TECNICO/1 año."""
+        c = sandbox_admin
+        ultimo_id_base = _CONTEXTO["ultimo_id_corrida"]
+        eventos = _recolectar_eventos_corrida(c, ultimo_id_base, "b01")
+
+        tipos_nic41 = {"SUMINISTRO_REGISTRADO", "ACUMULADO_ACTUALIZADO", "CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO"}
+        tipos_tecnico = {"PRECIO_MANUAL_INGRESADO", "CONSULTA_HISTORIAL_EJECUTADA", "REGISTRO_FALLIDO"}
+
+        vistos_nic41: set[str] = set()
+        vistos_tecnico: set[str] = set()
+
+        for ev in eventos:
             tipo = ev.get("tipo_operacion")
             clasif = ev.get("clasificacion_registro")
             ret = ev.get("retencion_aplicable")
+            if tipo in tipos_nic41:
+                assert clasif == "NIC41", f"{tipo}: clasificacion esperada NIC41, obtenida {clasif} [RF-80 Fase 3]"
+                assert ret == "5 años", f"{tipo}: retencion esperada '5 años', obtenida {ret} [RF-80 CA-3]"
+                vistos_nic41.add(tipo)
+            elif tipo in tipos_tecnico:
+                assert clasif == "TECNICO", f"{tipo}: clasificacion esperada TECNICO, obtenida {clasif} [RF-80 Fase 3]"
+                assert ret == "1 año", f"{tipo}: retencion esperada '1 año', obtenida {ret} [RF-80 RNF-04]"
+                vistos_tecnico.add(tipo)
 
-            if tipo in tipos_nic41_esperados:
-                assert clasif == "NIC41", f"Evento {tipo} deberia clasificarse como NIC41, obtenido: {clasif}"
-                assert ret == "5 años", f"Evento {tipo} deberia retenerse 5 años, obtenido: {ret}"
-                encontrados_nic41 += 1
-            elif tipo in tipos_tecnico_esperados:
-                assert clasif == "TECNICO", f"Evento {tipo} deberia clasificarse como TECNICO, obtenido: {clasif}"
-                assert ret == "1 año", f"Evento {tipo} deberia retenerse 1 año, obtenido: {ret}"
-                encontrados_tecnico += 1
+        assert vistos_nic41 == tipos_nic41, (
+            f"Faltaron tipos NIC41 esperados: {sorted(tipos_nic41 - vistos_nic41)} [TC-M05-091]"
+        )
+        assert vistos_tecnico == tipos_tecnico, (
+            f"Faltaron tipos TECNICO esperados: {sorted(tipos_tecnico - vistos_tecnico)} [TC-M05-091]"
+        )
 
-        assert encontrados_nic41 > 0, "No se encontraron eventos con clasificacion NIC41 / 5 años"
-        assert encontrados_tecnico > 0, "No se encontraron eventos con clasificacion TECNICO / 1 año"
+    def test_b02_tipo_no_catalogado_nic41(self, sandbox_admin: CorridaSandbox):
+        """B02 (RF-80 v2.0 Descripcion, Fase 3 / TC-M05-091): Tipo no catalogado en TEST y en clasificar_retencion."""
+        c = sandbox_admin
+        ultimo_id_base = _CONTEXTO["ultimo_id_corrida"]
+        eventos = _recolectar_eventos_corrida(c, ultimo_id_base, "b02")
 
-    def test_b02_tipo_no_catalogado_clasifica_nic41_unidad(self):
-        """B02 (027): Tipo NO catalogado clasifica por defecto como NIC41 / 5 años (nivel unidad)."""
+        # (i) Eventos reales en TEST cuyo tipo_operacion no pertenece al catalogo RF-80 (ej. INSERT del cierre)
+        no_catalogados = [ev for ev in eventos if ev.get("tipo_operacion") not in _CATALOGO_RF80]
+        assert len(no_catalogados) >= 1, (
+            "RF-80 v2.0 Fase 3 / TC-M05-091: Se esperaba al menos 1 evento real no catalogado en la corrida "
+            "(ej. tipo 'INSERT' generado durante el cierre) para verificar la regla de ambiguedad en TEST, "
+            f"pero se encontraron 0. Tipos observados: {sorted({e.get('tipo_operacion') for e in eventos})}"
+        )
+        for ev in no_catalogados:
+            assert ev.get("clasificacion_registro") == "NIC41", (
+                f"Evento no catalogado id={ev.get('id_auditoria_suministro')} ({ev.get('tipo_operacion')}) "
+                f"clasificado como {ev.get('clasificacion_registro')} en lugar de NIC41 [RF-80 Fase 3]"
+            )
+            assert ev.get("retencion_aplicable") == "5 años", (
+                f"Evento no catalogado id={ev.get('id_auditoria_suministro')} ({ev.get('tipo_operacion')}) "
+                f"con retencion {ev.get('retencion_aplicable')} en lugar de '5 años' [RF-80 Fase 3]"
+            )
+
+        # (ii) Verificacion unitaria sobre clasificar_retencion con hash de commit local
         from src.supplies.domain.value_objects.eventos_auditoria_suministro_enums import clasificar_retencion
 
-        tipo_desconocido = "EVENTO_NO_CATALOGADO_EXPERIMENTO_QA"
-        clasif, ret = clasificar_retencion(tipo_desconocido)
+        commit_sha = _commit_local()
+        clasif, ret = clasificar_retencion("EVENTO_NO_CATALOGADO_EXPERIMENTO_QA")
+        assert clasif == "NIC41", (
+            f"clasificar_retencion debio retornar NIC41, obtenido {clasif} (commit local {commit_sha}) [RF-80 Fase 3]"
+        )
+        assert ret == "5 años", (
+            f"clasificar_retencion debio retornar '5 años', obtenido {ret} (commit local {commit_sha}) [RF-80 Fase 3]"
+        )
+        print(f"B02_OK no_catalogados_test={[e.get('id_auditoria_suministro') for e in no_catalogados]} commit={commit_sha}")
 
-        assert clasif == "NIC41", f"Tipo no catalogado debio clasificarse como NIC41 por conservadurismo, obtenido: {clasif}"
-        assert ret == "5 años", f"Tipo no catalogado debio retenerse 5 años, obtenido: {ret}"
-
-    def test_t98_cierre_sandbox(self, sandbox_admin: CorridaSandbox):
-        """T98: Cierre ordenado de sandbox y confirmacion de rollback."""
+    def test_t98_cierre_sandbox_principal(self, sandbox_admin: CorridaSandbox):
+        """T98: Cierre de la corrida sandbox principal con DELETE -> HTTP 200 'Rollback exitoso'."""
         c = sandbox_admin
         r = c.cerrar()
-        assert r is not None, "Cierre de sandbox ya habia sido ejecutado"
-        assert r.status_code == 200, f"Error en DELETE /test-control/runs: HTTP {r.status_code}: {c.seguro(r.text)}"
+        assert r is not None, "Cierre de sandbox principal ya habia sido ejecutado"
+        assert r.status_code == 200, (
+            f"Error en DELETE /test-control/runs: HTTP {r.status_code} "
+            f"(X-Request-Id={r.headers.get('X-Request-Id')}): {c.seguro(r.text)}"
+        )
         data = r.json()
         mensaje = data.get("mensaje") or data.get("status") or ""
-        assert "exitoso" in mensaje.lower(), f"Respuesta de rollback inesperada: {data}"
+        assert "exitoso" in mensaje.lower(), f"Respuesta inesperada de rollback T98: {data}"
+        _CONTEXTO["sandbox_cerrado_t98"] = True
 
-    def test_t99_inocuidad_rollback(self):
-        """T99: Inocuidad - el conteo final de la bitacora coincide con la linea base antes del sandbox."""
-        base_url = _env("TEST_BASE_URL").rstrip("/")
-        email = _env("TEST_ADMIN_EMAIL")
-        pwd = _env("TEST_ADMIN_PASSWORD")
+    def test_t99_inocuidad_post_rollback(self):
+        """T99: Inocuidad en corrida sandbox independiente de solo lectura (total/ultimo_id y GET -> 404).
 
-        # Login limpio sin headers de sandbox
-        r_login = requests.post(
-            f"{base_url}/sesiones/",
-            json={"correo_electronico": email, "contrasena": pwd},
-            headers={"X-Zona-Horaria": NOMBRE_ZONA},
-            timeout=TIMEOUT_S,
-        )
-        assert r_login.status_code == 200, "Error en login para verificacion de inocuidad"
-        token = r_login.json().get("token") or r_login.json().get("access_token")
+        Nota: costeo_suministros_router.py expone GET /acumulado/activo/{id}, GET /acumulado/ciclo/{id_fase}
+        y GET /suministros/historial (no existe GET /suministros/costeo-directo/{id_registro}), usados para
+        verificar la desaparicion del registro de suministro y acumulado.
+        """
+        total_base = _CONTEXTO["total_base"]
+        ultimo_id_base = _CONTEXTO["ultimo_id_base"]
+        id_activo_1 = _CONTEXTO["id_activo_1"]
+        id_activo_2 = _CONTEXTO["id_activo_2"]
+        id_fase_1 = _CONTEXTO["id_fase_1"]
+        id_provision_1 = _CONTEXTO["id_provision_1"]
+        assert total_base is not None and ultimo_id_base is not None, "Precondicion: falta linea base de T00"
 
-        r_fin = requests.get(
-            f"{base_url}/suministros/auditoria",
-            headers={"Authorization": f"Bearer {token}", "X-Zona-Horaria": NOMBRE_ZONA},
-            params={"pagina": 1, "registros_por_pagina": 1},
-            timeout=TIMEOUT_S,
-        )
-        assert r_fin.status_code == 200, f"Error consultando auditoria final: HTTP {r_fin.status_code}"
-        total_fin = r_fin.json().get("total", 0)
+        corrida = CorridaSandbox(prefijo="tc-m05-g37-inofin")
+        try:
+            corrida.login()
+            total_fin, ultimo_id_fin = _snapshot_auditoria(corrida, "t99_conteo_final")
+            assert total_fin == total_base, (
+                f"Inocuidad: total cambio de {total_base} a {total_fin} tras rollback [Sandbox / Inocuidad]"
+            )
+            assert ultimo_id_fin == ultimo_id_base, (
+                f"Inocuidad: ultimo_id cambio de {ultimo_id_base} a {ultimo_id_fin} tras rollback [Sandbox / Inocuidad]"
+            )
 
-        total_base = _CONTEXTO.get("total_base", 0)
-        assert total_fin == total_base, (
-            f"Fallo de inocuidad: el conteo de la bitacora cambio de {total_base} a {total_fin} "
-            "tras el cierre de la corrida sandbox (el rollback no fue completo)."
-        )
+            rutas_404: list[tuple[str, str, Any]] = []
+            if id_activo_1 is not None:
+                rutas_404.append(("activo_1", f"/activos-biologicos/{id_activo_1}", None))
+                rutas_404.append(("acumulado_activo_1", f"/suministros/costeo-directo/acumulado/activo/{id_activo_1}", None))
+                rutas_404.append(("historial_activo_1", "/suministros/historial", {"id_activo_biologico": id_activo_1}))
+            if id_fase_1 is not None:
+                rutas_404.append(("acumulado_ciclo_1", f"/suministros/costeo-directo/acumulado/ciclo/{id_fase_1}", None))
+            if id_activo_2 is not None:
+                rutas_404.append(("activo_2", f"/activos-biologicos/{id_activo_2}", None))
+            if id_provision_1 is not None:
+                rutas_404.append(("provision_1", f"/suministros/nic41/{id_provision_1}", None))
+
+            resultados_404 = {}
+            for etiqueta, ruta, params in rutas_404:
+                r = corrida.get(ruta, paso=f"t99_check_{etiqueta}", params=params)
+                resultados_404[etiqueta] = {
+                    "status_code": r.status_code,
+                    "x_request_id": r.headers.get("X-Request-Id"),
+                }
+                assert r.status_code == 404, (
+                    f"Inocuidad fallo en {etiqueta} ({ruta}): esperado 404, obtenido {r.status_code}"
+                )
+            print(f"T99_INOCUIDAD total={total_fin} ultimo_id={ultimo_id_fin} checks_404={json.dumps(resultados_404)}")
+        finally:
+            r_close = corrida.cerrar()
+        assert r_close is not None and r_close.status_code == 200, "Fallo cierre corrida T99"

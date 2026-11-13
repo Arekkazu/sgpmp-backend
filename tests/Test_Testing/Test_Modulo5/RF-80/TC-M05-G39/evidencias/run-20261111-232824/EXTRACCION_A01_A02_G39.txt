@@ -1,0 +1,219 @@
+================================================================================
+EXTRACCION DE EVIDENCIA SOLO LECTURA - TC-M05-G39 REINTENTO 1 (A01 / A02)
+Staging: tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/evidencias/run-20261111-232824/
+================================================================================
+
+1) TABLA DE LOS 13 EVENTOS NUEVOS (75559-75571) DESDE trazas_http.jsonl Y observaciones_g39.json
+--------------------------------------------------------------------------------
+Nota: Todos los 13 eventos 75559-75571 constan integramente en las respuestas GET /suministros/auditoria/{id}
+de trazas_http.jsonl (durante B03, B01 y B02) y coinciden con observaciones_g39.json.
+
+| id | entidad_afectada | tipo_operacion | resultado | registro_incompleto | detalle_causa | fecha_evento | fecha_emision | clasificacion_registro | id_activo_biologico | id_ciclo_productivo | version_hash_integridad |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 75559 | registro_suministro | REGISTRO_FALLIDO | RECHAZADO | true | Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1856. Solicitud: 0f4a93a0-5a31-4c02-ad12-c77134b0649c. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:31.764466Z | TECNICO | 1856 | null | 2 |
+| 75560 | registro_suministro | SUMINISTRO_REGISTRADO | EXITOSO | false | null | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:32.619316Z | NIC41 | 1857 | 1 | 2 |
+| 75561 | registro_suministro | PRECIO_MANUAL_INGRESADO | EXITOSO | false | null | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:32.619316Z | TECNICO | 1857 | 1 | 2 |
+| 75562 | registro_suministro | ACUMULADO_ACTUALIZADO | EXITOSO | false | null | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:32.619316Z | NIC41 | 1857 | 1 | 2 |
+| 75563 | resultado_ica | INSERT | EXITOSO | false | null | 2026-11-12T04:28:30.397353Z | null | NIC41 | 1857 | null | 2 |
+| 75564 | provision_nic41 | CICLO_CONSOLIDADO | EXITOSO | false | null | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:33.086511Z | NIC41 | 1857 | 1 | 2 |
+| 75565 | provision_nic41 | REPORTE_COSTOS_GENERADO | EXITOSO | false | null | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:33.090359Z | NIC41 | 1857 | 1 | 2 |
+| 75566 | auditorias_suministros | UPDATE | RECHAZADO | false | Se rechazó una solicitud de actualización del registro 75560 de la bitácora, que es de solo lectura. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:35.471478Z | NIC41 | null | null | 2 |
+| 75567 | auditorias_suministros | UPDATE | RECHAZADO | false | Se rechazó una solicitud de actualización parcial del registro 75560 de la bitácora, que es de solo lectura. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:36.398605Z | NIC41 | null | null | 2 |
+| 75568 | auditorias_suministros | DELETE | RECHAZADO | false | Se rechazó una solicitud de eliminación del registro 75560 de la bitácora, que es de solo lectura. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:37.250552Z | NIC41 | null | null | 2 |
+| 75569 | auditorias_suministros | INSERT | RECHAZADO | false | Se rechazó una solicitud de inserción del registro 75560 de la bitácora, que es de solo lectura. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:38.077137Z | NIC41 | null | null | 2 |
+| 75570 | auditorias_suministros | UPDATE | RECHAZADO | false | Se rechazó una solicitud de actualización del registro 75560 de la bitácora, que es de solo lectura. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:40.195767Z | NIC41 | null | null | 2 |
+| 75571 | auditorias_suministros | UPDATE | RECHAZADO | false | Se rechazó una solicitud de actualización del registro 999999999 de la bitácora, que es de solo lectura. | 2026-11-12T04:28:30.397353Z | 2026-11-12T04:28:40.910098Z | NIC41 | null | null | 2 |
+
+2) CUERPO COMPLETO DE GET /suministros/auditoria/75563 EN trazas_http.jsonl
+--------------------------------------------------------------------------------
+X-Request-Id: 62ea9eca-feb2-47de-b7d2-4a940a51700a
+{
+  "id_auditoria_suministro": 75563,
+  "id_evento_m05": "4b30eeee-c0b4-49c0-8cfb-24f6bfa14997",
+  "version_hash_integridad": 2,
+  "entidad_afectada": "resultado_ica",
+  "tipo_operacion": "INSERT",
+  "id_usuario": 104,
+  "resultado": "EXITOSO",
+  "fecha_evento": "2026-11-12T04:28:30.397353Z",
+  "datos_anteriores": null,
+  "datos_nuevos": {
+    "id_resultado_ica": 34259,
+    "id_activo_biologico": 1857,
+    "periodo_evaluacion": "POR_CICLO",
+    "fecha_inicio_periodo": "2026-11-11",
+    "fecha_fin_periodo": "2026-11-11",
+    "alimento_consumido_total_kg": null,
+    "ganancia_peso_kg": null,
+    "ca_calculado": null,
+    "clasificacion_ca": null,
+    "data_quality_score": 0,
+    "causa_no_calculo": "SIN_PESO_INICIAL",
+    "tipo_calculo": "MANUAL",
+    "fecha_calculo": "2026-11-12T04:28:30.397353+00:00",
+    "id_usuario": 104,
+    "id_version": 1,
+    "creado_en": "2026-11-12T04:28:30.397353+00:00",
+    "estado_resultado": "CA_NO_CALCULABLE",
+    "es_vigente": true,
+    "intento": 1
+  },
+  "ip_origen": null,
+  "id_sesion": null,
+  "fecha_emision": null,
+  "id_activo_biologico": 1857,
+  "id_ciclo_productivo": null,
+  "costo_afectado": null,
+  "origen_precio": null,
+  "clasificacion_registro": "NIC41",
+  "retencion_aplicable": "5 años",
+  "hash_integridad": "4861a02cd2259b35aa9e94749be01bfccb9488881e0222a89b60fc5afb26f10c",
+  "registro_incompleto": false,
+  "detalle_causa": null,
+  "numero_reintentos": null,
+  "fecha_intentos": null,
+  "id_gestion_fases": null
+}
+
+3) FILTRO DE EVENTOS EN test_tc_m05_g39.py :: test_a01_incompletos_con_causa
+--------------------------------------------------------------------------------
+Lineas exactas que recolectan y filtran los eventos evaluados en test_a01_incompletos_con_causa (L702-L737):
+  702:     eventos_corrida = _recolectar_eventos_corrida(c, ultimo_inicio, "a01_recolectar")
+  703:     assert eventos_corrida, "No se recolectaron eventos nuevos en A01 [TC-M05-092]"
+  704:     _CONTEXTO["eventos_a01"] = eventos_corrida
+  705:     objetivo = next(
+  706:         (e for e in eventos_corrida if e.get("tipo_operacion") == "SUMINISTRO_REGISTRADO"),
+  707:         eventos_corrida[0],
+  708:     )
+  709:     _CONTEXTO["id_objetivo_b01"] = int(objetivo["id_auditoria_suministro"])
+  710: 
+  711:     # Verificar todos los eventos nuevos con registro_incompleto = true tienen detalle_causa no nulo y no vacio
+  712:     for ev in eventos_corrida:
+  713:         if ev.get("registro_incompleto") is True:
+  714:             causa = ev.get("detalle_causa")
+  715:             assert isinstance(causa, str) and bool(causa.strip()), (
+  716:                 f"Evento {ev.get('id_auditoria_suministro')} ({ev.get('tipo_operacion')}) "
+  717:                 f"con registro_incompleto=true tiene detalle_causa nulo o vacio: {causa!r} "
+  718:                 "[TC-M05-092; RF-80 v2.0 CA-12, R8, E2; INC-M05-278-G39 defecto 1]"
+  719:             )
+  720: 
+  721:     # Consolidacion (CICLO_CONSOLIDADO, REPORTE_COSTOS_GENERADO) no debe marcarse incompleta por conciliacion pendiente
+  722:     por_tipo = {ev.get("tipo_operacion"): ev for ev in eventos_corrida}
+  723:     for tipo_cons in ("CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO"):
+  724:         assert tipo_cons in por_tipo, (
+  725:             f"Falta evento de consolidacion {tipo_cons} tras cierre RF-79 [RF-80 v2.0 CA-1]"
+  726:         )
+  727:         ev_cons = por_tipo[tipo_cons]
+  728:         if ev_cons.get("registro_incompleto") is True:
+  729:             causa_low = (ev_cons.get("detalle_causa") or "").lower()
+  730:             assert "conciliacion pendiente" not in causa_low and "conciliación pendiente" not in causa_low, (
+  731:                 f"{tipo_cons} id={ev_cons.get('id_auditoria_suministro')} marcado incompleto por "
+  732:                 f"conciliacion pendiente: {ev_cons.get('detalle_causa')!r} [INC-M05-278-G39 defecto 1]"
+  733:             )
+  734:             assert any(tok in causa_low for tok in ("campos faltantes", "activo", "ciclo", "costo")), (
+  735:                 f"{tipo_cons} id={ev_cons.get('id_auditoria_suministro')} marcado incompleto sin nombrar "
+  736:                 f"campos faltantes reales: {ev_cons.get('detalle_causa')!r} [TC-M05-092; INC-M05-278-G39 defecto 1]"
+  737:             )
+
+(a) Eventos evaluados en A01:
+    - En test_a01_incompletos_con_causa se generan y recolectan por rango de id (> ultimo_inicio)
+      los 7 eventos 75559-75565 (75559 de A01(a) + 75560-75565 de A01(b) y cierre RF-79).
+    - Nota de trazas: las respuestas paginadas de a01_recolectar (>15 KB) aparecen resumidas como
+      "<json extenso bytes=...>" en trazas_http.jsonl; sin embargo, B03 consulto el detalle completo
+      GET /suministros/auditoria/{id} de cada uno de los 7 eventos 75559-75565.
+    - Cantidad con registro_incompleto=true evaluada en la corrida: 1 evento(s) -> [75559]
+      (id=75559, REGISTRO_FALLIDO, detalle_causa no vacio que nombra "Campos faltantes: ciclo productivo.").
+(b) Exige al menos 1 evento incompleto o puede pasar sin evaluar ninguno?
+    - PUEDE PASAR SIN EVALUAR NINGUNO.
+    - L703 unicamente exige que eventos_corrida no este vacia ("assert eventos_corrida").
+    - L712-L719 usa "if ev.get('registro_incompleto') is True:" sin ningun assert previo que exija
+      al menos un evento con registro_incompleto == True.
+
+4) TRIGGERS DE AUDITORIA DE COSTOS PRODUCTIVOS Y RESULTADO ICA (esquema_baseline.sql)
+--------------------------------------------------------------------------------
+4.1) modulo5.fn_trg_auditoria_costos_productivos() — esquema_baseline.sql:11258-11284:
+  11258: CREATE FUNCTION modulo5.fn_trg_auditoria_costos_productivos() RETURNS trigger
+  11259:     LANGUAGE plpgsql
+  11260:     AS $$
+  11261: BEGIN
+  11262:     INSERT INTO modulo5.auditorias_suministros (
+  11263:         entidad_afectada,
+  11264:         tipo_operacion,
+  11265:         datos_anteriores,
+  11266:         datos_nuevos,
+  11267:         id_usuario,
+  11268:         ip_origen,
+  11269:         fecha_evento,
+  11270:         resultado
+  11271:     ) VALUES (
+  11272:         'costos_productivos',
+  11273:         'INSERT',
+  11274:         NULL,
+  11275:         row_to_json(NEW),
+  11276:         NEW.id_usuario,
+  11277:         NULL,   -- IP gestionada por sesión de backend
+  11278:         NOW(),
+  11279:         'EXITOSO'
+  11280:     );
+  11281: 
+  11282:     RETURN NULL;
+  11283: END;
+  11284: $$;
+Trigger que la dispara — esquema_baseline.sql:42892:
+  42892: CREATE TRIGGER trg_auditoria_costos_productivos AFTER INSERT ON modulo5.costos_productivos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_auditoria_costos_productivos();
+  -> Tabla/operacion: AFTER INSERT ON modulo5.costos_productivos (FOR EACH ROW).
+
+4.2) modulo5.fn_trg_auditoria_resultado_ica() — esquema_baseline.sql:11341-11374:
+  11341: CREATE FUNCTION modulo5.fn_trg_auditoria_resultado_ica() RETURNS trigger
+  11342:     LANGUAGE plpgsql
+  11343:     AS $$
+  11344: DECLARE
+  11345:     v_tipo_op  modulo5.enum_auditoria_suministro_tipo_operacion;
+  11346:     v_datos_ant json := NULL;
+  11347:     v_datos_nue json := NULL;
+  11348: BEGIN
+  11349:     IF TG_OP = 'INSERT' THEN
+  11350:         v_tipo_op   := 'INSERT';
+  11351:         v_datos_nue := row_to_json(NEW);
+  11352:     ELSIF TG_OP = 'UPDATE' THEN
+  11353:         v_tipo_op   := 'UPDATE';
+  11354:         v_datos_ant := row_to_json(OLD);
+  11355:         v_datos_nue := row_to_json(NEW);
+  11356:     END IF;
+  11357: 
+  11358:     INSERT INTO modulo5.auditorias_suministros (
+  11359:         entidad_afectada, tipo_operacion, datos_anteriores, datos_nuevos,
+  11360:         id_usuario, ip_origen, fecha_evento, resultado, id_activo_biologico
+  11361:     ) VALUES (
+  11362:         'resultado_ica',
+  11363:         v_tipo_op,
+  11364:         v_datos_ant,
+  11365:         v_datos_nue,
+  11366:         COALESCE(NEW.id_usuario, OLD.id_usuario, 1),  -- usuario sistema para batch
+  11367:         NULL,
+  11368:         NOW(),
+  11369:         'EXITOSO',
+  11370:         COALESCE(NEW.id_activo_biologico, OLD.id_activo_biologico)
+  11371:     );
+  11372:     RETURN NULL;
+  11373: END;
+  11374: $$;
+Trigger que la dispara — esquema_baseline.sql:42906:
+  42906: CREATE TRIGGER trg_auditoria_resultado_ica AFTER INSERT OR UPDATE ON modulo5.resultado_ica FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_auditoria_resultado_ica();
+  -> Tabla/operacion: AFTER INSERT OR UPDATE ON modulo5.resultado_ica (FOR EACH ROW).
+
+4.3) Revision en alembic/versions/ respecto a modificaciones posteriores:
+  - Resultado del grep en alembic/versions/*.py para fn_trg_auditoria_costos_productivos,
+    fn_trg_auditoria_resultado_ica, trg_auditoria_costos_productivos, trg_auditoria_resultado_ica,
+    costos_productivos y resultado_ica:
+    * Unica migracion con coincidencias: f7463281b461_rls_modulo_05.py (L56, L149, L165, L273, L289),
+      la cual solo configura politicas RLS y triggers de append/proteccion sobre costos_productivos/resultado_ica.
+    * Ninguna migracion posterior a la linea base modifica fn_trg_auditoria_costos_productivos(),
+      fn_trg_auditoria_resultado_ica(), trg_auditoria_costos_productivos ni trg_auditoria_resultado_ica.
+
+5) ESCANEO DE SECRETOS (MODO SOLO REPORTE)
+--------------------------------------------------------------------------------
+Patrones verificados desde .env.test en memoria: TEST_ADMIN_PASSWORD, TEST_PRODUCER_PASSWORD, TEST_VET_PASSWORD,
+TEST_SANDBOX_SECRET, ultimos 20 caracteres de cada uno, correos TEST_*_EMAIL y prefijo JWT.
+- INFORME_REINTENTO1_G39.txt: 0 hallazgos.
+- EXTRACCION_A01_A02_G39.txt: 0 hallazgos.

@@ -1,13 +1,13 @@
 # | Fecha      | Nombre                   | Que se hizo                                                           |
 # |------------|--------------------------|-----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G42 (JSON, repro, MD, TXT)  |
+# | 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: --reintento N, valores reales, observaciones A02a/A02b/OBS-0 |
 """Generador de artefactos de corrida para TC-M05-G42.
 Lee JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
-- resultado_TC-M05-G42.json
+- resultado_TC-M05-G42[_reintentoN].json
 - repro
 - TC-M05-G42_resultado.md
-- INFORME_FASE234_TC-M05-G42.txt
-- Inyecta data-jsonblob en resultado_TC-M05-G42.html
+- Inyecta data-jsonblob en resultado_TC-M05-G42[_reintentoN].html
 """
 from __future__ import annotations
 
@@ -19,15 +19,57 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 ZONA_USUARIO = timezone(timedelta(hours=-5))
 
+MOTIVO_RETIRO_A02 = (
+    "Retirado: RF-81 Restriccion 7 y E5 no definen estas validaciones "
+    "(vienen de CU04 FA-02, que no esta en la especificacion). Pendiente de decision de Analisis."
+)
 
-def leer_archivo(p: Path) -> str:
-    try:
-        return p.read_text(encoding="utf-8")
-    except Exception as e:
-        return f"[Error leyendo {p.name}: {e}]"
+TEST_METADATA = {
+    "test_00_setup_linea_base_y_activos": {
+        "paso": "T00 Linea base (run aparte) y setup de activos",
+        "esperado": "Run T00 consulta GET /suministros/auditoria (HTTP 200) y cierra con DELETE 200 'Rollback exitoso'; activos A y B con fase abierta y 3 suministros en A (HTTP 201)",
+        "fuente": "Protocolo Sandbox / Setup de linea base",
+    },
+    "test_a01_combinaciones_invalidas_filtros": {
+        "paso": "A01 Combinaciones invalidas de filtros (100 / 035)",
+        "esperado": "HTTP 422 para fecha_fin < fecha_inicio, costo_max < costo_min y ciclo ajeno (real e inexistente) con mensajes descriptivos distintos y sin items ni resumen",
+        "fuente": "RF-81 Restr. 7 / E5 / CA-10 / TC-M05-100 (035)",
+    },
+    "test_b01a_paginacion_activo_con_mas_de_205_registros": {
+        "paso": "B01a Paginacion y recorrido completo param=200 (101 / 036)",
+        "esperado": "HTTP 200, 200 registros en p1, total_paginas=3, total_registros_filtrados=500, pagina_actual=1, recorrido completo 500 sin duplicados, orden fecha_aplicacion DESC y suma de costos igual a monto_total_filtrado",
+        "fuente": "RF-81 Entradas (registros_por_pagina) y RNF-04",
+    },
+    "test_b01b_tope_maximo_registros_por_pagina": {
+        "paso": "B01b Tope maximo param=201 en pagina 1 (101 / 036)",
+        "esperado": "HTTP 200; len(registros)=200; total_registros_filtrados=500; total_paginas=3; pagina_actual=1",
+        "fuente": "RF-81 Entradas ('registros_por_pagina | max: 200 | El sistema aplica el limite maximo si se excede'); RNF-04",
+    },
+    "test_b01c_paginacion_completa_con_exceso_201": {
+        "paso": "B01c Paginacion completa paginas 1, 2 y 3 con param=201 (101 / 036)",
+        "esperado": "HTTP 200 en paginas 1, 2 y 3; conteos exactos [200, 200, 100]; 500 ids distintos sin duplicados; orden fecha_aplicacion DESC intra e inter pagina",
+        "fuente": "RF-81 Entradas (el limite se aplica como tamano de pagina) y Fase 3 (orden por fecha_aplicacion DESC, paginacion maxima de 200)",
+    },
+    "test_b01d_tope_maximo_extremo_1000": {
+        "paso": "B01d Tope maximo extremo param=1000 en pagina 1 (101 / 036)",
+        "esperado": "HTTP 200; len(registros)=200; total_paginas=3",
+        "fuente": "RF-81 Entradas ('si se excede')",
+    },
+    "test_98_cierre_sandbox": {
+        "paso": "T98 Cierre estricto de corrida sandbox principal",
+        "esperado": "DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'",
+        "fuente": "Protocolo Sandbox",
+    },
+    "test_99_inocuidad_final": {
+        "paso": "T99 Inocuidad final en run de sandbox aparte",
+        "esperado": "GET /suministros/auditoria igual a T00 (total y ultimo id); GET de activos A, B e historial de A responden HTTP 404; DELETE cierra con HTTP 200 'Rollback exitoso'",
+        "fuente": "Protocolo Sandbox / Verificacion de Inocuidad",
+    },
+}
 
 
 def calcular_sha256(p: Path) -> str:
@@ -36,62 +78,249 @@ def calcular_sha256(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
-TEST_METADATA = {
-    "test_00_setup_linea_base_y_activos": {
-        "paso": "T00 Setup de activos y línea base",
-        "esperado": "Creación exitosa de activos A y B con fase productiva abierta y 3 registros de suministros en A (HTTP 201)",
-        "fuente": "Testing Harness / Setup de línea base",
-    },
-    "test_a01_combinaciones_invalidas_filtros": {
-        "paso": "A01 Combinaciones inválidas de filtros (100 / 035)",
-        "esperado": "HTTP 422 para cada combinación (fecha_fin < fecha_inicio, costo_max < costo_min, ciclo ajeno real e inexistente) con mensajes descriptivos específicos que difieren entre sí; sin items ni resumen",
-        "fuente": "RF-81 Restr. 7 / E5 / CA-10 / TC-M05-100 (035)",
-    },
-    "test_a02a_fecha_fin_futura": {
-        "paso": "A02a Validación de fecha fin futura (100 / 035, caso CU04 FA-02)",
-        "esperado": "HTTP 422 para fecha_fin_filtro futura (hoy+1), con mensaje de conflicto específico",
-        "fuente": "Caso CU04 FA-02 (no definido en RF-81)",
-    },
-    "test_a02b_fecha_inicio_anterior_ciclo": {
-        "paso": "A02b Validación de fecha inicio anterior al ciclo (100 / 035, caso CU04 FA-02)",
-        "esperado": "HTTP 422 para fecha_inicio_filtro anterior al ciclo productivo, con mensaje de conflicto específico",
-        "fuente": "Caso CU04 FA-02 (no definido en RF-81)",
-    },
-    "test_b01a_paginacion_activo_con_mas_de_205_registros": {
-        "paso": "B01a Paginación y recorrido completo sobre activo grande (101 / 036)",
-        "esperado": "HTTP 200 con 200 items (param 200); recorrido completo de páginas sin duplicados; metadatos coherentes; orden fecha_aplicacion DESC; suma de costo_registro igual a monto_total_filtrado",
-        "fuente": "RF-81 Restr. 5 / RNF-04 / CA-6 / TC-M05-101 (036)",
-    },
-    "test_b01b_tope_maximo_registros_por_pagina": {
-        "paso": "B01b Tope máximo de registros por página (101 / 036)",
-        "esperado": "HTTP 200 aplicando tope máximo de 200 items ante param=201 ('El sistema aplica el límite máximo si se excede')",
-        "fuente": "RF-81 Tabla Entradas (registros_por_pagina) / TC-M05-101 (036)",
-    },
-    "test_98_cierre_sandbox": {
-        "paso": "T98 Cierre estricto de corrida sandbox",
-        "esperado": "DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'",
-        "fuente": "Testing Harness / Sandbox Protocol",
-    },
-    "test_99_inocuidad_final": {
-        "paso": "T99 Inocuidad final fuera de sandbox",
-        "esperado": "Verificación fuera de sandbox: activo propio responde HTTP 404 (0 efectos persistidos)",
-        "fuente": "Testing Harness / Verificación de Inocuidad",
-    },
-}
+def _cargar_trazas(trazas_path: Path) -> list[dict[str, Any]]:
+    if not trazas_path.exists():
+        return []
+    filas: list[dict[str, Any]] = []
+    for line in trazas_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            filas.append(json.loads(line))
+        except Exception:
+            pass
+    return filas
 
 
-def procesar_corrida(staging: Path, sha_hashes: dict[str, str]):
-    junit_path = staging / "resultado_TC-M05-G42.xml"
+def _por_paso(trazas: list[dict[str, Any]], paso: str) -> dict[str, Any] | None:
+    for t in trazas:
+        if t.get("paso") == paso:
+            return t
+    return None
+
+
+def _todos_por_test(trazas: list[dict[str, Any]], test_name: str) -> list[dict[str, Any]]:
+    return [t for t in trazas if t.get("test") == test_name]
+
+
+def _extraer_metricas_historial(traza: dict[str, Any] | None) -> dict[str, Any]:
+    if not traza:
+        return {}
+    body = traza.get("response_body")
+    if not isinstance(body, dict):
+        return {
+            "http": traza.get("status_code"),
+            "error_code": traza.get("error_code"),
+            "x_request_id": traza.get("x_request_id", ""),
+        }
+    items = body.get("items")
+    resumen = body.get("resumen") if isinstance(body.get("resumen"), dict) else {}
+    fields = body.get("fields") if isinstance(body.get("fields"), list) else []
+    return {
+        "http": traza.get("status_code"),
+        "error_code": traza.get("error_code"),
+        "fields": fields,
+        "len_registros": len(items) if isinstance(items, list) else None,
+        "ids": [it.get("id_registro_suministro") for it in items] if isinstance(items, list) else [],
+        "total_registros_filtrados": resumen.get("total_registros_filtrados"),
+        "total_paginas": resumen.get("total_paginas"),
+        "pagina_actual": resumen.get("pagina_actual"),
+        "x_request_id": traza.get("x_request_id", ""),
+    }
+
+
+def _formatear_obtenido(
+    test_key: str,
+    estado_chk: str,
+    xml_detalle: str,
+    trazas: list[dict[str, Any]],
+) -> str:
+    trazas_test = _todos_por_test(trazas, test_key)
+    req_ids = [t.get("x_request_id") for t in trazas_test if t.get("x_request_id")]
+
+    if test_key == "test_00_setup_linea_base_y_activos":
+        t_aud = _por_paso(trazas, "T00_auditoria_inicial")
+        t_del = None
+        for t in trazas:
+            if t.get("paso") == "teardown" and "tc-m05-g42-t00-" in str(t.get("ruta", "")):
+                t_del = t
+                break
+        t_a = _por_paso(trazas, "T00_crear_activo_a")
+        t_b = _por_paso(trazas, "T00_crear_activo_b")
+        t_h = _por_paso(trazas, "T00_historial_a")
+        m_h = _extraer_metricas_historial(t_h)
+        aud_body = (t_aud or {}).get("response_body") or {}
+        partes = [
+            f"T00 auditoria HTTP={(t_aud or {}).get('status_code')} total={aud_body.get('total') if isinstance(aud_body, dict) else None}",
+            f"DELETE T00 HTTP={(t_del or {}).get('status_code')}",
+            f"activo_a HTTP={(t_a or {}).get('status_code')}",
+            f"activo_b HTTP={(t_b or {}).get('status_code')}",
+            f"historial_a HTTP={m_h.get('http')} len={m_h.get('len_registros')}",
+            f"X-Request-Id=[{', '.join(req_ids)}]",
+        ]
+        resumen = "; ".join(partes)
+    elif test_key == "test_a01_combinaciones_invalidas_filtros":
+        t1 = _por_paso(trazas, "A01_fecha_fin_menor_inicio")
+        t2 = _por_paso(trazas, "A01_costo_max_menor_min")
+        t3 = _por_paso(trazas, "A01_ciclo_real_ajeno")
+        t4 = _por_paso(trazas, "A01_ciclo_inexistente")
+        partes = [
+            f"fecha_fin<inicio: HTTP={(t1 or {}).get('status_code')} ({(t1 or {}).get('error_code')}) xreq={(t1 or {}).get('x_request_id', '')}",
+            f"costo_max<min: HTTP={(t2 or {}).get('status_code')} ({(t2 or {}).get('error_code')}) xreq={(t2 or {}).get('x_request_id', '')}",
+            f"ciclo_ajeno: HTTP={(t3 or {}).get('status_code')} ({(t3 or {}).get('error_code')}) xreq={(t3 or {}).get('x_request_id', '')}",
+            f"ciclo_inexistente: HTTP={(t4 or {}).get('status_code')} ({(t4 or {}).get('error_code')}) xreq={(t4 or {}).get('x_request_id', '')}",
+        ]
+        resumen = "; ".join(partes)
+    elif test_key == "test_b01a_paginacion_activo_con_mas_de_205_registros":
+        p1 = _extraer_metricas_historial(_por_paso(trazas, "B01a_tamano_200_p1"))
+        p2 = _extraer_metricas_historial(_por_paso(trazas, "B01a_pagina_2"))
+        p3 = _extraer_metricas_historial(_por_paso(trazas, "B01a_pagina_3"))
+        conteos = [m.get("len_registros") for m in (p1, p2, p3) if m]
+        ids_all = p1.get("ids", []) + p2.get("ids", []) + p3.get("ids", [])
+        distintos = len(set(ids_all))
+        duplicados = len(ids_all) - distintos
+        resumen = (
+            f"HTTP={p1.get('http')}; len(registros)={p1.get('len_registros')}; "
+            f"total_paginas={p1.get('total_paginas')}; total_registros_filtrados={p1.get('total_registros_filtrados')}; "
+            f"pagina_actual={p1.get('pagina_actual')}; conteos_paginas={conteos}; "
+            f"ids_distintos={distintos}; duplicados={duplicados}; "
+            f"X-Request-Id=[{p1.get('x_request_id', '')}, {p2.get('x_request_id', '')}, {p3.get('x_request_id', '')}]"
+        )
+    elif test_key == "test_b01b_tope_maximo_registros_por_pagina":
+        m = _extraer_metricas_historial(_por_paso(trazas, "B01b_tamano_201_p1"))
+        resumen = (
+            f"HTTP={m.get('http')}; len(registros)={m.get('len_registros')}; "
+            f"total_registros_filtrados={m.get('total_registros_filtrados')}; "
+            f"total_paginas={m.get('total_paginas')}; pagina_actual={m.get('pagina_actual')}; "
+            f"X-Request-Id={m.get('x_request_id', '')}"
+        )
+    elif test_key == "test_b01c_paginacion_completa_con_exceso_201":
+        m1 = _extraer_metricas_historial(_por_paso(trazas, "B01c_tamano_201_p1"))
+        m2 = _extraer_metricas_historial(_por_paso(trazas, "B01c_tamano_201_p2"))
+        m3 = _extraer_metricas_historial(_por_paso(trazas, "B01c_tamano_201_p3"))
+        https = [m.get("http") for m in (m1, m2, m3)]
+        conteos = [m.get("len_registros") for m in (m1, m2, m3)]
+        ids_all = m1.get("ids", []) + m2.get("ids", []) + m3.get("ids", [])
+        distintos = len(set(ids_all))
+        duplicados = len(ids_all) - distintos
+        resumen = (
+            f"HTTP={https}; conteos={conteos}; ids_distintos={distintos}; duplicados={duplicados}; "
+            f"X-Request-Id=[{m1.get('x_request_id', '')}, {m2.get('x_request_id', '')}, {m3.get('x_request_id', '')}]"
+        )
+    elif test_key == "test_b01d_tope_maximo_extremo_1000":
+        m = _extraer_metricas_historial(_por_paso(trazas, "B01d_tamano_1000_p1"))
+        resumen = (
+            f"HTTP={m.get('http')}; len(registros)={m.get('len_registros')}; "
+            f"total_paginas={m.get('total_paginas')}; total_registros_filtrados={m.get('total_registros_filtrados')}; "
+            f"pagina_actual={m.get('pagina_actual')}; X-Request-Id={m.get('x_request_id', '')}"
+        )
+    elif test_key == "test_98_cierre_sandbox":
+        t_del = _por_paso(trazas, "teardown")
+        for t in trazas_test:
+            if t.get("paso") == "teardown":
+                t_del = t
+        body = (t_del or {}).get("response_body")
+        resumen = f"HTTP={(t_del or {}).get('status_code')}; body={body}; X-Request-Id={(t_del or {}).get('x_request_id', '')}"
+    elif test_key == "test_99_inocuidad_final":
+        t_aud = _por_paso(trazas, "T99_auditoria_final")
+        t_a = _por_paso(trazas, "T99_get_activo_a")
+        t_b = _por_paso(trazas, "T99_get_activo_b")
+        t_h = _por_paso(trazas, "T99_historial_activo_a")
+        t_del = None
+        for t in trazas_test:
+            if t.get("paso") == "teardown":
+                t_del = t
+        aud_body = (t_aud or {}).get("response_body") or {}
+        resumen = (
+            f"T99 auditoria HTTP={(t_aud or {}).get('status_code')} total={aud_body.get('total') if isinstance(aud_body, dict) else None}; "
+            f"GET activo_a HTTP={(t_a or {}).get('status_code')}; GET activo_b HTTP={(t_b or {}).get('status_code')}; "
+            f"GET historial_a HTTP={(t_h or {}).get('status_code')}; DELETE T99 HTTP={(t_del or {}).get('status_code')}; "
+            f"X-Request-Id=[{', '.join(req_ids)}]"
+        )
+    else:
+        resumen = xml_detalle
+
+    if estado_chk != "OK":
+        return f"PENDIENTE_DIAGNOSTICO | {resumen} | Detalle: {xml_detalle}"
+    return resumen
+
+
+def _construir_observaciones(trazas: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    observaciones = []
+
+    t_a02a = _por_paso(trazas, "OBS_A02a_fecha_fin_futura")
+    if t_a02a:
+        m = _extraer_metricas_historial(t_a02a)
+        observaciones.append({
+            "id": "A02a",
+            "estado": "RETIRADO",
+            "motivo": MOTIVO_RETIRO_A02,
+            "http": m.get("http"),
+            "error_code": m.get("error_code"),
+            "registros": m.get("len_registros"),
+            "x_request_id": m.get("x_request_id", ""),
+        })
+
+    t_a02b = _por_paso(trazas, "OBS_A02b_fecha_inicio_anterior_ciclo")
+    if t_a02b:
+        m = _extraer_metricas_historial(t_a02b)
+        observaciones.append({
+            "id": "A02b",
+            "estado": "RETIRADO",
+            "motivo": MOTIVO_RETIRO_A02,
+            "http": m.get("http"),
+            "error_code": m.get("error_code"),
+            "registros": m.get("len_registros"),
+            "x_request_id": m.get("x_request_id", ""),
+        })
+
+    t_obs0 = _por_paso(trazas, "B01a_obs_tamano_cero")
+    if t_obs0:
+        m = _extraer_metricas_historial(t_obs0)
+        campos = [f.get("field") for f in m.get("fields", []) if isinstance(f, dict)]
+        observaciones.append({
+            "id": "OBS-0",
+            "estado": "OBSERVACION",
+            "descripcion": "registros_por_pagina=0, pagina=1 (RF-81 no define un error_code especifico)",
+            "http": m.get("http"),
+            "error_code": m.get("error_code"),
+            "campo": campos[0] if campos else None,
+            "x_request_id": m.get("x_request_id", ""),
+        })
+
+    t_p0 = _por_paso(trazas, "B01a_obs_pagina_cero")
+    if t_p0:
+        m = _extraer_metricas_historial(t_p0)
+        campos = [f.get("field") for f in m.get("fields", []) if isinstance(f, dict)]
+        observaciones.append({
+            "id": "OBS-PAG0",
+            "estado": "OBSERVACION",
+            "descripcion": "pagina=0, registros_por_pagina=50",
+            "http": m.get("http"),
+            "error_code": m.get("error_code"),
+            "campo": campos[0] if campos else None,
+            "x_request_id": m.get("x_request_id", ""),
+        })
+
+    return observaciones
+
+
+def procesar_corrida(staging: Path, reintento: int, sha_hashes: dict[str, str]):
+    sufijo = f"_reintento{reintento}" if reintento > 0 else ""
+    junit_path = staging / f"resultado_TC-M05-G42{sufijo}.xml"
     trazas_path = staging / "trazas_http.jsonl"
     repro_path = staging / "repro"
-    json_path = staging / "resultado_TC-M05-G42.json"
-    html_path = staging / "resultado_TC-M05-G42.html"
-
+    json_path = staging / f"resultado_TC-M05-G42{sufijo}.json"
+    html_path = staging / f"resultado_TC-M05-G42{sufijo}.html"
     narrativo_path = staging / "TC-M05-G42_resultado.md"
-    informe_path = staging / "INFORME_FASE234_TC-M05-G42.txt"
 
     # Repro
-    repro_cmd = "powershell -ExecutionPolicy Bypass -File .\\ejecutar_tc_m05_g42.ps1"
+    repro_cmd = (
+        f"powershell -ExecutionPolicy Bypass -File .\\ejecutar_tc_m05_g42.ps1 -Reintento {reintento}"
+        if reintento > 0
+        else "powershell -ExecutionPolicy Bypass -File .\\ejecutar_tc_m05_g42.ps1"
+    )
     repro_path.write_text(repro_cmd + "\n", encoding="utf-8")
 
     # Parsear JUnit XML
@@ -116,23 +345,12 @@ def procesar_corrida(staging: Path, sha_hashes: dict[str, str]):
             msg = skipped.attrib.get("message", "Test omitido")
         else:
             estado = "OK"
-            msg = "Completado exitosamente sin excepciones."
+            msg = "Completado sin excepciones."
         casos_xml[nombre_base] = {"estado": estado, "detalle": msg}
 
-    # Extraer run_id y URL de ambiente de las trazas
-    trazas_raw = ""
-    run_id_sandbox = "N/A"
-    base_url_env = os.environ.get("TEST_BASE_URL", "https://www.api.inmero.co/api-sgpmp-test")
-    if trazas_path.exists():
-        trazas_raw = trazas_path.read_text(encoding="utf-8")
-        for line in trazas_raw.splitlines():
-            if "X-Test-Run-Id" in line or "tc-m05-g42" in line:
-                m = re.search(r"tc-m05-g42-[a-zA-Z0-9_-]+", line)
-                if m:
-                    run_id_sandbox = m.group(0)
-                    break
+    trazas = _cargar_trazas(trazas_path)
+    base_url_env = os.environ.get("TEST_BASE_URL", "")
 
-    # Construir Checkpoints normativos
     checkpoints = []
     total_ok = 0
     total_falla = 0
@@ -145,37 +363,7 @@ def procesar_corrida(staging: Path, sha_hashes: dict[str, str]):
         else:
             total_falla += 1
 
-        if test_key == "test_00_setup_linea_base_y_activos":
-            obtenido = f"Activos A y B creados (HTTP 201), fases abiertas, 3 suministros en A (2 alimentos, 1 medicamento). Estado: {xml_info['estado']}."
-        elif test_key == "test_a01_combinaciones_invalidas_filtros":
-            obtenido = (
-                f"HTTP 422 para fecha_fin < fecha_inicio, costo_max < costo_min y ciclo ajeno; "
-                f"mensajes descriptivos y específicos; 0 datos devueltos. Estado: {xml_info['estado']}."
-            )
-        elif test_key == "test_a02_fechas_caso_cu04_fa02":
-            if estado_chk == "OK":
-                obtenido = "HTTP 422 recibido para fecha fin futura y fecha inicio anterior al ciclo conforme al caso."
-            else:
-                obtenido = (
-                    "AssertionError: Defecto de producto / omisión en spec: la API respondió HTTP 200 en lugar de 422 "
-                    "al filtrar por fecha futura (hoy+1) y fecha anterior al ciclo. (Para decisión de Análisis: RF-81 no define estas validaciones)."
-                )
-        elif test_key == "test_b01_paginacion_activo_con_mas_de_205_registros":
-            if estado_chk == "OK":
-                obtenido = "Paginación sobre activo 1042 conforme a spec: param=200 devolvió 200 items; param=201 aplicó tope devolviendo 200 items; metadatos y orden DESC validados."
-            else:
-                obtenido = (
-                    "AssertionError: Defecto de producto: Restricción 5 estipula que 'el sistema aplica el límite máximo si se excede' "
-                    "(esperado HTTP 200 con 200 items para param=201), pero el backend responde HTTP 400 VAL_ENTRADA ('Input should be less than or equal to 200') "
-                    "debido a validación estricta de FastAPI/Pydantic en Query(le=200)."
-                )
-        elif test_key == "test_98_cierre_sandbox":
-            obtenido = f"DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: {xml_info['estado']}."
-        elif test_key == "test_99_inocuidad_final":
-            obtenido = f"Verificación sin sandbox completada; activo A responde HTTP 404 (0 efectos persistidos). Estado: {xml_info['estado']}."
-        else:
-            obtenido = f"Resultado: {xml_info['detalle']}"
-
+        obtenido = _formatear_obtenido(test_key, estado_chk, xml_info["detalle"], trazas)
         checkpoints.append({
             "paso": meta["paso"],
             "esperado": meta["esperado"],
@@ -183,9 +371,9 @@ def procesar_corrida(staging: Path, sha_hashes: dict[str, str]):
             "estado": estado_chk,
         })
 
+    observaciones = _construir_observaciones(trazas)
     veredicto_global = "Aprobado" if total_falla == 0 and total_ok > 0 else "Rechazado"
 
-    # Generar resultado_TC-M05-G42.json
     res_json_data = {
         "tc": "TC-M05-G42",
         "summary": {
@@ -195,203 +383,51 @@ def procesar_corrida(staging: Path, sha_hashes: dict[str, str]):
             "veredicto": veredicto_global,
         },
         "checkpoints": checkpoints,
+        "observaciones": observaciones,
     }
     json_path.write_text(json.dumps(res_json_data, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # Inyectar data-jsonblob en el reporte HTML
     if html_path.exists():
-        try:
-            html_txt = html_path.read_text(encoding="utf-8")
-            blob_script = f'<script id="data-jsonblob" type="application/json">{json.dumps(res_json_data, ensure_ascii=False)}</script>'
-            if 'id="data-jsonblob"' not in html_txt:
-                if "</body>" in html_txt:
-                    html_txt = html_txt.replace("</body>", f"{blob_script}</body>")
-                else:
-                    html_txt += blob_script
-                html_path.write_text(html_txt, encoding="utf-8")
-        except Exception as e:
-            print(f"Aviso inyectando data-jsonblob en HTML: {e}")
+        html_txt = html_path.read_text(encoding="utf-8")
+        blob_script = (
+            f'<script id="data-jsonblob" type="application/json">'
+            f'{json.dumps(res_json_data, ensure_ascii=False)}</script>'
+        )
+        if 'id="data-jsonblob"' not in html_txt:
+            if "</body>" in html_txt:
+                html_txt = html_txt.replace("</body>", f"{blob_script}</body>")
+            else:
+                html_txt += blob_script
+            html_path.write_text(html_txt, encoding="utf-8")
 
-    # Generar TC-M05-G42_resultado.md
-    md_content = f"""# Reporte de Prueba: TC-M05-G42 (RF-81)
-## Validación de Filtros, Paginación y Niveles de Volumen
-### Casos TC-M05-100 y TC-M05-101 (Agrupados 035 y 036)
-
-> **Tipo de corrida:** Evaluación Oficial (primera evaluación oficial de RF-81).
-
-- **ID Caso:** TC-M05-G42 (Plano: 100, 101 | Agrupado: 035, 036)
-- **Ambiente:** `{base_url_env}`
-- **Veredicto Global:** **{veredicto_global.upper()}** ({total_ok}/{len(checkpoints)} OK, {total_falla} Fallas)
-- **Fecha:** {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)
-- **Run ID Sandbox:** `{run_id_sandbox}`
-
-## Resumen de Checkpoints
-| # | Paso | Esperado | Obtenido | Estado |
-|---|------|----------|----------|--------|
-"""
+    # Generar TC-M05-G42_resultado.md narrativo en staging
+    md_lines = [
+        f"# Reporte de Prueba: TC-M05-G42 (RF-81) - Reintento {reintento}",
+        "",
+        f"- **Ambiente:** `{base_url_env}`",
+        f"- **Veredicto Global:** **{veredicto_global.upper()}** ({total_ok}/{len(checkpoints)} OK, {total_falla} Fallas)",
+        f"- **Fecha:** {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)",
+        "",
+        "## Checkpoints",
+        "| # | Paso | Esperado | Obtenido | Estado |",
+        "|---|------|----------|----------|--------|",
+    ]
     for idx, chk in enumerate(checkpoints, 1):
-        md_content += f"| {idx} | {chk['paso']} | {chk['esperado']} | {chk['obtenido']} | **{chk['estado']}** |\n"
+        md_lines.append(f"| {idx} | {chk['paso']} | {chk['esperado']} | {chk['obtenido']} | **{chk['estado']}** |")
+    md_lines.append("")
+    md_lines.append("## Observaciones")
+    for obs in observaciones:
+        md_lines.append(f"- **{obs.get('id')}** ({obs.get('estado')}): {json.dumps(obs, ensure_ascii=False)}")
+    narrativo_path.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
 
-    md_content += f"""
-## Cobertura No Ejecutada
-1. **Niveles de volumen N2, N3 y N4 (B02 / Restr. 11 / CA-17 / TC-M05-101 / 036):**
-   - **Hecho Observado en Base de Datos y API:** En la especificación técnica de RF-81, el Nivel 1 comprende hasta 10.000 registros (procesamiento síncrono). En el ambiente de pruebas, el activo con mayor volumen es el Activo 1042 con 500 registros commiteados en `modulo5.registro_suministro` (la API reporta `total_registros_filtrados: 500`, `total_paginas: 3`, `monto_total_filtrado: 9000000.0000 COP`). El segundo activo con mayor volumen es el Activo 957 con 208 registros. Ningún activo en la base de datos supera 10.000 registros; por ende, todos los activos del sistema se encuentran en Nivel 1 (<= 10.000 registros). De acuerdo con el protocolo del portón P2, no se insertan decenas de miles de registros artificiales para evitar degradar el ambiente; los niveles N2, N3 y N4 quedan declarados como cobertura no ejecutada.
-2. **Pruebas de concurrencia masiva (CA-12 y CA-16 con 20/50 usuarios):**
-   - **Razón:** Restricción de portón P7 para no degradar el ambiente compartido.
-3. **Consulta asíncrona forzada por tiempo > 10 s (E7 / CA-14):**
-   - **Razón:** No es posible forzar legítimamente un timeout de base de datos sin introducir fallas de infraestructura.
-
-## Observaciones de Validación de Límites y Estabilidad de Datos
-### 1. Observaciones Positivas de Validación de Límites (C4)
-- **registros_por_pagina = 0:** La API respondió HTTP 400 (`error_code: VAL_ENTRADA`, mensaje: `"Input should be greater than or equal to 1"`). Observación positiva: la API valida y rechaza explícitamente 0 garantizando la integridad de entrada, aun cuando la especificación abierta contemplaba asumir default 50.
-- **pagina = 0:** La API respondió HTTP 400 (`error_code: VAL_ENTRADA`, mensaje: `"Input should be greater than or equal to 1"`). Observación: la API rechaza 0 como inválido, confirmando un esquema de paginación estrictamente 1-indexed.
-
-### 2. Análisis de Registros del Activo 1042 y Estabilidad de Fotografía (C3)
-- **Fechas de Registro en BD:** La consulta SQL sobre `modulo5.registro_suministro` para el activo 1042 arrojó:
-  - `min_fecha`: `2026-11-08T02:45:07.107714+00:00` (21:45:07 del 2026-11-07 en America/Bogota)
-  - `max_fecha`: `2026-11-08T03:11:29.501893+00:00` (22:11:29 del 2026-11-07 en America/Bogota)
-  - Registros creados después de las 20:00 del 2026-11-07 (01:00 UTC): exactamente 500 registros.
-- **Verificación de Inactividad de Inserciones:** Dos conteos independientes con 60 segundos de diferencia confirmaron 500 registros exactos, demostrando que no existen procesos de inserción activos en segundo plano.
-- **Aclaración de Conteos Previos (263 / 421 / 500):** Las cifras de 263 y 421 correspondían a lecturas intermedias tomadas durante la ejecución de un script de inserción masiva previo a las 22:11; el volumen final commiteado en la base de datos se estabilizó en exactamente 500 registros.
-- **Estabilidad de Paginación en B01a:** Las trazas HTTP de la corrida oficial (22:33:30 Bogotá) confirman que la navegación se realizó sobre una fotografía completamente estable:
-  - Página 1 (`registros_por_pagina=200`): 200 items devueltos, `total_registros_filtrados = 500`, `total_paginas = 3`.
-  - Página 2 (`registros_por_pagina=200`): 200 items devueltos, `total_registros_filtrados = 500`, `total_paginas = 3`.
-  - Página 3 (`registros_por_pagina=200`): 100 items devueltos, `total_registros_filtrados = 500`, `total_paginas = 3`.
-  - El campo `total_registros_filtrados` se mantuvo idéntico (500) en las 3 solicitudes y la suma de items devueltos (200 + 200 + 100) totaliza exactamente 500.
-
-## Diagnóstico de Defectos de Producto
-### 1. Defectos en A02a y A02b (Fechas Futuras y Anteriores al Ciclo)
-- **Hecho Observado:**
-  - `A02a`: `GET /suministros/historial?id_activo_biologico=1069&fecha_fin_filtro=hoy+1` respondió HTTP 200 retornando registros.
-  - `A02b`: `GET /suministros/historial?id_activo_biologico=1069&fecha_inicio_filtro=2026-01-01` (ciclo iniciado en 2026-08-01 para el Activo A de especie Mojarra Plateada id 5) respondió HTTP 200 retornando registros.
-- **Ruta de Código (Inferencia):** `src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:206` (`_validar_filtros()`). La función solo valida `fecha_fin < fecha_inicio`, `costo_max < costo_min` y que el ciclo pertenezca al activo. No contiene lógica que contraste las fechas contra la fecha actual del sistema ni contra la fecha de inicio del ciclo del activo.
-- **Causa y Clasificación:** Especificación ambigua / omisión en producto: el caso CU04 FA-02 exige HTTP 422 para ambas condiciones, pero la especificación técnica de RF-81 no las contempló en la regla de validación de filtros.
-
-### 2. Defecto en B01b (Tope de registros_por_pagina = 201)
-- **Hecho Observado:** `GET /suministros/historial?registros_por_pagina=201` respondió HTTP 400 (`error_code: VAL_ENTRADA`, mensaje: `"Input should be less than or equal to 200"`).
-- **Ruta de Código (Inferencia):** `src/supplies/infrastructure/routers/historial_suministros_router.py:115`: el parámetro query está tipado como `registros_por_pagina: int = Query(default=50, ge=1, le=200)`. La validación de FastAPI interrumpe la petición con HTTP 400 antes de ejecutar la lógica de la capa de aplicación.
-- **Causa y Clasificación:** Defecto de producto respecto a la Tabla de Entradas de RF-81 (`registros_por_pagina`), la cual estipula taxativamente: *"El sistema aplica el límite máximo si se excede"*, lo que exige responder HTTP 200 aplicando el tope de 200 items en lugar de rechazar con error 400.
-"""
-    narrativo_path.write_text(md_content, encoding="utf-8")
-
-    # Leer archivos para informe TXT
-    junit_content = leer_archivo(junit_path)
-
-    txt_content = f"""================================================================================
-INFORME DE EJECUCION Y DIAGNOSTICO: TC-M05-G42 (RF-81)
-================================================================================
-CASO PLANO:      TC-M05-100 y TC-M05-101
-CASO AGRUPADO:   035 y 036
-FECHA:           {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)
-AMBIENTE:        {base_url_env}
-RUN ID SANDBOX:  {run_id_sandbox}
-VEREDICTO:       {veredicto_global.upper()} ({total_ok} OK, {total_falla} FALLAS)
-================================================================================
-
-SECCION 1: RESUMEN DE CHECKPOINTS
---------------------------------------------------------------------------------
-Tipo de corrida: Evaluación Oficial (primera evaluación oficial de RF-81).
-
-"""
-    for chk in checkpoints:
-        txt_content += f"[{chk['estado']}] {chk['paso']}\n"
-        txt_content += f"  Esperado: {chk['esperado']}\n"
-        txt_content += f"  Obtenido: {chk['obtenido']}\n\n"
-
-    txt_content += f"""--------------------------------------------------------------------------------
-SECCION 2: MATRIZ DE CAPACIDADES RF-81 (G42)
---------------------------------------------------------------------------------
-1. Filtro fecha_fin < fecha_inicio (422): PRESENTE (Hecho observado API)
-2. Filtro costo_max < costo_min (422): PRESENTE (Hecho observado API)
-3. Filtro ciclo ajeno al activo (422): PRESENTE (Hecho observado API)
-4. Filtro fecha futura / anterior a ciclo (422): AUSENTE (Hecho observado API: responde 200; RF-81 no lo define)
-5. Paginación obligatoria (max 200): PRESENTE (Hecho observado API)
-6. Metadatos de paginación (total_registros, total_paginas, pagina_actual): PRESENTE (Hecho observado API)
-7. Orden fecha_aplicacion DESC: PRESENTE (Hecho observado API)
-8. Monto total filtrado acumulado: PRESENTE (Hecho observado API)
-9. Clampeo automático de param 201 a 200 items (Restr. 5): AUSENTE (Hecho observado API: responde HTTP 400)
-10. Niveles de volumen N2/N3/N4: NO OBSERVABLE (Hecho observado SELECT: activo con mayor volumen cuenta con 500 registros, por debajo del umbral de 10.000)
-
---------------------------------------------------------------------------------
-SECCION 3: INOCUIDAD Y PROTOCOLO SANDBOX
---------------------------------------------------------------------------------
-- Cierre de sandbox: DELETE /test-control/runs/{run_id_sandbox} respondió HTTP 200 ('Rollback exitoso').
-- Inocuidad verificada: activo propio consultado fuera de sandbox respondió HTTP 404 (0 efectos persistidos).
-
---------------------------------------------------------------------------------
-SECCION 4: HASHES DE INTEGRIDAD SHA-256
---------------------------------------------------------------------------------
-Script TC-M05-G42:     {sha_hashes.get('g42_script', 'N/A')}
-Runner TC-M05-G42:     {sha_hashes.get('g42_runner', 'N/A')}
-
-Suites Preexistentes Validadas (Intactas):
-- TC-M05-G14 Script: {sha_hashes.get('g14_script', 'N/A')}
-- TC-M05-G15 Script: {sha_hashes.get('g15_script', 'N/A')}
-- TC-M05-G16 Script: {sha_hashes.get('g16_script', 'N/A')}
-- TC-M05-G17 Script: {sha_hashes.get('g17_script', 'N/A')}
-- TC-M05-G19 Script: {sha_hashes.get('g19_script', 'N/A')}
-- TC-M05-G21 Script: {sha_hashes.get('g21_script', 'N/A')}
-- TC-M05-G24 Script: {sha_hashes.get('g24_script', 'N/A')}
-- TC-M05-G25 Script: {sha_hashes.get('g25_script', 'N/A')}
-- TC-M05-G37 Script: {sha_hashes.get('g37_script', 'N/A')}
-- TC-M05-G38 Script: {sha_hashes.get('g38_script', 'N/A')}
-
---------------------------------------------------------------------------------
-SECCION 5: DIAGNOSTICO DE FALLAS (A02 Y B01)
---------------------------------------------------------------------------------
-HALLAZGO 1 (Checkpoint A02):
-1. HECHO OBSERVADO:
-   GET /suministros/historial con fecha_fin_filtro futura (hoy+1) respondió HTTP 200 con items.
-   GET /suministros/historial con fecha_inicio_filtro anterior al ciclo respondió HTTP 200 con items.
-2. RUTA DE CODIGO (INFERENCIA):
-   src/supplies/infrastructure/routers/historial_suministros_router.py:73 -> consultar_historial()
-   src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:230 -> _validar_filtros()
-   La función _validar_filtros() solo contiene tres bloques if:
-   - if fecha_fin < fecha_inicio -> raise BusinessRuleError
-   - if costo_max < costo_min -> raise BusinessRuleError
-   - if not ciclo_pertenece_a_activo -> raise BusinessRuleError
-   No existe ninguna sentencia que compare fecha_fin_filtro contra la fecha actual del sistema ni contra fecha_inicio_ciclo.
-3. HIPOTESIS:
-   - H1 (Confirmada): El caso CU04 FA-02 contempla validar fechas futuras y anterior al ciclo, pero la especificación técnica formal RF-81 (Restricción 7 / E5) no las definió, por lo que el backend no las implementó.
-4. CLASIFICACION: Especificación ambigua / discrepancia entre especificación RF-81 y caso CU04 FA-02.
-5. POSIBLE SOLUCION: En caso de requerirse por negocio, agregar en _validar_filtros() de consultar_historial_suministros_use_case.py:
-   if filtros.fecha_fin_filtro and filtros.fecha_fin_filtro > date.today(): raise BusinessRuleError(...)
-   if filtros.fecha_inicio_filtro and activo.fecha_inicio_ciclo and filtros.fecha_inicio_filtro < activo.fecha_inicio_ciclo: raise BusinessRuleError(...)
-6. CRITERIO DE RE-PRUEBA: Re-ejecutar A02 esperando HTTP 422 una vez acordada la regla en Análisis.
-
-HALLAZGO 2 (Checkpoint B01):
-1. HECHO OBSERVADO:
-   GET /suministros/historial con registros_por_pagina=201 respondió HTTP 400 (VAL_ENTRADA: 'Input should be less than or equal to 200').
-2. RUTA DE CODIGO (INFERENCIA):
-   src/supplies/infrastructure/routers/historial_suministros_router.py:65:
-   registros_por_pagina: int = Query(default=50, ge=1, le=200)
-   FastAPI intercepta la solicitud y rechaza con 400 antes de llamar al use case o a _filtros_desde_query() (donde se intentaba hacer min(registros_por_pagina, 200)).
-3. HIPOTESIS:
-   - H1 (Confirmada): La Restricción 5 exige que "el sistema aplica el límite máximo si se excede". En _filtros_desde_query() se intentó hacer min(registros_por_pagina, 200), pero la restricción le=200 en el router impide que ese código se ejecute cuando el parámetro es 201.
-4. CLASIFICACION: Defecto de producto (backend no cumple Restricción 5 al rechazar con 400 en vez de clampear y responder 200).
-5. POSIBLE SOLUCION: En el router, quitar `le=200` de Query() o cambiar el validador para que acepte valores mayores y deje que la lógica interna aplique `min(registros_por_pagina, 200)`.
-6. CRITERIO DE RE-PRUEBA: Re-ejecutar B01 esperando HTTP 200 con 200 items cuando registros_por_pagina=201.
-
-================================================================================
-ANEXO C: JUNIT XML (resultado_TC-M05-G42.xml)
-================================================================================
-{junit_content}
-
-================================================================================
-ANEXO D: TRAZAS HTTP SANITIZADAS (trazas_http.jsonl)
-================================================================================
-{trazas_raw}
-================================================================================
-FIN DEL INFORME TC-M05-G42
-================================================================================
-"""
-    informe_path.write_text(txt_content, encoding="utf-8")
-    print(f"Artefactos generados exitosamente en {staging}")
+    print(f"Artefactos generados exitosamente en {staging} (reintento={reintento})")
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--staging", required=True)
+    parser.add_argument("--reintento", type=int, default=0)
     parser.add_argument("--sha-g42-script", default="N/A")
     parser.add_argument("--sha-g42-runner", default="N/A")
     parser.add_argument("--sha-g38-script", default="N/A")
@@ -410,18 +446,8 @@ def main():
     sha_hashes = {
         "g42_script": args.sha_g42_script,
         "g42_runner": args.sha_g42_runner,
-        "g38_script": args.sha_g38_script,
-        "g37_script": args.sha_g37_script,
-        "g25_script": args.sha_g25_script,
-        "g24_script": args.sha_g24_script,
-        "g21_script": args.sha_g21_script,
-        "g19_script": args.sha_g19_script,
-        "g17_script": args.sha_g17_script,
-        "g16_script": args.sha_g16_script,
-        "g15_script": args.sha_g15_script,
-        "g14_script": args.sha_g14_script,
     }
-    procesar_corrida(staging, sha_hashes)
+    procesar_corrida(staging, args.reintento, sha_hashes)
 
 
 if __name__ == "__main__":

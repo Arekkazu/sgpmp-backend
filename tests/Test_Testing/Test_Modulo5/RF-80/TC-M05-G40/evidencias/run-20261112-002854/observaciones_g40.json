@@ -1,0 +1,378 @@
+{
+  "total_base": 69323,
+  "ultimo_id_base": 75557,
+  "activos_creados": [
+    1866,
+    1867,
+    1868
+  ],
+  "a01_eventos_commit_rf78": [
+    {
+      "id": 75641,
+      "tipo_operacion": "SUMINISTRO_REGISTRADO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1866,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "ae0f54c32b20bb64",
+      "fecha_evento": "2026-11-12T05:29:00.349361Z",
+      "fecha_emision": "2026-11-12T05:29:01.536522Z"
+    },
+    {
+      "id": 75642,
+      "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1866,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "58335c729067c4e8",
+      "fecha_evento": "2026-11-12T05:29:00.349361Z",
+      "fecha_emision": "2026-11-12T05:29:01.536522Z"
+    },
+    {
+      "id": 75643,
+      "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1866,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "1559cd1882947a51",
+      "fecha_evento": "2026-11-12T05:29:00.349361Z",
+      "fecha_emision": "2026-11-12T05:29:01.536522Z"
+    }
+  ],
+  "a02_resultado_ica_conteo": 1,
+  "a02_eventos_app_rf79": [
+    {
+      "id": 75645,
+      "tipo_operacion": "CICLO_CONSOLIDADO",
+      "entidad_afectada": "provision_nic41",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1866,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "44ccc16d911452b2",
+      "fecha_evento": "2026-11-12T05:29:00.349361Z",
+      "fecha_emision": "2026-11-12T05:29:02.999897Z"
+    },
+    {
+      "id": 75646,
+      "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+      "entidad_afectada": "provision_nic41",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1866,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "8b9c3adfa262a51b",
+      "fecha_evento": "2026-11-12T05:29:00.349361Z",
+      "fecha_emision": "2026-11-12T05:29:03.003236Z"
+    }
+  ],
+  "a03_evento_rf81": {
+    "id": 75647,
+    "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+    "entidad_afectada": "historial_suministros",
+    "resultado": "EXITOSO",
+    "id_usuario": 104,
+    "id_activo_biologico": 1866,
+    "version_hash_integridad": 2,
+    "hash_prefijo": "f9bac411e255061b",
+    "fecha_evento": "2026-11-12T05:29:00.349361Z",
+    "fecha_emision": "2026-11-12T05:29:04.075151Z"
+  },
+  "b01_fallos_observados": [
+    {
+      "caso": "B01a",
+      "id": 75648,
+      "tipo_operacion": "REGISTRO_FALLIDO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "RECHAZADO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1867,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "879c54a3b03391ea",
+      "fecha_evento": "2026-11-12T05:29:00.349361Z",
+      "fecha_emision": "2026-11-12T05:29:05.053081Z"
+    },
+    {
+      "caso": "B01c",
+      "observacion": "Sin evento de auditoria emitido en rechazo 422 de RF-81"
+    }
+  ],
+  "latencia_a01_a03_resumen": {
+    "muestras": 3,
+    "min_ms": 148.63,
+    "p50_ms": 273.5,
+    "max_ms": 308.5,
+    "por_operacion_ms": {
+      "A01_post_costeo_directo": 273.5,
+      "A02_post_cierre": 308.5,
+      "A03_get_historial": 148.63
+    }
+  },
+  "c01_recursos": {
+    "id_activo_biologico": 1868,
+    "id_gestion_fases": 846
+  },
+  "c01_eventos_capturados": [
+    {
+      "id_auditoria_suministro": 75649,
+      "tipo_operacion": "SUMINISTRO_REGISTRADO"
+    },
+    {
+      "id_auditoria_suministro": 75650,
+      "tipo_operacion": "PRECIO_MANUAL_INGRESADO"
+    },
+    {
+      "id_auditoria_suministro": 75651,
+      "tipo_operacion": "ACUMULADO_ACTUALIZADO"
+    },
+    {
+      "id_auditoria_suministro": 75652,
+      "tipo_operacion": "INSERT"
+    },
+    {
+      "id_auditoria_suministro": 75653,
+      "tipo_operacion": "CICLO_CONSOLIDADO"
+    },
+    {
+      "id_auditoria_suministro": 75654,
+      "tipo_operacion": "REPORTE_COSTOS_GENERADO"
+    },
+    {
+      "id_auditoria_suministro": 75655,
+      "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA"
+    }
+  ],
+  "checkpoints_detalle": {
+    "test_t00_linea_base": {
+      "obtenido_texto": "GET /suministros/auditoria -> HTTP 200 (total_base=69323, ultimo_id_base=75557); DELETE /test-control/runs/tc-m05-g40-inopre-2c8b48a7 -> HTTP 200",
+      "total_base": 69323,
+      "ultimo_id_base": 75557,
+      "delete_status_code": 200
+    },
+    "test_a01_atomicidad_commit_rf78": {
+      "obtenido_texto": "POST /suministros/costeo-directo -> HTTP 200; GET acumulado/activo/1866 -> HTTP 200 (total=50000.0000); eventos: ACUMULADO_ACTUALIZADO=1 [75643], PRECIO_MANUAL_INGRESADO=1 [75642], SUMINISTRO_REGISTRADO=1 [75641]",
+      "http_status": 200,
+      "error_code": null,
+      "op_duracion_ms": 273.5,
+      "eventos_por_tipo": {
+        "ACUMULADO_ACTUALIZADO": [
+          75643
+        ],
+        "PRECIO_MANUAL_INGRESADO": [
+          75642
+        ],
+        "SUMINISTRO_REGISTRADO": [
+          75641
+        ]
+      },
+      "lat_aud_s": 0.998,
+      "acumulado_total_ciclo": "50000.0000"
+    },
+    "test_a02_atomicidad_commit_rf79": {
+      "obtenido_texto": "POST /activos-biologicos/1866/cierre -> HTTP 200; GET versiones -> HTTP 200 (versiones=1, CONSOLIDADO=1); eventos_app: CICLO_CONSOLIDADO=1 [75645], REPORTE_COSTOS_GENERADO=1 [75646]; resultado_ica(solo conteo): INSERT=1 [75644]",
+      "http_status": 200,
+      "error_code": null,
+      "op_duracion_ms": 308.5,
+      "eventos_app_por_tipo": {
+        "CICLO_CONSOLIDADO": [
+          75645
+        ],
+        "REPORTE_COSTOS_GENERADO": [
+          75646
+        ]
+      },
+      "eventos_ica_por_tipo": {
+        "INSERT": [
+          75644
+        ]
+      },
+      "resultado_ica_conteo": 1,
+      "lat_aud_s": 0.808,
+      "versiones_total": 1,
+      "versiones_consolidado": 1
+    },
+    "test_a03_atomicidad_commit_rf81": {
+      "obtenido_texto": "GET /suministros/historial -> HTTP 200; eventos: CONSULTA_HISTORIAL_EJECUTADA=1 [75647] (lat_aud=0.609 s)",
+      "http_status": 200,
+      "error_code": null,
+      "op_duracion_ms": 148.63,
+      "eventos_por_tipo": {
+        "CONSULTA_HISTORIAL_EJECUTADA": [
+          75647
+        ]
+      },
+      "lat_aud_s": 0.609
+    },
+    "test_b01_rollback_errores_api": {
+      "a": {
+        "http_status": 409,
+        "error_code": "CICLO_NO_ACTIVO",
+        "SUMINISTRO_REGISTRADO": 0,
+        "ACUMULADO_ACTUALIZADO": 0,
+        "obs_eventos": {
+          "REGISTRO_FALLIDO": [
+            75648
+          ]
+        }
+      },
+      "b": {
+        "http_status": 409,
+        "error_code": "ESTADO_INVALIDO_PARA_CIERRE",
+        "CICLO_CONSOLIDADO": 0,
+        "REPORTE_COSTOS_GENERADO": 0,
+        "versiones_status": 200,
+        "versiones_total": 1,
+        "obs_eventos": {}
+      },
+      "c": {
+        "http_status": 422,
+        "error_code": "COMBINACION_FILTROS_INVALIDA",
+        "CONSULTA_HISTORIAL_EJECUTADA_EXITOSO": 0,
+        "obs_eventos": {}
+      },
+      "obtenido_texto": "(a) RF-78 sin fase -> HTTP 409 (CICLO_NO_ACTIVO), SUMINISTRO_REGISTRADO=0 [], ACUMULADO_ACTUALIZADO=0 [] (obs: REGISTRO_FALLIDO=1 [75648]); (b) RF-79 cierre repetido -> HTTP 409 (ESTADO_INVALIDO_PARA_CIERRE), CICLO_CONSOLIDADO=0 [], REPORTE_COSTOS_GENERADO=0 [], versiones=1 (obs: NINGUNO); (c) RF-81 rango invertido -> HTTP 422 (COMBINACION_FILTROS_INVALIDA), CONSULTA_HISTORIAL_EJECUTADA_EXITOSO=0 [] (obs: NINGUNO)"
+    },
+    "test_t98_cierre_sandbox_principal": {
+      "obtenido_texto": "DELETE /test-control/runs/tc-m05-g40-adm-b3965f60 -> HTTP 200",
+      "http_status": 200,
+      "run_id": "tc-m05-g40-adm-b3965f60"
+    },
+    "test_c01_rollback_tecnico_sandbox": {
+      "pre_total": 69323,
+      "pre_ultimo_id": 75557,
+      "id_activo": 1868,
+      "id_fase": 846,
+      "rf78_status": 200,
+      "rf78_eventos": {
+        "ACUMULADO_ACTUALIZADO": [
+          75651
+        ],
+        "PRECIO_MANUAL_INGRESADO": [
+          75650
+        ],
+        "SUMINISTRO_REGISTRADO": [
+          75649
+        ]
+      },
+      "rf79_status": 200,
+      "rf79_eventos": {
+        "CICLO_CONSOLIDADO": [
+          75653
+        ],
+        "INSERT": [
+          75652
+        ],
+        "REPORTE_COSTOS_GENERADO": [
+          75654
+        ]
+      },
+      "rf81_status": 200,
+      "rf81_eventos": {
+        "CONSULTA_HISTORIAL_EJECUTADA": [
+          75655
+        ]
+      },
+      "ids_capturados": [
+        75649,
+        75650,
+        75651,
+        75652,
+        75653,
+        75654,
+        75655
+      ],
+      "delete_c01_status": 200,
+      "verif_eventos_404": [
+        {
+          "id": 75649,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        },
+        {
+          "id": 75650,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        },
+        {
+          "id": 75651,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        },
+        {
+          "id": 75652,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        },
+        {
+          "id": 75653,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        },
+        {
+          "id": 75654,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        },
+        {
+          "id": 75655,
+          "status_code": 404,
+          "error_code": "AUDITORIA_SUMINISTRO_NO_ENCONTRADA"
+        }
+      ],
+      "verif_activo_404": {
+        "id_activo": 1868,
+        "status_code": 404,
+        "error_code": "ACTIVO_NO_ENCONTRADO"
+      },
+      "post_total": 69323,
+      "post_ultimo_id": 75557,
+      "obtenido_texto": "C01 recursos(activo=1868, fase=846); RF-78=200 (ACUMULADO_ACTUALIZADO=1 [75651], PRECIO_MANUAL_INGRESADO=1 [75650], SUMINISTRO_REGISTRADO=1 [75649]); RF-79=200 (CICLO_CONSOLIDADO=1 [75653], INSERT=1 [75652], REPORTE_COSTOS_GENERADO=1 [75654]); RF-81=200 (CONSULTA_HISTORIAL_EJECUTADA=1 [75655]); DELETE=200; post-rollback: 7 eventos -> 404 (['AUDITORIA_SUMINISTRO_NO_ENCONTRADA']), activo 1868 -> 404 (ACTIVO_NO_ENCONTRADO), total=69323 (pre=69323), ultimo_id=75557 (pre=75557)"
+    },
+    "test_t99_inocuidad_post_rollback": {
+      "total_post": 69323,
+      "ultimo_id_post": 75557,
+      "activos_verificados": [
+        {
+          "id": 1866,
+          "status_code": 404,
+          "error_code": "ACTIVO_NO_ENCONTRADO"
+        },
+        {
+          "id": 1867,
+          "status_code": 404,
+          "error_code": "ACTIVO_NO_ENCONTRADO"
+        },
+        {
+          "id": 1868,
+          "status_code": 404,
+          "error_code": "ACTIVO_NO_ENCONTRADO"
+        }
+      ],
+      "acumulados_verificados": [
+        {
+          "id": 1866,
+          "status_code": 404,
+          "error_code": "CICLO_NO_ACTIVO"
+        },
+        {
+          "id": 1867,
+          "status_code": 404,
+          "error_code": "CICLO_NO_ACTIVO"
+        },
+        {
+          "id": 1868,
+          "status_code": 404,
+          "error_code": "CICLO_NO_ACTIVO"
+        }
+      ],
+      "delete_status_code": 200,
+      "obtenido_texto": "GET /suministros/auditoria -> HTTP 200 (total=69323, ultimo_id=75557); activos 404 [1866, 1867, 1868]; acumulados 404 [1866, 1867, 1868]; DELETE /test-control/runs/tc-m05-g40-inopost-b48ad30c -> HTTP 200"
+    }
+  },
+  "c02_analisis": "C02 no ejecutable por API: todos los casos de uso hacen flush de la auditoria y de la operacion en la misma sesion con un unico commit, sin paso fallable por API entre ambos y sin endpoint de inyeccion de fallos en /test-control; el rollback tecnico queda cubierto por C01."
+}

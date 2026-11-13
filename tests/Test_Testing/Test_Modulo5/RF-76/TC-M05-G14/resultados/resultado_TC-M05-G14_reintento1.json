@@ -1,0 +1,193 @@
+{
+  "tc": "TC-M05-G14",
+  "ronda": "reintento1",
+  "run": "run-20261111-140320",
+  "summary": {
+    "total": 30,
+    "ok": 30,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_00_inocuidad_linea_base",
+      "esperado": "200 conteo base, teardown 200 Rollback exitoso",
+      "obtenido": "GET HTTP 200, conteo base=0; teardown HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_01_preparacion",
+      "esperado": "activo INDIVIDUAL id_estado=1, fase abierta POST /fases 201, activo=1",
+      "obtenido": "POST /fases HTTP 201; activo=1 verificado",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01-id_activo_biologico-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['id_activo_biologico']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02-nombre_medicamento-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_medicamento']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03-fecha_aplicacion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04-hora_aplicacion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['hora_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05-via_administracion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['via_administracion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A06-dosis_aplicada-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['dosis_aplicada']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A07-unidad_dosis-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['unidad_dosis']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A08-motivo_aplicacion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['motivo_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A09-costo_unitario-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['costo_unitario']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A10-nombre_veterinario-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_veterinario']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A11-via_administracion-invalido",
+      "esperado": "400 VIA_ADMINISTRACION_INVALIDA, via_administracion en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VIA_ADMINISTRACION_INVALIDA, fields=['via_administracion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A12-nombre_veterinario-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_veterinario']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A13-unidad_dosis-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['unidad_dosis']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A14-hora_aplicacion-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['hora_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A15-fecha_aplicacion-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A16-nombre_medicamento-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_medicamento']",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_a17_estado_activo_tras_grupo_a",
+      "esperado": "GET /activos-biologicos/853 200, id_estado=1",
+      "obtenido": "GET /activos-biologicos/853 HTTP 200, id_estado=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01-dosis_0",
+      "esperado": "400 E4 dosis mayor a cero, sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=[None]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02-dosis_negativa",
+      "esperado": "400 E4 dosis mayor a cero, sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=[None]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04-motivo_9_caracteres",
+      "esperado": "400 E6 motivo_aplicacion o '10 caracteres', sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['motivo_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "B05-motivo_10_caracteres",
+      "esperado": "201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "obtenido": "POST HTTP 201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "B06-fecha_hoy",
+      "esperado": "201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "obtenido": "POST HTTP 201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "B07-fecha_manana",
+      "esperado": "400 FECHA_FUTURA, sin persistencia",
+      "obtenido": "HTTP 400 FECHA_FUTURA, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "B08-fecha_inicio_ciclo_menos_1",
+      "esperado": "400 FECHA_ANTERIOR_A_CICLO, sin persistencia",
+      "obtenido": "HTTP 400 FECHA_ANTERIOR_A_CICLO, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "B09-fecha_inicio_ciclo",
+      "esperado": "201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "obtenido": "POST HTTP 201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_zz_cierre_corrida_principal",
+      "esperado": "DELETE teardown 200 Rollback exitoso",
+      "obtenido": "DELETE HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03-dosis_0.0001",
+      "esperado": "201, VALIDADO, cantidad 0.0001, conteo +1",
+      "obtenido": "POST HTTP 201, VALIDADO, cantidad=0.0001, conteo +1; teardown HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_zz_inocuidad_final",
+      "esperado": "conteo final == base (0), teardown 200 Rollback exitoso",
+      "obtenido": "GET HTTP 200, conteo final=0 (base=0); teardown HTTP 200",
+      "estado": "OK"
+    }
+  ]
+}

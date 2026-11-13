@@ -1,120 +1,168 @@
-# | Fecha      | Nombre                   | Que se hizo                                                            |
-# |------------|--------------------------|------------------------------------------------------------------------|
-# | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G38 (JSON, repro, MD, TXT)  |
-"""Generador de artefactos de corrida para TC-M05-G38.
+# | Fecha      | Nombre                   | Que se hizo                                                                              |
+# |------------|--------------------------|------------------------------------------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G38 (JSON, repro, MD, TXT)                     |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G38 reevaluacion v2.0: --reintento, obtenido real por trazas, sin diagnosticos fijos |
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G38 correccion: T00/T99/D07 sin SQL (RLS), D08 segun ambiente |
+"""Generador de artefactos de corrida para TC-M05-G38 (RF-80 v2.0, RFC-025).
+
 Lee el JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
-- resultado_TC-M05-G38.json
-- TC-M05-G38_resultado.md
-- INFORME_FASE234_TC-M05-G38.txt
-- Inyecta data-jsonblob en resultado_TC-M05-G38.html
+- resultado_TC-M05-G38[_reintentoN].json
+- TC-M05-G38[_reintentoN]_resultado.md
+- INFORME_FASE234_TC-M05-G38[_reintentoN].txt
+- Inyecta data-jsonblob en resultado_TC-M05-G38[_reintentoN].html
 """
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 ZONA_USUARIO = timezone(timedelta(hours=-5))
 
 
-def leer_archivo(p: Path) -> str:
-    try:
-        return p.read_text(encoding="utf-8")
-    except Exception as e:
-        return f"[Error leyendo {p.name}: {e}]"
-
-
-def calcular_sha256(p: Path) -> str:
-    if not p.exists():
-        return "NO_EXISTE"
-    return hashlib.sha256(p.read_bytes()).hexdigest()
-
-
 TEST_METADATA = {
-    "test_t00_admin_setup": {
-        "paso": "T00 Admin Conteo inicial de eventos y creacion de activo con operaciones",
-        "esperado": "HTTP 200 en auditoria base, HTTP 201 en activo QA y HTTP 200 en suministros",
-        "fuente": "Testing Harness / Sandbox Control",
-    },
-    "test_a01_cadena_custodia_secuencia_completa": {
-        "paso": "A01 Cadena de custodia cronologica con doble timestamp visible",
-        "esperado": "Secuencia completa de eventos del activo ordenada cronologicamente con fecha_evento y fecha_emision visibles",
-        "fuente": "RF-80 CA-4, CA-13 / TC-M05-032.1",
-    },
-    "test_a02_exportacion_formatos_filtro_activo": {
-        "paso": "A02 Exportacion de bitacora en CSV, XLSX y PDF con filtro de activo",
-        "esperado": "HTTP 200 con archivo valido segun formato (CSV, XLSX, PDF); HTTP 400 ante formato no soportado",
-        "fuente": "RF-80 CA-2 / TC-M05-032.2",
-    },
-    "test_b01_filtros_invalidos": {
-        "paso": "B01 Validacion de filtros invalidos (formato de fecha y rango invertido)",
-        "esperado": "HTTP 4xx con mensaje explicativo ante formato invalido o fecha_desde > fecha_hasta",
-        "fuente": "RF-80 CA-1 / TC-M05-044.1",
-    },
-    "test_b02_consulta_sin_coincidencias_autoauditoria": {
-        "paso": "B02 Consulta sin coincidencias (200 lista vacia) y registro de consulta en bitacora",
-        "esperado": "HTTP 200 con lista vacia y registro de la consulta (+1 evento) segun CU06 FA-02",
-        "fuente": "RF-80 CU06 FA-02 / TC-M05-044.2",
-    },
-    "test_t98_admin_cierre_sandbox": {
-        "paso": "T98 Admin Cierre ordenado de sandbox Administrador y rollback",
-        "esperado": "HTTP 200 con confirmacion de rollback exitoso",
-        "fuente": "Testing Harness / Sandbox Control",
-    },
-    "test_t99_admin_inocuidad": {
-        "paso": "T99 Admin Verificacion de inocuidad y reversion de datos fuera de sandbox",
-        "esperado": "Conteo final de auditoria identico al conteo inicial",
+    "test_t00_linea_base": {
+        "paso": "T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)",
+        "esperado": "HTTP 200 GET /suministros/auditoria + conteo total y ultimo_id base; DELETE -> 200 Rollback exitoso",
         "fuente": "Testing Harness / Inocuidad",
     },
-    "test_c01_vet_acceso_denegado_endpoints_auditoria": {
-        "paso": "C01 Vet Restriccion de acceso RBAC a endpoints de auditoria para Veterinario",
-        "esperado": "HTTP 403 ACCESO_DENEGADO en lista, detalle y exportar sin fuga de datos en la respuesta",
-        "fuente": "RF-80 / RBAC Centralizado (TC-M05-044.3)",
+    "test_c01_cadena_custodia": {
+        "paso": "C01 Cadena de custodia por activo y ciclo con orden por fecha_emision y RNF-08",
+        "esperado": "Todos los eventos del activo y ciclo sin ajenos, orden fecha_emision consistente, doble timestamp presente, costo_afectado y origen_precio en registro, ordenar_por=fecha_evento 200",
+        "fuente": "TC-M05-096 / RF-80 v2.0 CA-4, CA-13, RNF-08",
     },
-    "test_c02_vet_intento_denegado_evento_seguridad": {
-        "paso": "C02 Vet Registro de evento de seguridad ante intento de acceso denegado",
-        "esperado": "Incremento (+1) en eventos de seguridad/rechazo tras intentos denegados",
-        "fuente": "RF-80 / TC-M05-044.3",
+    "test_c02_exportacion_con_filtro": {
+        "paso": "C02 Exportacion filtrada en formatos soportados (CSV, XLSX, PDF)",
+        "esperado": "HTTP 200 en CSV, XLSX y PDF conteniendo exactamente los eventos del filtro de C01 (RF-80 no define formatos)",
+        "fuente": "TC-M05-096 / RF-80 v2.0 CA-4",
     },
-    "test_c98_vet_cierre_sandbox": {
-        "paso": "C98 Vet Cierre ordenado de sandbox Veterinario y rollback",
-        "esperado": "HTTP 200 con confirmacion de rollback exitoso",
+    "test_d01_rango_invertido": {
+        "paso": "D01 Rango invertido en GET /suministros/auditoria (fecha_desde > fecha_hasta)",
+        "esperado": "HTTP 400 VAL_ENTRADA, field fecha_hasta, mensaje que pida corregir, sin items",
+        "fuente": "TC-M05-097 (1) / criterio INC-M05-276-G38",
+    },
+    "test_d02_rango_invertido_offsets_distintos": {
+        "paso": "D02 Rango invertido con offsets distintos (10:00-05:00 = 15:00Z > 14:00Z)",
+        "esperado": "HTTP 400 VAL_ENTRADA comparando instantes UTC",
+        "fuente": "criterio INC-M05-276-G38",
+    },
+    "test_d03_rango_invertido_exportacion": {
+        "paso": "D03 Rango invertido en GET /suministros/auditoria/exportar",
+        "esperado": "HTTP 400 VAL_ENTRADA y ningun archivo exportado",
+        "fuente": "TC-M05-097 (1) / criterio INC-M05-276-G38",
+    },
+    "test_d04_formato_fecha_incorrecto": {
+        "paso": "D04 Formato de fecha incorrecto (fecha_desde='2026-13-45')",
+        "esperado": "HTTP 400 o 422 con campo fecha_desde identificado; nunca 200 ni 500",
+        "fuente": "TC-M05-097 (1)",
+    },
+    "test_d05_limites_validos": {
+        "paso": "D05 Limites temporales validos (iguales, solo desde, solo hasta)",
+        "esperado": "HTTP 200 en los tres escenarios",
+        "fuente": "criterio INC-M05-276-G38 / RF-80 v2.0",
+    },
+    "test_d06_sin_coincidencias": {
+        "paso": "D06 Consulta valida sin coincidencias (activo de prueba sin eventos)",
+        "esperado": "HTTP 200 con items=[] y total=0",
+        "fuente": "TC-M05-097 (2) / criterio INC-M05-276-G38",
+    },
+    "test_d07_sin_permiso": {
+        "paso": "D07 Control de acceso sin permiso (Productor y Veterinario)",
+        "esperado": "HTTP 403 ACCESO_DENEGADO sin clave items ni fuga de datos en lista, detalle y exportar",
+        "fuente": "TC-M05-097 (3) / RF-80 v2.0 RNF-05 / RBAC recurso 57",
+    },
+    "test_t98_cierre_corrida_principal": {
+        "paso": "T98 Cierre de la corrida sandbox principal",
+        "esperado": "DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso",
         "fuente": "Testing Harness / Sandbox Control",
     },
-    "test_c99_vet_inocuidad": {
-        "paso": "C99 Vet Verificacion de inocuidad tras corrida Veterinario",
-        "esperado": "Conteo final de auditoria identico al conteo inicial",
+    "test_t99_inocuidad": {
+        "paso": "T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura",
+        "esperado": "total y ultimo_id iguales a T00; GET de activos y acumulado creados -> HTTP 404; DELETE -> 200",
         "fuente": "Testing Harness / Inocuidad",
     },
 }
 
 
-def main():
+def _cargar_trazas_por_test(ruta_trazas: Path) -> dict[str, list[dict[str, Any]]]:
+    por_test: dict[str, list[dict[str, Any]]] = {}
+    if not ruta_trazas.exists():
+        return por_test
+    for linea in ruta_trazas.read_text(encoding="utf-8").splitlines():
+        linea = linea.strip()
+        if not linea:
+            continue
+        try:
+            reg = json.loads(linea)
+        except Exception:
+            continue
+        tname = reg.get("test") or "init"
+        por_test.setdefault(tname, []).append(reg)
+    return por_test
+
+
+def _resumir_trazas(trazas: list[dict[str, Any]], max_items: int = 8) -> str:
+    if not trazas:
+        return "Sin llamadas HTTP registradas (fallo previo en precondicion)"
+    partes: list[str] = []
+    for r in trazas[:max_items]:
+        metodo = r.get("metodo", "?")
+        ruta = r.get("ruta", "?")
+        st = r.get("status_code")
+        ec = r.get("error_code")
+        xid = r.get("x_request_id") or ""
+        extra_bits: list[str] = []
+        rb = r.get("response_body")
+        if isinstance(rb, dict):
+            if "total" in rb and isinstance(rb.get("total"), int):
+                extra_bits.append(f"total={rb['total']}")
+            if isinstance(rb.get("items"), list):
+                ids = [x.get("id_auditoria_suministro") for x in rb["items"] if isinstance(x, dict) and x.get("id_auditoria_suministro") is not None]
+                if ids:
+                    extra_bits.append(f"ids={ids[:10]}")
+            if rb.get("id_activo_biologico") is not None:
+                extra_bits.append(f"id_activo={rb['id_activo_biologico']}")
+            if isinstance(rb.get("data"), list) and rb["data"] and isinstance(rb["data"][0], dict):
+                extra_bits.append(f"sql={rb['data'][0]}")
+        elif isinstance(rb, str) and rb.startswith("<archivo binario"):
+            extra_bits.append(rb)
+        ec_str = f" {ec}" if ec else ""
+        xid_str = f" [X-Request-Id={xid}]" if xid else ""
+        det_str = f" ({', '.join(extra_bits)})" if extra_bits else ""
+        partes.append(f"{metodo} {ruta} -> HTTP {st}{ec_str}{det_str}{xid_str}")
+    if len(trazas) > max_items:
+        partes.append(f"(+{len(trazas) - max_items} requests)")
+    return "; ".join(partes)
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Generador de artefactos de corrida TC-M05-G38")
     parser.add_argument("--staging", required=True, help="Ruta al directorio de staging de evidencias")
     parser.add_argument("--repo-root", required=True, help="Ruta a la raiz del repositorio")
     parser.add_argument("--duracion-s", type=float, default=0.0, help="Duracion de la corrida en segundos")
+    parser.add_argument("--reintento", type=int, default=0, help="Numero de reintento (0 para corrida inicial)")
     args = parser.parse_args()
 
     staging = Path(args.staging)
-    repo = Path(args.repo_root)
+    sufijo = f"_reintento{args.reintento}" if args.reintento > 0 else ""
 
-    xml_path = staging / "resultado_TC-M05-G38.xml"
+    xml_path = staging / f"resultado_TC-M05-G38{sufijo}.xml"
     if not xml_path.exists():
-        xml_path = staging / "junit_TC-M05-G38.xml"
+        xml_path = staging / "resultado_TC-M05-G38.xml"
     if not xml_path.exists():
         print(f"ERROR: No existe archivo XML en {staging}")
         return
 
+    trazas_por_test = _cargar_trazas_por_test(staging / "trazas_http.jsonl")
+
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
-    checkpoints = []
-    total = 0
+    checkpoints: list[dict[str, str]] = []
+    fallos_detalle: list[dict[str, str]] = []
     ok = 0
     falla = 0
 
@@ -123,27 +171,44 @@ def main():
 
     for tc in testcase_elements:
         nombre = tc.attrib.get("name", "")
-        meta = TEST_METADATA.get(nombre, {
-            "paso": nombre,
-            "esperado": "Comportamiento segun especificacion",
-            "fuente": "RF-80 / Especificacion",
-        })
+        meta = TEST_METADATA.get(
+            nombre,
+            {
+                "paso": nombre,
+                "esperado": "Comportamiento segun especificacion RF-80 v2.0",
+                "fuente": "RF-80 v2.0 / TC-M05-G38",
+            },
+        )
+        trazas = trazas_por_test.get(nombre, [])
+        resumen_http = _resumir_trazas(trazas)
 
         failure = tc.find("failure")
         error = tc.find("error")
+        skipped = tc.find("skipped")
 
-        if failure is not None:
+        if failure is not None or error is not None:
+            nodo = failure if failure is not None else error
             estado = "FALLA"
             falla += 1
-            obtenido = failure.attrib.get("message", failure.text or "Fallo de aserto").strip().splitlines()[0]
-        elif error is not None:
-            estado = "FALLA"
-            falla += 1
-            obtenido = error.attrib.get("message", error.text or "Error en ejecucion").strip().splitlines()[0]
+            msg_raw = (nodo.attrib.get("message") or nodo.text or "Fallo de aserto").strip()
+            msg_primera_linea = msg_raw.splitlines()[0]
+            obtenido = f"{msg_primera_linea} | HTTP: {resumen_http}"
+            fallos_detalle.append({
+                "test": nombre,
+                "paso": meta["paso"],
+                "fuente": meta["fuente"],
+                "mensaje": msg_primera_linea,
+                "http": resumen_http,
+                "clasificacion": "PENDIENTE_DIAGNOSTICO",
+            })
+        elif skipped is not None:
+            estado = "OMITIDO"
+            msg_raw = (skipped.attrib.get("message") or skipped.text or "Omitido").strip()
+            obtenido = f"SKIPPED: {msg_raw} | HTTP: {resumen_http}"
         else:
             estado = "OK"
             ok += 1
-            obtenido = meta["esperado"]
+            obtenido = f"HTTP: {resumen_http}"
 
         checkpoints.append({
             "paso": meta["paso"],
@@ -165,110 +230,102 @@ def main():
         "checkpoints": checkpoints,
     }
 
-    json_path = staging / "resultado_TC-M05-G38.json"
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(resultado_json, f, indent=2, ensure_ascii=False)
+    json_path = staging / f"resultado_TC-M05-G38{sufijo}.json"
+    json_path.write_text(json.dumps(resultado_json, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Generado: {json_path.name}")
 
-    # Inyectar data-jsonblob en el reporte HTML de pytest-html
-    html_path = staging / "resultado_TC-M05-G38.html"
+    html_path = staging / f"resultado_TC-M05-G38{sufijo}.html"
+    if not html_path.exists():
+        html_path = staging / "resultado_TC-M05-G38.html"
     if html_path.exists():
         try:
             html_content = html_path.read_text(encoding="utf-8")
-            blob_script = f'<script id="data-jsonblob" type="application/json">{json.dumps(resultado_json, ensure_ascii=False)}</script>'
+            blob_script = (
+                f'<script id="data-jsonblob" type="application/json">'
+                f"{json.dumps(resultado_json, ensure_ascii=False)}</script>"
+            )
             if 'id="data-jsonblob"' not in html_content:
                 if "</body>" in html_content:
                     html_content = html_content.replace("</body>", f"{blob_script}</body>")
                 else:
                     html_content += blob_script
                 html_path.write_text(html_content, encoding="utf-8")
-                print("Inyectado data-jsonblob en resultado_TC-M05-G38.html")
+                print(f"Inyectado data-jsonblob en {html_path.name}")
         except Exception as e:
             print(f"Aviso: no se pudo inyectar data-jsonblob en HTML: {e}")
 
-    # Generar TC-M05-G38_resultado.md
-    md_content = f"""# Resultado de Prueba: TC-M05-G38
-## Consulta de Bitácora y Cadena de Custodia (RF-80)
-
-- **ID Caso:** TC-M05-G38 (TC-M05-032 y TC-M05-044)
-- **Veredicto:** {veredicto} ({ok}/{total} OK, {falla} Fallas)
-- **Fecha:** {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)
-- **Duración:** {args.duracion_s:.2f} s
-
-### Resumen de Checkpoints
-| # | Paso | Esperado | Obtenido | Estado |
-|---|------|----------|----------|--------|
-"""
+    ahora_str = datetime.now(ZONA_USUARIO).strftime("%Y-%m-%d %H:%M:%S")
+    md_lines = [
+        "# Resultado de Prueba: TC-M05-G38",
+        "## Consulta de Bitácora y Cadena de Custodia (RF-80 v2.0, RFC-025)",
+        "",
+        f"- **ID Caso:** TC-M05-G38 (TC-M05-096 y TC-M05-097){' — Reintento ' + str(args.reintento) if args.reintento > 0 else ''}",
+        f"- **Veredicto:** {veredicto} ({ok}/{total} OK, {falla} Fallas)",
+        f"- **Fecha:** {ahora_str} (America/Bogota)",
+        f"- **Duración:** {args.duracion_s:.2f} s",
+        "",
+        "### Resumen de Checkpoints",
+        "| # | Paso | Esperado | Obtenido | Estado |",
+        "|---|------|----------|----------|--------|",
+    ]
     for idx, cp in enumerate(checkpoints, 1):
-        md_content += f"| {idx} | {cp['paso']} | {cp['esperado']} | {cp['obtenido']} | {cp['estado']} |\n"
+        paso_esc = cp["paso"].replace("|", "/")
+        esp_esc = cp["esperado"].replace("|", "/")
+        obt_esc = cp["obtenido"].replace("|", "/")
+        md_lines.append(f"| {idx} | {paso_esc} | {esp_esc} | {obt_esc} | {cp['estado']} |")
 
-    md_content += f"""
-### Diagnóstico de Fallas (Defectos de Producto)
-- **Falla en B01 (RF-80 / TC-M05-044.1):**
-  La combinación inválida `fecha_desde > fecha_hasta` retorna HTTP 200 con lista vacía en lugar de HTTP 4xx con mensaje explicativo de corrección. El endpoint no valida la coherencia temporal de los parámetros de fecha.
-- **Falla en B02 (RF-80 CU06 FA-02 vs Catálogo / TC-M05-044.2):**
-  La especificación CU06 FA-02 estipula que las consultas a la bitácora deben auto-auditarse (+1 evento). En la implementación actual, `ConsultarAuditoriaSuministrosUseCase` es de solo lectura y no audita la consulta por no existir un tipo de evento en el catálogo para "consulta de bitácora".
-- **Falla en C02 (RF-80 / TC-M05-044.3):**
-  Los intentos de acceso no autorizados denegados con HTTP 403 (Veterinario) no generan un evento de seguridad en `modulo5.auditorias_suministros` ni en `modulo1.eventos`. El middleware RBAC (`src/shared/rbac.py`) lanza `AuthorizationError` sin persistir trazas de seguridad.
+    md_lines.append("")
+    md_lines.append("### Fallos Detectados")
+    if not fallos_detalle:
+        md_lines.append("- Sin fallos en esta ejecución.")
+    else:
+        for fd in fallos_detalle:
+            md_lines.append(f"- **{fd['paso']}** ({fd['fuente']}) — `{fd['clasificacion']}`")
+            md_lines.append(f"  - Detalle: `{fd['mensaje']}`")
+            md_lines.append(f"  - Trazas: `{fd['http']}`")
 
-### Cobertura No Ejecutada Declarada
-- **B03 (044.4) Fallo forzado de M12:** No ejecutable en ambiente sandbox al no existir broker externo ni inyector de fallas en red/BD.
-"""
-    md_path = staging / "TC-M05-G38_resultado.md"
-    md_path.write_text(md_content, encoding="utf-8")
+    md_lines.append("")
+    md_lines.append("### Cobertura No Ejecutable Declarada")
+    md_lines.append("- **TC-M05-097 (4) Fallo forzado en la consulta a BD:** No ejecutable en TEST (no inyectable por la API pública).")
+
+    md_path = staging / f"TC-M05-G38{sufijo}_resultado.md"
+    md_path.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
     print(f"Generado: {md_path.name}")
 
-    # Generar INFORME_FASE234_TC-M05-G38.txt
-    txt_content = f"""================================================================================
-INFORME DE EJECUCION FASES 2, 3 Y 4: TC-M05-G38
-RF-80 "Auditoria y Trazabilidad de Registros de Suministros"
-================================================================================
-Fecha/Hora: {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)
-Suite: TC-M05-G38 (Casos TC-M05-032 y TC-M05-044)
-Total tests: {total} | Aprobados: {ok} | Fallidos: {falla}
-Veredicto Final: {veredicto}
-Duracion: {args.duracion_s:.2f} s
-
-1. TABLA DETALLADA DE CHECKPOINTS
---------------------------------------------------------------------------------
-"""
+    txt_lines = [
+        "================================================================================",
+        f"INFORME DE EJECUCION: TC-M05-G38{' (REINTENTO ' + str(args.reintento) + ')' if args.reintento > 0 else ''}",
+        'RF-80 v2.0 (RFC-025) "Auditoria y Trazabilidad de Registros de Suministros"',
+        "================================================================================",
+        f"Fecha/Hora: {ahora_str} (America/Bogota)",
+        f"Total tests: {total} | Aprobados: {ok} | Fallidos: {falla}",
+        f"Veredicto Final: {veredicto}",
+        f"Duracion: {args.duracion_s:.2f} s",
+        "",
+        "1. TABLA DETALLADA DE CHECKPOINTS",
+        "--------------------------------------------------------------------------------",
+    ]
     for idx, cp in enumerate(checkpoints, 1):
-        txt_content += f"[{idx:02d}] {cp['paso']}\n"
-        txt_content += f"     Esperado: {cp['esperado']}\n"
-        txt_content += f"     Obtenido: {cp['obtenido']}\n"
-        txt_content += f"     Estado:   {cp['estado']}\n\n"
+        txt_lines.append(f"[{idx:02d}] {cp['paso']}")
+        txt_lines.append(f"     Esperado: {cp['esperado']}")
+        txt_lines.append(f"     Obtenido: {cp['obtenido']}")
+        txt_lines.append(f"     Estado:   {cp['estado']}")
+        txt_lines.append("")
 
-    txt_content += """2. MATRIZ DE CAPACIDADES RF-80 (Porton P1)
---------------------------------------------------------------------------------
-- Cadena de custodia:           PRESENTE (secuencia cronologica completa con fecha_evento y fecha_emision)
-- Exportacion multi-formato:    PRESENTE (CSV estructurado, XLSX con hoja 'Auditoria Suministros', PDF con tabla estilizada)
-- Validacion formato exportar:  PRESENTE (HTTP 400 ante formato invalido, codigo FORMATO_EXPORTACION_INVALIDO)
-- Filtros de fecha:             PARCIAL (valida formato ISO pero no valida coherencia fecha_desde <= fecha_hasta)
-- Auto-auditoria de consultas:  AUSENTE (conflicto CU06 FA-02 vs Catalogo de eventos)
-- RBAC Recurso 57:              PRESENTE (HTTP 403 para Veterinario en lista, detalle y exportar sin fuga de datos)
-- Auditoria de eventos 403:     AUSENTE (los intentos denegados no persisten evento de seguridad)
-- Broker M12 / Cola:            AUSENTE / NO OBSERVABLE (la persistencia es relacional y local)
+    txt_lines.append("2. DETALLE DE FALLOS")
+    txt_lines.append("--------------------------------------------------------------------------------")
+    if not fallos_detalle:
+        txt_lines.append("Sin fallos registrados.")
+    else:
+        for fd in fallos_detalle:
+            txt_lines.append(f"- {fd['paso']} [{fd['clasificacion']}] ({fd['fuente']})")
+            txt_lines.append(f"  Mensaje: {fd['mensaje']}")
+            txt_lines.append(f"  HTTP:    {fd['http']}")
 
-3. INOCUIDAD Y SEGURIDAD
---------------------------------------------------------------------------------
-- Corridas Sandbox: Admin y Vet ejecutadas secuencialmente, cerradas via DELETE /test-control/runs/{run_id} -> HTTP 200.
-- Inocuidad: Conteo total de eventos en modulo5.auditorias_suministros antes y despues de cada corrida permanece identico.
-- Escaneo de secretos: 0 contraseñas, 0 tokens JWT ('eyJ'), 0 secretos de sandbox en artefactos.
-
-4. OBSERVACIONES PARA ANALISIS Y RECOMENDACIONES (INC BORRADOR)
---------------------------------------------------------------------------------
-- Defecto 1 (B01): En `src/supplies/infrastructure/routers/auditoria_suministros_router.py`, `fecha_desde` y `fecha_hasta` no se comparan. Si `fecha_desde > fecha_hasta`, se retorna HTTP 200 con items vacios en vez de HTTP 400/422.
-  Borrador INC: "RF-80: Consulta a la bitacora de auditoria con fecha_desde > fecha_hasta retorna HTTP 200 en lugar de HTTP 4xx con mensaje explicativo".
-- Defecto 2 (B02): Discrepancia de diseno entre CU06 FA-02 (que pide auto-auditar consultas a la bitacora) y el catalogo de eventos de M05, donde no existe tipo de evento para consulta de auditoria.
-  Borrador INC: "RF-80 CU06 FA-02: La consulta a la bitacora de auditoria no genera evento de auditoria en modulo5.auditorias_suministros".
-- Defecto 3 (C02): En `src/shared/rbac.py`, las denegaciones de acceso (HTTP 403) no persisten registros en la tabla de auditoria ni en la bitacora de seguridad.
-  Borrador INC: "Seguridad / RF-80: Intentos de acceso denegados con HTTP 403 no generan evento de seguridad en la bitacora".
-"""
-    txt_path = staging / "INFORME_FASE234_TC-M05-G38.txt"
-    txt_path.write_text(txt_content, encoding="utf-8")
+    txt_path = staging / f"INFORME_FASE234_TC-M05-G38{sufijo}.txt"
+    txt_path.write_text("\n".join(txt_lines) + "\n", encoding="utf-8")
     print(f"Generado: {txt_path.name}")
 
 
 if __name__ == "__main__":
     main()
-

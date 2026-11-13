@@ -65,7 +65,7 @@ El 500 general de la corrida anterior ya no aparece: B05, B06 y B09 responden 20
 ## Defectos
 
 ### B03 — una dosis de 4 decimales provoca 500 en lugar de persistirse (NUEVO)
-- **INC-M05-NN-G14: pendiente de crear en Taiga.**
+- **INC-M05-270-G14.**
 - **Esperado (especificación):** `dosis_aplicada` decimal(10,4) > 0. Con 0.0001, HTTP 201, registro VALIDADO, conteo +1 y `cantidad` = 0.0001.
 - **Obtenido:** HTTP **500**, `error_code` **`ERROR_INTERNO`**. No se devuelve `cantidad`, así que no hay valor que comparar como Decimal.
 - **Causa probable (inferencia apoyada en el esquema de TEST, consultado en solo lectura después de esta corrida):**
@@ -76,7 +76,7 @@ El 500 general de la corrida anterior ya no aparece: B05, B06 y B09 responden 20
 - **Impacto:** las dosis con cuatro decimales no se pueden registrar. Las de tres o menos no se ven afectadas, salvo que el cuarto decimal se trunca en silencio.
 
 ### R2 — login bloqueado si otra corrida sandbox con la misma cuenta sigue abierta (vigente, de ambiente)
-- **INC-M05-NN-G14: pendiente de crear en Taiga** (registrado en la corrida previa).
+- **INC de R2 (bloqueo de login concurrente): no creado** (registrado en la corrida previa).
 - No afectó a esta corrida: todas las corridas se cerraron antes del siguiente login.
 
 ## Observaciones para Análisis (no son defectos)
@@ -110,3 +110,5 @@ Rutas relativas a `tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/`:
 - `evidencias/run-20261107-095931/` — corrida previa a la corrección (HTML, XML, JSON, narrativo y repeticiones).
 - `evidencias/diagnostico_R3/` — diagnóstico del 500 anterior.
 - `evidencias/run-20261107-093850/` — corrida bloqueada por ambiente (activo 930).
+
+Actualización 2026-11-11: INC-M05-270-G14 corregido (Dev #954); reintento 1 Aprobado 30/30 en run-20261111-140320.
