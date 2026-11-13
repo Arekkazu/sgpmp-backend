@@ -5,15 +5,20 @@ Reintento sobre la ficha v2.0 (añade modo_generacion/tipo_modelo del
 enumerado de 6 a los campos obligatorios, y un endpoint de reintento de
 entrega en (e)).
 
-RELACIÓN CON TC-M04-G102 (hallazgo raíz): `modo_generacion` no existe en
-ningún DTO (G102); `tipo_modelo` sigue con 4 valores (G102/G107).
+REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE. RELACIÓN CON
+TC-M04-G102 (hallazgo raíz, actualizado): `modo_generacion` sigue sin
+existir en ningún DTO (G102); `tipo_modelo` YA tiene 6 valores, no 4
+(G102/G107) -- la mitad de la premisa de (a) queda invertida.
 
 (a) Campos obligatorios, incluidos modo_generacion y tipo_modelo del
-    enumerado de 6 -- HALLAZGO: `hash_artefacto_sha256` (no
-    `hash_artefacto_modelo`, ver ronda anterior) y `id_proceso_rf71`
-    coinciden; `modo_generacion` NO es un campo del DTO en absoluto (no
-    es que falte en un envío puntual, es que nunca pudo declararse);
-    `tipo_modelo` solo acepta 4 valores, no 6.
+    enumerado de 6 -- HALLAZGO PARCIALMENTE INVERTIDO: `hash_artefacto_sha256`
+    (no `hash_artefacto_modelo`, ver ronda anterior) y `id_proceso_rf71`
+    coinciden; `modo_generacion` SIGUE sin ser un campo del DTO en
+    absoluto (no es que falte en un envío puntual, es que nunca pudo
+    declararse); PERO `tipo_modelo` SÍ acepta 6 valores reales ahora
+    (`TIPOS_MODELO`), y el DTO declara además `componente` (obligatorio
+    para los 3 valores POBLACIONAL) -- el único campo de la lista de (a)
+    que sigue totalmente ausente es `modo_generacion`.
 (b) CA-4/Restricción 3: EN_VALIDACION inicial, sin campo estado en el DTO
     -- CONFIRMADO CORRECTO EN SENTIDO ESTRECHO (sin cambios); vigente el
     matiz de G102: el propio backend auto-aprueba sin intervención
@@ -73,7 +78,7 @@ class TestSubCasoACamposObligatoriosIncompletosSegunRfc009:
 class TestSubCasoDRegistroNuncaReemplazaAlModeloActivo:
     def test_crear_siempre_deja_esta_produccion_en_false(self):
         modelo = VersionModelo.crear(
-            tipo_modelo='ESPECIES_MEDIANAS', formato_artefacto='ONNX', ruta_artefacto='/tmp/x.onnx',
+            tipo_modelo='MODELO_ESPECIES_MEDIANAS', formato_artefacto='ONNX', ruta_artefacto='/tmp/x.onnx',
             tamanio_artefacto_bytes=10, hash_artefacto_sha256='a' * 64, dataset_entrenamiento_hash='b' * 64,
             id_proceso_rf71=__import__('uuid').uuid4(), f1_score=Decimal('0.90'),
             recall_clase_riesgo_alto=Decimal('0.90'), precision_modelo=Decimal('0.90'),
@@ -92,8 +97,9 @@ class TestSubCasoENoExisteEndpointDeReintentoDeEntrega:
         texto = archivo.read_text(encoding='utf-8')
         rutas = [l.strip() for l in texto.splitlines() if '@router.' in l or 'summary=' in l]
         pytest.fail(
-            f"HALLAZGO (e): ninguno de los endpoints reales de version_modelo_router.py "
-            f"menciona 'retry'/'reintento'/'delivery'/'entrega' en su definicion -- no existe "
-            f"ningun endpoint de reintento de entrega tras una caida de RF-69. Lineas "
+            f"HALLAZGO (e) VIGENTE: ninguno de los 5 endpoints reales de version_modelo_router.py "
+            f"(2 GET, 1 PATCH, 2 POST -- uno más que la ronda anterior, que contó 4) menciona "
+            f"'retry'/'reintento'/'delivery'/'entrega' en su definición -- sigue sin existir "
+            f"ningún endpoint de reintento de entrega tras una caída de RF-69. Líneas "
             f"relevantes: {rutas!r}"
         ) if 'retry' not in texto.lower() and 'reintento' not in texto.lower() else None

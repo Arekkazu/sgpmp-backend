@@ -5,47 +5,56 @@ tipo_modelo." Reintento sobre la ficha v2.0 (añade el subescenario (d)
 sobre POBLACIONAL y la exigencia de incorporar score_anomalia a la
 nomenclatura unificada).
 
-RELACIÓN CON TC-M04-G102 (hallazgo raíz): `tipo_modelo` sigue sin incluir
-POBLACIONAL (G102); el contrato de métricas real asume siempre un
-clasificador supervisado.
+REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE. RELACIÓN CON TC-M04-G102
+(hallazgo raíz, actualizado): `tipo_modelo` SÍ incluye el paradigma
+POBLACIONAL ahora (ver G102) -- el hallazgo (d) de esta ficha queda
+CASI TOTALMENTE INVERTIDO como consecuencia directa.
 
 Código bajo prueba:
     src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py
 
-HALLAZGO (d), vigente y agravado por la RFC-009: `_METRICAS_REQUERIDAS`
-exige SIEMPRE las 7 claves (`f1_score_global`, `recall_clase_riesgo_alto`,
-`precision_global`, `accuracy`, `roc_auc_score`, `recall_por_clase`,
-`matriz_confusion`) sin ninguna rama por `tipo_modelo` -- no hay ningún
-mecanismo para que estos campos "viajen explícitamente como no
-aplicables" para un modelo sin etiquetas, como pide (d): si
-`tipo_modelo` pudiera ser POBLACIONAL, el registro fallaría con
-`METRICAS_INCOMPLETAS` en cualquier caso, porque el contrato exige las 7
-claves sin excepción. No existe ningún campo `score_anomalia` en
-`_METRICAS_REQUERIDAS` ni en `VersionModelo`.
+HALLAZGO (d) INVERTIDO: `execute()` se bifurca explícitamente por
+paradigma ANTES de validar métricas --
+`if es_poblacional(dto.tipo_modelo): metricas_poblacionales =
+self._validar_metricas_poblacionales(...); metricas =
+dict.fromkeys(_METRICAS_REQUERIDAS)` (las 7 claves supervisadas quedan
+en `None`, explícitamente "no aplicables") `else: componente,
+metricas_poblacionales = None, None`. Existe un método DEDICADO,
+`_validar_metricas_poblacionales()`, con su propio contrato de 3 claves:
+`calibracion_completada` (bool) + `tasa_falsos_positivos_rutina` +
+`tasa_deteccion_eventos_clinicos` (`_TASAS_POBLACIONALES`). Esto es,
+literalmente, lo que (d) pedía verificar que NO existiera: un conjunto de
+métricas propio para POBLACIONAL, con los campos supervisados viajando
+de forma explícita como no aplicables (`None`), en vez de forzar el
+contrato de 7 claves.
 
-(a) Formato ONNX/TF SavedModel -- CONFIRMADO CORRECTO (sin cambios, ver
-    ronda anterior).
+(a) Formato ONNX/TF SavedModel -- CONFIRMADO CORRECTO (sin cambios).
 (b) Incompatibilidad de algoritmo -- NO APLICA: no existe concepto de
-    "algoritmo" en el contrato de RF-69.
-(c) CA-11, métricas para clases 0,1,2,3 -- PARCIALMENTE CONFIRMADO, CON
-    HALLAZGO VIGENTE: solo se valida que las claves existan, nunca su
-    contenido (ver ronda anterior, sin cambios).
-(d) Conjunto de métricas para POBLACIONAL -- HALLAZGO: ver arriba --
-    el contrato real no tiene ninguna variante para tipos sin etiquetas.
+    "algoritmo" en el contrato de RF-69 (sin cambios).
+(c) CA-11, métricas para clases 0,1,2,3 -- VIGENTE PARA LA RAMA
+    SUPERVISADA: `_validar_metricas()` solo valida que las claves
+    existan y estén en rango [0,1], nunca su contenido semántico por
+    clase (sin cambios respecto a la ronda anterior).
+(d) Conjunto de métricas para POBLACIONAL -- HALLAZGO INVERTIDO: ver
+    arriba -- el contrato real SÍ tiene una variante dedicada para
+    POBLACIONAL.
 (e) Restricción 12, nomenclatura unificada + incorporar score_anomalia --
-    HALLAZGO VIGENTE (`accuracy` sin calificador, ver ronda anterior) MÁS
-    HALLAZGO NUEVO: `score_anomalia` no existe en ningún lado, por lo que
-    no puede estar "incorporado a la nomenclatura unificada" porque la
-    nomenclatura unificada real no tiene ningún campo para indicadores
-    poblacionales.
+    HALLAZGO VIGENTE para `accuracy` sin calificador (sigue siendo clave
+    literal de `_METRICAS_REQUERIDAS`); PERO MATIZADO para
+    score_anomalia: el campo SÍ existe en el código real
+    (`riesgo_contagio.py`, RF-68), solo que NO se incorporó al contrato
+    de métricas de RF-69/RF-71 -- las tasas poblacionales usan su propia
+    nomenclatura (`tasa_falsos_positivos_rutina`/
+    `tasa_deteccion_eventos_clinicos`), no `score_anomalia`.
 (f) Restricción 3, sin juicios ni comparaciones -- HALLAZGO VIGENTE:
-    `detalle_validacion` sigue conteniendo una comparación textual contra
-    umbral (ver ronda anterior, sin cambios).
+    `detalle_validacion` sigue conteniendo comparaciones textuales contra
+    umbral, también en la rama POBLACIONAL nueva
+    (`"calibracion_completada=false: la calibración en sitio no está
+    COMPLETADA"`).
 
-Cómo se prueba: inspección directa de `_METRICAS_REQUERIDAS` y de
-`VersionModelo`, más una llamada real a `_validar_metricas()` omitiendo
-las métricas supervisadas para simular un intento de registro
-POBLACIONAL.
+Cómo se prueba: inspección directa de `_METRICAS_REQUERIDAS`,
+`_TASAS_POBLACIONALES` y `_validar_metricas_poblacionales()`, más
+llamadas reales a ambos validadores (supervisado y poblacional).
 
 Como correrlo (Windows necesita el stub de fcntl):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
@@ -71,23 +80,50 @@ from src.shared.errors import BusinessRuleError
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
 
-class TestSubCasoDPoblacionalFallaElContratoSupervisadoSiempre:
-    def test_metricas_requeridas_no_tiene_rama_por_tipo_modelo(self):
-        uc = RegistrarVersionModeloUseCase(
-            db=MagicMock(), repo=MagicMock(), auditoria_repo=MagicMock(), variable_port=MagicMock(),
-        )
-        metricas_sin_las_supervisadas = {}  # simula un modelo sin etiquetas, sin metricas de clase
+def _use_case():
+    return RegistrarVersionModeloUseCase(
+        db=MagicMock(), repo=MagicMock(), auditoria_repo=MagicMock(), variable_port=MagicMock(),
+        aviso_port=MagicMock(),
+    )
+
+
+class TestSubCasoDPoblacionalSiTieneSuPropioContratoDeMetricas:
+    def test_validar_metricas_poblacionales_existe_y_exige_su_propio_contrato(self):
+        uc = _use_case()
         with pytest.raises(BusinessRuleError) as exc_info:
-            uc._validar_metricas(metricas_sin_las_supervisadas)
+            uc._validar_metricas_poblacionales({})
         pytest.fail(
-            f"HALLAZGO (d): _validar_metricas({{}}) (simulando un registro POBLACIONAL sin "
-            f"metricas de clasificacion) falla con codigo '{exc_info.value.code}' -- el "
-            f"contrato real exige las 7 claves supervisadas SIEMPRE, sin ninguna rama para "
-            f"tipos sin etiquetas. No hay forma de que estos campos 'viajen como no "
-            f"aplicables': el registro simplemente se rechaza por completo."
+            f"HALLAZGO (d) INVERTIDO: _validar_metricas_poblacionales({{}}) falla con codigo "
+            f"'{exc_info.value.code}' porque faltan SUS PROPIAS claves "
+            f"(calibracion_completada/tasa_falsos_positivos_rutina/tasa_deteccion_eventos_"
+            f"clinicos) -- es un metodo DEDICADO, distinto de _validar_metricas() (el "
+            f"supervisado de 7 claves). La ronda anterior afirmo que 'no existe ninguna "
+            f"variante para tipos sin etiquetas'; si existe."
         ) if exc_info.value.code == 'METRICAS_INCOMPLETAS' else None
 
-    def test_score_anomalia_no_existe_en_version_modelo(self):
+    def test_validar_metricas_poblacionales_acepta_el_contrato_correcto(self):
+        uc = _use_case()
+        resultado = uc._validar_metricas_poblacionales({
+            'calibracion_completada': True,
+            'tasa_falsos_positivos_rutina': 0.05,
+            'tasa_deteccion_eventos_clinicos': 0.92,
+        })
+        assert resultado['calibracion_completada'] is True
+
+    def test_la_rama_supervisada_recibe_las_7_claves_en_none_para_poblacional(self):
+        """Confirma el mecanismo exacto que (d) pedia: dict.fromkeys(_METRICAS_REQUERIDAS)
+        deja las 7 claves supervisadas en None (explicitamente no aplicables) para
+        POBLACIONAL, en vez de forzar su contrato o simplemente omitirlas."""
+        archivo = REPO_ROOT / 'src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py'
+        texto = archivo.read_text(encoding='utf-8')
+        pytest.fail(
+            "HALLAZGO (d) INVERTIDO, MECANISMO CONFIRMADO: 'metricas = "
+            "dict.fromkeys(_METRICAS_REQUERIDAS)' aparece en el flujo POBLACIONAL de execute() "
+            "-- las 7 claves supervisadas SI viajan explicitamente como None/no-aplicables para "
+            "POBLACIONAL, exactamente como (d) pedia verificar que ocurriera."
+        ) if 'metricas = dict.fromkeys(_METRICAS_REQUERIDAS)' in texto else None
+
+    def test_score_anomalia_no_existe_en_version_modelo_ni_en_el_contrato_de_rf71(self):
         nombres_campos = {f.name for f in fields(VersionModelo)}
         assert 'score_anomalia' not in nombres_campos
 
