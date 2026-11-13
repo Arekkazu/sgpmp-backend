@@ -1,3 +1,10 @@
+## [1.4.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.60...v1.4.0-rc.61) (2026-11-13)
+
+### Bug Fixes
+
+* **rf82-mod6:** el rol Auditor lee la configuracion contable y la RLS ya no produce 500 en las propuestas de reconocimiento ([c7e6c9f](https://github.com/Arekkazu/sgpmp-backend/commit/c7e6c9f437283e9cc92e83f57d5fb71e9f529faa))
+* **rf82-mod6:** la migracion del permiso del Auditor sigue a la union 810b1e4eb4f9 (un solo head) ([0064e69](https://github.com/Arekkazu/sgpmp-backend/commit/0064e698d26cc383e945cc53981d7334b6af3a48))
+
 ## [1.4.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.59...v1.4.0-rc.60) (2026-11-13)
 
 ### Bug Fixes
