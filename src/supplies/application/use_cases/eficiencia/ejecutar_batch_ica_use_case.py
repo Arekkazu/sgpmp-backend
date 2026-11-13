@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: alerta interna de batch y cola     |
 # | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: fallo técnico 500/503, aviso de fallo persistente y pendientes |
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: preservar el corte manual al finalizar y evitar un aviso de ventana duplicado. |
 """Caso de uso: motor batch de cálculo ICA (RF-74, Flujo C — alcance completo).
 
 Orquesta una corrida completa:
@@ -357,16 +358,16 @@ class EjecutarBatchICAUseCase:
     # ── Cierre de la corrida ─────────────────────────────────────────────────
     def _finalizar(self, id_ejecucion: int, procesados: int, fallos: list[dict], interrumpido: bool,
                    en_cola_por_limite: int) -> EjecucionBatchICA:
-        ejecucion = self.ejecucion_repo.obtener(id_ejecucion)
+        ejecucion = self.ejecucion_repo.obtener(id_ejecucion, para_actualizar=True)
         ejecucion.cantidad_activos_procesados = procesados
         ejecucion.cantidad_fallidos = len(fallos)
         ahora = datetime.now(timezone.utc)
-        if ejecucion.estado == EstadoEjecucionBatch.INTERRUMPIDO:
-            pass  # Interrumpido manualmente (FA-12) mientras corría: solo se actualizan métricas.
-        elif interrumpido:
-            ejecucion.interrumpir(causa=CausaInterrupcionBatch.VENTANA_EXCEDIDA.value, hora_corte=ahora)
-        else:
-            ejecucion.completar(hora_fin=ahora)
+        corte_por_ventana = interrumpido and ejecucion.esta_en_ejecucion
+        if ejecucion.esta_en_ejecucion:
+            if corte_por_ventana:
+                ejecucion.interrumpir(causa=CausaInterrupcionBatch.VENTANA_EXCEDIDA.value, hora_corte=ahora)
+            else:
+                ejecucion.completar(hora_fin=ahora)
         # Pendientes = los que no alcanzaron a procesarse + los que el límite dejó en cola (FA-07);
         # completar()/interrumpir() solo ven los primeros.
         ejecucion.cantidad_activos_pendientes = (
@@ -374,7 +375,7 @@ class EjecutarBatchICAUseCase:
         )
         guardada = self.ejecucion_repo.guardar(ejecucion)
         self.db.commit()
-        if interrumpido:
+        if corte_por_ventana:
             self._alertar(
                 "El proceso batch de cálculo de CA no completó su ejecución. Se procesaron "
                 f"{procesados} de {guardada.cantidad_activos_total} activos. El proceso continuará en el "

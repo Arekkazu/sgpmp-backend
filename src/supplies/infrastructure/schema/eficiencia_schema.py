@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de la causa (E2-E6)        |
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: exponer el motivo por separado en el estado del batch. |
 """Schemas de respuesta del CU-02 — Eficiencia Alimenticia (ICA, RF-74)."""
 from __future__ import annotations
 
@@ -94,6 +95,7 @@ class EstadoBatchResponse(BaseModel):
     cantidad_activos_pendientes: int
     cantidad_fallidos: int
     causa_interrupcion: Optional[str]
+    motivo_interrupcion: Optional[str] = None
     num_workers: int
     limite_configurado: Optional[int]
 
@@ -111,6 +113,7 @@ class EstadoBatchResponse(BaseModel):
             cantidad_activos_pendientes=e.cantidad_activos_pendientes,
             cantidad_fallidos=e.cantidad_fallidos,
             causa_interrupcion=e.causa_interrupcion,
+            motivo_interrupcion=e.motivo_interrupcion,
             num_workers=e.num_workers,
             limite_configurado=e.limite_configurado,
         )
