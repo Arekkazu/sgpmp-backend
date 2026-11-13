@@ -1,0 +1,134 @@
+{
+  "caso": "TC-M06-G111",
+  "identificador_anterior": "TC-M06-G83",
+  "issue": "987",
+  "incidente": "INC-M06-301-G83",
+  "rf": [
+    "RF-90",
+    "RF-87"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fase": "ultima_evaluacion_organizada",
+  "generado_en": "2026-11-12T19:30:31.875451-05:00",
+  "dictamen_general": "APROBADO",
+  "caso_completo_aprobado": true,
+  "porcentaje_aprobacion": 100,
+  "aprobados": 2,
+  "fallidos": 0,
+  "bloqueados": 0,
+  "escrituras_en_consolidacion": false,
+  "http_en_consolidacion": false,
+  "sql": false,
+  "periodo_220_usado": false,
+  "cierre_definitivo_ejecutado_por_g111": false,
+  "fuentes_evidencia": {
+    "tc_m06_37": {
+      "fecha": "2026-11-08",
+      "rutas": [
+        "resultados/primera_evaluacion/resumen_ejecucion_TC-M06-G111.json",
+        "resultados/primera_evaluacion/evidencia_peticiones_TC-M06-G111.json",
+        "resultados/primera_evaluacion/resultado_ejecucion_TC-M06-G111.html"
+      ],
+      "sha256": {
+        "resumen_ejecucion_TC-M06-G111.json": "AD3A9430D17FAA873333E390B18DDEDC78C026ABEDD30B161E65DA6078B6288A",
+        "evidencia_peticiones_TC-M06-G111.json": "213064932D6D719D78FE40CF6C0EEC5A938C3EC02C4CC2211D10A3F7E76D634B",
+        "resultado_ejecucion_TC-M06-G111.html": "6EAB212CD6BED875C986D554F2D750A3541C6A78EC3992BBE4A0F9ED5EB560A9"
+      }
+    },
+    "tc_m06_41": {
+      "fecha": "2026-11-10",
+      "rutas": [
+        "resultados/ultima_evaluacion/resumen_ejecucion_periodo_219.json",
+        "resultados/ultima_evaluacion/evidencias_ejecucion_periodo_219.json",
+        "resultados/ultima_evaluacion/resultado_ejecucion_periodo_219.html"
+      ],
+      "sha256": {
+        "resumen_ejecucion_periodo_219.json": "1040A8A11C039B8C2190030004CFD3EB7BD41811C34E9340380F32CBE0AEEC2A",
+        "evidencias_ejecucion_periodo_219.json": "0EA1051AA05AC6E0858DAE86C00B7DBB938679467450B145B27A407F8A04A5F7",
+        "resultado_ejecucion_periodo_219.html": "99803AF48872FCB457667E1C424A6458F41E855C201EA36F3426E884FDD31D95"
+      }
+    },
+    "inspeccion_reejecucion_bloqueada": {
+      "fecha": "2026-11-12",
+      "resultado": "NO_EJECUTADA",
+      "motivo": "El periodo 219 ya estaba CERRADO; no se enviaron POST ni se reejecuto TC-M06-41.",
+      "conservado_en": "nota_inspeccion_2026_11_12 de este resumen"
+    }
+  },
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-37",
+      "estado": "APROBADO",
+      "fecha_ejecucion": "2026-11-08",
+      "post_ejecutado": true,
+      "verificaciones_documentadas": [
+        "POST /finanzas/costos con fecha en período cerrado 7 → HTTP 422 PERIODO_CONTABLE_CERRADO",
+        "Sin incremento de costos totales",
+        "Sin incremento de auditoría COSTO_REGISTRADO",
+        "Valor en libros del activo 951 sin cambio"
+      ],
+      "evidencia": {
+        "http": 422,
+        "code": "PERIODO_CONTABLE_CERRADO",
+        "periodo": 7,
+        "fecha_costo": "2026-11-01",
+        "activo": 951,
+        "sin_persistencia": true
+      },
+      "motivo": "La evidencia del 2026-11-08 documenta el rechazo sin escritura."
+    },
+    {
+      "subcaso": "TC-M06-41",
+      "estado": "APROBADO",
+      "fecha_ejecucion": "2026-11-10",
+      "post_ejecutado": true,
+      "cierre_definitivo_ejecutado": false,
+      "verificaciones_documentadas": [
+        "POST /finanzas/costos → HTTP 201, id 1690, estado PENDIENTE_CLASIFICACION",
+        "GET posterior confirma 1690 OTRO/MANO_OBRA_PROPIA en período 219, activo 1568",
+        "GET prevalidación → puede_cerrar false y bloqueo COSTOS_PENDIENTE_CLASIFICACION",
+        "POST cierre → HTTP 422 CIERRE_BLOQUEADO; período sigue ABIERTO",
+        "POST clasificación 1690 → HTTP 200 naturaleza MANTENIMIENTO; línea 2625",
+        "GET prevalidación final → puede_cerrar true sin bloqueos",
+        "GET períodos al finalizar → 219 ABIERTO, fecha_cierre null"
+      ],
+      "evidencia": {
+        "id_registro_costo": 1690,
+        "activo": 1568,
+        "periodo": 219,
+        "nit": "900000002",
+        "alta_http": 201,
+        "estado_inicial": "PENDIENTE_CLASIFICACION",
+        "prevalidacion_inicial": {
+          "puede_cerrar": false,
+          "bloqueo": "COSTOS_PENDIENTE_CLASIFICACION"
+        },
+        "cierre_bloqueado": {
+          "http": 422,
+          "codigo": "CIERRE_BLOQUEADO"
+        },
+        "clasificacion": {
+          "http": 200,
+          "naturaleza_costo": "MANTENIMIENTO",
+          "linea": 2625,
+          "valor": "100.00"
+        },
+        "prevalidacion_final": {
+          "puede_cerrar": true,
+          "bloqueos": []
+        },
+        "estado_periodo_al_terminar_g111": "ABIERTO"
+      },
+      "motivo": "La evidencia del 2026-11-10 en ejecucion_periodo_219 documenta el flujo completo sin cierre definitivo."
+    }
+  ],
+  "nota_inspeccion_2026_11_12": {
+    "tipo": "reejecucion_bloqueada",
+    "periodo_219_entonces": "CERRADO",
+    "fecha_cierre_observada": "2026-11-10T06:18:00.098094Z",
+    "costo_1690_entonces": "REGISTRADO / MANTENIMIENTO",
+    "pendientes_otro": 0,
+    "comprobantes_observados": 3,
+    "efecto_sobre_dictamen": "No invalida las aprobaciones históricas de 37 y 41; solo impide repetir 41 sobre el mismo período."
+  }
+}
