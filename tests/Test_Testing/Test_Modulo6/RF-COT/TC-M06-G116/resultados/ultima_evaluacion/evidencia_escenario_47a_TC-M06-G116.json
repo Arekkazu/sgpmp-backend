@@ -1,0 +1,281 @@
+{
+  "caso": "TC-M06-G116",
+  "escenario_id": "47a",
+  "subcaso": "TC-M06-47",
+  "nombre": "Sin valoracion razonable vigente",
+  "activo": 951,
+  "esperado": {
+    "http": 422,
+    "code": "VALOR_RAZONABLE_NO_DISPONIBLE"
+  },
+  "estado": "APROBADO",
+  "motivo": "HTTP 422 VALOR_RAZONABLE_NO_DISPONIBLE; sin persistencia.",
+  "precondiciones": {
+    "ok": true,
+    "motivo": "activo ACTIVO sin VR/calculo vigente",
+    "activo": {
+      "http": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 463,
+      "razon_social": "QA M06 SAS",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "tiene_calculo": false,
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "n_calculos": 0
+    },
+    "cotizaciones_del_activo": [],
+    "cotizaciones_ids": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "eventos": 5,
+    "periodo_219": null,
+    "periodo_220": null
+  },
+  "post": {
+    "http": 422,
+    "code": "VALOR_RAZONABLE_NO_DISPONIBLE",
+    "respuesta": {
+      "error_code": "VALOR_RAZONABLE_NO_DISPONIBLE",
+      "message": "El activo QA-M06-COSTO-01 no tiene valor razonable vigente.",
+      "fields": [],
+      "timestamp": "2026-11-13T03:12:08.685186+00:00"
+    },
+    "en": "2026-11-13T03:12:08.923541+00:00"
+  },
+  "verificaciones": {
+    "checks": {
+      "http_esperado": true,
+      "code_esperado": true,
+      "sin_cotizacion_nueva": true,
+      "sin_evento_nuevo": true,
+      "activo_sin_cambio": true,
+      "periodo_220_abierto": true,
+      "periodo_219_cerrado": true,
+      "reservadas_intactas": true
+    },
+    "http": 422,
+    "code": "VALOR_RAZONABLE_NO_DISPONIBLE",
+    "cotizaciones_antes": 7,
+    "cotizaciones_despues": 7,
+    "ids_nuevos": [],
+    "eventos_antes": 5,
+    "eventos_despues": 5,
+    "activo_antes": {
+      "http": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 463,
+      "razon_social": "QA M06 SAS",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "tiene_calculo": false,
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "n_calculos": 0
+    },
+    "activo_despues": {
+      "http": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 463,
+      "razon_social": "QA M06 SAS",
+      "indicador_valoracion": "VALORACION_POR_COSTO",
+      "reconocimiento_estado": "CONFIRMADO",
+      "tiene_calculo": false,
+      "ultimo_calculo_estado": null,
+      "valor_razonable_neto": null,
+      "n_calculos": 0
+    },
+    "periodo_219": {
+      "id_periodo_contable": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "razon_social": "QA M06 Cierre SAS"
+    },
+    "periodo_220": {
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    }
+  },
+  "peticiones_relacionadas": [
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/951",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:07.753442+00:00",
+      "nota": "pre_47a_activo",
+      "respuesta": {
+        "http": 200,
+        "existe": true,
+        "estado": "ACTIVO",
+        "id_finca": 463,
+        "razon_social": "QA M06 SAS",
+        "indicador_valoracion": "VALORACION_POR_COSTO",
+        "reconocimiento_estado": "CONFIRMADO",
+        "tiene_calculo": false,
+        "ultimo_calculo_estado": null,
+        "valor_razonable_neto": null,
+        "n_calculos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:08.147454+00:00",
+      "nota": "pre_47a_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "del_activo": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:08.536672+00:00",
+      "nota": "pre_47a_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 422,
+      "escritura": true,
+      "en": "2026-11-13T03:12:08.923512+00:00",
+      "nota": "post_47a",
+      "cuerpo": {
+        "activos_cotizados": [
+          951
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "VALOR_RAZONABLE_NO_DISPONIBLE",
+        "message": "El activo QA-M06-COSTO-01 no tiene valor razonable vigente.",
+        "fields": [],
+        "timestamp": "2026-11-13T03:12:08.685186+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:09.304433+00:00",
+      "nota": "post_47a_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "del_activo": [],
+        "nuevos_ids": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:09.691532+00:00",
+      "nota": "post_47a_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/951",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:10.115543+00:00",
+      "nota": "post_47a_activo",
+      "respuesta": {
+        "http": 200,
+        "existe": true,
+        "estado": "ACTIVO",
+        "id_finca": 463,
+        "razon_social": "QA M06 SAS",
+        "indicador_valoracion": "VALORACION_POR_COSTO",
+        "reconocimiento_estado": "CONFIRMADO",
+        "tiene_calculo": false,
+        "ultimo_calculo_estado": null,
+        "valor_razonable_neto": null,
+        "n_calculos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:10.891309+00:00",
+      "nota": "post_47a_p219",
+      "respuesta": {
+        "periodo_219": {
+          "id_periodo_contable": 219,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:10.891329+00:00",
+      "nota": "post_47a_p220",
+      "respuesta": {
+        "periodo_220": {
+          "id_periodo_contable": 220,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": null,
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    }
+  ],
+  "fuente": "extracto verbatim de resumen/evidencias vigentes; sin datos inventados"
+}
