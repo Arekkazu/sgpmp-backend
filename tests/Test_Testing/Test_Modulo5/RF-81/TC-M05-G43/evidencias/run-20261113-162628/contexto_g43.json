@@ -1,0 +1,214 @@
+{
+  "id_activo_c": 2430,
+  "id_ciclo_c": 5,
+  "id_usuario_ref": 104,
+  "auditoria_inicial_total": 72935,
+  "auditoria_inicial_ultimo_id": 80474,
+  "eventos_setup": [
+    {
+      "id": 80540,
+      "id_usuario": 104
+    },
+    {
+      "id": 80537,
+      "id_usuario": 104
+    },
+    {
+      "id": 80534,
+      "id_usuario": 104
+    }
+  ],
+  "corridas_cerradas": {
+    "t00": {
+      "run_id": "tc-m05-g43-t00-df789f16",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "admin": {
+      "run_id": "tc-m05-g43-admin-6c4a27aa",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "productor": {
+      "run_id": "tc-m05-g43-productor-08fbf31c",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "gestor": {
+      "run_id": "tc-m05-g43-gestor-91f0f1f7",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "t99": {
+      "run_id": "tc-m05-g43-t99-1604fe18",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "runs_orden": [
+    "tc-m05-g43-t00-df789f16",
+    "tc-m05-g43-admin-6c4a27aa",
+    "tc-m05-g43-gestor-91f0f1f7",
+    "tc-m05-g43-productor-08fbf31c",
+    {
+      "rol": "t99",
+      "run_id": "tc-m05-g43-t99-1604fe18"
+    }
+  ],
+  "a03": null,
+  "observaciones": {
+    "obs_inexistente": {
+      "http": 404,
+      "error_code": "ACTIVO_NO_ENCONTRADO",
+      "x_request_id": "68482128-9fff-478b-8792-0f8f49526187"
+    },
+    "obs_auditoria_tras_403": "ninguno (0 eventos nuevos; total=72935 coincide con total inicial=72935, max_id=80474 coincide con max_id inicial=80474)",
+    "obs_distincion_403_404": {
+      "activo_existente_957_http": 403,
+      "activo_existente_957_error_code": "ACCESO_DENEGADO",
+      "activo_inexistente_999999999_http": 404,
+      "activo_inexistente_999999999_error_code": "ACTIVO_NO_ENCONTRADO",
+      "conclusion": "403 vs 404 permite distinguir si el activo existe en el sistema (consecuencia directa de validacion E2)"
+    },
+    "obs_pag": {
+      "http": 200,
+      "items_en_respuesta": 2,
+      "id_auditoria_suministro": 80548,
+      "total_registros_retornados": 2,
+      "total_registros_filtrados": 3,
+      "pagina": 1,
+      "registros_por_pagina": 2
+    },
+    "obs_r8": [
+      {
+        "origen": "B01",
+        "id_auditoria_suministro": 80542,
+        "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B02",
+        "id_auditoria_suministro": 80543,
+        "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B03_PDF",
+        "id_auditoria_suministro": 80544,
+        "tipo_operacion": "EXPORTACION_HISTORIAL_GENERADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B03_EXCEL",
+        "id_auditoria_suministro": 80545,
+        "tipo_operacion": "EXPORTACION_HISTORIAL_GENERADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      }
+    ],
+    "obs_hash": [
+      {
+        "origen": "B01",
+        "id_auditoria_suministro": 80542,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B02",
+        "id_auditoria_suministro": 80543,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B03_PDF",
+        "id_auditoria_suministro": 80544,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B03_EXCEL",
+        "id_auditoria_suministro": 80545,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      }
+    ],
+    "obs_otros": [],
+    "datos_nuevos_literales": {
+      "B01": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 2430,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "pagina": 1,
+        "registros_por_pagina": 50,
+        "total_registros_retornados": 3,
+        "total_registros_filtrados": 3
+      },
+      "B02": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 2430,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-05",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "pagina": 1,
+        "registros_por_pagina": 50,
+        "total_registros_retornados": 0,
+        "total_registros_filtrados": 0
+      },
+      "B03_PDF": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 2430,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "formato_exportacion": "PDF",
+        "total_registros_retornados": 3
+      },
+      "B03_EXCEL": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 2430,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "formato_exportacion": "EXCEL",
+        "total_registros_retornados": 3
+      }
+    }
+  }
+}

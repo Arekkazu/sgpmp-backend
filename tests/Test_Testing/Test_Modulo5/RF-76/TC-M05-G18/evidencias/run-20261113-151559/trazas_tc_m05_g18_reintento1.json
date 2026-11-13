@@ -1,0 +1,137 @@
+[
+  {
+    "test": "G18_S1_01",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.",
+    "obtenido": "activo_estado=3, revert_calls=0, listar_calls=1, vigente_calls=1",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:13.636096-05:00"
+  },
+  {
+    "test": "G18_S1_02",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.",
+    "obtenido": "activo_estado=1, revert_calls=1, commits=1, listar_calls=1",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:13.675914-05:00"
+  },
+  {
+    "test": "G18_S1_03a",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "[RF-76 paso 12 y paso 13; CA-4] Activo EN_TRATAMIENTO con tratamiento VALIDADO, veterinario asignado y fecha_fin_retiro=hoy (2026-11-10): RF-44 se invoca 1 vez, el activo pasa a ACTIVO y hay notificacion INTERNA (bandeja RF-14) de fin de retiro para el Productor del activo y para el Veterinario del tratamiento (>= 1 cada uno), referida a ese activo.",
+    "obtenido": "{\"invocaciones_rf44\": 1, \"estado_final\": 1, \"notificaciones_internas\": [[301, \"Veterinario\", \"42/FIN_PERIODO_RETIRO\", 853], [401, \"Productor\", \"42/FIN_PERIODO_RETIRO\", 853]], \"conteo_por_rol\": {\"Veterinario\": 1, \"Productor\": 1}, \"correos\": [[\"productor.g18@finca.example\", \"=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?=\"], [\"veterinario.g18@finca.example\", \"=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?=\"]], \"iteraciones_job\": 2, \"listar_en_tratamiento_calls\": 1, \"sesiones_job\": [\"job1\", \"job2\", \"job3\"], \"sql_no_reconocido\": [], \"consultas_no_evaluables\": []}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.221278-05:00"
+  },
+  {
+    "test": "G18_S1_03b",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "[RF-76 paso 11, Restricciones 10-11, paso 13] Mismo activo con dos tratamientos (uno vence hoy y otro manana): sigue EN_TRATAMIENTO, RF-44 no lo revierte y hay 0 notificaciones internas de fin de retiro para ese activo.",
+    "obtenido": "{\"invocaciones_rf44\": 0, \"estado_final\": 3, \"notificaciones_internas\": [], \"conteo_por_rol\": {}, \"correos\": [], \"iteraciones_job\": 2, \"listar_en_tratamiento_calls\": 1, \"sesiones_job\": [\"job1\", \"job2\"], \"sql_no_reconocido\": [], \"consultas_no_evaluables\": []}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.251527-05:00"
+  },
+  {
+    "test": "G18_S2_01",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+    "obtenido": "http=500, error_code=ERROR_ESTADO_EN_TRATAMIENTO",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.336026-05:00"
+  },
+  {
+    "test": "G18_S2_02",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Rollback ejecutado (>=1) y 0 registros de medicamento persistidos; medida (reintento): lo confirmado contiene 0 registros de medicamento, 0 cambios de estado y como maximo 1 incidente.",
+    "obtenido": "{\"http\": 500, \"rollbacks\": 3, \"commits_sesion_request\": 1, \"commits_total\": 1, \"confirmados_por_tipo\": {\"registros_medicamento\": 0, \"cambios_estado_activo\": 0, \"auditorias_suministros\": 1}, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.356796+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=ERROR_ESTADO_EN_TRATAMIENTO: El medicamento fue registrado correctamente, pero ocurrió un error al actualizar el estado del activo a EN_TRATAMIENTO. El s\"}]}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.377399-05:00"
+  },
+  {
+    "test": "G18_S2_03",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.",
+    "obtenido": "activo_estado=1, notificaciones_inicio=0",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.422092-05:00"
+  },
+  {
+    "test": "G18_S3_01",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio; medida (reintento): lo confirmado contiene 0 registros de medicamento, 0 cambios de estado y como maximo 1 incidente.",
+    "obtenido": "{\"http\": 500, \"error_code\": \"ERROR_INTERNO\", \"rollbacks\": 2, \"timedelta_calls\": 1, \"commits_sesion_request\": 1, \"commits_total\": 1, \"confirmados_por_tipo\": {\"registros_medicamento\": 0, \"cambios_estado_activo\": 0, \"auditorias_suministros\": 1}, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.441820+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\"}]}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.667224-05:00"
+  },
+  {
+    "test": "G18_S3_02",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+    "obtenido": "http=503, error_code=BD_NO_DISPONIBLE, flush_calls=2, rollbacks=4",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.710295-05:00"
+  },
+  {
+    "test": "G18_S3_03a",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "[TC-M05-G18 esperado 3 / CU03 FA-09, FA-13; RF-76 E10] Escenario A (error al calcular fecha_fin_retiro): 5xx con error_code y sin traza en el cuerpo; en la secuencia observada, rollback() de la operacion ANTES del alta del incidente y commit() del incidente DESPUES; lo confirmado contiene 0 registros de medicamento, 0 cambios de estado del activo y 0 eventos de exito; EXACTAMENTE 1 incidente con tipo_operacion no nulo, resultado de fallo y fecha_emision no nula (RF-80 Restriccion 8).",
+    "obtenido": "{\"http\": 500, \"error_code\": \"ERROR_INTERNO\", \"confirmados_por_tipo\": {\"auditorias_suministros\": 1, \"cambios_estado_activo\": 0}, \"registros_medicamento_confirmados\": 0, \"cambios_estado_confirmados\": 0, \"estado_activo\": 1, \"rf44_marcados\": 0, \"eventos_exito_confirmados\": 0, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.728222+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\", \"sesion\": \"req\", \"id_sesion\": 2257442063184, \"indice_insert\": 1, \"indice_commit\": 3}], \"id_sesion_request\": 2257442063184, \"indices_rollback_req\": [0, 4], \"secuencia\": [\"0:rollback(req)\", \"1:execute:insert_auditorias_suministros(req)\", \"2:flush(req)\", \"3:commit(req)\", \"4:rollback(req)\", \"5:close(req)\"], \"sesiones_abiertas\": [\"req\"], \"correos_enviados\": 0, \"sql_no_reconocido\": [], \"calculos_fecha_fin_retiro_fallidos\": 1}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.772575-05:00"
+  },
+  {
+    "test": "G18_S3_03b",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "[TC-M05-G18 esperado 3 / CU03 FA-09, FA-13; RF-76 E10] Escenario B (OperationalError al guardar el registro): 5xx con error_code y sin traza en el cuerpo; en la secuencia observada, rollback() de la operacion ANTES del alta del incidente y commit() del incidente DESPUES; lo confirmado contiene 0 registros de medicamento, 0 cambios de estado del activo y 0 eventos de exito; EXACTAMENTE 1 incidente con tipo_operacion no nulo, resultado de fallo y fecha_emision no nula (RF-80 Restriccion 8).",
+    "obtenido": "{\"http\": 503, \"error_code\": \"BD_NO_DISPONIBLE\", \"confirmados_por_tipo\": {\"auditorias_suministros\": 1, \"cambios_estado_activo\": 0}, \"registros_medicamento_confirmados\": 0, \"cambios_estado_confirmados\": 0, \"estado_activo\": 1, \"rf44_marcados\": 0, \"eventos_exito_confirmados\": 0, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.801655+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=BD_NO_DISPONIBLE: El servicio no está disponible temporalmente. Intenta de nuevo en unos momentos.\", \"sesion\": \"req\", \"id_sesion\": 2257442067536, \"indice_insert\": 4, \"indice_commit\": 6}], \"id_sesion_request\": 2257442067536, \"indices_rollback_req\": [2, 3, 7], \"secuencia\": [\"0:add:RegistroMedicamentoModel(req)\", \"1:flush(req)\", \"2:rollback(req)\", \"3:rollback(req)\", \"4:execute:insert_auditorias_suministros(req)\", \"5:flush(req)\", \"6:commit(req)\", \"7:rollback(req)\", \"8:close(req)\"], \"sesiones_abiertas\": [\"req\"], \"correos_enviados\": 0, \"sql_no_reconocido\": [], \"flush_con_registro_intentado\": true}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.833324-05:00"
+  },
+  {
+    "test": "G18_S3_03c",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "[CU03 FA-13: se informa el error al usuario] Escenario B con fallo tambien en la escritura del incidente: la respuesta sigue siendo 5xx con error_code (no se pierde ni cambia por una excepcion del escritor), sin traza en el cuerpo y sin registro persistido.",
+    "obtenido": "{\"http\": 503, \"error_code\": \"BD_NO_DISPONIBLE\", \"confirmados_por_tipo\": {\"auditorias_suministros\": 0, \"cambios_estado_activo\": 0}, \"registros_medicamento_confirmados\": 0, \"cambios_estado_confirmados\": 0, \"estado_activo\": 1, \"rf44_marcados\": 0, \"eventos_exito_confirmados\": 0, \"incidentes_confirmados\": 0, \"incidentes\": [], \"id_sesion_request\": 2257442344784, \"indices_rollback_req\": [2, 3, 5, 6], \"secuencia\": [\"0:add:RegistroMedicamentoModel(req)\", \"1:flush(req)\", \"2:rollback(req)\", \"3:rollback(req)\", \"4:execute:insert_auditorias_suministros(req)\", \"5:rollback(req)\", \"6:rollback(req)\", \"7:close(req)\"], \"sesiones_abiertas\": [\"req\"], \"correos_enviados\": 0, \"sql_no_reconocido\": [], \"intentos_escritura_incidente\": 1}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:14.875532-05:00"
+  },
+  {
+    "test": "G18_T00",
+    "caso_plano": "043/044/047",
+    "caso_original": "011/012/042",
+    "esperado": "[Regla sandbox / inocuidad] Corrida aparte de solo lectura: total y ultimo id de GET /suministros/auditoria capturados; cierre DELETE -> 200.",
+    "obtenido": "{\"auditoria_total\": 72935, \"auditoria_ultimo_id\": 80474, \"run_id\": \"tc-m05-g18-t00-64059cc7\", \"tipo_42\": [{\"id_tipo_evento\": 42, \"nombre\": \"FIN_PERIODO_RETIRO\", \"accion\": \"Fin del periodo de retiro de un medicamento\", \"categoria\": \"MODIFICACION\"}], \"tipo_42_presente_en_TEST\": \"si\", \"catalogo_http\": 200}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:17.130520-05:00"
+  },
+  {
+    "test": "G18_R_01",
+    "caso_plano": "043/044/047",
+    "caso_original": "011/012/042",
+    "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.",
+    "obtenido": "{\"run1\": \"tc-m05-g18-r01-696bb625\", \"total_rango_base\": 112, \"activo_creado\": 2423, \"post_Hoy_http\": 201, \"post_Hoy\": {\"estado_registro\": \"VALIDADO\", \"periodo_retiro_dias\": 0, \"fecha_fin_retiro\": null}, \"post_D6_http\": 201, \"post_D6\": {\"estado_registro\": \"VALIDADO\", \"periodo_retiro_dias\": 0, \"fecha_fin_retiro\": null}, \"medicamentos_creados\": [278, 279], \"total_activo_en_sandbox\": 2, \"id_estado_activo\": 1, \"run2\": \"tc-m05-g18-r01b-cccdd75d\", \"total_rango_post_rollback\": 112}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:21.441402-05:00"
+  },
+  {
+    "test": "G18_T99",
+    "caso_plano": "043/044/047",
+    "caso_original": "011/012/042",
+    "esperado": "[Regla sandbox / inocuidad] Corrida aparte de solo lectura: total y ultimo id de GET /suministros/auditoria iguales a T00; GET del activo creado -> 404 y medicamentos creados ausentes; cierre DELETE -> 200.",
+    "obtenido": "{\"auditoria_total\": 72935, \"auditoria_ultimo_id\": 80474, \"run_id\": \"tc-m05-g18-t99-f4d12573\", \"auditoria_total_T00\": 72935, \"auditoria_ultimo_id_T00\": 80474, \"get_activo_creado_http\": 404, \"get_medicamentos_rango_http\": 200, \"medicamentos_creados_visibles\": []}",
+    "estado": "OK",
+    "timestamp": "2026-11-13T15:16:23.682248-05:00"
+  }
+]

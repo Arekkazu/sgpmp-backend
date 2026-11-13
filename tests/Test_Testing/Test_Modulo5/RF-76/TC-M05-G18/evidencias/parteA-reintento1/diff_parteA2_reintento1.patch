@@ -1,0 +1,390 @@
+diff --git "a/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py" b/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py
+index 812584af..d81254e3 100644
+--- "a/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py"
++++ b/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py
+@@ -387,6 +387,8 @@ class _FakeStore:
+     rollback_calls: int = 0
+     sessions_opened: list["_FakeSession"] = field(default_factory=list)
+     next_med_id: int = 9001
++    auditorias_confirmadas_todas: list[dict[str, Any]] = field(default_factory=list)
++    cambios_estado_confirmados: int = 0
+ 
+ 
+ class _FakeExecuteResult:
+@@ -456,9 +458,13 @@ class _FakeSession:
+             self.store.medicamentos_persistidos.extend(self.staged_meds)
+             self.staged_meds.clear()
+         if self.staged_estado is not None:
++            if self.store.activo_estado != self.staged_estado:
++                self.store.cambios_estado_confirmados += 1
+             self.store.activo_estado = self.staged_estado
+             self.staged_estado = None
+         if self.staged_audits:
++            # Reintento: todo lo confirmado (cualquier sesion) queda para la medida de S2_02 / S3_01.
++            self.store.auditorias_confirmadas_todas.extend(self.staged_audits)
+             # Solo cuentan incidentes confirmados en una sesion distinta a la de la peticion (C9).
+             if not self.es_sesion_peticion:
+                 self.store.auditorias_persistidas.extend(self.staged_audits)
+@@ -479,7 +485,10 @@ class _FakeSession:
+     def execute(self, stmt: Any, _params: Optional[dict[str, Any]] = None) -> _FakeExecuteResult:
+         sql = str(stmt)
+         if _es_insert_auditoria_sql(sql):
+-            self.staged_audits.append({"origen": "execute_insert", "sql": sql[:200]})
++            campos: dict[str, Any] = {}
++            if isinstance(stmt, SaInsert):
++                campos = dict(stmt.compile(dialect=sa_pg.dialect()).params)
++            self.staged_audits.append({"origen": "execute_insert", "sql": sql[:200], "campos": campos})
+             return _FakeExecuteResult(None)
+         if "modulo2.activos_biologicos" in sql:
+             return _FakeExecuteResult(
+@@ -492,6 +501,43 @@ class _FakeSession:
+         return _FakeExecuteResult(None)
+ 
+ 
++def _medida_confirmado_r1(store: _FakeStore, fake_db: _FakeSession) -> dict[str, Any]:
++    """Reintento (S2_02 / S3_01): lo CONFIRMADO por tipo en la sesion falsa de la ronda 1 (valores reales)."""
++    incidentes = []
++    for a in store.auditorias_confirmadas_todas:
++        c = a.get("campos") or {}
++        detalle = c.get("detalle_causa")
++        incidentes.append({
++            "tipo_operacion": c.get("tipo_operacion"),
++            "resultado": c.get("resultado"),
++            "fecha_emision": c.get("fecha_emision"),
++            "id_activo": c.get("id_activo_biologico"),
++            "id_registro_suministro": c.get("id_registro_suministro", "no mapeada en el modelo"),
++            "registro_incompleto": c.get("registro_incompleto"),
++            "detalle_causa": detalle[:300] if detalle is not None else None,
++        })
++    return {
++        "commits_sesion_request": fake_db.commits,
++        "commits_total": store.commit_calls,
++        "confirmados_por_tipo": {
++            "registros_medicamento": len(store.medicamentos_persistidos),
++            "cambios_estado_activo": store.cambios_estado_confirmados,
++            "auditorias_suministros": len(store.auditorias_confirmadas_todas),
++        },
++        "incidentes_confirmados": len([i for i in incidentes if i["resultado"] in _RESULTADOS_FALLO]),
++        "incidentes": incidentes,
++    }
++
++
++def _assert_medida_confirmado_r1(obs: dict[str, Any], fuente: str) -> None:
++    por_tipo = obs["confirmados_por_tipo"]
++    assert por_tipo["registros_medicamento"] == 0, f"[{fuente}] lo confirmado no debe contener registros de medicamento"
++    assert por_tipo["cambios_estado_activo"] == 0, f"[{fuente}] lo confirmado no debe contener cambios de estado"
++    assert obs["incidentes_confirmados"] <= 1, (
++        f"[{fuente}] lo confirmado debe contener como maximo 1 incidente; hay {obs['incidentes_confirmados']}"
++    )
++
++
+ def _crear_medicamento_valido(
+     *,
+     id_reg: int,
+@@ -870,6 +916,7 @@ class _BdMemoria:
+     consultas_no_evaluables: list[str] = field(default_factory=list)
+     rf44_reversiones: list[dict[str, Any]] = field(default_factory=list)
+     rf44_marcados: list[dict[str, Any]] = field(default_factory=list)
++    cambios_estado_confirmados: int = 0
+     listar_en_tratamiento_calls: int = 0
+     activo_obtener_calls: int = 0
+     ciclo_obtener_abierto_calls: int = 0
+@@ -1082,13 +1129,18 @@ class _SesionBorde:
+         for o in self.staged_orm:
+             self.bd.tablas.setdefault(type(o), []).append(o)
+         for a in self.staged_audits:
++            campos = dict(a)
++            indice_insert = campos.pop("__indice_insert", None)
+             self.bd.auditorias_confirmadas.append({
+-                "campos": a,
++                "campos": campos,
++                "indice_insert": indice_insert,
+                 "sesion": self.etiqueta,
+                 "id_sesion": id(self),
+                 "indice_commit": len(self.bd.secuencia) - 1,
+             })
+         for id_activo, estado in self.staged_estado.items():
++            if self.bd.activos[id_activo]["id_estado"] != estado:
++                self.bd.cambios_estado_confirmados += 1
+             self.bd.activos[id_activo]["id_estado"] = estado
+         self.staged_orm, self.staged_audits, self.staged_estado = [], [], {}
+ 
+@@ -1118,8 +1170,9 @@ class _SesionBorde:
+                 self._log("execute:insert_auditorias_suministros")
+                 if self.bd.fallar_insert_auditoria is not None:
+                     raise self.bd.fallar_insert_auditoria
+-                compilado = stmt.compile(dialect=sa_pg.dialect()).params
+-                self.staged_audits.append(dict(compilado))
++                compilado = dict(stmt.compile(dialect=sa_pg.dialect()).params)
++                compilado["__indice_insert"] = len(self.bd.secuencia) - 1
++                self.staged_audits.append(compilado)
+                 return _ResultadoBorde([])
+             self.bd.sql_no_reconocido.append(f"INSERT {tabla}")
+             return _ResultadoBorde([])
+@@ -1421,6 +1474,22 @@ def _error_bd_simulado(texto: str) -> OperationalError:
+     return OperationalError(texto, {}, psycopg2.OperationalError("connection to PostgreSQL server lost"))
+ 
+ 
++# Evidencia (worktree 45c4df37) para los campos del incidente en modulo5.auditorias_suministros:
++# - registro_incompleto y detalle_causa: existen en BD (alembic/baseline/esquema_baseline.sql:25614-25615) y el
++#   modelo los mapea (auditoria_suministro_model.py:71-72) -> se reporta su valor real.
++# - id_registro_suministro: no esta en el CREATE TABLE (esquema_baseline.sql:25595-25619), ninguna migracion la
++#   agrega y el modelo no la mapea -> se reporta "no mapeada en el modelo".
++# - tipo de evento: la tabla lo guarda en tipo_operacion (esquema_baseline.sql:25598; modelo:55).
++_ID_REGISTRO_SUMINISTRO_NO_MAPEADA = "no mapeada en el modelo"
++
++
++def _confirmados_por_tipo(bd: _BdMemoria) -> dict[str, int]:
++    conteo = {cls.__name__: len(filas) for cls, filas in bd.tablas.items() if filas}
++    conteo["auditorias_suministros"] = len(bd.auditorias_confirmadas)
++    conteo["cambios_estado_activo"] = bd.cambios_estado_confirmados
++    return conteo
++
++
+ def _resumen_s3(resp: Any, bd: _BdMemoria, req: _SesionBorde) -> dict[str, Any]:
+     """Valores reales observados tras un POST fallido (sin interpretar)."""
+     try:
+@@ -1433,23 +1502,26 @@ def _resumen_s3(resp: Any, bd: _BdMemoria, req: _SesionBorde) -> dict[str, Any]:
+     campos_inc = []
+     for inc in incidentes:
+         c = inc["campos"]
++        detalle = c.get("detalle_causa")
+         campos_inc.append({
+-            "tipo_evento": c.get("tipo_evento", "(columna inexistente en auditorias_suministros)"),
+             "tipo_operacion": c.get("tipo_operacion"),
+             "resultado": c.get("resultado"),
+             "fecha_emision": c.get("fecha_emision"),
+             "id_activo": c.get("id_activo_biologico"),
+-            "id_registro_suministro": c.get("id_registro_suministro", "(no existe en el incidente)"),
++            "id_registro_suministro": c.get("id_registro_suministro", _ID_REGISTRO_SUMINISTRO_NO_MAPEADA),
+             "registro_incompleto": c.get("registro_incompleto"),
+-            "detalle_causa": (c.get("detalle_causa") or "")[:300],
++            "detalle_causa": detalle[:300] if detalle is not None else None,
+             "sesion": inc["sesion"],
+             "id_sesion": inc["id_sesion"],
++            "indice_insert": inc["indice_insert"],
+             "indice_commit": inc["indice_commit"],
+         })
+     return {
+         "http": resp.status_code,
+         "error_code": (body.get("error_code") or body.get("code") or "") if isinstance(body, dict) else "",
++        "confirmados_por_tipo": _confirmados_por_tipo(bd),
+         "registros_medicamento_confirmados": len(bd.tablas.get(RegistroMedicamentoModel, [])),
++        "cambios_estado_confirmados": bd.cambios_estado_confirmados,
+         "estado_activo": bd.activos[ACTIVO_ID_PRUEBA]["id_estado"],
+         "rf44_marcados": len(bd.rf44_marcados),
+         "eventos_exito_confirmados": len(exitos),
+@@ -1457,13 +1529,26 @@ def _resumen_s3(resp: Any, bd: _BdMemoria, req: _SesionBorde) -> dict[str, Any]:
+         "incidentes": campos_inc,
+         "id_sesion_request": id(req),
+         "indices_rollback_req": rollback_req,
+-        "secuencia": [f"{op}({et})" for op, et in bd.secuencia if not op.startswith("execute:sql")],
++        "secuencia": [f"{i}:{op}({et})" for i, (op, et) in enumerate(bd.secuencia) if not op.startswith("execute:sql")],
+         "sesiones_abiertas": [s.etiqueta for s in bd.sesiones],
+         "correos_enviados": len(bd.correos),
+         "sql_no_reconocido": list(bd.sql_no_reconocido),
+     }
+ 
+ 
++def _observar_sesion_incidente(nombre: str, obs: dict[str, Any]) -> None:
++    """OBSERVACION (sin checkpoint): el incidente usa la misma sesion de la request."""
++    _observacion(nombre, {
++        "nota": "el incidente usa la misma sesion de la request; si la conexion esta caida no se puede escribir",
++        "id_sesion_request": obs.get("id_sesion_request"),
++        "sesiones_del_incidente": [[i["sesion"], i["id_sesion"]] for i in obs.get("incidentes", [])],
++        "sesiones_abiertas": obs.get("sesiones_abiertas"),
++        "registro_incompleto_y_detalle_causa": [
++            [i["registro_incompleto"], i["detalle_causa"]] for i in obs.get("incidentes", [])
++        ],
++    })
++
++
+ def _verificar_s3_incidente(obs: dict[str, Any], resp: Any, fuente: str) -> None:
+     """Asertos comunes de G18_S3_03a y G18_S3_03b (mismo esperado)."""
+     _assert_sin_violaciones_guard()
+@@ -1471,25 +1556,28 @@ def _verificar_s3_incidente(obs: dict[str, Any], resp: Any, fuente: str) -> None
+     assert 500 <= obs["http"] < 600, f"[{fuente}] se esperaba HTTP 5xx, obtuvo {obs['http']}"
+     assert obs["error_code"], f"[{fuente}] la respuesta 5xx debe traer error_code no vacio"
+     _assert_sin_fugas_en_respuesta(resp)
+-    assert obs["registros_medicamento_confirmados"] == 0, f"[{fuente}; RF-76 E10] no debe quedar registro de medicamento"
+-    assert obs["estado_activo"] == ESTADO_ACTIVO and obs["rf44_marcados"] == 0, (
+-        f"[{fuente}; RF-76 E10] el estado del activo debe quedar sin cambios"
++    assert obs["registros_medicamento_confirmados"] == 0, (
++        f"[{fuente}] lo confirmado no debe contener registros de medicamento"
++    )
++    assert obs["cambios_estado_confirmados"] == 0 and obs["estado_activo"] == ESTADO_ACTIVO, (
++        f"[{fuente}] lo confirmado no debe contener cambios de estado del activo"
+     )
+-    assert obs["eventos_exito_confirmados"] == 0, f"[{fuente}] no debe quedar evento de exito del registro"
++    assert obs["eventos_exito_confirmados"] == 0, f"[{fuente}] lo confirmado no debe contener eventos de exito"
+     assert obs["incidentes_confirmados"] == 1, (
+-        f"[{fuente}] se esperaba EXACTAMENTE 1 incidente de la operacion fallida, hay {obs['incidentes_confirmados']}"
++        f"[{fuente}] se esperaba EXACTAMENTE 1 incidente, hay {obs['incidentes_confirmados']}"
+     )
+     inc = obs["incidentes"][0]
+-    assert inc["tipo_operacion"], f"[RF-80 Restriccion 8] el incidente debe traer tipo de evento no nulo"
++    assert inc["tipo_operacion"], "[RF-80 Restriccion 8] el incidente debe traer tipo_operacion no nulo"
+     assert inc["resultado"] in _RESULTADOS_FALLO, f"[RF-80 Restriccion 8] resultado de fallo esperado: {inc['resultado']}"
+     assert inc["fecha_emision"] is not None, "[RF-80 Restriccion 8] fecha_emision no nula"
+-    assert inc["sesion"] != "req" and inc["id_sesion"] != obs["id_sesion_request"], (
+-        f"[{fuente}] el incidente debe escribirse con una sesion DISTINTA de la de la request; "
+-        f"se escribio en '{inc['sesion']}' (id={inc['id_sesion']}, request id={obs['id_sesion_request']})"
++    assert inc["indice_insert"] is not None, f"[{fuente}] no se observo el alta del incidente en la secuencia"
++    assert any(i < inc["indice_insert"] for i in obs["indices_rollback_req"]), (
++        f"[{fuente}] rollback() de la operacion debe ocurrir ANTES del alta del incidente; "
++        f"rollbacks={obs['indices_rollback_req']}, alta={inc['indice_insert']}"
+     )
+-    assert obs["indices_rollback_req"], f"[{fuente}] no se observo rollback de la sesion principal"
+-    assert inc["indice_commit"] > obs["indices_rollback_req"][0], (
+-        f"[{fuente}] el incidente debe confirmarse DESPUES del rollback de la sesion principal"
++    assert inc["indice_commit"] > inc["indice_insert"], (
++        f"[{fuente}] commit() del incidente debe ocurrir DESPUES de su alta; "
++        f"alta={inc['indice_insert']}, commit={inc['indice_commit']}"
+     )
+ 
+ 
+@@ -1775,6 +1863,8 @@ def test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido(
+     store = _FakeStore(activo_estado=ESTADO_ACTIVO)
+     client, fake_db = _configurar_cliente_api_en_proceso(store, monkeypatch, fallar_rf44=True)
+ 
++    obs: dict[str, Any] = {}
++
+     def _verificar() -> str:
+         _assert_sin_violaciones_guard()
+         resp = client.post(
+@@ -1782,21 +1872,27 @@ def test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido(
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        obs.update({"http": resp.status_code, "rollbacks": fake_db.rollbacks})
++        obs.update(_medida_confirmado_r1(store, fake_db))
+         _verificar_uso_stubs_api(resp, store)
+         assert resp.status_code == 500
+-        assert fake_db.commits == 0 and store.commit_calls == 0, "No debe ocurrir commit cuando falla RF-44"
+         assert fake_db.rollbacks >= 1 and store.rollback_calls >= 1, "Debe ejecutarse rollback en BD"
+         assert store.medicamentos_persistidos == [] and fake_db.staged_meds == [], (
+             f"No debe quedar medicamento persistido ni pendiente: {store.medicamentos_persistidos}"
+         )
+-        return f"rollbacks={fake_db.rollbacks}, commits={fake_db.commits}, persistidos=0"
++        _assert_medida_confirmado_r1(obs, "RF-76 E10")
++        return _json_obtenido(obs)
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S2_02",
+         caso_plano="044",
+         caso_original="012",
+-        esperado="Rollback ejecutado (>=1), 0 commits y 0 registros de medicamento persistidos.",
++        esperado=(
++            "Rollback ejecutado (>=1) y 0 registros de medicamento persistidos; medida (reintento): lo confirmado "
++            "contiene 0 registros de medicamento, 0 cambios de estado y como maximo 1 incidente."
++        ),
+         fn=_verificar,
++        obs=obs,
+     )
+ 
+ 
+@@ -1850,6 +1946,7 @@ def test_g18_s3_01_falla_calculo_fecha_fin_retiro(
+         raise OverflowError("Falla simulada calculando fecha_fin_retiro (CU03 FA-09)")
+ 
+     monkeypatch.setattr(reg_med_uc_mod, "timedelta", _fallar_timedelta)
++    obs: dict[str, Any] = {}
+ 
+     def _verificar() -> str:
+         _assert_sin_violaciones_guard()
+@@ -1858,29 +1955,38 @@ def test_g18_s3_01_falla_calculo_fecha_fin_retiro(
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        try:
++            body = resp.json()
++        except ValueError:
++            body = {}
++        error_code = (body.get("error_code") or "").strip() if isinstance(body, dict) else ""
++        obs.update({"http": resp.status_code, "error_code": error_code, "rollbacks": fake_db.rollbacks,
++                    "timedelta_calls": store.timedelta_calls})
++        obs.update(_medida_confirmado_r1(store, fake_db))
+         _verificar_uso_stubs_api(resp, store)
+         assert store.timedelta_calls >= 1, "No se invoco el doble de timedelta en registrar_medicamento_use_case."
+         _assert_sin_fugas_en_respuesta(resp)
+-        body = resp.json()
+         assert 500 <= resp.status_code < 600, (
+             f"Se esperaba HTTP 5xx ante falla en fecha_fin_retiro, obtuvo {resp.status_code}: {body}"
+         )
+-        error_code = (body.get("error_code") or "").strip()
+         assert error_code, f"La respuesta debe incluir error_code no vacio: {body}"
+-        assert fake_db.commits == 0 and fake_db.rollbacks >= 1
++        assert fake_db.rollbacks >= 1
+         assert store.medicamentos_persistidos == [] and store.marcar_calls == []
+         assert store.activo_estado == ESTADO_ACTIVO
+-        return (
+-            f"http={resp.status_code}, error_code={error_code}, "
+-            f"rollbacks={fake_db.rollbacks}, timedelta_calls={store.timedelta_calls}"
+-        )
++        _assert_medida_confirmado_r1(obs, "CU03 FA-09; RF-76 E10")
++        return _json_obtenido(obs)
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S3_01",
+         caso_plano="047",
+         caso_original="042",
+-        esperado="HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
++        esperado=(
++            "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio; "
++            "medida (reintento): lo confirmado contiene 0 registros de medicamento, 0 cambios de estado y como maximo "
++            "1 incidente."
++        ),
+         fn=_verificar,
++        obs=obs,
+     )
+ 
+ 
+@@ -1931,13 +2037,13 @@ def test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback(
+     )
+ 
+ 
+-_FUENTE_S3 = "TC-M05-G18 esperado 3 / TC-M05-042 (CU03 FA-09, FA-13); RF-76 E10; RF-80 Restriccion 8"
++_FUENTE_S3 = "TC-M05-G18 esperado 3 / CU03 FA-09, FA-13; RF-76 E10"
+ 
+ _ESPERADO_S3_INCIDENTE = (
+-    "respuesta 5xx con error_code y sin traza en el cuerpo; 0 registros de medicamento y estado del activo sin "
+-    "cambios; 0 eventos de exito de registro; EXACTAMENTE 1 incidente de auditoria de la operacion fallida con "
+-    "tipo de evento no nulo, resultado de fallo y fecha_emision no nula (RF-80 Restriccion 8); escrito con una "
+-    "sesion/conexion DISTINTA de la de la request y confirmado DESPUES del rollback de la sesion principal."
++    "5xx con error_code y sin traza en el cuerpo; en la secuencia observada, rollback() de la operacion ANTES del "
++    "alta del incidente y commit() del incidente DESPUES; lo confirmado contiene 0 registros de medicamento, 0 "
++    "cambios de estado del activo y 0 eventos de exito; EXACTAMENTE 1 incidente con tipo_operacion no nulo, "
++    "resultado de fallo y fecha_emision no nula (RF-80 Restriccion 8)."
+ )
+ 
+ 
+@@ -1969,7 +2075,7 @@ def test_g18_s3_03a_escenario_a_falla_calculo_fecha_fin_retiro_incidente(
+         resp = _post_medicamento_borde(client)
+         obs.update(_resumen_s3(resp, bd, req))
+         obs["calculos_fecha_fin_retiro_fallidos"] = llamadas_td["n"]
+-        _observacion("S3_A_incidente_registro_incompleto_y_detalle", {"incidentes": obs["incidentes"]})
++        _observar_sesion_incidente("S3_A_sesion_del_incidente", obs)
+         assert resp.status_code not in (401, 403), f"INFRA: auth/RBAC respondio {resp.status_code}"
+         assert bd.activo_obtener_calls >= 1 and bd.ciclo_obtener_abierto_calls >= 1, "INFRA: no se consulto activo/ciclo"
+         assert llamadas_td["n"] >= 1, "INFRA: no se alcanzo el calculo de fecha_fin_retiro"
+@@ -2002,7 +2108,7 @@ def test_g18_s3_03b_escenario_b_error_bd_al_guardar_incidente(
+         obs["flush_con_registro_intentado"] = any(
+             op == "add:RegistroMedicamentoModel" and et == "req" for op, et in bd.secuencia
+         )
+-        _observacion("S3_B_incidente_registro_incompleto_y_detalle", {"incidentes": obs["incidentes"]})
++        _observar_sesion_incidente("S3_B_sesion_del_incidente", obs)
+         assert resp.status_code not in (401, 403), f"INFRA: auth/RBAC respondio {resp.status_code}"
+         assert obs["flush_con_registro_intentado"], "INFRA: el repositorio real no intento guardar el registro"
+         _verificar_s3_incidente(obs, resp, _FUENTE_S3)
+diff --git "a/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/ejecutar_tc_m05_g18.ps1" b/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/ejecutar_tc_m05_g18.ps1
+index b4022ccf..2b828304 100644
+--- "a/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/ejecutar_tc_m05_g18.ps1"
++++ b/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/ejecutar_tc_m05_g18.ps1
+@@ -83,7 +83,7 @@ $shaEsperados = [ordered]@{
+     'RF-80\TC-M05-G40\ejecutar_tc_m05_g40.ps1'              = '3F7C45012D2C7F2A0311BF7E693E3A08DB24AB1395AB922227626FC525B7E33A'
+     'RF-80\TC-M05-G40\generar_artefactos_run_g40.py'        = '1BBB584747DB5E63308CEC7F761CC84585F7A1190DD768E0BCE2DEEAFFF88EAB'
+     'RF-80\TC-M05-G40\test_tc_m05_g40.py'                   = '50712649A933D3A6AB4B445D6A7D5A44BD8D751AA7266D54A3FE68090AAC4393'
+-    'RF-76\TC-M05-G18\test_tc_m05_g18.py'                   = '6CED8ED6CB6D31AAE63DF242892A11EB65189A08C215E5EB6A5943A1A8DFADEA'
++    'RF-76\TC-M05-G18\test_tc_m05_g18.py'                   = 'D76A3DE788D5A03102AC7CF72054ECEA37473B6DBF0A736101B1332ECA8932FA'
+     'RF-76\TC-M05-G18\generar_artefactos_run_g18.py'        = '9877FEB6973480B2B9D02E3A79B5966D0B71022114EEDEEF2A803BBA68BB24CB'
+ }
+ 

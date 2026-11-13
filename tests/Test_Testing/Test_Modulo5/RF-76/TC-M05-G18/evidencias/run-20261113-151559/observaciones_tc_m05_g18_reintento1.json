@@ -1,0 +1,187 @@
+[
+  {
+    "observacion": "S1_correo_fin_retiro_destinatarios",
+    "datos": {
+      "correos": [
+        [
+          "productor.g18@finca.example",
+          "=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?="
+        ],
+        [
+          "veterinario.g18@finca.example",
+          "=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?="
+        ]
+      ]
+    },
+    "timestamp": "2026-11-13T15:16:14.210089-05:00"
+  },
+  {
+    "observacion": "S1_tratamiento_sin_veterinario",
+    "datos": {
+      "invocaciones_rf44": 1,
+      "estado_final": 1,
+      "notificaciones_internas": [
+        [
+          302,
+          "Veterinario",
+          "42/FIN_PERIODO_RETIRO",
+          853
+        ],
+        [
+          401,
+          "Productor",
+          "42/FIN_PERIODO_RETIRO",
+          853
+        ]
+      ],
+      "conteo_por_rol": {
+        "Veterinario": 1,
+        "Productor": 1
+      },
+      "correos": [
+        [
+          "productor.g18@finca.example",
+          "=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?="
+        ]
+      ],
+      "iteraciones_job": 2,
+      "listar_en_tratamiento_calls": 1,
+      "sesiones_job": [
+        "job1",
+        "job2",
+        "job3"
+      ],
+      "sql_no_reconocido": [],
+      "consultas_no_evaluables": [],
+      "veterinarios_de_la_finca_en_bd": [
+        302
+      ]
+    },
+    "timestamp": "2026-11-13T15:16:14.280379-05:00"
+  },
+  {
+    "observacion": "S3_A_sesion_del_incidente",
+    "datos": {
+      "nota": "el incidente usa la misma sesion de la request; si la conexion esta caida no se puede escribir",
+      "id_sesion_request": 2257442063184,
+      "sesiones_del_incidente": [
+        [
+          "req",
+          2257442063184
+        ]
+      ],
+      "sesiones_abiertas": [
+        "req"
+      ],
+      "registro_incompleto_y_detalle_causa": [
+        [
+          false,
+          "Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)"
+        ]
+      ]
+    },
+    "timestamp": "2026-11-13T15:16:14.759989-05:00"
+  },
+  {
+    "observacion": "S3_B_sesion_del_incidente",
+    "datos": {
+      "nota": "el incidente usa la misma sesion de la request; si la conexion esta caida no se puede escribir",
+      "id_sesion_request": 2257442067536,
+      "sesiones_del_incidente": [
+        [
+          "req",
+          2257442067536
+        ]
+      ],
+      "sesiones_abiertas": [
+        "req"
+      ],
+      "registro_incompleto_y_detalle_causa": [
+        [
+          false,
+          "Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=BD_NO_DISPONIBLE: El servicio no está disponible temporalmente. Intenta de nuevo en unos momentos."
+        ]
+      ]
+    },
+    "timestamp": "2026-11-13T15:16:14.819016-05:00"
+  },
+  {
+    "observacion": "S3_400_validacion",
+    "datos": {
+      "validacion_entrada": {
+        "http": 400,
+        "error_code": "VAL_ENTRADA",
+        "confirmados_por_tipo": {
+          "auditorias_suministros": 0,
+          "cambios_estado_activo": 0
+        },
+        "registros_medicamento_confirmados": 0,
+        "cambios_estado_confirmados": 0,
+        "estado_activo": 1,
+        "rf44_marcados": 0,
+        "eventos_exito_confirmados": 0,
+        "incidentes_confirmados": 0,
+        "incidentes": [],
+        "id_sesion_request": 2257442349584,
+        "indices_rollback_req": [
+          0
+        ],
+        "secuencia": [
+          "0:rollback(req)",
+          "1:close(req)"
+        ],
+        "sesiones_abiertas": [
+          "req"
+        ],
+        "correos_enviados": 0,
+        "sql_no_reconocido": []
+      },
+      "fecha_futura": {
+        "http": 400,
+        "error_code": "FECHA_FUTURA",
+        "confirmados_por_tipo": {
+          "auditorias_suministros": 0,
+          "cambios_estado_activo": 0
+        },
+        "registros_medicamento_confirmados": 0,
+        "cambios_estado_confirmados": 0,
+        "estado_activo": 1,
+        "rf44_marcados": 0,
+        "eventos_exito_confirmados": 0,
+        "incidentes_confirmados": 0,
+        "incidentes": [],
+        "id_sesion_request": 2257441872080,
+        "indices_rollback_req": [
+          0
+        ],
+        "secuencia": [
+          "0:rollback(req)",
+          "1:close(req)"
+        ],
+        "sesiones_abiertas": [
+          "req"
+        ],
+        "correos_enviados": 0,
+        "sql_no_reconocido": []
+      }
+    },
+    "timestamp": "2026-11-13T15:16:14.926373-05:00"
+  },
+  {
+    "observacion": "TEST_tipo_42_presente",
+    "datos": {
+      "tipo 42 presente en TEST": "si",
+      "http": 200,
+      "x_request_id": "34e19606-aa5a-4f0b-af1b-955347eb0cc3",
+      "fila": [
+        {
+          "id_tipo_evento": 42,
+          "nombre": "FIN_PERIODO_RETIRO",
+          "accion": "Fin del periodo de retiro de un medicamento",
+          "categoria": "MODIFICACION"
+        }
+      ]
+    },
+    "timestamp": "2026-11-13T15:16:17.009754-05:00"
+  }
+]

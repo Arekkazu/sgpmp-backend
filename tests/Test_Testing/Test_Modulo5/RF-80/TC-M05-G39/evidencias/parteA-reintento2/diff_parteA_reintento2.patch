@@ -1,0 +1,785 @@
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1 b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1
+index f53054f5..3f0a6ea5 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1
+@@ -2,6 +2,7 @@
+ # |------------|--------------------------|-------------------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G39 RF-80: runner Pytest con staging de evidencias                     |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G39 reevaluacion v2.0: sufijo _reintentoN, escaneo solo-reporte, ASCII |
++# | 13/11/2026 | Juan Sebastian Gutierrez | reintento 2 INC-M05-354-G39 |
+ <#
+ .SYNOPSIS
+   Ejecuta TC-M05-G39 (RF-80 v2.0, RFC-025) contra TEST.
+@@ -112,6 +113,57 @@ foreach ($p in $previos) {
+     $hashesPreviosIni[$p] = Obtener-Sha256 $p
+ }
+ 
++# --- Reintento 2: SHA-256 esperados (Parte 0.1 y Parte A); si alguno difiere NO se ejecuta
++$m5 = Join-Path $repo 'tests\Test_Testing\Test_Modulo5'
++$shaEsperados = [ordered]@{
++    'RF-80\TC-M05-G39\test_tc_m05_g39.py'                           = '52B2E20B419772BCE915565AFDB808C41012C3D16D2BE24D2DDE5FA70F33AB77'
++    'RF-80\TC-M05-G39\generar_artefactos_run_g39.py'                = '1407662414E2764FC3F770519A149DEE98B40997793D43E5679C633765768550'
++    'RF-80\TC-M05-G39\resultados\.gitkeep'                          = 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855'
++    'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39.html'         = 'A9138011FE9694C8BE9439466DEABC3040587635C11017EA5C3557C77D1ACC57'
++    'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39.json'         = '354983D6ABCAE2C13D04A87268E9DAC29AF9DD52E2E865B2A9554F34BED43351'
++    'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39_reintento1.html' = '80A5D2901D66D2EB3D367F14FF6820086336758461FADA2196AEBE140CCA80DF'
++    'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39_reintento1.json' = '07C9649E7C6E98EE10468E0E344C407C6F6011CCA70749F2735D65AACDC4C501'
++    'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39_reintento1.xml'  = 'CBDBD083AAC8EF6EE866C35A3C9CADAE66DAE2FC96C1B7F633CF5E85EEB0427C'
++    'RF-76\TC-M05-G14\ejecutar_tc_m05_g14.ps1'                      = '01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536'
++    'RF-76\TC-M05-G14\test_tc_m05_g14.py'                           = 'A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D'
++    'RF-76\TC-M05-G18\ejecutar_tc_m05_g18.ps1'                      = '5C27A81DFA610224E04CEEA29F79F80CA6C85F15B98D6E9CA8CD0E7977EAAA6A'
++    'RF-76\TC-M05-G18\generar_artefactos_run_g18.py'                = '9877FEB6973480B2B9D02E3A79B5966D0B71022114EEDEEF2A803BBA68BB24CB'
++    'RF-76\TC-M05-G18\test_tc_m05_g18.py'                           = 'D76A3DE788D5A03102AC7CF72054ECEA37473B6DBF0A736101B1332ECA8932FA'
++    'RF-77\TC-M05-G20\ejecutar_tc_m05_g20.ps1'                      = 'EC8A453B911A11B87949E0D8985D28E8F6BD4A65C42339B155BA2526A2866EBB'
++    'RF-77\TC-M05-G20\generar_artefactos_run_g20.py'                = '49EC81416B2961A5DC7C92CE7553CFBA720C8687EFB8D3FCEB70322B05C66E74'
++    'RF-77\TC-M05-G20\test_tc_m05_g20.py'                           = '064297A758AEFC5DD429A7E289ACB836595E1AE98ED4FED13617BBFEDFA08471'
++    'RF-77\TC-M05-G25\ejecutar_tc_m05_g25.ps1'                      = 'BDE400B8EA336171822F1201F4642FEE342CABDA8D0B11393FC8136875556D31'
++    'RF-77\TC-M05-G25\generar_artefactos_run_g25.py'                = '22AEDEB8FD6EA410CF887430BFE9B668A674A55AC2FB680ABA55884455B1E29D'
++    'RF-77\TC-M05-G25\test_tc_m05_g25.py'                           = '42086B9D4F936A59E17CDA1F166025CA63D8032E8AA19FEFAB69F53E6D617D3A'
++    'RF-80\TC-M05-G37\ejecutar_tc_m05_g37.ps1'                      = 'CCD912CA79946862834614F3EA9DFB3DD1BDDC13B6CBFD94555F492D0D55B0D2'
++    'RF-80\TC-M05-G37\generar_artefactos_run_g37.py'                = 'FA4A51953B6A5C69C90D8A505810192011C338BED3B4824181E1D210FDBA9764'
++    'RF-80\TC-M05-G37\test_tc_m05_g37.py'                           = 'D5088E26B36F909C979C3A610477DDFD51AD435F9888FC6F1E2C93EB95D99554'
++    'RF-80\TC-M05-G38\ejecutar_tc_m05_g38.ps1'                      = '46FDED59421630714CCC3319B55B6856D347AC6C1D717E31F7F9586FAF3BC23F'
++    'RF-80\TC-M05-G38\generar_artefactos_run_g38.py'                = '6228973AAC06A3A75000F708C79988112148B0B815C488561D9059DC48145E29'
++    'RF-80\TC-M05-G38\test_tc_m05_g38.py'                           = '8136678FCB496F0ACF13BB9E8D558FDC4320DB3F04BA8F17091AFA54B64B1214'
++    'RF-80\TC-M05-G40\ejecutar_tc_m05_g40.ps1'                      = '3F7C45012D2C7F2A0311BF7E693E3A08DB24AB1395AB922227626FC525B7E33A'
++    'RF-80\TC-M05-G40\generar_artefactos_run_g40.py'                = '1BBB584747DB5E63308CEC7F761CC84585F7A1190DD768E0BCE2DEEAFFF88EAB'
++    'RF-80\TC-M05-G40\test_tc_m05_g40.py'                           = '50712649A933D3A6AB4B445D6A7D5A44BD8D751AA7266D54A3FE68090AAC4393'
++}
++function Verificar-ShaEsperados([string]$momento) {
++    $distintos = 0
++    foreach ($rel in $shaEsperados.Keys) {
++        $actual = (Obtener-Sha256 (Join-Path $m5 $rel)).ToUpperInvariant()
++        if ($actual -ne $shaEsperados[$rel]) {
++            Write-Host "  [$momento] SHA DISTINTO: $rel actual=$actual esperado=$($shaEsperados[$rel])" -ForegroundColor Red
++            $distintos++
++        }
++    }
++    Write-Host "  [$momento] SHA runner = $((Obtener-Sha256 $PSCommandPath).ToUpperInvariant())"
++    Write-Host "  [$momento] SHA verificados: $($shaEsperados.Count), distintos: $distintos"
++    return $distintos
++}
++Write-Host '--- Verificacion SHA-256 (inicio) ---'
++if ((Verificar-ShaEsperados 'inicio') -gt 0) {
++    Write-Host 'SHA de partida no coinciden: NO SE EJECUTA' -ForegroundColor Red
++    exit 5
++}
++
+ $hashesResIni = @{}
+ if (Test-Path -LiteralPath $resultados) {
+     foreach ($f in Get-ChildItem -LiteralPath $resultados -File) {
+@@ -188,6 +240,11 @@ if (Test-Path -LiteralPath $resultados) {
+     }
+ }
+ Write-Host 'Integridad de resultados/: intacta (sin promocion)'
++Write-Host '--- Verificacion SHA-256 (fin) ---'
++if ((Verificar-ShaEsperados 'fin') -gt 0) {
++    Write-Host 'ERROR CRITICO: un archivo verificado cambio durante la corrida.' -ForegroundColor Red
++    exit 5
++}
+ 
+ # --- Escaneo de secretos SOLO REPORTE (nunca reescribe artefactos)
+ $claves = @(
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py
+index 9c62d1ec..24839de8 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py
+@@ -2,6 +2,7 @@
+ # |------------|--------------------------|------------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G39 (Evaluación Oficial)     |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G39 reevaluacion v2.0: --reintento, obtenido real por trazas, sin diagnosticos fijos |
++# | 13/11/2026 | Juan Sebastian Gutierrez | reintento 2 INC-M05-354-G39 |
+ """Generador de artefactos de corrida para TC-M05-G39 (RF-80 v2.0, RFC-025).
+ 
+ Lee JUnit XML, trazas_http.jsonl y observaciones_g39.json del staging de la corrida y genera:
+@@ -29,14 +30,19 @@ TEST_METADATA = {
+         "fuente": "Testing Harness / Inocuidad",
+     },
+     "test_a01_incompletos_con_causa": {
+-        "paso": "A01 Eventos incompletos nuevos con detalle_causa y consolidacion RF-79",
+-        "esperado": "Costeo sin fase -> 409 REGISTRO_FALLIDO; cierre RF-79; todos los registro_incompleto=true tienen detalle_causa no nulo ni vacio y consolidacion sin marca falsa por conciliacion pendiente",
+-        "fuente": "TC-M05-092 / RF-80 v2.0 CA-12, R8, E2 / INC-M05-278-G39 defecto 1",
++        "paso": "A01 Eventos sin activo o sin ciclo marcados incompletos con causa (costeo sin fase y PATCH 405)",
++        "esperado": "[RF-80 v2.0 Restriccion 8 'TODOS los eventos', CA-12, CA-11] (i) costeo-directo sin fase -> 409 y >= 1 REGISTRO_FALLIDO; (ii) PATCH /suministros/auditoria/{id de la corrida} -> 405 y >= 1 RECHAZADO; TODO evento nuevo sin id_activo_biologico o sin id_ciclo_productivo (>= 1, (i) y (ii) incluidos) con registro_incompleto=true y detalle_causa que nombra cada campo ausente; 0 eventos nuevos con tipo_operacion, resultado o fecha_emision nulos; cierre RF-79 -> 200 con CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO sin causa por conciliacion pendiente",
++        "fuente": "TC-M05-092 / RF-80 v2.0 Restriccion 8, CA-12, CA-11 / INC-M05-354-G39",
+     },
+-    "test_a02_campos_base_presentes": {
+-        "paso": "A02 Campos base presentes en TODOS los eventos nuevos (CA-11)",
+-        "esperado": "Todo evento nuevo (incluido INSERT) tiene tipo_operacion, resultado y fecha_emision no nulos ni vacios",
+-        "fuente": "TC-M05-092 / RF-80 v2.0 CA-11, R8",
++    "test_a02_emisores_contexto_completo": {
++        "paso": "A02 Emisores consumo, medicamento, RF-78 y resultado_ica sobre un activo con una sola fase activa",
++        "esperado": "[RF-80 v2.0 Restriccion 8 'TODOS los eventos', RNF-08, CA-11] >= 1 evento nuevo de registros_consumo_alimentos, registros_medicamentos y resultado_ica; en todos tipo_operacion, resultado y fecha_emision no nulos, id_activo_biologico = activo creado e id_ciclo_productivo igual al del evento RF-78 del mismo activo (o nulo con registro_incompleto=true y causa que lo nombra); resultado_ica INSERT/EXITOSO con ciclo no nulo y GET /{id} igual al listado; cierre -> 200",
++        "fuente": "TC-M05-092 / RF-80 v2.0 Restriccion 8, RNF-08, CA-11, CA-4 / INC-M05-354-G39",
++    },
++    "test_a03_filtro_activo_ciclo_orden_emision": {
++        "paso": "A03 Filtro por activo y ciclo con ordenar_por=fecha_emision",
++        "esperado": "[RF-80 v2.0 CA-4, RNF-08] GET /suministros/auditoria?id_activo_biologico&id_ciclo_productivo&ordenar_por=fecha_emision incluye el resultado_ica del cierre y los eventos de A02 de ese activo y ciclo, ordenados de forma no decreciente por fecha_emision, con el resultado_ica despues del evento RF-78 previo",
++        "fuente": "TC-M05-092 / RF-80 v2.0 CA-4, RNF-08",
+     },
+     "test_b01_inmutabilidad_api": {
+         "paso": "B01 Inmutabilidad por API (PUT/PATCH/DELETE/POST como Admin)",
+@@ -140,6 +146,19 @@ def main() -> None:
+         return
+ 
+     trazas_por_test = _cargar_trazas_por_test(staging / "trazas_http.jsonl")
++    obtenidos: dict[str, Any] = {}
++    observaciones: Any = None
++    for nombre_archivo, destino in (("obtenidos_g39.json", "obtenidos"), ("observaciones_g39.json", "observaciones")):
++        ruta = staging / nombre_archivo
++        if ruta.exists():
++            try:
++                valor = json.loads(ruta.read_text(encoding="utf-8"))
++            except Exception:
++                valor = None
++            if destino == "obtenidos" and isinstance(valor, dict):
++                obtenidos = valor
++            elif destino == "observaciones":
++                observaciones = valor
+ 
+     tree = ET.parse(xml_path)
+     root = tree.getroot()
+@@ -164,6 +183,8 @@ def main() -> None:
+         )
+         trazas = trazas_por_test.get(nombre, [])
+         resumen_http = _resumir_trazas(trazas)
++        if nombre in obtenidos:
++            resumen_http = f"{json.dumps(obtenidos[nombre], ensure_ascii=False)} | {resumen_http}"
+ 
+         failure = tc.find("failure")
+         error = tc.find("error")
+@@ -171,11 +192,11 @@ def main() -> None:
+ 
+         if failure is not None or error is not None:
+             nodo = failure if failure is not None else error
+-            estado = "FALLA"
++            estado = "PENDIENTE_DIAGNOSTICO"
+             falla += 1
+             msg_raw = (nodo.attrib.get("message") or nodo.text or "Fallo de aserto").strip()
+             msg_primera_linea = msg_raw.splitlines()[0]
+-            obtenido = f"{msg_primera_linea} | HTTP: {resumen_http}"
++            obtenido = f"{msg_primera_linea} | OBTENIDO: {resumen_http}"
+             fallos_detalle.append({
+                 "test": nombre,
+                 "paso": meta["paso"],
+@@ -191,7 +212,7 @@ def main() -> None:
+         else:
+             estado = "OK"
+             ok += 1
+-            obtenido = f"HTTP: {resumen_http}"
++            obtenido = f"OBTENIDO: {resumen_http}"
+ 
+         checkpoints.append({
+             "paso": meta["paso"],
+@@ -211,6 +232,7 @@ def main() -> None:
+             "veredicto": veredicto,
+         },
+         "checkpoints": checkpoints,
++        "observaciones": observaciones,
+     }
+ 
+     json_path = staging / f"resultado_TC-M05-G39{sufijo}.json"
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
+index bc3cbfb3..9b99950b 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
+@@ -2,6 +2,7 @@
+ # |------------|--------------------------|-----------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G39: Campos minimos, inmutabilidad y hash RF-80 (CU06)        |
+ # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G39 reevaluacion v2.0: incompletos con causa, campos base, inmutabilidad (INC-278), hash v1/v2, C01 retirado |
++# | 13/11/2026 | Juan Sebastian Gutierrez | reintento 2 INC-M05-354-G39 |
+ """Suite de pruebas para TC-M05-G39 (RF-80 v2.0, RFC-025): Integridad, campos minimos e inmutabilidad.
+ 
+ Cubre los casos activos de RF-80 v2.0 para el grupo G39:
+@@ -16,8 +17,11 @@ Cubre los casos activos de RF-80 v2.0 para el grupo G39:
+   Nota sobre simulacion de alteracion en B03: "simulacion local; la alteracion real en BD no es
+   ejecutable en TEST: requiere DML y el trigger lo bloquea".
+ - TC-M05-094 retirado por RFC-025 (RF-80 v2.0): sin cola no hay reentregas.
++- Reintento 2 (INC-M05-354-G39): A01 endurecido (costeo sin fase y PATCH -> eventos sin contexto marcados
++  incompletos con causa), A02 con los emisores consumo, medicamento, RF-78 y resultado_ica sobre un activo
++  con una sola fase activa, y A03 (filtro por activo y ciclo con ordenar_por=fecha_emision).
+ - T00 (linea base) y T99 (inocuidad post-rollback) en corridas sandbox independientes de solo lectura
+-  por API autenticada (sin /test-control/query sobre modulo5 ni modulo1 por FORCE RLS).
++  por API autenticada (sin consultas SQL del control de pruebas sobre modulo5 ni modulo1 por FORCE RLS).
+ """
+ from __future__ import annotations
+ 
+@@ -42,6 +46,7 @@ ZONA_USUARIO = timezone(timedelta(hours=-5))
+ TIMEOUT_S = 30
+ ARCHIVO_TRAZA = "trazas_http.jsonl"
+ ARCHIVO_OBSERVACIONES = "observaciones_g39.json"
++ARCHIVO_OBTENIDOS = "obtenidos_g39.json"
+ PREFIJO_JWT = "ey" + "J"
+ _LOCK_TRAZA = threading.Lock()
+ _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
+@@ -603,6 +608,27 @@ def _guardar_observaciones(c: CorridaSandbox) -> None:
+         "b01_rechazos_tipo_y_clasificacion": _CONTEXTO.get("obs_b01_rechazos", []),
+         "b02_sin_token_401": _CONTEXTO.get("obs_b02_sin_token", {}),
+         "b03_etiqueta_simulacion": _CONTEXTO["obs_simulacion_b03"],
++        "version_hash_integridad_eventos_nuevos": sorted(
++            {str(ev.get("version_hash_integridad")) for ev in eventos}
++        ),
++        "formatos_detalle_causa_incompletos": sorted(
++            {str(ev.get("detalle_causa")) for ev in eventos if ev.get("registro_incompleto") is True}
++        )[:15],
++        "costos_productivos": (
++            "no se puede producir por API: ningun emisor en src/ ni en migraciones; solo tests/integration/test_inc_m05_278_g39_auditoria_integridad_integration.py:457; trigger en esquema_baseline.sql:42892; correccion solo por lectura de codigo (a107980ae001:42)"
++        ),
++        "resultado_ica_batch_nocturno_80411_80426": (
++            "Parte 0.5: fecha_emision presente, sin id_ciclo_productivo y registro_incompleto=true"
++        ),
++        "resultado_ica_historicos_fecha_emision_nula": (
++            "Parte 0.5 no mostro ninguno entre los 15 resultado_ica mas recientes (CHECK NOT VALID)"
++        ),
++        "alembic_heads": (
++            "dos heads en el merge 0ca5adff (a107980ae001 y d1f3a5c7e902), unidas por 810b1e4eb4f9 (commit 16738d58); origin/test con una sola head 0884ba08a944"
++        ),
++        "riesgo_g18": (
++            "descartado: fn_sellar_auditoria_m05 (BEFORE INSERT, unico) marca el incidente REGISTRO_FALLIDO como incompleto con causa antes de los CHECK"
++        ),
+     }
+     destino = Path(directorio) / ARCHIVO_OBSERVACIONES
+     destino.write_text(json.dumps(payload_obs, indent=2, ensure_ascii=False), encoding="utf-8")
+@@ -631,140 +657,424 @@ def test_t00_linea_base():
+ # A01 / A02 - TC-M05-092: Incompletos con causa y campos base obligatorios
+ # =============================================================================
+ 
++_CAMPOS_EVENTO = (
++    "id_auditoria_suministro",
++    "entidad_afectada",
++    "tipo_operacion",
++    "resultado",
++    "fecha_emision",
++    "id_activo_biologico",
++    "id_ciclo_productivo",
++    "registro_incompleto",
++    "detalle_causa",
++)
++_CAMPOS_BASE = ("tipo_operacion", "resultado", "fecha_emision")
++# Como el detalle_causa puede nombrar el campo ausente: nombre de columna (sellado de BD,
++# a107980ae001:92-109) o etiqueta legible (EventoAuditoriaSuministro.__post_init__).
++_NOMBRES_CAMPO = {
++    "id_activo_biologico": ("id_activo_biologico", "activo biologico", "activo biológico"),
++    "id_ciclo_productivo": ("id_ciclo_productivo", "ciclo productivo"),
++}
++_ENTIDADES_A02 = {
++    "consumo": "registros_consumo_alimentos",
++    "medicamento": "registros_medicamentos",
++    "resultado_ica": "resultado_ica",
++}
++
++
++def _proyectar(ev: dict[str, Any]) -> dict[str, Any]:
++    return {k: ev.get(k) for k in _CAMPOS_EVENTO}
++
++
++def _vacio(valor: Any) -> bool:
++    return valor is None or (isinstance(valor, str) and not valor.strip())
++
++
++def _campos_ausentes(ev: dict[str, Any]) -> list[str]:
++    return [c for c in ("id_activo_biologico", "id_ciclo_productivo") if ev.get(c) is None]
++
++
++def _nombra_campo(detalle: Any, campo: str) -> bool:
++    texto = (detalle or "").lower() if isinstance(detalle, str) else ""
++    return any(n in texto for n in _NOMBRES_CAMPO[campo])
++
++
++def _x_id(r: requests.Response) -> str:
++    return r.headers.get("X-Request-Id", "")
++
++
++def _error_code(r: requests.Response) -> Any:
++    try:
++        j = r.json()
++    except Exception:
++        return None
++    return j.get("error_code") or j.get("code") if isinstance(j, dict) else None
++
++
++def _guardar_obtenido(nombre: str, obs: dict[str, Any]) -> None:
++    """Obtenido REAL del checkpoint (lo lee el generador); se escribe aunque el checkpoint falle."""
++    directorio = os.environ.get("TEST_EVIDENCE_DIR")
++    if not directorio:
++        return
++    ruta = Path(directorio) / ARCHIVO_OBTENIDOS
++    with _LOCK_TRAZA:
++        datos: dict[str, Any] = {}
++        if ruta.exists():
++            try:
++                datos = json.loads(ruta.read_text(encoding="utf-8"))
++            except Exception:
++                datos = {}
++        datos[nombre] = _sanitizar_objeto(json.loads(json.dumps(obs, ensure_ascii=False, default=str)))
++        ruta.write_text(json.dumps(datos, indent=2, ensure_ascii=False), encoding="utf-8")
++
++
++def _fecha_iso(valor: Any) -> datetime:
++    assert isinstance(valor, str) and valor, f"fecha_emision no interpretable: {valor!r}"
++    return datetime.fromisoformat(valor.replace("Z", "+00:00"))
++
++
+ def test_a01_incompletos_con_causa():
+-    """A01 (TC-M05-092; RF-80 v2.0 CA-12, R8, E2; criterio INC-M05-278-G39 defecto 1)."""
++    """A01 (TC-M05-092; RF-80 v2.0 Restriccion 8 "TODOS los eventos", CA-12, CA-11) - reintento 2."""
+     c = _principal()
+-    _, ultimo_inicio = _leer_estado_auditoria_api(c, "a01_snap_inicio")
+-    _CONTEXTO["ultimo_id_inicio_corrida"] = ultimo_inicio
+-
+-    # (a) Activo POBLACIONAL sin fase -> POST /suministros/costeo-directo (unidad 'servicio') -> 409 + REGISTRO_FALLIDO
+-    id_activo_a = _crear_activo_poblacional(c, "a01a_crear_activo_sin_fase")
+-    _, prev_a = _leer_estado_auditoria_api(c, "a01a_snap_previo")
+-    t0_a = time.perf_counter()
+-    r_fail = c.post(
+-        "admin",
+-        "/suministros/costeo-directo",
+-        _payload_suministro_servicio(id_activo_a),
+-        paso="a01a_costeo_sin_fase_409",
+-    )
+-    assert r_fail.status_code == 409, (
+-        f"A01(a) esperado HTTP 409 sin fase abierta; obtenido {r_fail.status_code} "
+-        f"[X-Request-Id={r_fail.headers.get('X-Request-Id', '')}]: {c.seguro(r_fail.text)} [RF-78 / A01(a)]"
+-    )
+-    nuevos_a, lat_a = _esperar_eventos_nuevos(c, prev_a, t0_a, "a01a", min_eventos=1)
+-    assert lat_a <= 2.0, f"A01(a) evento REGISTRO_FALLIDO tardo {lat_a:.3f} s (> 2.0 s) [RF-80 v2.0 CA-1]"
+-    fallidos_a = [e for e in nuevos_a if e.get("tipo_operacion") == "REGISTRO_FALLIDO"]
+-    assert fallidos_a, (
+-        f"A01(a) falta evento REGISTRO_FALLIDO tras 409; obtenidos {[e.get('tipo_operacion') for e in nuevos_a]} "
+-        "[TC-M05-092; CA-12, E2]"
+-    )
++    obs: dict[str, Any] = {}
++    try:
++        _, ultimo_inicio = _leer_estado_auditoria_api(c, "a01_snap_inicio")
++        _CONTEXTO["ultimo_id_inicio_corrida"] = ultimo_inicio
++        obs["ultimo_id_inicio_corrida"] = ultimo_inicio
++
++        # (i) Activo POBLACIONAL SIN fase -> POST /suministros/costeo-directo -> 409 + REGISTRO_FALLIDO
++        id_activo_a = _crear_activo_poblacional(c, "a01i_crear_activo_sin_fase")
++        _, prev_i = _leer_estado_auditoria_api(c, "a01i_snap_previo")
++        t0_i = time.perf_counter()
++        r_i = c.post("admin", "/suministros/costeo-directo", _payload_suministro_servicio(id_activo_a),
++                     paso="a01i_costeo_sin_fase_409")
++        obs["estimulo_i"] = {"id_activo": id_activo_a, "http": r_i.status_code, "error_code": _error_code(r_i),
++                             "x_request_id": _x_id(r_i)}
++        assert r_i.status_code == 409, (
++            f"A01(i) esperado HTTP 409 sin fase abierta; obtenido {r_i.status_code} "
++            f"[X-Request-Id={_x_id(r_i)}]: {c.seguro(r_i.text)} [RF-78; RF-80 v2.0 CA-12]"
++        )
++        nuevos_i, lat_i = _esperar_eventos_nuevos(c, prev_i, t0_i, "a01i", min_eventos=1)
++        obs["estimulo_i"]["latencia_s"] = round(lat_i, 3)
++        assert lat_i <= 2.0, f"A01(i) evento REGISTRO_FALLIDO tardo {lat_i:.3f} s (> 2.0 s) [RF-80 v2.0 CA-1]"
++        fallidos_i = [e for e in nuevos_i
++                      if e.get("tipo_operacion") == "REGISTRO_FALLIDO" and e.get("id_activo_biologico") == id_activo_a]
++        obs["eventos_i"] = [_proyectar(e) for e in fallidos_i]
++        assert fallidos_i, (
++            f"A01(i) falta el evento REGISTRO_FALLIDO del activo {id_activo_a} tras el 409; nuevos="
++            f"{[_proyectar(e) for e in nuevos_i]} [RF-80 v2.0 Restriccion 8, CA-12]"
++        )
+ 
+-    # (b) Otro activo POBLACIONAL con fase abierta + RF-78 valido + cierre de ciclo RF-79
+-    id_activo_b = _crear_activo_poblacional(c, "a01b_crear_activo_cierre")
+-    r_fase = c.post(
+-        "admin",
+-        f"/activos-biologicos/{id_activo_b}/fases",
+-        {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase productiva QA G39"},
+-        paso="a01b_abrir_fase",
+-    )
+-    assert r_fase.status_code in (200, 201), (
+-        f"A01(b) fallo apertura de fase HTTP {r_fase.status_code} "
+-        f"[X-Request-Id={r_fase.headers.get('X-Request-Id', '')}]: {c.seguro(r_fase.text)}"
+-    )
+-    r_sum = c.post(
+-        "admin",
+-        "/suministros/costeo-directo",
+-        _payload_suministro_servicio(id_activo_b),
+-        paso="a01b_rf78_valido",
+-    )
+-    assert r_sum.status_code == 200, (
+-        f"A01(b) fallo registro RF-78 valido HTTP {r_sum.status_code} "
+-        f"[X-Request-Id={r_sum.headers.get('X-Request-Id', '')}]: {c.seguro(r_sum.text)}"
+-    )
+-    _, prev_cierre = _leer_estado_auditoria_api(c, "a01b_snap_pre_cierre")
+-    t0_cierre = time.perf_counter()
+-    r_cierre = c.post(
+-        "admin",
+-        f"/activos-biologicos/{id_activo_b}/cierre",
+-        {
++        # Conservado de A01: activo con fase + RF-78 valido + cierre RF-79 -> 200 y consolidacion
++        id_activo_b = _crear_activo_poblacional(c, "a01b_crear_activo_cierre")
++        r_fase = c.post("admin", f"/activos-biologicos/{id_activo_b}/fases",
++                        {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase productiva QA G39"},
++                        paso="a01b_abrir_fase")
++        assert r_fase.status_code in (200, 201), (
++            f"A01(b) fallo apertura de fase HTTP {r_fase.status_code} [X-Request-Id={_x_id(r_fase)}]: "
++            f"{c.seguro(r_fase.text)}"
++        )
++        r_sum = c.post("admin", "/suministros/costeo-directo", _payload_suministro_servicio(id_activo_b),
++                       paso="a01b_rf78_valido")
++        assert r_sum.status_code == 200, (
++            f"A01(b) fallo registro RF-78 valido HTTP {r_sum.status_code} [X-Request-Id={_x_id(r_sum)}]: "
++            f"{c.seguro(r_sum.text)}"
++        )
++        _, prev_cierre = _leer_estado_auditoria_api(c, "a01b_snap_pre_cierre")
++        t0_cierre = time.perf_counter()
++        r_cierre = c.post("admin", f"/activos-biologicos/{id_activo_b}/cierre", {
+             "fecha_cierre": _hoy().isoformat(),
+             "motivo_cierre": "finalizacion_lote",
+-            "descripcion_cierre": "Cierre QA G37 para observacion consolidacion NIC41",
+-        },
+-        paso="a01b_rf79_cierre",
+-    )
+-    assert r_cierre.status_code == 200, (
+-        f"A01(b) fallo cierre ciclo RF-79 HTTP {r_cierre.status_code} "
+-        f"[X-Request-Id={r_cierre.headers.get('X-Request-Id', '')}]: {c.seguro(r_cierre.text)}"
+-    )
+-    _esperar_eventos_nuevos(c, prev_cierre, t0_cierre, "a01b_cierre", min_eventos=2)
+-
+-    eventos_corrida = _recolectar_eventos_corrida(c, ultimo_inicio, "a01_recolectar")
+-    assert eventos_corrida, "No se recolectaron eventos nuevos en A01 [TC-M05-092]"
+-    _CONTEXTO["eventos_a01"] = eventos_corrida
+-    objetivo = next(
+-        (e for e in eventos_corrida if e.get("tipo_operacion") == "SUMINISTRO_REGISTRADO"),
+-        eventos_corrida[0],
+-    )
+-    _CONTEXTO["id_objetivo_b01"] = int(objetivo["id_auditoria_suministro"])
+-
+-    # Verificar todos los eventos nuevos con registro_incompleto = true tienen detalle_causa no nulo y no vacio
+-    for ev in eventos_corrida:
+-        if ev.get("registro_incompleto") is True:
+-            causa = ev.get("detalle_causa")
+-            assert isinstance(causa, str) and bool(causa.strip()), (
+-                f"Evento {ev.get('id_auditoria_suministro')} ({ev.get('tipo_operacion')}) "
+-                f"con registro_incompleto=true tiene detalle_causa nulo o vacio: {causa!r} "
+-                "[TC-M05-092; RF-80 v2.0 CA-12, R8, E2; INC-M05-278-G39 defecto 1]"
+-            )
++            "descripcion_cierre": "Cierre QA G39 para observacion consolidacion NIC41",
++        }, paso="a01b_rf79_cierre")
++        obs["cierre_b"] = {"id_activo": id_activo_b, "http": r_cierre.status_code, "x_request_id": _x_id(r_cierre)}
++        assert r_cierre.status_code == 200, (
++            f"A01(b) fallo cierre ciclo RF-79 HTTP {r_cierre.status_code} [X-Request-Id={_x_id(r_cierre)}]: "
++            f"{c.seguro(r_cierre.text)}"
++        )
++        _esperar_eventos_nuevos(c, prev_cierre, t0_cierre, "a01b_cierre", min_eventos=2)
++
++        # (ii) PATCH sobre un evento creado en esta corrida -> 405 + evento RECHAZADO
++        id_objetivo_ii = int(fallidos_i[0]["id_auditoria_suministro"])
++        _, prev_ii = _leer_estado_auditoria_api(c, "a01ii_snap_previo")
++        t0_ii = time.perf_counter()
++        r_ii = c.request("admin", "PATCH", f"/suministros/auditoria/{id_objetivo_ii}",
++                         json_body={"marcador_prueba": "QA_G39_A01_PATCH"}, paso="a01ii_patch_405")
++        obs["estimulo_ii"] = {"id_objetivo": id_objetivo_ii, "http": r_ii.status_code,
++                              "allow": r_ii.headers.get("Allow", ""), "x_request_id": _x_id(r_ii)}
++        assert r_ii.status_code == 405, (
++            f"A01(ii) PATCH esperaba HTTP 405; obtenido {r_ii.status_code} [X-Request-Id={_x_id(r_ii)}] "
++            "[RF-80 v2.0 Restriccion 1, CA-2]"
++        )
++        nuevos_ii, _ = _esperar_eventos_nuevos(c, prev_ii, t0_ii, "a01ii", min_eventos=1)
++        rechazados_ii = [e for e in nuevos_ii if e.get("resultado") == "RECHAZADO"]
++        obs["eventos_ii"] = [_proyectar(e) for e in rechazados_ii]
++        assert rechazados_ii, (
++            f"A01(ii) falta el evento RECHAZADO del PATCH; nuevos={[_proyectar(e) for e in nuevos_ii]} "
++            "[RF-80 v2.0 CA-2, Restriccion 8]"
++        )
+ 
+-    # Consolidacion (CICLO_CONSOLIDADO, REPORTE_COSTOS_GENERADO) no debe marcarse incompleta por conciliacion pendiente
+-    por_tipo = {ev.get("tipo_operacion"): ev for ev in eventos_corrida}
+-    for tipo_cons in ("CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO"):
+-        assert tipo_cons in por_tipo, (
+-            f"Falta evento de consolidacion {tipo_cons} tras cierre RF-79 [RF-80 v2.0 CA-1]"
++        eventos_corrida = _recolectar_eventos_corrida(c, ultimo_inicio, "a01_recolectar")
++        _CONTEXTO["eventos_a01"] = eventos_corrida
++        obs["eventos_nuevos"] = [_proyectar(e) for e in eventos_corrida]
++        assert eventos_corrida, "A01: no se recolectaron eventos nuevos de la corrida [TC-M05-092]"
++        objetivo = next(
++            (e for e in eventos_corrida if e.get("tipo_operacion") == "SUMINISTRO_REGISTRADO"),
++            eventos_corrida[0],
+         )
+-        ev_cons = por_tipo[tipo_cons]
+-        if ev_cons.get("registro_incompleto") is True:
+-            causa_low = (ev_cons.get("detalle_causa") or "").lower()
+-            assert "conciliacion pendiente" not in causa_low and "conciliación pendiente" not in causa_low, (
+-                f"{tipo_cons} id={ev_cons.get('id_auditoria_suministro')} marcado incompleto por "
+-                f"conciliacion pendiente: {ev_cons.get('detalle_causa')!r} [INC-M05-278-G39 defecto 1]"
++        _CONTEXTO["id_objetivo_b01"] = int(objetivo["id_auditoria_suministro"])
++
++        # 0 eventos nuevos con tipo_operacion, resultado o fecha_emision nulos
++        con_base_nula = [
++            {"id": e.get("id_auditoria_suministro"), "entidad": e.get("entidad_afectada"),
++             "nulos": [k for k in _CAMPOS_BASE if _vacio(e.get(k))]}
++            for e in eventos_corrida
++        ]
++        con_base_nula = [x for x in con_base_nula if x["nulos"]]
++        obs["conteos"] = {"eventos_nuevos": len(eventos_corrida), "con_campos_base_nulos": len(con_base_nula)}
++        assert len(eventos_corrida) >= 1
++        assert not con_base_nula, (
++            f"A01: eventos nuevos con campos base nulos o vacios: {con_base_nula} [RF-80 v2.0 Restriccion 8, CA-11]"
++        )
++
++        # TODO evento nuevo sin activo o sin ciclo: registro_incompleto=true y detalle_causa que nombra cada ausente
++        sin_contexto = [e for e in eventos_corrida if _campos_ausentes(e)]
++        ids_sin_contexto = {int(e["id_auditoria_suministro"]) for e in sin_contexto}
++        obs["conteos"]["sin_activo_o_sin_ciclo"] = len(sin_contexto)
++        assert len(sin_contexto) >= 1, "A01: ningun evento nuevo sin activo o sin ciclo [RF-80 v2.0 CA-12]"
++        for etiqueta, lista in (("(i) REGISTRO_FALLIDO", fallidos_i), ("(ii) RECHAZADO", rechazados_ii)):
++            assert any(int(e["id_auditoria_suministro"]) in ids_sin_contexto for e in lista), (
++                f"A01: el evento {etiqueta} no esta entre los eventos sin activo o sin ciclo "
++                f"{sorted(ids_sin_contexto)} [RF-80 v2.0 Restriccion 8, CA-12]"
+             )
+-            assert any(tok in causa_low for tok in ("campos faltantes", "activo", "ciclo", "costo")), (
+-                f"{tipo_cons} id={ev_cons.get('id_auditoria_suministro')} marcado incompleto sin nombrar "
+-                f"campos faltantes reales: {ev_cons.get('detalle_causa')!r} [TC-M05-092; INC-M05-278-G39 defecto 1]"
++        incumplen: list[dict[str, Any]] = []
++        for ev in sin_contexto:
++            ausentes = _campos_ausentes(ev)
++            no_nombrados = [c_ for c_ in ausentes if not _nombra_campo(ev.get("detalle_causa"), c_)]
++            if ev.get("registro_incompleto") is not True or no_nombrados:
++                incumplen.append({**_proyectar(ev), "ausentes": ausentes, "no_nombrados": no_nombrados})
++        obs["conteos"]["sin_contexto_que_incumplen"] = len(incumplen)
++        assert not incumplen, (
++            "A01: eventos sin activo o sin ciclo sin registro_incompleto=true o sin nombrar el campo ausente en "
++            f"detalle_causa: {incumplen} [RF-80 v2.0 Restriccion 8, CA-12]"
++        )
++
++        # Consolidacion del cierre (conservado): ambos eventos presentes y sin causa por conciliacion pendiente
++        por_tipo = {ev.get("tipo_operacion"): ev for ev in eventos_corrida if ev.get("id_activo_biologico") == id_activo_b}
++        obs["consolidacion"] = {t: _proyectar(por_tipo[t]) for t in ("CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO")
++                                if t in por_tipo}
++        for tipo_cons in ("CICLO_CONSOLIDADO", "REPORTE_COSTOS_GENERADO"):
++            assert tipo_cons in por_tipo, f"Falta evento de consolidacion {tipo_cons} tras cierre RF-79 [RF-80 v2.0 CA-1]"
++            causa_low = (por_tipo[tipo_cons].get("detalle_causa") or "").lower()
++            assert "conciliacion pendiente" not in causa_low and "conciliación pendiente" not in causa_low, (
++                f"{tipo_cons} id={por_tipo[tipo_cons].get('id_auditoria_suministro')} con causa por conciliacion "
++                f"pendiente: {por_tipo[tipo_cons].get('detalle_causa')!r} [INC-M05-278-G39 defecto 1]"
+             )
++    finally:
++        _guardar_obtenido("test_a01_incompletos_con_causa", obs)
+ 
+ 
+-def test_a02_campos_base_presentes():
+-    """A02 (TC-M05-092; RF-80 v2.0 CA-11, R8): tipo_operacion, resultado y fecha_emision no nulos en TODO evento nuevo."""
++def _payload_medicamento_retiro_cero(id_activo: int) -> dict[str, Any]:
++    return {
++        "id_activo_biologico": id_activo,
++        "nombre_medicamento": f"QA-G39-Oxitetraciclina-{uuid.uuid4().hex[:6]}",
++        "fecha_aplicacion": _hoy().isoformat(),
++        "hora_aplicacion": "09:15",
++        "via_administracion": "INTRAMUSCULAR",
++        "dosis_aplicada": 5,
++        "unidad_dosis": "ml",
++        "periodo_retiro_dias": 0,
++        "motivo_aplicacion": "Control sanitario QA G39 sin periodo de retiro",
++        "costo_unitario": 25000,
++        "nombre_veterinario": "Dra. Ana Veterinaria",
++        "id_evento_sanitario": None,
++    }
++
++
++def test_a02_emisores_contexto_completo():
++    """A02 (TC-M05-092; RF-80 v2.0 Restriccion 8 "TODOS los eventos", RNF-08, CA-11) - reintento 2."""
+     c = _principal()
+-    ultimo_inicio = _CONTEXTO.get("ultimo_id_inicio_corrida")
+-    assert ultimo_inicio is not None, "Precondicion A02: A01 no establecio ultimo_id_inicio_corrida"
++    obs: dict[str, Any] = {}
++    try:
++        _, base = _leer_estado_auditoria_api(c, "a02_snap_inicio")
++        obs["ultimo_id_inicio_a02"] = base
++        id_activo = _crear_activo_poblacional(c, "a02_crear_activo")
++        obs["activo"] = id_activo
++        r_fase = c.post("admin", f"/activos-biologicos/{id_activo}/fases",
++                        {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase QA G39 A02"}, paso="a02_abrir_fase")
++        assert r_fase.status_code in (200, 201), (
++            f"A02 precondicion: apertura de fase HTTP {r_fase.status_code} [X-Request-Id={_x_id(r_fase)}]"
++        )
++        r_fases = c.get("admin", f"/activos-biologicos/{id_activo}/fases", paso="a02_get_fases")
++        assert r_fases.status_code == 200, f"A02 precondicion: GET fases HTTP {r_fases.status_code}"
++        activas = [f for f in (r_fases.json().get("fases") or []) if f.get("es_activa") is True]
++        obs["fases_activas"] = [f.get("id_gestion_fases") for f in activas]
++        assert len(activas) == 1, f"A02 precondicion: se esperaba UNA sola fase activa, hay {len(activas)}"
++
++        # RF-78 (referencia de ciclo)
++        _, prev_78 = _leer_estado_auditoria_api(c, "a02_snap_pre_rf78")
++        t0_78 = time.perf_counter()
++        r_78 = c.post("admin", "/suministros/costeo-directo", _payload_suministro_servicio(id_activo), paso="a02_rf78")
++        obs["rf78"] = {"http": r_78.status_code, "x_request_id": _x_id(r_78)}
++        assert r_78.status_code == 200, f"A02 RF-78 HTTP {r_78.status_code} [X-Request-Id={_x_id(r_78)}]"
++        nuevos_78, _ = _esperar_eventos_nuevos(c, prev_78, t0_78, "a02_rf78", min_eventos=1)
++        ref_78 = [e for e in nuevos_78 if e.get("entidad_afectada") == "registro_suministro"
++                  and e.get("tipo_operacion") == "SUMINISTRO_REGISTRADO" and e.get("id_activo_biologico") == id_activo]
++        obs["rf78"]["eventos"] = [_proyectar(e) for e in ref_78]
++        assert ref_78, f"A02: falta el evento RF-78 SUMINISTRO_REGISTRADO del activo {id_activo} [RF-80 v2.0 CA-1]"
++        ciclo_ref = ref_78[0].get("id_ciclo_productivo")
++        obs["ciclo_referencia_rf78"] = ciclo_ref
++        assert ciclo_ref is not None, "A02: el evento RF-78 de referencia no trae id_ciclo_productivo [Restriccion 8]"
++
++        # Consumo RF-75
++        r_tipos = c.get("admin", "/suministros/consumo-alimentos/tipos-alimento", params={"solo_activos": True},
++                        paso="a02_tipos_alimento")
++        assert r_tipos.status_code == 200, f"A02 precondicion: tipos de alimento HTTP {r_tipos.status_code}"
++        cuerpo_tipos = r_tipos.json()
++        tipos = cuerpo_tipos if isinstance(cuerpo_tipos, list) else (cuerpo_tipos.get("items") or [])
++        assert tipos, "A02 precondicion: no hay tipos de alimento activos"
++        r_cons = c.post("admin", "/suministros/consumo-alimentos", {
++            "id_activo_biologico": id_activo,
++            "id_tipo_alimento": int(tipos[0]["id_tipo_alimento"]),
++            "fecha_consumo": _hoy().isoformat(),
++            "cantidad_alimento": 10,
++            "costo_unitario": 2500,
++        }, paso="a02_consumo")
++        obs["consumo"] = {"http": r_cons.status_code, "x_request_id": _x_id(r_cons)}
++        assert r_cons.status_code in (200, 201), (
++            f"A02 consumo HTTP {r_cons.status_code} [X-Request-Id={_x_id(r_cons)}]: {c.seguro(r_cons.text)}"
++        )
+ 
+-    eventos = _recolectar_eventos_corrida(c, int(ultimo_inicio), "a02_recolectar")
+-    assert eventos, "A02: no se encontraron eventos nuevos en la corrida [TC-M05-092]"
++        # Medicamento RF-76 con periodo_retiro_dias = 0
++        r_med = c.post("admin", "/suministros/medicamentos", _payload_medicamento_retiro_cero(id_activo),
++                       paso="a02_medicamento")
++        obs["medicamento"] = {"http": r_med.status_code, "x_request_id": _x_id(r_med)}
++        assert r_med.status_code == 201, (
++            f"A02 medicamento HTTP {r_med.status_code} [X-Request-Id={_x_id(r_med)}]: {c.seguro(r_med.text)}"
++        )
+ 
+-    invalidos: list[str] = []
+-    for ev in eventos:
+-        faltantes = [
+-            campo
+-            for campo in ("tipo_operacion", "resultado", "fecha_emision")
+-            if ev.get(campo) is None or (isinstance(ev.get(campo), str) and not ev[campo].strip())
+-        ]
+-        if faltantes:
+-            invalidos.append(
+-                f"id={ev.get('id_auditoria_suministro')} "
+-                f"(entidad={ev.get('entidad_afectada')}, tipo_operacion={ev.get('tipo_operacion')}, "
+-                f"faltantes={faltantes})"
++        # Cierre RF-79 -> resultado_ica
++        r_cierre = c.post("admin", f"/activos-biologicos/{id_activo}/cierre", {
++            "fecha_cierre": _hoy().isoformat(),
++            "motivo_cierre": "finalizacion_lote",
++            "descripcion_cierre": "Cierre QA G39 A02 (resultado_ica)",
++        }, paso="a02_cierre")
++        obs["cierre"] = {"http": r_cierre.status_code, "x_request_id": _x_id(r_cierre)}
++        assert r_cierre.status_code == 200, (
++            f"A02 cierre HTTP {r_cierre.status_code} [X-Request-Id={_x_id(r_cierre)}]: {c.seguro(r_cierre.text)}"
++        )
++
++        eventos = _recolectar_eventos_corrida(c, base, "a02_recolectar")
++        obs["por_entidad"] = {}
++        incumplen: list[dict[str, Any]] = []
++        for nombre, entidad in _ENTIDADES_A02.items():
++            evs = [e for e in eventos if e.get("entidad_afectada") == entidad]
++            obs["por_entidad"][nombre] = [_proyectar(e) for e in evs]
++            assert len(evs) >= 1, f"A02: 0 eventos nuevos de {entidad} [RF-80 v2.0 Restriccion 8, CA-1]"
++            for ev in evs:
++                fallas = [f"{k} nulo" for k in _CAMPOS_BASE if _vacio(ev.get(k))]
++                if ev.get("id_activo_biologico") != id_activo:
++                    fallas.append(f"id_activo_biologico={ev.get('id_activo_biologico')} != {id_activo}")
++                ciclo = ev.get("id_ciclo_productivo")
++                if ciclo is None:
++                    if ev.get("registro_incompleto") is not True or not _nombra_campo(ev.get("detalle_causa"),
++                                                                                        "id_ciclo_productivo"):
++                        fallas.append("ciclo nulo sin registro_incompleto=true y causa que lo nombre")
++                elif ciclo != ciclo_ref:
++                    fallas.append(f"id_ciclo_productivo={ciclo} != {ciclo_ref} (RF-78)")
++                if fallas:
++                    incumplen.append({**_proyectar(ev), "fallas": fallas})
++        obs["incumplen"] = incumplen
++        assert not incumplen, (
++            f"A02: eventos que incumplen contexto o campos base: {incumplen} "
++            "[RF-80 v2.0 Restriccion 8 'TODOS los eventos', RNF-08, CA-11]"
++        )
++
++        inserts_ica = [e for e in eventos if e.get("entidad_afectada") == "resultado_ica"
++                       and e.get("tipo_operacion") == "INSERT"]
++        obs["resultado_ica_insert"] = [_proyectar(e) for e in inserts_ica]
++        assert len(inserts_ica) >= 1, "A02: falta el evento resultado_ica INSERT del cierre [RF-80 v2.0 CA-1]"
++        detalles: list[dict[str, Any]] = []
++        for ev in inserts_ica:
++            assert ev.get("resultado") == "EXITOSO", f"A02 resultado_ica {ev.get('id_auditoria_suministro')} resultado={ev.get('resultado')!r} [CA-11]"
++            assert ev.get("id_ciclo_productivo") is not None, (
++                f"A02 resultado_ica {ev.get('id_auditoria_suministro')} sin id_ciclo_productivo [Restriccion 8]"
+             )
++            eid = int(ev["id_auditoria_suministro"])
++            rg = c.get("admin", f"/suministros/auditoria/{eid}", paso=f"a02_get_detalle_{eid}")
++            distintos = {}
++            if rg.status_code == 200:
++                det = rg.json()
++                distintos = {k: {"listado": v, "detalle": det.get(k)} for k, v in ev.items() if det.get(k) != v}
++            detalles.append({"id": eid, "http": rg.status_code, "x_request_id": _x_id(rg), "campos_distintos": distintos})
++            assert rg.status_code == 200, f"A02 GET /suministros/auditoria/{eid} HTTP {rg.status_code} [CA-4]"
++            assert not distintos, f"A02 detalle {eid} distinto del listado: {distintos} [RF-80 v2.0 CA-4, RNF-08]"
++        obs["detalle_resultado_ica"] = detalles
++
++        _CONTEXTO["a02"] = {
++            "activo": id_activo,
++            "ciclo_ref": ciclo_ref,
++            "rf78": ref_78[0],
++            "resultado_ica_insert": inserts_ica[0],
++            "eventos_activo_ciclo": [e for e in eventos if e.get("id_activo_biologico") == id_activo
++                                     and e.get("id_ciclo_productivo") == ciclo_ref],
++        }
++    finally:
++        _guardar_obtenido("test_a02_emisores_contexto_completo", obs)
+ 
+-    assert not invalidos, (
+-        "CA-11/R8 incumplido — eventos nuevos persistidos con campos base nulos o vacios: "
+-        + "; ".join(invalidos)
+-        + " [TC-M05-092; RF-80 v2.0 CA-11, R8]"
+-    )
++
++def test_a03_filtro_activo_ciclo_orden_emision():
++    """A03 (TC-M05-092; RF-80 v2.0 CA-4, RNF-08): filtro por activo y ciclo, ordenar_por=fecha_emision."""
++    c = _principal()
++    obs: dict[str, Any] = {}
++    try:
++        a02 = _CONTEXTO.get("a02")
++        assert a02 is not None, "Precondicion A03: A02 no dejo activo, ciclo ni eventos"
++        params = {
++            "id_activo_biologico": a02["activo"],
++            "id_ciclo_productivo": a02["ciclo_ref"],
++            "ordenar_por": "fecha_emision",
++            "pagina": 1,
++            "registros_por_pagina": 100,
++        }
++        r = c.get("admin", "/suministros/auditoria", params=params, paso="a03_filtro_orden")
++        items = (r.json().get("items") or []) if r.status_code == 200 else []
++        obs.update({
++            "parametros": params,
++            "http": r.status_code,
++            "x_request_id": _x_id(r),
++            "total": r.json().get("total") if r.status_code == 200 else None,
++            "lista": [[it.get("id_auditoria_suministro"), it.get("entidad_afectada"), it.get("fecha_emision")]
++                      for it in items],
++        })
++        assert r.status_code == 200, f"A03 GET /suministros/auditoria HTTP {r.status_code} [CA-4]"
++        devueltos = [int(it["id_auditoria_suministro"]) for it in items]
++        esperados = sorted(int(e["id_auditoria_suministro"]) for e in a02["eventos_activo_ciclo"])
++        id_ica = int(a02["resultado_ica_insert"]["id_auditoria_suministro"])
++        id_78 = int(a02["rf78"]["id_auditoria_suministro"])
++        obs["esperados_de_a02"] = esperados
++        assert len(esperados) >= 1, "A03: A02 no dejo eventos del activo y ciclo"
++        faltan = [i for i in esperados if i not in devueltos]
++        obs["faltan"] = faltan
++        assert not faltan, f"A03: el filtro no devuelve eventos de A02 de ese activo y ciclo: {faltan} [CA-4]"
++        assert id_ica in devueltos, f"A03: el filtro no devuelve el resultado_ica {id_ica} del cierre [CA-4]"
++        fechas = [_fecha_iso(it.get("fecha_emision")) for it in items]
++        assert len(fechas) >= 2, "A03: se requieren al menos 2 eventos para evaluar el orden"
++        pares_desordenados = [
++            [devueltos[i], devueltos[i + 1]] for i in range(len(fechas) - 1) if fechas[i] > fechas[i + 1]
++        ]
++        obs["pares_fuera_de_orden_no_decreciente"] = pares_desordenados
++        assert not pares_desordenados, (
++            f"A03: la lista no esta ordenada de forma no decreciente por fecha_emision; pares {pares_desordenados} "
++            "[RF-80 v2.0 CA-4, RNF-08]"
++        )
++        pos_ica, pos_78 = devueltos.index(id_ica), devueltos.index(id_78)
++        obs["posiciones"] = {"resultado_ica": pos_ica, "rf78": pos_78}
++        assert pos_ica > pos_78 and fechas[pos_ica] > fechas[pos_78], (
++            f"A03: el resultado_ica {id_ica} debe aparecer despues del evento RF-78 {id_78} [RF-80 v2.0 CA-4, RNF-08]"
++        )
++    finally:
++        _guardar_obtenido("test_a03_filtro_activo_ciclo_orden_emision", obs)
+ 
+ 
+ # =============================================================================
