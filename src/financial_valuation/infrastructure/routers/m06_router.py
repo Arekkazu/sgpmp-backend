@@ -18,6 +18,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: listas del período filtradas por el titular (NIT validado) |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 # | 2026-11-12 | Arekkazu | TC-DIS-256 RF-91: las líneas también las lee quien solo consulta la trazabilidad (auditor externo) |
+# | 2026-11-13 | Arekkazu | INC-M06-90-G97 RF-88: depreciación lineal consultable de un activo al costo |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -26,7 +27,7 @@ migración ``c4d81e6f2a95``) y acciones C=1, R=2, U=3, D=4, E=5. El Contador tie
 el Administrador, el Productor y el Revisor Fiscal, el que les da la matriz de esa migración."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -531,6 +532,15 @@ def registrar_deterioro(id_activo_biologico: int, dto: DeterioroDTO, m: M06 = De
                         usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     return m.registrar_deterioro().execute(id_activo_biologico, dto.id_evento_sanitario, dto.impacto_economico_cop,
                                            dto.justificacion, usuario.id_usuario)
+
+
+@router.get("/activos/{id_activo_biologico}/depreciacion", tags=[TAG_COSTO],
+            dependencies=[Depends(permiso("valoracion_por_costo", R))],
+            summary="Depreciación en línea recta de un activo valorado por costo a una fecha, sin registrarla")
+def consultar_depreciacion(id_activo_biologico: int,
+                           fecha: Optional[date] = Query(None, description="Fecha del cálculo; por omisión, hoy."),
+                           m: M06 = Depends(_m06)) -> dict:
+    return m.consultar_depreciacion().execute(id_activo_biologico, fecha or hoy_usuario())
 
 
 @router.post("/activos/{id_activo_biologico}/valor-razonable", tags=[TAG_COSTO],

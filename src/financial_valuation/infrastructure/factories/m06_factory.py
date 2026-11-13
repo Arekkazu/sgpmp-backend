@@ -10,6 +10,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-325-G30 RF-85 RNF-85-05: historial de productos con filtros, evento y usuario |
 # | 2026-11-10 | Arekkazu | INC-M06-342/351 RF-86/87: avisos de cuenta faltante y ajuste de período anterior |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-13 | Arekkazu | INC-M06-90-G97 RF-88: consulta de la depreciación de un activo al costo |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -82,6 +83,9 @@ from src.financial_valuation.application.use_cases.valoracion.reconocer_cosecha_
 )
 from src.financial_valuation.application.use_cases.valoracion_costo.cambiar_a_valor_razonable_use_case import (
     CambiarAValorRazonableUseCase,
+)
+from src.financial_valuation.application.use_cases.valoracion_costo.consultar_depreciacion_use_case import (
+    ConsultarDepreciacionUseCase,
 )
 from src.financial_valuation.application.use_cases.valoracion_costo.registrar_deterioro_use_case import RegistrarDeterioroUseCase
 from src.financial_valuation.infrastructure.adapters.activo_financiero_m02_adapter import ActivoFinancieroM02Adapter
@@ -204,6 +208,8 @@ class M06:
                                          notificador=self.notificador)
     def cambiar_a_valor_razonable(self):
         return CambiarAValorRazonableUseCase(self.db, self.activos, self.valoraciones, self.valorador, self.contabilizador)
+    def consultar_depreciacion(self):
+        return ConsultarDepreciacionUseCase(self.activos, self.valoraciones, self.config)
     def registrar_cotizacion(self):
         return RegistrarCotizacionUseCase(self.db, self.cotizaciones, self.activos, self.valoraciones, self.contabilizador)
     def modificar_cotizacion(self): return ModificarCotizacionUseCase(self.db, self.cotizaciones, self.auditoria)
