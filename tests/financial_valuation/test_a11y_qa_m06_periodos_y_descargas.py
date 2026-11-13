@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | TC-DIS-257/262/264 RF-92/93: períodos para quien solo consulta reportes y descargas en palabras |
+# | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-93: el activo excluido se descarga con su causa en palabras y el resultado fuera |
 """Primera evaluación QA de M06: el Productor no veía ningún estado de resultados porque los períodos exigían el
 permiso del cierre, y las descargas mostraban claves, montos crudos y estados sin traducir."""
 from __future__ import annotations
@@ -83,7 +84,8 @@ def test_estado_de_resultados_descargado_con_signo_y_ganancia(monkeypatch):
               "total_gastos": "1190000.00", "resultado_neto": "460000.00", "fecha_aprobacion": "2026-10-02T09:00:00",
               "nombre_aprobador": "Ana Contadora",
               "componentes": {"ganancia_transformacion_biologica": "850000.00", "costos_mantenimiento": "1095000.00",
-                              "activos_excluidos_cierre": [{"identificador": "BOV-102", "motivo": "Sin precio"}]}}
+                              "activos_excluidos_cierre": [{"identificador": "BOV-102", "motivo": "PENDIENTE_PRECIO",
+                                                            "montos_excluidos": {"resultado_neto": "-20000.0000"}}]}}
     uc = ExportarReporteUseCase(periodos=None, reportes=SimpleNamespace(obtener_estado=lambda _i: estado))
     uc.estado_resultados(71, "pdf")
     doc = capturado["doc"]
@@ -93,7 +95,9 @@ def test_estado_de_resultados_descargado_con_signo_y_ganancia(monkeypatch):
     assert filas["Ganancia por variación de precio de mercado"][2] == "Sin actividad en el período"
     texto = "\n".join([*doc.encabezado, *doc.pie])
     assert "Resultado neto: +$ 460.000 (Ganancia)" in texto
-    assert "por Ana Contadora" in texto and "Alcance: consolidado (sin filtros)" in texto and "BOV-102 (Sin precio)" in texto
+    assert "por Ana Contadora" in texto and "Alcance: consolidado (sin filtros)" in texto and ("Excluido del cierre: BOV-102. Sin precio de mercado vigente. "
+                                                                          "Resultado no incluido: −$ 20.000 (Pérdida).") in texto
+    assert "PENDIENTE_PRECIO" not in texto
 
 
 def test_informe_descargado_con_secciones_y_campos_en_palabras(monkeypatch):

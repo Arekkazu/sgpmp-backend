@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-90 v2.0 / RF-79: costos del activo y bandeja de provisiones de M05 |
 # | 2026-11-05 | Arekkazu | M06 RF-90: filtro por tipo de costo, especie y finca del activo; mensaje sin códigos |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: excluir_activos en los costos del estado de resultados |
 """Implementación SQL de :class:`CostoRepository`."""
 from __future__ import annotations
 
@@ -43,6 +44,9 @@ def _filtros_sql(filtros: dict) -> tuple[str, dict]:
         if filtros.get(campo) not in (None, ""):
             condiciones.append(sql)
             params[campo] = filtros[campo]
+    if filtros.get("excluir_activos"):  # RF-93 FA-3/FA-4: activos excluidos del cierre
+        condiciones.append("(c.id_activo_biologico IS NULL OR NOT (c.id_activo_biologico = ANY(:excluir_activos)))")
+        params["excluir_activos"] = list(filtros["excluir_activos"])
     return (" AND ".join(condiciones) or "true"), params
 
 

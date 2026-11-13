@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: exponer identidad UUID y versión verificable del hash. |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 """Response schemas para la bitácora de auditoría de M05 (RF-80, CU-06)."""
 from __future__ import annotations
 
@@ -45,6 +46,13 @@ class EventoAuditoriaSuministroResponse(BaseDTO):
     id_gestion_fases: Optional[int] = None
     nombre_activo: Optional[str] = None
     nombre_usuario: Optional[str] = None
+
+
+class ActorAuditoriaResponse(BaseDTO):
+    """Opción del filtro «Usuario» de la bitácora (N-07): id y nombre visible."""
+
+    id_usuario: int
+    nombre: str
 
 
 class AuditoriaSuministrosListResponse(BaseDTO):

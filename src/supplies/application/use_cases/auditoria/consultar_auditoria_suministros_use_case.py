@@ -1,3 +1,4 @@
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 """Caso de uso: consultar/filtrar la bitácora de auditoría de M05 (RF-80, CU-06).
 
 Solo lectura. No se auto-audita: RF-80 no define un tipo de evento de negocio
@@ -25,3 +26,7 @@ class ConsultarAuditoriaSuministrosUseCase:
 
     def obtener_por_id(self, id_auditoria_suministro: int) -> EventoAuditoriaSuministroConsulta:
         return self.read_port.obtener_por_id(id_auditoria_suministro)
+
+    def actores(self) -> list[tuple[int, str]]:
+        """Opciones del filtro «Usuario»: se elige por nombre, no por número (N-07)."""
+        return self.read_port.actores()

@@ -4,6 +4,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: rechazar rangos temporales invertidos antes de consultar o exportar. |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 """Puerto de lectura de la bitácora ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Complementa a ``AuditoriaSuministroPort`` (solo escritura). ``tipo_operacion``
@@ -75,4 +76,9 @@ class AuditoriaSuministroReadPort(ABC):
     @abstractmethod
     def obtener_por_id(self, id_auditoria_suministro: int) -> "EventoAuditoriaSuministroConsulta":
         """Retorna el detalle de un evento. Lanza ``NotFoundError`` si no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def actores(self) -> list[tuple[int, str]]:
+        """``(id_usuario, nombre)`` de quienes aparecen en la bitácora y el usuario actual puede ver, por nombre."""
         raise NotImplementedError

@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06 RF-87: el comprobante descargado nombra el hecho contable, no su código |
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: el estado descargado desglosa el mantenimiento por tipo |
 # | 2026-11-10 | Arekkazu | TC-DIS-246/259/264 RF-87/92/93: descargas con montos, fechas, signo y Ganancia/Pérdida en palabras |
+# | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-93: cada activo excluido con su causa en palabras y el resultado que quedó fuera |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -168,6 +169,14 @@ def _resultado(neto) -> str:
     return f"{'+' if n > 0 else ''}{moneda(neto) or '$ 0'} ({etiqueta})"
 
 
+def _excluido(x: dict) -> str:
+    """RF-93: el activo excluido del cierre, por qué (el motivo viaja como código) y el resultado que quedó fuera."""
+    causa = (x.get("detalle") or "Sin precio de mercado vigente").rstrip(".")
+    neto = (x.get("montos_excluidos") or {}).get("resultado_neto")
+    return (f"Excluido del cierre: {x.get('identificador') or 'activo sin identificador'}. {causa}."
+            + (f" Resultado no incluido: {_resultado(neto)}." if neto is not None else ""))
+
+
 def _alcance(filtros) -> str:
     activos = [n for k, n in (("id_especie", "especie"), ("id_finca", "finca"), ("id_activo_biologico", "activo"),
                               ("id_infraestructura", "infraestructura")) if (filtros or {}).get(k)]
@@ -234,9 +243,7 @@ class ExportarReporteUseCase:
                         pie=[f"Total ingresos: {moneda(estado['total_ingresos']) or '$ 0'}",
                              f"Total gastos: {_con_signo(estado['total_gastos'], True)}",
                              f"Resultado neto: {_resultado(estado['resultado_neto'])}",
-                             *([f"Activos excluidos del cierre: " + ", ".join(
-                                 f"{x.get('identificador') or 'sin identificador'}" + (f" ({x['motivo']})" if x.get("motivo") else "")
-                                 for x in excluidos)] if excluidos else [])])
+                             *[_excluido(x) for x in excluidos]])
         return (*_archivo(doc, formato), f"estado_resultados_v{estado['version']}")
 
     def informe(self, id_informe: int, formato: str) -> tuple[bytes, str, str]:

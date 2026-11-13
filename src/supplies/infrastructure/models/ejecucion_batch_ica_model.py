@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: mapear el motivo opcional de la interrupción. |
 """Modelo ORM para ``modulo5.ejecuciones_batch_ica`` (RF-74 / motor batch).
 
 Registra el estado y métricas de cada corrida del batch ICA (FA-05/06/12).
@@ -6,7 +9,7 @@ Generado con sqlacodegen y adaptado (Base compartida, enum→String, sin relatio
 from typing import Optional
 import datetime
 
-from sqlalchemy import DateTime, Integer, String, text
+from sqlalchemy import DateTime, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_model import Base
@@ -29,6 +32,7 @@ class EjecucionBatchIcaModel(Base):
     hora_fin: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
     hora_corte: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
     causa_interrupcion: Mapped[Optional[str]] = mapped_column(String(50))
+    motivo_interrupcion: Mapped[Optional[str]] = mapped_column(Text)
     limite_configurado: Mapped[Optional[int]] = mapped_column(Integer)
     id_usuario_disparo: Mapped[Optional[int]] = mapped_column(Integer)
     id_usuario_interrupcion: Mapped[Optional[int]] = mapped_column(Integer)
