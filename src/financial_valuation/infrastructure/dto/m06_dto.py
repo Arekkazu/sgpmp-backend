@@ -11,6 +11,7 @@
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio en el cierre |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: fecha de vigencia opcional en la corrección de un precio |
+# | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: delegar el monto no positivo a la regla FA-6 de registro. |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -195,7 +196,7 @@ class DeterioroDTO(BaseDTO):
 
 class CotizacionDTO(BaseDTO):
     activos_cotizados: list[int] = Field(min_length=1, max_length=500)
-    valor_cotizacion_propuesto: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
+    valor_cotizacion_propuesto: Decimal = Field(max_digits=18, decimal_places=4)
     condiciones: Optional[str] = Field(default=None, max_length=2000)
     fecha_vencimiento: Optional[date] = None
 

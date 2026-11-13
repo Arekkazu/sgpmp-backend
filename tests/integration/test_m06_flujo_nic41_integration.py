@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 / INC-M06-332-G88: filtros de mediciones y cotización en período cerrado |
 # | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0 / RF-89 v1.1: aviso del cierre por activos al costo con precio y 400 en la justificación |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-87: el notificador de prueba responde ya_notificado (avisos sin duplicados) |
+# | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: verificar el contrato HTTP y los efectos de registrar una cotización. |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -332,6 +333,73 @@ def test_rbac_contador_si_productor_no(db_session, crear_usuario_db, crear_auth_
         assert cliente.post("/finanzas/costos", headers=contador,
                             json={"subtipo_costo": "ALIMENTO", "origen_costo": "MANO_OBRA_PROPIA", "monto_costo": "1",
                                   "fecha_costo": HOY.isoformat(), "id_lote": 3}).status_code in (400, 422)  # CA-8
+
+
+def test_registro_cotizacion_valida_antes_de_persistir_y_audita_el_registro_valido(
+    integration_app, client, db_session, crear_auth_headers, contador, m06,
+):
+    from src.financial_valuation.infrastructure.routers.m06_router import router
+    from tests.integration.test_inc_m06_273_g67_01_reconocimiento_costo_integration import sembrar_activo
+
+    integration_app.include_router(router)
+    headers = crear_auth_headers(contador) | {"X-Zona-Horaria": "America/Bogota"}
+    usuario = contador["id_usuario"]
+    ayer = db_session.scalar(text("SELECT (now() AT TIME ZONE 'America/Bogota')::date - 1"))
+    activo = sembrar_activo(db_session, usuario)
+    especie = activo["especie"]
+    m06.guardar_parametro_especie().execute(ParametroEspecie(especie, "CONSUMO", "POR_CABEZA", 24), usuario)
+    m06.guardar_costos_venta().execute(especie, D("0.05"), D("0"), D("0"), usuario)
+    m06.guardar_asignacion().execute("RECONOCIMIENTO_DIFERENCIA", "GANANCIA", especie, None, "1586", "4250", usuario)
+    m06.registrar_precio().execute(SolicitudPrecio(
+        id_especie=especie, categoria="POR_CABEZA", precio_unitario=D("150"), fecha_vigencia=ayer,
+        fuente="MERCADO_ACTIVO", evidencia_documental="Boletín local de prueba", confirmar_desviacion=True,
+    ), usuario)
+    reconocimiento = m06.confirmar_reconocimiento().execute(activo["activo"], usuario)
+    assert reconocimiento["indicador_valoracion"] == "VALOR_RAZONABLE"
+    payload = {"activos_cotizados": [activo["activo"]]}
+    periodo = m06.periodos.que_contiene(NIT, ayer + timedelta(days=1))
+    assert periodo.esta_abierto
+    db_session.commit()
+
+    def registrar(campos):
+        return client.post("/finanzas/cotizaciones", headers=headers, json=payload | campos)
+
+    def estado():
+        return db_session.execute(text("""
+            SELECT
+                (SELECT count(*) FROM modulo6.cotizaciones),
+                (SELECT count(*) FROM modulo6.auditorias_financieras WHERE tipo_evento = 'COTIZACION_REGISTRADA'),
+                (SELECT estado::text FROM modulo6.periodos_contables WHERE id_periodo_contable = :periodo)
+        """), {"periodo": periodo.id_periodo_contable}).one()
+
+    previo = registrar({"valor_cotizacion_propuesto": "1"})
+    assert previo.status_code == 201, previo.text
+    id_previo = previo.json()["id_cotizacion"]
+    anterior = estado()
+    cotizacion_previa = m06.cotizaciones.obtener(id_previo)
+    for campos, status, codigo in (
+        ({"valor_cotizacion_propuesto": 0}, 422, "VALOR_COTIZACION_INVALIDO"),
+        ({"valor_cotizacion_propuesto": -1}, 422, "VALOR_COTIZACION_INVALIDO"),
+        ({"valor_cotizacion_propuesto": "-0.0001"}, 422, "VALOR_COTIZACION_INVALIDO"),
+        ({"valor_cotizacion_propuesto": "sin valor"}, 400, "VAL_ENTRADA"),
+        ({"valor_cotizacion_propuesto": "1.00001"}, 400, "VAL_ENTRADA"),
+        ({"valor_cotizacion_propuesto": "100000000000000"}, 400, "VAL_ENTRADA"),
+        ({}, 400, "VAL_ENTRADA"),
+        ({"valor_cotizacion_propuesto": "1", "fecha_vencimiento": ayer.isoformat()},
+         422, "FECHA_VENCIMIENTO_INVALIDA"),
+    ):
+        respuesta = registrar(campos)
+        assert respuesta.status_code == status, (campos, respuesta.text)
+        assert respuesta.json()["error_code"] == codigo
+        assert estado() == anterior
+    assert m06.cotizaciones.obtener(id_previo) == cotizacion_previa
+
+    respuesta = registrar({"valor_cotizacion_propuesto": "0.0001"})
+    assert respuesta.status_code == 201, respuesta.text
+    nueva = respuesta.json()
+    assert nueva["estado"] == "COTIZADO" and D(str(nueva["valor_razonable_referencia"])) == D("142.5")
+    assert m06.cotizaciones.obtener(nueva["id_cotizacion"])["valor_cotizacion_propuesto"] == D("0.0001")
+    assert estado() == (anterior[0] + 1, anterior[1] + 1, "ABIERTO")
 
 
 def test_cada_tipo_de_evento_de_auditoria_tiene_descripcion_legible(db_session):
