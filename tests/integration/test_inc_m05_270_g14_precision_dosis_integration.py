@@ -1,6 +1,8 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: verificar dosis decimal(10,4) desde HTTP hasta el ledger en PostgreSQL. |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: tras el rollback queda solo el incidente REGISTRO_FALLIDO |
+# | 2026-11-12 | Leandro | INC-M05-354-G39 RF-80: verificar fecha de emisión y contexto del medicamento en la bitácora. |
 """Regresión #954 con restricciones activas y transacciones de prueba."""
 from __future__ import annotations
 import importlib
@@ -124,8 +126,18 @@ def test_vista_auditoria_outbox_y_get_conservan_dosis_y_costo(client,db_session,
     a=e['individual']['activo']
     vista=db_session.execute(text('SELECT cantidad_dosis,costo_total_medicamento FROM modulo5.vw_m05_aplicacion_medicamentos WHERE id_activo_biologico=:a'),{'a':a}).one()
     assert tuple(vista)==(D('.0001'),D('.05'))
-    audit=db_session.execute(text("SELECT datos_nuevos,hash_integridad FROM modulo5.auditorias_suministros WHERE entidad_afectada='registros_medicamentos'")).one()
+    audit=db_session.execute(text("""
+        SELECT a.datos_nuevos, a.hash_integridad, a.fecha_emision, a.id_activo_biologico,
+               a.id_ciclo_productivo, a.id_gestion_fases, a.registro_incompleto,
+               s.id_ciclo_productivo AS ciclo_ledger
+        FROM modulo5.auditorias_suministros a
+        JOIN modulo5.registro_suministro s
+          ON s.id_registro_rf76 = (a.datos_nuevos->>'id_registro_rf76')::uuid
+        WHERE a.entidad_afectada='registros_medicamentos' AND s.id_activo_biologico=:activo
+    """), {'activo': a}).one()
     assert D(str(audit[0]['cantidad']))==D('.0001') and len(audit[1])==64
+    assert audit.fecha_emision and audit.id_activo_biologico == a and not audit.registro_incompleto
+    assert audit.id_ciclo_productivo == audit.ciclo_ledger and audit.id_gestion_fases == e['individual']['fase']
     costo=db_session.execute(text("SELECT costo_afectado FROM modulo5.auditorias_suministros WHERE tipo_operacion='ACUMULADO_ACTUALIZADO' AND id_activo_biologico=:a"),{'a':a}).scalar_one()
     assert costo==D('.05')
     outbox=db_session.execute(text('SELECT costo_registro,json_contenido FROM modulo5.outbox_provisiones_m06 WHERE id_activo_biologico=:a'),{'a':a}).one()
@@ -178,8 +190,11 @@ def test_rollback_del_outbox_revierte_toda_la_dosis(client,db_session,escenario,
     monkeypatch.setattr(Repo,'encolar',fallar)
     r=client.post('/suministros/medicamentos',headers=e['vet'],json=medicamento(e)|{'dosis_aplicada':'.0001'})
     assert r.status_code==503,r.text
-    for tabla in ('registros_medicamentos','registro_suministro','acumulado_ciclo','auditorias_suministros','outbox_provisiones_m06'):
+    for tabla in ('registros_medicamentos','registro_suministro','acumulado_ciclo','outbox_provisiones_m06'):
         assert db_session.execute(text('SELECT count(*) FROM modulo5.'+tabla)).scalar_one()==0,tabla
+    # La auditoría de la operación se revierte con ella; solo queda el incidente del fallo (INC-M05-352-G18).
+    auditoria=db_session.execute(text("SELECT tipo_operacion::text,resultado::text FROM modulo5.auditorias_suministros")).all()
+    assert [tuple(f) for f in auditoria]==[('REGISTRO_FALLIDO','FALLIDO')]
     assert db_session.execute(text('SELECT id_estado FROM modulo2.activos_biologicos WHERE id_activo_biologico=:a'),{'a':e['individual']['activo']}).scalar_one()==1
 
 

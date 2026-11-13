@@ -1,3 +1,6 @@
+# | Fecha      | Nombre         | Que se hizo |
+# |------------|----------------|-------------|
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: el fin de retiro avisa también al Veterinario |
 """Puerto de notificaciones del período de retiro de un medicamento (RF-76 pasos 9 y 13).
 
 Declara la necesidad de avisar al Productor (dueño del activo) y, cuando aplica,
@@ -29,6 +32,10 @@ class NotificacionMedicamentoPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def notificar_fin_retiro(self, id_activo: int, fecha_fin_retiro: date) -> None:
-        """Avisa al Productor que el período de retiro vigente del activo concluyó."""
+    def notificar_fin_retiro(
+        self, id_activo: int, fecha_fin_retiro: date, id_usuario_veterinario: Optional[int] = None
+    ) -> None:
+        """RF-76 paso 13: avisa al Productor y al Veterinario, por correo y en la bandeja interna, que el
+        período de retiro concluyó. Sin veterinario registrado en el tratamiento, el aviso interno va a los
+        veterinarios de la finca del activo."""
         raise NotImplementedError

@@ -5,6 +5,7 @@
 # | 2026-11-10 | Arekkazu | TC-DIS-257 RF-92/93: nombre de quien aprobó el informe y el estado de resultados |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: estados e informes solo de los titulares de las fincas de quien consulta |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: excluir_activos en los movimientos del estado de resultados |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -41,6 +42,9 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             if filtros.get(campo):
                 condiciones.append(sql)
                 params[campo] = filtros[campo]
+        if filtros.get("excluir_activos"):  # RF-93 FA-3/FA-4: activos excluidos del cierre
+            condiciones.append("NOT (l.id_activo_biologico = ANY(:excluir_activos))")
+            params["excluir_activos"] = list(filtros["excluir_activos"])
         return filas(self.db, f"""
             SELECT l.id_linea_asiento_nic41, COALESCE(l.tipo_hecho_corregido, l.tipo_hecho)::text AS tipo_hecho,
                    l.sentido::text AS sentido, l.valor, l.es_reverso, l.id_activo_biologico, {nombre_activo_sql()} AS activo,
