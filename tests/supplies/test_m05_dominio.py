@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74..81: reglas de dominio del RF       |
+# | 2026-11-12 | Arekkazu | TC-DIS-215 RF-78: el mensaje de E2 no lleva nombres de columna ni códigos de módulo |
 """Reglas de dominio de M05 que cambiaron para cumplir el RF (sin BD)."""
 from __future__ import annotations
 
@@ -170,8 +171,9 @@ def test_justificaciones_con_el_mensaje_y_codigo_de_cada_rf():
     with pytest.raises(ValidationError) as rf76:
         JustificacionAnulacion("corta", MENSAJE_RF76)
     assert "garantizar la trazabilidad del evento" in rf76.value.message
-    with pytest.raises(BusinessRuleError):  # RF-78 E2: 422, no 400
+    with pytest.raises(BusinessRuleError) as rf78:  # RF-78 E2: 422, no 400
         JustificacionPrecio(None)
+    assert "M40" not in rf78.value.message and "_" not in rf78.value.message
 
 
 def test_retencion_por_tipo_de_evento_rf80():

@@ -1,3 +1,52 @@
+## [1.4.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.60...v1.4.0-rc.61) (2026-11-13)
+
+### Bug Fixes
+
+* **rf82-mod6:** el rol Auditor lee la configuracion contable y la RLS ya no produce 500 en las propuestas de reconocimiento ([c7e6c9f](https://github.com/Arekkazu/sgpmp-backend/commit/c7e6c9f437283e9cc92e83f57d5fb71e9f529faa))
+* **rf82-mod6:** la migracion del permiso del Auditor sigue a la union 810b1e4eb4f9 (un solo head) ([0064e69](https://github.com/Arekkazu/sgpmp-backend/commit/0064e698d26cc383e945cc53981d7334b6af3a48))
+
+## [1.4.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.59...v1.4.0-rc.60) (2026-11-13)
+
+### Bug Fixes
+
+* **rf74-mod5:** corregir la interrupción manual del batch ica ([#1081](https://github.com/Arekkazu/sgpmp-backend/issues/1081)) ([3492f02](https://github.com/Arekkazu/sgpmp-backend/commit/3492f0274a686be01cc577acbeeec0f817484820))
+* **rf76-mod5:** fin de retiro al Veterinario y fallos del registro de medicamento en auditoria ([#1072](https://github.com/Arekkazu/sgpmp-backend/issues/1072)) ([bf764cb](https://github.com/Arekkazu/sgpmp-backend/commit/bf764cba364b9622b0c8e536466cbcb0e2ee34a1))
+* **rf76-rf80-mod5:** detalle de la bitacora en palabras, sin nombres de columnas ni errores tecnicos ([0d8627c](https://github.com/Arekkazu/sgpmp-backend/commit/0d8627cb3d95357149e9633b812a8c98a071d737)), closes [#1096](https://github.com/Arekkazu/sgpmp-backend/issues/1096) [#1094](https://github.com/Arekkazu/sgpmp-backend/issues/1094)
+* **rf80-mod5:** completar auditoría del cierre de ciclo ([#1079](https://github.com/Arekkazu/sgpmp-backend/issues/1079)) ([b491ba0](https://github.com/Arekkazu/sgpmp-backend/commit/b491ba0c893dff8950e2a5f7f6004ae1c2057b1f))
+* **rf81-mod5:** historial de un activo ajeno responde 403 de E2 en vez de 404 ([#1086](https://github.com/Arekkazu/sgpmp-backend/issues/1086)) ([40e0346](https://github.com/Arekkazu/sgpmp-backend/commit/40e03465d9b6bec63c36828b51a6b95d908d8776))
+* **rf82-mod6:** el Administrador opera todo el modulo financiero y el Auditor ve el reconocimiento confirmado ([16738d5](https://github.com/Arekkazu/sgpmp-backend/commit/16738d580691aa3219d6a9226ea785b04321f35d))
+* **rf93-mod6:** activos excluidos del cierre fuera del estado de resultados y ceros con 4 decimales ([#1084](https://github.com/Arekkazu/sgpmp-backend/issues/1084)) ([d2d9dba](https://github.com/Arekkazu/sgpmp-backend/commit/d2d9dbad2726c7c35ac52050e5f9493e3fb54611))
+* **rf93-mod6:** el estado de resultados descargado nombra la causa de cada activo excluido y el resultado que quedo fuera ([66ee4e9](https://github.com/Arekkazu/sgpmp-backend/commit/66ee4e926a0e6a7f0413291a02fdfd8198620886)), closes [#1095](https://github.com/Arekkazu/sgpmp-backend/issues/1095)
+* **rf93-mod6:** la baja sin venta suma en los gastos del estado de resultados ([#1083](https://github.com/Arekkazu/sgpmp-backend/issues/1083)) ([e0ecfc9](https://github.com/Arekkazu/sgpmp-backend/commit/e0ecfc93560efadb56c6a39783bfeb51d5ae7dfa))
+
+## [1.4.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.58...v1.4.0-rc.59) (2026-11-13)
+
+### Bug Fixes
+
+* **rf74-rf75-rf76-rf80-mod5:** calculo automatico firmado por el sistema, fallos legibles y fechas en formato local (usabilidad N-05 N-07 B-01) ([6b3984a](https://github.com/Arekkazu/sgpmp-backend/commit/6b3984afef09f33a30eef99eda630dbf09e62c3a))
+* **rf91-rf92-rf93-mod6:** excel con encabezados en la fila 1 y lineas de asiento para el auditor externo (TC-DIS-256 TC-DIS-259 TC-DIS-264) ([05fcef1](https://github.com/Arekkazu/sgpmp-backend/commit/05fcef118f4055e6870fedfc677ed888bf39b3ab))
+* **rf92-rf93-mod6:** el productor solo ve titulares, periodos, estados e informes de sus fincas (usabilidad N-04) ([163fa8f](https://github.com/Arekkazu/sgpmp-backend/commit/163fa8fa11623ca7ccb3463514f51d7886f22221))
+
+## [1.4.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.57...v1.4.0-rc.58) (2026-11-12)
+
+### Bug Fixes
+
+* **rf75-rf78-mod5:** mensajes del duplicado de consumo y de la justificacion de precio sin ids ni codigos (2a evaluacion QA) ([182b190](https://github.com/Arekkazu/sgpmp-backend/commit/182b1903d86b40fd43ed06983a4b7dee71ea78d9))
+
+## [1.4.0-rc.57](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.56...v1.4.0-rc.57) (2026-11-12)
+
+### Bug Fixes
+
+* **rf87-rf93-mod6:** titulares para elegir el periodo y ultimo cierre de todos los periodos en una consulta ([31754be](https://github.com/Arekkazu/sgpmp-backend/commit/31754beec2435960af4ce96d9ece72c7029e86df))
+
+## [1.4.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.55...v1.4.0-rc.56) (2026-11-12)
+
+### Bug Fixes
+
+* **rf74-rf88-rf92-mod5-mod6:** el Productor no ve el calculo automatico del ICA y el Administrador consulta valoracion sin mercado y revelaciones ([18072f9](https://github.com/Arekkazu/sgpmp-backend/commit/18072f9c216845fe1c3f8b60e2588f863b109fdd))
+* **rf75-rf76-rf80-rf82-rf87-rf89-mod5-mod6:** nombres en lugar de ids, periodo con razon social y formato colombiano ([3ff9225](https://github.com/Arekkazu/sgpmp-backend/commit/3ff9225bea9f1400e72fed55847dfbc62c4e7680))
+* **rf77-mod5:** el historial de reportes de gastos nombra el activo en lugar de su id ([7500b0f](https://github.com/Arekkazu/sgpmp-backend/commit/7500b0f89c34a934d689fa97151b35fad187e689))
+
 ## [1.4.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.54...v1.4.0-rc.55) (2026-11-11)
 
 ### Bug Fixes

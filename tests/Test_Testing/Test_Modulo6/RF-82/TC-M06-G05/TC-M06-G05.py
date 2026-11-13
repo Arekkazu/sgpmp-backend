@@ -2,15 +2,16 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-82: script del grupo TC-M06-G05 (pytest + sandbox, roles)         |
 # | 2026-11-08 | Daniela Castillo | M06 RF-82: G05 alineado con la ficha (021 bloqueado si no hay operación de rechazo) |
+# | 2026-11-11 | Daniela Castillo | M06 RF-82: 021 ajustado a FA-4: no existe «Rechazar propuesta»; no confirmar deja el activo en PENDIENTE_CONFIRMACION sin asiento |
 """
 TC-M06-G05 - Reconocimiento único, rechazo de la propuesta y autorización por rol (solo Contador).   RF-82 (CU01).
 Casos: TC-M06-020, TC-M06-021 y TC-M06-022.
 
 - 020: segunda confirmación del mismo activo -> rechazo (4xx) que indica que el activo ya fue reconocido; un solo reconocimiento y
   un solo asiento.
-- 021: la ficha exige una operación «rechazar propuesta» (con y sin motivo). El backend no la expone (solo propuestas, confirmar y
-  reversión): el script la busca en TEST y, si no existe, el caso sale BLOQUEADO «no implementado» (lo dice la ficha: no se reporta
-  como defecto). No se sustituye por otra comprobación.
+- 021 (ajustado, FA-4): no existe una acción «Rechazar propuesta». Si el Contador no confirma, el activo queda en PENDIENTE_CONFIRMACION, sin reconocimiento
+  confirmado y sin asiento (esperado en FA-4). Se consulta la propuesta como Contador, no se confirma, y se verifica que nada se haya registrado y que el
+  estado siga pendiente de confirmación; se anota si TEST expone alguna ruta de rechazo (no es exigible).
 - 022: matriz de roles. Confirmar (POST) exige reconocimiento_inicial·Crear: solo Contador. Consultar la propuesta (GET) exige
   ·Leer, que la migración también concede a Administrador y Revisor Fiscal: el caso espera 403 para el Administrador
   (Restricción 1 / RNF-82-05 del RF); si el backend lo deja leer, esa aserción falla y es un hallazgo a documentar.
@@ -52,21 +53,36 @@ def test_TC_M06_020_activo_ya_reconocido_rechaza_segundo_reconocimiento(env, esc
     assert len(lineas_de(env.historial(ida))) == n_lineas, "no debe crearse un segundo asiento"
 
 
-@pytest.mark.parametrize("motivo", ["con_motivo", "sin_motivo"])
-def test_TC_M06_021_contador_rechaza_la_propuesta(env, esc, motivo):
-    env.presupuesto(30)
-    ida = env.activo(esc, origen="compra", costo="2500000.0000", soporte=f"Factura QA-M06-021-{motivo}")
-    cuerpo = {"motivo_rechazo": "Rechazo por prueba QA TC-M06-021"} if motivo == "con_motivo" else {}
-    encontradas = []
-    for ruta in (f"/finanzas/reconocimientos/{ida}/rechazo", f"/finanzas/reconocimientos/{ida}/rechazar",
-                 f"/finanzas/reconocimientos/propuestas/{ida}/rechazo", f"/finanzas/reconocimientos/propuestas/{ida}/rechazar"):
-        r = env.call("POST", ruta, "contador", json=cuerpo)
-        if r.status not in (404, 405):
-            encontradas.append((ruta, r.status))
-    if not encontradas:
-        bloqueado("no implementado: TEST no expone una operación para que el Contador rechace la propuesta de reconocimiento "
-                  "(solo propuesta, confirmar y reversión). Registrar 'Bloqueado - no implementado' (no se reporta como defecto).")
-    no_concluyente(f"existe una ruta de rechazo en TEST {encontradas}: completar el script con su contrato.")
+def test_TC_M06_021_sin_confirmar_el_activo_queda_pendiente_de_confirmacion_sin_asiento(env, esc):
+    env.presupuesto(40)
+    ida = env.activo(esc, origen="compra", costo="2500000.0000", soporte="Factura QA-M06-021")
+    prop = env.propuesta(ida)
+    assert prop.status == 200, f"el Contador debe poder consultar la propuesta: {prop}"
+    # El Contador la revisa y no la confirma (no hay acción de rechazo): no debe quedar nada registrado.
+    h = env.historial(ida)
+    assert not h.get("reconocimientos") and not lineas_de(h), f"sin confirmar no debe existir reconocimiento ni asiento: {h.get('reconocimientos')} / {lineas_de(h)}"
+    assert env.contar("reconocimientos_iniciales", ida, "AND estado = 'CONFIRMADO'") == 0, "no debe existir un reconocimiento confirmado"
+    m02 = env.call("GET", f"/activos-biologicos/{ida}", "admin")
+    obs(f"estado del activo en M02: {(m02.data or {}).get('nombre_estado') if isinstance(m02.data, dict) else m02.status}; propuesta: {prop.text[:200]}")
+
+    def _estados(o, ruta=""):
+        """Todos los campos cuyo nombre contiene «estado» y traen un texto (en la propuesta, en M02 y en el historial)."""
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if "estado" in str(k).lower() and isinstance(v, str):
+                    yield f"{ruta}{k}", v
+                yield from _estados(v, f"{ruta}{k}.")
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                yield from _estados(v, f"{ruta}{i}.")
+    campos = {"propuesta": list(_estados(prop.data, "propuesta.")), "m02": list(_estados(m02.data, "m02.")), "historial": list(_estados(h, "historial."))}
+    todos = [c for lista in campos.values() for c in lista]
+    assert any(v.strip().upper() == "PENDIENTE_CONFIRMACION" for _, v in todos), (
+        "FA-4: el activo debe quedar en estado PENDIENTE_CONFIRMACION (campo de estado con ese valor exacto) mientras el Contador no confirma; "
+        f"campos de estado devueltos: {todos}")
+    rutas = [(ruta, env.call("POST", ruta, "contador", json={}).status) for ruta in (
+        f"/finanzas/reconocimientos/{ida}/rechazo", f"/finanzas/reconocimientos/{ida}/rechazar")]
+    obs(f"rutas de rechazo probadas (no exigibles): {rutas}")
 
 
 ROLES_NO_AUTORIZADOS = ["admin", "productor", "veterinario", "ingeniero_campo", "sin_token", "token_invalido"]

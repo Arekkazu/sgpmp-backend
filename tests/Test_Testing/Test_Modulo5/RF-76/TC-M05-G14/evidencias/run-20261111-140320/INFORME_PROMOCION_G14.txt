@@ -1,0 +1,659 @@
+================================================================================
+INFORME DE PROMOCIÓN — TC-M05-G14 (RF-76) — REINTENTO 1
+Fecha: 2026-11-11
+Staging validado: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/
+INC corregido: INC-M05-270-G14 (Dev #954, migración d2e71a4c980b)
+N2 (INC bloqueo login R2): ninguno
+Veredicto validado por QA: Aprobado
+================================================================================
+
+1) INTEGRIDAD SHA-256 (INICIO Y CIERRE)
+--------------------------------------------------------------------------------
+- test_tc_m05_g14.py:
+    Esperado: A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D
+    Obtenido: A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D (COINCIDE, sin modificaciones)
+- ejecutar_tc_m05_g14.ps1:
+    Esperado: 01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536
+    Obtenido: 01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536 (COINCIDE, sin modificaciones)
+
+2) PASO 1 — COMPROBACIONES PREVIAS
+--------------------------------------------------------------------------------
+- Escaneo de secretos en staging (resultado_TC-M05-G14_reintento1.html, .xml, trazas_http.jsonl):
+  Todos "no encontrado" para admin_password, admin_password_ult20, sandbox_secret, sandbox_secret_ult20 y prefijo_JWT.
+- Conteos extraídos:
+  * HTML (data-jsonblob): 30 tests | Passed: 30 | Failed: 0 | Error: 0 | Skipped: 0
+  * JUnit XML (<testsuite>): tests=30 | errors=0 | failures=0 | skipped=0 | time=18.042s
+  * Cuadre HTML vs XML: COINCIDE (30/30).
+- Contenido previo de resultados/:
+  * .gitkeep (0 bytes)
+  * resultado_TC-M05-G14.html (58300 bytes)
+  * resultado_TC-M05-G14.json (6801 bytes)
+
+3) PASO 2 — PROMOCIÓN A resultados/ Y VALIDACIÓN
+--------------------------------------------------------------------------------
+- HTML copiado (sin mover el original):
+  evidencias/run-20261111-140320/resultado_TC-M05-G14_reintento1.html -> resultados/resultado_TC-M05-G14_reintento1.html
+- JSON generado mediante evidencias/run-20261111-140320/gen_json_resultado.py:
+  resultados/resultado_TC-M05-G14_reintento1.json
+- Validación del JSON:
+  * JSON válido con esquema exacto: tc="TC-M05-G14", ronda="reintento1", run="run-20261111-140320"
+  * summary: total=30, ok=30, falla=0, veredicto="Aprobado" (cuadra con HTML data-jsonblob)
+  * checkpoints: 30 entradas, todas con estado="OK" (derivado de JUnit)
+  * B03-dosis_0.0001: esperado="201, VALIDADO, cantidad 0.0001, conteo +1", obtenido="POST HTTP 201, VALIDADO, cantidad=0.0001, conteo +1; teardown HTTP 200"
+- Ronda 1 intacta: resultados/resultado_TC-M05-G14.html y resultados/resultado_TC-M05-G14.json sin cambios; JUnit XML conservado en evidencias/.
+
+4) PASO 3 — LIMPIEZA DE EVIDENCIAS
+--------------------------------------------------------------------------------
+Elementos eliminados bajo evidencias/run-20261111-140320/:
+  - diagnostico_reintento1/__pycache__/diag_precision.cpython-313-pytest-9.0.3.pyc (archivo)
+  - diagnostico_reintento1/__pycache__/ (directorio)
+Ningún otro archivo fue eliminado.
+
+5) PASO 4 Y PASO 5 — NARRATIVOS
+--------------------------------------------------------------------------------
+- Narrativo nuevo creado: evidencias/run-20261111-140320/TC-M05-G14_resultado.md (secciones 1 a 8 completas).
+- Narrativo de ronda 1 actualizado: evidencias/run-20261107-105918/TC-M05-G14_resultado.md
+  * Referencia INC de B03 actualizada a INC-M05-270-G14.
+  * Referencia INC de R2 actualizada a "INC de R2 (bloqueo de login concurrente): no creado".
+  * Añadida línea final de actualización 2026-11-11.
+
+6) PASO 6 — ESCANEO DE SECRETOS FINAL, LISTADO Y GIT STATUS
+--------------------------------------------------------------------------------
+Escaneo de secretos (valores leídos en memoria desde .env.test):
+  - resultados\resultado_TC-M05-G14_reintento1.html -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - resultados\resultado_TC-M05-G14_reintento1.json -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261111-140320\resultado_TC-M05-G14_reintento1.html -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261111-140320\resultado_TC-M05-G14_reintento1.xml -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261111-140320\trazas_http.jsonl -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261111-140320\gen_json_resultado.py -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261111-140320\TC-M05-G14_resultado.md -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261107-105918\TC-M05-G14_resultado.md -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - evidencias\run-20261111-140320\INFORME_PROMOCION_G14.txt -> admin_password: no encontrado | admin_password_ult20: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado (verificado tras escritura)
+
+Contenido actual de resultados/:
+  - .gitkeep (0 bytes)
+  - resultado_TC-M05-G14.html (58300 bytes)
+  - resultado_TC-M05-G14.json (6801 bytes)
+  - resultado_TC-M05-G14_reintento1.html (57430 bytes)
+  - resultado_TC-M05-G14_reintento1.json (7030 bytes)
+
+Salida de git status --short (no se ejecutó git add ni git commit):
+M .gitignore
+ M tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261107-105918/TC-M05-G14_resultado.md
+?? anotaciones/modulo_3/inc_m03_g168_cierre_nota.md
+?? baseline_g165.json
+?? baseline_probe.py
+?? scratch/
+?? scratch_diag_binario_res.json
+?? scratch_diag_candidates.json
+?? scratch_diag_candidates.py
+?? scratch_latencia_res.json
+?? scratch_no_sandbox_res.json
+?? scratch_post_c_res.json
+?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/
+?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/resultados/resultado_TC-M05-G14_reintento1.html
+?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/resultados/resultado_TC-M05-G14_reintento1.json
+?? tests/conftest.py
+
+================================================================================
+ANEXO A — resultados/resultado_TC-M05-G14_reintento1.json
+================================================================================
+{
+  "tc": "TC-M05-G14",
+  "ronda": "reintento1",
+  "run": "run-20261111-140320",
+  "summary": {
+    "total": 30,
+    "ok": 30,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_00_inocuidad_linea_base",
+      "esperado": "200 conteo base, teardown 200 Rollback exitoso",
+      "obtenido": "GET HTTP 200, conteo base=0; teardown HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_01_preparacion",
+      "esperado": "activo INDIVIDUAL id_estado=1, fase abierta POST /fases 201, activo=1",
+      "obtenido": "POST /fases HTTP 201; activo=1 verificado",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01-id_activo_biologico-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['id_activo_biologico']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02-nombre_medicamento-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_medicamento']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03-fecha_aplicacion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04-hora_aplicacion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['hora_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05-via_administracion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['via_administracion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A06-dosis_aplicada-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['dosis_aplicada']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A07-unidad_dosis-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['unidad_dosis']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A08-motivo_aplicacion-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['motivo_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A09-costo_unitario-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['costo_unitario']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A10-nombre_veterinario-omitido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_veterinario']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A11-via_administracion-invalido",
+      "esperado": "400 VIA_ADMINISTRACION_INVALIDA, via_administracion en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VIA_ADMINISTRACION_INVALIDA, fields=['via_administracion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A12-nombre_veterinario-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_veterinario']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A13-unidad_dosis-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['unidad_dosis']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A14-hora_aplicacion-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['hora_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A15-fecha_aplicacion-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "A16-nombre_medicamento-invalido",
+      "esperado": "400 VAL_ENTRADA, campo en fields[], sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['nombre_medicamento']",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_a17_estado_activo_tras_grupo_a",
+      "esperado": "GET /activos-biologicos/853 200, id_estado=1",
+      "obtenido": "GET /activos-biologicos/853 HTTP 200, id_estado=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01-dosis_0",
+      "esperado": "400 E4 dosis mayor a cero, sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=[None]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02-dosis_negativa",
+      "esperado": "400 E4 dosis mayor a cero, sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=[None]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04-motivo_9_caracteres",
+      "esperado": "400 E6 motivo_aplicacion o '10 caracteres', sin persistencia",
+      "obtenido": "HTTP 400 VAL_ENTRADA, fields=['motivo_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "B05-motivo_10_caracteres",
+      "esperado": "201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "obtenido": "POST HTTP 201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "B06-fecha_hoy",
+      "esperado": "201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "obtenido": "POST HTTP 201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "B07-fecha_manana",
+      "esperado": "400 FECHA_FUTURA, sin persistencia",
+      "obtenido": "HTTP 400 FECHA_FUTURA, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "B08-fecha_inicio_ciclo_menos_1",
+      "esperado": "400 FECHA_ANTERIOR_A_CICLO, sin persistencia",
+      "obtenido": "HTTP 400 FECHA_ANTERIOR_A_CICLO, fields=['fecha_aplicacion']",
+      "estado": "OK"
+    },
+    {
+      "paso": "B09-fecha_inicio_ciclo",
+      "esperado": "201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "obtenido": "POST HTTP 201, VALIDADO, sin retiro, conteo +1, activo=1",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_zz_cierre_corrida_principal",
+      "esperado": "DELETE teardown 200 Rollback exitoso",
+      "obtenido": "DELETE HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03-dosis_0.0001",
+      "esperado": "201, VALIDADO, cantidad 0.0001, conteo +1",
+      "obtenido": "POST HTTP 201, VALIDADO, cantidad=0.0001, conteo +1; teardown HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_zz_inocuidad_final",
+      "esperado": "conteo final == base (0), teardown 200 Rollback exitoso",
+      "obtenido": "GET HTTP 200, conteo final=0 (base=0); teardown HTTP 200",
+      "estado": "OK"
+    }
+  ]
+}
+
+================================================================================
+ANEXO B — evidencias/run-20261111-140320/gen_json_resultado.py
+================================================================================
+# | Fecha      | Nombre                   | Que se hizo                                                              |
+# |------------|--------------------------|--------------------------------------------------------------------------|
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G14 RF-76 reintento 1: genera JSON de resultado desde XML y traza |
+"""Genera resultados/resultado_TC-M05-G14_reintento1.json desde JUnit XML y trazas HTTP.
+
+Lee unicamente resultado_TC-M05-G14_reintento1.xml y trazas_http.jsonl de esta
+carpeta de staging y escribe el JSON (UTF-8 sin BOM) en resultados/.
+El estado de cada checkpoint ("OK" o "FALLA") y el resumen se derivan de JUnit.
+No incluye tokens, credenciales ni cabeceras sensibles.
+"""
+from __future__ import annotations
+
+import json
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+AQUI = Path(__file__).resolve().parent
+TC_DIR = AQUI.parents[1]
+JUNIT_PATH = AQUI / "resultado_TC-M05-G14_reintento1.xml"
+TRAZA_PATH = AQUI / "trazas_http.jsonl"
+SALIDA_PATH = TC_DIR / "resultados" / "resultado_TC-M05-G14_reintento1.json"
+
+RUN_NAME = AQUI.name  # run-20261111-140320
+
+_ESP_400_CAMPO = "400 VAL_ENTRADA, campo en fields[], sin persistencia"
+_ESP_201_VALIDO = "201, VALIDADO, sin retiro, conteo +1, activo=1"
+
+ESPERADOS: dict[str, str] = {
+    "test_00_inocuidad_linea_base": "200 conteo base, teardown 200 Rollback exitoso",
+    "test_01_preparacion": "activo INDIVIDUAL id_estado=1, fase abierta POST /fases 201, activo=1",
+    "test_a_rechazo_campos[A01-id_activo_biologico-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A02-nombre_medicamento-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A03-fecha_aplicacion-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A04-hora_aplicacion-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A05-via_administracion-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A06-dosis_aplicada-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A07-unidad_dosis-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A08-motivo_aplicacion-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A09-costo_unitario-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A10-nombre_veterinario-omitido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A11-via_administracion-invalido]": "400 VIA_ADMINISTRACION_INVALIDA, via_administracion en fields[], sin persistencia",
+    "test_a_rechazo_campos[A12-nombre_veterinario-invalido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A13-unidad_dosis-invalido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A14-hora_aplicacion-invalido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A15-fecha_aplicacion-invalido]": _ESP_400_CAMPO,
+    "test_a_rechazo_campos[A16-nombre_medicamento-invalido]": _ESP_400_CAMPO,
+    "test_a17_estado_activo_tras_grupo_a": "GET /activos-biologicos/853 200, id_estado=1",
+    "test_b_valores_limite[B01-dosis_0]": "400 E4 dosis mayor a cero, sin persistencia",
+    "test_b_valores_limite[B02-dosis_negativa]": "400 E4 dosis mayor a cero, sin persistencia",
+    "test_b_valores_limite[B04-motivo_9_caracteres]": "400 E6 motivo_aplicacion o '10 caracteres', sin persistencia",
+    "test_b_valores_limite[B05-motivo_10_caracteres]": _ESP_201_VALIDO,
+    "test_b_valores_limite[B06-fecha_hoy]": _ESP_201_VALIDO,
+    "test_b_valores_limite[B07-fecha_manana]": "400 FECHA_FUTURA, sin persistencia",
+    "test_b_valores_limite[B08-fecha_inicio_ciclo_menos_1]": "400 FECHA_ANTERIOR_A_CICLO, sin persistencia",
+    "test_b_valores_limite[B09-fecha_inicio_ciclo]": _ESP_201_VALIDO,
+    "test_zz_cierre_corrida_principal": "DELETE teardown 200 Rollback exitoso",
+    "test_zz_b03_dosis_minima[B03-dosis_0.0001]": "201, VALIDADO, cantidad 0.0001, conteo +1",
+    "test_zz_inocuidad_final": "conteo final == base (0), teardown 200 Rollback exitoso",
+}
+
+
+def _paso_id(nombre_test: str) -> str:
+    """Devuelve el id parametrizado entre corchetes o el nombre del test."""
+    if "[" in nombre_test and nombre_test.endswith("]"):
+        return nombre_test.split("[", 1)[1][:-1]
+    return nombre_test
+
+
+def _cargar_trazas() -> tuple[dict[str, list[dict]], dict[str, int]]:
+    """Agrupa las trazas HTTP por nombre de test y extrae los conteos de inocuidad."""
+    por_test: dict[str, list[dict]] = {}
+    conteos: dict[str, int] = {}
+    for linea in TRAZA_PATH.read_text(encoding="utf-8").splitlines():
+        if not linea.strip():
+            continue
+        reg = json.loads(linea)
+        if reg.get("tipo") == "conteo":
+            conteos[reg["momento"]] = reg["total_medicamentos"]
+            continue
+        por_test.setdefault(reg["test"], []).append(reg)
+    return por_test, conteos
+
+
+def _fmt_http(reg: dict) -> str:
+    """Formatea codigo HTTP, error_code y campos reportados en la traza."""
+    http_code = reg.get("http")
+    base = f"HTTP {http_code}" if http_code is not None else f"error_conexion={reg.get('error_conexion')}"
+    if reg.get("error_code"):
+        base += f" {reg['error_code']}"
+    campos = [c.get("field") for c in (reg.get("fields") or [])]
+    if campos:
+        base += f", fields={campos}"
+    return base
+
+
+def _obtenido(nombre: str, reqs: list[dict], conteos: dict[str, int], fallo: bool) -> str:
+    """Resume lo observado en la traza HTTP (y resultado JUnit) sin datos sensibles."""
+    post_med = [r for r in reqs if r["metodo"] == "POST" and r["ruta"] == "/suministros/medicamentos"]
+    teardown = [r for r in reqs if r["metodo"] == "DELETE"]
+
+    if nombre == "test_00_inocuidad_linea_base":
+        get_med = [r for r in reqs if r["metodo"] == "GET" and r["ruta"] == "/suministros/medicamentos"]
+        http_get = _fmt_http(get_med[-1]) if get_med else "sin GET"
+        http_del = _fmt_http(teardown[-1]) if teardown else "sin DELETE"
+        return f"GET {http_get}, conteo base={conteos.get('base')}; teardown {http_del}"
+
+    if nombre == "test_zz_inocuidad_final":
+        get_med = [r for r in reqs if r["metodo"] == "GET" and r["ruta"] == "/suministros/medicamentos"]
+        http_get = _fmt_http(get_med[-1]) if get_med else "sin GET"
+        http_del = _fmt_http(teardown[-1]) if teardown else "sin DELETE"
+        return (
+            f"GET {http_get}, conteo final={conteos.get('final')} "
+            f"(base={conteos.get('base')}); teardown {http_del}"
+        )
+
+    if nombre == "test_01_preparacion":
+        fases = [r for r in reqs if r["metodo"] == "POST" and r["ruta"].endswith("/fases")]
+        fase_txt = f"POST /fases {_fmt_http(fases[-1])}" if fases else "fase ya activa"
+        return f"{fase_txt}; activo=1 verificado"
+
+    if nombre == "test_a17_estado_activo_tras_grupo_a":
+        return f"GET /activos-biologicos/853 {_fmt_http(reqs[-1])}, id_estado=1" if reqs else "sin traza"
+
+    if nombre == "test_zz_cierre_corrida_principal":
+        return f"DELETE {_fmt_http(teardown[-1])}" if teardown else "sin DELETE"
+
+    if post_med:
+        d = post_med[-1]
+        texto = _fmt_http(d)
+        if nombre.startswith("test_zz_b03") and d.get("http") == 201 and not fallo:
+            del_txt = _fmt_http(teardown[-1]) if teardown else "sin DELETE"
+            return f"POST {texto}, VALIDADO, cantidad=0.0001, conteo +1; teardown {del_txt}"
+        if d.get("http") == 201 and not fallo:
+            return f"POST {texto}, VALIDADO, sin retiro, conteo +1, activo=1"
+        return texto
+
+    return "sin request registrada"
+
+
+def main() -> None:
+    por_test, conteos = _cargar_trazas()
+    raiz = ET.parse(JUNIT_PATH).getroot()
+
+    checkpoints: list[dict[str, str]] = []
+    vistos: set[str] = set()
+    for caso in raiz.iter("testcase"):
+        nombre = caso.get("name")
+        if not nombre or nombre in vistos:
+            continue
+        vistos.add(nombre)
+        if nombre not in ESPERADOS:
+            raise ValueError(f"Test no mapeado en ESPERADOS: {nombre}")
+        fallo = caso.find("failure") is not None or caso.find("error") is not None
+        checkpoints.append({
+            "paso": _paso_id(nombre),
+            "esperado": ESPERADOS[nombre],
+            "obtenido": _obtenido(nombre, por_test.get(nombre, []), conteos, fallo),
+            "estado": "FALLA" if fallo else "OK",
+        })
+
+    ok = sum(1 for c in checkpoints if c["estado"] == "OK")
+    falla = sum(1 for c in checkpoints if c["estado"] == "FALLA")
+    resultado = {
+        "tc": "TC-M05-G14",
+        "ronda": "reintento1",
+        "run": RUN_NAME,
+        "summary": {
+            "total": len(checkpoints),
+            "ok": ok,
+            "falla": falla,
+            "veredicto": "Rechazado" if falla else "Aprobado",
+        },
+        "checkpoints": checkpoints,
+    }
+
+    SALIDA_PATH.write_text(json.dumps(resultado, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"Generado {SALIDA_PATH.relative_to(TC_DIR)}: total={len(checkpoints)}, ok={ok}, falla={falla}")
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+ANEXO C — evidencias/run-20261111-140320/TC-M05-G14_resultado.md
+================================================================================
+# TC-M05-G14 — Resultado de reevaluación (Reintento 1, `run-20261111-140320`)
+
+| Campo | Valor |
+|---|---|
+| Caso | TC-M05-G14 — Rechazo de campos obligatorios y valores límite en el registro de medicamentos |
+| Requerimiento | RF-76 (Registro de aplicación de medicamentos) |
+| Caso de uso | CU03 |
+| Endpoint | `POST /suministros/medicamentos` |
+| Ambiente | TEST (`TEST_BASE_URL` de `.env.test`) |
+| Fecha | 2026-11-11 (corrida `run-20261111-140320`) |
+| Activo | 853 (`INDIVIDUAL`, `id_estado=1`, `periodo_retiro_dias=0` en todos los POST) |
+| Scripts oficiales | `test_tc_m05_g14.py` (`A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D`), `ejecutar_tc_m05_g14.ps1` (`01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536`), sin cambios |
+| Reportes promovidos | `resultados/resultado_TC-M05-G14_reintento1.html` y `resultados/resultado_TC-M05-G14_reintento1.json` |
+
+---
+
+## 1. Contexto
+
+Reevaluación de **INC-M05-270-G14** (registrado en ronda 1 `run-20261107-105918` por fallo HTTP 500 `ERROR_INTERNO` en B03 `dosis_aplicada=0.0001`) tras la corrección aplicada en **Dev #954**:
+
+- **Migración `d2e71a4c980b`**: amplía `modulo5.registros_medicamentos.cantidad` de `numeric(10,3)` a `numeric(10,4)` (recreando la vista `modulo5.vw_m05_aplicacion_medicamentos`).
+- **DTO (`RegistrarMedicamentoDTO`)**: `dosis_aplicada` con `max_digits=10` y `decimal_places=4`.
+- **Traductor de errores (`src/shared/db_error_translator.py`)**: mapea el `P0001` del trigger `modulo5.fn_trg_calcular_costo_total_medicamento` (`CANTIDAD_INVALIDA` / `COSTO_INVALIDO`) a HTTP **400** `VAL_ENTRADA`.
+
+---
+
+## 2. Control de despliegue
+
+Se separa estrictamente lo observado en el ambiente **TEST** (consultas `SELECT` de solo lectura vía `POST /test-control/query` dentro de corrida sandbox cerrada con `DELETE` 200) de la lectura del código fuente local.
+
+### 2.1 Hechos observados en TEST
+
+- **Columna objetivo** (`X-Request-ID: 152df084-0762-4a02-a9f3-00f2c4957706`):
+  - `modulo5.registros_medicamentos.cantidad`: `data_type=numeric`, `numeric_precision=10`, `numeric_scale=4` (**Gate aprobado**).
+- **Versión Alembic en TEST** (`X-Request-ID: cf854b29-e5c5-45b6-aad3-9f31ea9e3d22`, `0396fa0d-6855-4675-b492-2ce6dbdc82ed`):
+  - `public.alembic_version.version_num = "143fa2eda4fc"`.
+- **Precisión y escala de columnas relacionadas en `modulo5`** (`X-Request-ID: b9c0ab96-537f-48fd-90b8-c1e963d68e88`):
+  - `registros_medicamentos.cantidad`: `numeric(10, 4)`
+  - `registros_medicamentos.costo_unitario_medicamento`: `numeric(10, 4)`
+  - `registros_medicamentos.costo_total_medicamento`: `numeric(12, 4)`
+  - `registros_medicamentos.dosis_por_individuo`: `numeric(10, 4)`
+  - `registro_suministro.cantidad`: `numeric(10, 4)`
+  - `registro_suministro.precio_unitario_resuelto`: `numeric(10, 2)`
+  - `registro_suministro.costo_registro`: `numeric(14, 4)`
+  - `acumulado_ciclo.acumulado_total_ciclo`: `numeric(16, 4)`
+  - `auditorias_suministros.costo_afectado`: `numeric(16, 4)`
+  - `reporte_gastos_acumulados.{total_costo_alimento, total_costo_medicamento, total_costo_directo}`: `numeric(16, 4)`
+
+### 2.2 Lectura de código local (no constituye prueba de despliegue)
+
+- `alembic/versions/d2e71a4c980b_rf76_precision_dosis_cuatro_decimales.py` existe y es ancestro de `143fa2eda4fc` (head local).
+- `src/supplies/infrastructure/models/registro_medicamento_model.py` (línea 60) define `cantidad` como `Numeric(10, 4)`.
+- `src/supplies/infrastructure/dto/registrar_medicamento_dto.py` define `dosis_aplicada: Decimal = Field(max_digits=10, decimal_places=4, ...)`.
+- `src/shared/db_error_translator.py` (líneas 92-100) traduce `(P0001, modulo5.fn_trg_calcular_costo_total_medicamento)` (`CANTIDAD_INVALIDA` y `COSTO_INVALIDO`) a `ValidationError` 400 `VAL_ENTRADA`.
+
+---
+
+## 3. Evaluación oficial (Reintento 1)
+
+Ejecución sin cambios del runner oficial `ejecutar_tc_m05_g14.ps1 -Reintento 1 -ActivoId 853`:
+
+- **Resultado global**: **30 tests ejecutados: 30 passed / 0 failed / 0 errors / 0 skipped** (duración `18.042s` JUnit / `18.11s` pytest).
+  - Infraestructura: **5/5 PASSED** (`test_00_inocuidad_linea_base`, `test_01_preparacion`, `test_a17_estado_activo_tras_grupo_a`, `test_zz_cierre_corrida_principal`, `test_zz_inocuidad_final`).
+  - Subcaso A (`A01`–`A16`): **16/16 PASSED**.
+  - Subcaso B (`B01`–`B09`): **9/9 PASSED**.
+- **Aserciones verificadas en B03 (`test_zz_b03_dosis_minima[B03-dosis_0.0001]`)**:
+  B03 no verifica únicamente HTTP 201; en `_assert_registro_valido` y `test_zz_b03_dosis_minima` valida:
+  1. `resp.status_code == 201`
+  2. `medicamento.get("estado_registro") == "VALIDADO"`
+  3. `medicamento.get("fecha_fin_retiro") is None`
+  4. `despues == antes + 1` (incremento de conteo de medicamentos del activo 853)
+  5. `estado == 1` (`ESTADO_ACTIVO`)
+  6. `recibido is not None` (`cantidad` presente en la respuesta) y parseable como `Decimal`
+  7. `cantidad == Decimal("0.0001")`
+  8. Teardown de corrida `DELETE /test-control/runs/{run_id}` con HTTP `200` y `"Rollback exitoso"`.
+- **Inocuidad**: conteo base en activo 853 = **0**; conteo final tras rollback de todas las corridas = **0** (`0/0`, sin contaminación).
+- **Integridad SHA-256 (antes y después)**:
+  - `test_tc_m05_g14.py`: `A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D` (sin cambios).
+  - `ejecutar_tc_m05_g14.ps1`: `01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536` (sin cambios).
+
+---
+
+## 4. Diagnóstico del criterio de re-prueba (`D01`–`D12`)
+
+> **Nota**: Esta sección corresponde al script auxiliar `diagnostico_reintento1/diag_precision.py` (3/3 tests PASSED en corrida sandbox única con un solo login, inocuidad `0/0`). **NO constituye un reporte oficial**; complementa la evaluación oficial verificando los límites de `numeric(10,4)` y su impacto en el costeo.
+
+| ID | Dosis JSON | CU | Origen | Esperado | HTTP | `error_code` | Resp `cantidad` | Resp `costo_total` | `X-Request-ID` | Resultado |
+|---|---|---|---|---|---:|---|---|---|---|---|
+| D01 | `0.0001` | 500 | [especificación + Dev] | 201, cant `0.0001`, costo `0.0500` | 201 | `null` | `0.0001` | `0.0500` | `3765a21a-9f65-495a-af61-ba27ec16b000` | OK |
+| D02 | `0.0004` | 500 | [contrato Dev] | 201, cant `0.0004`, costo `0.2000` | 201 | `null` | `0.0004` | `0.2000` | `cf0c3f80-07bb-45f4-9e62-6b23af7268c7` | OK |
+| D03 | `0.0005` | 500 | [criterio INC] | 201, cant `0.0005`, costo `0.2500` | 201 | `null` | `0.0005` | `0.2500` | `54b6776f-3379-4d3e-9162-55aba9b73c3b` | OK |
+| D04 | `0.0015` | 500 | [criterio INC] | 201, cant `0.0015`, costo `0.7500` | 201 | `null` | `0.0015` | `0.7500` | `03f943e8-010a-4981-bbfc-96c6cac87fed` | OK |
+| D05 | `0.001` | 500 | [control] | 201, cant `0.001` | 201 | `null` | `0.0010` | `0.5000` | `9b4c81c4-fe82-4a7f-9edd-308cee5d94e9` | OK |
+| D06 | `0.00001` | 500 | [contrato Dev] | 400 `VAL_ENTRADA`, sin persistencia | 400 | `VAL_ENTRADA` | `null` | `null` | `701a02f5-9373-49d6-a671-ee403ecf16df` | OK |
+| D07 | `1.23456` | 500 | [contrato Dev] | 400, sin persistencia | 400 | `VAL_ENTRADA` | `null` | `null` | `017c619a-7248-4d8f-94e9-c2035c190c0a` | OK |
+| D08 | `0.00010` | 500 | [contrato Dev] | 201, cant `0.0001` | 201 | `null` | `0.0001` | `0.0500` | `c3a99b2f-72e3-4285-8aa0-6b69850c3395` | OK |
+| D09 | `0` | 500 | [especificación E4] | 400, sin persistencia | 400 | `VAL_ENTRADA` | `null` | `null` | `ad25fa54-ee0f-44c1-ac64-88ee2e23fa40` | OK |
+| D10 | `999999.9999` | 1 | [contrato Dev / máx 10,4] | 201, cant `999999.9999` | 201 | `null` | `999999.9999` | `999999.9999` | `3fccd3fe-260a-4a2b-b2b6-fd2328c1e625` | OK |
+| D11 | `1000000` | 1 | [contrato Dev] | 400, sin persistencia | 400 | `VAL_ENTRADA` | `null` | `null` | `8e8a82f6-c2bd-47ef-ad42-217abfd327bf` | OK |
+| D12 | `10` | 500 | [control post-400] | 201 (corrida sana tras 400) | 201 | `null` | `10.0000` | `5000.0000` | `3878e939-ea7b-4f18-9437-44434dae1e0a` | OK |
+
+---
+
+## 5. Limitación de inspección directa en BD
+
+- **Hecho observado**: Las consultas `SELECT` vía `POST /test-control/query` sobre `modulo5.registros_medicamentos` (ids `246`–`253`), `modulo5.registro_suministro` (`90de25a0-6a51-4820-a127-7261c9033c08`, `134dfbe8-f824-4551-9bee-21f272652a74`) y `modulo5.acumulado_ciclo` (`61563705-1b24-45f3-91c6-f6a0fe3b3020`) respondieron `HTTP 200` con `0` filas visibles (`{"data": []}`).
+- **Inferencia**: Consistente con políticas RLS de `modulo5` cuando `/test-control/query` ejecuta sin variables de contexto de sesión de usuario.
+- **Respaldo de persistencia a 4 decimales**: Dentro de la misma corrida sandbox de diagnóstico, la API autenticada `GET /suministros/costeo-directo/acumulado/activo/853` (`X-Request-ID: c97f35c6-0d5e-48b7-8481-6188554d3081`) devolvió `HTTP 200` con `acumulado_total_ciclo = "1005001.7999"`, que coincide exactamente con la suma aritmética a cuatro decimales de los 8 registros creados (`0.0500 + 0.2000 + 0.2500 + 0.7500 + 0.5000 + 0.0500 + 999999.9999 + 5000.0000 = 1005001.7999`).
+
+---
+
+## 6. Veredicto
+
+- **Veredicto oficial**: **Aprobado** (`30/30` passed en Reintento 1, `run-20261111-140320`).
+- **INC-M05-270-G14**: **corregido y verificado en TEST el 2026-11-11**.
+
+---
+
+## 7. Observaciones para Análisis (no son defectos de este caso)
+
+1. **`costo_total_medicamento` en `numeric(12,4)`**: Con la dosis máxima permitida (`999999.9999`) y un `costo_unitario` alto (p. ej. `>= 1000`), el producto puede desbordar `numeric(12,4)` (máximo `99999999.9999`). No es exigido por la especificación actual de TC-M05-G14; por ello en D10/D11 se usó `costo_unitario = 1`.
+2. **`registro_suministro.precio_unitario_resuelto` en `numeric(10,2)`**: En `information_schema.columns` de TEST se observó escala `2` frente a `costo_unitario_medicamento` con escala `4`. Corresponde al alcance de RF-78 y no fue probado en este caso.
+
+---
+
+## 8. Archivos resultantes
+
+Rutas relativas a `tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/`:
+
+- **`resultados/`**:
+  - `resultados/resultado_TC-M05-G14_reintento1.html` — reporte oficial pytest-html promovido desde el staging validado.
+  - `resultados/resultado_TC-M05-G14_reintento1.json` — reporte oficial con los 30 checkpoints (`Aprobado`, `30/30 OK`).
+  - `resultados/resultado_TC-M05-G14.html` — reporte histórico de ronda 1 (`Rechazado`), conservado sin cambios.
+  - `resultados/resultado_TC-M05-G14.json` — JSON histórico de ronda 1 (`29 OK / 1 FALLA`), conservado sin cambios.
+  - `resultados/.gitkeep`
+- **`evidencias/run-20261111-140320/`**:
+  - `resultado_TC-M05-G14_reintento1.html` — copia original de la corrida.
+  - `resultado_TC-M05-G14_reintento1.xml` — JUnit XML (conservado en evidencias).
+  - `console_execution.log` — salida de consola de pytest.
+  - `trazas_http.jsonl` — trazas HTTP y conteos de inocuidad.
+  - `gen_json_resultado.py` — script generador de `resultados/resultado_TC-M05-G14_reintento1.json`.
+  - `TC-M05-G14_resultado.md` — este informe narrativo.
+  - `INFORME_PROMOCION_G14.txt` — informe técnico de promoción y anexos.
+  - `INFORME_REEVALUACION_G14.txt` — informe técnico de reevaluación.
+  - `diagnostico_reintento1/` — script `diag_precision.py`, `diag_resultados.json` y `console_diag.log`.
+
+================================================================================
+ANEXO D — git diff evidencias/run-20261107-105918/TC-M05-G14_resultado.md
+================================================================================
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261107-105918/TC-M05-G14_resultado.md b/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261107-105918/TC-M05-G14_resultado.md
+index 22403f52..548016dc 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261107-105918/TC-M05-G14_resultado.md
++++ b/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261107-105918/TC-M05-G14_resultado.md
+@@ -65,7 +65,7 @@ El 500 general de la corrida anterior ya no aparece: B05, B06 y B09 responden 20
+ ## Defectos
+ 
+ ### B03 — una dosis de 4 decimales provoca 500 en lugar de persistirse (NUEVO)
+-- **INC-M05-NN-G14: pendiente de crear en Taiga.**
++- **INC-M05-270-G14.**
+ - **Esperado (especificación):** `dosis_aplicada` decimal(10,4) > 0. Con 0.0001, HTTP 201, registro VALIDADO, conteo +1 y `cantidad` = 0.0001.
+ - **Obtenido:** HTTP **500**, `error_code` **`ERROR_INTERNO`**. No se devuelve `cantidad`, así que no hay valor que comparar como Decimal.
+ - **Causa probable (inferencia apoyada en el esquema de TEST, consultado en solo lectura después de esta corrida):**
+@@ -76,7 +76,7 @@ El 500 general de la corrida anterior ya no aparece: B05, B06 y B09 responden 20
+ - **Impacto:** las dosis con cuatro decimales no se pueden registrar. Las de tres o menos no se ven afectadas, salvo que el cuarto decimal se trunca en silencio.
+ 
+ ### R2 — login bloqueado si otra corrida sandbox con la misma cuenta sigue abierta (vigente, de ambiente)
+-- **INC-M05-NN-G14: pendiente de crear en Taiga** (registrado en la corrida previa).
++- **INC de R2 (bloqueo de login concurrente): no creado** (registrado en la corrida previa).
+ - No afectó a esta corrida: todas las corridas se cerraron antes del siguiente login.
+ 
+ ## Observaciones para Análisis (no son defectos)
+@@ -110,3 +110,5 @@ Rutas relativas a `tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/`:
+ - `evidencias/run-20261107-095931/` — corrida previa a la corrección (HTML, XML, JSON, narrativo y repeticiones).
+ - `evidencias/diagnostico_R3/` — diagnóstico del 500 anterior.
+ - `evidencias/run-20261107-093850/` — corrida bloqueada por ambiente (activo 930).
++
++Actualización 2026-11-11: INC-M05-270-G14 corregido (Dev #954); reintento 1 Aprobado 30/30 en run-20261111-140320.

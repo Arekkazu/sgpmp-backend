@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: permitir lectura exclusiva para las transiciones de estado. |
 """Puerto del repositorio de ejecuciones del batch ICA (RF-74)."""
 from __future__ import annotations
 
@@ -19,7 +22,8 @@ class EjecucionBatchICARepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def obtener(self, id_ejecucion: int) -> Optional[EjecucionBatchICA]:
+    def obtener(self, id_ejecucion: int, *, para_actualizar: bool = False) -> Optional[EjecucionBatchICA]:
+        """Lee la corrida y la bloquea hasta terminar la transacción si se va a modificar."""
         raise NotImplementedError
 
     @abstractmethod

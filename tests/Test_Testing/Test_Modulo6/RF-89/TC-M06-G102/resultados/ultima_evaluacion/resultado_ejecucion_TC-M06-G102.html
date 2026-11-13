@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G102 — subcasos 16, 17 y 18</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code { font-family: Consolas, monospace; }
+    .ok { display: inline-block; background: #e5f6ea; border: 1px solid #8bc79a; border-radius: 4px; padding: .1rem .45rem; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-89 · TC-M06-G102</p>
+  <h1>Registro de precios de la especie 424</h1>
+  <p>Identificador vigente TC-M06-G102. Nombre histórico TC-M06-G74. Entorno TEST. 2026-11-10. Usuario Contador. Especie 424, Ovino Qa Precios.</p>
+  <p><span class="ok">APROBADO</span> en los subcasos TC-M06-16, TC-M06-17 y TC-M06-18. Cada POST se envió una vez. El caso completo no se reclasifica aquí: los subcasos 19, 20 y 21 conservan su evaluación del 8 de noviembre.</p>
+
+  <h2>Dependencia del precio 436</h2>
+  <p>La API de precios solo expone <code>GET /finanzas/precios</code> y <code>POST /finanzas/precios</code>. No hay una operación para editar, borrar o cerrar la vigencia del precio 436. El alta es acumulativa: el registro anterior permanece y, al leer, el servicio marca como <code>SUPERADO</code> al precio de la misma fuente que deja de ser el más reciente.</p>
+  <p>Antes del alta, el 436 estaba ACTIVO y aplicado, y el 437 estaba ACTIVO y no aplicado. El umbral era 50 %. Había cero activos reconocidos de la especie 424. La consulta biológica por especie sigue fuera del alcance del Contador, así que no se afirma la ausencia de activos no reconocidos.</p>
+  <p>El subcaso 16 es la operación que reemplaza la referencia aplicada. No se ejecutaron TC-M06-32 ni TC-M06-33. Después del alta, la referencia vigente de <code>MERCADO_ACTIVO</code> es el precio 489, por 5.000.000. El 436 sigue en el historial, con el mismo importe y la misma fecha, en estado <code>SUPERADO</code>.</p>
+
+  <h2>Subcasos</h2>
+  <table>
+    <tr><th>Subcaso</th><th>HTTP</th><th>Precio</th><th>Lectura posterior</th><th>Auditoría</th><th>Resultado</th></tr>
+    <tr><td>TC-M06-16</td><td>201</td><td>489, MERCADO_ACTIVO, 5.000.000, cabeza, vigencia 2026-11-10, ACTIVO y aplicado. Desviación 25 %.</td><td>Un solo registro con ese importe y fuente. El 436 quedó SUPERADO.</td><td>12902 <code>PRECIO_REGISTRADO</code>. 12903 <code>PRECIO_MARCADO_REEMPLAZADO</code>, anterior 436.</td><td>APROBADO</td></tr>
+    <tr><td>TC-M06-17</td><td>201</td><td>490, UPRA, 4.800.000, cabeza, vigencia 2026-11-10, ACTIVO. No queda aplicado porque el mercado activo tiene prioridad. Desviación 23,0769 % frente al 437.</td><td>La lectura inmediata anterior seguía mostrando el 437 como único UPRA activo. Después quedó SUPERADO.</td><td>12904 <code>PRECIO_REGISTRADO</code>. 12905 <code>PRECIO_MARCADO_REEMPLAZADO</code>, anterior 437.</td><td>APROBADO</td></tr>
+    <tr><td>TC-M06-18</td><td>201</td><td>491, ESTIMADA, 4.500.000, cabeza, vigencia 2026-11-10, ACTIVO y no aplicado. No hubo desviación porque no existía una estimación anterior.</td><td>La evidencia y la justificación de más de 50 caracteres quedaron guardadas.</td><td>12906 <code>PRECIO_REGISTRADO</code>. No hubo evento de reemplazo.</td><td>APROBADO</td></tr>
+  </table>
+
+  <h2>Catálogo final de la especie 424</h2>
+  <table>
+    <tr><th>Id</th><th>Fuente</th><th>Precio</th><th>Vigencia</th><th>Estado</th><th>Aplicado</th></tr>
+    <tr><td>489</td><td>MERCADO_ACTIVO</td><td>5.000.000,00</td><td>2026-11-10</td><td>ACTIVO</td><td>Sí</td></tr>
+    <tr><td>490</td><td>UPRA</td><td>4.800.000,00</td><td>2026-11-10</td><td>ACTIVO</td><td>No</td></tr>
+    <tr><td>491</td><td>ESTIMADA</td><td>4.500.000,00</td><td>2026-11-10</td><td>ACTIVO</td><td>No</td></tr>
+    <tr><td>437</td><td>UPRA</td><td>3.900.000,00</td><td>2026-11-09</td><td>SUPERADO</td><td>No</td></tr>
+    <tr><td>436</td><td>MERCADO_ACTIVO</td><td>4.000.000,00</td><td>2026-11-01</td><td>SUPERADO</td><td>No</td></tr>
+  </table>
+  <p>Son cinco identificadores distintos. No hay un segundo registro del mismo importe y fuente.</p>
+
+  <h2>Pendiente de contrato y de regresión</h2>
+  <p>RF-89 v1.1 pide HTTP 400 cuando la justificación estimada tiene menos de 50 caracteres. En <code>laura</code> ese rechazo sigue asociado a HTTP 422 y el PR #1024 no se dio por desplegado. No se envió una justificación corta. Los subcasos 19, 20 y 21 no se ejecutaron. TC-M06-32 y TC-M06-33 tampoco. La referencia vigente que esos dos subcasos necesitaban, 4.000.000, ya no es el precio aplicado; el registro 436 permanece como historia superada.</p>
+  <ul>
+    <li><a href="resumen_ejecucion_TC-M06-G102.json">resumen_ejecucion_TC-M06-G102.json</a></li>
+    <li><a href="evidencias_ejecucion_TC-M06-G102.json">evidencias_ejecucion_TC-M06-G102.json</a></li>
+    <li><a href="../comparacion_evaluaciones.html">Comparación</a></li>
+  </ul>
+</body>
+</html>

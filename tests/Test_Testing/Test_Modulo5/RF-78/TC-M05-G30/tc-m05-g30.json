@@ -113,16 +113,20 @@
       "value": "8469a9ce-0a52-47fd-9f72-753a6c0c8fb2"
     },
     {
+      "key": "uuid_rafaga2_v4",
+      "value": "36de50bb-e964-40d5-8be9-6e913c15a8b2"
+    },
+    {
       "key": "r1_200",
       "value": "20"
     },
     {
       "key": "r2_ya_procesado",
-      "value": "16"
+      "value": "19"
     },
     {
       "key": "r2_409",
-      "value": "3"
+      "value": "0"
     }
   ],
   "item": [
@@ -524,6 +528,31 @@
           "name": "PRE - Aptitud del activo A para los casos",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -598,6 +627,31 @@
         {
           "name": "PRE - Ultima auditoria",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -735,6 +789,31 @@
           "name": "TC-M05-046 - Eventos del ciclo GF_A en esta corrida",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -774,6 +853,31 @@
         {
           "name": "TC-M05-046b - fecha_evento <= 2 s de la operacion, medido en los registros reales de TEST (fuera del sandbox)",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -820,6 +924,31 @@
           "name": "TC-M05-047 - Registros de las rafagas concurrentes (activo A, precio 4321)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let saltar_sql = false;",
+                  "if (!saltar_sql) {",
+                  "if (pm.variables.get('sandbox_secret') && pm.collectionVariables.get('run_id')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}/sesiones/'), method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' },",
+                  "             { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') },",
+                  "             { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') },",
+                  "             { key: 'X-Zona-Horaria', value: 'America/Bogota' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: pm.variables.get('correo_admin'),",
+                  "                                               contrasena: pm.variables.get('contrasena_admin') }) } },",
+                  "    (e, r) => {",
+                  "      if (e || !r || r.code !== 200) { console.warn('Identidad para la consulta: login Administrador fallo ' + (r ? r.code : e)); return; }",
+                  "      // Sesion unica: el login revoca el token anterior del Administrador, asi que se reemplaza tok_admin.",
+                  "      pm.collectionVariables.set('tok_admin', r.json().token);",
+                  "    });",
+                  "}",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -830,9 +959,9 @@
                   "const f = filas[0] || {};",
                   "pm.test('TC-M05-047a - rafaga 1: los 20 registros simultaneos distintos quedaron guardados (20 UUID)', () => pm.expect(Number(f.rafaga1)).to.eql(20));",
                   "pm.test('TC-M05-047a - rafaga 1: las 20 respuestas fueron 200 REGISTRADO, ninguna 500', () => pm.expect(Number(pm.collectionVariables.get('r1_200'))).to.eql(20));",
-                  "pm.test('TC-M05-047b - rafaga 2: exactamente 1 registro con el UUID repetido 20 veces', () => pm.expect(Number(f.con_uuid_rafaga2)).to.eql(1));",
-                  "pm.test('TC-M05-047 - ledger sin duplicados: 21 registros, 21 UUID, suma 998151 (4321 x 231)', () => { pm.expect(Number(f.registros)).to.eql(21); pm.expect(Number(f.uuids)).to.eql(21); pm.expect(Number(f.suma)).to.eql(998151); });",
-                  "pm.test('TC-M05-047b - rafaga 2: las 19 replicas responden 200 YA_PROCESADO (real: ' + pm.collectionVariables.get('r2_ya_procesado') + ' YA_PROCESADO y ' + pm.collectionVariables.get('r2_409') + ' 409 RECURSO_DUPLICADO; INC-M05-341-G30)', () => pm.expect(Number(pm.collectionVariables.get('r2_ya_procesado'))).to.eql(19));"
+                  "pm.test('TC-M05-047b - rafaga 2: exactamente 1 registro con el UUID repetido 20 veces (2026-11-09 y 2026-11-12)', () => { pm.expect(Number(f.con_uuid_rafaga2)).to.eql(1); pm.expect(Number(f.con_uuid_rafaga2_v4)).to.eql(1); });",
+                  "pm.test('TC-M05-047 - ledger sin duplicados: un registro por UUID (' + f.registros + ' / ' + f.uuids + ') y suma = 4321 x cantidad total (' + f.suma + ')', () => { pm.expect(Number(f.registros)).to.eql(Number(f.uuids)); pm.expect(Number(f.suma)).to.eql(4321 * Number(f.cantidad_total)); });",
+                  "pm.test('TC-M05-047b - rafaga 2 (2026-11-12, tras el arreglo): las 19 replicas responden 200 YA_PROCESADO (real: ' + pm.collectionVariables.get('r2_ya_procesado') + ' YA_PROCESADO y ' + pm.collectionVariables.get('r2_409') + ' 409; el 2026-11-09 fueron 16 y 3, INC-M05-341-G30)', () => { pm.expect(Number(pm.collectionVariables.get('r2_ya_procesado'))).to.eql(19); pm.expect(Number(pm.collectionVariables.get('r2_409'))).to.eql(0); });"
                 ]
               }
             }
@@ -848,7 +977,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT count(*) AS registros, count(DISTINCT id_idempotencia) AS uuids, coalesce(sum(costo_registro), 0) AS suma, count(*) FILTER (WHERE id_idempotencia::text = '{{uuid_rafaga2}}') AS con_uuid_rafaga2, count(*) FILTER (WHERE cantidad BETWEEN 1 AND 20) AS rafaga1 FROM modulo5.registro_suministro WHERE id_activo_biologico = {{id_activo_a}} AND precio_unitario_resuelto = 4321 AND tipo_operacion::text = 'REGISTRO'\"}",
+              "raw": "{\"query\": \"SELECT count(*) AS registros, count(DISTINCT id_idempotencia) AS uuids, coalesce(sum(costo_registro), 0) AS suma, count(*) FILTER (WHERE id_idempotencia::text = '{{uuid_rafaga2}}') AS con_uuid_rafaga2, count(*) FILTER (WHERE id_idempotencia::text = '{{uuid_rafaga2_v4}}') AS con_uuid_rafaga2_v4, coalesce(sum(cantidad), 0) AS cantidad_total, count(*) FILTER (WHERE cantidad BETWEEN 1 AND 20) AS rafaga1 FROM modulo5.registro_suministro WHERE id_activo_biologico = {{id_activo_a}} AND precio_unitario_resuelto = 4321 AND tipo_operacion::text = 'REGISTRO'\"}",
               "options": {
                 "raw": {
                   "language": "json"

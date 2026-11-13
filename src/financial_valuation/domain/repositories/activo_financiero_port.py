@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
 # | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
+# | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 """Puerto de lectura de M02/M09 para M06: el activo, su finca y su titular."""
 from __future__ import annotations
 
@@ -17,8 +18,8 @@ class ActivoFinancieroPort(ABC):
     def obtener(self, id_activo_biologico: int) -> Optional[DatosActivo]: ...
 
     @abstractmethod
-    def listar_sin_reconocimiento(self) -> list[DatosActivo]:
-        """Activos visibles para el usuario sin reconocimiento CONFIRMADO (propuestas de RF-82)."""
+    def listar_sin_reconocimiento(self, numero_id_tributaria: Optional[str] = None) -> list[DatosActivo]:
+        """Activos visibles para el usuario sin reconocimiento CONFIRMADO (propuestas de RF-82), del titular si se da."""
 
     @abstractmethod
     def listar_reconocidos(self, numero_id_tributaria: str) -> list[DatosActivo]:

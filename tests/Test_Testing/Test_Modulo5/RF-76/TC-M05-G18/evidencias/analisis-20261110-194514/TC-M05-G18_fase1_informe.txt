@@ -1,0 +1,1147 @@
+================================================================================
+INFORME DE FASE 1 - ANALISIS + PRUEBA REAL DEL CAMINO FELIZ
+Caso: TC-M05-G18 | RF-76 "Integracion con RF-44 y fallas de persistencia"
+Subcasos: S1 (043 / orig 011), S2 (044 / orig 012), S3 (047 / orig 042)
+Fecha (America/Bogota): 2026-11-10
+Directorio de analisis: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/analisis-20261110-194514/
+================================================================================
+
+1. RESUMEN EJECUTIVO
+--------------------------------------------------------------------------------
+Se completo la Fase 1 (solo analisis, consultas read-only en TEST y smoke test
+real del camino feliz con periodo_retiro_dias = 0) para TC-M05-G18 sin crear el
+script definitivo de pruebas, sin modificar codigo del backend, sin tocar casos
+previos y garantizando inocuidad total tras el rollback de cada corrida sandbox.
+
+Conclusiones principales:
+- Camino feliz HTTP en TEST: VIABLE y VERIFICADO (`smoke_g18.py`). Sobre el activo
+  `853` (limpio, 0 medicamentos previos), abriendo fase dentro del sandbox
+  (`id_ciclo_productiva=5`), `POST /suministros/medicamentos` con
+  `periodo_retiro_dias=0` respondio `HTTP 201` tanto para `fecha_aplicacion=hoy`
+  (`2026-11-10`) como para fecha retroactiva (`2026-11-04`, hoy - 6 dias >=
+  `fecha_inicio_ciclo 2026-10-22`), con conteo post-rollback igual a `0` (`HTTP 200
+  Rollback exitoso` en todas las corridas).
+- S1 (043/011 - Scheduler diario de reversión de retiro): PARCIALMENTE BLOQUEADO
+  para prueba E2E por HTTP en TEST (el scheduler `_revertir_retiros_vencidos_diariamente`
+  corre unicamente a las 03:00 via `asyncio.create_task` sin endpoint manual ni
+  capacidad de avanzar reloj; abre su propia sesion BD fuera del sandbox HTTP; y
+  registrar retiro > 0 en TEST dispara SMTP real irreversible). Viable en proceso
+  sobre `RevertirRetirosVencidosUseCase` con sesion/dobles controlados. Ademas se
+  detecto una brecha de producto en `[LECTURA DE CODIGO]`
+  (`notificacion_medicamento_email_adapter.py:72-79`): `notificar_fin_retiro`
+  SOLO envia correo al Productor y NO al Veterinario.
+- S2 (044/012 - Falla RF-44 al pasar a EN_TRATAMIENTO): BLOQUEADO por HTTP en TEST
+  (no existe inyeccion de fallos en `/test-control`), pero 100% VIABLE EN PROCESO
+  con `TestClient` + `dependency_overrides` + `monkeypatch`. En codigo ya esta
+  resuelto el conflicto FA-10 vs E10 a favor de RF-76 E10: rollback atomico +
+  `HTTP 500` con `error_code="ERROR_ESTADO_EN_TRATAMIENTO"`.
+- S3 (047/042 - Falla calculo `fecha_fin_retiro` / BD): BLOQUEADO por HTTP en TEST;
+  VIABLE EN PROCESO con `TestClient` + `dependency_overrides` + `monkeypatch` para
+  fallo de persistencia (FA-13). `fecha_fin_retiro` (FA-09) es aritmetica pura en
+  Python sin `try/except` propio ni auditoria separada.
+
+--------------------------------------------------------------------------------
+2. HALLAZGOS DEL CODIGO Y AMBIENTE (A1 - A7) [LECTURA DE CODIGO]
+--------------------------------------------------------------------------------
+
+[A1] Flujo de POST /suministros/medicamentos, RBAC, RF-44 y errores HTTP
+- [LECTURA DE CODIGO] Router y RBAC:
+  * `src/supplies/infrastructure/routers/medicamento_router.py:44,47-51,74`:
+    `_RECURSO = 48` (`medicamentos`), accion `1` (`C`). El endpoint `POST ""`
+    usa `dependencies=[Depends(require_permission(_RECURSO, 1))]`, retorna
+    `status_code=201` por defecto y cambia a `200` solo cuando
+    `resultado.mensaje is not None` para activo ya `EN_TRATAMIENTO`.
+  * `src/shared/rbac.py:23-40,69-114,136-162`: `require_permission` consulta
+    `modulo1.permisos` (`es_activo IS TRUE`). Si la cuenta no esta activa
+    (`ESTADO_ACTIVO`) lanza `AuthorizationError("CUENTA_NO_ACTIVA")` (HTTP 403);
+    si el rol no tiene el permiso lanza `AuthorizationError("ACCESO_DENEGADO")`
+    (HTTP 403).
+- [LECTURA DE CODIGO] DTO y Use Case:
+  * `src/supplies/infrastructure/dto/registrar_medicamento_dto.py:26-65`:
+    Exige `id_activo_biologico (>0)`, `nombre_medicamento`, `fecha_aplicacion`,
+    `hora_aplicacion`, `via_administracion`, `dosis_aplicada (>0)`,
+    `unidad_dosis`, `periodo_retiro_dias (default 0, >=0)`,
+    `motivo_aplicacion (strip >= 10, max 500)`, `costo_unitario (>0)`,
+    `nombre_veterinario (no vacio, max 150)`; opcionales `id_evento_sanitario`,
+    `observaciones`, `lote`, `fecha_vencimiento_lote`.
+  * `src/supplies/infrastructure/factories/suministros_factory.py:84-96`:
+    `build_registrar_medicamento_use_case(db)` instancia todos los repositorios
+    y adaptadores (`SqlAlchemyMedicamentoRepository`, `ActivoM02Adapter`,
+    `CicloM02Adapter`, `EventoSanitarioM02Adapter`, `EstadoActivoM02Adapter`,
+    `NotificacionMedicamentoEmailAdapter`, `RolUsuarioM01Adapter`,
+    `SqlAlchemyRegistroSuministroRepository`, `build_registrador_movimiento`)
+    compartiendo la MISMA `db: Session`.
+  * `src/supplies/application/use_cases/suministros/registrar_medicamento_use_case.py:191-193,240-261,270-286`:
+    Ejecuta validaciones E1/E2/E3/E7/E12/E13, calcula `fecha_fin_retiro` y
+    luego ejecuta UN solo bloque `try` atomico:
+      1) `medicamento_repo.guardar(...)` (`flush` + `refresh`, `medicamento_repository.py:97-128`)
+      2) `movimiento.registrar(...)` (ledger en la misma sesion)
+      3) Si `fecha_fin_retiro is not None`: `_marcar_en_tratamiento(...)`
+      4) `self.db.commit()`
+    Si cualquier paso dentro del `try` falla, el `except Exception` ejecuta
+    `self.db.rollback()` y re-lanza. No existe commit previo a RF-44.
+- [LECTURA DE CODIGO] Integracion RF-44 y respuesta al fallar:
+  * `src/supplies/infrastructure/adapters/estado_activo_m02_adapter.py:1-81`:
+    `EstadoActivoM02Adapter` invoca `SqlAlchemyActivoBiologicoRepository(db)` y
+    `SqlAlchemyHistoricoEstadoRepository(db)` sobre la misma `db` (sin commit
+    propio; idempotente si ya esta en el estado destino) y registra en
+    `modulo2.historicos_estados_activos` (`historico_estado_repository.py:36`,
+    `SET LOCAL app.usuario_id = :uid` + `flush()`, disparando trigger de estado
+    en `modulo2.activos_biologicos`).
+  * `registrar_medicamento_use_case.py:270-286`: `_marcar_en_tratamiento`
+    captura `Exception as exc` proveniente de `estado_port.marcar_en_tratamiento`
+    y lanza `InfrastructureError(code="ERROR_ESTADO_EN_TRATAMIENTO", message="El medicamento fue registrado correctamente, pero ocurrió un error al actualizar el estado del activo a EN_TRATAMIENTO. El sistema ha revertido la operación completa. Intente nuevamente.", original_error=exc)`.
+  * `src/shared/errors.py:200-215` y `src/shared/error_handlers.py:40-68,76-105,386-399`:
+    `InfrastructureError` hereda `status_code = 500` y `app_error_handler` lo
+    serializa como HTTP `500` JSON `{"error_code": "ERROR_ESTADO_EN_TRATAMIENTO", "message": ..., "fields": [], "timestamp": ...}`.
+- [LECTURA DE CODIGO] + [OBSERVADO] Triggers en BD sobre `modulo5.registros_medicamentos`:
+  * `registro_medicamento_model.py:11-13` y `cu01_gaps_bd_rf75_rf76.md:25-39`:
+    la auditoria en `modulo5.auditorias_suministros` y el calculo de
+    `costo_total_medicamento` los ejecutan triggers de PostgreSQL.
+  * `[OBSERVADO]` en `b_resultado.json` (`triggers_medicamentos`, 7 triggers activos):
+    `trg_auditoria`, `trg_auditoria_medicamento`, `trg_calcular_costo_total_medicamento`,
+    `trg_medicamento_fecha_no_futura`, `trg_medicamento_inmutable_validado`,
+    `trg_medicamento_no_delete`, `trg_poblar_registro_suministro_medicamento`.
+
+[A2] Notificaciones por correo de inicio y fin de retiro (y riesgo SMTP)
+- [LECTURA DE CODIGO] `src/supplies/infrastructure/adapters/notificacion_medicamento_email_adapter.py:48-79`:
+  * `notificar_inicio_retiro(id_activo, nombre_medicamento, fecha_fin_retiro, id_usuario_veterinario)`
+    (lineas 48-70): envia correo al Productor (`modulo2.activos_biologicos.id_usuario`)
+    Y si `id_usuario_veterinario is not None`, tambien envia al Veterinario.
+  * `notificar_fin_retiro(id_activo, fecha_fin_retiro)` (lineas 72-79):
+    **BRECHA RESPECTO A S1 / RF-76**: unicamente consulta `productor = self._productor_de_activo(id_activo)`
+    y llama a `_enviar_aviso(productor, ...)`. **NO consulta ni notifica al Veterinario.**
+- [LECTURA DE CODIGO] `src/supplies/infrastructure/email_templates.py:14-61`:
+  * Templates HTML `inicio_retiro_email` ("Un activo entró en período de retiro")
+    y `fin_retiro_email` ("Terminó el período de retiro").
+- [LECTURA DE CODIGO] `src/shared/email.py:1-87`:
+  * `send_email()` usa `smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=8)` sincrono
+    con hasta `_MAX_RETRIES=3` (`_RETRY_DELAY=5`). No tiene interruptor de
+    sandbox ni supresion por ambiente.
+  * Ambas notificaciones en `NotificacionMedicamentoEmailAdapter` envuelven el
+    envio en `try/except` con `logger.warning` (politica best-effort, nunca
+    propaga error hacia la transaccion).
+- Implicacion: todo `POST /suministros/medicamentos` con `periodo_retiro_dias > 0`
+  que llegue a `commit()` intenta enviar correos reales post-commit que un
+  rollback del sandbox no puede deshacer.
+
+[A3] Scheduler diario de vencimiento de retiros (RF-76 flujo 11-13)
+- [LECTURA DE CODIGO] Registro y horario:
+  * `main.py:881-900`: dentro de `lifespan(app)`, `asyncio.create_task(_revertir_retiros_vencidos_diariamente())`
+    se registra incondicionalmente en todo arranque (no depende de `ENV`).
+  * `main.py:357-385`: `_revertir_retiros_vencidos_diariamente()` fija `hora = dtime(3, 0)`
+    usando `datetime.now()` (hora del servidor/contenedor), duerme hasta las 03:00
+    y ejecuta en hilo aparte (`asyncio.to_thread`) `RevertirRetirosVencidosUseCase(session_factory=sesion_sistema).ejecutar()`.
+    No existe endpoint HTTP ni panel para disparo manual (`main.py:360-362`,
+    `implementacion_dev_m05_rf76_cierre.md:126`).
+- [LECTURA DE CODIGO] Logica de evaluacion y reversion:
+  * `src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py:1-105`:
+    1) `ejecutar()` obtiene `hoy = hoy_usuario()`. Como corre en background sin
+       cabecera `X-Zona-Horaria`, `src/shared/fechas.py:16,30,67-69` toma UTC.
+    2) Consulta `ActivoM02Adapter(db_listado).listar_en_tratamiento()`
+       (`activo_m02_adapter.py:1-54`, `WHERE id_estado = 3`).
+    3) Por cada activo abre sesion independiente `db = self.session_factory()`,
+       consulta `vigente = medicamento_repo.obtener_tratamiento_vigente(id_activo)`
+       (`medicamento_repository.py:169-180`: filtra `estado_registro = 'VALIDADO'`
+       ordenado por `fecha_fin_retiro DESC NULLS LAST`, tomando el de mayor
+       `fecha_fin_retiro`).
+    4) Si `vigente is None` o `vigente.fecha_fin_retiro is None`, no revierte.
+    5) Si `vigente.fecha_fin_retiro > hoy`: NO revierte (maneja limite manana).
+       Si `vigente.fecha_fin_retiro <= hoy` (incluye `fecha_fin_retiro == hoy`):
+       SI revierte via `EstadoActivoM02Adapter(db).revertir_a_activo(id_activo, id_usuario=vigente.id_usuario, motivo="Vencimiento de período de retiro (RF-76).")`,
+       hace `db.commit()`, cierra `db`, y en sesion separada ejecuta
+       `NotificacionMedicamentoEmailAdapter(db_notif).notificar_fin_retiro(...)`
+       (solo Productor).
+    6) Errores individuales se registran en logger y continuan con el resto de activos.
+
+[A4] Calculo de `fecha_fin_retiro` y fallas de persistencia / BD
+- [LECTURA DE CODIGO] `registrar_medicamento_use_case.py:191-193`:
+  `if dto.periodo_retiro_dias and dto.periodo_retiro_dias > 0: fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)`.
+  Es aritmetica pura en Python; no tiene bloque `try/except` dedicado ni log de
+  incidente en tabla aparte.
+- [LECTURA DE CODIGO] `medicamento_repository.py:97-128`, `db_error_translator.py:262-442`,
+  `error_handlers.py:327-399`:
+  * Cualquier excepcion SQLAlchemy/psycopg2 en `guardar()` pasa por
+    `raise_from_db_error(exc, _CONFLICTO_DUP)`: `OperationalError` -> `ServiceUnavailableError`
+    (`503 BD_NO_DISPONIBLE`); otras no mapeadas -> `InfrastructureError` (`500 ERROR_INTERNO`).
+  * Si falla directamente `self.db.commit()` o `movimiento.registrar()` fuera de
+    `guardar()`, el `except Exception` del use case ejecuta `self.db.rollback()`
+    y propaga la excepcion hasta los handlers globales (`OperationalError`/`InterfaceError`
+    -> `503 BD_NO_DISPONIBLE`; resto -> `500 ERROR_INTERNO`).
+  * Ningun fallo dentro de la transaccion persiste filas en `modulo5.auditorias_suministros`
+    ni en otra tabla de incidentes, pues el rollback revierte la sesion completa.
+
+[A5] Alcance real de `/test-control` y endpoints internos en TEST
+- [LECTURA DE CODIGO] `main.py:1052-1054` y `src/shared/rollback/presentation/test_control_router.py:11-80`:
+  * `/test-control` (autenticado con `X-Sandbox-Secret`) solo expone DOS rutas:
+    1) `DELETE /test-control/runs/{run_id}` (`cleanup_test_session` -> `200 {"status": "Rollback exitoso"}` o `404`).
+    2) `POST /test-control/query` (requiere `X-Test-Run-Id`, solo `SELECT` simple sin `;`,
+       ejecutado dentro de `SAVEPOINT sandbox_query` con `transaction_read_only = on`
+       y `statement_timeout = '2s'`, limitado a `LIMIT 100`).
+  * No existe ningun endpoint ni cabecera para inyeccion de fallos en RF-44/BD/fecha,
+    manipulacion de reloj del sistema ni ejecucion manual de `_revertir_retiros_vencidos_diariamente`.
+
+[A6] Comando exacto para pruebas en proceso en Windows + `.venv` y barreras detectadas
+- `[OBSERVADO]` No existe `.env` en raiz (`Test-Path '.env' = False`). `pytest.ini:1-6`
+  define `testpaths = tests`.
+- `[OBSERVADO]` `pytest` con `.venv` funciona en Windows:
+  `.venv\Scripts\python.exe -m pytest tests\supplies\test_m05_dominio.py --collect-only -q -p no:randomly`
+  recolecto 16 pruebas sin error.
+- `[LECTURA DE CODIGO]` (`tests/shared/test_error_handlers_globales.py:19-40`,
+  `src/shared/database.py:37-42`): si un test importa `main`, `database.py` exige
+  `DATABASE_URL` definida en entorno al momento del import; usando una app FastAPI
+  minima (`FastAPI()` + `register_error_handlers(app)` + `medicamento_router`) o
+  inyectando `DATABASE_URL` en el entorno antes de importar `main`, el comando es:
+  `.venv\Scripts\python.exe -m pytest <ruta_archivo_test> -p no:randomly -v --tb=short`
+  combinando `TestClient(app, raise_server_exceptions=False)` +
+  `app.dependency_overrides[get_db]` / `[get_current_user]` + `monkeypatch`.
+- `[OBSERVADO]` en `b_resultado.json` (`direct_db_readonly` sobre `TEST_DATABASE_URL`):
+  la conexion directa de pruebas usa el usuario `member_qa` en `sgpmp_test`, el
+  cual recibe `InsufficientPrivilege: permission denied for function fn_id_rol_actual`
+  sobre `modulo1.permisos`, reporta `UndefinedFunction: function "modulo2.fn_activos_del_usuario(integer)" does not exist`
+  y ve `0 rows` en `modulo2.activos_biologicos` / `modulo2.gestiones_fases` por RLS
+  sin contexto de usuario. En contraste, via API TEST el backend corre como `sgpmp_app`.
+  Por ello las pruebas en proceso de S2/S3 deben ejecutarse con sesion/repositorio
+  doble o mockeado (o mocks de `estado_port`/`medicamento_repo`), no con SQL real
+  de `member_qa` sin permisos RLS.
+
+[A7] Documentacion CU03 (`FA-09`, `FA-10`, `FA-13`) en anotaciones
+- [LECTURA DE CODIGO] `anotaciones/modulo_5/cu03_verificacion_rf76.md:1-116` e
+  `anotaciones/modulo_5/implementacion_dev_m05_rf76_cierre.md:1-128`:
+  * Confirman la renumeracion documental (`CU-03` en el paquete QA = `CU-01` interno
+    para RF-76).
+  * `FA-09` (fallo calculando `fecha_fin_retiro`): documentado como no aplicable
+    como fallo real por ser suma pura de `date + timedelta`, sin `try/except` ni
+    incidente en auditoria.
+  * `FA-10` vs `E10`: documentan expresamente la contradiccion entre `FA-10`
+    (persistir tratamiento + registrar incidente si falla RF-44) y `RF-76 E10`
+    (reversion atomica + HTTP 500). El equipo implemento deliberadamente `E10`
+    (`ERROR_ESTADO_EN_TRATAMIENTO`).
+  * `FA-13` (fallo de persistencia en BD): documentado con rollback atomico
+    completo sin auditoria persistida en BD al abortarse la transaccion.
+
+--------------------------------------------------------------------------------
+3. DATOS DEL AMBIENTE TEST (B1 - B5) [OBSERVADO]
+--------------------------------------------------------------------------------
+Corrida principal: `run_id = tc-m05-g18-fase1-b-3678f226` | Login Admin: `HTTP 200` |
+Cierre: `HTTP 200 {"status": "Rollback exitoso"}`.
+
+[B1] Variables de `.env.test` y roles con permiso sobre `medicamentos` (recurso 48)
+- Presencia de variables en `.env.test` (sin exponer valores):
+  * TEST_BASE_URL: PRESENTE
+  * TEST_SANDBOX_SECRET: PRESENTE
+  * TEST_ADMIN_EMAIL: PRESENTE | TEST_ADMIN_PASSWORD: PRESENTE
+  * TEST_VET_EMAIL: PRESENTE | TEST_VET_PASSWORD: PRESENTE
+  * TEST_PRODUCER_EMAIL: PRESENTE | TEST_PRODUCER_PASSWORD: PRESENTE
+  * TEST_FIELD_ENGINEER_EMAIL: PRESENTE | TEST_FIELD_ENGINEER_PASSWORD: PRESENTE
+  * TEST_ACCOUNTANT_EMAIL: AUSENTE | TEST_ACCOUNTANT_PASSWORD: AUSENTE
+  * TEST_FISCAL_REVIEWER_EMAIL: AUSENTE | TEST_FISCAL_REVIEWER_PASSWORD: AUSENTE
+  * TEST_FARM_MANAGER_EMAIL: AUSENTE | TEST_FARM_MANAGER_PASSWORD: AUSENTE
+  * TEST_M05_ACTIVO_ID: AUSENTE
+  * TEST_DATABASE_URL: PRESENTE
+- Nota tecnica sobre `/test-control/query`: en `src/shared/database.py:325-333`,
+  la sesion sandbox limpia `app.current_user_id` y `app.current_role`, por lo que
+  los `SELECT` directos via `/test-control/query` sobre tablas con RLS (`modulo1.permisos`,
+  `modulo2.activos_biologicos`, `modulo2.gestiones_fases`) retornan `[]`.
+- Permisos observados en TEST via `GET /sesiones/me/permisos` (corridas secuenciales,
+  todas cerradas `HTTP 200 Rollback exitoso`):
+  * Administrador (`TEST_ADMIN_EMAIL`): recurso `48` acciones `[1, 2, 4]` (C, R, D).
+  * Veterinario (`TEST_VET_EMAIL`, `run_id=tc-m05-g18-fase1-rbac-vet-160fe9`): recurso `48` acciones `[1, 2, 4]` (C, R, D).
+  * Productor (`TEST_PRODUCER_EMAIL`, `run_id=tc-m05-g18-fase1-rbac-producer-32f4af`): recurso `48` acciones `[2]` (solo R; sin permiso C=1).
+  * Ingeniero de Campo (`TEST_FIELD_ENGINEER_EMAIL`, `run_id=tc-m05-g18-fase1-rbac-field_engineer-292987`): recurso `48` acciones `[]`.
+- Identidad BD de la API TEST (`/test-control/query`): `current_user = sgpmp_app`,
+  `session_user = sgpmp_app`, `current_database = sgpmp_test`.
+
+[B2] Evaluacion de activos candidatos: `853` vs `5`
+- Activo `853` (via `GET /activos-biologicos/853`, `/fases`, `/ciclos-productivos`, `/suministros/medicamentos`):
+  * `tipo = "INDIVIDUAL"`, `identificador = "ANIMAL-QA-001"`, `id_especie = 5`.
+  * `id_estado = 1` (`ACTIVO`), `fecha_inicio_ciclo = "2026-10-22"`.
+  * Fases abiertas iniciales: `[]` (ninguna abierta fuera de sandbox).
+  * Ciclos compatibles con su especie: `id_ciclo_productivo = 5` ("Ciclo completo mojarra 2025-A", 2 fases).
+  * Medicamentos registrados: `total = 0`.
+- Activo `5` (via `GET /activos-biologicos/5`, `/fases`, `/suministros/medicamentos`):
+  * `tipo = "INDIVIDUAL"`, `identificador = "BOV-0852"`, `id_especie = 1`.
+  * `id_estado = 1` (`ACTIVO`), `fecha_inicio_ciclo = null`.
+  * Tiene fase activa `id_gestion_fases = 36` (`fecha_inicio = "2026-09-09T19:00:00Z"`, ciclo "Ciclo completo tilapia 2025-A").
+  * Tiene `total = 5` registros historicos de medicamentos (3 `VALIDADO` incluyendo `id=18` `"TestRetiroVencidoRF76"` y `id=17` `"SmokeTest"`, 2 `ANULADO`).
+- Decision: **`853` es el candidato limpio e idoneo**, abriendo fase `id_ciclo_productiva = 5`
+  dentro del sandbox (igual que G14/G16/G19).
+
+[B3] Catalogo y precedentes de medicamentos en TEST
+- Tablas en `modulo5` y `modulo9` (`b3_tablas_m5_m9`): no existe tabla de catalogo
+  de medicamentos (solo `modulo5.tipos_alimentos` para RF-75); el nombre del
+  medicamento es texto libre en `modulo5.registros_medicamentos`.
+- Precedentes en `modulo5.registros_medicamentos` (`b3_oxitetraciclina`):
+  * `"Oxitetraciclina 20%"` (`IM`, `ml`, `periodo_retiro_dias = 5`, `costo_unitario = 25000.0`).
+  * `"Oxitetraciclina LA 200"` (`IM`, `ml`, `periodo_retiro_dias = 5`, `costo_unitario = 6000.0`).
+  * `"Oxitetraciclina"` (`IM`, `ml`, `periodo_retiro_dias = 7`, `costo_unitario = 1200.0`, `ANULADO`).
+
+[B4] Diagnostico del scheduler en TEST
+- `GET /activos-biologicos?id_estado=3&page_size=100`: existen `16` activos en
+  estado `EN_TRATAMIENTO` (`774, 1628, 615, 614, 613, 483, 393, 380, 377, 376,
+  243, 198, 197, 196, 1030, 1028`).
+- Cruce de retiros `VALIDADO` (`b4_en_tratamiento_sql_meds` y `activos_en_tratamiento_meds`)
+  frente a `bogota_hoy = 2026-11-10`:
+  * `1028`: 3 medicamentos validados, `MAX(fecha_fin_retiro) = 2026-11-23` (vigente).
+  * `1030`: 4 medicamentos validados (incluye uno vencido `2026-09-20` y dos vigentes `2026-11-11` y `2026-11-12`), `MAX(fecha_fin_retiro) = 2026-11-12` (vigente).
+  * `1628`: 1 medicamento validado, `MAX(fecha_fin_retiro) = 2026-12-13` (vigente).
+  * Los otros `13` activos en `EN_TRATAMIENTO` tienen `0` registros de medicamentos (`items = []`).
+  * Activos en `EN_TRATAMIENTO` con `MAX(fecha_fin_retiro) < 2026-11-10`: **`0`**.
+- Tablas de ejecucion/log del job (`b4_tablas_batch_cron`): existen tablas de configuracion/ejecucion
+  para `ica`, `historial_suministros`, `reportes_gastos` y `exportacion_auditoria`,
+  pero **NO existe ninguna tabla de ejecuciones o logs para el scheduler de reversión
+  de retiros** (solo emite `logger.info` en stdout segun `main.py:383`). No es posible
+  determinar la fecha/hora de su ultima ejecucion desde la BD.
+
+[B5] Conteo base para inocuidad (`modulo5.registros_medicamentos`)
+- Activo `853`: `0` filas (SQL `[]`, API `total = 0`).
+- Activo `5`: `5` filas (`3 VALIDADO`, `2 ANULADO`).
+- Conteo global en BD TEST: `145` filas en `modulo5.registros_medicamentos` y
+  `65943` filas en `modulo5.auditorias_suministros`.
+
+--------------------------------------------------------------------------------
+4. PRUEBA REAL DEL CAMINO FELIZ - SMOKE (C1 - C5) [OBSERVADO]
+--------------------------------------------------------------------------------
+Regla aplicada: en TODA solicitud POST de Fase 1 se envio `periodo_retiro_dias = 0`.
+Archivo de salida: `c_resultado.json` (generado por `smoke_g18.py`).
+
+- [C1] Corrida 2 (`run_id = tc-m05-g18-fase1-smoke-afdc3824`):
+  * Login Admin (`POST /sesiones/`): `HTTP 200`, `tiene_token = True`.
+  * Conteo base activo `853`: API `total = 0`, SQL `total = 0` (`HTTP 200`).
+  * Apertura de fase en sandbox (`POST /activos-biologicos/853/fases`,
+    `id_ciclo_productiva = 5`): `HTTP 201`, `id_gestion_fases = 722`, `es_activa = True`.
+
+- [C2] POST valido con fecha de hoy (`2026-11-10`, `hora_aplicacion = 10:11`, `periodo_retiro_dias = 0`):
+  * Respuesta `POST /suministros/medicamentos`: `HTTP 201`.
+  * Registro creado: `id_registro_medicamento = 237`, `nombre_medicamento = "SmokeG18Hoy"`,
+    `via_aplicacion = "IM"`, `cantidad = "5.000"`, `fecha_aplicacion = "2026-11-10"`,
+    `periodo_retiro_dias = 0`, `fecha_fin_retiro = null`,
+    `costo_total_medicamento = "6000.0000"`, `estado_registro = "VALIDADO"`.
+  * Lectura posterior `GET /suministros/medicamentos?id_activo_biologico=853`:
+    `HTTP 200`, `total = 1` (contiene `id_registro_medicamento = 237`).
+
+- [C3] Viabilidad S1 - POST retroactivo (`2026-11-04`, hoy - 6 dias, `hora_aplicacion = 10:12`, `periodo_retiro_dias = 0`):
+  * Dado que `853` tiene `fecha_inicio_ciclo = "2026-10-22"`, `2026-11-04 >= 2026-10-22`.
+  * Respuesta `POST /suministros/medicamentos`: `HTTP 201`,
+    `id_registro_medicamento = 238`, `nombre_medicamento = "SmokeG18Retro6d"`,
+    `fecha_aplicacion = "2026-11-04"`, `estado_registro = "VALIDADO"`.
+  * Confirma que el endpoint acepta fechas retroactivas validas posteriores a
+    `fecha_inicio_ciclo` (necesario si S1 crea tratamientos con retiro ya vencido).
+
+- [C4] Conteo dentro del sandbox y cierre de Corrida 2:
+  * SQL `SELECT count(*) ... WHERE id_activo_biologico = 853`: `HTTP 200`, `total = 2`.
+  * Cierre `DELETE /test-control/runs/tc-m05-g18-fase1-smoke-afdc3824`:
+    `HTTP 200`, `{"status": "Rollback exitoso"}`.
+
+- [C5] Corrida 3 - Inocuidad post-rollback (`run_id = tc-m05-g18-fase1-inoc-d994fcb4`):
+  * Login Admin (`POST /sesiones/`): `HTTP 200`, `tiene_token = True`.
+  * SQL final `SELECT count(*) ... WHERE id_activo_biologico = 853`: `HTTP 200`, `total = 0`.
+  * API final `GET /suministros/medicamentos?id_activo_biologico=853`: `HTTP 200`, `total = 0`, `items = []`.
+  * Cierre `DELETE /test-control/runs/tc-m05-g18-fase1-inoc-d994fcb4`:
+    `HTTP 200`, `{"status": "Rollback exitoso"}`.
+  * Inocuidad 100% verificada (base `0` == final `0`).
+
+--------------------------------------------------------------------------------
+5. MATRIZ DE VIABILIDAD Y ESTRATEGIA PROPUESTA PARA FASE 2 (D)
+--------------------------------------------------------------------------------
+
+| Subcaso | Viabilidad en TEST (HTTP puro) | Viabilidad En Proceso (`pytest` + mocks/dobles) | Evidencia que lo sustenta | Enfoque propuesto |
+|---|---|---|---|---|
+| S1 (043 / 011): Vencimiento retiro, limites hoy/manana, MAX y notificaciones | PARCIALMENTE BLOQUEADO (no ejecutable E2E real por HTTP sandbox) | VIABLE (probando `RevertirRetirosVencidosUseCase.ejecutar()` + `NotificacionMedicamentoEmailAdapter` con sesion/repos doble o fake SMTP; registrar brecha de Veterinario) | `main.py:357-385` (cron fijo 03:00, sin endpoint manual); `database.py:308-347` (sandbox no comparte transaccion con `sesion_sistema()`); `notificacion_medicamento_email_adapter.py:72-79` (solo Productor); `email.py` (SMTP real si retiro > 0 en TEST) | 1) En HTTP TEST NO se puede disparar ni observar la ejecucion del scheduler contra datos del sandbox ni controlar la fecha sin SMTP real -> documentar bloqueo HTTP E2E si aplica. 2) En proceso con `pytest`: probar `RevertirRetirosVencidosUseCase` para (a) 2 tratamientos: 1 vencido + 1 vigente (`> hoy`) mantiene `EN_TRATAMIENTO`; (b) `fecha_fin_retiro = manana` no revierte; (c) `fecha_fin_retiro = hoy` (`<= hoy`) revierte a `ACTIVO`; (d) capturar correos en `send_email` mockeado y fallar/reportar defecto real si no notifica al Veterinario. |
+| S2 (044 / 012): Falla RF-44 al pasar a EN_TRATAMIENTO (retiro=5) | BLOQUEADO en HTTP TEST (sin inyeccion de fallos en `/test-control`) | VIABLE (`TestClient` + `dependency_overrides` + `monkeypatch` en `estado_port.marcar_en_tratamiento`) | `test_control_router.py:31-80`; `registrar_medicamento_use_case.py:240-250,270-286`; `cu03_verificacion_rf76.md:74-88` (E10 implementado vs FA-10) | En proceso con app FastAPI (`register_error_handlers` + `medicamento_router`): override de `get_db`/`get_current_user` y `monkeypatch` lanzando error en `EstadoActivoPort.marcar_en_tratamiento`. Validar HTTP `500`, `error_code = "ERROR_ESTADO_EN_TRATAMIENTO"`, ejecucion de `rollback()`, 0 commits y ausencia de persistencia. |
+| S3 (047 / 042): Falla calculo `fecha_fin_retiro` (FA-09) y falla BD (FA-13) | BLOQUEADO en HTTP TEST (sin inyeccion de fallos en BD/calculo) | VIABLE para FA-13 (`TestClient` + `monkeypatch` en `medicamento_repo.guardar` / `commit`); FA-09 es aritmetica pura Python | `registrar_medicamento_use_case.py:191-193,240-250`; `error_handlers.py:327-371,392-399`; `db_error_translator.py:262-442` | En proceso: inyectar `OperationalError` / `RuntimeError` en `medicamento_repo.guardar` (FA-13), verificar `rollback()`, HTTP `503 BD_NO_DISPONIBLE` o `500 ERROR_INTERNO`. Documentar que FA-09 (fallo de calculo de fecha) no tiene manejo separado y que ninguna falla con rollback deja auditoria persistida en BD. |
+
+Activos y cuentas propuestos:
+- En HTTP TEST (si se incluye validacion complementaria de precondiciones/camino feliz
+  sin retiro > 0): activo `853` (`ANIMAL-QA-001`, limpio, fase abierta en sandbox) y
+  cuenta Admin (`TEST_ADMIN_EMAIL`) o Veterinario (`TEST_VET_EMAIL`).
+- En pruebas en proceso (`pytest`): `TestClient` hermetic con `dependency_overrides`
+  y `unittest.mock` / dobles de repositorio, evitando depender de `member_qa` en
+  `TEST_DATABASE_URL` (bloqueado por RLS `fn_id_rol_actual` y sin `fn_activos_del_usuario`).
+
+Riesgos detectados:
+1. Envío de correos SMTP reales si se registra un medicamento con `periodo_retiro_dias > 0`
+   en TEST (`send_email` en `src/shared/email.py` no tiene bandera de supresión).
+2. **Defecto potencial de producto en S1**: `NotificacionMedicamentoEmailAdapter.notificar_fin_retiro`
+   (`notificacion_medicamento_email_adapter.py:72-79`) omite notificar al Veterinario.
+3. **Diferencia spec CU03 FA-10 vs RF-76 E10**: `RegistrarMedicamentoUseCase` implementa
+   E10 (rollback total + 500 `ERROR_ESTADO_EN_TRATAMIENTO`), no FA-10 (persistir + incidente).
+4. **Falta de tabla de auditoria/log de ejecuciones del scheduler RF-76** y falta de
+   auditoria persistida tras rollback en S2/S3.
+5. Usuario de BD local `member_qa` (`TEST_DATABASE_URL`) sin privilegio `EXECUTE` sobre
+   `fn_id_rol_actual` y sujeto a RLS en `modulo2`.
+
+Preguntas abiertas / definiciones requeridas antes de Fase 2:
+1. Dado que `/test-control` no permite inyectar fallos (S2/S3), manipular el reloj ni
+   disparar el scheduler de las 03:00 sin riesgo de SMTP real (S1): ¿se autoriza implementar
+   TC-M05-G18 en Fase 2 como suite `pytest` en proceso (`TestClient` + `dependency_overrides`
+   + `monkeypatch` sobre `RevertirRetirosVencidosUseCase` y `RegistrarMedicamentoUseCase`),
+   complementada opcionalmente con verificacion sandbox HTTP de inocuidad/estado previo
+   con `periodo_retiro_dias=0`?
+2. En S1, `notificar_fin_retiro` solo envia correo al Productor (no al Veterinario).
+   ¿La expectativa estricta en el assert de S1 debe fallar reportando ese hallazgo como
+   defecto del producto frente a RF-76 (CA-4)?
+3. En S2 (`ERROR_ESTADO_EN_TRATAMIENTO`, RF-76 E10 vs FA-10) y S3 (`FA-09`/`FA-13`, sin
+   registro de auditoria tras `rollback()`): ¿se valida estrictamente el comportamiento
+   RF-76 E10 y FA-13 atomico documentado en `cu03_verificacion_rf76.md`, o se debe marcar
+   brecha en auditoria de incidentes?
+
+--------------------------------------------------------------------------------
+6. RESULTADO ESCANEO DE SECRETOS
+--------------------------------------------------------------------------------
+Escaneo ejecutado al cierre sobre todos los archivos dentro de
+`tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/analisis-20261110-194514/`
+(`TC-M05-G18_fase1_informe.txt`, `consulta_b_g18.py`, `smoke_g18.py`, `b_resultado.json`,
+`c_resultado.json`) buscando:
+- Valor exacto y ultimos 20 caracteres de `TEST_ADMIN_PASSWORD`, `TEST_SANDBOX_SECRET`,
+  `TEST_VET_PASSWORD`, `TEST_PRODUCER_PASSWORD`, `TEST_FIELD_ENGINEER_PASSWORD`, `TEST_DATABASE_URL`
+- Correos completos (`TEST_ADMIN_EMAIL`, `TEST_VET_EMAIL`, `TEST_PRODUCER_EMAIL`, `TEST_FIELD_ENGINEER_EMAIL`)
+- Prefijo de token JWT (tres caracteres 'e'+'y'+'J')
+
+Resultado observado tras generar todos los artefactos: **0 coincidencias**.
+
+--------------------------------------------------------------------------------
+7. ANEXOS (CONTENIDO LITERAL DE LOS SCRIPTS EJECUTADOS)
+--------------------------------------------------------------------------------
+=== ANEXO A: smoke_g18.py ===
+"""Fase 1 Task C (Smoke Camino Feliz en TEST con periodo_retiro_dias=0) para TC-M05-G18."""
+from __future__ import annotations
+
+import json
+import os
+import time
+import uuid
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+import requests
+from dotenv import dotenv_values
+
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    try:
+        ZONA_USUARIO = ZoneInfo("America/Bogota")
+    except ZoneInfoNotFoundError:
+        ZONA_USUARIO = timezone(timedelta(hours=-5), "America/Bogota")
+except ImportError:
+    ZONA_USUARIO = timezone(timedelta(hours=-5), "America/Bogota")
+
+RAIZ = Path(__file__).resolve().parents[7]
+if not (RAIZ / ".env.test").exists():
+    RAIZ = Path.cwd()
+ENV_TEST = dotenv_values(RAIZ / ".env.test") if (RAIZ / ".env.test").exists() else {}
+OUT_JSON = Path(__file__).resolve().parent / "c_resultado.json"
+
+ACTIVO_ID = 853
+CICLO_ID = 5
+
+
+def _env(nombre: str) -> str:
+    return (os.environ.get(nombre) or ENV_TEST.get(nombre) or "").strip()
+
+
+def _secretos() -> list[str]:
+    return [
+        v
+        for k in ("TEST_SANDBOX_SECRET", "TEST_ADMIN_PASSWORD", "TEST_ADMIN_EMAIL")
+        if (v := _env(k))
+    ]
+
+
+def _sanitizar(obj: Any) -> Any:
+    if isinstance(obj, str):
+        s = obj
+        for sec in _secretos():
+            s = s.replace(sec, "***")
+        jwt_pref = "ey" + "J"
+        if jwt_pref in s:
+            s = s.replace(jwt_pref, "[JWT_OMITIDO]")
+        return s
+    if isinstance(obj, list):
+        return [_sanitizar(x) for x in obj]
+    if isinstance(obj, dict):
+        return {str(k): _sanitizar(v) for k, v in obj.items()}
+    return obj
+
+
+def _login(s: requests.Session, base: str, email: str, pwd: str) -> dict[str, Any]:
+    for intento in range(7):
+        r = s.post(
+            f"{base}/sesiones/",
+            json={"correo_electronico": email, "contrasena": pwd},
+            timeout=45,
+        )
+        if r.status_code in (423, 429) and intento < 6:
+            time.sleep(30)
+            continue
+        break
+    body = {}
+    try:
+        body = r.json()
+    except ValueError:
+        pass
+    token = body.get("token")
+    assert r.status_code == 200 and token, f"Login fallo HTTP {r.status_code}: {r.text[:200]}"
+    s.headers["Authorization"] = f"Bearer {token}"
+    return {"http": r.status_code, "tiene_token": True}
+
+
+def _query(s: requests.Session, base: str, sql: str) -> dict[str, Any]:
+    r = s.post(f"{base}/test-control/query", json={"query": sql}, timeout=45)
+    try:
+        body = r.json()
+    except ValueError:
+        body = {"raw": r.text[:300]}
+    return {"http": r.status_code, "body": body}
+
+
+def _cerrar(s: requests.Session, base: str, run_id: str) -> dict[str, Any]:
+    r = s.delete(f"{base}/test-control/runs/{run_id}", timeout=45)
+    try:
+        body = r.json()
+    except ValueError:
+        body = {"raw": r.text[:200]}
+    return {"http": r.status_code, "body": body}
+
+
+def main() -> None:
+    base = _env("TEST_BASE_URL").rstrip("/")
+    secret = _env("TEST_SANDBOX_SECRET")
+    email = _env("TEST_ADMIN_EMAIL")
+    pwd = _env("TEST_ADMIN_PASSWORD")
+    assert base and secret and email and pwd, "Faltan variables requeridas en .env.test"
+
+    hoy_bogota: date = datetime.now(ZONA_USUARIO).date()
+    hace_6_dias: date = hoy_bogota - timedelta(days=6)
+
+    evidencia: dict[str, Any] = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_bogota": datetime.now(ZONA_USUARIO).isoformat(),
+        "activo_id": ACTIVO_ID,
+        "hoy_bogota": hoy_bogota.isoformat(),
+        "fecha_hace_6_dias": hace_6_dias.isoformat(),
+        "corrida_2_smoke": {},
+        "corrida_3_inocuidad": {},
+    }
+
+    # --- CORRIDA 2: SMOKE (SIEMPRE periodo_retiro_dias = 0) ---
+    run2 = f"tc-m05-g18-fase1-smoke-{uuid.uuid4().hex[:8]}"
+    s2 = requests.Session()
+    s2.headers.update(
+        {
+            "X-Test-Run-Id": run2,
+            "X-Sandbox-Secret": secret,
+            "X-Zona-Horaria": "America/Bogota",
+        }
+    )
+    c2: dict[str, Any] = {"run_id": run2}
+    try:
+        c2["login"] = _login(s2, base, email, pwd)
+
+        # C1: linea base y apertura de fase si hace falta
+        c2["base_api_get"] = s2.get(
+            f"{base}/suministros/medicamentos",
+            params={"id_activo_biologico": ACTIVO_ID},
+            timeout=45,
+        ).json()
+        c2["base_sql_cnt"] = _query(
+            s2,
+            base,
+            f"SELECT count(*) AS total FROM modulo5.registros_medicamentos WHERE id_activo_biologico = {ACTIVO_ID}",
+        )
+
+        fases = s2.get(f"{base}/activos-biologicos/{ACTIVO_ID}/fases", timeout=45).json()
+        activas = [f for f in fases.get("fases") or [] if f.get("es_activa") is True]
+        if not activas:
+            rf = s2.post(
+                f"{base}/activos-biologicos/{ACTIVO_ID}/fases",
+                json={
+                    "id_ciclo_productiva": CICLO_ID,
+                    "motivo_cambio": "TC-M05-G18 Fase 1 smoke: apertura de fase en sandbox",
+                },
+                timeout=45,
+            )
+            c2["abrir_fase"] = {"http": rf.status_code, "body": rf.json()}
+            assert rf.status_code == 201, f"Abrir fase fallo HTTP {rf.status_code}"
+        else:
+            c2["abrir_fase"] = {"ya_abierta": True, "count": len(activas)}
+
+        # C2: POST medicamento valido con periodo_retiro_dias = 0 (OBLIGATORIO en Fase 1)
+        payload_hoy = {
+            "id_activo_biologico": ACTIVO_ID,
+            "nombre_medicamento": "SmokeG18Hoy",
+            "fecha_aplicacion": hoy_bogota.isoformat(),
+            "hora_aplicacion": "10:11",
+            "via_administracion": "INTRAMUSCULAR",
+            "dosis_aplicada": 5,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 0,
+            "motivo_aplicacion": "Smoke Fase 1 TC-M05-G18 camino feliz sin retiro",
+            "costo_unitario": 1200,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "id_evento_sanitario": None,
+        }
+        assert payload_hoy["periodo_retiro_dias"] == 0
+        r_post_hoy = s2.post(f"{base}/suministros/medicamentos", json=payload_hoy, timeout=45)
+        try:
+            b_post_hoy = r_post_hoy.json()
+        except ValueError:
+            b_post_hoy = {"raw": r_post_hoy.text[:400]}
+        c2["post_hoy"] = {"http": r_post_hoy.status_code, "body": b_post_hoy}
+        assert r_post_hoy.status_code == 201, f"POST hoy fallo HTTP {r_post_hoy.status_code}: {b_post_hoy}"
+
+        r_get_hoy = s2.get(
+            f"{base}/suministros/medicamentos",
+            params={"id_activo_biologico": ACTIVO_ID},
+            timeout=45,
+        )
+        c2["get_tras_post_hoy"] = {"http": r_get_hoy.status_code, "body": r_get_hoy.json()}
+
+        # C3: POST retroactivo (hoy - 6 dias, periodo_retiro_dias = 0) para verificar viabilidad S1
+        payload_retro = {
+            "id_activo_biologico": ACTIVO_ID,
+            "nombre_medicamento": "SmokeG18Retro6d",
+            "fecha_aplicacion": hace_6_dias.isoformat(),
+            "hora_aplicacion": "10:12",
+            "via_administracion": "ORAL",
+            "dosis_aplicada": 3,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 0,
+            "motivo_aplicacion": "Smoke Fase 1 TC-M05-G18 prueba fecha retroactiva -6d",
+            "costo_unitario": 900,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "id_evento_sanitario": None,
+        }
+        assert payload_retro["periodo_retiro_dias"] == 0
+        r_post_retro = s2.post(f"{base}/suministros/medicamentos", json=payload_retro, timeout=45)
+        try:
+            b_post_retro = r_post_retro.json()
+        except ValueError:
+            b_post_retro = {"raw": r_post_retro.text[:400]}
+        c2["post_retro_6d"] = {"http": r_post_retro.status_code, "body": b_post_retro}
+
+        # C4: conteo dentro del sandbox antes de cerrar
+        c2["post_sql_cnt_en_sandbox"] = _query(
+            s2,
+            base,
+            f"SELECT count(*) AS total FROM modulo5.registros_medicamentos WHERE id_activo_biologico = {ACTIVO_ID}",
+        )
+    finally:
+        c2["close"] = _cerrar(s2, base, run2)
+        s2.close()
+    evidencia["corrida_2_smoke"] = c2
+
+    # --- CORRIDA 3: VERIFICACION DE INOCUIDAD POST-ROLLBACK ---
+    run3 = f"tc-m05-g18-fase1-inoc-{uuid.uuid4().hex[:8]}"
+    s3 = requests.Session()
+    s3.headers.update(
+        {
+            "X-Test-Run-Id": run3,
+            "X-Sandbox-Secret": secret,
+            "X-Zona-Horaria": "America/Bogota",
+        }
+    )
+    c3: dict[str, Any] = {"run_id": run3}
+    try:
+        c3["login"] = _login(s3, base, email, pwd)
+        c3["final_sql_cnt"] = _query(
+            s3,
+            base,
+            f"SELECT count(*) AS total FROM modulo5.registros_medicamentos WHERE id_activo_biologico = {ACTIVO_ID}",
+        )
+        rg = s3.get(
+            f"{base}/suministros/medicamentos",
+            params={"id_activo_biologico": ACTIVO_ID},
+            timeout=45,
+        )
+        c3["final_api_get"] = {"http": rg.status_code, "body": rg.json()}
+    finally:
+        c3["close"] = _cerrar(s3, base, run3)
+        s3.close()
+    evidencia["corrida_3_inocuidad"] = c3
+
+    OUT_JSON.write_text(
+        json.dumps(_sanitizar(evidencia), indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
+    print(f"OK escrito {OUT_JSON}")
+    print("Run2 close:", c2.get("close"))
+    print("Run3 close:", c3.get("close"))
+
+
+if __name__ == "__main__":
+    main()
+
+=== ANEXO B: consulta_b_g18.py ===
+"""Fase 1 Task B (solo lectura) para TC-M05-G18 (RF-76) en ambiente TEST via sandbox."""
+from __future__ import annotations
+
+import json
+import os
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+import requests
+from dotenv import dotenv_values
+
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    try:
+        ZONA_USUARIO = ZoneInfo("America/Bogota")
+    except ZoneInfoNotFoundError:
+        ZONA_USUARIO = timezone(timedelta(hours=-5), "America/Bogota")
+except ImportError:
+    ZONA_USUARIO = timezone(timedelta(hours=-5), "America/Bogota")
+
+RAIZ = Path(__file__).resolve().parents[7]
+if not (RAIZ / ".env.test").exists():
+    RAIZ = Path.cwd()
+ENV_TEST = dotenv_values(RAIZ / ".env.test") if (RAIZ / ".env.test").exists() else {}
+OUT_JSON = Path(__file__).resolve().parent / "b_resultado.json"
+
+VARS_CHECK = [
+    "TEST_BASE_URL",
+    "TEST_SANDBOX_SECRET",
+    "TEST_ADMIN_EMAIL",
+    "TEST_ADMIN_PASSWORD",
+    "TEST_PRODUCER_EMAIL",
+    "TEST_PRODUCER_PASSWORD",
+    "TEST_VET_EMAIL",
+    "TEST_VET_PASSWORD",
+    "TEST_ACCOUNTANT_EMAIL",
+    "TEST_ACCOUNTANT_PASSWORD",
+    "TEST_FISCAL_REVIEWER_EMAIL",
+    "TEST_FISCAL_REVIEWER_PASSWORD",
+    "TEST_FIELD_ENGINEER_EMAIL",
+    "TEST_FIELD_ENGINEER_PASSWORD",
+    "TEST_FARM_MANAGER_EMAIL",
+    "TEST_FARM_MANAGER_PASSWORD",
+    "TEST_M05_ACTIVO_ID",
+    "TEST_DATABASE_URL",
+]
+
+
+def _env(nombre: str) -> str:
+    return (os.environ.get(nombre) or ENV_TEST.get(nombre) or "").strip()
+
+
+def _secretos() -> list[str]:
+    res = []
+    for k in (
+        "TEST_SANDBOX_SECRET",
+        "TEST_ADMIN_PASSWORD",
+        "TEST_ADMIN_EMAIL",
+        "TEST_PRODUCER_PASSWORD",
+        "TEST_PRODUCER_EMAIL",
+        "TEST_VET_PASSWORD",
+        "TEST_VET_EMAIL",
+        "TEST_FIELD_ENGINEER_PASSWORD",
+        "TEST_FIELD_ENGINEER_EMAIL",
+        "TEST_DATABASE_URL",
+    ):
+        v = _env(k)
+        if v:
+            res.append(v)
+    return res
+
+
+def _sanitizar(obj: Any) -> Any:
+    if isinstance(obj, str):
+        s = obj
+        for sec in _secretos():
+            s = s.replace(sec, "***")
+        jwt_pref = "ey" + "J"
+        if jwt_pref in s:
+            s = s.replace(jwt_pref, "[JWT_OMITIDO]")
+        return s
+    if isinstance(obj, list):
+        return [_sanitizar(x) for x in obj]
+    if isinstance(obj, dict):
+        return {str(k): _sanitizar(v) for k, v in obj.items()}
+    return obj
+
+
+def main() -> None:
+    base = _env("TEST_BASE_URL").rstrip("/")
+    secret = _env("TEST_SANDBOX_SECRET")
+    admin_email = _env("TEST_ADMIN_EMAIL")
+    admin_pwd = _env("TEST_ADMIN_PASSWORD")
+    assert base and secret and admin_email and admin_pwd, "Faltan variables base en .env.test"
+
+    resultado: dict[str, Any] = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_bogota": datetime.now(ZONA_USUARIO).isoformat(),
+        "env_check": {k: ("PRESENTE" if _env(k) else "AUSENTE") for k in VARS_CHECK},
+        "run_id": f"tc-m05-g18-fase1-b-{uuid.uuid4().hex[:8]}",
+        "login": {},
+        "queries": {},
+        "api_gets": {},
+        "close": {},
+    }
+
+    s = requests.Session()
+    s.headers.update(
+        {
+            "X-Test-Run-Id": resultado["run_id"],
+            "X-Sandbox-Secret": secret,
+            "X-Zona-Horaria": "America/Bogota",
+        }
+    )
+
+    try:
+        # Un solo login por run_id
+        for intento in range(7):
+            r_login = s.post(
+                f"{base}/sesiones/",
+                json={"correo_electronico": admin_email, "contrasena": admin_pwd},
+                timeout=45,
+            )
+            if r_login.status_code in (423, 429) and intento < 6:
+                time.sleep(30)
+                continue
+            break
+
+        body_login = {}
+        try:
+            body_login = r_login.json()
+        except ValueError:
+            pass
+        token = body_login.get("token")
+        resultado["login"] = {
+            "http": r_login.status_code,
+            "tiene_token": bool(token),
+            "claves_body": sorted(body_login.keys()) if isinstance(body_login, dict) else [],
+            "usuario": {
+                k: body_login.get("usuario", {}).get(k)
+                for k in ("id_usuario", "id_rol", "nombre_rol")
+                if isinstance(body_login.get("usuario"), dict)
+            },
+        }
+        assert r_login.status_code == 200 and token, f"Login fallo HTTP {r_login.status_code}"
+        s.headers["Authorization"] = f"Bearer {token}"
+
+        queries = {
+            "b1_db_identity": "SELECT current_user, session_user, current_database()",
+            "b1_permisos_48": (
+                "SELECT p.id_permiso, p.id_rol, r.nombre_rol, p.id_recurso, rec.nombre_recurso, "
+                "p.id_accion, p.nombre, p.es_activo "
+                "FROM modulo1.permisos p "
+                "JOIN modulo1.roles r ON r.id_rol = p.id_rol "
+                "JOIN modulo1.recursos rec ON rec.id_recurso = p.id_recurso "
+                "WHERE p.id_recurso = 48 OR rec.nombre_recurso = 'medicamentos' "
+                "ORDER BY p.id_rol, p.id_accion"
+            ),
+            "b1_acciones": "SELECT * FROM modulo1.acciones ORDER BY 1",
+            "b1_roles": "SELECT id_rol, nombre_rol, es_protegido FROM modulo1.roles ORDER BY id_rol",
+            "b2_estados_cat": "SELECT * FROM modulo2.estados_activos_biologicos ORDER BY 1",
+            "b2_activos_853_5": (
+                "SELECT a.id_activo_biologico, a.tipo, a.id_estado, e.nombre AS estado, "
+                "a.fecha_inicio_ciclo, a.id_especie, a.id_infraestructura "
+                "FROM modulo2.activos_biologicos a "
+                "JOIN modulo2.estados_activos_biologicos e ON e.id_estado_activo_biologico = a.id_estado "
+                "WHERE a.id_activo_biologico IN (853, 5) "
+                "ORDER BY a.id_activo_biologico"
+            ),
+            "b2_fases_853_5": (
+                "SELECT id_gestion_fases, id_activo_biologico, id_ciclo_productiva, "
+                "fecha_inicio, fecha_finalizacion, es_activa "
+                "FROM modulo2.gestiones_fases "
+                "WHERE id_activo_biologico IN (853, 5) "
+                "ORDER BY id_activo_biologico, id_gestion_fases DESC"
+            ),
+            "b2_historico_estados_853_5": (
+                "SELECT id_historico_estado_activo, id_activo_biologico, id_estado_anterior, "
+                "id_estado_nuevo, fecha_cambio, modulo_origen "
+                "FROM modulo2.historicos_estados_activos "
+                "WHERE id_activo_biologico IN (853, 5) "
+                "ORDER BY id_activo_biologico, id_historico_estado_activo DESC"
+            ),
+            "b2_meds_853_5": (
+                "SELECT id_registro_medicamento, id_activo_biologico, nombre_medicamento, "
+                "via_aplicacion, fecha_aplicacion, hora_aplicacion, periodo_retiro_dias, "
+                "fecha_fin_retiro, estado_registro "
+                "FROM modulo5.registros_medicamentos "
+                "WHERE id_activo_biologico IN (853, 5) "
+                "ORDER BY id_activo_biologico, id_registro_medicamento DESC"
+            ),
+            "b3_meds_catalogo_uso": (
+                "SELECT lower(nombre_medicamento) AS med, periodo_retiro_dias, via_aplicacion, "
+                "unidad_dosis, count(*) AS cnt "
+                "FROM modulo5.registros_medicamentos "
+                "GROUP BY lower(nombre_medicamento), periodo_retiro_dias, via_aplicacion, unidad_dosis "
+                "ORDER BY cnt DESC"
+            ),
+            "b3_oxitetraciclina": (
+                "SELECT id_registro_medicamento, id_activo_biologico, nombre_medicamento, "
+                "via_aplicacion, cantidad, unidad_dosis, periodo_retiro_dias, costo_unitario_medicamento, "
+                "estado_registro "
+                "FROM modulo5.registros_medicamentos "
+                "WHERE lower(nombre_medicamento) LIKE '%oxitetraciclina%' "
+                "ORDER BY id_registro_medicamento DESC"
+            ),
+            "b3_tablas_m5_m9": (
+                "SELECT table_schema, table_name FROM information_schema.tables "
+                "WHERE table_schema IN ('modulo5', 'modulo9', 'modulo2') "
+                "ORDER BY table_schema, table_name"
+            ),
+            "b4_activos_en_tratamiento_cnt": (
+                "SELECT count(*) AS total_en_tratamiento FROM modulo2.activos_biologicos WHERE id_estado = 3"
+            ),
+            "b4_activos_en_tratamiento_detalle": (
+                "SELECT a.id_activo_biologico, a.id_estado, max(m.fecha_fin_retiro) AS max_retiro, "
+                "count(m.id_registro_medicamento) AS meds_validados, "
+                "CURRENT_DATE AS pg_current_date, (now() AT TIME ZONE 'America/Bogota')::date AS bogota_date "
+                "FROM modulo2.activos_biologicos a "
+                "LEFT JOIN modulo5.registros_medicamentos m "
+                "ON m.id_activo_biologico = a.id_activo_biologico AND m.estado_registro = 'VALIDADO' "
+                "WHERE a.id_estado = 3 "
+                "GROUP BY a.id_activo_biologico, a.id_estado "
+                "ORDER BY a.id_activo_biologico"
+            ),
+            "b4_triggers_registros_med": (
+                "SELECT tgname, tgenabled "
+                "FROM pg_trigger "
+                "WHERE tgrelid = 'modulo5.registros_medicamentos'::regclass AND NOT tgisinternal "
+                "ORDER BY tgname"
+            ),
+            "b4_tablas_batch_cron": (
+                "SELECT table_schema, table_name FROM information_schema.tables "
+                "WHERE table_name ILIKE '%batch%' OR table_name ILIKE '%job%' "
+                "OR table_name ILIKE '%retiro%' OR table_schema = 'cron' "
+                "ORDER BY table_schema, table_name"
+            ),
+            "b5_conteo_853_5": (
+                "SELECT id_activo_biologico, estado_registro, count(*) AS total "
+                "FROM modulo5.registros_medicamentos "
+                "WHERE id_activo_biologico IN (853, 5) "
+                "GROUP BY id_activo_biologico, estado_registro "
+                "ORDER BY id_activo_biologico, estado_registro"
+            ),
+            "b5_conteo_global": (
+                "SELECT count(*) AS total_meds, "
+                "(SELECT count(*) FROM modulo5.auditorias_suministros) AS total_auditoria "
+                "FROM modulo5.registros_medicamentos"
+            ),
+        }
+
+        for nombre, sql in queries.items():
+            rq = s.post(f"{base}/test-control/query", json={"query": sql}, timeout=45)
+            try:
+                qbody = rq.json()
+            except ValueError:
+                qbody = {"raw": rq.text[:400]}
+            resultado["queries"][nombre] = {
+                "http": rq.status_code,
+                "body": qbody,
+            }
+
+        for label, ruta in (
+            ("me_permisos", "/sesiones/me/permisos"),
+            ("activos_en_tratamiento", "/activos-biologicos?id_estado=3&page_size=100"),
+            ("activo_853", "/activos-biologicos/853"),
+            ("activo_853_fases", "/activos-biologicos/853/fases"),
+            ("activo_853_ciclos", "/activos-biologicos/853/ciclos-productivos"),
+            ("meds_853", "/suministros/medicamentos?id_activo_biologico=853"),
+            ("activo_5", "/activos-biologicos/5"),
+            ("activo_5_fases", "/activos-biologicos/5/fases"),
+            ("meds_5", "/suministros/medicamentos?id_activo_biologico=5"),
+        ):
+            rg = s.get(f"{base}{ruta}", timeout=45)
+            try:
+                gbody = rg.json()
+            except ValueError:
+                gbody = {"raw": rg.text[:400]}
+            resultado["api_gets"][label] = {
+                "http": rg.status_code,
+                "body": gbody,
+            }
+
+        # Si hay activos EN_TRATAMIENTO, consultar sus medicamentos VALIDADOS
+        et_body = resultado["api_gets"].get("activos_en_tratamiento", {}).get("body") or {}
+        et_items = et_body.get("registros") or et_body.get("items") or []
+        et_meds = {}
+        et_ids = []
+        for item in et_items[:30]:
+            aid = item.get("id_activo_biologico")
+            if aid:
+                et_ids.append(int(aid))
+                rm = s.get(
+                    f"{base}/suministros/medicamentos",
+                    params={"id_activo_biologico": aid, "estado_registro": "VALIDADO"},
+                    timeout=45,
+                )
+                try:
+                    mb = rm.json()
+                except ValueError:
+                    mb = {"raw": rm.text[:300]}
+                et_meds[str(aid)] = {"http": rm.status_code, "body": mb}
+        resultado["api_gets"]["activos_en_tratamiento_meds"] = et_meds
+        if et_ids:
+            ids_csv = ", ".join(str(x) for x in et_ids)
+            rq_et = s.post(
+                f"{base}/test-control/query",
+                json={
+                    "query": (
+                        "SELECT id_activo_biologico, max(fecha_fin_retiro) AS max_retiro, "
+                        "count(*) AS cnt_validados, "
+                        "(now() AT TIME ZONE 'America/Bogota')::date AS bogota_hoy "
+                        "FROM modulo5.registros_medicamentos "
+                        f"WHERE estado_registro = 'VALIDADO' AND id_activo_biologico IN ({ids_csv}) "
+                        "GROUP BY id_activo_biologico ORDER BY id_activo_biologico"
+                    )
+                },
+                timeout=45,
+            )
+            resultado["queries"]["b4_en_tratamiento_sql_meds"] = {
+                "http": rq_et.status_code,
+                "body": rq_et.json(),
+            }
+
+    finally:
+        try:
+            rc = s.delete(f"{base}/test-control/runs/{resultado['run_id']}", timeout=45)
+            try:
+                cbody = rc.json()
+            except ValueError:
+                cbody = {"raw": rc.text[:200]}
+            resultado["close"] = {"http": rc.status_code, "body": cbody}
+        except Exception as exc:
+            resultado["close"] = {"error": f"{type(exc).__name__}: {exc}"}
+        s.close()
+
+    # Verificar permisos sobre recurso 48 de otros roles disponibles en .env.test (corridas secuenciales)
+    roles_env_permisos: dict[str, Any] = {}
+    for etiqueta, k_email, k_pwd in (
+        ("vet", "TEST_VET_EMAIL", "TEST_VET_PASSWORD"),
+        ("producer", "TEST_PRODUCER_EMAIL", "TEST_PRODUCER_PASSWORD"),
+        ("field_engineer", "TEST_FIELD_ENGINEER_EMAIL", "TEST_FIELD_ENGINEER_PASSWORD"),
+    ):
+        u_email = _env(k_email)
+        u_pwd = _env(k_pwd)
+        if not u_email or not u_pwd:
+            roles_env_permisos[etiqueta] = {"omitido": "credenciales ausentes"}
+            continue
+        rid = f"tc-m05-g18-fase1-rbac-{etiqueta}-{uuid.uuid4().hex[:6]}"
+        sr = requests.Session()
+        sr.headers.update(
+            {
+                "X-Test-Run-Id": rid,
+                "X-Sandbox-Secret": secret,
+                "X-Zona-Horaria": "America/Bogota",
+            }
+        )
+        info_r: dict[str, Any] = {"run_id": rid}
+        try:
+            rl = sr.post(
+                f"{base}/sesiones/",
+                json={"correo_electronico": u_email, "contrasena": u_pwd},
+                timeout=45,
+            )
+            bl = rl.json() if rl.headers.get("content-type", "").startswith("application/json") else {}
+            tok = bl.get("token")
+            info_r["login_http"] = rl.status_code
+            if rl.status_code == 200 and tok:
+                sr.headers["Authorization"] = f"Bearer {tok}"
+                rp = sr.get(f"{base}/sesiones/me/permisos", timeout=45)
+                bp = rp.json() if rp.status_code == 200 else {}
+                perms = [p for p in bp.get("permisos", []) if p.get("id_recurso") == 48]
+                info_r["permisos_http"] = rp.status_code
+                info_r["recurso_48_acciones"] = sorted(
+                    {p.get("id_accion") for p in perms if p.get("id_accion") is not None}
+                )
+            else:
+                info_r["error_code"] = bl.get("error_code")
+        finally:
+            try:
+                rc = sr.delete(f"{base}/test-control/runs/{rid}", timeout=45)
+                info_r["close"] = {"http": rc.status_code, "body": rc.json()}
+            except Exception as exc:
+                info_r["close"] = {"error": str(exc)}
+            sr.close()
+        roles_env_permisos[etiqueta] = info_r
+    resultado["roles_env_permisos"] = roles_env_permisos
+
+    # Inspeccion adicional solo lectura sobre TEST_DATABASE_URL (verifica rol_qa / RLS / B1 / B4)
+    db_url = _env("TEST_DATABASE_URL")
+    direct_db: dict[str, Any] = {}
+    if db_url:
+        import psycopg2
+
+        conn = psycopg2.connect(db_url)
+        conn.set_session(readonly=True, autocommit=True)
+        try:
+            cur = conn.cursor()
+            checks = {
+                "identidad": "SELECT current_user, session_user, current_database()",
+                "privilegios_fn": (
+                    "SELECT "
+                    "has_function_privilege(current_user, 'modulo2.fn_activos_del_usuario(integer)', 'EXECUTE') AS fn_m2, "
+                    "has_function_privilege(current_user, 'modulo1.fn_id_usuario_por_correo(character varying)', 'EXECUTE') AS fn_m1"
+                ),
+                "permisos_recurso_48": (
+                    "SELECT p.id_permiso, p.id_rol, r.nombre_rol, p.id_recurso, rec.nombre_recurso, "
+                    "p.id_accion, a.codigo AS accion_codigo, p.nombre, p.es_activo "
+                    "FROM modulo1.permisos p "
+                    "JOIN modulo1.roles r ON r.id_rol = p.id_rol "
+                    "JOIN modulo1.recursos rec ON rec.id_recurso = p.id_recurso "
+                    "JOIN modulo1.acciones a ON a.id_accion = p.id_accion "
+                    "WHERE p.id_recurso = 48 "
+                    "ORDER BY p.id_rol, p.id_accion"
+                ),
+                "activos_853_5": (
+                    "SELECT a.id_activo_biologico, a.tipo, a.id_estado, e.nombre AS estado, a.fecha_inicio_ciclo "
+                    "FROM modulo2.activos_biologicos a "
+                    "JOIN modulo2.estados_activos_biologicos e ON e.id_estado_activo_biologico = a.id_estado "
+                    "WHERE a.id_activo_biologico IN (853, 5) ORDER BY a.id_activo_biologico"
+                ),
+                "gestiones_fases_853": (
+                    "SELECT id_gestion_fases, id_activo_biologico, es_activa "
+                    "FROM modulo2.gestiones_fases WHERE id_activo_biologico = 853"
+                ),
+                "en_tratamiento_detalle": (
+                    "SELECT a.id_activo_biologico, a.id_estado, max(m.fecha_fin_retiro) AS max_retiro, "
+                    "count(m.id_registro_medicamento) AS meds_validados, "
+                    "(now() AT TIME ZONE 'America/Bogota')::date AS bogota_date "
+                    "FROM modulo2.activos_biologicos a "
+                    "LEFT JOIN modulo5.registros_medicamentos m "
+                    "ON m.id_activo_biologico = a.id_activo_biologico AND m.estado_registro = 'VALIDADO' "
+                    "WHERE a.id_estado = 3 "
+                    "GROUP BY a.id_activo_biologico, a.id_estado "
+                    "ORDER BY a.id_activo_biologico"
+                ),
+                "triggers_medicamentos": (
+                    "SELECT t.tgname, pg_get_triggerdef(t.oid) AS def "
+                    "FROM pg_trigger t "
+                    "WHERE t.tgrelid = 'modulo5.registros_medicamentos'::regclass AND NOT t.tgisinternal "
+                    "ORDER BY t.tgname"
+                ),
+            }
+            for k, sql in checks.items():
+                try:
+                    cur.execute(sql)
+                    cols = [d[0] for d in cur.description] if cur.description else []
+                    rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+                    direct_db[k] = {"ok": True, "rows": rows}
+                except Exception as exc:
+                    direct_db[k] = {"ok": False, "error": f"{type(exc).__name__}: {str(exc).splitlines()[0]}"}
+        finally:
+            conn.close()
+    resultado["direct_db_readonly"] = direct_db
+
+    OUT_JSON.write_text(
+        json.dumps(_sanitizar(resultado), indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
+    print(f"OK escrito {OUT_JSON}")
+    print("Close:", resultado["close"])
+
+
+if __name__ == "__main__":
+    main()
+================================================================================

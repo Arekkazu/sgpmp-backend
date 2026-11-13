@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G26 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | G26 revisado contra la ficha: un activo y un run por caso, rechazos con campo identificado, 116 y 119 con códigos de validación, 118 verifica que no se cree producto |
+# | 2026-11-11 | Daniela Castillo | G26 117 revisado: el conjunto válido lo define la unidad de la métrica (no KG, LT, UNIDAD, M2); se rechazan TON, vacía y XYZ y se observan LT, UNIDAD y M2 |
 """
 TC-M06-G26 - Validación de datos mínimos, catálogos, unidades, fecha y activo del evento productivo.   RF-85 / RF-43.   Casos: TC-M06-115 a TC-M06-119.
 
@@ -11,7 +12,8 @@ unidad_medida y fecha_evento (= fecha_cosecha). El id del activo va en la ruta y
 - 115: se omite cada campo del cuerpo (4) y el id del activo en la ruta; id_evento_productivo no se puede omitir porque lo genera M02 (se documenta). Cada rechazo debe
   identificar el campo faltante; no se crea producto ni se emite 5xx.
 - 116: tipo_producto fuera de catálogo: 'PRODUCTO_OTRO', 'producto_periodico' y vacío (la API pide un id numérico), más un id inexistente: todos con error de validación (400 o 422).
-- 117: unidad 'TON' y vacía se rechazan; 'kg' es la unidad de la métrica y solo cambia la mayúscula frente a KG del RF (diferencia de formato, se documenta).
+- 117 (revisado): la unidad válida es la de la métrica del producto (kg en la métrica sembrada); el conjunto KG, LT, UNIDAD, M2 de la ficha no es el catálogo del backend.
+  Se rechazan 'TON', vacía y 'XYZ'; 'LT', 'UNIDAD' y 'M2' (del conjunto de la ficha) se envían contra la métrica en kg y se anota la respuesta; 'kg' se acepta.
 - 118: fecha de mañana y '2026-13-45' se rechazan sin crear producto; la de hoy se acepta y se reconoce.
 - 119: id inexistente (la API usa ids enteros, no UUID): 404 o rechazo equivalente; 'abc' y 'null' mal formados: error de validación (400 VAL_ENTRADA o 422). Sin 5xx.
 Precondición (RF-43): el activo necesita una fase activa de un ciclo de M09; QA no crea ciclos y usa la especie productiva sembrada de TEST (Cachama, métrica PESO en kg).
@@ -84,10 +86,15 @@ def test_TC_M06_116_tipo_de_producto_fuera_de_catalogo(env):
 def test_TC_M06_117_unidad_de_medida_no_permitida(env):
     ida = _activo(env)
     fallos = []
-    for unidad in ("TON", ""):
+    for unidad in ("TON", "", "XYZ"):
         r = _enviar(env, ida, {**VALIDO, "unidad_medida": unidad})
         if not 400 <= r.status < 500:
             fallos.append(f"unidad {unidad!r}: debía rechazarse con 4xx y respondió {r}")
+    for unidad in ("LT", "UNIDAD", "M2"):                 # conjunto de la ficha: se observa la respuesta contra la métrica en kg
+        r = _enviar(env, ida, {**VALIDO, "unidad_medida": unidad})
+        obs(f"Unidad {unidad!r} contra la métrica en kg: HTTP {r.status} {r.err or ''}")
+        if r.status >= 500:
+            fallos.append(f"unidad {unidad!r}: no debía dar 5xx y respondió {r}")
     _sin_producto(env, ida, "con unidad no permitida")
     r = _enviar(env, ida, {**VALIDO, "unidad_medida": "kg"})
     obs(f"Unidad 'kg' (la de la métrica; la ficha la lista como inválida por la minúscula, diferencia de formato frente a KG): HTTP {r.status}.")

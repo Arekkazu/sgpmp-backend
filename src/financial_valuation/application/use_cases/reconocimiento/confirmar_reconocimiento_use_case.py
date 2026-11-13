@@ -4,6 +4,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 """Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable.
 
 Los costos de venta manuales exigen una referencia documental (RF-84 R4), que queda en el cálculo y en la
@@ -33,6 +34,7 @@ from src.financial_valuation.domain.repositories.notificacion_financiera_port im
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.value_objects.nic41 import IndicadorValoracion, Severidad, TipoEvidencia
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.supplies.application.use_cases.exportacion.generador_archivos import fecha, moneda, numero
 
 TABLA = "reconocimientos_iniciales"
 
@@ -63,8 +65,8 @@ class ConfirmarReconocimientoUseCase:
         existente = self.valoraciones.reconocimiento_confirmado(id_activo_biologico)
         if existente is not None:  # FA-1
             raise ConflictError(code="RECONOCIMIENTO_EXISTENTE", message=(
-                f"El activo ya fue reconocido el {existente.fecha_reconocimiento:%Y-%m-%d} por "
-                f"{existente.valor_razonable_neto_inicial:,.2f} COP."))
+                f"El activo ya fue reconocido el {fecha(existente.fecha_reconocimiento)} por "
+                f"{moneda(existente.valor_razonable_neto_inicial)}."))
         propuesta = self.proponedor.proponer(activo, id_usuario, costos_manuales=costos_manuales,
                                              justificacion=justificacion, clasificacion=clasificacion,
                                              referencia_documental=referencia)
@@ -181,9 +183,9 @@ class ConfirmarReconocimientoUseCase:
         Reemplaza el mensaje del bloqueo por uno con las cifras y lo que puede hacer el Contador."""
         activo, calculo = propuesta.activo, propuesta.calculo_revision
         costos = calculo.valor_razonable_bruto - calculo.valor_neto
-        mensaje = (f"Los costos de venta del activo {activo.identificador} ({costos:,.2f} COP) igualan o superan su "
-                   f"valor de mercado ({calculo.valor_razonable_bruto:,.2f} COP): el valor neto es "
-                   f"{calculo.valor_neto:,.2f} COP. El cálculo quedó en revisión. Corrija los costos de venta o valide "
+        mensaje = (f"Los costos de venta del activo {activo.identificador} ({moneda(costos)}) igualan o superan su "
+                   f"valor de mercado ({moneda(calculo.valor_razonable_bruto)}): el valor neto es "
+                   f"{moneda(calculo.valor_neto)}. El cálculo quedó en revisión. Corrija los costos de venta o valide "
                    "el cálculo con una justificación; un activo con valor neto menor o igual a cero no se puede reconocer.")
         try:
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, propuesta.fecha_reconocimiento,

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: transportar UUID y versión del hash sin objetos ORM. |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Entidad de lectura de un evento de ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Distinta de ``EventoAuditoriaSuministro`` (``auditoria_suministro_port.py``),
@@ -44,3 +45,6 @@ class EventoAuditoriaSuministroConsulta:
     id_gestion_fases: Optional[int]
     id_evento_m05: Optional[UUID] = None
     version_hash_integridad: int = 1
+    # Nombres visibles (los llena la consulta); el del usuario queda en None si la RLS no deja leerlo.
+    nombre_activo: Optional[str] = None
+    nombre_usuario: Optional[str] = None

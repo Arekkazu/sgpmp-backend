@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 / INC-M06-329-G85 / INC-M06-324-G27: avisos, reparto y conversión a kg |
+# | 2026-11-10 | — | TC-M06-G109: la vía general de estos avisos exige SGPMP_ENTORNO=PROD |
 """M06 sin base de datos.
 
 - INC-M06-299-G81 (RF-89 FA-4, CA-7): los avisos a 30, 15, 7 y 0 días salen una sola vez aunque el
@@ -56,6 +57,8 @@ def test_umbral_alcanzado_usa_los_de_la_ventana():
 
 
 def test_aviso_no_se_repite_si_el_proceso_corre_dos_veces_el_mismo_dia(monkeypatch):
+    monkeypatch.setenv("SGPMP_ENTORNO", "PROD")
+    monkeypatch.delenv("M06_ALERTAS_QA_HABILITADAS", raising=False)
     monkeypatch.setattr(alertas, "hoy_usuario", lambda: HOY)
     caso, notificador = _caso([_precio(1, HOY + timedelta(days=15))])
     assert caso.execute() == 1
@@ -64,6 +67,8 @@ def test_aviso_no_se_repite_si_el_proceso_corre_dos_veces_el_mismo_dia(monkeypat
 
 
 def test_dia_sin_ejecutar_no_pierde_el_aviso_y_cada_umbral_sale_una_vez(monkeypatch):
+    monkeypatch.setenv("SGPMP_ENTORNO", "PROD")
+    monkeypatch.delenv("M06_ALERTAS_QA_HABILITADAS", raising=False)
     precio = _precio(1, HOY + timedelta(days=12))
     caso, notificador = _caso([precio])
     for dia in (HOY, HOY + timedelta(days=1), HOY + timedelta(days=6), HOY + timedelta(days=12), HOY + timedelta(days=13)):

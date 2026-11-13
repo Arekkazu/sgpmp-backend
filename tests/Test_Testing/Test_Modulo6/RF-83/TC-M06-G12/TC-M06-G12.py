@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G12 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G12 con precio histórico real (vencido), alerta MEDICION_PENDIENTE, costo y motivo en auditoría |
+# | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 059 reescrito (sin precio ni histórico ya no se usa el costo: SIN_EFECTO por costo / MEDICION_PENDIENTE) |
 """
 TC-M06-G12 - Medición sin precio de mercado: precio histórico, costo y marca de estimación.   RF-83 (FA-1, CA-5, CA-7).   Casos: TC-M06-058 a TC-M06-060.
 
@@ -12,8 +13,9 @@ especie queda sin precio vigente y con ese precio como último conocido. Un even
 
 - 058a: la medición se registra con tiene_valor_estimado=true usando el último precio histórico, no se bloquea y queda MEDICION_CON_ESTIMACION.
 - 058b: la ficha pide además la alerta MEDICION_PENDIENTE (RF-83 FA-1 «se notifica al Contador», CA-7). Se verifica en el registro de auditoría.
-- 059: «sin precio vigente ni histórico, activo reconocido por costo»: el RF/ficha esperan medir con el costo y marcar valor_estimado=true. Se prepara el
-  escenario real (especie sin precio, reconocimiento por costo, pesaje); si no se genera medición, el caso queda BLOQUEADO (funcionalidad no implementada).
+- 059 (RF-83 v1.2, C24.2): sin precio ni histórico el costo ya NO se usa para medir.
+  059a: activo reconocido por costo (NIC 41 ¶30) y especie sin precio: el evento de crecimiento queda SIN_EFECTO «Activo valorado por costo», sin medición.
+  059b: activo a valor razonable cuya especie nunca tuvo precio en la categoría vigente: queda MEDICION_PENDIENTE, sin medición y sin pasar a costo (¶31).
 - 060a: un activo medido con precio (valor_estimado=false) y otro estimado (true), visibles en historial, listado del período y auditoría.
 - 060b: «el motivo de estimación queda en el registro de auditoría».
 
@@ -90,7 +92,13 @@ def test_TC_M06_058b_alerta_medicion_pendiente_en_la_medicion_estimada(env):
                                            f"medición con estimación; solo quedó {sorted(set(tipos))} (M06 no notifica al Contador por este motivo)")
 
 
-def test_TC_M06_059_sin_precio_ni_historico_usa_el_costo(env):
+def _ultimo_procesamiento(env):
+    pr = env.sql("SELECT resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 "
+                 "ORDER BY fecha_procesamiento DESC, id_evento DESC LIMIT 1")
+    return pr[0] if pr else None
+
+
+def test_TC_M06_059a_activo_por_costo_sin_precio_no_se_mide_con_el_costo(env):
     _nuevo(env)
     env.presupuesto(70)
     esc = env.escenario(categoria="PESO_KG", precio=None)                     # especie sin ningún precio RF-89
@@ -100,16 +108,33 @@ def test_TC_M06_059_sin_precio_ni_historico_usa_el_costo(env):
     env.procesar_eventos()
     env.pesaje(ida, "450")                                                    # evento CRECIMIENTO
     assert env.procesar_eventos().status == 200
+    pr = _ultimo_procesamiento(env)
+    obs(f"último procesamiento del evento: {pr}")
+    assert not env.mediciones(ida), f"RF-83 v1.2: el costo ya no se usa para medir; no debe existir medición: {env.mediciones(ida)}"
+    assert pr and "SIN_EFECTO" in str(pr["resultado"]).upper(), f"el evento debía quedar SIN_EFECTO (activo valorado por costo): {pr}"
+    assert "NIC 41" in str(pr.get("detalle")) or "costo" in str(pr.get("detalle")).lower(), f"el detalle debía indicar «Activo valorado por costo (NIC 41 ¶30)»: {pr}"
+
+
+def test_TC_M06_059b_valor_razonable_sin_precio_ni_historico_queda_medicion_pendiente(env):
+    _nuevo(env)
+    env.presupuesto(70)
+    esc = env.escenario(categoria="PESO_KG", precio=P)
+    ida = env.base_medible(esc, "400")                                        # activo a valor razonable
+    # La especie pasa a una categoría en la que nunca tuvo precio (no se registra ninguno): sin precio vigente ni histórico.
+    env.prep(env.call("PUT", f"/finanzas/configuracion/especies/{esc.id_especie}", "contador", json={
+        "clasificacion": "PRODUCCION", "categoria_precio": "POR_CABEZA", "vida_util_meses": 60}), (200, 201), "especie sin precio en la categoría vigente")
+    env.pesaje(ida, "450")
+    assert env.procesar_eventos().status == 200
+    pr = _ultimo_procesamiento(env)
     ms = env.mediciones(ida)
-    pr = env.sql("SELECT resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 "
-                 "ORDER BY fecha_procesamiento DESC, id_evento DESC LIMIT 1")
-    if not ms:
-        bloqueado("funcionalidad no implementada: RF-83 FA-1 (sin precio vigente ni histórico se usa el costo y se marca valor_estimado=true) "
-                  f"no se cumple; el evento CRECIMIENTO sobre el activo reconocido por costo quedó {pr[0] if pr else 'sin procesar'} "
-                  "y no se generó medición.")
-    m = ms[-1]
-    assert m["tiene_valor_estimado"] is True, m
-    assert "MEDICION_CON_ESTIMACION" in env.tipos_auditoria(ida)
+    obs(f"último procesamiento del evento: {pr}; mediciones: {len(ms)}")
+    if ms and ms[-1].get("tiene_valor_estimado") is True:
+        no_concluyente("el backend tomó el precio por kg anterior como histórico, así que la especie no queda sin ningún precio; "
+                       f"no se pudo preparar el escenario «nunca tuvo precio»: {ms[-1]}")
+    assert not ms, f"sin precio vigente ni histórico no debe crearse medición (ni con el costo): {ms}"
+    tipos = env.tipos_auditoria(ida)
+    assert (pr and "PENDIENTE" in str(pr["resultado"]).upper()) or "MEDICION_PENDIENTE" in tipos, f"el activo debía quedar MEDICION_PENDIENTE: {pr}; auditoría {tipos}"
+    assert "VALORACION_POR_COSTO" not in str(env.historial(ida)), "RF-83 v1.2 (NIC 41 ¶31): no debe pasar a valoración por costo"
 
 
 def test_TC_M06_060a_la_estimacion_no_se_oculta(env):

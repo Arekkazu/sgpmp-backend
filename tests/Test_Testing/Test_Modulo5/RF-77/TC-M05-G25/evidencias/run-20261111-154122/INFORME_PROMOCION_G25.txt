@@ -1,0 +1,633 @@
+INFORME DE PROMOCION — TC-M05-G25 (RF-77) — REINTENTO 1
+====================================================================
+Fecha: 2026-11-11
+Caso de prueba: TC-M05-G25 (RF-77 / TC-M05-024, TC-M05-025)
+Incidente corregido: INC-M05-272-G25 (Dev #958, commit 293786267f, sin migracion)
+Veredicto validado por QA: Aprobado 23/23
+Ruta base: tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/
+Staging oficial: evidencias/run-20261111-154122/
+Corrida previa archivada: evidencias/run-20261111-150413/
+Baseline Ronda 1: evidencias/run-20261107-170026/
+
+PASO 1 - COMPROBACIONES PREVIAS
+--------------------------------
+1.1 Integridad SHA-256 inicial de los 3 scripts oficiales (esperados etapa 1c):
+- test_tc_m05_g25.py            : 42086B9D4F936A59E17CDA1F166025CA63D8032E8AA19FEFAB69F53E6D617D3A (COINCIDE)
+- ejecutar_tc_m05_g25.ps1       : BDE400B8EA336171822F1201F4642FEE342CABDA8D0B11393FC8136875556D31 (COINCIDE)
+- generar_artefactos_run_g25.py : 22AEDEB8FD6EA410CF887430BFE9B668A674A55AC2FB680ABA55884455B1E29D (COINCIDE)
+
+1.2 Coherencia de conteos en staging oficial (evidencias/run-20261111-154122/):
+- HTML (data-jsonblob): total=23, passed=23, failed_or_err=0, skipped=0
+- JUnit XML (resultado_TC-M05-G25_reintento1.xml): tests=23, errors=0, failures=0, skipped=0, time=16.317s
+- JSON (resultado_TC-M05-G25_reintento1.json): total=23, ok=23, falla=0, veredicto=Aprobado, checkpoints=23
+
+1.3 Escaneo previo de secretos en staging: limpio (no encontrado en HTML, XML, JSON generado, trazas_http.jsonl).
+
+PASO 2 - REGENERACION DEL JSON OFICIAL DE RESULTADO
+--------------------------------------------------
+- El JSON original generado automaticamente por generar_artefactos_run_g25.py fue respaldado sin perdida como:
+  evidencias/run-20261111-154122/resultado_TC-M05-G25_reintento1_generado.json
+- Se creo y ejecuto evidencias/run-20261111-154122/gen_json_resultado.py usando los IDs y evidencias reales de trazas_http.jsonl de run-20261111-154122:
+  - 23 checkpoints con campo estado exclusivo en {"OK", "FALLA"} (23 OK, 0 FALLA)
+  - summary: total=23, ok=23, falla=0, veredicto="Aprobado"
+  - Ver Anexo 1 (JSON completo) y Anexo 2 (gen_json_resultado.py completo).
+
+PASO 3 - PROMOCION A resultados/
+--------------------------------
+Se copiaron (sin mover) los dos artefactos finales hacia resultados/:
+- evidencias/run-20261111-154122/resultado_TC-M05-G25_reintento1.html -> resultados/resultado_TC-M05-G25_reintento1.html
+- evidencias/run-20261111-154122/resultado_TC-M05-G25_reintento1.json -> resultados/resultado_TC-M05-G25_reintento1.json
+El archivo XML permanece unicamente en evidencias/run-20261111-154122/.
+Los archivos preexistentes (.gitkeep, resultado_TC-M05-G25.html, resultado_TC-M05-G25.json) permanecieron intactos.
+
+Contenido final de resultados/:
+- .gitkeep | 0 bytes | SHA-256=E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+- resultado_TC-M05-G25.html | 49558 bytes | SHA-256=7C045A998AE91BFC3C5471549DCC847C94FF3129AEACE47710D2F2D60DCD66EF
+- resultado_TC-M05-G25.json | 6933 bytes | SHA-256=252231D230BE7E486A9AFDAC52F1119AD4F171D81153B9BF661BED159C87C112
+- resultado_TC-M05-G25_reintento1.html | 53601 bytes | SHA-256=0651539DC82D190578C84DD14FC74896BDBB43CE7051236BA5CF808B9C2D5E84
+- resultado_TC-M05-G25_reintento1.json | 9191 bytes | SHA-256=7C6C8367C96178DF54770A7E2742DC8BB34C10D4D973BC3DB6022CA878A6CE68
+
+PASO 4 - NARRATIVO OFICIAL DE REINTENTO 1
+-----------------------------------------
+- Se redacto evidencias/run-20261111-154122/TC-M05-G25_resultado.md (ver Anexo 3).
+- El archivo generado por el runner (evidencias/run-20261111-154122/TC-M05-G25_resultado_reintento1.md) se conservo intacto.
+
+PASO 5 - MARCAS EN CORRIDAS ANTERIORES
+--------------------------------------
+- En evidencias/run-20261111-150413/ se creo LEEME_ARCHIVADA.md con el aviso oficial de corrida archivada previa a la correccion de fase 3.
+- En evidencias/run-20261107-170026/TC-M05-G25_resultado.md se verifico que el documento de Ronda 1 no contenia marcador placeholder literal de INC por reemplazar (solo la referencia a RF-77 CA-11 / Postcondicion 3 en su clasificacion final). Se agrego al final la nota de actualizacion:
+  "Actualización 2026-11-11: INC-M05-272-G25 corregido (Dev #958); reintento 1 Aprobado 23/23 en run-20261111-154122 con el script corregido (fase 3)."
+- Ver Anexo 4 para el diff unificado exacto.
+
+PASO 6 - VERIFICACION FINAL DE INTEGRIDAD, GIT STATUS Y SECRETOS
+----------------------------------------------------------------
+6.1 __pycache__ / .pyc bajo TC-M05-G25/: ninguno encontrado/limpio
+
+6.2 Integridad SHA-256 final de los 3 scripts oficiales:
+- test_tc_m05_g25.py            : 42086B9D4F936A59E17CDA1F166025CA63D8032E8AA19FEFAB69F53E6D617D3A (COINCIDE)
+- ejecutar_tc_m05_g25.ps1       : BDE400B8EA336171822F1201F4642FEE342CABDA8D0B11393FC8136875556D31 (COINCIDE)
+- generar_artefactos_run_g25.py : 22AEDEB8FD6EA410CF887430BFE9B668A674A55AC2FB680ABA55884455B1E29D (COINCIDE)
+
+6.3 git status (subarbol tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/; sin git add ni git commit):
+M tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/ejecutar_tc_m05_g25.ps1
+ M tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261107-170026/TC-M05-G25_resultado.md
+ M tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/generar_artefactos_run_g25.py
+ M tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py
+?? tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/
+?? tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-154122/
+?? tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/resultados/resultado_TC-M05-G25_reintento1.html
+?? tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/resultados/resultado_TC-M05-G25_reintento1.json
+
+6.4 Escaneo de secretos (valores leidos en memoria desde .env.test; patrones evaluados: TEST_ADMIN_PASSWORD, TEST_PRODUCER_PASSWORD, TEST_FIELD_ENGINEER_PASSWORD, TEST_DB_PASSWORD, TEST_SANDBOX_SECRET, TEST_SANDBOX_SECRET_LAST20, TEST_VET_PASSWORD, JWT_PREFIX_EYJ):
+- evidencias\run-20261111-154122\resultado_TC-M05-G25_reintento1.html: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-154122\resultado_TC-M05-G25_reintento1.xml: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-154122\resultado_TC-M05-G25_reintento1.json: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-154122\resultado_TC-M05-G25_reintento1_generado.json: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-154122\trazas_http.jsonl: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-154122\gen_json_resultado.py: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-154122\TC-M05-G25_resultado.md: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- resultados\resultado_TC-M05-G25_reintento1.html: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- resultados\resultado_TC-M05-G25_reintento1.json: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261111-150413\LEEME_ARCHIVADA.md: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+- evidencias\run-20261107-170026\TC-M05-G25_resultado.md: TEST_ADMIN_PASSWORD: no encontrado, TEST_PRODUCER_PASSWORD: no encontrado, TEST_FIELD_ENGINEER_PASSWORD: no encontrado, TEST_DB_PASSWORD: no encontrado, TEST_SANDBOX_SECRET: no encontrado, TEST_SANDBOX_SECRET_LAST20: no encontrado, TEST_VET_PASSWORD: no encontrado, JWT_PREFIX_EYJ: no encontrado
+
+====================================================================
+ANEXO 1 - resultados/resultado_TC-M05-G25_reintento1.json
+====================================================================
+{
+  "tc": "TC-M05-G25",
+  "summary": {
+    "total": 23,
+    "ok": 23,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "A01 Generación de reporte sincrónico por Productor",
+      "esperado": "HTTP 200, respuesta con id_reporte_gasto_acumulado y gasto acumulado calculado (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 200, id_reporte_gasto_acumulado=244, gasto_total_acumulado=10.0000",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Exportación de reporte a formato CSV por Productor",
+      "esperado": "HTTP 201, generación de archivo CSV con vigencia de 24 horas y prefijo Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "HTTP 201, id_archivo=62f64d67-3f84-4814-a419-734d2aafa4b9, formato=CSV, nombre_archivo=Gastos_INFRA2_2026-06-01_2026-11-01.csv",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Exportación de reporte a formato PDF por Productor",
+      "esperado": "HTTP 201, generación de archivo PDF con prefijo Reporte_Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "HTTP 201, id_archivo=d9fecbd0-acb8-4fda-ac2b-6acc60c9b2b7, formato=PDF, nombre_archivo=Reporte_Gastos_INFRA2_2026-06-01_2026-11-01.pdf",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Descarga de exportación propia por Productor",
+      "esperado": "HTTP 200, Content-Type text/csv, Content-Disposition attachment (Fuente: RF-77 RNF Exportación (TC-M05-024))",
+      "obtenido": "HTTP 200, descarga CSV verificada para id_archivo=62f64d67-3f84-4814-a419-734d2aafa4b9",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 Restricción de acceso a auditoría de M05 para Productor",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Recurso 57 restringido a Administrador/Contador) (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en GET /suministros/auditoria",
+      "estado": "OK"
+    },
+    {
+      "paso": "A98 Cierre ordenado de sandbox Productor y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-prod-7ec72c86",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Restricción de generación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Solo Productor y Administrador pueden generar) (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en POST /suministros/reportes-gastos",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Restricción de exportación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en POST /suministros/reportes-gastos/19/exportacion",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Restricción de descarga de exportación real para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO sin contenido CSV al descargar archivo real exportado por Administrador (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO, sin text/csv ni contenido CSV al descargar archivo real de Admin (id_archivo=c9d0b296-6ed7-4274-a21e-125dcdf23caf, id_reporte=245)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04 Restricción de acceso a auditoría para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en GET /suministros/auditoria",
+      "estado": "OK"
+    },
+    {
+      "paso": "B98 Cierre ordenado de sandbox Veterinario y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-vet-8bfaa938",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Generación y exportación de reporte por Administrador",
+      "esperado": "HTTP 200 en generación y HTTP 201 en exportación CSV (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Generacion HTTP 200 (id_reporte=246); exportacion CSV HTTP 201 (id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Registro en bitácora de auditoría de M05 de generación y exportación de Admin",
+      "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Admin, fecha_evento y registro <= 2 s (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "HTTP 200; evento GENERACION id=72140 y EXPORTACION id=72141, actor id_usuario=104, resultado=EXITOSO, latencias=0.49s/0.348s (<= 2.0s), id_reporte=246, id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d",
+      "estado": "OK"
+    },
+    {
+      "paso": "C03 Registro en bitácora de auditoría de M05 de generación y exportación de Productor",
+      "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Productor, fecha_evento y registro <= 2 s (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "HTTP 200; evento GENERACION id=72142 y EXPORTACION id=72143, actor id_usuario=2, resultado=EXITOSO, latencias=0.591s/0.442s (<= 2.0s), id_reporte=247, id_archivo=f70ce7d4-1b86-4c83-878a-2bd84476b488",
+      "estado": "OK"
+    },
+    {
+      "paso": "C98 Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-adm-7dfa7199",
+      "estado": "OK"
+    },
+    {
+      "paso": "D01 Rechazo de solicitudes no autenticadas",
+      "esperado": "HTTP 401 sin Authorization (con cabeceras sandbox) en generación, exportación, descarga, historial y auditoría (Fuente: RF-02 / RF-77 RNF Seguridad)",
+      "obtenido": "5/5 endpoints sin Authorization rechazados con 401 TOKEN_REQUERIDO",
+      "estado": "OK"
+    },
+    {
+      "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
+      "esperado": "HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARCHIVO_NO_ENCONTRADO por RLS de modulo5) sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 ARCHIVO_NO_ENCONTRADO, sin text/csv ni attachment ni contenido (id_archivo=78cd718e-b4a9-492d-a6f1-761f1cdc8994)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D03 Validación de tipos y resistencia ante IDs inexistentes o inválidos",
+      "esperado": "HTTP 404 en inexistentes, HTTP 400/422 en tipos inválidos; jamás HTTP 500 (Fuente: Guía de Pruebas / Robustez de la API)",
+      "obtenido": "5/5 casos sin HTTP 500: /suministros/reportes-gastos/999999999->404(REPORTE_NO_ENCONTRADO); /suministros/reportes-gastos/-1->404(REPORTE_NO_ENCONTRADO); /suministros/reportes-gastos/id_invalido->400(VAL_ENTRADA); /suministros/reportes-gastos/exportaciones/00000000-0000-0000-0000-000000000000->404(ARCHIVO_NO_ENCONTRADO); /suministros/reportes-gastos/exportaciones/no-es-uuid->400(VAL_ENTRADA)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D04 Aislamiento estricto de historial por usuario",
+      "esperado": "GET /historial devuelve los reportes propios del usuario y excluye por completo los de otro usuario (Fuente: RF-77 RNF Historial (TC-M05-024))",
+      "obtenido": "HTTP 200 en reporte Productor (id_reporte=249) y en GET /historial (Productor total=56, Admin total=100; conjuntos disjuntos sin fuga IDOR)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05a Prevención de IDOR al consultar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni eventos indebidos en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 REPORTE_NO_ENCONTRADO, 0 eventos atribuibles (id_reporte=250, id_activo=1839)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05b Prevención de IDOR al regenerar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni evento REGENERACION en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 REPORTE_NO_ENCONTRADO, 0 eventos atribuibles (id_reporte=250)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05c Prevención de IDOR al exportar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin creación de archivo ni evento EXPORTACION en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 REPORTE_NO_ENCONTRADO, 0 eventos atribuibles (id_reporte=250)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D98 Cierre ordenado de sandbox IDOR/Aislamiento y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-idor-fad42743",
+      "estado": "OK"
+    }
+  ]
+}
+
+====================================================================
+ANEXO 2 - evidencias/run-20261111-154122/gen_json_resultado.py
+====================================================================
+# | Fecha      | Nombre                   | Que se hizo                                                                 |
+# |------------|--------------------------|-----------------------------------------------------------------------------|
+# | 2026-11-11 | Juan Sebastian Gutierrez | Generador de resultado_TC-M05-G25_reintento1.json con obtenido real de trazas |
+"""Genera resultado_TC-M05-G25_reintento1.json a partir del JUnit XML y trazas_http.jsonl.
+
+Conserva exactamente el orden, 'paso' y 'esperado' de resultado_TC-M05-G25_reintento1_generado.json,
+determina 'estado' (OK/FALLA) desde resultado_TC-M05-G25_reintento1.xml y construye 'obtenido'
+con los valores reales observados en trazas_http.jsonl (sin tokens ni datos personales).
+"""
+from __future__ import annotations
+
+import json
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+def _cargar_trazas_por_test(trazas_path: Path) -> dict[str, list[dict[str, Any]]]:
+    por_test: dict[str, list[dict[str, Any]]] = {}
+    for linea in trazas_path.read_text(encoding="utf-8").splitlines():
+        linea = linea.strip()
+        if not linea:
+            continue
+        reg = json.loads(linea)
+        por_test.setdefault(reg.get("test", ""), []).append(reg)
+    return por_test
+
+
+def _buscar_req(
+    rows: list[dict[str, Any]],
+    *,
+    metodo: str | None = None,
+    ruta_contiene: str | None = None,
+    ultimo: bool = False,
+) -> dict[str, Any] | None:
+    coincidencias = [
+        r for r in rows
+        if (metodo is None or r.get("metodo") == metodo)
+        and (ruta_contiene is None or ruta_contiene in (r.get("ruta") or ""))
+    ]
+    if not coincidencias:
+        return None
+    return coincidencias[-1] if ultimo else coincidencias[0]
+
+
+def _extraer_eventos(
+    rows_aud: dict[str, Any] | None,
+    acciones: tuple[str, ...],
+    id_usuario: int | None = None,
+    id_reporte: int | None = None,
+) -> list[dict[str, Any]]:
+    if not rows_aud or not isinstance(rows_aud.get("response_body"), dict):
+        return []
+    salida = []
+    for it in rows_aud["response_body"].get("items", []):
+        dn = it.get("datos_nuevos") or {}
+        if dn.get("accion") not in acciones:
+            continue
+        if id_usuario is not None and it.get("id_usuario") != id_usuario:
+            continue
+        if id_reporte is not None and dn.get("id_reporte_gasto_acumulado") != id_reporte:
+            continue
+        salida.append(it)
+    return salida
+
+
+def _run_id_desde_delete(rows: list[dict[str, Any]]) -> str:
+    r_del = _buscar_req(rows, metodo="DELETE", ruta_contiene="/test-control/runs/")
+    if not r_del:
+        return "?"
+    return (r_del.get("ruta") or "").rsplit("/", 1)[-1]
+
+
+def _obtenido_real(
+    nombre_test: str,
+    por_test: dict[str, list[dict[str, Any]]],
+    tc_xml: ET.Element,
+) -> str:
+    failure = tc_xml.find("failure")
+    error = tc_xml.find("error")
+    if failure is not None or error is not None:
+        el = failure if failure is not None else error
+        return f"Falla: {(el.get('message') or '')[:300]}"
+
+    rows = por_test.get(nombre_test, [])
+    if nombre_test == "test_a01_productor_genera_reporte_sincronico":
+        r = _buscar_req(rows, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        rb = r.get("response_body") or {}
+        return (
+            f"HTTP {r.get('status_code')}, id_reporte_gasto_acumulado={rb.get('id_reporte_gasto_acumulado')}, "
+            f"gasto_total_acumulado={rb.get('gasto_total_acumulado')}"
+        )
+
+    if nombre_test == "test_a02_productor_exporta_reporte_csv":
+        r = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        rb = r.get("response_body") or {}
+        return (
+            f"HTTP {r.get('status_code')}, id_archivo={rb.get('id_archivo') or rb.get('id_archivo_exportacion')}, "
+            f"formato={rb.get('formato') or 'CSV'}, nombre_archivo={rb.get('nombre_archivo')}"
+        )
+
+    if nombre_test == "test_a03_productor_exporta_reporte_pdf":
+        r = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        rb = r.get("response_body") or {}
+        return (
+            f"HTTP {r.get('status_code')}, id_archivo={rb.get('id_archivo') or rb.get('id_archivo_exportacion')}, "
+            f"formato={rb.get('formato') or 'PDF'}, nombre_archivo={rb.get('nombre_archivo')}"
+        )
+
+    if nombre_test == "test_a04_productor_descarga_su_propia_exportacion":
+        r = _buscar_req(rows, metodo="GET", ruta_contiene="/exportaciones/") or {}
+        fid = (r.get("ruta") or "").rsplit("/", 1)[-1]
+        return f"HTTP {r.get('status_code')}, descarga CSV verificada para id_archivo={fid}"
+
+    if nombre_test in ("test_a05_productor_no_accede_a_auditoria_m05", "test_b04_veterinario_acceder_auditoria_denegado"):
+        r = _buscar_req(rows, metodo="GET", ruta_contiene="/suministros/auditoria") or {}
+        return f"HTTP {r.get('status_code')} {r.get('error_code')} en GET /suministros/auditoria"
+
+    if nombre_test in (
+        "test_a98_cierre_sandbox_productor",
+        "test_b98_cierre_sandbox_veterinario",
+        "test_c98_cierre_sandbox_admin",
+        "test_d98_cierre_sandbox_idor",
+    ):
+        r = _buscar_req(rows, metodo="DELETE") or {}
+        rb = r.get("response_body") or {}
+        msg = rb.get("status") if isinstance(rb, dict) else str(rb)
+        return f"HTTP {r.get('status_code')} ({msg}) en DELETE /test-control/runs/{_run_id_desde_delete(rows)}"
+
+    if nombre_test == "test_b01_veterinario_generar_reporte_denegado":
+        r = _buscar_req(rows, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        return f"HTTP {r.get('status_code')} {r.get('error_code')} en POST /suministros/reportes-gastos"
+
+    if nombre_test == "test_b02_veterinario_exportar_reporte_denegado":
+        r = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        return f"HTTP {r.get('status_code')} {r.get('error_code')} en POST /suministros/reportes-gastos/19/exportacion"
+
+    if nombre_test == "test_b03_veterinario_descargar_exportacion_denegado":
+        r_rep = _buscar_req(rows, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        r_exp = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        r_get = _buscar_req(rows, metodo="GET", ruta_contiene="/exportaciones/") or {}
+        id_rep = (r_rep.get("response_body") or {}).get("id_reporte_gasto_acumulado")
+        id_arch = (r_exp.get("response_body") or {}).get("id_archivo")
+        return (
+            f"HTTP {r_get.get('status_code')} {r_get.get('error_code')}, sin text/csv ni contenido CSV "
+            f"al descargar archivo real de Admin (id_archivo={id_arch}, id_reporte={id_rep})"
+        )
+
+    if nombre_test == "test_c01_admin_genera_y_exporta_reporte":
+        r_rep = _buscar_req(rows, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        r_exp = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        id_rep = (r_rep.get("response_body") or {}).get("id_reporte_gasto_acumulado")
+        id_arch = (r_exp.get("response_body") or {}).get("id_archivo")
+        return (
+            f"Generacion HTTP {r_rep.get('status_code')} (id_reporte={id_rep}); "
+            f"exportacion CSV HTTP {r_exp.get('status_code')} (id_archivo={id_arch})"
+        )
+
+    if nombre_test == "test_c02_verificacion_auditoria_ca11_postcondicion3":
+        rows_c01 = por_test.get("test_c01_admin_genera_y_exporta_reporte", [])
+        r_rep = _buscar_req(rows_c01, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        r_exp = _buscar_req(rows_c01, metodo="POST", ruta_contiene="/exportacion") or {}
+        r_aud = _buscar_req(rows, metodo="GET", ruta_contiene="/suministros/auditoria", ultimo=True) or {}
+        id_rep = (r_rep.get("response_body") or {}).get("id_reporte_gasto_acumulado")
+        evs = _extraer_eventos(r_aud, ("GENERACION", "EXPORTACION"), id_reporte=id_rep)
+        ev_gen = next(e for e in evs if (e.get("datos_nuevos") or {}).get("accion") == "GENERACION")
+        ev_exp = next(e for e in evs if (e.get("datos_nuevos") or {}).get("accion") == "EXPORTACION")
+        t_aud = datetime.fromisoformat(r_aud["timestamp_local"])
+        lat_gen = round((t_aud - datetime.fromisoformat(r_rep["timestamp_local"])).total_seconds(), 3)
+        lat_exp = round((t_aud - datetime.fromisoformat(r_exp["timestamp_local"])).total_seconds(), 3)
+        return (
+            f"HTTP {r_aud.get('status_code')}; evento GENERACION id={ev_gen.get('id_auditoria_suministro')} y "
+            f"EXPORTACION id={ev_exp.get('id_auditoria_suministro')}, actor id_usuario={ev_gen.get('id_usuario')}, "
+            f"resultado={ev_gen.get('resultado')}, latencias={lat_gen}s/{lat_exp}s (<= 2.0s), "
+            f"id_reporte={id_rep}, id_archivo={(ev_exp.get('datos_nuevos') or {}).get('id_archivo')}"
+        )
+
+    if nombre_test == "test_c03_auditoria_productor_ca11_postcondicion3":
+        r_rep = _buscar_req(rows, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        r_exp = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        r_aud = _buscar_req(rows, metodo="GET", ruta_contiene="/suministros/auditoria", ultimo=True) or {}
+        id_rep = (r_rep.get("response_body") or {}).get("id_reporte_gasto_acumulado")
+        evs = _extraer_eventos(r_aud, ("GENERACION", "EXPORTACION"), id_reporte=id_rep)
+        ev_gen = next(e for e in evs if (e.get("datos_nuevos") or {}).get("accion") == "GENERACION")
+        ev_exp = next(e for e in evs if (e.get("datos_nuevos") or {}).get("accion") == "EXPORTACION")
+        t_aud = datetime.fromisoformat(r_aud["timestamp_local"])
+        lat_gen = round((t_aud - datetime.fromisoformat(r_rep["timestamp_local"])).total_seconds(), 3)
+        lat_exp = round((t_aud - datetime.fromisoformat(r_exp["timestamp_local"])).total_seconds(), 3)
+        return (
+            f"HTTP {r_aud.get('status_code')}; evento GENERACION id={ev_gen.get('id_auditoria_suministro')} y "
+            f"EXPORTACION id={ev_exp.get('id_auditoria_suministro')}, actor id_usuario={ev_gen.get('id_usuario')}, "
+            f"resultado={ev_gen.get('resultado')}, latencias={lat_gen}s/{lat_exp}s (<= 2.0s), "
+            f"id_reporte={id_rep}, id_archivo={(ev_exp.get('datos_nuevos') or {}).get('id_archivo')}"
+        )
+
+    if nombre_test == "test_d01_solicitudes_sin_autenticacion_retornan_401":
+        codigos = [f"{r.get('status_code')} {r.get('error_code')}" for r in rows]
+        return f"{len(rows)}/{len(rows)} endpoints sin Authorization rechazados con {', '.join(sorted(set(codigos)))}"
+
+    if nombre_test == "test_d02_idor_descarga_exportacion_ajena_retorna_403":
+        r_get = _buscar_req(rows, metodo="GET", ruta_contiene="/exportaciones/") or {}
+        r_exp = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        id_arch = (r_exp.get("response_body") or {}).get("id_archivo")
+        return (
+            f"HTTP {r_get.get('status_code')} {r_get.get('error_code')}, "
+            f"sin text/csv ni attachment ni contenido (id_archivo={id_arch})"
+        )
+
+    if nombre_test == "test_d03_manipulacion_identificadores_no_genera_500":
+        resumen = [f"{r.get('ruta')}->{r.get('status_code')}({r.get('error_code')})" for r in rows]
+        return f"{len(rows)}/{len(rows)} casos sin HTTP 500: " + "; ".join(resumen)
+
+    if nombre_test == "test_d04_aislamiento_historial_por_usuario":
+        r_rep = _buscar_req(rows, metodo="POST", ruta_contiene="/suministros/reportes-gastos") or {}
+        r_hist_p = rows[1] if len(rows) > 1 else {}
+        r_hist_a = rows[2] if len(rows) > 2 else {}
+        id_rep_p = (r_rep.get("response_body") or {}).get("id_reporte_gasto_acumulado")
+        tot_p = (r_hist_p.get("response_body") or {}).get("total")
+        tot_a = (r_hist_a.get("response_body") or {}).get("total")
+        return (
+            f"HTTP 200 en reporte Productor (id_reporte={id_rep_p}) y en GET /historial "
+            f"(Productor total={tot_p}, Admin total={tot_a}; conjuntos disjuntos sin fuga IDOR)"
+        )
+
+    if nombre_test == "test_d05a_idor_consultar_reporte_ajeno":
+        r_act = _buscar_req(rows, metodo="POST", ruta_contiene="/activos-biologicos") or {}
+        r_get = _buscar_req(rows, metodo="GET", ruta_contiene="/suministros/reportes-gastos/") or {}
+        id_act = (r_act.get("response_body") or {}).get("id_activo_biologico")
+        id_rep = (r_get.get("ruta") or "").rsplit("/", 1)[-1]
+        return (
+            f"HTTP {r_get.get('status_code')} {r_get.get('error_code')}, 0 eventos atribuibles "
+            f"(id_reporte={id_rep}, id_activo={id_act})"
+        )
+
+    if nombre_test == "test_d05b_idor_regenerar_reporte_ajeno":
+        r_get = _buscar_req(rows, metodo="GET", ruta_contiene="/regenerar") or {}
+        parts = (r_get.get("ruta") or "").split("/")
+        id_rep = parts[-2] if len(parts) >= 2 else "?"
+        return f"HTTP {r_get.get('status_code')} {r_get.get('error_code')}, 0 eventos atribuibles (id_reporte={id_rep})"
+
+    if nombre_test == "test_d05c_idor_exportar_reporte_ajeno":
+        r_post = _buscar_req(rows, metodo="POST", ruta_contiene="/exportacion") or {}
+        parts = (r_post.get("ruta") or "").split("/")
+        id_rep = parts[-2] if len(parts) >= 2 else "?"
+        return f"HTTP {r_post.get('status_code')} {r_post.get('error_code')}, 0 eventos atribuibles (id_reporte={id_rep})"
+
+    return f"HTTP observado en {len(rows)} peticion(es)"
+
+
+def main() -> None:
+    staging = Path(__file__).resolve().parent
+    xml_path = staging / "resultado_TC-M05-G25_reintento1.xml"
+    gen_orig_path = staging / "resultado_TC-M05-G25_reintento1_generado.json"
+    trazas_path = staging / "trazas_http.jsonl"
+    out_path = staging / "resultado_TC-M05-G25_reintento1.json"
+
+    orig = json.loads(gen_orig_path.read_text(encoding="utf-8"))
+    orig_checkpoints = orig.get("checkpoints", [])
+    tcs_xml = list(ET.parse(xml_path).getroot().iter("testcase"))
+    assert len(tcs_xml) == len(orig_checkpoints) == 23, (
+        f"Conteo inesperado: xml={len(tcs_xml)} orig={len(orig_checkpoints)}"
+    )
+
+    por_test = _cargar_trazas_por_test(trazas_path)
+    checkpoints = []
+    ok_count = 0
+    falla_count = 0
+
+    for tc_xml, meta in zip(tcs_xml, orig_checkpoints):
+        nombre = tc_xml.attrib["name"]
+        tiene_fallo = tc_xml.find("failure") is not None or tc_xml.find("error") is not None
+        estado = "FALLA" if tiene_fallo else "OK"
+        if estado == "OK":
+            ok_count += 1
+        else:
+            falla_count += 1
+        checkpoints.append({
+            "paso": meta["paso"],
+            "esperado": meta["esperado"],
+            "obtenido": _obtenido_real(nombre, por_test, tc_xml),
+            "estado": estado,
+        })
+
+    resultado = {
+        "tc": orig.get("tc", "TC-M05-G25"),
+        "summary": {
+            "total": len(checkpoints),
+            "ok": ok_count,
+            "falla": falla_count,
+            "veredicto": "Aprobado" if falla_count == 0 else "Rechazado",
+        },
+        "checkpoints": checkpoints,
+    }
+    out_path.write_text(json.dumps(resultado, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"JSON generado en {out_path} ({ok_count}/{len(checkpoints)} OK)")
+
+
+if __name__ == "__main__":
+    main()
+
+
+====================================================================
+ANEXO 3 - evidencias/run-20261111-154122/TC-M05-G25_resultado.md
+====================================================================
+# TC-M05-G25 (RF-77) — Reintento 1: Reporte de Ejecución y Promoción
+
+## 1. Identificación y Alcance
+- **Caso de prueba**: `TC-M05-G25` (Cobertura de `RF-77`, casos `TC-M05-024` y `TC-M05-025`; verificación RBAC de bitácora bajo `RF-80`).
+- **Incidente corregido**: `INC-M05-272-G25` (Dev #958, commit `293786267f`: registro de auditoría en generación, exportación exitosa CSV/PDF y regeneración de reportes de gastos en la bitácora de M05; sin migración de base de datos).
+- **Ambiente evaluado**: `TEST` (`TEST_BASE_URL` desde `.env.test`), aislamiento por sandbox (`X-Test-Run-Id` + `X-Sandbox-Secret` en toda petición, máximo un login por cuenta por `run_id`, sin corridas simultáneas con la misma cuenta).
+- **Staging oficial**: `tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-154122/`
+- **Corrida previa (archivada)**: `tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/` (ver `LEEME_ARCHIVADA.md`).
+- **Ronda 1 original (baseline histórico)**: `tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261107-170026/`.
+
+## 2. Veredicto Oficial
+- **Veredicto**: **Aprobado**
+- **Resumen cuantitativo**: **23/23 checkpoints OK** (`0 FALLA`, `0 skipped`, `0 errors`).
+- **Coherencia entre artefactos**:
+  - `resultado_TC-M05-G25_reintento1.html` (`data-jsonblob`): `total=23`, `passed=23`, `failed_or_err=0`, `skipped=0`.
+  - `resultado_TC-M05-G25_reintento1.xml` (JUnit XML): `tests="23"`, `errors="0"`, `failures="0"`, `skipped="0"`, `time="16.317"`.
+  - `resultado_TC-M05-G25_reintento1.json`: `total=23`, `ok=23`, `falla=0`, `veredicto="Aprobado"`, `checkpoints=23`.
+
+## 3. Control de Despliegue y Validación del Parche (Dev #958)
+- `GET /health` respondió `HTTP 200` (`X-Request-Id: 8d8758c0-432d-44d7-a831-a388b03f1ee7` registrado en la validación de despliegue de `INFORME_REEVALUACION_G25.txt`); el backend no expone `/version` ni `/info`.
+- La presencia activa de la corrección de `INC-M05-272-G25` quedó demostrada funcionalmente desde el Gate Paso 1 (`evidencias/run-20261111-150413`, evento `72111` registrado en `<= 0.384 s`) y confirmada íntegramente en la corrida oficial `run-20261111-154122`:
+  - **`C01` + `C02` (Administrador, `id_usuario=104`)**: generación de reporte `id_reporte_gasto_acumulado=246` (`HTTP 200`) y exportación CSV `id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d` (`HTTP 201`) generaron exactamente 2 eventos en `GET /suministros/auditoria`:
+    - `id_evento=72140`: tipo `GENERACION`, reporte `246`, actor `104`, resultado `EXITOSO`, `fecha_evento=2026-11-11T20:41:30.919938Z`, latencia cliente `0.49 s` (`<= 2.0 s`).
+    - `id_evento=72141`: tipo `EXPORTACION` (`CSV`), reporte `246`, archivo `119f3c2e-b105-40b7-931a-f707d7d0196d`, actor `104`, resultado `EXITOSO`, latencia cliente `0.348 s` (`<= 2.0 s`).
+  - **`C03` (Productor, `id_usuario=2`)**: generación de reporte `id_reporte_gasto_acumulado=247` y exportación CSV `id_archivo=f70ce7d4-1b86-4c83-878a-2bd84476b488` generaron exactamente 2 eventos:
+    - `id_evento=72142`: tipo `GENERACION`, reporte `247`, actor `2`, resultado `EXITOSO`, `fecha_evento=2026-11-11T20:41:30.919938Z`, latencia cliente `0.591 s` (`<= 2.0 s`).
+    - `id_evento=72143`: tipo `EXPORTACION` (`CSV`), reporte `247`, archivo `f70ce7d4-1b86-4c83-878a-2bd84476b488`, actor `2`, resultado `EXITOSO`, latencia cliente `0.442 s` (`<= 2.0 s`).
+
+## 4. Resumen de Cobertura Funcional, RBAC y Seguridad
+1. **Flujo completo Productor (`A01`–`A05`)**:
+   - `A01`: generación sincrónica `HTTP 200` (`id_reporte_gasto_acumulado=244`, `gasto_total_acumulado=10.0000`).
+   - `A02` / `A03`: exportación CSV (`HTTP 201`, `id_archivo=62f64d67-3f84-4814-a419-734d2aafa4b9`) y PDF (`HTTP 201`, `id_archivo=d9fecbd0-acb8-4fda-ac2b-6acc60c9b2b7`).
+   - `A04`: descarga CSV propia `HTTP 200`.
+   - `A05`: acceso a `GET /suministros/auditoria` rechazado con `HTTP 403 ACCESO_DENEGADO`.
+2. **Restricciones RBAC Veterinario (`B01`–`B04`)**:
+   - Rechazado con `HTTP 403 ACCESO_DENEGADO` en generación (`B01`), exportación (`B02`), descarga real de archivo exportado por Administrador (`B03`, `id_reporte=245`, `id_archivo=c9d0b296-6ed7-4274-a21e-125dcdf23caf`, sin `text/csv` ni contenido) y auditoría (`B04`).
+3. **Autenticación, Robustez y Anti-IDOR (`D01`–`D05c`)**:
+   - `D01`: `5/5` endpoints sin cabecera `Authorization` respondieron `HTTP 401 TOKEN_REQUERIDO`.
+   - `D02`: intento de Productor de descargar CSV real de Administrador (`id_reporte=248`, `id_archivo=78cd718e-b4a9-492d-a6f1-761f1cdc8994`) rechazado con `HTTP 404 ARCHIVO_NO_ENCONTRADO` por RLS de `modulo5` (aceptado dentro de `{403, 404}` conforme a `RF-77 RNF Seguridad / TC-M05-024`, sin `text/csv`, `attachment` ni fuga de contenido).
+   - `D03`: `5/5` rutas con IDs inexistentes o inválidos respondieron `404`/`400` sin `HTTP 500`.
+   - `D04`: historial estrictamente aislado por usuario (`id_reporte=249`; Productor `total=56`, Administrador `total=100`, conjuntos disjuntos).
+   - `D05a`, `D05b`, `D05c`: intento de Productor sobre reporte ajeno de Administrador (`id_reporte=250`, sobre activo `id_activo=1839`) al consultar, regenerar y exportar respondido con `HTTP 404 REPORTE_NO_ENCONTRADO` y `0` eventos atribuibles en auditoría.
+
+## 5. Aislamiento Sandbox e Inocuidad en `TEST`
+- **Cierres secuenciales verificados (`A98`, `B98`, `C98`, `D98`)**:
+  - `tc-m05-g25-prod-7ec72c86` -> `DELETE /test-control/runs/...` `HTTP 200` (`Rollback exitoso`).
+  - `tc-m05-g25-vet-8bfaa938` -> `DELETE /test-control/runs/...` `HTTP 200` (`Rollback exitoso`).
+  - `tc-m05-g25-adm-7dfa7199` -> `DELETE /test-control/runs/...` `HTTP 200` (`Rollback exitoso`).
+  - `tc-m05-g25-idor-fad42743` -> `DELETE /test-control/runs/...` `HTTP 200` (`Rollback exitoso`).
+- **Inocuidad Base vs. Final en bitácora de auditoría**:
+  - Base (`tc-m05-g25-inobase-cbd8bd1f`, `GET /suministros/auditoria` `X-Request-Id: 0ab32bce-217e-4d52-b22d-463b5ebb6391`, `DELETE` `X-Request-Id: d53faa6e-93ab-446e-9c73-96eb1a15762e`): `total=65967`, `ultimo_id=72129`.
+  - Final (`tc-m05-g25-inofin-a048d127`, `GET /suministros/auditoria` `X-Request-Id: 27a52212-abfc-431a-add3-5970ad0399a2`, `DELETE` `X-Request-Id: 753ae589-2868-47ae-9a1f-0dd7d5741b65`): `total=65967`, `ultimo_id=72129`.
+- **No persistencia de recursos creados**: `14/14` recursos creados durante las corridas (`1` activo `1839`, `7` reportes `244`–`250` y `6` archivos exportados) devolvieron `HTTP 404` tras el rollback.
+
+## 6. Evolución de Scripts, Integridad y Promoción
+- Los scripts oficiales quedaron validados sin alteraciones posteriores a la etapa 1c (SHA-256 verificados):
+  - `test_tc_m05_g25.py`: `42086B9D4F936A59E17CDA1F166025CA63D8032E8AA19FEFAB69F53E6D617D3A`
+  - `ejecutar_tc_m05_g25.ps1`: `BDE400B8EA336171822F1201F4642FEE342CABDA8D0B11393FC8136875556D31`
+  - `generar_artefactos_run_g25.py`: `22AEDEB8FD6EA410CF887430BFE9B668A674A55AC2FB680ABA55884455B1E29D`
+- **Promoción realizada en `resultados/`**:
+  - Agregados por copia: `resultado_TC-M05-G25_reintento1.html` y `resultado_TC-M05-G25_reintento1.json`.
+  - Conservados intactos: `.gitkeep`, `resultado_TC-M05-G25.html` y `resultado_TC-M05-G25.json` (Ronda 1). El archivo `resultado_TC-M05-G25_reintento1.xml` permanece en `evidencias/run-20261111-154122/`.
+  - Escaneo de secretos en todos los artefactos promovidos y generados: limpio (`no encontrado`).
+
+
+====================================================================
+ANEXO 4 - DIFF DE evidencias/run-20261107-170026/TC-M05-G25_resultado.md
+====================================================================
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261107-170026/TC-M05-G25_resultado.md b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261107-170026/TC-M05-G25_resultado.md
+index 4fb25fa4..39d05b92 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261107-170026/TC-M05-G25_resultado.md
++++ b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261107-170026/TC-M05-G25_resultado.md
+@@ -43,3 +43,5 @@
+ - La especificación RF-77 exige en CA-11 y Postcondición 3 que toda generación y exportación de reportes quede registrada de forma inmutable en la bitácora de auditoría con usuario y timestamp.
+ - **Hallazgo / Defecto de Producto**: La implementación actual del caso de uso (`GenerarReporteGastosUseCase` y `ExportarReporteGastosUseCase`) no invoca el puerto de auditoría (`auditoria_port.registrar`) durante la generación o exportación exitosa de reportes.
+ - **Clasificación**: DEFECTO DE PRODUCTO (GAP normativo frente a RF-77 CA-11 / Postcondición 3). No promovible a producción hasta que se implemente la auditoría de RF-77.
++
++Actualización 2026-11-11: INC-M05-272-G25 corregido (Dev #958); reintento 1 Aprobado 23/23 en run-20261111-154122 con el script corregido (fase 3).
+

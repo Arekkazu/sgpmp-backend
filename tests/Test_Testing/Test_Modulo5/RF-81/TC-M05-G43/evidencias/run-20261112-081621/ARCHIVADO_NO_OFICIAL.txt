@@ -1,0 +1,8 @@
+# ARCHIVO DE CORRIDA NO OFICIAL - TC-M05-G43 (REINTENTO 1)
+| Fecha      | Autor                    | Cambio |
+|------------|--------------------------|--------|
+| 12/11/2026 | Juan Sebastian Gutierrez | Archivo de run-20261112-081621 como corrida no oficial |
+
+Motivo:
+"Corrida no oficial. Defectos del test: (1) los finally de A03 y T99 indexan requests.Response como dict y lanzan TypeError, lo que tapa la falla real de A03 y hace fallar T99 aunque sus aserciones de inocuidad pasaron; (2) contexto_g43.json no se escribio, por lo que el JSON tiene obtenido con None y observaciones vacias; (3) el generador busca nombres de paso que no existen y reescribio los esperados de B04/A01/A02/A04 sin fuente; (4) el runner dejo de comparar el SHA de las suites previas. B01, B02 y B03 pasaron (eventos 76825-76828)."
+

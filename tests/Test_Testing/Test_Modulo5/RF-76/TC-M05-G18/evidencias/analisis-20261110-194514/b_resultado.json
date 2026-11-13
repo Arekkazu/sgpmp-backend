@@ -1,0 +1,3959 @@
+{
+  "timestamp_utc": "2026-11-11T00:57:41.551381+00:00",
+  "timestamp_bogota": "2026-11-10T19:57:41.551407-05:00",
+  "env_check": {
+    "TEST_BASE_URL": "PRESENTE",
+    "TEST_SANDBOX_SECRET": "PRESENTE",
+    "TEST_ADMIN_EMAIL": "PRESENTE",
+    "TEST_ADMIN_PASSWORD": "PRESENTE",
+    "TEST_PRODUCER_EMAIL": "PRESENTE",
+    "TEST_PRODUCER_PASSWORD": "PRESENTE",
+    "TEST_VET_EMAIL": "PRESENTE",
+    "TEST_VET_PASSWORD": "PRESENTE",
+    "TEST_ACCOUNTANT_EMAIL": "AUSENTE",
+    "TEST_ACCOUNTANT_PASSWORD": "AUSENTE",
+    "TEST_FISCAL_REVIEWER_EMAIL": "AUSENTE",
+    "TEST_FISCAL_REVIEWER_PASSWORD": "AUSENTE",
+    "TEST_FIELD_ENGINEER_EMAIL": "PRESENTE",
+    "TEST_FIELD_ENGINEER_PASSWORD": "PRESENTE",
+    "TEST_FARM_MANAGER_EMAIL": "AUSENTE",
+    "TEST_FARM_MANAGER_PASSWORD": "AUSENTE",
+    "TEST_M05_ACTIVO_ID": "AUSENTE",
+    "TEST_DATABASE_URL": "PRESENTE"
+  },
+  "run_id": "tc-m05-g18-fase1-b-3678f226",
+  "login": {
+    "http": 200,
+    "tiene_token": true,
+    "claves_body": [
+      "expira_en",
+      "message",
+      "perfil_incompleto",
+      "tipo",
+      "token"
+    ],
+    "usuario": {}
+  },
+  "queries": {
+    "b1_db_identity": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "current_user": "sgpmp_app",
+            "session_user": "sgpmp_app",
+            "current_database": "sgpmp_test"
+          }
+        ]
+      }
+    },
+    "b1_permisos_48": {
+      "http": 200,
+      "body": {
+        "data": []
+      }
+    },
+    "b1_acciones": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_accion": 1,
+            "codigo": "C",
+            "descripcion": "Crear"
+          },
+          {
+            "id_accion": 2,
+            "codigo": "R",
+            "descripcion": "Leer"
+          },
+          {
+            "id_accion": 3,
+            "codigo": "U",
+            "descripcion": "Actualizar"
+          },
+          {
+            "id_accion": 4,
+            "codigo": "D",
+            "descripcion": "Eliminar"
+          },
+          {
+            "id_accion": 5,
+            "codigo": "E",
+            "descripcion": "Ejecutar"
+          }
+        ]
+      }
+    },
+    "b1_roles": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_rol": 1,
+            "nombre_rol": "Administrador",
+            "es_protegido": true
+          },
+          {
+            "id_rol": 2,
+            "nombre_rol": "Productor",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 3,
+            "nombre_rol": "Veterinario",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 4,
+            "nombre_rol": "Ingeniero de Campo",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 5,
+            "nombre_rol": "Contador",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 6,
+            "nombre_rol": "Supervisor",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 7,
+            "nombre_rol": "Gestor de Granja",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 8,
+            "nombre_rol": "Revisor Fiscal",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 9,
+            "nombre_rol": "Externo AgroFusion",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 11,
+            "nombre_rol": "Auxiliar de Campo TC114 1788194426416",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 12,
+            "nombre_rol": "Auxiliar de Campo TC114 1788194524139",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 13,
+            "nombre_rol": "Auxiliar de Campo TC114 1788194569670",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 14,
+            "nombre_rol": "Auxiliar de Campo TC122 1788205469722",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 15,
+            "nombre_rol": "Auxiliar de Campo TC122 1788205565051",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 16,
+            "nombre_rol": "Auxiliar de Campo TC122 1788205608461",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 17,
+            "nombre_rol": "Auxiliar de Campo TC122 1788205660216",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 18,
+            "nombre_rol": "Auxiliar de Campo TC122 1788205718998",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 19,
+            "nombre_rol": "Auxiliar de Campo TC123 1788205993758",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 20,
+            "nombre_rol": "Auxiliar de Campo TC123 1788206046593",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 21,
+            "nombre_rol": "Auxiliar de Campo TC123 1788206065032",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 22,
+            "nombre_rol": "Auxiliar de Campo TC123 1788206224008",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 23,
+            "nombre_rol": "Auxiliar de Campo TC123 1788206253688",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 24,
+            "nombre_rol": "Auxiliar de Campo TC124 1788206607455",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 25,
+            "nombre_rol": "Auxiliar de Campo TC124 1788206839874",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 26,
+            "nombre_rol": "Auxiliar de Campo TC124 1788206911558",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 27,
+            "nombre_rol": "Auxiliar de Campo TC124 1788206949366",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 28,
+            "nombre_rol": "ADministrador de piso",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 29,
+            "nombre_rol": "dasdasdasdasdas",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 30,
+            "nombre_rol": "Rol de prueba",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 77,
+            "nombre_rol": "Auxiliar de Campo",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 78,
+            "nombre_rol": "Integración M04",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 79,
+            "nombre_rol": "Integración M06",
+            "es_protegido": false
+          },
+          {
+            "id_rol": 80,
+            "nombre_rol": "QA Claude Rol",
+            "es_protegido": false
+          }
+        ]
+      }
+    },
+    "b2_estados_cat": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_estado_activo_biologico": 1,
+            "nombre": "ACTIVO"
+          },
+          {
+            "id_estado_activo_biologico": 2,
+            "nombre": "INACTIVO"
+          },
+          {
+            "id_estado_activo_biologico": 3,
+            "nombre": "EN_TRATAMIENTO"
+          },
+          {
+            "id_estado_activo_biologico": 4,
+            "nombre": "AISLADO"
+          },
+          {
+            "id_estado_activo_biologico": 5,
+            "nombre": "CERRADO"
+          },
+          {
+            "id_estado_activo_biologico": 6,
+            "nombre": "BAJA"
+          }
+        ]
+      }
+    },
+    "b2_activos_853_5": {
+      "http": 200,
+      "body": {
+        "data": []
+      }
+    },
+    "b2_fases_853_5": {
+      "http": 200,
+      "body": {
+        "data": []
+      }
+    },
+    "b2_historico_estados_853_5": {
+      "http": 200,
+      "body": {
+        "data": []
+      }
+    },
+    "b2_meds_853_5": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_registro_medicamento": 18,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "TestRetiroVencidoRF76",
+            "via_aplicacion": "ORAL",
+            "fecha_aplicacion": "2026-07-01",
+            "hora_aplicacion": "09:00:00",
+            "periodo_retiro_dias": 1,
+            "fecha_fin_retiro": "2026-07-02",
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 17,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "SmokeTest",
+            "via_aplicacion": "ORAL",
+            "fecha_aplicacion": "2026-07-28",
+            "hora_aplicacion": "14:30:00",
+            "periodo_retiro_dias": 0,
+            "fecha_fin_retiro": null,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 15,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Enrofloxacina",
+            "via_aplicacion": "ORAL",
+            "fecha_aplicacion": "2026-07-29",
+            "hora_aplicacion": "10:00:00",
+            "periodo_retiro_dias": 10,
+            "fecha_fin_retiro": "2026-08-08",
+            "estado_registro": "ANULADO"
+          },
+          {
+            "id_registro_medicamento": 14,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Oxitetraciclina",
+            "via_aplicacion": "IM",
+            "fecha_aplicacion": "2026-07-29",
+            "hora_aplicacion": "08:00:00",
+            "periodo_retiro_dias": 7,
+            "fecha_fin_retiro": "2026-08-05",
+            "estado_registro": "ANULADO"
+          },
+          {
+            "id_registro_medicamento": 13,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Meloxicam",
+            "via_aplicacion": "IV",
+            "fecha_aplicacion": "2026-07-29",
+            "hora_aplicacion": "12:00:00",
+            "periodo_retiro_dias": 0,
+            "fecha_fin_retiro": null,
+            "estado_registro": "VALIDADO"
+          }
+        ]
+      }
+    },
+    "b3_meds_catalogo_uso": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "med": "oxitetraciclina 20%",
+            "periodo_retiro_dias": 5,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 6
+          },
+          {
+            "med": "vitamina ad3 qa-m05",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 5
+          },
+          {
+            "med": "oxitetraciclina la 200",
+            "periodo_retiro_dias": 5,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 4
+          },
+          {
+            "med": "complejo b qa-m05",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 2
+          },
+          {
+            "med": "med test",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": null,
+            "unidad_dosis": "ml",
+            "cnt": 2
+          },
+          {
+            "med": "antibiótico x",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": null,
+            "unidad_dosis": "ml",
+            "cnt": 2
+          },
+          {
+            "med": "medqa-r16-h1",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r18-h0",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r10-h1",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r14-h2",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r20-h2",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r17-h2",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r18-h3",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "qa-m05-vet-20261108-p1",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r14-h0",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r19-h4",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r06-h2",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "ivermectina 1 %",
+            "periodo_retiro_dias": 35,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r09-h4",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r07-h2",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "vitamina e qa-m05",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r10-h0",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r06-h4",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r01-h4",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r20-h1",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "penicilina qa-m05",
+            "periodo_retiro_dias": 20,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r12-h2",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r17-h0",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r01-h2",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "qa-m05-vet-20261108-a2",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r03-h4",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r09-h3",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r15-h1",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r08-h3",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-a01-base",
+            "periodo_retiro_dias": 5,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r07-h4",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r11-h4",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r13-h1",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "enrofloxacina",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r13-h2",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r08-h0",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r19-h3",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r15-h0",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-a03-menor",
+            "periodo_retiro_dias": 3,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r06-h0",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r18-h1",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r10-h3",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r15-h2",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "testretirovencidorf76",
+            "periodo_retiro_dias": 1,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r09-h1",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r01-h0",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r12-h1",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r09-h0",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r08-h2",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r05-h1",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r14-h4",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r16-h3",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r05-h3",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r17-h1",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r07-h0",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r01-h3",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r17-h4",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r08-h4",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r05-h2",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r04-h3",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "meloxicam",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": "IV",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r11-h0",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r02-h1",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r14-h1",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r16-h4",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r01-h1",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r15-h4",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r08-h1",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r13-h0",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r11-h2",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r02-h3",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "qa-m05-vet-20261108-a1",
+            "periodo_retiro_dias": 1,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r12-h4",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r18-h2",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-a04-maximo",
+            "periodo_retiro_dias": 15,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r15-h3",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "ivermectina qa-m05",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r20-h4",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r18-h4",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r02-h4",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "complejo b",
+            "periodo_retiro_dias": 0,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r13-h4",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r07-h3",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r06-h3",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r10-h4",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r20-h3",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r12-h3",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r02-h2",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r02-h0",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r19-h1",
+            "periodo_retiro_dias": 10,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r04-h0",
+            "periodo_retiro_dias": 8,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r03-h0",
+            "periodo_retiro_dias": 6,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r12-h0",
+            "periodo_retiro_dias": 4,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          },
+          {
+            "med": "oxitetraciclina qa-m05",
+            "periodo_retiro_dias": 15,
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cnt": 1
+          },
+          {
+            "med": "medqa-r16-h0",
+            "periodo_retiro_dias": 2,
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ML",
+            "cnt": 1
+          }
+        ]
+      }
+    },
+    "b3_oxitetraciclina": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_registro_medicamento": 230,
+            "id_activo_biologico": 1632,
+            "nombre_medicamento": "Oxitetraciclina LA 200",
+            "via_aplicacion": "IM",
+            "cantidad": 10.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 6000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 229,
+            "id_activo_biologico": 1632,
+            "nombre_medicamento": "Oxitetraciclina LA 200",
+            "via_aplicacion": "IM",
+            "cantidad": 10.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 6000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 227,
+            "id_activo_biologico": 1627,
+            "nombre_medicamento": "Oxitetraciclina LA 200",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 6000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 226,
+            "id_activo_biologico": 1627,
+            "nombre_medicamento": "Oxitetraciclina LA 200",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 6000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 224,
+            "id_activo_biologico": 1622,
+            "nombre_medicamento": "Oxitetraciclina 20%",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 25000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 223,
+            "id_activo_biologico": 1622,
+            "nombre_medicamento": "Oxitetraciclina 20%",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 25000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 222,
+            "id_activo_biologico": 1622,
+            "nombre_medicamento": "Oxitetraciclina 20%",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 25000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 221,
+            "id_activo_biologico": 1622,
+            "nombre_medicamento": "Oxitetraciclina 20%",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 25000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 220,
+            "id_activo_biologico": 1622,
+            "nombre_medicamento": "Oxitetraciclina 20%",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 25000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 219,
+            "id_activo_biologico": 1622,
+            "nombre_medicamento": "Oxitetraciclina 20%",
+            "via_aplicacion": "IM",
+            "cantidad": 15.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 5,
+            "costo_unitario_medicamento": 25000.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 195,
+            "id_activo_biologico": 1028,
+            "nombre_medicamento": "Oxitetraciclina QA-M05",
+            "via_aplicacion": "IM",
+            "cantidad": 20.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 15,
+            "costo_unitario_medicamento": 2500.0,
+            "estado_registro": "VALIDADO"
+          },
+          {
+            "id_registro_medicamento": 14,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Oxitetraciclina",
+            "via_aplicacion": "IM",
+            "cantidad": 5.0,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 7,
+            "costo_unitario_medicamento": 1200.0,
+            "estado_registro": "ANULADO"
+          }
+        ]
+      }
+    },
+    "b3_tablas_m5_m9": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "table_schema": "modulo2",
+            "table_name": "activos_biologicos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "asociaciones_activos_sensores"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "auditoria_activos_biologicos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "auditorias_asociaciones_sensor_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "bitacora_auditoria_m02"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "detalles_activos_biologicos_poblacionales"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "detalles_activos_individuales"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "estados_activos_biologicos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_activos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_bajas"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_crecimeinto"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_ingresos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_productivos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_reproductivos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "eventos_sanitarios"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "gestiones_fases"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "historial_activos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "historial_infraestructura_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "historicos_estados_activos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "indicadores_zootecnicos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "movimientos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf33_activos_biologicos_listado"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf34_movimientos_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf35_activos_individuales"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf35_historial_estados_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf37_estado_fase_actual"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf37_fases_productivas_secuencia"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf37_historial_fases"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf38_eventos_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf39_historial_eventos_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf46_eventos_bajas"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf46_eventos_crecimiento"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf46_eventos_productivos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf46_eventos_reproductivos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf46_eventos_sanitarios"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf46_historial_completo_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf47_ficha_integral_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf47_indicadores_zootecnicos_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf48_infraestructura_actual_activo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf49_asociaciones_sensores_activos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf51_auditoria_activos_registrados"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf52_auditoria_acceso_modulos_analiticos"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf52_auditoria_activos_individuales"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf52_auditoria_activos_poblacionales"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf52_auditoria_cierres_ciclo_productivo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf52_auditoria_fases_ciclo_productivo"
+          },
+          {
+            "table_schema": "modulo2",
+            "table_name": "vw_rf52_auditoria_transferencias_internas"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "acumulado_ciclo"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "archivos_exportacion_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "auditorias_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "cola_calculo_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "cola_generacion_reportes_gastos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "cola_trabajos_historial_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "configuracion_batch_historial_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "configuracion_batch_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "configuracion_batch_reportes_gastos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "costos_productivos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "ejecuciones_batch_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "ejecuciones_generacion_reportes_gastos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "ejecuciones_trabajos_historial_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "fallos_calculo_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "fallos_generacion_reportes_gastos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "fallos_trabajos_historial_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "historial_suministros_activos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "mediciones_incrementales"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "mediciones_inventarios"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "outbox_provisiones_m06"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "provision_nic41"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "registro_suministro"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "registros_consumo_alimentos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "registros_medicamentos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "reporte_gastos_acumulados"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "resultado_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "tipos_alimentos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_aplicacion_medicamentos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_costos_produccion"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_eficiencia_alimenticia"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_historial_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_historial_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_historial_suministros_detalle"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_provision_incrementales"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_provision_nic41"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_registro_alimentacion"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_reporte_gastos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_reporte_gastos_detalle"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "vw_m05_trazabilidad_costos"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "aplicaciones_plantillas"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "aristas_transmision"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_calibraciones"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_ciclos_biologicos"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_configuraciones_globales"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_dispositivos_iot"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_especies"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_fincas"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_infraestructuras"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_metricas_produccion"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_patologias"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_plantillas"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_sensores_areas"
+          },
+          {
+            "table_schema": "modulo9",
+            "table_name": "auditorias_umbrales_ambientales"
+          }
+        ]
+      }
+    },
+    "b4_activos_en_tratamiento_cnt": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "total_en_tratamiento": 0
+          }
+        ]
+      }
+    },
+    "b4_activos_en_tratamiento_detalle": {
+      "http": 200,
+      "body": {
+        "data": []
+      }
+    },
+    "b4_triggers_registros_med": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "tgname": "trg_auditoria",
+            "tgenabled": "O"
+          },
+          {
+            "tgname": "trg_auditoria_medicamento",
+            "tgenabled": "O"
+          },
+          {
+            "tgname": "trg_calcular_costo_total_medicamento",
+            "tgenabled": "O"
+          },
+          {
+            "tgname": "trg_medicamento_fecha_no_futura",
+            "tgenabled": "O"
+          },
+          {
+            "tgname": "trg_medicamento_inmutable_validado",
+            "tgenabled": "O"
+          },
+          {
+            "tgname": "trg_medicamento_no_delete",
+            "tgenabled": "O"
+          },
+          {
+            "tgname": "trg_poblar_registro_suministro_medicamento",
+            "tgenabled": "O"
+          }
+        ]
+      }
+    },
+    "b4_tablas_batch_cron": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "table_schema": "modulo1",
+            "table_name": "configuracion_batch_exportacion_auditoria"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "configuracion_batch_historial_suministros"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "configuracion_batch_ica"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "configuracion_batch_reportes_gastos"
+          },
+          {
+            "table_schema": "modulo5",
+            "table_name": "ejecuciones_batch_ica"
+          }
+        ]
+      }
+    },
+    "b5_conteo_853_5": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_activo_biologico": 5,
+            "estado_registro": "ANULADO",
+            "total": 2
+          },
+          {
+            "id_activo_biologico": 5,
+            "estado_registro": "VALIDADO",
+            "total": 3
+          }
+        ]
+      }
+    },
+    "b5_conteo_global": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "total_meds": 145,
+            "total_auditoria": 65943
+          }
+        ]
+      }
+    },
+    "b4_en_tratamiento_sql_meds": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "id_activo_biologico": 1028,
+            "max_retiro": "2026-11-23",
+            "cnt_validados": 3,
+            "bogota_hoy": "2026-11-10"
+          },
+          {
+            "id_activo_biologico": 1030,
+            "max_retiro": "2026-11-12",
+            "cnt_validados": 4,
+            "bogota_hoy": "2026-11-10"
+          },
+          {
+            "id_activo_biologico": 1628,
+            "max_retiro": "2026-12-13",
+            "cnt_validados": 1,
+            "bogota_hoy": "2026-11-10"
+          }
+        ]
+      }
+    }
+  },
+  "api_gets": {
+    "me_permisos": {
+      "http": 200,
+      "body": {
+        "permisos": [
+          {
+            "id_recurso": 1,
+            "id_accion": 1,
+            "nombre_recurso": "usuarios"
+          },
+          {
+            "id_recurso": 1,
+            "id_accion": 2,
+            "nombre_recurso": "usuarios"
+          },
+          {
+            "id_recurso": 1,
+            "id_accion": 3,
+            "nombre_recurso": "usuarios"
+          },
+          {
+            "id_recurso": 1,
+            "id_accion": 4,
+            "nombre_recurso": "usuarios"
+          },
+          {
+            "id_recurso": 1,
+            "id_accion": 5,
+            "nombre_recurso": "usuarios"
+          },
+          {
+            "id_recurso": 2,
+            "id_accion": 1,
+            "nombre_recurso": "roles"
+          },
+          {
+            "id_recurso": 2,
+            "id_accion": 2,
+            "nombre_recurso": "roles"
+          },
+          {
+            "id_recurso": 2,
+            "id_accion": 3,
+            "nombre_recurso": "roles"
+          },
+          {
+            "id_recurso": 2,
+            "id_accion": 4,
+            "nombre_recurso": "roles"
+          },
+          {
+            "id_recurso": 3,
+            "id_accion": 1,
+            "nombre_recurso": "permisos"
+          },
+          {
+            "id_recurso": 3,
+            "id_accion": 2,
+            "nombre_recurso": "permisos"
+          },
+          {
+            "id_recurso": 3,
+            "id_accion": 3,
+            "nombre_recurso": "permisos"
+          },
+          {
+            "id_recurso": 3,
+            "id_accion": 4,
+            "nombre_recurso": "permisos"
+          },
+          {
+            "id_recurso": 4,
+            "id_accion": 2,
+            "nombre_recurso": "cuentas"
+          },
+          {
+            "id_recurso": 4,
+            "id_accion": 3,
+            "nombre_recurso": "cuentas"
+          },
+          {
+            "id_recurso": 5,
+            "id_accion": 2,
+            "nombre_recurso": "sesiones"
+          },
+          {
+            "id_recurso": 6,
+            "id_accion": 2,
+            "nombre_recurso": "eventos"
+          },
+          {
+            "id_recurso": 7,
+            "id_accion": 2,
+            "nombre_recurso": "notificaciones"
+          },
+          {
+            "id_recurso": 8,
+            "id_accion": 1,
+            "nombre_recurso": "especies"
+          },
+          {
+            "id_recurso": 8,
+            "id_accion": 2,
+            "nombre_recurso": "especies"
+          },
+          {
+            "id_recurso": 8,
+            "id_accion": 3,
+            "nombre_recurso": "especies"
+          },
+          {
+            "id_recurso": 8,
+            "id_accion": 4,
+            "nombre_recurso": "especies"
+          },
+          {
+            "id_recurso": 9,
+            "id_accion": 1,
+            "nombre_recurso": "fincas"
+          },
+          {
+            "id_recurso": 9,
+            "id_accion": 2,
+            "nombre_recurso": "fincas"
+          },
+          {
+            "id_recurso": 9,
+            "id_accion": 3,
+            "nombre_recurso": "fincas"
+          },
+          {
+            "id_recurso": 9,
+            "id_accion": 4,
+            "nombre_recurso": "fincas"
+          },
+          {
+            "id_recurso": 10,
+            "id_accion": 1,
+            "nombre_recurso": "infraestructuras"
+          },
+          {
+            "id_recurso": 10,
+            "id_accion": 2,
+            "nombre_recurso": "infraestructuras"
+          },
+          {
+            "id_recurso": 10,
+            "id_accion": 3,
+            "nombre_recurso": "infraestructuras"
+          },
+          {
+            "id_recurso": 10,
+            "id_accion": 4,
+            "nombre_recurso": "infraestructuras"
+          },
+          {
+            "id_recurso": 11,
+            "id_accion": 1,
+            "nombre_recurso": "dispositivos_iot"
+          },
+          {
+            "id_recurso": 11,
+            "id_accion": 2,
+            "nombre_recurso": "dispositivos_iot"
+          },
+          {
+            "id_recurso": 11,
+            "id_accion": 3,
+            "nombre_recurso": "dispositivos_iot"
+          },
+          {
+            "id_recurso": 11,
+            "id_accion": 4,
+            "nombre_recurso": "dispositivos_iot"
+          },
+          {
+            "id_recurso": 12,
+            "id_accion": 1,
+            "nombre_recurso": "sensores"
+          },
+          {
+            "id_recurso": 12,
+            "id_accion": 2,
+            "nombre_recurso": "sensores"
+          },
+          {
+            "id_recurso": 12,
+            "id_accion": 3,
+            "nombre_recurso": "sensores"
+          },
+          {
+            "id_recurso": 13,
+            "id_accion": 5,
+            "nombre_recurso": "cierre_ciclo"
+          },
+          {
+            "id_recurso": 14,
+            "id_accion": 5,
+            "nombre_recurso": "ajuste_inventario"
+          },
+          {
+            "id_recurso": 15,
+            "id_accion": 5,
+            "nombre_recurso": "generacion_reportes"
+          },
+          {
+            "id_recurso": 16,
+            "id_accion": 5,
+            "nombre_recurso": "exportacion_datos"
+          },
+          {
+            "id_recurso": 17,
+            "id_accion": 1,
+            "nombre_recurso": "ciclos_biologicos"
+          },
+          {
+            "id_recurso": 17,
+            "id_accion": 2,
+            "nombre_recurso": "ciclos_biologicos"
+          },
+          {
+            "id_recurso": 17,
+            "id_accion": 3,
+            "nombre_recurso": "ciclos_biologicos"
+          },
+          {
+            "id_recurso": 17,
+            "id_accion": 4,
+            "nombre_recurso": "ciclos_biologicos"
+          },
+          {
+            "id_recurso": 18,
+            "id_accion": 1,
+            "nombre_recurso": "patologias"
+          },
+          {
+            "id_recurso": 18,
+            "id_accion": 2,
+            "nombre_recurso": "patologias"
+          },
+          {
+            "id_recurso": 18,
+            "id_accion": 3,
+            "nombre_recurso": "patologias"
+          },
+          {
+            "id_recurso": 18,
+            "id_accion": 4,
+            "nombre_recurso": "patologias"
+          },
+          {
+            "id_recurso": 19,
+            "id_accion": 1,
+            "nombre_recurso": "metricas_produccion"
+          },
+          {
+            "id_recurso": 19,
+            "id_accion": 2,
+            "nombre_recurso": "metricas_produccion"
+          },
+          {
+            "id_recurso": 19,
+            "id_accion": 3,
+            "nombre_recurso": "metricas_produccion"
+          },
+          {
+            "id_recurso": 19,
+            "id_accion": 4,
+            "nombre_recurso": "metricas_produccion"
+          },
+          {
+            "id_recurso": 20,
+            "id_accion": 1,
+            "nombre_recurso": "umbrales_ambientales"
+          },
+          {
+            "id_recurso": 20,
+            "id_accion": 2,
+            "nombre_recurso": "umbrales_ambientales"
+          },
+          {
+            "id_recurso": 20,
+            "id_accion": 3,
+            "nombre_recurso": "umbrales_ambientales"
+          },
+          {
+            "id_recurso": 20,
+            "id_accion": 4,
+            "nombre_recurso": "umbrales_ambientales"
+          },
+          {
+            "id_recurso": 21,
+            "id_accion": 1,
+            "nombre_recurso": "configuraciones_globales"
+          },
+          {
+            "id_recurso": 21,
+            "id_accion": 2,
+            "nombre_recurso": "configuraciones_globales"
+          },
+          {
+            "id_recurso": 21,
+            "id_accion": 3,
+            "nombre_recurso": "configuraciones_globales"
+          },
+          {
+            "id_recurso": 22,
+            "id_accion": 2,
+            "nombre_recurso": "contexto_interfaz"
+          },
+          {
+            "id_recurso": 23,
+            "id_accion": 1,
+            "nombre_recurso": "identidad_visual"
+          },
+          {
+            "id_recurso": 23,
+            "id_accion": 2,
+            "nombre_recurso": "identidad_visual"
+          },
+          {
+            "id_recurso": 23,
+            "id_accion": 3,
+            "nombre_recurso": "identidad_visual"
+          },
+          {
+            "id_recurso": 24,
+            "id_accion": 2,
+            "nombre_recurso": "tema_visual"
+          },
+          {
+            "id_recurso": 24,
+            "id_accion": 3,
+            "nombre_recurso": "tema_visual"
+          },
+          {
+            "id_recurso": 25,
+            "id_accion": 2,
+            "nombre_recurso": "dashboard_layout"
+          },
+          {
+            "id_recurso": 25,
+            "id_accion": 3,
+            "nombre_recurso": "dashboard_layout"
+          },
+          {
+            "id_recurso": 26,
+            "id_accion": 2,
+            "nombre_recurso": "preferencia_idioma"
+          },
+          {
+            "id_recurso": 26,
+            "id_accion": 3,
+            "nombre_recurso": "preferencia_idioma"
+          },
+          {
+            "id_recurso": 27,
+            "id_accion": 2,
+            "nombre_recurso": "configuracion_ui_global"
+          },
+          {
+            "id_recurso": 27,
+            "id_accion": 3,
+            "nombre_recurso": "configuracion_ui_global"
+          },
+          {
+            "id_recurso": 28,
+            "id_accion": 1,
+            "nombre_recurso": "plantillas"
+          },
+          {
+            "id_recurso": 28,
+            "id_accion": 2,
+            "nombre_recurso": "plantillas"
+          },
+          {
+            "id_recurso": 28,
+            "id_accion": 5,
+            "nombre_recurso": "plantillas"
+          },
+          {
+            "id_recurso": 29,
+            "id_accion": 1,
+            "nombre_recurso": "activos_biologicos"
+          },
+          {
+            "id_recurso": 29,
+            "id_accion": 2,
+            "nombre_recurso": "activos_biologicos"
+          },
+          {
+            "id_recurso": 29,
+            "id_accion": 3,
+            "nombre_recurso": "activos_biologicos"
+          },
+          {
+            "id_recurso": 29,
+            "id_accion": 4,
+            "nombre_recurso": "activos_biologicos"
+          },
+          {
+            "id_recurso": 29,
+            "id_accion": 5,
+            "nombre_recurso": "activos_biologicos"
+          },
+          {
+            "id_recurso": 30,
+            "id_accion": 1,
+            "nombre_recurso": "asociacion_sensor_activo"
+          },
+          {
+            "id_recurso": 30,
+            "id_accion": 2,
+            "nombre_recurso": "asociacion_sensor_activo"
+          },
+          {
+            "id_recurso": 30,
+            "id_accion": 3,
+            "nombre_recurso": "asociacion_sensor_activo"
+          },
+          {
+            "id_recurso": 31,
+            "id_accion": 1,
+            "nombre_recurso": "bitacora_auditoria_m02"
+          },
+          {
+            "id_recurso": 31,
+            "id_accion": 2,
+            "nombre_recurso": "bitacora_auditoria_m02"
+          },
+          {
+            "id_recurso": 32,
+            "id_accion": 2,
+            "nombre_recurso": "alertas_operativas"
+          },
+          {
+            "id_recurso": 32,
+            "id_accion": 3,
+            "nombre_recurso": "alertas_operativas"
+          },
+          {
+            "id_recurso": 32,
+            "id_accion": 4,
+            "nombre_recurso": "alertas_operativas"
+          },
+          {
+            "id_recurso": 33,
+            "id_accion": 2,
+            "nombre_recurso": "monitoreo_telemetria"
+          },
+          {
+            "id_recurso": 34,
+            "id_accion": 2,
+            "nombre_recurso": "historial_telemetria"
+          },
+          {
+            "id_recurso": 34,
+            "id_accion": 5,
+            "nombre_recurso": "historial_telemetria"
+          },
+          {
+            "id_recurso": 35,
+            "id_accion": 2,
+            "nombre_recurso": "infraestructura_iot"
+          },
+          {
+            "id_recurso": 35,
+            "id_accion": 3,
+            "nombre_recurso": "infraestructura_iot"
+          },
+          {
+            "id_recurso": 36,
+            "id_accion": 2,
+            "nombre_recurso": "alertas_tecnicas_iot"
+          },
+          {
+            "id_recurso": 36,
+            "id_accion": 3,
+            "nombre_recurso": "alertas_tecnicas_iot"
+          },
+          {
+            "id_recurso": 37,
+            "id_accion": 2,
+            "nombre_recurso": "vinculaciones_lecturas"
+          },
+          {
+            "id_recurso": 37,
+            "id_accion": 3,
+            "nombre_recurso": "vinculaciones_lecturas"
+          },
+          {
+            "id_recurso": 38,
+            "id_accion": 2,
+            "nombre_recurso": "calidad_telemetria"
+          },
+          {
+            "id_recurso": 38,
+            "id_accion": 5,
+            "nombre_recurso": "calidad_telemetria"
+          },
+          {
+            "id_recurso": 39,
+            "id_accion": 2,
+            "nombre_recurso": "bitacora_auditoria_iot"
+          },
+          {
+            "id_recurso": 39,
+            "id_accion": 5,
+            "nombre_recurso": "bitacora_auditoria_iot"
+          },
+          {
+            "id_recurso": 40,
+            "id_accion": 1,
+            "nombre_recurso": "patologia_variable"
+          },
+          {
+            "id_recurso": 40,
+            "id_accion": 2,
+            "nombre_recurso": "patologia_variable"
+          },
+          {
+            "id_recurso": 40,
+            "id_accion": 3,
+            "nombre_recurso": "patologia_variable"
+          },
+          {
+            "id_recurso": 40,
+            "id_accion": 4,
+            "nombre_recurso": "patologia_variable"
+          },
+          {
+            "id_recurso": 41,
+            "id_accion": 1,
+            "nombre_recurso": "configuracion_motor_ia"
+          },
+          {
+            "id_recurso": 41,
+            "id_accion": 2,
+            "nombre_recurso": "configuracion_motor_ia"
+          },
+          {
+            "id_recurso": 41,
+            "id_accion": 5,
+            "nombre_recurso": "configuracion_motor_ia"
+          },
+          {
+            "id_recurso": 42,
+            "id_accion": 2,
+            "nombre_recurso": "historial_diagnostico"
+          },
+          {
+            "id_recurso": 43,
+            "id_accion": 2,
+            "nombre_recurso": "version_modelo"
+          },
+          {
+            "id_recurso": 43,
+            "id_accion": 3,
+            "nombre_recurso": "version_modelo"
+          },
+          {
+            "id_recurso": 43,
+            "id_accion": 5,
+            "nombre_recurso": "version_modelo"
+          },
+          {
+            "id_recurso": 44,
+            "id_accion": 2,
+            "nombre_recurso": "ota_status"
+          },
+          {
+            "id_recurso": 44,
+            "id_accion": 5,
+            "nombre_recurso": "ota_status"
+          },
+          {
+            "id_recurso": 45,
+            "id_accion": 2,
+            "nombre_recurso": "retroalimentacion_clinica"
+          },
+          {
+            "id_recurso": 46,
+            "id_accion": 2,
+            "nombre_recurso": "auditoria_m04"
+          },
+          {
+            "id_recurso": 46,
+            "id_accion": 5,
+            "nombre_recurso": "auditoria_m04"
+          },
+          {
+            "id_recurso": 47,
+            "id_accion": 1,
+            "nombre_recurso": "consumo_alimentos"
+          },
+          {
+            "id_recurso": 47,
+            "id_accion": 2,
+            "nombre_recurso": "consumo_alimentos"
+          },
+          {
+            "id_recurso": 47,
+            "id_accion": 4,
+            "nombre_recurso": "consumo_alimentos"
+          },
+          {
+            "id_recurso": 48,
+            "id_accion": 1,
+            "nombre_recurso": "medicamentos"
+          },
+          {
+            "id_recurso": 48,
+            "id_accion": 2,
+            "nombre_recurso": "medicamentos"
+          },
+          {
+            "id_recurso": 48,
+            "id_accion": 4,
+            "nombre_recurso": "medicamentos"
+          },
+          {
+            "id_recurso": 49,
+            "id_accion": 2,
+            "nombre_recurso": "eficiencia_alimenticia"
+          },
+          {
+            "id_recurso": 49,
+            "id_accion": 5,
+            "nombre_recurso": "eficiencia_alimenticia"
+          },
+          {
+            "id_recurso": 50,
+            "id_accion": 2,
+            "nombre_recurso": "administracion_batch_ica"
+          },
+          {
+            "id_recurso": 50,
+            "id_accion": 5,
+            "nombre_recurso": "administracion_batch_ica"
+          },
+          {
+            "id_recurso": 51,
+            "id_accion": 2,
+            "nombre_recurso": "reporte_gastos_suministros"
+          },
+          {
+            "id_recurso": 51,
+            "id_accion": 5,
+            "nombre_recurso": "reporte_gastos_suministros"
+          },
+          {
+            "id_recurso": 52,
+            "id_accion": 2,
+            "nombre_recurso": "historial_suministros"
+          },
+          {
+            "id_recurso": 52,
+            "id_accion": 5,
+            "nombre_recurso": "historial_suministros"
+          },
+          {
+            "id_recurso": 53,
+            "id_accion": 2,
+            "nombre_recurso": "administracion_batch_reportes_gastos"
+          },
+          {
+            "id_recurso": 53,
+            "id_accion": 5,
+            "nombre_recurso": "administracion_batch_reportes_gastos"
+          },
+          {
+            "id_recurso": 54,
+            "id_accion": 2,
+            "nombre_recurso": "administracion_batch_historial_suministros"
+          },
+          {
+            "id_recurso": 54,
+            "id_accion": 5,
+            "nombre_recurso": "administracion_batch_historial_suministros"
+          },
+          {
+            "id_recurso": 55,
+            "id_accion": 1,
+            "nombre_recurso": "costeo_directo_suministros"
+          },
+          {
+            "id_recurso": 55,
+            "id_accion": 2,
+            "nombre_recurso": "costeo_directo_suministros"
+          },
+          {
+            "id_recurso": 55,
+            "id_accion": 3,
+            "nombre_recurso": "costeo_directo_suministros"
+          },
+          {
+            "id_recurso": 56,
+            "id_accion": 2,
+            "nombre_recurso": "provision_nic41"
+          },
+          {
+            "id_recurso": 56,
+            "id_accion": 5,
+            "nombre_recurso": "provision_nic41"
+          },
+          {
+            "id_recurso": 57,
+            "id_accion": 2,
+            "nombre_recurso": "bitacora_auditoria_suministros"
+          },
+          {
+            "id_recurso": 57,
+            "id_accion": 5,
+            "nombre_recurso": "bitacora_auditoria_suministros"
+          },
+          {
+            "id_recurso": 58,
+            "id_accion": 1,
+            "nombre_recurso": "tipos_area"
+          },
+          {
+            "id_recurso": 58,
+            "id_accion": 2,
+            "nombre_recurso": "tipos_area"
+          },
+          {
+            "id_recurso": 58,
+            "id_accion": 4,
+            "nombre_recurso": "tipos_area"
+          },
+          {
+            "id_recurso": 59,
+            "id_accion": 2,
+            "nombre_recurso": "datos_clinicos_activo"
+          },
+          {
+            "id_recurso": 60,
+            "id_accion": 2,
+            "nombre_recurso": "datos_analiticos_eventos"
+          },
+          {
+            "id_recurso": 61,
+            "id_accion": 2,
+            "nombre_recurso": "datos_analiticos_fases"
+          },
+          {
+            "id_recurso": 62,
+            "id_accion": 2,
+            "nombre_recurso": "datos_analiticos_estado"
+          },
+          {
+            "id_recurso": 63,
+            "id_accion": 2,
+            "nombre_recurso": "datos_analiticos_metricas"
+          },
+          {
+            "id_recurso": 64,
+            "id_accion": 2,
+            "nombre_recurso": "datos_financieros_activo"
+          },
+          {
+            "id_recurso": 65,
+            "id_accion": 2,
+            "nombre_recurso": "sincronizacion_reglas_edge"
+          },
+          {
+            "id_recurso": 65,
+            "id_accion": 5,
+            "nombre_recurso": "sincronizacion_reglas_edge"
+          },
+          {
+            "id_recurso": 66,
+            "id_accion": 3,
+            "nombre_recurso": "variables_ambientales_criticas"
+          },
+          {
+            "id_recurso": 67,
+            "id_accion": 2,
+            "nombre_recurso": "datos_tecnicos_dashboard"
+          },
+          {
+            "id_recurso": 68,
+            "id_accion": 1,
+            "nombre_recurso": "reglas_alertas"
+          },
+          {
+            "id_recurso": 68,
+            "id_accion": 2,
+            "nombre_recurso": "reglas_alertas"
+          },
+          {
+            "id_recurso": 68,
+            "id_accion": 3,
+            "nombre_recurso": "reglas_alertas"
+          },
+          {
+            "id_recurso": 68,
+            "id_accion": 4,
+            "nombre_recurso": "reglas_alertas"
+          },
+          {
+            "id_recurso": 87,
+            "id_accion": 1,
+            "nombre_recurso": "topologia_sanitaria"
+          },
+          {
+            "id_recurso": 87,
+            "id_accion": 2,
+            "nombre_recurso": "topologia_sanitaria"
+          },
+          {
+            "id_recurso": 87,
+            "id_accion": 3,
+            "nombre_recurso": "topologia_sanitaria"
+          },
+          {
+            "id_recurso": 87,
+            "id_accion": 4,
+            "nombre_recurso": "topologia_sanitaria"
+          },
+          {
+            "id_recurso": 88,
+            "id_accion": 2,
+            "nombre_recurso": "precios_mercado"
+          },
+          {
+            "id_recurso": 89,
+            "id_accion": 1,
+            "nombre_recurso": "configuracion_contable"
+          },
+          {
+            "id_recurso": 89,
+            "id_accion": 2,
+            "nombre_recurso": "configuracion_contable"
+          },
+          {
+            "id_recurso": 89,
+            "id_accion": 3,
+            "nombre_recurso": "configuracion_contable"
+          },
+          {
+            "id_recurso": 90,
+            "id_accion": 2,
+            "nombre_recurso": "reconocimiento_inicial"
+          },
+          {
+            "id_recurso": 91,
+            "id_accion": 2,
+            "nombre_recurso": "valoracion_activos"
+          },
+          {
+            "id_recurso": 92,
+            "id_accion": 1,
+            "nombre_recurso": "costos_activos"
+          },
+          {
+            "id_recurso": 92,
+            "id_accion": 2,
+            "nombre_recurso": "costos_activos"
+          },
+          {
+            "id_recurso": 93,
+            "id_accion": 2,
+            "nombre_recurso": "cierre_periodo"
+          },
+          {
+            "id_recurso": 95,
+            "id_accion": 1,
+            "nombre_recurso": "cotizaciones"
+          },
+          {
+            "id_recurso": 95,
+            "id_accion": 2,
+            "nombre_recurso": "cotizaciones"
+          },
+          {
+            "id_recurso": 95,
+            "id_accion": 4,
+            "nombre_recurso": "cotizaciones"
+          },
+          {
+            "id_recurso": 96,
+            "id_accion": 2,
+            "nombre_recurso": "trazabilidad_contable"
+          },
+          {
+            "id_recurso": 98,
+            "id_accion": 2,
+            "nombre_recurso": "estado_resultados"
+          },
+          {
+            "id_recurso": 99,
+            "id_accion": 2,
+            "nombre_recurso": "auditoria_financiera"
+          },
+          {
+            "id_recurso": 100,
+            "id_accion": 2,
+            "nombre_recurso": "exportacion_contable"
+          },
+          {
+            "id_recurso": 101,
+            "id_accion": 1,
+            "nombre_recurso": "clientes_externos"
+          },
+          {
+            "id_recurso": 101,
+            "id_accion": 2,
+            "nombre_recurso": "clientes_externos"
+          },
+          {
+            "id_recurso": 101,
+            "id_accion": 3,
+            "nombre_recurso": "clientes_externos"
+          },
+          {
+            "id_recurso": 101,
+            "id_accion": 4,
+            "nombre_recurso": "clientes_externos"
+          },
+          {
+            "id_recurso": 102,
+            "id_accion": 1,
+            "nombre_recurso": "contratos_aaef"
+          },
+          {
+            "id_recurso": 102,
+            "id_accion": 2,
+            "nombre_recurso": "contratos_aaef"
+          },
+          {
+            "id_recurso": 102,
+            "id_accion": 3,
+            "nombre_recurso": "contratos_aaef"
+          },
+          {
+            "id_recurso": 103,
+            "id_accion": 2,
+            "nombre_recurso": "auditoria_integracion"
+          },
+          {
+            "id_recurso": 103,
+            "id_accion": 5,
+            "nombre_recurso": "auditoria_integracion"
+          }
+        ]
+      }
+    },
+    "activos_en_tratamiento": {
+      "http": 200,
+      "body": {
+        "total_registros": 16,
+        "pagina_actual": 1,
+        "total_paginas": 1,
+        "registros_por_pagina": 100,
+        "registros": [
+          {
+            "id_activo_biologico": 774,
+            "id_especie": 1,
+            "tipo": "POBLACIONAL",
+            "identificador": null,
+            "fecha_inicio_ciclo": "2026-10-01",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 48,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 35,
+            "fecha_creacion": "2026-10-10T00:17:02.039891Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": null,
+            "detalle_poblacional": {
+              "id_detalle": 148,
+              "cantidad_inicial": 10,
+              "cantidad_actual": 9,
+              "peso_promedio_inicial": "0.0500",
+              "peso_promedio": null,
+              "biomasa_total": null,
+              "densidad": "0.0090"
+            },
+            "nombre_especie": "Tilapia Roja",
+            "nombre_infraestructura": "Corral QA JE Origen",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 1628,
+            "id_especie": 39,
+            "tipo": "INDIVIDUAL",
+            "identificador": "BOV-115-TIL",
+            "fecha_inicio_ciclo": "2026-10-01",
+            "detalles_procedencia": "Subasta ganadera de Neiva",
+            "origen_financiero": "compra",
+            "costo_adquisicion": "3600000.0000",
+            "soporte_documental": "Factura de compra FV-115",
+            "descripcion": null,
+            "id_infraestructura": 1054,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 138,
+            "fecha_creacion": "2026-10-01T12:00:00Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 1306,
+              "raza": "Brahman",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-03-01",
+              "peso_inicial": "300.000",
+              "fecha_creacion": "2026-11-09T17:27:28.530503Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Bovino",
+            "nombre_infraestructura": "Corral El Rosal",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 615,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1790408584994",
+            "fecha_inicio_ciclo": "2026-09-26",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-26T07:43:04.644232Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 450,
+              "raza": "Camaron QA-G22 original",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-26T07:43:04.644232Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 614,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1790408569409",
+            "fecha_inicio_ciclo": "2026-09-26",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-26T07:42:49.029731Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 449,
+              "raza": "Camaron QA-G22 original",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-26T07:42:49.029731Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 613,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1790408554183",
+            "fecha_inicio_ciclo": "2026-09-26",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-26T07:42:33.823509Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 448,
+              "raza": "Camaron QA-G22 original",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-26T07:42:33.823509Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 483,
+            "id_especie": 4,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G37-ActivoA-1790393311",
+            "fecha_inicio_ciclo": "2026-01-01",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 85,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-26T03:28:33.046969Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 321,
+              "raza": "QA",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2024-01-01",
+              "peso_inicial": null,
+              "fecha_creacion": "2026-09-26T03:28:33.046969Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Cachama Blanca",
+            "nombre_infraestructura": "QA-G37-Infra-1790393311",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 393,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1789792650120",
+            "fecha_inicio_ciclo": "2026-09-19",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-19T04:37:30.070663Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 261,
+              "raza": "Camaron QA-G22 actualizado con proceso abierto",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-19T04:37:30.070663Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 380,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1789792544038",
+            "fecha_inicio_ciclo": "2026-09-19",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-19T04:35:44.004880Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 248,
+              "raza": "Camaron QA-G22 actualizado con proceso abierto",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-19T04:35:44.004880Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 377,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1789792331112",
+            "fecha_inicio_ciclo": "2026-09-19",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-19T04:32:11.069755Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 245,
+              "raza": "Camaron QA-G22 actualizado con proceso abierto",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-19T04:32:11.069755Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 376,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1789792318262",
+            "fecha_inicio_ciclo": "2026-09-19",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-19T04:31:58.226139Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 244,
+              "raza": "Camaron QA-G22 actualizado con proceso abierto",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-19T04:31:58.226139Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 243,
+            "id_especie": 4,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G37-Activo-1789011841",
+            "fecha_inicio_ciclo": "2026-01-01",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 23,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-10T03:44:00.543751Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 142,
+              "raza": "QA",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2024-01-01",
+              "peso_inicial": null,
+              "fecha_creacion": "2026-09-10T03:44:00.543751Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Cachama Blanca",
+            "nombre_infraestructura": "QA-G37-Infra-1789011840",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 198,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1788995207698",
+            "fecha_inicio_ciclo": "2026-09-09",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-09T23:06:46.808363Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 106,
+              "raza": "Camaron QA-G22 actualizado con proceso abierto",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-09T23:06:46.808363Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 197,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-1788995034825",
+            "fecha_inicio_ciclo": "2026-09-09",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-09T23:03:53.908092Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 105,
+              "raza": "Camaron QA-G22 pese a estado pendiente",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-09T23:03:53.908092Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 196,
+            "id_especie": 3,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-G22-DIAG-1788994815",
+            "fecha_inicio_ciclo": "2026-09-09",
+            "detalles_procedencia": null,
+            "origen_financiero": "nacimiento",
+            "costo_adquisicion": null,
+            "soporte_documental": null,
+            "descripcion": null,
+            "id_infraestructura": 6,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 47,
+            "fecha_creacion": "2026-09-09T23:00:17.472755Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 104,
+              "raza": "Camaron diag EN_TRATAMIENTO",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-01-15",
+              "peso_inicial": "2.500",
+              "fecha_creacion": "2026-09-09T23:00:17.472755Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Camarón Blanco",
+            "nombre_infraestructura": "Piscina-Cam-01",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 1030,
+            "id_especie": 39,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-M05-BOV-MED-B",
+            "fecha_inicio_ciclo": "2026-08-01",
+            "detalles_procedencia": "QA-M05 subasta de Neiva",
+            "origen_financiero": "compra",
+            "costo_adquisicion": "3000000.0000",
+            "soporte_documental": "QA-M05 factura de compra",
+            "descripcion": null,
+            "id_infraestructura": 750,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 138,
+            "fecha_creacion": "2026-08-01T12:00:00Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 750,
+              "raza": "Brahman",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-02-01",
+              "peso_inicial": "300.000",
+              "fecha_creacion": "2026-11-08T02:28:07.948604Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Bovino",
+            "nombre_infraestructura": "QA-M05-C1",
+            "advertencia_edad": null
+          },
+          {
+            "id_activo_biologico": 1028,
+            "id_especie": 39,
+            "tipo": "INDIVIDUAL",
+            "identificador": "QA-M05-BOV-MED-A",
+            "fecha_inicio_ciclo": "2026-08-01",
+            "detalles_procedencia": "QA-M05 subasta de Neiva",
+            "origen_financiero": "compra",
+            "costo_adquisicion": "3000000.0000",
+            "soporte_documental": "QA-M05 factura de compra",
+            "descripcion": null,
+            "id_infraestructura": 750,
+            "atributos_dinamicos": null,
+            "id_estado": 3,
+            "nombre_estado": "EN_TRATAMIENTO",
+            "id_usuario": 138,
+            "fecha_creacion": "2026-08-01T12:00:00Z",
+            "fecha_actualizacion": null,
+            "detalle_individual": {
+              "id_detalle": 748,
+              "raza": "Brahman",
+              "sexo": "Macho",
+              "fecha_nacimiento": "2025-02-01",
+              "peso_inicial": "300.000",
+              "fecha_creacion": "2026-11-08T02:28:02.967274Z"
+            },
+            "detalle_poblacional": null,
+            "nombre_especie": "Bovino",
+            "nombre_infraestructura": "QA-M05-C1",
+            "advertencia_edad": null
+          }
+        ]
+      }
+    },
+    "activo_853": {
+      "http": 200,
+      "body": {
+        "id_activo_biologico": 853,
+        "id_especie": 5,
+        "tipo": "INDIVIDUAL",
+        "identificador": "ANIMAL-QA-001",
+        "fecha_inicio_ciclo": "2026-10-22",
+        "detalles_procedencia": null,
+        "origen_financiero": "nacimiento",
+        "costo_adquisicion": null,
+        "soporte_documental": null,
+        "descripcion": null,
+        "id_infraestructura": 389,
+        "atributos_dinamicos": null,
+        "id_estado": 1,
+        "nombre_estado": "ACTIVO",
+        "id_usuario": 35,
+        "fecha_creacion": "2026-10-22T20:18:30.481624Z",
+        "fecha_actualizacion": null,
+        "detalle_individual": {
+          "id_detalle": 644,
+          "raza": "Mojarra Roja",
+          "sexo": "Macho",
+          "fecha_nacimiento": "2026-04-22",
+          "peso_inicial": "0.500",
+          "fecha_creacion": "2026-10-22T20:18:30.481624Z"
+        },
+        "detalle_poblacional": null,
+        "nombre_especie": null,
+        "nombre_infraestructura": null,
+        "advertencia_edad": null
+      }
+    },
+    "activo_853_fases": {
+      "http": 200,
+      "body": {
+        "id_activo_biologico": 853,
+        "fases": []
+      }
+    },
+    "activo_853_ciclos": {
+      "http": 200,
+      "body": {
+        "id_activo_biologico": 853,
+        "total": 1,
+        "items": [
+          {
+            "id_ciclo_productivo": 5,
+            "nombre": "Ciclo completo mojarra 2025-A",
+            "fases": [
+              {
+                "id_ciclos_productivo_biologico": 12,
+                "id_ciclo_biologico": 12,
+                "nombre_fase": "Fase juvenil mojarra",
+                "duracion_dias": 45
+              },
+              {
+                "id_ciclos_productivo_biologico": 13,
+                "id_ciclo_biologico": 13,
+                "nombre_fase": "Fase engorde mojarra",
+                "duracion_dias": 75
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "meds_853": {
+      "http": 200,
+      "body": {
+        "total": 0,
+        "items": []
+      }
+    },
+    "activo_5": {
+      "http": 200,
+      "body": {
+        "id_activo_biologico": 5,
+        "id_especie": 1,
+        "tipo": "INDIVIDUAL",
+        "identificador": "BOV-0852",
+        "fecha_inicio_ciclo": null,
+        "detalles_procedencia": null,
+        "origen_financiero": "compra",
+        "costo_adquisicion": "2800000.0000",
+        "soporte_documental": null,
+        "descripcion": "Novillo en aislamiento sanitario post-compra",
+        "id_infraestructura": 1,
+        "atributos_dinamicos": {
+          "color": "negro",
+          "condicion_corporal": 2.5,
+          "soporte_documental": "factura_BOV005.pdf"
+        },
+        "id_estado": 1,
+        "nombre_estado": "ACTIVO",
+        "id_usuario": 2,
+        "fecha_creacion": "2026-05-02T01:57:56.494479Z",
+        "fecha_actualizacion": null,
+        "detalle_individual": {
+          "id_detalle": 5,
+          "raza": "Brahman",
+          "sexo": "Macho",
+          "fecha_nacimiento": "2021-09-01",
+          "peso_inicial": "45.000",
+          "fecha_creacion": "2026-06-27T21:55:47.817029Z"
+        },
+        "detalle_poblacional": null,
+        "nombre_especie": null,
+        "nombre_infraestructura": null,
+        "advertencia_edad": null
+      }
+    },
+    "activo_5_fases": {
+      "http": 200,
+      "body": {
+        "id_activo_biologico": 5,
+        "fases": [
+          {
+            "id_gestion_fases": 30,
+            "id_activo_biologico": 5,
+            "id_ciclo_productiva": 1,
+            "id_ciclos_productivo_biologico": 1,
+            "nombre_ciclo": "Ciclo completo tilapia 2025-A",
+            "nombre_fase_actual": "Fase larval tilapia",
+            "paso_actual": 1,
+            "total_pasos": 3,
+            "fecha_inicio": "2026-06-13T15:55:46.198341Z",
+            "fecha_finalizacion": "2026-06-28T14:00:00Z",
+            "es_activa": false,
+            "motivo_cambio": "Avance automático por duración de fase",
+            "es_transicion_no_estandar": false
+          },
+          {
+            "id_gestion_fases": 15,
+            "id_activo_biologico": 5,
+            "id_ciclo_productiva": 3,
+            "id_ciclos_productivo_biologico": 7,
+            "nombre_ciclo": "Ciclo completo camarón 2025-A",
+            "nombre_fase_actual": "Fase postlarval camarón",
+            "paso_actual": 1,
+            "total_pasos": 3,
+            "fecha_inicio": "2026-06-27T21:55:47.817029Z",
+            "fecha_finalizacion": "2024-05-15T00:00:00Z",
+            "es_activa": false,
+            "motivo_cambio": null,
+            "es_transicion_no_estandar": false
+          },
+          {
+            "id_gestion_fases": 32,
+            "id_activo_biologico": 5,
+            "id_ciclo_productiva": 1,
+            "id_ciclos_productivo_biologico": 2,
+            "nombre_ciclo": "Ciclo completo tilapia 2025-A",
+            "nombre_fase_actual": "Fase juvenil tilapia",
+            "paso_actual": 2,
+            "total_pasos": 3,
+            "fecha_inicio": "2026-06-28T14:00:00Z",
+            "fecha_finalizacion": "2026-09-09T19:00:00Z",
+            "es_activa": false,
+            "motivo_cambio": "Avance automático por duración de fase",
+            "es_transicion_no_estandar": false
+          },
+          {
+            "id_gestion_fases": 36,
+            "id_activo_biologico": 5,
+            "id_ciclo_productiva": 1,
+            "id_ciclos_productivo_biologico": 3,
+            "nombre_ciclo": "Ciclo completo tilapia 2025-A",
+            "nombre_fase_actual": "Fase engorde tilapia",
+            "paso_actual": 3,
+            "total_pasos": 3,
+            "fecha_inicio": "2026-09-09T19:00:00Z",
+            "fecha_finalizacion": null,
+            "es_activa": true,
+            "motivo_cambio": "Avance automático por duración de fase",
+            "es_transicion_no_estandar": false
+          }
+        ]
+      }
+    },
+    "meds_5": {
+      "http": 200,
+      "body": {
+        "total": 5,
+        "items": [
+          {
+            "id_registro_medicamento": 15,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Enrofloxacina",
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cantidad": "3.000",
+            "dosis_por_individuo": null,
+            "fecha_aplicacion": "2026-07-29",
+            "hora_aplicacion": "10:00:00",
+            "periodo_retiro_dias": 10,
+            "fecha_fin_retiro": "2026-08-08",
+            "costo_unitario_medicamento": "900.0000",
+            "costo_total_medicamento": "2700.0000",
+            "motivo_aplicacion": "Segundo tratamiento concurrente",
+            "id_evento_sanitario": null,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "observaciones": null,
+            "id_usuario": 3,
+            "id_usuario_veterinario": 3,
+            "estado_registro": "ANULADO",
+            "fecha_registro": "2026-07-30T05:08:20.280672Z",
+            "justificacion_anulacion": "Anulación de prueba E2E para liberar el retiro y probar el scheduler RF-76.",
+            "fecha_hora_anulacion": "2026-07-31T03:46:48.804040Z"
+          },
+          {
+            "id_registro_medicamento": 14,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Oxitetraciclina",
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cantidad": "5.000",
+            "dosis_por_individuo": null,
+            "fecha_aplicacion": "2026-07-29",
+            "hora_aplicacion": "08:00:00",
+            "periodo_retiro_dias": 7,
+            "fecha_fin_retiro": "2026-08-05",
+            "costo_unitario_medicamento": "1200.0000",
+            "costo_total_medicamento": "6000.0000",
+            "motivo_aplicacion": "Tratamiento antibiotico preventivo",
+            "id_evento_sanitario": null,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "observaciones": null,
+            "id_usuario": 3,
+            "id_usuario_veterinario": 3,
+            "estado_registro": "ANULADO",
+            "fecha_registro": "2026-07-30T05:08:20.129771Z",
+            "justificacion_anulacion": "Medicamento aplicado por error, dosis incorrecta registrada",
+            "fecha_hora_anulacion": "2026-07-30T05:08:59.614560Z"
+          },
+          {
+            "id_registro_medicamento": 13,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "Meloxicam",
+            "via_aplicacion": "IV",
+            "unidad_dosis": "ml",
+            "cantidad": "1.500",
+            "dosis_por_individuo": null,
+            "fecha_aplicacion": "2026-07-29",
+            "hora_aplicacion": "12:00:00",
+            "periodo_retiro_dias": 0,
+            "fecha_fin_retiro": null,
+            "costo_unitario_medicamento": "500.0000",
+            "costo_total_medicamento": "750.0000",
+            "motivo_aplicacion": "Analgesico postquirurgico",
+            "id_evento_sanitario": 11,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "observaciones": null,
+            "id_usuario": 3,
+            "id_usuario_veterinario": 3,
+            "estado_registro": "VALIDADO",
+            "fecha_registro": "2026-07-30T05:06:35.716698Z",
+            "justificacion_anulacion": null,
+            "fecha_hora_anulacion": null
+          },
+          {
+            "id_registro_medicamento": 17,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "SmokeTest",
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cantidad": "2.000",
+            "dosis_por_individuo": null,
+            "fecha_aplicacion": "2026-07-28",
+            "hora_aplicacion": "14:30:00",
+            "periodo_retiro_dias": 0,
+            "fecha_fin_retiro": null,
+            "costo_unitario_medicamento": "10.0000",
+            "costo_total_medicamento": "20.0000",
+            "motivo_aplicacion": "prueba smoke sqlacodegen",
+            "id_evento_sanitario": null,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "observaciones": null,
+            "id_usuario": 3,
+            "id_usuario_veterinario": 3,
+            "estado_registro": "VALIDADO",
+            "fecha_registro": "2026-07-30T11:39:06.196393Z",
+            "justificacion_anulacion": null,
+            "fecha_hora_anulacion": null
+          },
+          {
+            "id_registro_medicamento": 18,
+            "id_activo_biologico": 5,
+            "nombre_medicamento": "TestRetiroVencidoRF76",
+            "via_aplicacion": "ORAL",
+            "unidad_dosis": "ml",
+            "cantidad": "10.000",
+            "dosis_por_individuo": null,
+            "fecha_aplicacion": "2026-07-01",
+            "hora_aplicacion": "09:00:00",
+            "periodo_retiro_dias": 1,
+            "fecha_fin_retiro": "2026-07-02",
+            "costo_unitario_medicamento": "1000.0000",
+            "costo_total_medicamento": "10000.0000",
+            "motivo_aplicacion": "Prueba E2E del cierre de RF-76 (scheduler).",
+            "id_evento_sanitario": null,
+            "nombre_veterinario": "Dr. Prueba E2E",
+            "observaciones": null,
+            "id_usuario": 3,
+            "id_usuario_veterinario": 3,
+            "estado_registro": "VALIDADO",
+            "fecha_registro": "2026-07-31T03:46:42.927580Z",
+            "justificacion_anulacion": null,
+            "fecha_hora_anulacion": null
+          }
+        ]
+      }
+    },
+    "activos_en_tratamiento_meds": {
+      "774": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "1628": {
+        "http": 200,
+        "body": {
+          "total": 1,
+          "items": [
+            {
+              "id_registro_medicamento": 231,
+              "id_activo_biologico": 1628,
+              "nombre_medicamento": "Ivermectina 1 %",
+              "via_aplicacion": "IM",
+              "unidad_dosis": "ml",
+              "cantidad": "4.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-11-08",
+              "hora_aplicacion": "10:00:00",
+              "periodo_retiro_dias": 35,
+              "fecha_fin_retiro": "2026-12-13",
+              "costo_unitario_medicamento": "9000.0000",
+              "costo_total_medicamento": "36000.0000",
+              "motivo_aplicacion": "Control de parasitos internos y externos",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "Carlos Ramírez",
+              "observaciones": null,
+              "id_usuario": 166,
+              "id_usuario_veterinario": 166,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-09T17:42:23.089947Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            }
+          ]
+        }
+      },
+      "615": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "614": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "613": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "483": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "393": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "380": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "377": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "376": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "243": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "198": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "197": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "196": {
+        "http": 200,
+        "body": {
+          "total": 0,
+          "items": []
+        }
+      },
+      "1030": {
+        "http": 200,
+        "body": {
+          "total": 4,
+          "items": [
+            {
+              "id_registro_medicamento": 234,
+              "id_activo_biologico": 1030,
+              "nombre_medicamento": "QA-M05-VET-20261108-A2",
+              "via_aplicacion": "ORAL",
+              "unidad_dosis": "ml",
+              "cantidad": "1.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-11-10",
+              "hora_aplicacion": "01:29:00",
+              "periodo_retiro_dias": 2,
+              "fecha_fin_retiro": "2026-11-12",
+              "costo_unitario_medicamento": "1.0000",
+              "costo_total_medicamento": "1.0000",
+              "motivo_aplicacion": "Prueba QA autorizada de retiro superpuesto en semilla TEST; sin aplicacion real.",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": "Ronda16 10/11/2026. A2 ficticia autorizada, retiro2dias, debe prevalecer MAX.",
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-10T06:29:51.999270Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            },
+            {
+              "id_registro_medicamento": 233,
+              "id_activo_biologico": 1030,
+              "nombre_medicamento": "QA-M05-VET-20261108-A1",
+              "via_aplicacion": "ORAL",
+              "unidad_dosis": "ml",
+              "cantidad": "1.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-11-10",
+              "hora_aplicacion": "01:28:00",
+              "periodo_retiro_dias": 1,
+              "fecha_fin_retiro": "2026-11-11",
+              "costo_unitario_medicamento": "1.0000",
+              "costo_total_medicamento": "1.0000",
+              "motivo_aplicacion": "Prueba QA autorizada de retiro inicial en semilla TEST; sin aplicacion real.",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": "Ronda16 10/11/2026. A1 ficticia autorizada, retiro1dia.",
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-10T06:28:47.061937Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            },
+            {
+              "id_registro_medicamento": 198,
+              "id_activo_biologico": 1030,
+              "nombre_medicamento": "Vitamina E QA-M05",
+              "via_aplicacion": "IM",
+              "unidad_dosis": "ml",
+              "cantidad": "4.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-10-05",
+              "hora_aplicacion": "09:00:00",
+              "periodo_retiro_dias": 0,
+              "fecha_fin_retiro": null,
+              "costo_unitario_medicamento": "5000.0000",
+              "costo_total_medicamento": "20000.0000",
+              "motivo_aplicacion": "QA-M05: suplemento sin retiro",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": null,
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-08T02:37:23.845294Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            },
+            {
+              "id_registro_medicamento": 197,
+              "id_activo_biologico": 1030,
+              "nombre_medicamento": "Ivermectina QA-M05",
+              "via_aplicacion": "IM",
+              "unidad_dosis": "ml",
+              "cantidad": "5.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-09-10",
+              "hora_aplicacion": "09:00:00",
+              "periodo_retiro_dias": 10,
+              "fecha_fin_retiro": "2026-09-20",
+              "costo_unitario_medicamento": "6000.0000",
+              "costo_total_medicamento": "30000.0000",
+              "motivo_aplicacion": "QA-M05: retiro ya vencido",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": null,
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-08T02:35:56.125607Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            }
+          ]
+        }
+      },
+      "1028": {
+        "http": 200,
+        "body": {
+          "total": 3,
+          "items": [
+            {
+              "id_registro_medicamento": 196,
+              "id_activo_biologico": 1028,
+              "nombre_medicamento": "Penicilina QA-M05",
+              "via_aplicacion": "IM",
+              "unidad_dosis": "ml",
+              "cantidad": "15.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-11-03",
+              "hora_aplicacion": "09:00:00",
+              "periodo_retiro_dias": 20,
+              "fecha_fin_retiro": "2026-11-23",
+              "costo_unitario_medicamento": "3000.0000",
+              "costo_total_medicamento": "45000.0000",
+              "motivo_aplicacion": "QA-M05: retiro superpuesto",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": null,
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-08T02:35:05.145893Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            },
+            {
+              "id_registro_medicamento": 195,
+              "id_activo_biologico": 1028,
+              "nombre_medicamento": "Oxitetraciclina QA-M05",
+              "via_aplicacion": "IM",
+              "unidad_dosis": "ml",
+              "cantidad": "20.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-11-01",
+              "hora_aplicacion": "09:00:00",
+              "periodo_retiro_dias": 15,
+              "fecha_fin_retiro": "2026-11-16",
+              "costo_unitario_medicamento": "2500.0000",
+              "costo_total_medicamento": "50000.0000",
+              "motivo_aplicacion": "QA-M05: retiro vigente",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": null,
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-08T02:34:13.751760Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            },
+            {
+              "id_registro_medicamento": 193,
+              "id_activo_biologico": 1028,
+              "nombre_medicamento": "Vitamina AD3 QA-M05",
+              "via_aplicacion": "IM",
+              "unidad_dosis": "ml",
+              "cantidad": "5.000",
+              "dosis_por_individuo": null,
+              "fecha_aplicacion": "2026-09-05",
+              "hora_aplicacion": "08:00:00",
+              "periodo_retiro_dias": 0,
+              "fecha_fin_retiro": null,
+              "costo_unitario_medicamento": "4000.0000",
+              "costo_total_medicamento": "20000.0000",
+              "motivo_aplicacion": "QA-M05: suplemento sin retiro",
+              "id_evento_sanitario": null,
+              "nombre_veterinario": "QA M05 Veterinario",
+              "observaciones": null,
+              "id_usuario": 139,
+              "id_usuario_veterinario": 139,
+              "estado_registro": "VALIDADO",
+              "fecha_registro": "2026-11-08T02:33:18.663733Z",
+              "justificacion_anulacion": null,
+              "fecha_hora_anulacion": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  "close": {
+    "http": 200,
+    "body": {
+      "status": "Rollback exitoso"
+    }
+  },
+  "roles_env_permisos": {
+    "vet": {
+      "run_id": "tc-m05-g18-fase1-rbac-vet-160fe9",
+      "login_http": 200,
+      "permisos_http": 200,
+      "recurso_48_acciones": [
+        1,
+        2,
+        4
+      ],
+      "close": {
+        "http": 200,
+        "body": {
+          "status": "Rollback exitoso"
+        }
+      }
+    },
+    "producer": {
+      "run_id": "tc-m05-g18-fase1-rbac-producer-32f4af",
+      "login_http": 200,
+      "permisos_http": 200,
+      "recurso_48_acciones": [
+        2
+      ],
+      "close": {
+        "http": 200,
+        "body": {
+          "status": "Rollback exitoso"
+        }
+      }
+    },
+    "field_engineer": {
+      "run_id": "tc-m05-g18-fase1-rbac-field_engineer-292987",
+      "login_http": 200,
+      "permisos_http": 200,
+      "recurso_48_acciones": [],
+      "close": {
+        "http": 200,
+        "body": {
+          "status": "Rollback exitoso"
+        }
+      }
+    }
+  },
+  "direct_db_readonly": {
+    "identidad": {
+      "ok": true,
+      "rows": [
+        {
+          "current_user": "member_qa",
+          "session_user": "member_qa",
+          "current_database": "sgpmp_test"
+        }
+      ]
+    },
+    "privilegios_fn": {
+      "ok": false,
+      "error": "UndefinedFunction: function \"modulo2.fn_activos_del_usuario(integer)\" does not exist"
+    },
+    "permisos_recurso_48": {
+      "ok": false,
+      "error": "InsufficientPrivilege: permission denied for function fn_id_rol_actual"
+    },
+    "activos_853_5": {
+      "ok": true,
+      "rows": []
+    },
+    "gestiones_fases_853": {
+      "ok": true,
+      "rows": []
+    },
+    "en_tratamiento_detalle": {
+      "ok": true,
+      "rows": []
+    },
+    "triggers_medicamentos": {
+      "ok": true,
+      "rows": [
+        {
+          "tgname": "trg_auditoria",
+          "def": "CREATE TRIGGER trg_auditoria AFTER INSERT OR DELETE OR UPDATE ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION auditoria.fn_auditoria_dml()"
+        },
+        {
+          "tgname": "trg_auditoria_medicamento",
+          "def": "CREATE TRIGGER trg_auditoria_medicamento AFTER INSERT OR UPDATE ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_auditoria_medicamento()"
+        },
+        {
+          "tgname": "trg_calcular_costo_total_medicamento",
+          "def": "CREATE TRIGGER trg_calcular_costo_total_medicamento BEFORE INSERT ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_calcular_costo_total_medicamento()"
+        },
+        {
+          "tgname": "trg_medicamento_fecha_no_futura",
+          "def": "CREATE TRIGGER trg_medicamento_fecha_no_futura BEFORE INSERT ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_medicamento_fecha_no_futura()"
+        },
+        {
+          "tgname": "trg_medicamento_inmutable_validado",
+          "def": "CREATE TRIGGER trg_medicamento_inmutable_validado BEFORE UPDATE ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_medicamento_inmutable_validado()"
+        },
+        {
+          "tgname": "trg_medicamento_no_delete",
+          "def": "CREATE TRIGGER trg_medicamento_no_delete BEFORE DELETE ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_medicamento_no_delete()"
+        },
+        {
+          "tgname": "trg_poblar_registro_suministro_medicamento",
+          "def": "CREATE TRIGGER trg_poblar_registro_suministro_medicamento AFTER INSERT ON modulo5.registros_medicamentos FOR EACH ROW EXECUTE FUNCTION modulo5.fn_trg_poblar_registro_suministro_medicamento()"
+        }
+      ]
+    }
+  }
+}

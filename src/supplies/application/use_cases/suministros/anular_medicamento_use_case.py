@@ -3,6 +3,8 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-76: anular compensa ledger y retiro    |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: el fin de retiro por anulación avisa también al Veterinario |
 """Caso de uso: anular una aplicación de medicamento VALIDADA (RF-76).
 
 - E8: un registro ANULADO no puede volver a anularse (409).
@@ -23,6 +25,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError, NotFoundError
 from src.shared.fechas import hoy_usuario
+from src.supplies.application.use_cases.exportacion.generador_archivos import fecha_hora
 from src.supplies.application.use_cases.costeo_suministros.compensar_anulacion import CompensadorAnulacion
 from src.supplies.domain.entities.medicamento import Medicamento
 from src.supplies.domain.repositories.activo_consulta_port import ESTADO_EN_TRATAMIENTO, ActivoConsultaPort
@@ -66,12 +69,12 @@ class AnularMedicamentoUseCase:
             )
 
         if medicamento.estado_registro == EstadoRegistro.ANULADO.value:
-            fecha = medicamento.fecha_hora_anulacion.isoformat() if medicamento.fecha_hora_anulacion else "-"
+            desde = f" desde el {fecha_hora(medicamento.fecha_hora_anulacion)}" if medicamento.fecha_hora_anulacion else ""
             raise ConflictError(
                 code="MEDICAMENTO_YA_ANULADO",
                 message=(
-                    f"El registro de aplicación {id_medicamento} ya se encuentra en estado ANULADO desde "
-                    f"el {fecha}. No es posible anular un registro que ya fue anulado previamente."
+                    f"Esta aplicación ya está anulada{desde}. No es posible anular un registro que ya fue "
+                    "anulado previamente."
                 ),
             )
 
@@ -98,7 +101,9 @@ class AnularMedicamentoUseCase:
             raise
 
         if fin_retiro:
-            self.notificacion_port.notificar_fin_retiro(medicamento.id_activo_biologico, hoy)
+            self.notificacion_port.notificar_fin_retiro(
+                medicamento.id_activo_biologico, hoy, medicamento.id_usuario_veterinario
+            )
         return anulado
 
     def _levantar_retiro_si_no_queda_otro(self, id_activo: int, hoy, usuario_actual: UsuarioActual) -> bool:

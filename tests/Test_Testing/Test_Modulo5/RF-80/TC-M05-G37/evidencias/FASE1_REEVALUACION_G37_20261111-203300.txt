@@ -1,0 +1,1566 @@
+================================================================================
+FASE 1 DE REEVALUACION - TC-M05-G37 (RF-80 v2.0, RFC-025)
+Incidente corregido: INC-M05-275-G37 (Dev #960 / PR #1026)
+================================================================================
+Fecha de generacion : 2026-11-11 20:33:00 (America/Bogota)
+Ambiente evaluado   : TEST (TEST_BASE_URL desde .env.test)
+Ruta base           : tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/
+Carpeta observacion : evidencias/fase1_20261111-203000/
+
+--------------------------------------------------------------------------------
+1) PASO 0 - PUNTO DE PARTIDA
+--------------------------------------------------------------------------------
+0a) SHA-256 de scripts y artefactos actuales de resultados/:
+- test_tc_m05_g37.py                    : FBF1080BD38DAA16A601AC42A14CDFC3E839128CECD3B95E3B0753158BF9858B (26839 B)
+- ejecutar_tc_m05_g37.ps1               : 4C25408F322A55F92E84003FCCA0C1FBEEC4764CDF4C555083579D8D4E3ECCE0 (11254 B)
+- generar_artefactos_run_g37.py         : 0A0E6C7FC2D4403565FC277FC5AC42ADB5C8D915522A2077BBFAB3D6B6967F1A (13856 B)
+- resultados/.gitkeep                   : E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855 (0 B)
+- resultados/resultado_TC-M05-G37.html  : F38E74601E057D2DCBBF1399271B6232B326B60BDE01137AD3AA128A3A80C858 (45616 B)
+- resultados/resultado_TC-M05-G37.json  : 95DB3D22D7D0CC553C806C12FACABB6E6119815FC25B48A9359208666411D3FF (3663 B)
+
+0b) Ronda 1 (resultados/resultado_TC-M05-G37.json):
+- summary: {"total": 10, "ok": 9, "falla": 1, "veredicto": "Rechazado"}
+- Checkpoints:
+  [01] OK    | T00 Conteo inicial de eventos y creacion de activo con ciclo
+  [02] OK    | A01 Registro de suministro directo RF-78 y persistencia <= 2 s
+  [03] OK    | A01 Cierre de ciclo productivo RF-79 y eventos de consolidacion <= 2 s
+  [04] OK    | A01 Consulta de historial de suministros RF-81 y persistencia <= 2 s
+  [05] FALLA | A02 Registro de evento con resultado FALLIDO o RECHAZADO ante operacion invalida
+       esperado: Evento en auditoria con resultado FALLIDO/RECHAZADO persistido <= 2 s ante operacion rechazada
+       obtenido: AssertionError: DEFECTO_PRODUCTO (RF-80 CA-1 / TC-M05-026.1): La especificacion exige que las operaciones fallidas se registren en la bitacora con resultado FALLIDO o RECHAZADO en <= 2 s. El backend respondio HTTP 409 (CICLO_NO_ACTIVO) pero registro 0 eventos fallidos en modulo5.auditorias_suministros para el activo 984.
+  [06] OK    | A03 Consistencia entre consulta por filtros en lista y consulta por detalle /{id}
+  [07] OK    | B01 Clasificacion y retencion diferenciada (NIC41 / 5 años vs TECNICO / 1 año)
+  [08] OK    | B02 Clasificacion por defecto de tipo no catalogado como NIC41 / 5 años (nivel unidad)
+  [09] OK    | T98 Cierre ordenado de sandbox Administrador y rollback
+  [10] OK    | T99 Verificacion de inocuidad y reversion de datos fuera de sandbox
+- Motivo de falla Ronda 1: El checkpoint A02 fallo porque POST /suministros/costeo-directo respondio HTTP 409 (CICLO_NO_ACTIVO), pero se registraron 0 eventos con resultado FALLIDO/RECHAZADO en modulo5.auditorias_suministros para el activo 984.
+
+0c) Inventario de test_tc_m05_g37.py (606 lineas, 10 tests en TestTCM05G37PersistenciaYClasificacion):
+1. test_t00_setup_linea_base (L265-306):
+   - GET /suministros/auditoria (rpp=1) -> total_base; POST /activos-biologicos (POBLACIONAL, QA-G37-*) -> 201; POST /activos-biologicos/{id}/fases -> 200/201.
+   - Aserciones clave: `assert r_ini.status_code == 200`, `assert isinstance(total_ini, int) and total_ini >= 0`, `assert r_act.status_code == 201`, `assert id_activo is not None`, `assert r_fase.status_code in (200, 201)`, `assert id_fase is not None`.
+2. test_a01_rf78_operacion_exitosa (L308-365):
+   - POST /suministros/costeo-directo (SERVICIO_VETERINARIO, unidad_medida="UNIDAD", precio=40000.0) -> 200; GET /suministros/auditoria?id_activo_biologico={id}&tipo_operacion=SUMINISTRO_REGISTRADO.
+   - Aserciones clave: `assert r_sum.status_code == 200`, `assert len(items) >= 1`, `assert duracion_req < 2.0 or (duracion_req + duracion_query) < 3.0`, `assert evento.get("entidad_afectada") == "registro_suministro"`, `tipo_operacion == "SUMINISTRO_REGISTRADO"`, `resultado == "EXITOSO"`, `fecha_evento is not None`, `id_usuario is not None`, `id_activo_biologico == id_activo`, `float(evento["costo_afectado"]) == 40000.0`, `origen_precio == "MANUAL"`, `clasificacion_registro is not None`, `retencion_aplicable is not None`, `len(evento["hash_integridad"]) == 64`, `fecha_emision is not None`.
+   - HALLAZGO CRITICO EN SCRIPT ACTUAL: En L320 envia `"unidad_medida": "UNIDAD"`, pero tras INC-M05-340-G27 (`src/supplies/domain/value_objects/tipo_suministro.py:34-36`), SERVICIO_VETERINARIO exige `"servicio"`, por lo que hoy fallaria con HTTP 422 UNIDAD_MEDIDA_NO_COINCIDE.
+3. test_a01_rf79_operacion_exitosa (L367-411):
+   - POST /activos-biologicos/{id}/cierre -> 200; GET /suministros/auditoria?id_activo_biologico={id}.
+   - Aserciones clave: `assert r_cierre.status_code == 200`, `"CICLO_CONSOLIDADO" in tipos_encontrados`, `"REPORTE_COSTOS_GENERADO" in tipos_encontrados`, y sobre CICLO_CONSOLIDADO: `entidad_afectada == "provision_nic41"`, `resultado == "EXITOSO"`, `costo_afectado is not None`, `len(hash_integridad) == 64`, `clasificacion_registro == "NIC41"`, `retencion_aplicable == "5 años"`.
+4. test_a01_rf81_operacion_exitosa (L413-443):
+   - GET /suministros/historial?id_activo_biologico={id} -> 200; GET /suministros/auditoria?tipo_operacion=CONSULTA_HISTORIAL_EJECUTADA.
+   - Aserciones clave: `assert r_hist.status_code == 200`, `assert len(items) >= 1`, `entidad_afectada == "historial_suministros"`, `tipo_operacion == "CONSULTA_HISTORIAL_EJECUTADA"`, `resultado == "EXITOSO"`, `len(hash_integridad) == 64`.
+5. test_a02_operacion_fallida_registro_auditoria (L445-483):
+   - POST /suministros/costeo-directo con `fecha_aplicacion="2020-01-01"` sobre activo cerrado en `test_a01_rf79` (en Ronda 1 disparo 409 CICLO_NO_ACTIVO, no 422 FECHA_FUERA_DE_RANGO).
+   - Aserciones clave: `assert r_fail.status_code in (400, 409, 422)`, `eventos_fallidos = [ev for ev in items if ev.get("resultado") in ("FALLIDO", "RECHAZADO")]`, `assert len(eventos_fallidos) > 0`.
+6. test_a03_consistencia_filtros_vs_detalle (L485-518):
+   - Toma `_CONTEXTO["evento_rf78"]` de A01, llama `GET /suministros/auditoria/{id_ev}` -> 200 y compara 14 campos entre lista y detalle (`assert val_lista == val_det`).
+7. test_b01_clasificacion_retencion_eventos (L520-555):
+   - GET /suministros/auditoria?id_activo_biologico={id} (`assert len(items) >= 3`). Verifica `NIC41`/`5 años` para `SUMINISTRO_REGISTRADO`, `ACUMULADO_ACTUALIZADO`, `CICLO_CONSOLIDADO`, `REPORTE_COSTOS_GENERADO` y `TECNICO`/`1 año` para `PRECIO_MANUAL_INGRESADO`, `CONSULTA_HISTORIAL_EJECUTADA`. Exige `encontrados_nic41 > 0` y `encontrados_tecnico > 0`.
+8. test_b02_tipo_no_catalogado_clasifica_nic41_unidad (L557-565):
+   - Importa `clasificar_retencion` (`src/supplies/domain/value_objects/eventos_auditoria_suministro_enums.py`) y verifica `clasificar_retencion("EVENTO_NO_CATALOGADO_EXPERIMENTO_QA") == ("NIC41", "5 años")`.
+9. test_t98_cierre_sandbox (L567-575):
+   - `r = c.cerrar()` (`DELETE /test-control/runs/{run_id}`), `assert r.status_code == 200`, `assert "exitoso" in mensaje.lower()`.
+10. test_t99_inocuidad_rollback (L577-606):
+   - Ejecuta `requests.post(f"{base_url}/sesiones/", ...)` y `requests.get(f"{base_url}/suministros/auditoria", ...)` SIN cabeceras `X-Test-Run-Id` ni `X-Sandbox-Secret`, comparando `total_fin == total_base`.
+
+0d) Analisis de runner (ejecutar_tc_m05_g37.ps1) y generador (generar_artefactos_run_g37.py):
+- ¿Copian a resultados/?: NO. Ninguno de los dos escribe en `resultados/`.
+- ¿Un sanitizador reescribe artefactos?: SI. En `ejecutar_tc_m05_g37.ps1:240-250`, reemplaza patrones en cada archivo de staging con `'***REDACTED***'` mediante `[IO.File]::WriteAllText($a.FullName, $texto, $utf8)` y solo retorna `exit 4` si persisten tras reescribir (L253-256). (`test_tc_m05_g37.py:78-105` sanitiza en memoria al escribir trazas).
+- ¿Aplican el sufijo _reintentoN?: NO. `ejecutar_tc_m05_g37.ps1:18-20` declara `[int]$Reintento = 0`, pero L128-129 fijan `resultado_TC-M05-G37.html` y `resultado_TC-M05-G37.xml`, y L164 no pasa `--reintento`. `generar_artefactos_run_g37.py` (L91-96, L101-103, L163, L169, L225) tampoco acepta `--reintento` ni aplica `_reintentoN`.
+- ¿Hay logins o peticiones fuera del sandbox?: SI en `test_tc_m05_g37.py:583-599` (`# Login limpio sin headers de sandbox`). Runner y generador no hacen peticiones HTTP.
+- ¿Aparece el literal del prefijo JWT?: SI en los tres archivos: `ejecutar_tc_m05_g37.ps1:229`, `generar_artefactos_run_g37.py:286`, y `test_tc_m05_g37.py:83-84`.
+- ¿Hay clasificaciones o diagnosticos de texto fijo?: SI:
+  * `generar_artefactos_run_g37.py:141`: coloca `obtenido = meta["esperado"]` para todo test OK.
+  * `generar_artefactos_run_g37.py:217-221`: si `falla > 0`, inserta diagnostico fijo `"Defecto de Producto en A02 (RF-80 CA-1 / TC-M05-026.1)..."`.
+  * `generar_artefactos_run_g37.py:249-297`: sección "2. MATRIZ DE CAPACIDADES RF-80 (Porton P1)" y "4. OBSERVACIONES... (INC BORRADOR)" fijas (afirma `Cola persistente M05->M12: AUSENTE`, `id_evento_m05: AUSENTE` [desactualizado], `Auditoria de 4xx (CA-1): AUSENTE`, `Borrador INC`).
+  * `test_tc_m05_g37.py:477-483`: comentario y mensaje fijo `DEFECTO_PRODUCTO (RF-80 CA-1 / TC-M05-026.1)`.
+- ASCII en .ps1: `ejecutar_tc_m05_g37.ps1` tiene 0 lineas con caracteres no ASCII.
+
+--------------------------------------------------------------------------------
+2) PASO 1 - TABLA DE BRECHA: SCRIPT vs ESPECIFICACION RF-80 v2.0 (RFC-025) / CASOS
+--------------------------------------------------------------------------------
+Requisito (cita corta) | Fuente | Test que lo cubre | Estado
+---|---|---|---
+"Operacion exitosa y fallida en RF-78" (registro + rechazo) | RF-80 v2.0 Desc/CA-1; TC-M05-G37 (TC-M05-026 / TC-M05-090) | test_a01_rf78_operacion_exitosa, test_a02_operacion_fallida_registro_auditoria | parcial (A01 usa unidad "UNIDAD" obsoleta; A02 no valida campos de REGISTRO_FALLIDO ni ausencia de efectos parciales)
+"Operacion exitosa y fallida en RF-79" | RF-80 v2.0 Desc/CA-1; TC-M05-G37 (TC-M05-090) | test_a01_rf79_operacion_exitosa | parcial (exito sin <=2s ni campos de REPORTE_COSTOS_GENERADO; fallo RF-79 no cubierto y backend no audita rechazos RF-79)
+"Operacion exitosa y fallida en RF-81" | RF-80 v2.0 Desc/CA-1; TC-M05-G37 (TC-M05-090) | test_a01_rf81_operacion_exitosa | parcial (exito sin <=2s ni filtros_aplicados/id_usuario; fallo RF-81 no cubierto y backend no audita rechazos RF-81)
+"Campos base RF-10" (id_evento, id_usuario, tipo_operacion, resultado, fecha_evento, etc.) | RF-80 v2.0 Desc/Salida; TC-M05-090 | test_a01_rf78/79/81 | parcial (no valida todos los tipos ni presencia en REGISTRO_FALLIDO; en tabla ip_origen/id_sesion quedan null)
+"Campos de extension M05" (id_activo_biologico, id_ciclo_productivo, id_tipo_suministro, costo_afectado, origen_precio, clasificacion, retencion, hash_integridad, id_evento_m05) | RF-80 v2.0 Entradas/Salida/C25.1; TC-M05-090 | test_a01_rf78/79/81 | parcial (no valida id_ciclo_productivo, id_evento_m05, version_hash_integridad, ni campos en fallos; nota: id_tipo_suministro NO existe en tabla/schema)
+"Evento guardado en modulo5.auditorias_suministros en la misma transaccion" | RF-80 v2.0 C25.1 RNF-01/RNF-02; TC-M05-090 | test_a01_rf78 | parcial (solo chequea existencia en exito; en rechazo de negocio el backend revierte el intento y confirma el evento tras rollback)
+"Consultable en lista (GET /suministros/auditoria con filtros) y detalle (GET /suministros/auditoria/{id})" | RF-80 v2.0 Postc.3/CA-4; TC-M05-090 | test_a01*, test_a03_consistencia_filtros_vs_detalle | parcial (A03 solo valida 1 evento exitoso con 2 filtros; faltan resultado, clasificacion, fecha_desde/hasta y evento RECHAZADO)
+"Verificar la fila en modulo5.auditorias_suministros" | TC-M05-G37 / TC-M05-090 Datos de prueba | ninguno | no cubierto (en TEST, POST /test-control/query retorna [] por RLS al no declarar identidad; solo verificable via API M05)
+"Restriccion 8: Campos minimos obligatorios por tipo de evento... registro_incompleto = true y detalle_causa" | RF-80 v2.0 Restriccion 8 / E2 / CA-12 | ninguno | no cubierto (no aserta registro_incompleto/detalle_causa ni numero_reintentos en REGISTRO_FALLIDO, ni ausencia/presencia de id_ciclo_productivo)
+"RNF-08: Doble timestamp (timestamp_emision y fecha_hora) y ordenamiento por ambos campos" | RF-80 v2.0 RNF-08 / CA-13 / RFC-025 | test_a01_rf78 (parcial) | parcial (solo aserta no-nulo; no verifica ordenar_por=fecha_emision)
+"CA-1: evento persistido en <= 2 segundos" | RF-80 v2.0 CA-1 | test_a01_rf78 (holgura <3s) | parcial (RF-78 permite <3s en suma; RF-79, RF-81 y A02 no miden <= 2 s)
+"SUMINISTRO_REGISTRADO, CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO -> NIC41 / 5 años" | RF-80 v2.0 Fase 3 / CA-3; TC-M05-091 | test_b01_clasificacion_retencion_eventos | cubierto (al usar "servicio" en A01 RF-78)
+"CONSULTA_HISTORIAL_EJECUTADA -> TECNICO / 1 año" | RF-80 v2.0 Fase 3; TC-M05-091 | test_b01_clasificacion_retencion_eventos | cubierto
+"Tipo no catalogado -> NIC41 / 5 años por defecto" | RF-80 v2.0 Fase 3 / Desc; TC-M05-091 | test_b02_tipo_no_catalogado_clasifica_nic41_unidad | cubierto (unidad Python; sin endpoint/SQL directo sin DML)
+"REGISTRO_FALLIDO -> TECNICO / 1 año (por exclusion del catalogo NIC41)" | RF-80 v2.0 Desc / Fase 3 | ninguno | no cubierto (test_b01 y test_a02 no verifican clasificacion_registro/retencion_aplicable de REGISTRO_FALLIDO)
+"M12 repositorio transversal, cola persistente (100k, alertas 90/100%, 48h), entrega asincrona <=50ms (CA-5/CA-7/CA-10/RNF-07) e idempotencia/deduplicacion en M12 por id_evento_m05 (Restr.9/CA-14/CA-15/RNF-09)" | RF-80 v1.x (retirado en v2.0 por RFC-025 C25.1) | matriz fija en generar_artefactos_run_g37.py L278-279 | obsoleto v2.0 (retirar de matrices fijas y documentacion derivada)
+
+--------------------------------------------------------------------------------
+3) PASO 2 - LECTURA DE CODIGO (INFERENCIA, NO PRUEBA DE DESPLIEGUE)
+--------------------------------------------------------------------------------
+2a) Cambios de PR #1026 / #960 (commit b9b50746 / merge 0dbde1c7):
+- `src/supplies/application/use_cases/costeo_suministros/registrar_suministro_directo_use_case.py`:
+  * `execute` (L135-143) captura `(BusinessRuleError, ConflictError)` de `_ejecutar(...)`, invoca `self._registrar_rechazo(dto, usuario_actual, exc, contexto.get("ciclo"))` y relanza la excepcion.
+  * `_registrar_rechazo` (L330-379):
+    1. Ejecuta `self.db.rollback()` (L345) en la MISMA sesion SQLAlchemy (sin segunda sesion/conexion ni SAVEPOINT propio del caso de uso).
+    2. Consulta `self.activo_port.obtener(dto.id_activo_biologico)` (L346, `ActivoM02Adapter` inyectado en `src/supplies/infrastructure/factories/costeo_suministros_factory.py:64`) preservando identidad RLS.
+    3. Inserta `EventoAuditoriaSuministro` con `auditoria_port.registrar(...)` (`flush()`, `src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:60-62`) y ejecuta `self.db.commit()` (L370). Ante fallo de auditoria, loguea error (L372-375) y ejecuta `self.db.rollback()` (L377) sin ocultar el error original.
+  * Dentro del sandbox (`src/shared/rollback/infraestructure/testing_sandbox.py:48-63`, `src/shared/database.py:308-347`):
+    `SessionLocal` usa `join_transaction_mode="create_savepoint"` sobre una transaccion externa unica por `run_id`. `db.rollback()` y `db.commit()` operan sobre el savepoint del request; el evento queda visible dentro del sandbox y se revierte integramente al llamar `DELETE /test-control/runs/{run_id}` (`testing_sandbox.py:70-82`).
+  * Campos poblados (`registrar_suministro_directo_use_case.py:348-369` + `EventoAuditoriaSuministro.__post_init__` en `src/supplies/domain/repositories/auditoria_suministro_port.py:48-71`):
+    - `entidad_afectada="registro_suministro"`, `tipo_operacion="REGISTRO_FALLIDO"`, `resultado="RECHAZADO"`, `numero_reintentos=0`, `id_usuario=usuario_actual.id_usuario`.
+    - `id_activo_biologico = activo.id_activo_biologico` si visible por RLS (`None` en otro caso).
+    - `id_ciclo_productivo` y `id_gestion_fases` = los de `ciclo_verificado` si hay fase abierta (`None` en `CICLO_NO_ACTIVO` o errores previos a resolver ciclo).
+    - `id_tipo_suministro`: no existe en `EventoAuditoriaSuministro`, `AuditoriaSuministroModel` ni `EventoAuditoriaSuministroResponse`.
+    - `registro_incompleto = (ciclo_verificado is None or ciclo_verificado.id_gestion_fases is None)`.
+    - `detalle_causa`: `"Registro de suministro rechazado: {motivo} Activo solicitado: {id}. Solicitud: {id_idempotencia}."` (+ `" No se pudo acreditar una fase productiva abierta para el intento."` + `" Campos faltantes: ..."` via `__post_init__` si incompleto). `_MOTIVOS_RECHAZO` (L76-88) usa texto descriptivo, no el string literal `error.code`.
+    - `datos_nuevos = None` (ni motivo, ni error_code, ni UUID de solicitud van en `datos_nuevos`; el UUID `id_idempotencia` va dentro de `detalle_causa`). `id_evento_m05` se genera con `uuid4()`.
+
+2b) Rechazos de negocio provocables en RF-79 y RF-81 y si auditan fallos:
+- RF-79 (`src/supplies/application/use_cases/provision_nic41/consolidar_ciclo_use_case.py:74-114`, `corregir_provision_use_case.py:31-46`, `src/supplies/infrastructure/routers/provision_nic41_router.py:41-118`):
+  * Provocables: `POST /suministros/nic41/ciclo/{id}/consolidar` con ciclo activo -> `409 CICLO_ACTIVO` (L95-102), inexistente -> `404 CICLO_NO_ENCONTRADO` (L90-94), o cerrado sin acumulados -> `422 SIN_INFORMACION_ACUMULADA` (L105-114); `POST /suministros/nic41/{id}/correccion` inexistente -> `404 PROVISION_NO_ENCONTRADA` (`corregir_provision_use_case.py:33-37`).
+  * Auditoria de fallo: **NO**. Ambos `execute` hacen `except Exception: self.db.rollback(); raise` (consolidar L78-80; corregir L44-46) sin invocar `auditoria_port`.
+- RF-81 (`src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:109-230`, `src/supplies/infrastructure/routers/historial_suministros_router.py:95-249`):
+  * Provocables en `GET /suministros/historial`: `fecha_fin_filtro < fecha_inicio_filtro` -> `422 COMBINACION_FILTROS_INVALIDA` (L216-230); activo inexistente -> `404 ACTIVO_NO_ENCONTRADO` (L145-151); fuera de alcance RBAC -> `403 ACCESO_DENEGADO` (L153-161).
+  * Auditoria de fallo: **NO**. `_auditar_consulta` (L190-214) solo se llama en `_resultado` (L187) tras exito sincrono.
+
+2c) Clasificacion NIC41/TECNICO y retencion:
+- Se decide en **Python** en `clasificar_retencion(tipo_operacion: str) -> tuple[str, str]` (`src/supplies/domain/value_objects/eventos_auditoria_suministro_enums.py:45-49`), llamada por `SqlAlchemyAuditoriaSuministroRepository.registrar` (`src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:39`).
+- En BD (`alembic/versions/d96480a11e01_rf80_identidad_integridad_auditoria_m05.py:33-58`) solo existen triggers de sello SHA-256 (`trg_audit_hash` -> `modulo5.fn_sellar_auditoria_m05()`) y append-only (`fn_impedir_modificacion_auditoria_m05()`).
+- **No existe funcion SQL invocable con SELECT** para clasificar eventos; el caso "no catalogado" requiere test unitario/mock de Python (sin DML).
+
+2d) Visibilidad de modulo5.auditorias_suministros en POST /test-control/query (inferencia):
+- `execute_test_query` (`src/shared/rollback/presentation/test_control_router.py:42-87`) inyecta `get_db` sin `get_current_user` ni `declarar_identidad`. Como `get_db()` (`src/shared/database.py:320-333`) limpia `app.current_user_id`, `app.current_role` y `app.usuario_id`, y `modulo5.auditorias_suministros` tiene RLS activo (`alembic/versions/f7463281b461_rls_modulo_05.py:307-311`), se infiere que retornara `[]` (comprobado en Paso 3c).
+
+--------------------------------------------------------------------------------
+4) PASO 3 - CONTROL DE DESPLIEGUE Y OBSERVACION EN TEST (HECHO OBSERVADO)
+--------------------------------------------------------------------------------
+- Corrida base: `tc-m05-g37-inobase-ad3a2aa5` | `GET /health` -> HTTP 200 (X-Request-Id: `0d68e91f-718b-44fa-bf09-f4765fe49736`) | Auditoria base: `total=65983` (identico con rpp=1 y rpp=5), `ultimo_id=72166` (X-Request-Id: `4cd40f6e-91dc-40a4-a197-31e22a954dc5`) | `DELETE` -> HTTP 200 ("Rollback exitoso", X-Request-Id: `75979d8c-76e9-4830-9ae4-a4b82a26f4f3`).
+- Corrida principal: `tc-m05-g37-f1-main-1326a80f` | Activo POBLACIONAL creado dentro del sandbox: `id_activo_biologico=1847` (HTTP 201, X-Request-Id: `1e4a560a-15e5-4a5c-a70b-eaebaf3beb29`; no se usaron 930/900/901/825).
+- **RESULTADO DEL GATE (Paso 3b): APROBADO — Correccion INC-M05-275-G37 desplegada y activa en TEST.**
+
+4.1 Tabla resumen de pasos (3a - 3h):
+Paso | Operacion / Endpoint | HTTP | error_code | X-Request-Id | Total antes -> despues | Eventos nuevos (IDs / detalle)
+---|---|---|---|---|---|---
+3a | POST /suministros/costeo-directo (sin fase abierta, activo 1847, unidad="servicio", solicitud=08ddd939-524d-414a-bfe0-05cdb45f489e) | 409 | CICLO_NO_ACTIVO | 36345959-0ee0-457e-bf77-f1beb71d5fda | 65983 -> 65984 | 1 evento: id=72171 (REGISTRO_FALLIDO / RECHAZADO)
+3b | Sondeo cliente GET /suministros/auditoria (t=0, 1, 2 s) | 200 | - | t0=50cc1b4e-547c-4f23-99bb-d19091b93f8d; t1=aad4fe85-e6a4-4151-a2ac-78ad34b857a0; t2=18f49bf0-a25b-4c37-856e-ab41128496d2 | 65984 | Visible desde t=0 (latencia cliente=0.143 s <= 2.0 s; t1=1.45 s; t2=2.773 s)
+3c-det | GET /suministros/auditoria/72171 | 200 | - | 5df619dd-1907-42cc-a25c-23411ebab673 | - | 0 diferencias entre lista y detalle (`diffs_lista_vs_detalle={}`)
+3c-filtros | GET /suministros/auditoria con filtros (activo, tipo, resultado, clasificacion, fechas, combinado) | 200 (6/6) | - | activo=75c37e9d-b755-4c01-bec3-b87ddaecb6ac; tipo=b77ffd5e-abf4-4906-b137-6c35999655ec; res=9a08a4e9-8c45-4bf0-87c3-9b29c6469766; clasif=59b20ae6-284b-4865-a225-bc0b361a7f16; fechas=facf88b3-3777-4b4e-b423-e5e24526128a; comb=09bf0d2b-7311-4edb-86fb-d8c9f118a8c7 | - | Todos 200 y `encontrado=true` para id=72171 (clasificacion total=974; especificos total=1)
+3c-sql | POST /test-control/query (`SELECT ... FROM modulo5.auditorias_suministros WHERE id_auditoria_suministro = 72171`) | 200 | - | 928c594f-e9b9-4d62-bd6b-510b3ed6ec16 | - | `data: []` (0 filas visibles por RLS sin identidad declarada)
+3d-acum | GET /suministros/costeo-directo/acumulado/activo/1847 | 404 | CICLO_NO_ACTIVO | 666e763d-5656-45aa-af8c-4a833c4ede71 | - | Sin acumulado creado tras rechazo
+3d-hist | GET /suministros/historial?id_activo_biologico=1847 | 200 | - | aa28758f-f0e8-45f6-adb0-f88b99e8d8f7 | 65984 -> 65985 | 0 registros en historial (`total_registros_filtrados=0`, `monto_total_filtrado="0"`); consulta dejo evento 72172. Outbox: no observable por la API
+3e | Repetir mismo rechazo (solicitud=faf0a4b2-5b0e-491a-80b6-9d3d4edec486) | 409 | CICLO_NO_ACTIVO | b4666954-aadb-4f37-83a4-a678affbb31f | 65985 -> 65986 | Exactamente 1 evento nuevo: id=72173 (sin duplicados)
+3f-rf78 | POST /suministros/costeo-directo valido (fase 832, unidad="servicio", registro=c901288a-8e92-42f4-9362-eee5afb3dabd) | 200 | - | 59a2b12e-f000-4e67-a5a0-bbc1a3b260fd | 65986 -> 65989 | 3 eventos: 72174:SUMINISTRO_REGISTRADO(NIC41/5 años), 72175:PRECIO_MANUAL_INGRESADO(TECNICO/1 año), 72176:ACUMULADO_ACTUALIZADO(NIC41/5 años)
+3f-rf81 | GET /suministros/historial?id_activo_biologico=1847 | 200 | - | 577f34ea-e2b6-46f6-b639-6ef1c39f08cb | 65989 -> 65990 | 1 evento: 72177:CONSULTA_HISTORIAL_EJECUTADA(TECNICO/1 año)
+3g-neg | POST /suministros/costeo-directo cantidad=-1 (negocio) | 422 | COSTO_REGISTRO_INVALIDO | e722daa1-c2d3-4064-b71a-3d27dcbb0c8a | 65990 -> 65991 | 1 evento: id=72178 (REGISTRO_FALLIDO/RECHAZADO, ciclo=1, fase=832, registro_incompleto=false)
+3g-pyd | POST /suministros/costeo-directo esquema invalido | 400 | VAL_ENTRADA | 7dba7fd8-2ff3-437c-90cf-ed26199cc31f | 65991 -> 65991 | 0 eventos (rechazado por Pydantic/VAL_ENTRADA antes del caso de uso)
+3h-rf81a | GET /suministros/historial fechas invertidas | 422 | COMBINACION_FILTROS_INVALIDA | d8ec01a2-9ab4-47fa-ade6-4565bd96f1d1 | sin cambio | 0 eventos nuevos
+3h-rf81b | GET /suministros/historial activo 999999999 | 404 | ACTIVO_NO_ENCONTRADO | 450921f1-9b33-4987-8644-1ac92eaf3cec | sin cambio | 0 eventos nuevos
+3h-rf79a | POST /suministros/nic41/ciclo/832/consolidar (ciclo activo) | 409 | CICLO_ACTIVO | fd974719-17b7-4570-804b-3509561c8a28 | sin cambio | 0 eventos nuevos
+3f-rf79 | POST /activos-biologicos/1847/cierre (id_provision=18) | 200 | - | 54567339-90ec-467e-9d36-a72063604e75 | 65991 -> 65994 | 3 eventos: 72179:INSERT(NIC41/5 años), 72180:CICLO_CONSOLIDADO(NIC41/5 años), 72181:REPORTE_COSTOS_GENERADO(NIC41/5 años)
+3h-rf79b | POST /suministros/nic41/999999999/correccion | 404 | PROVISION_NO_ENCONTRADA | 73d0cafe-f08c-454e-943a-ea387dfc04d9 | sin cambio | 0 eventos nuevos
+
+4.2 Campos completos del evento de rechazo (Paso 3b - id_auditoria_suministro=72171):
+- id_auditoria_suministro  : 72171
+- id_evento_m05            : e325dc7c-e658-428c-be3c-76f94f72c372
+- version_hash_integridad  : 2
+- entidad_afectada         : registro_suministro
+- tipo_operacion           : REGISTRO_FALLIDO
+- id_usuario               : 104
+- resultado                : RECHAZADO
+- fecha_emision            : 2026-11-12T01:31:21.322659Z
+- fecha_evento             : 2026-11-12T01:31:20.269705Z (en sandbox toma transaction_timestamp() de connection.begin(), por ello es ~1.05s anterior a fecha_emision y se repite en 72173 y 72178)
+- id_activo_biologico      : 1847
+- id_ciclo_productivo      : null
+- id_gestion_fases         : null
+- id_tipo_suministro       : (ausente en tabla y API)
+- costo_afectado           : null
+- origen_precio            : null
+- numero_reintentos        : 0
+- fecha_intentos           : null
+- registro_incompleto      : true
+- detalle_causa            : Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1847. Solicitud: 08ddd939-524d-414a-bfe0-05cdb45f489e. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.
+- clasificacion_registro   : TECNICO
+- retencion_aplicable      : 1 año
+- hash_integridad          : 7fa9743e43c8a6020bd59e5db631be50d34b4aca9132ee73ffc3268b67bbb74f
+- datos_nuevos             : null
+- datos_anteriores         : null
+- ip_origen / id_sesion    : null / null
+
+--------------------------------------------------------------------------------
+5) INOCUIDAD (BASE vs FINAL) Y CIERRE DE CORRIDAS
+--------------------------------------------------------------------------------
+- Base (`tc-m05-g37-inobase-ad3a2aa5`): total=65983, ultimo_id=72166, DELETE -> HTTP 200 ("Rollback exitoso", X-Request-Id: `75979d8c-76e9-4830-9ae4-a4b82a26f4f3`).
+- Principal (`tc-m05-g37-f1-main-1326a80f`): DELETE -> HTTP 200 ("Rollback exitoso", X-Request-Id: `6fc4ccbb-69b8-47d9-ae67-ccd7fee7a8e6`).
+- Final (`tc-m05-g37-inofin-29afcce2`): total=65983, ultimo_id=72166 (identicos a Base, X-Request-Id: `fba9c572-b62c-4d9e-8b40-26dad8e9e5f4`); DELETE -> HTTP 200 ("Rollback exitoso", X-Request-Id: `3a1e90a3-f2d8-42e2-bbbe-f698ab640349`).
+- Recursos creados verificados post-rollback (todos HTTP 404):
+  * GET /activos-biologicos/1847 -> HTTP 404 (X-Request-Id: `c4a05bf1-139c-4725-9263-f6ec1bf84a2e`)
+  * GET /suministros/costeo-directo/acumulado/activo/1847 -> HTTP 404 (X-Request-Id: `bd6ee2ed-3100-4ed3-a0eb-cad71a9a6123`)
+  * GET /suministros/historial?id_activo_biologico=1847 -> HTTP 404 (X-Request-Id: `26323633-eba5-4808-afc5-893dec92ffec`)
+  * GET /suministros/nic41/18 -> HTTP 404 (X-Request-Id: `150b74a0-6301-4207-92b7-ceb9c10d6961`)
+
+--------------------------------------------------------------------------------
+6) PROPUESTA DE CAMBIOS AL SCRIPT, RUNNER Y GENERADOR (SIN APLICAR)
+--------------------------------------------------------------------------------
+6.1 Cambios propuestos a test_tc_m05_g37.py:
+- [MODIFICAR] test_a01_rf78_operacion_exitosa:
+  * Corregir `"unidad_medida": "UNIDAD"` -> `"servicio"` (INC-M05-340-G27; RF-78 Restriccion 11 / CA-13).
+  * Esperado / fuente v2.0: HTTP 200; eventos SUMINISTRO_REGISTRADO, PRECIO_MANUAL_INGRESADO y ACUMULADO_ACTUALIZADO en <= 2.0 s estrictos (retirar holgura `< 3.0 s`) con campos base RF-10 + extension M05 (`id_ciclo_productivo`, `id_gestion_fases`, `id_evento_m05`, `version_hash_integridad`, `hash_integridad`, `fecha_emision`, `fecha_evento`, `registro_incompleto=False`) [RF-80 v2.0 CA-1, RNF-01, RNF-08, Restriccion 8; TC-M05-090].
+- [MODIFICAR] test_a01_rf79_operacion_exitosa y test_a01_rf81_operacion_exitosa:
+  * Esperado / fuente v2.0: verificar tiempo <= 2.0 s, `id_usuario`, `id_ciclo_productivo`, `hash_integridad`, campos completos en ambos eventos de RF-79 (`CICLO_CONSOLIDADO` y `REPORTE_COSTOS_GENERADO`) y `datos_nuevos.filtros_aplicados` en `CONSULTA_HISTORIAL_EJECUTADA` [RF-80 v2.0 CA-1, Restriccion 8; TC-M05-090].
+- [MODIFICAR / DIVIDIR] test_a02_operacion_fallida_registro_auditoria:
+  * Retirar mensaje fijo `DEFECTO_PRODUCTO...`.
+  * `test_a02a_rf78_rechazo_ciclo_no_activo`: activo POBLACIONAL sin fase abierta -> POST /suministros/costeo-directo (payload por lo demas valido con `"servicio"`) -> HTTP 409 `CICLO_NO_ACTIVO`; sin efectos parciales (acumulado 404, historial 0 registros); evento `REGISTRO_FALLIDO`, `resultado="RECHAZADO"`, `numero_reintentos=0`, `id_activo_biologico`, `registro_incompleto=True`, `detalle_causa` no vacia (con activo y UUID solicitud), en <= 2.0 s; y repetir el rechazo con nuevo UUID verificando exactamente +1 evento [RF-80 v2.0 CA-1, Restriccion 8, E2; TC-M05-090].
+  * `test_a02b_rf78_rechazo_con_fase_abierta`: con fase abierta, rechazo de negocio (`422 FECHA_FUERA_DE_RANGO` o `COSTO_REGISTRO_INVALIDO`) -> evento `REGISTRO_FALLIDO` / `RECHAZADO`, `id_ciclo_productivo` y `id_gestion_fases` no nulos, `registro_incompleto=False` [RF-80 v2.0 CA-1, Restriccion 8; TC-M05-090].
+  * [NOTA QA SOBRE RF-79 y RF-81]: Paso 3h confirmo que rechazos de negocio en RF-79 (`409 CICLO_ACTIVO`) y RF-81 (`422 COMBINACION_FILTROS_INVALIDA` / `404 ACTIVO_NO_ENCONTRADO`) hoy generan 0 eventos. Si QA decide exigir `RF-80 v2.0 CA-1` estricto tambien en RF-79 y RF-81 dentro de este TC (sin condicionales ni xfail), esos checkpoints fallaran hasta que Dev los implemente; de lo contrario, acotar A02 al alcance de `INC-M05-275-G37` (RF-78) y escalar el gap de RF-79/RF-81 por separado.
+- [MODIFICAR] test_a03_consistencia_filtros_vs_detalle:
+  * Esperado / fuente v2.0: validar filtros (`id_activo_biologico`, `tipo_operacion`, `resultado`, `clasificacion_registro`, `fecha_desde`+`fecha_hasta`), ordenamiento por `ordenar_por=fecha_evento` y `fecha_emision` (`RNF-08` / `CA-13`), y coincidencia campo por campo lista vs `GET /suministros/auditoria/{id}` tanto en evento `EXITOSO` como `RECHAZADO` [RF-80 v2.0 RNF-08, CA-4, CA-13; TC-M05-090]. Documentar en docstring que `/test-control/query` retorna `[]` por RLS en `modulo5.auditorias_suministros`.
+- [MODIFICAR] test_b01_clasificacion_retencion_eventos:
+  * Esperado / fuente v2.0: incluir asercion explicita **`REGISTRO_FALLIDO` -> `clasificacion_registro == "TECNICO"` y `retencion_aplicable == "1 año"`** ademas de los tipos `NIC41`/`5 años` y `TECNICO`/`1 año` existentes [RF-80 v2.0 Desc/Fase 3; TC-M05-091].
+- [MANTENER] test_b02_tipo_no_catalogado_clasifica_nic41_unidad:
+  * Mantener test unitario sobre `clasificar_retencion`, anotando ausencia de funcion SQL / endpoint sin DML [RF-80 v2.0 Fase 3; TC-M05-091].
+- [RETIRAR / REEMPLAZAR] test_t99_inocuidad_rollback:
+  * Retirar las peticiones fuera de sandbox (`L583-599`). Reemplazar con corridas sandbox independientes y secuenciales (`inobase` antes, `inofin` despues, cerradas con `DELETE -> 200`), verificando `total_fin == total_ini`, `ultimo_id_fin == ultimo_id_ini` y HTTP 404 para todos los recursos creados [Regla sandbox + Testing Harness Inocuidad].
+- [LIMPIEZA]: en `_seguro` (L83-84) construir `'ey' + 'J'` dinamicamente.
+
+6.2 Cambios propuestos a ejecutar_tc_m05_g37.ps1 y generar_artefactos_run_g37.py:
+- `ejecutar_tc_m05_g37.ps1`:
+  * Aplicar sufijo `_reintento$Reintento` cuando `$Reintento -gt 0` en HTML, XML y en `--reintento $Reintento` al generador.
+  * Nunca copiar a `resultados/`.
+  * Reemplazar la reescritura de artefactos (`WriteAllText` con `'***REDACTED***'`, L240-250): solo escanear, reportar "encontrado/no encontrado" y terminar con `exit 4` si hay hallazgos SIN modificar los artefactos.
+  * Construir el patron de prefijo JWT sin literal de 3 letras en el codigo fuente (ej. `'ey' + 'J'`) y mantener el archivo 100% ASCII.
+- `generar_artefactos_run_g37.py`:
+  * Soportar `--reintento` para aplicar sufijo `_reintentoN` a JSON, HTML y MD. Nunca tocar `resultados/`.
+  * Retirar textos fijos: `obtenido = meta["esperado"]` (L141, reemplazar extrayendo `obtenido` real de `trazas_http.jsonl`), el diagnostico fijo de falla (L217-221), la matriz fija obsoleta con `Cola persistente M05->M12: AUSENTE` e `id_evento_m05: AUSENTE` (L249-280), y el `Borrador INC` fijo (L288-296).
+  * Eliminar referencias obsoletas a M12/cola/idempotencia M12 (obsoleto v2.0 segun RFC-025) y el literal JWT de L286.
+
+--------------------------------------------------------------------------------
+7) ESCANEO FINAL DE SECRETOS Y LIMPIEZA DE __pycache__
+--------------------------------------------------------------------------------
+- __pycache__ / .pyc generados en evidencias/: ninguno (0 archivos .pyc generados)
+- Escaneo de secretos (patrones desde .env.test + prefijo JWT 'ey'+'J'):
+  * obs_g37.py:
+      - TEST_ADMIN_PASSWORD_full: no encontrado
+      - TEST_PRODUCER_PASSWORD_full: no encontrado
+      - TEST_FIELD_ENGINEER_PASSWORD_full: no encontrado
+      - TEST_DB_PASSWORD_full: no encontrado
+      - TEST_SANDBOX_SECRET_full: no encontrado
+      - TEST_SANDBOX_SECRET_last20: no encontrado
+      - BROKER_SERVICE_TOKEN_full: no encontrado
+      - BROKER_SERVICE_TOKEN_last20: no encontrado
+      - TEST_VET_PASSWORD_full: no encontrado
+      - jwt_prefijo ('ey'+'J'): no encontrado
+  * obs_resultado.json:
+      - TEST_ADMIN_PASSWORD_full: no encontrado
+      - TEST_PRODUCER_PASSWORD_full: no encontrado
+      - TEST_FIELD_ENGINEER_PASSWORD_full: no encontrado
+      - TEST_DB_PASSWORD_full: no encontrado
+      - TEST_SANDBOX_SECRET_full: no encontrado
+      - TEST_SANDBOX_SECRET_last20: no encontrado
+      - BROKER_SERVICE_TOKEN_full: no encontrado
+      - BROKER_SERVICE_TOKEN_last20: no encontrado
+      - TEST_VET_PASSWORD_full: no encontrado
+      - jwt_prefijo ('ey'+'J'): no encontrado
+  * FASE1_REEVALUACION_G37_20261111-203300.txt:
+      - TEST_ADMIN_PASSWORD_full: no encontrado
+      - TEST_PRODUCER_PASSWORD_full: no encontrado
+      - TEST_FIELD_ENGINEER_PASSWORD_full: no encontrado
+      - TEST_DB_PASSWORD_full: no encontrado
+      - TEST_SANDBOX_SECRET_full: no encontrado
+      - TEST_SANDBOX_SECRET_last20: no encontrado
+      - BROKER_SERVICE_TOKEN_full: no encontrado
+      - BROKER_SERVICE_TOKEN_last20: no encontrado
+      - TEST_VET_PASSWORD_full: no encontrado
+      - jwt_prefijo ('ey'+'J'): no encontrado
+
+================================================================================
+ANEXO 1 - CONTENIDO INTEGRO DE obs_g37.py
+================================================================================
+# | Fecha      | Nombre                   | Que se hizo                                                            |
+# |------------|--------------------------|------------------------------------------------------------------------|
+# | 2026-11-11 | Juan Sebastian Gutierrez | Script de observacion Fase 1 TC-M05-G37 (INC-M05-275-G37 / RF-80 v2.0) |
+"""Observacion controlada en TEST para Fase 1 de reevaluacion de TC-M05-G37 (RF-80 v2.0).
+
+Ejecuta unicamente lecturas y acciones de observacion dentro de corridas sandbox
+estrictamente secuenciales (inobase -> main -> inofin), con cierre garantizado
+por DELETE /test-control/runs/{run_id} incluso ante fallos.
+No imprime ni persiste credenciales ni tokens JWT.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+import requests
+from dotenv import dotenv_values
+
+ZONA_USUARIO = timezone(timedelta(hours=-5))
+NOMBRE_ZONA = "America/Bogota"
+TIMEOUT_S = 30
+ACTIVOS_PROHIBIDOS = {930, 900, 901, 825}
+
+
+def _repo_root() -> Path:
+    cur = Path(__file__).resolve().parent
+    while cur != cur.parent:
+        if (cur / ".env.test").exists():
+            return cur
+        cur = cur.parent
+    raise FileNotFoundError("No se encontro .env.test")
+
+
+def _cargar_env(repo: Path) -> dict[str, str]:
+    env_path = repo / ".env.test"
+    raw = dotenv_values(env_path)
+    return {k: str(v) for k, v in raw.items() if v is not None}
+
+
+def _secretos(env: dict[str, str]) -> list[str]:
+    vals: list[str] = []
+    for k, v in env.items():
+        ku = k.upper()
+        if any(p in ku for p in ("PASS", "CLAVE", "SECRET", "EMAIL")) and v:
+            vals.append(v)
+            if len(v) >= 20:
+                vals.append(v[-20:])
+    return vals
+
+
+def sanitizar(obj: Any, extra: tuple[str, ...], secrets: list[str]) -> Any:
+    if isinstance(obj, dict):
+        return {
+            k: (
+                "***REDACTED***"
+                if k.lower() in ("contrasena", "password", "token", "access_token", "authorization")
+                else sanitizar(v, extra, secrets)
+            )
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [sanitizar(x, extra, secrets) for x in obj]
+    if isinstance(obj, str):
+        txt = obj
+        for s in [*secrets, *extra]:
+            if s and len(s) > 3:
+                txt = txt.replace(s, "***REDACTED***")
+        jwt_prefix = "ey" + "J"
+        if jwt_prefix in txt:
+            txt = re.sub(jwt_prefix + r"[a-zA-Z0-9_\-\.]+", "***REDACTED_JWT***", txt)
+        return txt
+    return obj
+
+
+class SandboxClient:
+    def __init__(self, prefix: str, env: dict[str, str]) -> None:
+        self.run_id = f"{prefix}-{uuid.uuid4().hex[:8]}"
+        self.base_url = env["TEST_BASE_URL"].rstrip("/")
+        self.sandbox_secret = env["TEST_SANDBOX_SECRET"]
+        self.secrets = _secretos(env)
+        self.token: str | None = None
+        self.logged_in = False
+        self.closed = False
+        self.session = requests.Session()
+        self.session.headers.update({
+            "X-Test-Run-Id": self.run_id,
+            "X-Sandbox-Secret": self.sandbox_secret,
+            "X-Zona-Horaria": NOMBRE_ZONA,
+        })
+
+    def _safe(self, obj: Any) -> Any:
+        extra = (self.token,) if self.token else ()
+        return sanitizar(obj, extra, self.secrets)
+
+    def req(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        json_body: Any = None,
+        with_auth: bool = True,
+    ) -> dict[str, Any]:
+        headers: dict[str, str] = {}
+        if with_auth and self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        t0 = time.perf_counter()
+        resp = self.session.request(
+            method,
+            f"{self.base_url}{path}",
+            params=params,
+            json=json_body,
+            headers=headers,
+            timeout=TIMEOUT_S,
+        )
+        elapsed = round(time.perf_counter() - t0, 3)
+        try:
+            body = resp.json()
+        except Exception:
+            body = resp.text[:400]
+        return {
+            "method": method,
+            "path": path,
+            "status_code": resp.status_code,
+            "x_request_id": resp.headers.get("X-Request-Id"),
+            "elapsed_s": elapsed,
+            "body": self._safe(body),
+            "raw_body": body if resp.status_code < 300 and path != "/sesiones/" else None,
+        }
+
+    def login_admin(self, env: dict[str, str]) -> dict[str, Any]:
+        assert not self.logged_in, "Solo un login por run_id"
+        self.logged_in = True
+        r = self.session.post(
+            f"{self.base_url}/sesiones/",
+            json={
+                "correo_electronico": env["TEST_ADMIN_EMAIL"],
+                "contrasena": env["TEST_ADMIN_PASSWORD"],
+            },
+            timeout=TIMEOUT_S,
+        )
+        data = r.json()
+        assert r.status_code == 200, f"Login fallo: HTTP {r.status_code}"
+        tok = data.get("token") or data.get("access_token")
+        assert tok, "Login sin token"
+        self.token = tok
+        return {
+            "status_code": r.status_code,
+            "x_request_id": r.headers.get("X-Request-Id"),
+        }
+
+    def close(self) -> dict[str, Any]:
+        if self.closed:
+            return {"already_closed": True}
+        self.closed = True
+        try:
+            r = self.session.delete(
+                f"{self.base_url}/test-control/runs/{self.run_id}",
+                timeout=TIMEOUT_S,
+            )
+            try:
+                body = self._safe(r.json())
+            except Exception:
+                body = self._safe(r.text[:300])
+            return {
+                "run_id": self.run_id,
+                "status_code": r.status_code,
+                "x_request_id": r.headers.get("X-Request-Id"),
+                "body": body,
+            }
+        finally:
+            self.session.close()
+
+
+def snap_auditoria(cli: SandboxClient) -> dict[str, Any]:
+    r1 = cli.req("GET", "/suministros/auditoria", params={"pagina": 1, "registros_por_pagina": 1})
+    r5 = cli.req("GET", "/suministros/auditoria", params={"pagina": 1, "registros_por_pagina": 5})
+    assert r1["status_code"] == 200 and r5["status_code"] == 200, f"Error snapshot: {r1}"
+    b1 = r1["raw_body"]
+    b5 = r5["raw_body"]
+    items1 = b1.get("items") or []
+    ultimo_id = items1[0]["id_auditoria_suministro"] if items1 else 0
+    return {
+        "total": b1["total"],
+        "total_rpp5": b5["total"],
+        "rpp5_len": len(b5.get("items") or []),
+        "ultimo_id": ultimo_id,
+        "x_request_id": r1["x_request_id"],
+    }
+
+
+def eventos_nuevos(cli: SandboxClient, ultimo_id_previo: int, limite: int = 20) -> list[dict[str, Any]]:
+    r = cli.req("GET", "/suministros/auditoria", params={"pagina": 1, "registros_por_pagina": limite})
+    assert r["status_code"] == 200, f"Error listando auditoria: {r}"
+    items = r["raw_body"].get("items") or []
+    nuevos = [it for it in items if int(it["id_auditoria_suministro"]) > ultimo_id_previo]
+    nuevos.sort(key=lambda x: x["id_auditoria_suministro"])
+    return nuevos
+
+
+def run_inobase(env: dict[str, str]) -> dict[str, Any]:
+    cli = SandboxClient("tc-m05-g37-inobase", env)
+    try:
+        login = cli.login_admin(env)
+        health = cli.req("GET", "/health")
+        snap = snap_auditoria(cli)
+    finally:
+        teardown = cli.close()
+    assert teardown["status_code"] == 200, f"Rollback base fallo: {teardown}"
+    return {"run_id": cli.run_id, "login": login, "health": health, "snapshot": snap, "teardown": teardown}
+
+
+def run_principal(env: dict[str, str]) -> dict[str, Any]:
+    cli = SandboxClient("tc-m05-g37-f1-main", env)
+    out: dict[str, Any] = {"run_id": cli.run_id}
+    try:
+        out["login"] = cli.login_admin(env)
+        hoy = datetime.now(ZONA_USUARIO).date()
+        hoy_str = hoy.isoformat()
+        fecha_ciclo = (hoy - timedelta(days=15)).isoformat()
+
+        # Crear activo POBLACIONAL sin fase abierta
+        r_act = cli.req(
+            "POST",
+            "/activos-biologicos",
+            json_body={
+                "tipo_activo": "POBLACIONAL",
+                "id_especie": 1,
+                "id_infraestructura": 2,
+                "identificador_unico": f"QA-G37-F1-{uuid.uuid4().hex[:8]}",
+                "cantidad_inicial": 60,
+                "fecha_ingreso": fecha_ciclo,
+                "fecha_inicio_ciclo": fecha_ciclo,
+                "origen_financiero": "nacimiento",
+                "peso_actual": 22.0,
+            },
+        )
+        assert r_act["status_code"] == 201, f"Fallo crear activo: {r_act}"
+        id_activo = r_act["raw_body"]["id_activo_biologico"]
+        assert id_activo not in ACTIVOS_PROHIBIDOS, f"Activo prohibido generado: {id_activo}"
+        out["activo_creado"] = {
+            "id_activo_biologico": id_activo,
+            "status_code": r_act["status_code"],
+            "x_request_id": r_act["x_request_id"],
+        }
+
+        # 3a) Rechazo sin fase abierta
+        snap_before_3a = snap_auditoria(cli)
+        uuid_3a = str(uuid.uuid4())
+        payload_3a = {
+            "id_activo_biologico": id_activo,
+            "tipo_suministro": "SERVICIO_VETERINARIO",
+            "cantidad": 1.0,
+            "unidad_medida": "servicio",
+            "precio_unitario": 40000.0,
+            "fecha_aplicacion": hoy_str,
+            "justificacion_precio": "Tarifa estandar vigente para validacion de rechazo",
+            "id_idempotencia": uuid_3a,
+        }
+        t0 = time.perf_counter()
+        r_3a = cli.req("POST", "/suministros/costeo-directo", json_body=payload_3a)
+
+        # 3b) Poll 0, 1, 2 s y capturar eventos
+        poll_samples = []
+        evs_3a: list[dict[str, Any]] = []
+        for idx in range(3):
+            if idx > 0:
+                time.sleep(1.0)
+            lat = round(time.perf_counter() - t0, 3)
+            r_list = cli.req("GET", "/suministros/auditoria", params={"pagina": 1, "registros_por_pagina": 20})
+            items_list = (r_list["raw_body"] or {}).get("items") or []
+            nuevos = [it for it in items_list if int(it["id_auditoria_suministro"]) > snap_before_3a["ultimo_id"]]
+            nuevos.sort(key=lambda x: x["id_auditoria_suministro"])
+            poll_samples.append({
+                "segundo": idx,
+                "latencia_cliente_s": lat,
+                "total": (r_list["raw_body"] or {}).get("total"),
+                "nuevos_ids": [x["id_auditoria_suministro"] for x in nuevos],
+                "x_request_id": r_list["x_request_id"],
+            })
+            if idx == 0 or not evs_3a:
+                evs_3a = nuevos
+
+        snap_after_3a = snap_auditoria(cli)
+        out["paso_3a"] = {
+            "snap_before": snap_before_3a,
+            "uuid_solicitud": uuid_3a,
+            "response": {
+                "status_code": r_3a["status_code"],
+                "x_request_id": r_3a["x_request_id"],
+                "elapsed_s": r_3a["elapsed_s"],
+                "body": r_3a["body"],
+            },
+            "snap_after": snap_after_3a,
+        }
+        out["paso_3b"] = {
+            "polls": poll_samples,
+            "eventos_nuevos": cli._safe(evs_3a),
+        }
+
+        evs_rechazo = [e for e in evs_3a if e.get("resultado") in ("RECHAZADO", "FALLIDO")]
+        if not evs_rechazo:
+            out["gate_ok"] = False
+            out["gate_msg"] = (
+                f"corrección no desplegada en TEST (total_antes={snap_before_3a['total']}, "
+                f"total_despues={snap_after_3a['total']}, X-Request-Id_3a={r_3a['x_request_id']})"
+            )
+            return out
+
+        out["gate_ok"] = True
+        ev_r = evs_rechazo[0]
+        id_ev = ev_r["id_auditoria_suministro"]
+
+        # 3c) Detalle /{id} vs lista, filtros y /test-control/query
+        r_det = cli.req("GET", f"/suministros/auditoria/{id_ev}")
+        det_body = r_det["raw_body"] or {}
+        diffs_det = {
+            k: {"lista": ev_r.get(k), "detalle": det_body.get(k)}
+            for k in set(ev_r.keys()) | set(det_body.keys())
+            if ev_r.get(k) != det_body.get(k)
+        }
+
+        now_utc = datetime.now(timezone.utc)
+        fecha_desde = (now_utc - timedelta(minutes=10)).isoformat()
+        fecha_hasta = (now_utc + timedelta(minutes=10)).isoformat()
+        filtros_tests = {
+            "por_activo": {"id_activo_biologico": id_activo},
+            "por_tipo": {"tipo_operacion": ev_r["tipo_operacion"]},
+            "por_resultado": {"resultado": ev_r["resultado"]},
+            "por_clasificacion": {"clasificacion_registro": ev_r["clasificacion_registro"]},
+            "por_fechas": {"fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta},
+            "combinado": {
+                "id_activo_biologico": id_activo,
+                "tipo_operacion": ev_r["tipo_operacion"],
+                "resultado": ev_r["resultado"],
+                "fecha_desde": fecha_desde,
+                "fecha_hasta": fecha_hasta,
+            },
+        }
+        filtros_res = {}
+        for fname, fparams in filtros_tests.items():
+            rf = cli.req("GET", "/suministros/auditoria", params={**fparams, "registros_por_pagina": 20})
+            ids_f = [x["id_auditoria_suministro"] for x in ((rf["raw_body"] or {}).get("items") or [])]
+            filtros_res[fname] = {
+                "status_code": rf["status_code"],
+                "x_request_id": rf["x_request_id"],
+                "total": (rf["raw_body"] or {}).get("total"),
+                "encontrado": id_ev in ids_f,
+            }
+
+        sql_q = (
+            "SELECT id_auditoria_suministro, tipo_operacion, resultado, "
+            "clasificacion_registro, retencion_aplicable, registro_incompleto "
+            f"FROM modulo5.auditorias_suministros WHERE id_auditoria_suministro = {id_ev}"
+        )
+        r_tcq = cli.req("POST", "/test-control/query", json_body={"query": sql_q})
+        out["paso_3c"] = {
+            "detalle": {
+                "status_code": r_det["status_code"],
+                "x_request_id": r_det["x_request_id"],
+                "diffs_lista_vs_detalle": cli._safe(diffs_det),
+            },
+            "filtros": filtros_res,
+            "test_control_query": {
+                "sql": sql_q,
+                "status_code": r_tcq["status_code"],
+                "x_request_id": r_tcq["x_request_id"],
+                "body": r_tcq["body"],
+            },
+        }
+
+        # 3d) Sin efectos parciales tras el rechazo
+        r_acum_3d = cli.req("GET", f"/suministros/costeo-directo/acumulado/activo/{id_activo}")
+        snap_before_hist_3d = snap_auditoria(cli)
+        r_hist_3d = cli.req("GET", "/suministros/historial", params={"id_activo_biologico": id_activo})
+        snap_after_hist_3d = snap_auditoria(cli)
+        out["paso_3d"] = {
+            "acumulado_activo": {
+                "status_code": r_acum_3d["status_code"],
+                "x_request_id": r_acum_3d["x_request_id"],
+                "body": r_acum_3d["body"],
+            },
+            "historial_activo": {
+                "status_code": r_hist_3d["status_code"],
+                "x_request_id": r_hist_3d["x_request_id"],
+                "items_count": len((r_hist_3d["raw_body"] or {}).get("items") or []),
+                "resumen": (r_hist_3d["raw_body"] or {}).get("resumen"),
+            },
+            "auditoria_por_consulta_3d": {
+                "before": snap_before_hist_3d,
+                "after": snap_after_hist_3d,
+            },
+            "outbox": "no observable por la API",
+        }
+
+        # 3e) Repetir exactamente el mismo rechazo con nuevo id_idempotencia
+        snap_before_3e = snap_auditoria(cli)
+        uuid_3e = str(uuid.uuid4())
+        payload_3e = {**payload_3a, "id_idempotencia": uuid_3e}
+        r_3e = cli.req("POST", "/suministros/costeo-directo", json_body=payload_3e)
+        evs_3e = eventos_nuevos(cli, snap_before_3e["ultimo_id"])
+        snap_after_3e = snap_auditoria(cli)
+        out["paso_3e"] = {
+            "uuid_solicitud": uuid_3e,
+            "snap_before": snap_before_3e,
+            "response": {
+                "status_code": r_3e["status_code"],
+                "x_request_id": r_3e["x_request_id"],
+                "body": r_3e["body"],
+            },
+            "nuevos_eventos_count": len(evs_3e),
+            "nuevos_eventos": cli._safe(evs_3e),
+            "snap_after": snap_after_3e,
+        }
+
+        # 3f Part 1) Abrir fase, registro valido RF-78 y consulta historial RF-81
+        r_fase = cli.req(
+            "POST",
+            f"/activos-biologicos/{id_activo}/fases",
+            json_body={"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase QA G37 F1"},
+        )
+        assert r_fase["status_code"] in (200, 201), f"Fallo apertura fase: {r_fase}"
+        id_fase = r_fase["raw_body"]["id_gestion_fases"]
+
+        snap_before_rf78 = snap_auditoria(cli)
+        r_rf78 = cli.req(
+            "POST",
+            "/suministros/costeo-directo",
+            json_body={**payload_3a, "id_idempotencia": str(uuid.uuid4())},
+        )
+        assert r_rf78["status_code"] == 200, f"Fallo RF-78 positivo: {r_rf78}"
+        evs_rf78 = eventos_nuevos(cli, snap_before_rf78["ultimo_id"])
+        snap_after_rf78 = snap_auditoria(cli)
+
+        snap_before_rf81 = snap_auditoria(cli)
+        r_rf81 = cli.req("GET", "/suministros/historial", params={"id_activo_biologico": id_activo})
+        assert r_rf81["status_code"] == 200, f"Fallo RF-81 positivo: {r_rf81}"
+        evs_rf81 = eventos_nuevos(cli, snap_before_rf81["ultimo_id"])
+        snap_after_rf81 = snap_auditoria(cli)
+
+        # 3g) Payload invalido (422 negocio y 400/422 esquema) antes de cerrar ciclo
+        snap_before_3g1 = snap_auditoria(cli)
+        r_3g_neg = cli.req(
+            "POST",
+            "/suministros/costeo-directo",
+            json_body={**payload_3a, "cantidad": -1, "id_idempotencia": str(uuid.uuid4())},
+        )
+        evs_3g_neg = eventos_nuevos(cli, snap_before_3g1["ultimo_id"])
+        snap_after_3g1 = snap_auditoria(cli)
+
+        snap_before_3g2 = snap_auditoria(cli)
+        r_3g_pyd = cli.req(
+            "POST",
+            "/suministros/costeo-directo",
+            json_body={"id_activo_biologico": id_activo, "tipo_suministro": "", "id_idempotencia": "no-uuid"},
+        )
+        evs_3g_pyd = eventos_nuevos(cli, snap_before_3g2["ultimo_id"])
+        snap_after_3g2 = snap_auditoria(cli)
+
+        out["paso_3g"] = {
+            "negocio_cantidad_negativa": {
+                "snap_before": snap_before_3g1,
+                "status_code": r_3g_neg["status_code"],
+                "x_request_id": r_3g_neg["x_request_id"],
+                "body": r_3g_neg["body"],
+                "nuevos_eventos_count": len(evs_3g_neg),
+                "nuevos_eventos": cli._safe(evs_3g_neg),
+                "snap_after": snap_after_3g1,
+            },
+            "esquema_invalido": {
+                "snap_before": snap_before_3g2,
+                "status_code": r_3g_pyd["status_code"],
+                "x_request_id": r_3g_pyd["x_request_id"],
+                "body": r_3g_pyd["body"],
+                "nuevos_eventos_count": len(evs_3g_pyd),
+                "nuevos_eventos": cli._safe(evs_3g_pyd),
+                "snap_after": snap_after_3g2,
+            },
+        }
+
+        # 3h Part 1) Rechazos de negocio RF-81 y RF-79 (ciclo activo)
+        snap_b_rf81_f = snap_auditoria(cli)
+        r_rf81_filtros = cli.req(
+            "GET",
+            "/suministros/historial",
+            params={
+                "id_activo_biologico": id_activo,
+                "fecha_inicio_filtro": hoy_str,
+                "fecha_fin_filtro": (hoy - timedelta(days=5)).isoformat(),
+            },
+        )
+        evs_rf81_f = eventos_nuevos(cli, snap_b_rf81_f["ultimo_id"])
+
+        snap_b_rf81_404 = snap_auditoria(cli)
+        r_rf81_404 = cli.req("GET", "/suministros/historial", params={"id_activo_biologico": 999999999})
+        evs_rf81_404 = eventos_nuevos(cli, snap_b_rf81_404["ultimo_id"])
+
+        snap_b_rf79_act = snap_auditoria(cli)
+        r_rf79_act = cli.req("POST", f"/suministros/nic41/ciclo/{id_fase}/consolidar")
+        evs_rf79_act = eventos_nuevos(cli, snap_b_rf79_act["ultimo_id"])
+
+        # 3f Part 2) Cierre de ciclo (RF-79 consolidacion) y consulta versiones
+        snap_before_cierre = snap_auditoria(cli)
+        r_cierre = cli.req(
+            "POST",
+            f"/activos-biologicos/{id_activo}/cierre",
+            json_body={
+                "fecha_cierre": hoy_str,
+                "motivo_cierre": "finalizacion_lote",
+                "descripcion_cierre": "Cierre QA G37 F1 para observar consolidacion NIC41",
+            },
+        )
+        assert r_cierre["status_code"] == 200, f"Fallo cierre activo: {r_cierre}"
+        evs_cierre = eventos_nuevos(cli, snap_before_cierre["ultimo_id"])
+        snap_after_cierre = snap_auditoria(cli)
+
+        r_vers = cli.req("GET", f"/suministros/nic41/ciclo/{id_fase}/versiones")
+        versiones = (r_vers["raw_body"] or {}).get("versiones") or []
+        id_provision = versiones[-1]["id_provision"] if versiones else None
+
+        # 3h Part 2) Rechazo RF-79 provision inexistente
+        snap_b_rf79_404 = snap_auditoria(cli)
+        r_rf79_404 = cli.req(
+            "POST",
+            "/suministros/nic41/999999999/correccion",
+            json_body={"motivo_correccion": "Motivo QA de rechazo por provision inexistente"},
+        )
+        evs_rf79_404 = eventos_nuevos(cli, snap_b_rf79_404["ultimo_id"])
+
+        def _resumen_evs(lista: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                {
+                    "id_auditoria_suministro": e.get("id_auditoria_suministro"),
+                    "tipo_operacion": e.get("tipo_operacion"),
+                    "resultado": e.get("resultado"),
+                    "clasificacion_registro": e.get("clasificacion_registro"),
+                    "retencion_aplicable": e.get("retencion_aplicable"),
+                    "registro_incompleto": e.get("registro_incompleto"),
+                    "detalle_causa": e.get("detalle_causa"),
+                }
+                for e in lista
+            ]
+
+        out["paso_3f"] = {
+            "id_gestion_fases": id_fase,
+            "id_registro_suministro": (r_rf78["raw_body"] or {}).get("registro", {}).get("id_registro_suministro"),
+            "id_provision": id_provision,
+            "rf78_positivo": {
+                "status_code": r_rf78["status_code"],
+                "x_request_id": r_rf78["x_request_id"],
+                "snap_before": snap_before_rf78,
+                "snap_after": snap_after_rf78,
+                "eventos": _resumen_evs(evs_rf78),
+            },
+            "rf81_positivo": {
+                "status_code": r_rf81["status_code"],
+                "x_request_id": r_rf81["x_request_id"],
+                "snap_before": snap_before_rf81,
+                "snap_after": snap_after_rf81,
+                "eventos": _resumen_evs(evs_rf81),
+            },
+            "rf79_cierre": {
+                "status_code": r_cierre["status_code"],
+                "x_request_id": r_cierre["x_request_id"],
+                "snap_before": snap_before_cierre,
+                "snap_after": snap_after_cierre,
+                "eventos": _resumen_evs(evs_cierre),
+            },
+        }
+        out["paso_3h"] = {
+            "rf81_filtros_invalidos": {
+                "status_code": r_rf81_filtros["status_code"],
+                "x_request_id": r_rf81_filtros["x_request_id"],
+                "body": r_rf81_filtros["body"],
+                "nuevos_eventos_count": len(evs_rf81_f),
+            },
+            "rf81_activo_inexistente": {
+                "status_code": r_rf81_404["status_code"],
+                "x_request_id": r_rf81_404["x_request_id"],
+                "body": r_rf81_404["body"],
+                "nuevos_eventos_count": len(evs_rf81_404),
+            },
+            "rf79_ciclo_activo": {
+                "status_code": r_rf79_act["status_code"],
+                "x_request_id": r_rf79_act["x_request_id"],
+                "body": r_rf79_act["body"],
+                "nuevos_eventos_count": len(evs_rf79_act),
+            },
+            "rf79_provision_inexistente": {
+                "status_code": r_rf79_404["status_code"],
+                "x_request_id": r_rf79_404["x_request_id"],
+                "body": r_rf79_404["body"],
+                "nuevos_eventos_count": len(evs_rf79_404),
+            },
+        }
+        return out
+    finally:
+        out["teardown"] = cli.close()
+
+
+def run_inofin(env: dict[str, str], id_activo: int, id_provision: int | None) -> dict[str, Any]:
+    cli = SandboxClient("tc-m05-g37-inofin", env)
+    try:
+        login = cli.login_admin(env)
+        snap = snap_auditoria(cli)
+        r_act = cli.req("GET", f"/activos-biologicos/{id_activo}")
+        r_acum = cli.req("GET", f"/suministros/costeo-directo/acumulado/activo/{id_activo}")
+        r_hist = cli.req("GET", "/suministros/historial", params={"id_activo_biologico": id_activo})
+        r_prov = cli.req("GET", f"/suministros/nic41/{id_provision}") if id_provision else None
+    finally:
+        teardown = cli.close()
+    assert teardown["status_code"] == 200, f"Rollback final fallo: {teardown}"
+    return {
+        "run_id": cli.run_id,
+        "login": login,
+        "snapshot": snap,
+        "checks_404": {
+            "activo": {"status_code": r_act["status_code"], "x_request_id": r_act["x_request_id"]},
+            "acumulado": {"status_code": r_acum["status_code"], "x_request_id": r_acum["x_request_id"]},
+            "historial": {"status_code": r_hist["status_code"], "x_request_id": r_hist["x_request_id"]},
+            "provision": (
+                {"status_code": r_prov["status_code"], "x_request_id": r_prov["x_request_id"]}
+                if r_prov is not None
+                else None
+            ),
+        },
+        "teardown": teardown,
+    }
+
+
+def main() -> None:
+    repo = _repo_root()
+    env = _cargar_env(repo)
+
+    res: dict[str, Any] = {}
+    res["inobase"] = run_inobase(env)
+    res["principal"] = run_principal(env)
+    assert res["principal"].get("teardown", {}).get("status_code") == 200, (
+        f"Teardown principal fallo: {res['principal'].get('teardown')}"
+    )
+
+    id_activo = (res["principal"].get("activo_creado") or {}).get("id_activo_biologico")
+    id_prov = (res["principal"].get("paso_3f") or {}).get("id_provision")
+    if id_activo is not None:
+        res["inofin"] = run_inofin(env, id_activo, id_prov)
+
+    out_dir = Path(__file__).resolve().parent
+    (out_dir / "obs_resultado.json").write_text(
+        json.dumps(res, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+ANEXO 2 - CONTENIDO INTEGRO DE obs_resultado.json
+================================================================================
+{
+  "inobase": {
+    "run_id": "tc-m05-g37-inobase-ad3a2aa5",
+    "login": {
+      "status_code": 200,
+      "x_request_id": "8ffc89b2-f37e-4eb2-aa72-7954d4b71f9e"
+    },
+    "health": {
+      "method": "GET",
+      "path": "/health",
+      "status_code": 200,
+      "x_request_id": "0d68e91f-718b-44fa-bf09-f4765fe49736",
+      "elapsed_s": 0.116,
+      "body": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      },
+      "raw_body": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    "snapshot": {
+      "total": 65983,
+      "total_rpp5": 65983,
+      "rpp5_len": 5,
+      "ultimo_id": 72166,
+      "x_request_id": "4cd40f6e-91dc-40a4-a197-31e22a954dc5"
+    },
+    "teardown": {
+      "run_id": "tc-m05-g37-inobase-ad3a2aa5",
+      "status_code": 200,
+      "x_request_id": "75979d8c-76e9-4830-9ae4-a4b82a26f4f3",
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  },
+  "principal": {
+    "run_id": "tc-m05-g37-f1-main-1326a80f",
+    "login": {
+      "status_code": 200,
+      "x_request_id": "e831488a-cd2b-4f5d-8707-ccee77da6505"
+    },
+    "activo_creado": {
+      "id_activo_biologico": 1847,
+      "status_code": 201,
+      "x_request_id": "1e4a560a-15e5-4a5c-a70b-eaebaf3beb29"
+    },
+    "paso_3a": {
+      "snap_before": {
+        "total": 65983,
+        "total_rpp5": 65983,
+        "rpp5_len": 5,
+        "ultimo_id": 72166,
+        "x_request_id": "ea9a200a-4e31-4f10-8ff5-961f5bcd099d"
+      },
+      "uuid_solicitud": "08ddd939-524d-414a-bfe0-05cdb45f489e",
+      "response": {
+        "status_code": 409,
+        "x_request_id": "36345959-0ee0-457e-bf77-f1beb71d5fda",
+        "elapsed_s": 0.143,
+        "body": {
+          "error_code": "CICLO_NO_ACTIVO",
+          "message": "No existe un ciclo productivo activo para el activo 1847. Verifique el estado del ciclo en Activos biológicos antes de registrar suministros.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:21.328805+00:00"
+        }
+      },
+      "snap_after": {
+        "total": 65984,
+        "total_rpp5": 65984,
+        "rpp5_len": 5,
+        "ultimo_id": 72171,
+        "x_request_id": "54e237ef-6ef7-43a3-96a6-70acf29dab08"
+      }
+    },
+    "paso_3b": {
+      "polls": [
+        {
+          "segundo": 0,
+          "latencia_cliente_s": 0.143,
+          "total": 65984,
+          "nuevos_ids": [
+            72171
+          ],
+          "x_request_id": "50cc1b4e-547c-4f23-99bb-d19091b93f8d"
+        },
+        {
+          "segundo": 1,
+          "latencia_cliente_s": 1.45,
+          "total": 65984,
+          "nuevos_ids": [
+            72171
+          ],
+          "x_request_id": "aad4fe85-e6a4-4151-a2ac-78ad34b857a0"
+        },
+        {
+          "segundo": 2,
+          "latencia_cliente_s": 2.773,
+          "total": 65984,
+          "nuevos_ids": [
+            72171
+          ],
+          "x_request_id": "18f49bf0-a25b-4c37-856e-ab41128496d2"
+        }
+      ],
+      "eventos_nuevos": [
+        {
+          "id_auditoria_suministro": 72171,
+          "id_evento_m05": "e325dc7c-e658-428c-be3c-76f94f72c372",
+          "version_hash_integridad": 2,
+          "entidad_afectada": "registro_suministro",
+          "tipo_operacion": "REGISTRO_FALLIDO",
+          "id_usuario": 104,
+          "resultado": "RECHAZADO",
+          "fecha_evento": "2026-11-12T01:31:20.269705Z",
+          "datos_anteriores": null,
+          "datos_nuevos": null,
+          "ip_origen": null,
+          "id_sesion": null,
+          "fecha_emision": "2026-11-12T01:31:21.322659Z",
+          "id_activo_biologico": 1847,
+          "id_ciclo_productivo": null,
+          "costo_afectado": null,
+          "origen_precio": null,
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": "1 año",
+          "hash_integridad": "7fa9743e43c8a6020bd59e5db631be50d34b4aca9132ee73ffc3268b67bbb74f",
+          "registro_incompleto": true,
+          "detalle_causa": "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1847. Solicitud: 08ddd939-524d-414a-bfe0-05cdb45f489e. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.",
+          "numero_reintentos": 0,
+          "fecha_intentos": null,
+          "id_gestion_fases": null
+        }
+      ]
+    },
+    "gate_ok": true,
+    "paso_3c": {
+      "detalle": {
+        "status_code": 200,
+        "x_request_id": "5df619dd-1907-42cc-a25c-23411ebab673",
+        "diffs_lista_vs_detalle": {}
+      },
+      "filtros": {
+        "por_activo": {
+          "status_code": 200,
+          "x_request_id": "75c37e9d-b755-4c01-bec3-b87ddaecb6ac",
+          "total": 1,
+          "encontrado": true
+        },
+        "por_tipo": {
+          "status_code": 200,
+          "x_request_id": "b77ffd5e-abf4-4906-b137-6c35999655ec",
+          "total": 1,
+          "encontrado": true
+        },
+        "por_resultado": {
+          "status_code": 200,
+          "x_request_id": "9a08a4e9-8c45-4bf0-87c3-9b29c6469766",
+          "total": 1,
+          "encontrado": true
+        },
+        "por_clasificacion": {
+          "status_code": 200,
+          "x_request_id": "59b20ae6-284b-4865-a225-bc0b361a7f16",
+          "total": 974,
+          "encontrado": true
+        },
+        "por_fechas": {
+          "status_code": 200,
+          "x_request_id": "facf88b3-3777-4b4e-b423-e5e24526128a",
+          "total": 1,
+          "encontrado": true
+        },
+        "combinado": {
+          "status_code": 200,
+          "x_request_id": "09bf0d2b-7311-4edb-86fb-d8c9f118a8c7",
+          "total": 1,
+          "encontrado": true
+        }
+      },
+      "test_control_query": {
+        "sql": "SELECT id_auditoria_suministro, tipo_operacion, resultado, clasificacion_registro, retencion_aplicable, registro_incompleto FROM modulo5.auditorias_suministros WHERE id_auditoria_suministro = 72171",
+        "status_code": 200,
+        "x_request_id": "928c594f-e9b9-4d62-bd6b-510b3ed6ec16",
+        "body": {
+          "data": []
+        }
+      }
+    },
+    "paso_3d": {
+      "acumulado_activo": {
+        "status_code": 404,
+        "x_request_id": "666e763d-5656-45aa-af8c-4a833c4ede71",
+        "body": {
+          "error_code": "CICLO_NO_ACTIVO",
+          "message": "El activo no tiene un ciclo productivo activo.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:26.253831+00:00"
+        }
+      },
+      "historial_activo": {
+        "status_code": 200,
+        "x_request_id": "aa28758f-f0e8-45f6-adb0-f88b99e8d8f7",
+        "items_count": 0,
+        "resumen": {
+          "total_registros_filtrados": 0,
+          "monto_total_filtrado": "0",
+          "desglose_por_tipo_suministro": {},
+          "desglose_por_ciclo": {},
+          "pagina_actual": 1,
+          "total_paginas": 1,
+          "datos_contexto_no_disponibles": false,
+          "datos_actualizados_hasta": "2026-11-12T01:31:26.815508Z",
+          "nivel_volumen": 1,
+          "mensaje": "No se encontraron registros de suministros con los filtros aplicados para el activo 1847."
+        }
+      },
+      "auditoria_por_consulta_3d": {
+        "before": {
+          "total": 65984,
+          "total_rpp5": 65984,
+          "rpp5_len": 5,
+          "ultimo_id": 72171,
+          "x_request_id": "ec8a23d9-da24-4c85-8cfa-dcda8c7c338a"
+        },
+        "after": {
+          "total": 65985,
+          "total_rpp5": 65985,
+          "rpp5_len": 5,
+          "ultimo_id": 72172,
+          "x_request_id": "37e64f07-8e14-49b1-9871-882df3112dbf"
+        }
+      },
+      "outbox": "no observable por la API"
+    },
+    "paso_3e": {
+      "uuid_solicitud": "faf0a4b2-5b0e-491a-80b6-9d3d4edec486",
+      "snap_before": {
+        "total": 65985,
+        "total_rpp5": 65985,
+        "rpp5_len": 5,
+        "ultimo_id": 72172,
+        "x_request_id": "b491d6e0-7519-4d9b-b9e4-d6bde21b360c"
+      },
+      "response": {
+        "status_code": 409,
+        "x_request_id": "b4666954-aadb-4f37-83a4-a678affbb31f",
+        "body": {
+          "error_code": "CICLO_NO_ACTIVO",
+          "message": "No existe un ciclo productivo activo para el activo 1847. Verifique el estado del ciclo en Activos biológicos antes de registrar suministros.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:27.788901+00:00"
+        }
+      },
+      "nuevos_eventos_count": 1,
+      "nuevos_eventos": [
+        {
+          "id_auditoria_suministro": 72173,
+          "id_evento_m05": "2a082b15-a8ce-4766-9530-ad7415a43054",
+          "version_hash_integridad": 2,
+          "entidad_afectada": "registro_suministro",
+          "tipo_operacion": "REGISTRO_FALLIDO",
+          "id_usuario": 104,
+          "resultado": "RECHAZADO",
+          "fecha_evento": "2026-11-12T01:31:20.269705Z",
+          "datos_anteriores": null,
+          "datos_nuevos": null,
+          "ip_origen": null,
+          "id_sesion": null,
+          "fecha_emision": "2026-11-12T01:31:27.784941Z",
+          "id_activo_biologico": 1847,
+          "id_ciclo_productivo": null,
+          "costo_afectado": null,
+          "origen_precio": null,
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": "1 año",
+          "hash_integridad": "c1a364072948ec0c684ccb4b19a95d18682adf1d21277efedd58851d13e4b165",
+          "registro_incompleto": true,
+          "detalle_causa": "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1847. Solicitud: faf0a4b2-5b0e-491a-80b6-9d3d4edec486. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.",
+          "numero_reintentos": 0,
+          "fecha_intentos": null,
+          "id_gestion_fases": null
+        }
+      ],
+      "snap_after": {
+        "total": 65986,
+        "total_rpp5": 65986,
+        "rpp5_len": 5,
+        "ultimo_id": 72173,
+        "x_request_id": "016505a2-12f8-43cf-b971-6bd6475843e4"
+      }
+    },
+    "paso_3g": {
+      "negocio_cantidad_negativa": {
+        "snap_before": {
+          "total": 65990,
+          "total_rpp5": 65990,
+          "rpp5_len": 5,
+          "ultimo_id": 72177,
+          "x_request_id": "ed74a8c4-3a0b-4b28-a781-9748a8a04208"
+        },
+        "status_code": 422,
+        "x_request_id": "e722daa1-c2d3-4064-b71a-3d27dcbb0c8a",
+        "body": {
+          "error_code": "COSTO_REGISTRO_INVALIDO",
+          "message": "El costo del registro (cantidad × precio unitario) debe ser mayor a cero. Cantidad: -1.0000, precio unitario: 40000.00.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:31.467462+00:00"
+        },
+        "nuevos_eventos_count": 1,
+        "nuevos_eventos": [
+          {
+            "id_auditoria_suministro": 72178,
+            "id_evento_m05": "59715c2e-0509-4cf9-88a0-82e210f6da7a",
+            "version_hash_integridad": 2,
+            "entidad_afectada": "registro_suministro",
+            "tipo_operacion": "REGISTRO_FALLIDO",
+            "id_usuario": 104,
+            "resultado": "RECHAZADO",
+            "fecha_evento": "2026-11-12T01:31:20.269705Z",
+            "datos_anteriores": null,
+            "datos_nuevos": null,
+            "ip_origen": null,
+            "id_sesion": null,
+            "fecha_emision": "2026-11-12T01:31:31.463597Z",
+            "id_activo_biologico": 1847,
+            "id_ciclo_productivo": 1,
+            "costo_afectado": null,
+            "origen_precio": null,
+            "clasificacion_registro": "TECNICO",
+            "retencion_aplicable": "1 año",
+            "hash_integridad": "2a4f5b37957ee5821d5c929bda4aec2a74c05857362a7a81097f49204657962f",
+            "registro_incompleto": false,
+            "detalle_causa": "Registro de suministro rechazado: La cantidad y el precio deben producir un costo mayor que cero. Activo solicitado: 1847. Solicitud: b93f71d2-6e9c-4862-8f47-7dda702c599c.",
+            "numero_reintentos": 0,
+            "fecha_intentos": null,
+            "id_gestion_fases": 832
+          }
+        ],
+        "snap_after": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "2b4fd935-d150-41da-947e-8d728ee51496"
+        }
+      },
+      "esquema_invalido": {
+        "snap_before": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "2eb096c7-5b40-4678-8f24-da69d2be4b7b"
+        },
+        "status_code": 400,
+        "x_request_id": "7dba7fd8-2ff3-437c-90cf-ed26199cc31f",
+        "body": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "tipo_suministro",
+              "message": "String should have at least 1 character"
+            },
+            {
+              "field": "id_idempotencia",
+              "message": "Input should be a valid UUID, invalid character: found `n` at 1"
+            }
+          ],
+          "timestamp": "2026-11-12T01:31:32.697658+00:00"
+        },
+        "nuevos_eventos_count": 0,
+        "nuevos_eventos": [],
+        "snap_after": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "e57e7dd3-5018-4676-ac3f-c2510a71bf2a"
+        }
+      }
+    },
+    "paso_3f": {
+      "id_gestion_fases": 832,
+      "id_registro_suministro": "c901288a-8e92-42f4-9362-eee5afb3dabd",
+      "id_provision": 18,
+      "rf78_positivo": {
+        "status_code": 200,
+        "x_request_id": "59a2b12e-f000-4e67-a5a0-bbc1a3b260fd",
+        "snap_before": {
+          "total": 65986,
+          "total_rpp5": 65986,
+          "rpp5_len": 5,
+          "ultimo_id": 72173,
+          "x_request_id": "25365cc1-a688-422f-bdad-776aef6625ad"
+        },
+        "snap_after": {
+          "total": 65989,
+          "total_rpp5": 65989,
+          "rpp5_len": 5,
+          "ultimo_id": 72176,
+          "x_request_id": "ad45857e-390b-4d9d-99b2-a7415c38a609"
+        },
+        "eventos": [
+          {
+            "id_auditoria_suministro": 72174,
+            "tipo_operacion": "SUMINISTRO_REGISTRADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72175,
+            "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "TECNICO",
+            "retencion_aplicable": "1 año",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72176,
+            "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          }
+        ]
+      },
+      "rf81_positivo": {
+        "status_code": 200,
+        "x_request_id": "577f34ea-e2b6-46f6-b639-6ef1c39f08cb",
+        "snap_before": {
+          "total": 65989,
+          "total_rpp5": 65989,
+          "rpp5_len": 5,
+          "ultimo_id": 72176,
+          "x_request_id": "c4251835-4266-4a00-8801-a8aa9665a8f4"
+        },
+        "snap_after": {
+          "total": 65990,
+          "total_rpp5": 65990,
+          "rpp5_len": 5,
+          "ultimo_id": 72177,
+          "x_request_id": "e50e74a5-92fa-4536-8d45-32613faf2a0b"
+        },
+        "eventos": [
+          {
+            "id_auditoria_suministro": 72177,
+            "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "TECNICO",
+            "retencion_aplicable": "1 año",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          }
+        ]
+      },
+      "rf79_cierre": {
+        "status_code": 200,
+        "x_request_id": "54567339-90ec-467e-9d36-a72063604e75",
+        "snap_before": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "12a6de80-26c2-4323-b85e-5b92b0e56580"
+        },
+        "snap_after": {
+          "total": 65994,
+          "total_rpp5": 65994,
+          "rpp5_len": 5,
+          "ultimo_id": 72181,
+          "x_request_id": "bd7115ed-bbec-4d3f-a0e1-46f6218d2e31"
+        },
+        "eventos": [
+          {
+            "id_auditoria_suministro": 72179,
+            "tipo_operacion": "INSERT",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72180,
+            "tipo_operacion": "CICLO_CONSOLIDADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72181,
+            "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          }
+        ]
+      }
+    },
+    "paso_3h": {
+      "rf81_filtros_invalidos": {
+        "status_code": 422,
+        "x_request_id": "d8ec01a2-9ab4-47fa-ade6-4565bd96f1d1",
+        "body": {
+          "error_code": "COMBINACION_FILTROS_INVALIDA",
+          "message": "Combinación de filtros inválida: fecha_fin_filtro (2026-11-06) es anterior a fecha_inicio_filtro (2026-11-11).",
+          "fields": [
+            {
+              "field": "fecha_fin_filtro",
+              "message": "Combinación de filtros inválida: fecha_fin_filtro (2026-11-06) es anterior a fecha_inicio_filtro (2026-11-11)."
+            }
+          ],
+          "timestamp": "2026-11-12T01:31:33.887309+00:00"
+        },
+        "nuevos_eventos_count": 0
+      },
+      "rf81_activo_inexistente": {
+        "status_code": 404,
+        "x_request_id": "450921f1-9b33-4987-8644-1ac92eaf3cec",
+        "body": {
+          "error_code": "ACTIVO_NO_ENCONTRADO",
+          "message": "El activo biológico 999999999 no existe.",
+          "fields": [
+            {
+              "field": "id_activo_biologico",
+              "message": "El activo biológico 999999999 no existe."
+            }
+          ],
+          "timestamp": "2026-11-12T01:31:34.694907+00:00"
+        },
+        "nuevos_eventos_count": 0
+      },
+      "rf79_ciclo_activo": {
+        "status_code": 409,
+        "x_request_id": "fd974719-17b7-4570-804b-3509561c8a28",
+        "body": {
+          "error_code": "CICLO_ACTIVO",
+          "message": "El ciclo 832 está activo. El reporte consolidado solo está disponible tras el cierre del ciclo productivo.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:35.580912+00:00"
+        },
+        "nuevos_eventos_count": 0
+      },
+      "rf79_provision_inexistente": {
+        "status_code": 404,
+        "x_request_id": "73d0cafe-f08c-454e-943a-ea387dfc04d9",
+        "body": {
+          "error_code": "PROVISION_NO_ENCONTRADA",
+          "message": "El reporte de provisión 999999999 no existe.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:38.089583+00:00"
+        },
+        "nuevos_eventos_count": 0
+      }
+    },
+    "teardown": {
+      "run_id": "tc-m05-g37-f1-main-1326a80f",
+      "status_code": 200,
+      "x_request_id": "6fc4ccbb-69b8-47d9-ae67-ccd7fee7a8e6",
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  },
+  "inofin": {
+    "run_id": "tc-m05-g37-inofin-29afcce2",
+    "login": {
+      "status_code": 200,
+      "x_request_id": "c98bdd87-9cf9-449a-8c2c-53d16193109c"
+    },
+    "snapshot": {
+      "total": 65983,
+      "total_rpp5": 65983,
+      "rpp5_len": 5,
+      "ultimo_id": 72166,
+      "x_request_id": "fba9c572-b62c-4d9e-8b40-26dad8e9e5f4"
+    },
+    "checks_404": {
+      "activo": {
+        "status_code": 404,
+        "x_request_id": "c4a05bf1-139c-4725-9263-f6ec1bf84a2e"
+      },
+      "acumulado": {
+        "status_code": 404,
+        "x_request_id": "bd6ee2ed-3100-4ed3-a0eb-cad71a9a6123"
+      },
+      "historial": {
+        "status_code": 404,
+        "x_request_id": "26323633-eba5-4808-afc5-893dec92ffec"
+      },
+      "provision": {
+        "status_code": 404,
+        "x_request_id": "150b74a0-6301-4207-92b7-ceb9c10d6961"
+      }
+    },
+    "teardown": {
+      "run_id": "tc-m05-g37-inofin-29afcce2",
+      "status_code": 200,
+      "x_request_id": "3a1e90a3-f2d8-42e2-bbbe-f698ab640349",
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  }
+}
