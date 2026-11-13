@@ -675,14 +675,14 @@
           }
         },
         {
-          "name": "TC-M05-014 - Productor: batch/estado -> 200",
+          "name": "TC-M05-014 - Productor: batch/estado -> 403",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M05-014 - Productor batch/estado: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M05-014 - Productor batch/estado: HTTP 403', () => pm.response.to.have.status(403));",
                   "console.log(pm.response.text().slice(0, 3000));"
                 ]
               }
@@ -700,14 +700,14 @@
           }
         },
         {
-          "name": "TC-M05-014 - Productor: batch/cola -> 200",
+          "name": "TC-M05-014 - Productor: batch/cola -> 403",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M05-014 - Productor batch/cola: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M05-014 - Productor batch/cola: HTTP 403', () => pm.response.to.have.status(403));",
                   "console.log(pm.response.text().slice(0, 3000));"
                 ]
               }
@@ -725,14 +725,14 @@
           }
         },
         {
-          "name": "TC-M05-014 - Productor: batch/fallos -> 200",
+          "name": "TC-M05-014 - Productor: batch/fallos -> 403",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M05-014 - Productor batch/fallos: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M05-014 - Productor batch/fallos: HTTP 403', () => pm.response.to.have.status(403));",
                   "console.log(pm.response.text().slice(0, 3000));"
                 ]
               }
@@ -1139,7 +1139,7 @@
           }
         },
         {
-          "name": "TC-M05-015d - Corrida 64 interrumpida a mano fuera del sandbox (2026-11-12)",
+          "name": "TC-M05-015d - Corrida 66 interrumpida a mano fuera del sandbox (2026-11-13)",
           "event": [
             {
               "listen": "test",
@@ -1147,11 +1147,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('TC-M05-015d - panel consultable (200)', () => pm.response.to.have.status(200));",
-                  "const r = (pm.response.code === 200 ? pm.response.json() : []).find(x => x.id_ejecucion === 64) || {};",
+                  "const r = (pm.response.code === 200 ? pm.response.json() : []).find(x => x.id_ejecucion === 66) || {};",
                   "console.log(JSON.stringify(r));",
-                  "pm.test('TC-M05-015d - la corrida 64 quedo INTERRUMPIDO con hora de corte', () => { pm.expect(r.estado).to.eql('INTERRUMPIDO'); pm.expect(r.hora_corte).to.be.a('string'); });",
+                  "pm.test('TC-M05-015d - la corrida 66 quedo INTERRUMPIDO con hora de corte', () => { pm.expect(r.estado).to.eql('INTERRUMPIDO'); pm.expect(r.hora_corte).to.be.a('string'); });",
                   "pm.test('TC-M05-015d - el batch se detuvo y conservo los pendientes (procesados ' + r.cantidad_activos_procesados + ' de ' + r.cantidad_activos_total + ')', () => { pm.expect(Number(r.cantidad_activos_procesados)).to.be.below(Number(r.cantidad_activos_total)); pm.expect(Number(r.cantidad_activos_pendientes)).to.eql(Number(r.cantidad_activos_total) - Number(r.cantidad_activos_procesados)); });",
-                  "pm.test('TC-M05-015d - causa_interrupcion = MANUAL (actual: ' + r.causa_interrupcion + ')', () => pm.expect(r.causa_interrupcion).to.eql('MANUAL'));"
+                  "pm.test('TC-M05-015d - causa_interrupcion = MANUAL (actual: ' + r.causa_interrupcion + ')', () => pm.expect(r.causa_interrupcion).to.eql('MANUAL'));",
+                  "pm.test('TC-M05-015d - el motivo del operador queda aparte (motivo_interrupcion: ' + r.motivo_interrupcion + ')', () => pm.expect(r.motivo_interrupcion).to.eql('QA TC-M05-015d interrupcion manual real'));"
                 ]
               }
             }
@@ -1168,7 +1169,7 @@
           }
         },
         {
-          "name": "TC-M05-015d - Usuario que interrumpio la corrida 64",
+          "name": "TC-M05-015d - Usuario que interrumpio la corrida 66",
           "event": [
             {
               "listen": "prerequest",
@@ -1219,7 +1220,7 @@
             "url": "{{base_url}}/test-control/query",
             "body": {
               "mode": "raw",
-              "raw": "{\"query\": \"SELECT id_usuario_interrupcion FROM modulo5.ejecuciones_batch_ica WHERE id_ejecucion = 64\"}",
+              "raw": "{\"query\": \"SELECT id_usuario_interrupcion FROM modulo5.ejecuciones_batch_ica WHERE id_ejecucion = 66\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1229,7 +1230,7 @@
           }
         },
         {
-          "name": "TC-M05-015d - Aviso de corrida interrumpida al Administrador (real, desde 2026-11-12 07:16 UTC)",
+          "name": "TC-M05-015d - Aviso de corrida interrumpida al Administrador (real, desde 2026-11-13 04:57 UTC)",
           "event": [
             {
               "listen": "test",
@@ -1237,9 +1238,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('TC-M05-015d - bandeja del Administrador (200)', () => pm.response.to.have.status(200));",
-                  "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-12T07:16');",
+                  "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-13T04:57');",
                   "console.log(JSON.stringify(it.map(n => n.mensaje)));",
-                  "pm.test('TC-M05-015d - el Administrador recibio el aviso de que el batch no completo su ejecucion', () => pm.expect(it.some(n => /no complet[oó] su ejecuci[oó]n|interrump/i.test(n.mensaje))).to.eql(true));"
+                  "pm.test('TC-M05-015d - el Administrador recibio el aviso de que el batch fue interrumpido manualmente', () => pm.expect(it.some(n => /interrumpido manualmente/i.test(n.mensaje))).to.eql(true));"
                 ]
               }
             }
@@ -1256,7 +1257,7 @@
           }
         },
         {
-          "name": "TC-M05-015d - Aviso de corrida interrumpida al Productor (real, desde 2026-11-12 07:16 UTC)",
+          "name": "TC-M05-015d - Aviso de corrida interrumpida al Productor (real, desde 2026-11-13 04:57 UTC)",
           "event": [
             {
               "listen": "test",
@@ -1264,9 +1265,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('TC-M05-015d - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
-                  "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-12T07:16');",
+                  "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-13T04:57');",
                   "console.log(JSON.stringify(it.map(n => n.mensaje)));",
-                  "pm.test('TC-M05-015d - el Productor recibio el aviso de que el batch no completo su ejecucion', () => pm.expect(it.some(n => /no complet[oó] su ejecuci[oó]n|interrump/i.test(n.mensaje))).to.eql(true));"
+                  "pm.test('TC-M05-015d - el Productor recibio el aviso de que el batch fue interrumpido manualmente', () => pm.expect(it.some(n => /interrumpido manualmente/i.test(n.mensaje))).to.eql(true));"
                 ]
               }
             }

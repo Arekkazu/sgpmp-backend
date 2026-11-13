@@ -11,6 +11,7 @@
 # | 2026-11-12 | Juan Manuel      | TC-M05 v4: consultas SQL con identidad de Administrador (RLS de modulo5) |
 # | 2026-11-12 | Juan Manuel      | TC-M05 v4: G34/G35 con consolidado propio (costos + cierre + correcciones) |
 # | 2026-11-12 | Juan Manuel      | TC-M05 v4: G30/G33 con la corrida real del 2026-11-12 (rafaga 2 y entrega a M06) |
+# | 2026-11-13 | Juan Manuel      | TC-M05-G05 v5 RF-74: Productor sin panel del batch (M5-08) y 015d sobre la corrida 66 |
 """Genera las colecciones Newman de M05 (RF-74, RF-75, RF-78 y RF-79; grupos G01 a G35).
 
 Uso (desde esta carpeta):  python construir_colecciones_rf74.py
@@ -811,9 +812,11 @@ def g05():
             panel("TC-M05-014", "Administrador", "tok_admin", "estado", 200, estado_extra),
             panel("TC-M05-014", "Administrador", "tok_admin", "cola", 200),
             panel("TC-M05-014", "Administrador", "tok_admin", "fallos", 200),
-            panel("TC-M05-014", "Productor", "tok_prod", "estado", 200),
-            panel("TC-M05-014", "Productor", "tok_prod", "cola", 200),
-            panel("TC-M05-014", "Productor", "tok_prod", "fallos", 200),
+            # v5: desde el reporte de usabilidad M5-08 (commit 18072f9c, migracion 603631775892) el Productor ya no tiene
+            # Leer ni Ejecutar sobre administracion_batch_ica; sigue consultando el ICA de sus activos.
+            panel("TC-M05-014", "Productor", "tok_prod", "estado", 403),
+            panel("TC-M05-014", "Productor", "tok_prod", "cola", 403),
+            panel("TC-M05-014", "Productor", "tok_prod", "fallos", 403),
             panel("TC-M05-014", "Veterinario", "tok_vet", "estado", 403),
             panel("TC-M05-014", "Veterinario", "tok_vet", "cola", 403),
             panel("TC-M05-014", "Veterinario", "tok_vet", "fallos", 403),
@@ -863,24 +866,25 @@ def g05():
                 "const it = pm.response.code === 200 ? (pm.response.json().items || []) : [];",
                 "pm.test('TC-M05-015d - el Productor recibio el aviso de corrida interrumpida', () => pm.expect(it.some(n => /interrump/i.test(n.mensaje) && /batch|c[aá]lculo/i.test(n.mensaje))).to.eql(true));",
             ]),
-            # v4: desde el arreglo de las corridas huerfanas ya no queda ninguna EN_EJECUCION, asi que 015d no corre dentro del
-            # sandbox. El 2026-11-12 07:16 UTC se disparo un batch real y se interrumpio a mano (corrida 64, fuera del sandbox;
-            # evidencia_TC-M05-015d_fuera_sandbox_v4.txt). Aqui se verifica en lectura lo que quedo.
-            req("TC-M05-015d - Corrida 64 interrumpida a mano fuera del sandbox (2026-11-12)", "GET", ICA + "/batch/estado", token="tok_admin", tests=[
+            # Desde el arreglo de las corridas huerfanas ya no queda ninguna EN_EJECUCION, asi que 015d no corre dentro del
+            # sandbox. v5: el 2026-11-13 04:57 UTC, ya con el arreglo #1081 en TEST, se disparo un batch real y se interrumpio
+            # a mano (corrida 66, fuera del sandbox; evidencia_TC-M05-015d_fuera_sandbox_v5.txt). Aqui se verifica en lectura.
+            req("TC-M05-015d - Corrida 66 interrumpida a mano fuera del sandbox (2026-11-13)", "GET", ICA + "/batch/estado", token="tok_admin", tests=[
                 "pm.test('TC-M05-015d - panel consultable (200)', () => pm.response.to.have.status(200));",
-                "const r = (pm.response.code === 200 ? pm.response.json() : []).find(x => x.id_ejecucion === 64) || {};",
+                "const r = (pm.response.code === 200 ? pm.response.json() : []).find(x => x.id_ejecucion === 66) || {};",
                 "console.log(JSON.stringify(r));",
-                "pm.test('TC-M05-015d - la corrida 64 quedo INTERRUMPIDO con hora de corte', () => { pm.expect(r.estado).to.eql('INTERRUMPIDO'); pm.expect(r.hora_corte).to.be.a('string'); });",
+                "pm.test('TC-M05-015d - la corrida 66 quedo INTERRUMPIDO con hora de corte', () => { pm.expect(r.estado).to.eql('INTERRUMPIDO'); pm.expect(r.hora_corte).to.be.a('string'); });",
                 "pm.test('TC-M05-015d - el batch se detuvo y conservo los pendientes (procesados ' + r.cantidad_activos_procesados + ' de ' + r.cantidad_activos_total + ')', () => { pm.expect(Number(r.cantidad_activos_procesados)).to.be.below(Number(r.cantidad_activos_total)); pm.expect(Number(r.cantidad_activos_pendientes)).to.eql(Number(r.cantidad_activos_total) - Number(r.cantidad_activos_procesados)); });",
-                "pm.test('TC-M05-015d - causa_interrupcion = MANUAL (actual: ' + r.causa_interrupcion + ')', () => pm.expect(r.causa_interrupcion).to.eql('MANUAL'));"]),
-            sql("TC-M05-015d - Usuario que interrumpio la corrida 64", "SELECT id_usuario_interrupcion FROM modulo5.ejecuciones_batch_ica WHERE id_ejecucion = 64", [
+                "pm.test('TC-M05-015d - causa_interrupcion = MANUAL (actual: ' + r.causa_interrupcion + ')', () => pm.expect(r.causa_interrupcion).to.eql('MANUAL'));",
+                "pm.test('TC-M05-015d - el motivo del operador queda aparte (motivo_interrupcion: ' + r.motivo_interrupcion + ')', () => pm.expect(r.motivo_interrupcion).to.eql('QA TC-M05-015d interrupcion manual real'));"]),
+            sql("TC-M05-015d - Usuario que interrumpio la corrida 66", "SELECT id_usuario_interrupcion FROM modulo5.ejecuciones_batch_ica WHERE id_ejecucion = 66", [
                 "pm.test('TC-M05-015d - id_usuario_interrupcion = Administrador (137)', () => pm.expect(String((filas[0] || {}).id_usuario_interrupcion)).to.eql('137'));"]),
-            *[req(f"TC-M05-015d - Aviso de corrida interrumpida al {rol} (real, desde 2026-11-12 07:16 UTC)", "GET",
+            *[req(f"TC-M05-015d - Aviso de corrida interrumpida al {rol} (real, desde 2026-11-13 04:57 UTC)", "GET",
                   "{{base_url}}/notificaciones?tamano=50", token=tk, tests=[
                 f"pm.test('TC-M05-015d - bandeja del {rol} (200)', () => pm.response.to.have.status(200));",
-                "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-12T07:16');",
+                "const it = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => n.fecha_envio >= '2026-11-13T04:57');",
                 "console.log(JSON.stringify(it.map(n => n.mensaje)));",
-                f"pm.test('TC-M05-015d - el {rol} recibio el aviso de que el batch no completo su ejecucion', () => pm.expect(it.some(n => /no complet[oó] su ejecuci[oó]n|interrump/i.test(n.mensaje))).to.eql(true));"])
+                f"pm.test('TC-M05-015d - el {rol} recibio el aviso de que el batch fue interrumpido manualmente', () => pm.expect(it.some(n => /interrumpido manualmente/i.test(n.mensaje))).to.eql(true));"])
               for rol, tk in (("Administrador", "tok_admin"), ("Productor", "tok_prod"))],
             # La reactivacion se ejecuto FUERA del sandbox el 2026-11-09 con autorizacion del DBA (el batch usa sesiones
             # propias y dentro del sandbox escribiria datos reales): aqui solo se verifica, en lectura, la corrida que dejo.

@@ -1,0 +1,13 @@
+Inicio (UTC): 2026-11-13T04:57:50.273157+00:00 | corridas previas en el panel: 20 | alguna EN_EJECUCION: []
+Corrida nueva EN_EJECUCION: 66
+POST interrumpir -> 200 {"id_ejecucion": 66, "estado": "INTERRUMPIDO", "tipo_disparo": "MANUAL", "hora_inicio": "2026-11-13T04:57:52.708369Z", "hora_fin": "2026-11-13T04:57:53.206445Z", "hora_corte": "2026-11-13T04:57:53.206445Z", "cantidad_activos_total": 557, "cantidad_activos_procesados": 0, "cantidad_activos_pendientes": 557, "cantidad_fallidos": 0, "causa_interrupcion": "MANUAL", "motivo_interrupcion": "QA TC-M05-015d interrupcion manual real", "num_workers": 4, "limite_configurado": 5000}
+POST ejecutar termino en 5.13 s -> 200 {"id_ejecucion": 66, "estado": "INTERRUMPIDO", "tipo_disparo": "MANUAL", "hora_inicio": "2026-11-13T04:57:52.708369Z", "hora_fin": "2026-11-13T04:57:53.206445Z", "hora_corte": "2026-11-13T04:57:53.206445Z", "cantidad_activos_total": 557, "cantidad_activos_procesados": 14, "cantidad_activos_pendientes": 543, "cantidad_fallidos": 0, "causa_interrupcion": "MANUAL", "motivo_interrupcion": "QA TC-M05-015d interrupcion manual real", "num_workers": 4, "limite_configurado": 5000}
+Panel de la corrida: {"id_ejecucion": 66, "estado": "INTERRUMPIDO", "tipo_disparo": "MANUAL", "hora_inicio": "2026-11-13T04:57:52.708369Z", "hora_fin": "2026-11-13T04:57:53.206445Z", "hora_corte": "2026-11-13T04:57:53.206445Z", "cantidad_activos_total": 557, "cantidad_activos_procesados": 14, "cantidad_activos_pendientes": 543, "cantidad_fallidos": 0, "causa_interrupcion": "MANUAL", "motivo_interrupcion": "QA TC-M05-015d interrupcion manual real", "num_workers": 4, "limite_configurado": 5000}
+Notificaciones nuevas del Administrador: 2; de interrupcion: 1
+    2026-11-13T04:57:53.651660Z El proceso batch de cálculo de CA fue interrumpido manualmente. El procesamiento pendiente puede retomarse en la siguiente ejecución.
+Notificaciones nuevas del Productor: 5; de interrupcion: 1
+    2026-11-13T04:57:53.665979Z El proceso batch de cálculo de CA fue interrumpido manualmente. El procesamiento pendiente puede retomarse en la siguiente ejecución.
+
+VERIFICACION:
+  causa_interrupcion = MANUAL (esperado MANUAL)
+  estado = INTERRUMPIDO | id_usuario_interrupcion = None
