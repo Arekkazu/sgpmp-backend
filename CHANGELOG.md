@@ -1,3 +1,17 @@
+## [1.4.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.59...v1.4.0-rc.60) (2026-11-13)
+
+### Bug Fixes
+
+* **rf74-mod5:** corregir la interrupción manual del batch ica ([#1081](https://github.com/Arekkazu/sgpmp-backend/issues/1081)) ([3492f02](https://github.com/Arekkazu/sgpmp-backend/commit/3492f0274a686be01cc577acbeeec0f817484820))
+* **rf76-mod5:** fin de retiro al Veterinario y fallos del registro de medicamento en auditoria ([#1072](https://github.com/Arekkazu/sgpmp-backend/issues/1072)) ([bf764cb](https://github.com/Arekkazu/sgpmp-backend/commit/bf764cba364b9622b0c8e536466cbcb0e2ee34a1))
+* **rf76-rf80-mod5:** detalle de la bitacora en palabras, sin nombres de columnas ni errores tecnicos ([0d8627c](https://github.com/Arekkazu/sgpmp-backend/commit/0d8627cb3d95357149e9633b812a8c98a071d737)), closes [#1096](https://github.com/Arekkazu/sgpmp-backend/issues/1096) [#1094](https://github.com/Arekkazu/sgpmp-backend/issues/1094)
+* **rf80-mod5:** completar auditoría del cierre de ciclo ([#1079](https://github.com/Arekkazu/sgpmp-backend/issues/1079)) ([b491ba0](https://github.com/Arekkazu/sgpmp-backend/commit/b491ba0c893dff8950e2a5f7f6004ae1c2057b1f))
+* **rf81-mod5:** historial de un activo ajeno responde 403 de E2 en vez de 404 ([#1086](https://github.com/Arekkazu/sgpmp-backend/issues/1086)) ([40e0346](https://github.com/Arekkazu/sgpmp-backend/commit/40e03465d9b6bec63c36828b51a6b95d908d8776))
+* **rf82-mod6:** el Administrador opera todo el modulo financiero y el Auditor ve el reconocimiento confirmado ([16738d5](https://github.com/Arekkazu/sgpmp-backend/commit/16738d580691aa3219d6a9226ea785b04321f35d))
+* **rf93-mod6:** activos excluidos del cierre fuera del estado de resultados y ceros con 4 decimales ([#1084](https://github.com/Arekkazu/sgpmp-backend/issues/1084)) ([d2d9dba](https://github.com/Arekkazu/sgpmp-backend/commit/d2d9dbad2726c7c35ac52050e5f9493e3fb54611))
+* **rf93-mod6:** el estado de resultados descargado nombra la causa de cada activo excluido y el resultado que quedo fuera ([66ee4e9](https://github.com/Arekkazu/sgpmp-backend/commit/66ee4e926a0e6a7f0413291a02fdfd8198620886)), closes [#1095](https://github.com/Arekkazu/sgpmp-backend/issues/1095)
+* **rf93-mod6:** la baja sin venta suma en los gastos del estado de resultados ([#1083](https://github.com/Arekkazu/sgpmp-backend/issues/1083)) ([e0ecfc9](https://github.com/Arekkazu/sgpmp-backend/commit/e0ecfc93560efadb56c6a39783bfeb51d5ae7dfa))
+
 ## [1.4.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.58...v1.4.0-rc.59) (2026-11-13)
 
 ### Bug Fixes
