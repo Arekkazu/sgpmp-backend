@@ -34,7 +34,7 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-03 (TC-
 - **Esperado (matriz):** marcado de dato insuficiente para ese campo.
 
 ## Ejecución automatizada
-- Colección: `tc_m06_g61.postman_collection.json`
+- Colección: `tc_m06_g03.postman_collection.json`
 - Reporte: `resultados/resultado_TC-M06-G61.html`
 - Aserciones: pendiente (sin ejecutar en TEST)
 - Roles: Contador.

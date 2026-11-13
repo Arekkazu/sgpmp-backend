@@ -50,9 +50,9 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-12 (TC-
 - **Esperado (matriz):** que ningún texto muestre «RF-xx», «M06», «Módulo N», null, undefined, un identificador como «#123» ni un código en mayúsculas como PENDIENTE_CUENTA o ACTIVO_MARCADO_SIN_MERCADO.
 
 ## Ejecución automatizada
-- Colección: `tc_m06_g70.postman_collection.json`
+- Colección: `tc_m06_g12.postman_collection.json`
 - Reporte: `resultados/resultado_TC-M06-G70.html`
 - Aserciones: pendiente (sin ejecutar en TEST)
 - Roles: Contador.
-- Las peticiones marcadas **[escritura]** crean o cambian datos: corren **dentro del sandbox transaccional de TEST** (cabecera X-Test-Run-Id) y al final se revierten con DELETE /test-control/runs/{id}. Requieren `--env-var permitir_escritura=SI` y `--env-var sandbox_secret=...` (secreto que da el DBA); la colección comprueba que el sandbox esté activo y, si no, omite esas peticiones.
+- Las peticiones marcadas **[escritura]** crean o cambian datos en TEST: solo corren con `--env-var "permitir_escritura=SI"`. Sin esa variable se omiten.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
