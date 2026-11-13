@@ -1,5 +1,18 @@
 # TC-M06-G96 — RF-88
 
+## Estado actual (cierre 2026-11-13)
+
+**APROBADO** — validación técnica A+B (dominio + integración PostgreSQL aislada) sobre lógica real del backend, incluyendo alerta `VALOR_LIBROS_AJUSTADO_A_CERO`.
+
+- Informe: [`resultados/INFORME_FINAL_G96.html`](resultados/INFORME_FINAL_G96.html)
+- Resumen: [`resultados/RESUMEN_FINAL_G96.md`](resultados/RESUMEN_FINAL_G96.md)
+- Suite dominio A: `test_tc_m06_g96_dominio_A.py`
+- Suite histórica de dominio (sin alerta): `test_tc_m06_g96_valor_en_libros.py`
+
+El texto siguiente conserva el contexto de diseño inicial del caso (colección OpenAPI / bloqueos previos).
+
+---
+
 Caso armado en la rama `laura` (`e5d6934d`, integrada con `origin/test`). La prueba ejecutable es `test_tc_m06_g96_valor_en_libros.py`: llama a `valor_por_costo`. Esa función no recibe la depreciación acumulada. Recibe costo, vida útil en meses, meses transcurridos y deterioro. La prueba usa vida útil y meses que hacen que la propia función calcule la depreciación de cada subcaso.
 
 `tc-m06-g96.json` solo lee OpenAPI. No ejecuta los tres subcasos y no los aprueba.
