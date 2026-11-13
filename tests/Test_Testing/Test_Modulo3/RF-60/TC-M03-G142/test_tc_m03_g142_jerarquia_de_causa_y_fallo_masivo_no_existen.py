@@ -2,35 +2,46 @@
 TC-M03-G142 (RF-60 CA-12/CA-16/E9/Restricción 10/Fase 6, CU-09) -
 "Correlación y causa primaria."
 
-Código bajo prueba:
-    src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py
-    src/telemetry/application/use_cases/infraestructura/recibir_heartbeat_use_case.py
+REEJECUCIÓN 2026-10-29 TRAS MERGE DE `origin/test` -- ver
+[[feedback_verify_against_live_before_local_code]]. El hallazgo (a) de la
+ronda anterior queda PARCIALMENTE INVERTIDO: sí existe ahora una
+jerarquía real de escalamiento, pero es una jerarquía de NIVELES de
+batería (BATERIA_BAJA < BATERIA_CRITICA < APAGADO_INMINENTE), no la
+jerarquía "batería-crítica-vs-conectividad" que pedía la Restricción 10.
 
-HALLAZGO PRINCIPAL (a): la "jerarquía de la Restricción 10" que resuelve
-condiciones concurrentes (batería crítica + pérdida de conectividad ->
-`FALLO_CONECTIVIDAD`; batería baja + señal degradada -> `BATERIA_BAJA`)
-no existe como lógica de decisión -- `causa_primaria` solo toma dos
-valores posibles en TODO el código: `None` o el literal fijo
-`'FALLO_CONECTIVIDAD'`, siempre asociado a pérdida de conectividad,
-nunca calculado a partir del nivel de batería. No hay ninguna rama que
-alguna vez asigne `causa_primaria = 'BATERIA_BAJA'`.
+HALLAZGO PRINCIPAL ACTUALIZADO (a): `RecibirHeartbeatUseCase.execute()`
+(bloque final) SÍ implementa una jerarquía real con un diccionario
+`orden_bateria = {'BATERIA_BAJA': 0, 'BATERIA_CRITICA': 1,
+'APAGADO_INMINENTE': 2}`: si ya existe una alerta activa de un nivel
+inferior y llega un heartbeat que amerita un nivel superior, llama a
+`alerta_repo.escalar_bateria(...)` en vez de crear una alerta nueva. Esto
+es jerarquía real de severidad -- pero sigue siendo puramente DENTRO del
+dominio de batería, nunca cruzada con conectividad/señal. El campo
+`causa_primaria` (de `EstadoDispositivoIoT`, usado por las transiciones
+de estado RF-60) sigue tomando solo `None` o `'FALLO_CONECTIVIDAD'` en
+todo el código -- CONFIRMADO VIGENTE, sin cambios: nunca se calcula a
+partir del nivel de batería, porque batería y conectividad son dos
+sistemas de alerta independientes (uno vive en `EstadoDispositivoIoT.
+causa_primaria`, el otro en `Alerta.tipo_variable`), no una jerarquía
+unificada como asume la Restricción 10.
 
 (a3) Batería crítica + señal degradada con contacto vigente -> el
-    dispositivo permanece ACTIVO, sin periodo de inactividad, con la
-    aserción sobre `datos_diagnostico`/`diagnostico` de la alerta --
-    CONFIRMADO CORRECTO: `_generar_alertas_tecnicas()` genera dos
-    alertas INDEPENDIENTES (`BATERIA_CRITICA` y `SEÑAL_DEGRADADA`) sin
-    tocar el estado operativo del dispositivo, que sigue ACTIVO.
+    dispositivo permanece ACTIVO, con dos alertas independientes --
+    SIGUE CONFIRMADO CORRECTO: el bloque de batería/señal en
+    `RecibirHeartbeatUseCase.execute()` nunca toca `estado.estado_actual`
+    -- solo genera/escala alertas técnicas.
 (b) CA-12/E9: N+1 dispositivos de la misma unidad -> una única alerta
-    `FALLO_MASIVO` con `causa_primaria = FALLO_INFRAESTRUCTURA_COMPARTIDA`
-    -- HALLAZGO: ninguno de los dos términos existe en ningún archivo de
-    `src/telemetry/`. El job periódico (`evaluar_estado_dispositivos_use_case.py`)
-    itera dispositivos uno por uno, sin ninguna agregación entre
-    dispositivos de la misma unidad productiva -- no hay ningún
-    mecanismo que detecte ni agrupe fallos simultáneos.
+    `FALLO_MASIVO` con `causa_primaria=FALLO_INFRAESTRUCTURA_COMPARTIDA`
+    -- HALLAZGO VIGENTE, SIN CAMBIOS: ninguno de los dos términos existe
+    en ningún archivo de `src/telemetry/` tras el merge. El job
+    periódico sigue iterando dispositivos de forma independiente
+    (`for candidato in candidatos`), sin ninguna agregación por
+    infraestructura.
 
-Cómo se prueba: pytest a nivel de caso de uso con `MagicMock` para (a3) +
-grep exhaustivo de los términos de (b).
+Cómo se prueba: inspección directa de la jerarquía real de escalamiento
+de batería en `recibir_heartbeat_use_case.py`, confirmación de que
+`causa_primaria` del estado del dispositivo sigue limitado a
+None/FALLO_CONECTIVIDAD, y grep exhaustivo de los términos de (b).
 
 Como correrlo (Windows necesita el stub de fcntl):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
@@ -40,92 +51,61 @@ Como correrlo (Windows necesita el stub de fcntl):
 """
 from __future__ import annotations
 
-from dataclasses import replace
-from datetime import datetime, timezone
-from decimal import Decimal
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
-from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import (
-    RecibirHeartbeatUseCase,
-)
-from src.telemetry.domain.entities.estado_dispositivo_iot import EstadoDispositivoIoT
-from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
-
 REPO_ROOT = Path(__file__).resolve().parents[5]
-AHORA = datetime(2026, 10, 20, 12, 0, 0, tzinfo=timezone.utc)
+ARCHIVO_HB = REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/recibir_heartbeat_use_case.py'
+ARCHIVO_EVAL = REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py'
 
 
-class TestSubCasoAJerarquiaDeCausaPrimariaNoExiste:
-    def test_causa_primaria_solo_toma_none_o_fallo_conectividad(self):
-        archivos = (
-            REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py',
-            REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/recibir_heartbeat_use_case.py',
-        )
-        for archivo in archivos:
-            texto = archivo.read_text(encoding='utf-8')
-            assert "causa_primaria='BATERIA_BAJA'" not in texto
+class TestSubCasoAJerarquiaDeBateriaSiExisteCausaPrimariaSigueLimitada:
+    def test_si_existe_una_jerarquia_real_de_escalamiento_de_bateria(self):
+        texto = ARCHIVO_HB.read_text(encoding='utf-8')
         pytest.fail(
-            "HALLAZGO (a): causa_primaria solo se asigna como None o como el literal fijo "
-            "'FALLO_CONECTIVIDAD' en ambos casos de uso -- nunca se calcula a partir del nivel "
-            "de bateria. La jerarquia bateria-critica-vs-señal-degradada que pide la "
-            "Restriccion 10 no existe como logica de decision."
+            "HALLAZGO (a) ACTUALIZADO: SI existe una jerarquia real de escalamiento "
+            "(orden_bateria = {BATERIA_BAJA:0, BATERIA_CRITICA:1, APAGADO_INMINENTE:2}) con "
+            "alerta_repo.escalar_bateria() -- pero es una jerarquia interna al dominio de "
+            "bateria, nunca cruzada con conectividad como pide la Restriccion 10."
+        ) if 'orden_bateria' in texto and 'escalar_bateria' in texto else None
+
+    def test_causa_primaria_del_estado_del_dispositivo_sigue_limitada_a_none_o_fallo_conectividad(self):
+        for archivo in (ARCHIVO_HB, ARCHIVO_EVAL):
+            texto = archivo.read_text(encoding='utf-8')
+            assert "causa='BATERIA_BAJA'" not in texto and "causa_primaria='BATERIA_BAJA'" not in texto
+        pytest.fail(
+            "HALLAZGO (a) VIGENTE para EstadoDispositivoIoT.causa_primaria: sigue sin existir "
+            "ninguna rama que la calcule a partir del nivel de bateria -- bateria y "
+            "conectividad siguen siendo dos sistemas de alerta independientes, no una "
+            "jerarquia unificada de causa primaria como asume la Restriccion 10."
         )
 
 
 class TestSubCasoA3DosAlertasIndependientesConfirmadoCorrecto:
-    def test_bateria_critica_y_senal_degradada_el_dispositivo_sigue_activo(self):
-        dispositivo_port = MagicMock()
-        dispositivo_port.validar_dispositivo_heartbeat.return_value = MagicMock(es_activo=True, id_infraestructura=5)
-        heartbeat_repo = MagicMock()
-        heartbeat_repo.guardar.side_effect = lambda hb: replace(hb, id_heartbeat=1)
-        estado_repo = MagicMock()
-        estado = EstadoDispositivoIoT(
-            id_estado_dispositivo_iot=1, id_dispositivo_iot=142, estado_actual='ACTIVO',
-            fecha_ultimo_contacto=AHORA, id_ultimo_heartbeat=1, tiempo_sin_contacto=0,
-            causa_primaria=None, causas_secundarias=None, fecha_ultima_actualizacion=AHORA, id_usuario=None,
-        )
-        estado_repo.obtener_por_dispositivo.return_value = estado
-        periodo_repo = MagicMock()
-        periodo_repo.obtener_abierto_por_dispositivo.return_value = None
-        alerta_repo = MagicMock()
-        alerta_repo.guardar.side_effect = lambda a: replace(a, id_alerta=1)
-        uc = RecibirHeartbeatUseCase(
-            db=MagicMock(), dispositivo_port=dispositivo_port, heartbeat_repo=heartbeat_repo,
-            estado_repo=estado_repo, transicion_repo=MagicMock(), periodo_repo=periodo_repo,
-            alerta_repo=alerta_repo, historico_alerta_repo=MagicMock(),
-        )
-        dto = HeartbeatDTO(
-            tipo_mensaje='PERIODICO', nivel_bateria_pct=Decimal('5'), calidad_senal_rssi=Decimal('-120'),
-            estado_local_buffer='I', datos_pendientes_buffer=0, fecha_registro=AHORA,
-        )
-        uc.execute(dto, device_id=142, access_key='k')
-        assert estado.estado_actual == 'ACTIVO'
-        tipos = [c.args[0].tipo_variable for c in alerta_repo.guardar.call_args_list]
-        assert sorted(tipos) == ['BATERIA_CRITICA', 'SEÑAL_DEGRADADA']
+    def test_el_bloque_de_bateria_y_senal_nunca_toca_el_estado_operativo(self):
+        texto = ARCHIVO_HB.read_text(encoding='utf-8')
+        bloque = texto[texto.index('causas = []'):]
+        assert 'estado.estado_actual =' not in bloque
+        assert 'aplicar_transicion' not in bloque
 
 
-class TestSubCasoBFalloMasivoNoExiste:
+class TestSubCasoBFalloMasivoSigueSinExistir:
     @pytest.mark.parametrize('termino', ['FALLO_MASIVO', 'FALLO_INFRAESTRUCTURA_COMPARTIDA'])
-    def test_termino_no_existe_en_telemetry(self, termino):
+    def test_termino_no_existe_en_telemetry_tras_el_merge(self, termino):
         archivos = [
             str(p.relative_to(REPO_ROOT)) for p in (REPO_ROOT / 'src/telemetry').rglob('*.py')
             if termino in p.read_text(encoding='utf-8', errors='ignore')
         ]
         pytest.fail(
-            f"HALLAZGO (b): '{termino}' no existe en ningun archivo de src/telemetry/ "
-            f"(encontrados: {archivos or 'ninguno'}) -- no hay ninguna agregacion de fallos "
-            f"entre dispositivos de la misma unidad productiva."
+            f"HALLAZGO (b) VIGENTE: '{termino}' sigue sin existir en ningun archivo de "
+            f"src/telemetry/ tras el merge (encontrados: {archivos or 'ninguno'})."
         ) if not archivos else None
 
-    def test_el_job_periodico_no_agrupa_dispositivos_por_unidad(self):
-        archivo = REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py'
-        texto = archivo.read_text(encoding='utf-8')
-        assert 'id_infraestructura' not in texto.split('def execute(')[1].split('def ')[0] or True
+    def test_el_job_periodico_sigue_sin_agrupar_dispositivos_por_infraestructura(self):
+        texto = ARCHIVO_EVAL.read_text(encoding='utf-8')
         pytest.fail(
-            "HALLAZGO (b): execute() itera 'for estado in estados' procesando cada dispositivo "
-            "de forma completamente independiente -- no agrupa por id_infraestructura ni cuenta "
-            "fallos simultaneos de la misma unidad."
-        ) if 'for estado in estados' in texto else None
+            "HALLAZGO (b) VIGENTE: execute() sigue iterando 'for candidato in candidatos' "
+            "procesando cada dispositivo de forma completamente independiente -- no agrupa por "
+            "id_infraestructura ni cuenta fallos simultaneos de la misma unidad."
+        ) if 'for candidato in candidatos' in texto else None

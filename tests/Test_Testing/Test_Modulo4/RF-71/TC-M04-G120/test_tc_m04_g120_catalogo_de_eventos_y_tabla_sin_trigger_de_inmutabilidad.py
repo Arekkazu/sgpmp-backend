@@ -4,19 +4,38 @@ TC-M04-G120 (RF-71 v2.0 CA-7/RNF-10/RNF-11/RNF-12/RFC-009, CU-16) -
 modo_generacion a los campos de cada evento y pide verificar cobertura de
 eventos propios de calibración/deriva poblacional.
 
-RELACIÓN CON TC-M04-G102/G109/G110 (hallazgos ya establecidos): los 7
-eventos de RF-71 nunca se emiten desde código alcanzable; la trazabilidad
-hacia el dataset de origen está incompleta.
+REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE. RELACIÓN CON
+TC-M04-G102/G109/G110 (hallazgos ya establecidos, matizados): los 7
+nombres de evento ESPECÍFICOS DEL CICLO DE VIDA DE REENTRENAMIENTO que
+pide la ficha siguen sin existir -- pero la premisa general "los eventos
+de RF-71 nunca se emiten desde código alcanzable" queda MATIZADA/
+INVERTIDA: `RegistrarVersionModeloUseCase` (el único tramo real de RF-71
+alcanzable por HTTP, ver G102) SÍ auditada cada registro con eventos
+reales (`VERSION_REGISTRADA`, `VERSION_APROBADA`/`VERSION_RECHAZADA`,
+`INTENTO_CARGA_MODELO_EXTERNO`, `HASH_INVALIDO_DETECTADO`), y todo el
+módulo `src/prediction/` tiene un sistema de auditoría M04 extenso (más
+de 15 tipos de evento reales, incluyendo `CATALOGO_PATOLOGIA_*`,
+`CONFIGURACION_MOTOR_CAMBIADA`, `DISTRIBUCION_POSPUESTA`,
+`RETROALIMENTACION_REGISTRADA`, `NOTAS_REGISTRADAS`,
+`TIMESTAMP_CORREGIDO`). Ninguno de esos nombres reales coincide con los 7
+de la ficha (que son específicos del CICLO DE UN PROCESO DE
+REENTRENAMIENTO que no existe), así que (a) sigue siendo un HALLAZGO
+VIGENTE en su forma literal -- pero afirmar que "RF-71 nunca audita
+nada" ya no sería preciso.
 
 Código bajo prueba:
+    src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py
     src/prediction/infrastructure/models/evento_auditoria_m04_model.py
     src/prediction/infrastructure/repositories/evento_auditoria_m04_repository.py
     alembic/baseline/esquema_baseline.sql
 
-(a) 7 tipos de evento con modo_generacion -- HALLAZGO: ninguno de los 7
-    nombres se emite jamás; y como `modo_generacion` no existe en ningún
-    lado, tampoco podría incluirse en el payload de ningún evento aunque
-    estos existieran.
+(a) 7 tipos de evento con modo_generacion -- HALLAZGO VIGENTE EN SU FORMA
+    LITERAL, MATIZADO: ninguno de los 7 nombres específicos de
+    reentrenamiento (`REENTRENAMIENTO_INICIADO`, etc.) se emite jamás --
+    pero SÍ se emiten eventos reales para el registro de una versión
+    (`VERSION_REGISTRADA`/`VERSION_APROBADA`/`VERSION_RECHAZADA`). Y como
+    `modo_generacion` no existe en ningún lado, tampoco podría incluirse
+    en el payload de NINGÚN evento, ni los 7 de la ficha ni los reales.
 (b) Cobertura de eventos de calibración/deriva poblacional -- HALLAZGO:
     ninguno de esos nombres (inicio/cierre de calibración, vencimiento,
     deriva sostenida) existe en absoluto, ni siquiera como valor de enum
@@ -60,8 +79,25 @@ class TestSubCasoACatalogoDeEventosRf71NoExiste:
         archivo = REPO_ROOT / 'src/prediction/infrastructure/repositories/evento_auditoria_m04_repository.py'
         texto = archivo.read_text(encoding='utf-8')
         pytest.fail(
-            f"HALLAZGO (a): '{tipo_evento}' no aparece en el catalogo real de M04."
+            f"HALLAZGO (a) VIGENTE: '{tipo_evento}' (especifico del ciclo de reentrenamiento) "
+            f"no aparece en el catalogo real de M04."
         ) if tipo_evento not in texto else None
+
+
+class TestSubCasoAMatizRegistrarVersionSiAuditaConEventosReales:
+    @pytest.mark.parametrize('tipo_evento', [
+        'VERSION_REGISTRADA', 'VERSION_APROBADA', 'VERSION_RECHAZADA',
+        'INTENTO_CARGA_MODELO_EXTERNO', 'HASH_INVALIDO_DETECTADO',
+    ])
+    def test_evento_real_de_registro_si_existe_y_se_emite(self, tipo_evento):
+        archivo = REPO_ROOT / 'src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py'
+        texto = archivo.read_text(encoding='utf-8')
+        pytest.fail(
+            f"MATIZ: '{tipo_evento}' SI se emite desde registrar_version_modelo_use_case.py "
+            f"(via self._auditoria_repo.registrar(tipo_evento=...)) -- RF-71/RF-69 SI auditan el "
+            f"registro de versiones con eventos reales, aunque ninguno coincida con los 7 "
+            f"nombres especificos de reentrenamiento que pide la ficha."
+        ) if tipo_evento in texto else None
 
 
 class TestSubCasoBEventosDeCalibracionNiSiquieraComoEnum:

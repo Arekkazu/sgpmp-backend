@@ -56,6 +56,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 def _use_case():
     return RegistrarVersionModeloUseCase(
         db=MagicMock(), repo=MagicMock(), auditoria_repo=MagicMock(), variable_port=MagicMock(),
+        aviso_port=MagicMock(),
     )
 
 

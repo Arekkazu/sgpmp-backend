@@ -1,0 +1,234 @@
+{
+  "info": {
+    "name": "TC-M06 RF-93/RF-94 - Verificación en vivo (TEST)",
+    "description": "Verificación en vivo contra el backend TEST real de los hallazgos de RF-93 (Estado de Resultados) y RF-94 (Auditoría financiera) documentados en pytest (RF-93/RF-94, Módulo 6). Construido 2026-11-12 tras confirmar que M06 ya está desplegado en TEST (55 rutas /finanzas/*) y que la migración `4fa0e24ea021_rls_modulo_06` (RLS, 2026-11-07, SamuelPR21) agrega una segunda capa de seguridad a nivel de PostgreSQL invisible a las pruebas pytest (que nunca tocan una BD real).\n\nHallazgo principal confirmado aquí: INC-M06-006 (G11, 'acceso de lectura/descarga del Productor no depende de la aprobación') queda CORREGIDO — pero no por el código Python (que sigue sin ninguna validación de `estado` en `obtener_estado()`), sino por la política RLS `pol_estado_resultados_periodo_select` sobre `modulo6.estados_resultados_periodo`: `estado_resultados:R AND (VISION_COMPLETA OR estado = 'APROBADO')`. Confirmado con ciclo completo: GENERADO -> 404 para Productor/Revisor Fiscal; tras aprobar -> 200 para ambos (lectura y descarga).\n\nLos demás hallazgos probados (G04, TC23, TC24) se mantienen vigentes tal como los documentó pytest -- aquí solo se confirma en código realmente corriendo.\n\nCuentas usadas (roster TEST, ver memoria del proyecto): Contador contador@pecuaria.co (rol 5), Productor u20221206763@usco.edu.co (rol 2, sin fincas propias), Revisor Fiscal revisor.fiscal.test@pecuaria.co (rol 8).\n\nDatos fijos usados (no se crean, ya existen en TEST): id_estado=38 (periodo 219, NIT 900000002, GENERADO, se deja así a propósito para que esta colección sea repetible) e id_estado=32 (periodo 253, NIT 901458732) -- este ÚLTIMO fue aprobado deliberadamente en esta sesión (2026-11-12, con autorización explícita del usuario) para completar el ciclo GENERADO->APROBADO; queda APROBADO de forma permanente (el trigger de inmutabilidad de M06 no permite revertir una aprobación), así que de aquí en adelante esta colección solo puede repetir la mitad 'ya aprobado' con el id_estado=32, no el ciclo completo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contador_correo", "value": "contador@pecuaria.co" },
+    { "key": "contador_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la contraseña real del roster de cuentas TEST (ver memoria del proyecto) - nunca commitear el valor real" },
+    { "key": "productor_correo", "value": "u20221206763@usco.edu.co" },
+    { "key": "productor_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la contraseña real del roster de cuentas TEST - nunca commitear el valor real" },
+    { "key": "revisor_correo", "value": "revisor.fiscal.test@pecuaria.co" },
+    { "key": "revisor_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la contraseña real del roster de cuentas TEST - nunca commitear el valor real" },
+    { "key": "token_contador", "value": "" },
+    { "key": "token_productor", "value": "" },
+    { "key": "token_revisor", "value": "" },
+    { "key": "id_estado_generado", "value": "38", "description": "TC-M06-G11 / INC-M06-006: periodo 219, se deja en GENERADO a propósito" },
+    { "key": "id_estado_aprobado", "value": "32", "description": "periodo 253, aprobado el 2026-11-12 para completar el ciclo de G11" },
+    { "key": "id_periodo_con_eventos", "value": "7" },
+    { "key": "id_periodo_otro_titular", "value": "219" }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones - Login",
+      "item": [
+        {
+          "name": "Login Contador",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_contador', body.token);",
+            "pm.test('token recibido', () => pm.expect(body.token).to.be.a('string').and.not.empty);"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "Login Productor",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_productor', body.token);"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"correo_electronico\":\"{{productor_correo}}\",\"contrasena\":\"{{productor_pass}}\"}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "Login Revisor Fiscal",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_revisor', body.token);"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"correo_electronico\":\"{{revisor_correo}}\",\"contrasena\":\"{{revisor_pass}}\"}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RF-93 G11 (INC-M06-006) - RLS protege un estado GENERADO",
+      "item": [
+        {
+          "name": "Contador lee estado GENERADO (baseline, debe ser 200)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('sigue en GENERADO (precondicion de la prueba)', () => pm.expect(body.estado).to.eql('GENERADO'));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_generado}}"
+          }
+        },
+        {
+          "name": "Productor lee el mismo estado GENERADO -> 404 (RLS, no bug)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('404 por RLS (pol_estado_resultados_periodo_select exige APROBADO o vision completa)', () => pm.response.to.have.status(404));",
+            "pm.test('codigo ESTADO_RESULTADOS_NO_ENCONTRADO', () => pm.expect(pm.response.json().error_code).to.eql('ESTADO_RESULTADOS_NO_ENCONTRADO'));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_generado}}"
+          }
+        },
+        {
+          "name": "Revisor Fiscal lee el mismo estado GENERADO -> 404 (misma RLS, ningun lector ve lo no aprobado)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('404 por RLS', () => pm.response.to.have.status(404));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_revisor}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_generado}}"
+          }
+        },
+        {
+          "name": "Productor lee un estado ya APROBADO -> 200 (RLS lo libera)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('estado es APROBADO', () => pm.expect(body.estado).to.eql('APROBADO'));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_aprobado}}"
+          }
+        },
+        {
+          "name": "Productor descarga el mismo estado APROBADO -> 200 (exportar = misma accion RBAC que consultar, correcto una vez aprobado)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_aprobado}}/descarga"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RF-93 G04 (INC-M06-003) - Sin mecanismo de conciliacion/alertas",
+      "item": [
+        {
+          "name": "GET /finanzas/reconciliation-check -> 404 (no existe)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('404 - el endpoint no existe', () => pm.response.to.have.status(404));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }],
+            "url": "{{base_url}}/finanzas/reconciliation-check"
+          }
+        },
+        {
+          "name": "GET /finanzas/alerts -> 404 (no existe)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('404 - el endpoint no existe', () => pm.response.to.have.status(404));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }],
+            "url": "{{base_url}}/finanzas/alerts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RF-94 TC23 (INC-M06-012) - Rol Auditor inexistente, sin alcance por periodo",
+      "item": [
+        {
+          "name": "Productor -> /finanzas/auditoria -> 403 (ausente de la matriz)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('403 ACCESO_DENEGADO', () => pm.response.to.have.status(403));",
+            "pm.test('codigo ACCESO_DENEGADO', () => pm.expect(pm.response.json().error_code).to.eql('ACCESO_DENEGADO'));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_con_eventos}}"
+          }
+        },
+        {
+          "name": "Revisor Fiscal -> /finanzas/auditoria (periodo A) -> 200",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_revisor}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_con_eventos}}&tamano=1"
+          }
+        },
+        {
+          "name": "Revisor Fiscal -> /finanzas/auditoria (periodo de OTRO titular/NIT) -> 200 (sin alcance por periodo propio, hallazgo confirmado)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK -- confirma que no hay alcance por titular/periodo propio', () => pm.response.to.have.status(200));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_revisor}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_otro_titular}}&tamano=1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RF-94 TC24 (INC-M06-013) - Sin repositorio centralizado de auditoria",
+      "item": [
+        {
+          "name": "Contador -> auditoria formato=TECNICO -> modulo siempre 'M06'",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('modulo del evento es M06 (hardcodeado, confirma hallazgo)', () => pm.expect(body.eventos[0].modulo).to.eql('M06'));",
+            "pm.test('origen_registro es siempre REPOSITORIO (no hay FALLBACK real)', () => pm.expect(body.eventos[0].origen_registro).to.eql('REPOSITORIO'));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_con_eventos}}&tamano=1&formato=TECNICO"
+          }
+        },
+        {
+          "name": "GET /api/v1/audit/events -> 404 (no existe repositorio centralizado)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('404 - no existe', () => pm.response.to.have.status(404));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }],
+            "url": "{{base_url}}/api/v1/audit/events"
+          }
+        }
+      ]
+    }
+  ]
+}

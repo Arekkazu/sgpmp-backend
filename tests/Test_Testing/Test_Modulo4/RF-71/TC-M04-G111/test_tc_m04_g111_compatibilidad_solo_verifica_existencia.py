@@ -5,8 +5,10 @@ la ficha v2.0 (añade (e) correspondencia con el enumerado de 6 valores, y
 (g) corrige la fuente de evidencia hacia el proceso de RF-71 en vez del
 endpoint de RF-69).
 
-RELACIÓN CON TC-M04-G102 (hallazgo raíz): `tipo_modelo` sigue con 4
-valores, no 6 (confirmado en G102).
+REEJECUTADO 2026-10-30 CONTRA CÓDIGO POST-MERGE. RELACIÓN CON TC-M04-G102
+(hallazgo raíz, actualizado): `tipo_modelo` YA TIENE 6 valores, no 4
+(confirmado en G102/G107) -- esto invierte la premisa de (e), aunque no
+su conclusión práctica (ver abajo).
 
 Código bajo prueba:
     src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py
@@ -21,10 +23,13 @@ valida orden, tipo, dimensionalidad, ni correspondencia con `tipo_modelo`.
 (b)/(c)/(d) -- HALLAZGO VIGENTE: solo se verifica existencia de IDs, sin
     orden, tipo ni dimensionalidad.
 (e) Correspondencia con tipo_modelo, incluidos los 2 valores nuevos del
-    enumerado de 6 -- HALLAZGO AGRAVADO: `_validar_variables` no recibe
-    `tipo_modelo` en absoluto; y como el enumerado real sigue teniendo
-    solo 4 valores (confirmado en G102/G107), los "2 valores nuevos" que
-    (e) pide probar no existen como entradas posibles del sistema.
+    enumerado de 6 -- HALLAZGO VIGENTE EN SU CONCLUSIÓN, PREMISA
+    CORREGIDA: el enumerado real SÍ tiene 6 valores ahora (confirmado en
+    G102/G107, con nombres distintos a los que (e) anticipaba), así que
+    los "2 valores nuevos" SÍ son entradas posibles del sistema -- pero
+    `_validar_variables()` sigue sin recibir `tipo_modelo` en absoluto,
+    así que sigue sin poder verificar correspondencia con NINGÚN valor
+    del enumerado, ni con los 4 originales ni con los 2/6 reales.
 (f) Modelo compatible -> envío procede -- CONFIRMADO CORRECTO PERO
     TRIVIAL (sin cambios).
 (g) La validación ocurre antes de la entrega; la evidencia se toma del
@@ -68,14 +73,15 @@ class TestValidarVariablesSoloVerificaExistenciaYActividad:
         firma = inspect.signature(RegistrarVersionModeloUseCase._validar_variables)
         parametros = set(firma.parameters)
         pytest.fail(
-            f"HALLAZGO (e): _validar_variables{tuple(parametros)!r} no recibe tipo_modelo -- no "
-            f"puede verificar correspondencia con ningun valor del enumerado, ni los 4 "
-            f"existentes ni los 2 nuevos que pide (e)."
+            f"HALLAZGO (e) VIGENTE (premisa de 6 valores confirmada en G102/G107): "
+            f"_validar_variables{tuple(parametros)!r} no recibe tipo_modelo -- no puede "
+            f"verificar correspondencia con ningun valor del enumerado real de 6."
         ) if 'tipo_modelo' not in parametros else None
 
     def test_activos_pasa_la_validacion_sin_importar_el_orden_enviado(self):
         uc = RegistrarVersionModeloUseCase(
             db=MagicMock(), repo=MagicMock(), auditoria_repo=MagicMock(), variable_port=MagicMock(),
+            aviso_port=MagicMock(),
         )
         uc._variable_port.obtener_ids_activos.return_value = [3, 1, 2]
         uc._validar_variables([1, 2, 3])
