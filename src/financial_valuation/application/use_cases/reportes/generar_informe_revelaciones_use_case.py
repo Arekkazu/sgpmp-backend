@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-92: informe de revelaciones NIC 41 (borrador, aprobación, rechazo) |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: una sección bloqueada impide aprobar el informe |
 """Casos de uso RF-92. El informe se genera en BORRADOR sobre un período CERRADO; las alertas de
 consistencia no lo bloquean, pero continuar con ellas exige justificación (paso 3, FA-2). Al aprobar
 una versión, la APROBADA anterior pasa a ARCHIVADO (R4)."""
@@ -66,6 +67,12 @@ class GenerarInformeRevelacionesUseCase:
             raise BusinessRuleError(code="INFORME_NO_EDITABLE", message=f"El informe está {informe['estado']}.")
         if not aprobar and len((razon or "").strip()) < 20:  # FA-4
             raise BusinessRuleError(code="RAZON_RECHAZO_OBLIGATORIA", message="Indique la razón del rechazo (mínimo 20 caracteres).")
+        bloqueadas = [s for s in (informe["contenido"] or {}).get("estado_secciones") or [] if s["estado"] == "BLOQUEADA"]
+        if aprobar and bloqueadas:  # RF-92 Restricción 6 (TC-M06-G67)
+            raise BusinessRuleError(code="INFORME_SECCIONES_BLOQUEADAS", message=(
+                "No se puede aprobar el informe: " + "; ".join(
+                    f"la sección «{s['titulo']}» está bloqueada ({s['fuente']}: {s['motivo']})" for s in bloqueadas)
+                + ". Corrija el origen y genere una nueva versión."))
         try:
             if aprobar:
                 self.reportes.aprobar_informe(id_informe, id_usuario)

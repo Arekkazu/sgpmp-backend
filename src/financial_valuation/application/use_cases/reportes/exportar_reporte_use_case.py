@@ -5,6 +5,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: el estado descargado desglosa el mantenimiento por tipo |
 # | 2026-11-10 | Arekkazu | TC-DIS-246/259/264 RF-87/92/93: descargas con montos, fechas, signo y Ganancia/Pérdida en palabras |
 # | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-93: cada activo excluido con su causa en palabras y el resultado que quedó fuera |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: los títulos de las secciones salen del constructor y el estado por sección no se imprime |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -16,6 +17,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
+from src.financial_valuation.application.services.reportes import SECCIONES_INFORME
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
 from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO, ETIQUETA_SUBTIPO
@@ -49,19 +51,6 @@ _GASTOS = {"perdida_transformacion_biologica", "perdida_precio_mercado", "perdid
            "inversiones_llevadas_a_gasto", "bajas_activos", "depreciacion_activos_costo", "deterioro_activos_costo",
            "perdida_ajustes_periodos_anteriores"}
 # Secciones del informe de revelaciones en el orden de la norma (¶40-56 y NIIF 13 ¶93).
-SECCIONES_INFORME = {
-    "parr_41_43_descripcion": "Descripción de los grupos de activos (¶41-43)",
-    "parr_40_ganancias_perdidas": "Ganancia o pérdida del período (¶40)",
-    "parr_51_separacion_precio_transformacion": "Separación entre precio y transformación biológica (¶51)",
-    "parr_50_conciliacion": "Conciliación del valor en libros (¶50)",
-    "niif13_93_metodos_y_supuestos": "Técnicas y datos de medición (NIIF 13 ¶93)",
-    "niif13_93_precios_referencia": "Precios de referencia utilizados (NIIF 13 ¶93)",
-    "parr_49_restricciones_compromisos": "Restricciones, garantías y compromisos (¶49)",
-    "parr_53_riesgos": "Riesgos climáticos, sanitarios y otros (¶53)",
-    "parr_54_56_activos_al_costo": "Activos medidos al costo (¶54-56)",
-    "exclusiones_cierre": "Activos excluidos del cierre",
-    "alertas_consistencia": "Alertas de consistencia",
-}
 _OCULTOS_INFORME = {"id_activo_biologico", "id_precio_mercado", "json_metodo_costo"}
 _CAMPOS_INFORME = {
     "especie": "Especie",
@@ -253,7 +242,9 @@ class ExportarReporteUseCase:
         if informe["estado"] not in ("APROBADO", "ARCHIVADO"):  # R2 / CA-6
             raise BusinessRuleError(code="INFORME_NO_APROBADO", message="Solo se descargan informes aprobados.")
         contenido = informe["contenido"] or {}
-        orden = [k for k in SECCIONES_INFORME if k in contenido] + [k for k in contenido if k not in SECCIONES_INFORME]
+        # El estado por sección (RF-92 R6) es control de la aprobación, no una revelación: no se imprime.
+        orden = [k for k in SECCIONES_INFORME if k in contenido] + [k for k in contenido
+                                                                     if k not in SECCIONES_INFORME and k != "estado_secciones"]
         filas = []
         for seccion in orden:
             titulo, valor = SECCIONES_INFORME.get(seccion, _rotulo(seccion)), contenido[seccion]

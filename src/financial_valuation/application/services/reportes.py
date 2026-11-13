@@ -5,6 +5,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: los activos excluidos del cierre salen de todos los componentes y los montos van con 4 decimales |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: la conciliación suma los ingresos de individuos sin costo y omite los activos dados de baja antes |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección (COMPLETA, ADVERTENCIA o BLOQUEADA) con su fuente y motivo |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -23,6 +24,47 @@ from src.financial_valuation.domain.services.consolidacion import (
 from src.financial_valuation.domain.services.nic41 import CERO, hash_sha256, q4
 
 ETIQUETAS_PERIODO = {"MENSUAL": "M", "TRIMESTRAL": "Q", "ANUAL": "A"}
+
+SECCIONES_INFORME = {
+    "parr_41_43_descripcion": "Descripción de los grupos de activos (¶41-43)",
+    "parr_40_ganancias_perdidas": "Ganancia o pérdida del período (¶40)",
+    "parr_51_separacion_precio_transformacion": "Separación entre precio y transformación biológica (¶51)",
+    "parr_50_conciliacion": "Conciliación del valor en libros (¶50)",
+    "niif13_93_metodos_y_supuestos": "Técnicas y datos de medición (NIIF 13 ¶93)",
+    "niif13_93_precios_referencia": "Precios de referencia utilizados (NIIF 13 ¶93)",
+    "parr_49_restricciones_compromisos": "Restricciones, garantías y compromisos (¶49)",
+    "parr_53_riesgos": "Riesgos climáticos, sanitarios y otros (¶53)",
+    "parr_54_56_activos_al_costo": "Activos medidos al costo (¶54-56)",
+    "exclusiones_cierre": "Activos excluidos del cierre",
+    "alertas_consistencia": "Alertas de consistencia",
+}
+
+# RF-92 Restricción 6: si una fuente impide completar una sección obligatoria, la sección queda BLOQUEADA y el
+# informe no se aprueba; en una voluntaria (NIC 41 ¶51 y ¶53 se recomiendan, no se exigen) es una ADVERTENCIA.
+# Una inconsistencia que el Contador puede justificar (FA-2) es ADVERTENCIA aun en una obligatoria.
+FUENTES_SECCION = {
+    "parr_41_43_descripcion": (True, "Reconocimiento inicial de los activos"),
+    "parr_40_ganancias_perdidas": (True, "Estado de resultados del período"),
+    "parr_51_separacion_precio_transformacion": (False, "Mediciones del valor razonable"),
+    "parr_50_conciliacion": (True, "Cierre del período"),
+    "niif13_93_metodos_y_supuestos": (True, "Mediciones del valor razonable"),
+    "niif13_93_precios_referencia": (True, "Precios de mercado"),
+    "parr_49_restricciones_compromisos": (True, "Revelaciones ingresadas por el Contador"),
+    "parr_53_riesgos": (False, "Eventos sanitarios y bajas de los activos"),
+    "parr_54_56_activos_al_costo": (True, "Valoración por costo"),
+}
+
+
+def estado_secciones(problemas: dict[str, list[tuple[bool, str]]]) -> list[dict]:
+    """Estado de cada sección: ``problemas`` = sección -> [(impide completarla, motivo legible)]."""
+    estados = []
+    for clave, (obligatoria, fuente) in FUENTES_SECCION.items():
+        lista = problemas.get(clave) or []
+        estado = ("BLOQUEADA" if obligatoria and any(critico for critico, _ in lista)
+                  else "ADVERTENCIA" if lista else "COMPLETA")
+        estados.append({"seccion": clave, "titulo": SECCIONES_INFORME[clave], "obligatoria": obligatoria,
+                        "estado": estado, "fuente": fuente, "motivo": "; ".join(m for _, m in lista) or None})
+    return estados
 
 
 class ConstructorEstadoResultados:
@@ -100,6 +142,7 @@ class ConstructorInformeRevelaciones:
         for i in d.get("ingresos") or []:
             ingresos[i["id_activo_biologico"]]["compra" if i["tipo_ingreso"] == "compra" else "otros"] += Decimal(i["valor"] or 0)
         rollforward, alertas, activos = [], [], []
+        problemas: dict[str, list[tuple[bool, str]]] = defaultdict(list)  # RF-92 R6 (TC-M06-G67)
         for a in d["activos"]:
             mov = mov_activo.get(a["id_activo_biologico"], {})
             ingreso = ingresos.get(a["id_activo_biologico"], {"compra": CERO, "otros": CERO})
@@ -121,9 +164,18 @@ class ConstructorInformeRevelaciones:
             if not (inicio or cierre or compras or mov):  # dado de baja antes del período: nada que conciliar
                 continue
             activos.append(a)
-            if not es_costo and abs(calculado - cierre) > 1:
+            if es_costo and not a["vida_util_meses"]:
+                problemas["parr_54_56_activos_al_costo"].append((True, (
+                    f"El activo {a['identificador']} valorado por costo no tiene vida útil registrada; "
+                    "no se puede revelar su depreciación.")))
+            if not es_costo and a["valor_cierre"] is None:
+                problemas["parr_50_conciliacion"].append((True, (
+                    f"El activo {a['identificador']} no tiene un valor razonable calculado al cierre del período.")))
+            elif not es_costo and abs(calculado - cierre) > 1:
                 alertas.append({"campo": "rollforward", "id_activo_biologico": a["id_activo_biologico"],
                                 "detalle": f"Conciliación {calculado:.2f} vs valor al cierre {cierre:.2f}"})
+                problemas["parr_50_conciliacion"].append((False, (
+                    f"La conciliación del activo {a['identificador']} da {calculado:.2f} y su valor al cierre es {cierre:.2f}.")))
             rollforward.append({"id_activo_biologico": a["id_activo_biologico"], "identificador": a["identificador"],
                                 "especie": a["especie"], "valor_inicio": inicio, "compras": compras,
                                 "nacimientos_y_otros_ingresos": nacimientos + diferencia,
@@ -140,6 +192,13 @@ class ConstructorInformeRevelaciones:
         total_reconocimiento = sum((r["nacimientos_y_otros_ingresos"] for r in rollforward), CERO)
         if d["resultado_neto_estado"] is None:
             alertas.append({"campo": "estado_resultados", "detalle": "El estado de resultados del período no está generado."})
+            problemas["parr_40_ganancias_perdidas"].append((False, "El estado de resultados del período no está generado."))
+        if (total_tb or total_pm) and not d["supuestos"]:
+            problemas["niif13_93_metodos_y_supuestos"].append((True, (
+                "Hay variaciones de valor razonable en el período sin los datos de su medición.")))
+        if d["supuestos"] and not d["precios"]:
+            problemas["niif13_93_precios_referencia"].append((True, (
+                "Las mediciones del período no tienen el precio de mercado que usaron.")))
         a_costo = [a for a in activos if a["valor_contable_por_costo"] is not None]
         contenido = {
             "parr_41_43_descripcion": [{"especie": k, "cantidad_activos": v["cantidad_activos"],
@@ -167,6 +226,7 @@ class ConstructorInformeRevelaciones:
             "parr_53_riesgos": d["riesgos"],
             "exclusiones_cierre": (d["cierre"] or {}).get("activos_excluidos") or [],
         }
+        contenido["estado_secciones"] = estado_secciones(problemas)
         return {"contenido": contenido, "supuestos": d["supuestos"], "costo": contenido["parr_54_56_activos_al_costo"],
                 "riesgos": d["riesgos"], "alertas_consistencia": alertas, "periodo": periodo}
 
@@ -184,4 +244,5 @@ class ConstructorInformeRevelaciones:
             "p": id_periodo_contable, "version": version, "contenido": contenido, "supuestos": informe["supuestos"],
             "costo": informe["costo"], "riesgos": informe["riesgos"], "u": id_usuario, "hash": hash_sha256(contenido),
         })
-        return {"id_informe": id_informe, "version_informe": version, "alertas_consistencia": informe["alertas_consistencia"]}
+        return {"id_informe": id_informe, "version_informe": version, "alertas_consistencia": informe["alertas_consistencia"],
+                "estado_secciones": contenido["estado_secciones"]}
