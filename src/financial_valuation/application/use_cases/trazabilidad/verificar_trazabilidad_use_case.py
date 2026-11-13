@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-91: verificación de la cadena de trazabilidad de las líneas de asiento |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-288-G32 RF-91: una cadena de período cerrado no aborta la verificación |
+# | 2026-11-13 | Leandro | TC-M06-G52 RF-91: reevaluar cadenas antiguas y auditar fuentes indisponibles. |
 """Caso de uso RF-91: verifica cada línea (CADENA_COMPLETA → VERIFICADO; si falta un eslabón →
 PENDIENTE_TRAZABILIDAD). La re-verificación de una línea pendiente la lleva a VERIFICADO cuando el
 eslabón se resolvió (FA-4). Las líneas de períodos cerrados no se tocan (R4).
@@ -19,7 +20,7 @@ from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.asiento_repository import AsientoRepository
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
 from src.financial_valuation.domain.repositories.trazabilidad_repository import TrazabilidadRepository
-from src.financial_valuation.domain.services.trazabilidad import verificar_cadena
+from src.financial_valuation.domain.services.trazabilidad import AUDITORIAS_REQUERIDAS, verificar_cadena
 from src.financial_valuation.domain.value_objects.nic41 import Severidad
 from src.shared.errors import AppError, BusinessRuleError
 
@@ -38,11 +39,17 @@ class VerificadorTrazabilidad:
         self.trazabilidad = trazabilidad
         self.auditoria = auditoria
 
+    @staticmethod
+    def _ya_verificada(linea: LineaAsiento) -> bool:
+        # Las verificaciones previas a G52 no certificaban las auditorías fuente.
+        return ((linea.extra or {}).get("estado_trazabilidad") == "VERIFICADO"
+                and linea.tipo_evidencia not in AUDITORIAS_REQUERIDAS)
+
     def evaluar(self, lineas: list[LineaAsiento]) -> list[dict]:
         """Simulación sin escribir: líneas que quedarían PENDIENTE_TRAZABILIDAD (prevalidación del cierre)."""
         pendientes = []
         for linea in lineas:
-            if (linea.extra or {}).get("estado_trazabilidad") == "VERIFICADO":
+            if self._ya_verificada(linea):
                 continue
             estado, faltantes, nivel = verificar_cadena(linea.tipo_evidencia, self.trazabilidad.eslabones(linea))
             if estado != "VERIFICADO":
@@ -52,9 +59,11 @@ class VerificadorTrazabilidad:
         return pendientes
 
     def verificar(self, lineas: list[LineaAsiento], id_usuario: Optional[int]) -> dict[str, list[dict]]:
-        resultado: dict[str, list[dict]] = {"VERIFICADO": [], "PENDIENTE_TRAZABILIDAD": []}
+        resultado: dict[str, list[dict]] = {
+            "VERIFICADO": [], "PENDIENTE_TRAZABILIDAD": [], "VERIFICACION_PENDIENTE": [],
+        }
         for linea in lineas:
-            if (linea.extra or {}).get("estado_trazabilidad") == "VERIFICADO":
+            if self._ya_verificada(linea):
                 resultado["VERIFICADO"].append({"id_linea": linea.id_linea_asiento_nic41})
                 continue
             eslabones = self.trazabilidad.eslabones(linea)
@@ -71,7 +80,9 @@ class VerificadorTrazabilidad:
             self.auditoria.registrar(EventoAuditoria(
                 tipo_evento="CADENA_TRAZABILIDAD_VERIFICADA",
                 severidad=(Severidad.INFO if estado == "VERIFICADO" else Severidad.WARNING).value,
-                payload={"resultado": "CADENA_COMPLETA" if estado == "VERIFICADO" else "CADENA_INCOMPLETA",
+                payload={"resultado": {"VERIFICADO": "CADENA_COMPLETA",
+                                       "PENDIENTE_TRAZABILIDAD": "CADENA_INCOMPLETA",
+                                       "VERIFICACION_PENDIENTE": "FUENTE_NO_DISPONIBLE"}[estado],
                          "tipo_evidencia": linea.tipo_evidencia, "faltantes": faltantes, "nivel_fallo": nivel},
                 id_usuario=id_usuario, id_sistema=None if id_usuario else "M06_VERIFICADOR_TRAZABILIDAD",
                 id_activo_biologico=linea.id_activo_biologico, id_periodo_contable=linea.id_periodo_contable,
@@ -116,4 +127,5 @@ class VerificarTrazabilidadUseCase:
         except Exception:
             self.db.rollback()
             raise
-        return {"verificadas": len(resultado["VERIFICADO"]), "pendientes": resultado["PENDIENTE_TRAZABILIDAD"]}
+        return {"verificadas": len(resultado["VERIFICADO"]),
+                "pendientes": resultado["PENDIENTE_TRAZABILIDAD"] + resultado["VERIFICACION_PENDIENTE"]}
