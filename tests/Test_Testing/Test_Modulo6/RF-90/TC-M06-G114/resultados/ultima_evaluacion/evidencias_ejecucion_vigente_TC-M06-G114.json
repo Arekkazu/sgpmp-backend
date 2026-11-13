@@ -1,0 +1,319 @@
+{
+  "caso": "TC-M06-G114",
+  "subcaso": "TC-M06-43",
+  "generado_en": "2026-11-12T20:57:36.475638-05:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:37.272067-05:00",
+      "respuesta": {
+        "ok": true
+      },
+      "escenario": "sesion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_periodo_contable=220",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:37.892722-05:00",
+      "respuesta": {
+        "total": 4,
+        "ids_objetivo_presentes": {
+          "4453": true,
+          "4454": true,
+          "4455": true
+        }
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4453&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:38.389111-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19671,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": {
+              "omitido": true
+            },
+            "id_sistema": null,
+            "id_activo_biologico": 1569,
+            "id_periodo_contable": 220,
+            "id_referencia": 4453,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "150000.0000",
+            "identificador_activo": "QA-M06O-VR-01"
+          }
+        ]
+      },
+      "escenario": "auditoria_tecnico_4453"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4453&formato=LEGIBLE&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:38.913412-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19671,
+            "descripcion_evento": "Costo registrado",
+            "tipo_evento": "COSTO_REGISTRADO",
+            "fecha_hora": "2026-11-13T01:28:54.109380Z",
+            "actor": "Contador Financiero",
+            "activo": "QA-M06O-VR-01",
+            "id_periodo_contable": 220,
+            "resumen_payload": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "monto_afectado": "150000.0000",
+            "severidad": "INFO",
+            "integridad_verificable": true,
+            "hash_integridad": {
+              "omitido": true
+            },
+            "informacion_adicional_truncada": false,
+            "origen": "Repositorio central"
+          }
+        ]
+      },
+      "escenario": "auditoria_legible_4453"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4454&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:39.391634-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19672,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": {
+              "omitido": true
+            },
+            "id_sistema": null,
+            "id_activo_biologico": 1570,
+            "id_periodo_contable": 220,
+            "id_referencia": 4454,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "300000.0000",
+            "identificador_activo": "QA-M06O-VR-02"
+          }
+        ]
+      },
+      "escenario": "auditoria_tecnico_4454"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4454&formato=LEGIBLE&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:39.937470-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19672,
+            "descripcion_evento": "Costo registrado",
+            "tipo_evento": "COSTO_REGISTRADO",
+            "fecha_hora": "2026-11-13T01:28:54.109380Z",
+            "actor": "Contador Financiero",
+            "activo": "QA-M06O-VR-02",
+            "id_periodo_contable": 220,
+            "resumen_payload": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "monto_afectado": "300000.0000",
+            "severidad": "INFO",
+            "integridad_verificable": true,
+            "hash_integridad": {
+              "omitido": true
+            },
+            "informacion_adicional_truncada": false,
+            "origen": "Repositorio central"
+          }
+        ]
+      },
+      "escenario": "auditoria_legible_4454"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4455&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:40.446584-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19673,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": {
+              "omitido": true
+            },
+            "id_sistema": null,
+            "id_activo_biologico": 1571,
+            "id_periodo_contable": 220,
+            "id_referencia": 4455,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "450000.0000",
+            "identificador_activo": "QA-M06O-VR-03"
+          }
+        ]
+      },
+      "escenario": "auditoria_tecnico_4455"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4455&formato=LEGIBLE&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:40.845805-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19673,
+            "descripcion_evento": "Costo registrado",
+            "tipo_evento": "COSTO_REGISTRADO",
+            "fecha_hora": "2026-11-13T01:28:54.109380Z",
+            "actor": "Contador Financiero",
+            "activo": "QA-M06O-VR-03",
+            "id_periodo_contable": 220,
+            "resumen_payload": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "monto_afectado": "450000.0000",
+            "severidad": "INFO",
+            "integridad_verificable": true,
+            "hash_integridad": {
+              "omitido": true
+            },
+            "informacion_adicional_truncada": false,
+            "origen": "Repositorio central"
+          }
+        ]
+      },
+      "escenario": "auditoria_legible_4455"
+    }
+  ]
+}
