@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-08 | Arekkazu | INC-M05-259-G07 / INC-M05-264-G31: reintentos del batch ICA y del costeo directo |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-74/80: el cálculo automático va firmado por el usuario de servicio |
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: verificar que finalizar conserva el corte manual y no repite su aviso. |
 """Reintentos de M05 sin base de datos.
 
 - INC-M05-259-G07 (RF-74 E5): un error de BD traducido a 500 es fallo técnico (se reintenta y queda
@@ -9,6 +10,7 @@
 - INC-M05-264-G31 (RF-78 Restricción 9): intento inicial + 3 reintentos con esperas de 1, 3 y 5 s."""
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
@@ -33,7 +35,7 @@ def _batch(calculo, alertas: list, ejecucion: EjecucionBatchICA | None = None) -
     uc.construir_calculo = lambda db: calculo
     uc.construir_fallo_repo = lambda db: SimpleNamespace(registrar=lambda fallo: alertas.append(("fallo", fallo)))
     uc.notificador = SimpleNamespace(a_permiso=lambda *a: alertas.append(("aviso", a)))
-    uc.ejecucion_repo = SimpleNamespace(obtener=lambda _id: ejecucion, guardar=lambda e: e)
+    uc.ejecucion_repo = SimpleNamespace(obtener=lambda _id, **_: ejecucion, guardar=lambda e: e)
     return uc
 
 
@@ -95,6 +97,57 @@ def test_finalizar_conserva_los_encolados_por_limite_y_avisa_los_fallos():
     assert (final.estado.value, final.cantidad_fallidos, final.cantidad_activos_pendientes) == ("COMPLETADO", 1, 1)
     [(_, (_recurso, _accion, _tipo, mensaje, detalle))] = avisos
     assert "1 activo(s)" in mensaje and detalle["fallos"] == [fallo]
+
+
+@pytest.mark.parametrize("corte_manual", [False, True])
+def test_finalizar_solo_avisa_por_ventana_si_realiza_la_transicion(corte_manual):
+    ahora = datetime.now(timezone.utc)
+    corrida = EjecucionBatchICA(
+        tipo_disparo="MANUAL", hora_inicio=ahora, num_workers=1,
+        cantidad_activos_total=3, id_ejecucion=9,
+    )
+    if corte_manual:
+        corrida.interrumpir(causa="MANUAL", hora_corte=ahora, id_usuario=137, motivo="Revisión")
+    avisos = []
+
+    final = _batch(None, avisos, corrida)._finalizar(
+        9, procesados=1, fallos=[], interrumpido=True, en_cola_por_limite=2,
+    )
+
+    assert final.estado.value == "INTERRUMPIDO"
+    assert final.cantidad_activos_procesados == 1
+    assert final.cantidad_activos_pendientes == 4
+    if corte_manual:
+        assert (final.causa_interrupcion, final.motivo_interrupcion, final.hora_corte) == (
+            "MANUAL", "Revisión", ahora,
+        )
+        assert avisos == []
+    else:
+        assert final.causa_interrupcion == "VENTANA_EXCEDIDA"
+        assert len(avisos) == 1
+
+
+def test_worker_encola_los_activos_restantes_despues_del_corte_manual():
+    corrida = EjecucionBatchICA(
+        tipo_disparo="MANUAL", hora_inicio=datetime.now(timezone.utc), num_workers=1,
+        cantidad_activos_total=3, id_ejecucion=9,
+    )
+    uc = _batch(None, [], corrida)
+    procesados, encolados = [], []
+    uc._esta_interrumpido = lambda _: bool(procesados)
+
+    def procesar(activo, *_):
+        procesados.append(activo)
+
+    uc._procesar_activo = procesar
+    uc._encolar_pendiente = lambda trabajo, motivo: encolados.append((trabajo.id_activo, motivo.value))
+    trabajos = [batch._Trabajo(id_activo, 100, None) for id_activo in (1, 2, 3)]
+
+    resultado = asyncio.run(uc._procesar(trabajos, SimpleNamespace(ventana_horas=1), corrida, 1))
+
+    assert resultado == (1, [], False)
+    assert procesados == [1]
+    assert encolados == [(2, "INTERRUMPIDO"), (3, "INTERRUMPIDO")]
 
 
 def test_costeo_directo_hace_tres_reintentos_con_esperas_de_1_3_y_5_segundos(monkeypatch):
