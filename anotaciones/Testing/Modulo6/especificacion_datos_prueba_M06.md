@@ -4,7 +4,7 @@
 |---|---|
 | Para | Responsable de insertar datos en TEST |
 | Ambiente | `https://api.inmero.co/api-sgpmp-test` |
-| Pruebas que lo usan | `tests/Test_Testing/Test_Modulo6/RF-91/TC-M06-G01…G12` y `RF-92/TC-M06-G01…G12` |
+| Pruebas que lo usan | `tests/Test_Testing/Test_Modulo6/RF-91/TC-M06-G47…G58` y `RF-92/TC-M06-G59…G70` |
 | Fecha | 2026-11-07 |
 
 ## Por qué hace falta
@@ -108,11 +108,11 @@ Si las lecturas no se pueden crear por API, se insertan en `modulo3.telemetrias`
 | Lectura posterior al evento | Lectura apta con `timestamp_captura` **1 día después** del evento. | TC-91-024 |
 | Evento posterior a la variación | Evento con fecha posterior a la variación de valor razonable que lo usa. | TC-91-025 |
 
-Si alguno no se puede preparar sin romper la integridad de la base, avisen y se marca como bloqueado.
+Si alguno no se puede preparar sin romper la integridad de la base, avisen y se acuerda otra forma de prepararlo; el caso no se reporta como bloqueado por falta de datos.
 
 ### 4.4 No verificar el período
 
-**No ejecuten la verificación de trazabilidad del período** («Verificar trazabilidad» o `POST /finanzas/periodos/{id}/trazabilidad`): esa es justamente la prueba de QA (G01 y G07). Dejen las líneas en VERIFICACION_PENDIENTE.
+**No ejecuten la verificación de trazabilidad del período** («Verificar trazabilidad» o `POST /finanzas/periodos/{id}/trazabilidad`): esa es justamente la prueba de QA (RF-91 TC-M06-G47 y TC-M06-G53). Dejen las líneas en VERIFICACION_PENDIENTE.
 
 ## 5. RF-92 — Período CERRADO con informes de revelaciones
 
@@ -153,7 +153,7 @@ EN_CIERRE es un estado de paso que dura lo que dura el cierre, así que no se pu
 
 - Creen **otro** período del titular QA-M06 (no usen los de las secciones 4 y 5) y pongan `estado = 'EN_CIERRE'` en `modulo6.periodos_contables`.
 - Sirve para TC-91-044 y TC-92-038: verificar o generar el informe sobre ese período debe responder 422.
-- Si no se acepta, avisen y esos dos casos se marcan como bloqueados.
+- Si no se acepta, avisen y se acuerda otra forma de prepararlos; no se reportan como bloqueados por falta de datos.
 
 ## 7. Sandbox con rollback
 

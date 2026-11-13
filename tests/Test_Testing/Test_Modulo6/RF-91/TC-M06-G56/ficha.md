@@ -33,7 +33,7 @@ Fuente: `RF-91_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-10 (TC-
 
 ### TC-91-054 — Intentar re-verificar un asiento perteneciente a un período ya cerrado
 - **Tipo:** Negativo / integridad · **Prioridad:** Alta · **Ejecutable:** Sí, si TEST tiene un período CERRADO.
-- **Pasos:** «TC-91-054 Re-verificar periodo CERRADO -> 422»; «TC-91-054 Cerrar de nuevo un periodo CERRADO -> 409».
+- **Pasos:** «TC-91-054 Re-verificar periodo CERRADO -> 422»; «TC-91-054 Cerrar de nuevo un periodo CERRADO con fecha_cierre -> 409»; «TC-91-054 Cerrar de nuevo un periodo CERRADO SIN fecha_cierre -> 409 (INC-M06-054-G56)».
 - **Esperado (matriz):** rechazo.
 
 ### TC-91-055 — Ejecutar UPDATE directo sobre la cadena con el usuario de base de datos de la aplicación
@@ -46,5 +46,5 @@ Fuente: `RF-91_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-10 (TC-
 - Reporte: `resultados/resultado_TC-M06-G56.html`
 - Aserciones: pendiente (sin ejecutar en TEST)
 - Roles: Administrador, Contador, Productor, Veterinario, Revisor Fiscal, Externo AgroFusion (auditor externo).
-- Sin escritura en TEST.
+- Las peticiones marcadas **[escritura]** crean o cambian datos: corren **dentro del sandbox transaccional de TEST** (cabecera X-Test-Run-Id) y al final se revierten con DELETE /test-control/runs/{id}. Requieren `--env-var permitir_escritura=SI` y `--env-var sandbox_secret=...` (secreto que da el DBA); la colección comprueba que el sandbox esté activo y, si no, omite esas peticiones.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.

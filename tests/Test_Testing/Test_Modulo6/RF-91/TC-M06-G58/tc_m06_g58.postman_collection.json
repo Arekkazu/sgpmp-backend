@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M06-G58 - RF-91 Rendimiento y retención (RNF-91-01 a RNF-91-04)",
-    "description": "RF-91 TCG-12 (TC-91-064 a TC-91-068), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
+    "description": "RF-91 TC-M06-G58 (TC-91-064 a TC-91-068), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -10,7 +10,9 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));",
+          "if (!pm.collectionVariables.get('run_sandbox')) pm.collectionVariables.set('run_sandbox', 'qa-m06-rf91g58-' + Date.now());",
+          "if (pm.variables.get('permitir_escritura') === 'SI' && pm.variables.get('sandbox_secret') && !/^(Login|Descubrir periodos|Cerrar sandbox)/.test(pm.info.requestName)) { pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_sandbox') }); pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') }); }"
         ]
       }
     }
@@ -68,15 +70,85 @@
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
               "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
               "const arr = Array.isArray(j) ? j : [];",
-              "const de = (e) => arr.filter(x => x.estado === e).map(x => String(x.id_periodo_contable));",
-              "// Si QA indica el período con --env-var periodo_abierto_qa / periodo_cerrado_qa / periodo_en_cierre_qa, se usa ese en vez del primero que aparezca.",
+              "const de = (e) => arr.filter(x => x.estado === e);",
+              "const ids = (e) => de(e).map(x => String(x.id_periodo_contable));",
               "const qa = (k) => String(pm.environment.get(k) || '');",
-              "pm.collectionVariables.set('id_abierto', qa('periodo_abierto_qa') || de('ABIERTO')[0] || '');",
-              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || de('EN_CIERRE')[0] || '');",
-              "pm.collectionVariables.set('id_cerrado', qa('periodo_cerrado_qa') || de('CERRADO')[0] || '');",
-              "pm.collectionVariables.set('cerrados', JSON.stringify(de('CERRADO')));",
-              "pm.collectionVariables.set('id_periodo_lineas', pm.collectionVariables.get('id_abierto') || pm.collectionVariables.get('id_cerrado') || '');",
-              "console.log('PERIODOS', JSON.stringify({ total: arr.length, abiertos: de('ABIERTO'), en_cierre: de('EN_CIERRE'), cerrados: de('CERRADO') }));",
+              "pm.collectionVariables.set('cerrados', JSON.stringify(ids('CERRADO')));",
+              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || ids('EN_CIERRE')[0] || '');",
+              "// CERRADO con y sin fecha_cierre: el segundo reproduce INC-M06-054-G56.",
+              "pm.collectionVariables.set('id_cerrado_sin_fecha', de('CERRADO').filter(x => !x.fecha_cierre).map(x => String(x.id_periodo_contable))[0] || '');",
+              "pm.collectionVariables.set('id_cerrado_con_fecha', de('CERRADO').filter(x => x.fecha_cierre).map(x => String(x.id_periodo_contable))[0] || '');",
+              "// Cuenta las lineas de asiento de cada periodo ABIERTO o CERRADO y usa el que tenga mas (o el que indique QA con --env-var).",
+              "const cand = arr.filter(x => ['ABIERTO', 'CERRADO'].includes(x.estado)).map(x => String(x.id_periodo_contable));",
+              "const cuenta = {}; let pend = cand.length;",
+              "const fin = () => {",
+              "  const mas = (lista) => lista.slice().sort((a, b) => (cuenta[b] || 0) - (cuenta[a] || 0) || Number(b) - Number(a))[0] || '';",
+              "  const ab = qa('periodo_abierto_qa') || mas(ids('ABIERTO'));",
+              "  const ce = qa('periodo_cerrado_qa') || mas(ids('CERRADO'));",
+              "  pm.collectionVariables.set('id_abierto', ab);",
+              "  pm.collectionVariables.set('id_cerrado', ce);",
+              "  pm.collectionVariables.set('abiertos_con_lineas', JSON.stringify(ids('ABIERTO').filter(id => id !== ab && (cuenta[id] || 0) > 0)));",
+              "  pm.collectionVariables.set('periodos_lineas', JSON.stringify(cand.filter(id => (cuenta[id] || 0) > 0).sort((a, b) => (cuenta[b] || 0) - (cuenta[a] || 0))));",
+              "  pm.collectionVariables.set('id_periodo_lineas', mas(cand) && (cuenta[mas(cand)] || 0) > 0 ? mas(cand) : (ab || ce));",
+              "  pm.test('Descubrimiento: lineas por periodo ' + JSON.stringify(cuenta) + ' | ms por consulta ' + JSON.stringify(tiempos) + ' | tipo:estado ' + JSON.stringify(tipos) + ' | POR PERIODO ' + JSON.stringify(porPeriodo) + ' | abierto=' + ab + ' cerrado=' + ce + ' en_cierre=' + (pm.collectionVariables.get('id_en_cierre') || '-') + ' | CERRADO sin fecha_cierre=' + (pm.collectionVariables.get('id_cerrado_sin_fecha') || '-'), () => {});",
+              "};",
+              "if (!pend) fin();",
+              "// Secuencial (una consulta a la vez) y con el tiempo de cada una: evita saturar el servidor y deja evidencia si alguna tarda.",
+              "const tiempos = {}; const tipos = {}; const porPeriodo = {};",
+              "const siguiente = (k) => {",
+              "  if (k >= cand.length) { return fin(); }",
+              "  const id = cand[k];",
+              "  pm.sendRequest({ url: pm.variables.get('base_url') + '/finanzas/lineas?id_periodo_contable=' + id, method: 'GET',",
+              "    header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') } }, (e, r) => {",
+              "    let l = []; try { l = r.json(); } catch (x) {}",
+              "    cuenta[id] = Array.isArray(l) ? l.length : 0; tiempos[id] = r ? r.responseTime : -1; (Array.isArray(l) ? l : []).forEach(x => { const kt = x.tipo_evidencia + ':' + x.estado_trazabilidad; tipos[kt] = (tipos[kt] || 0) + 1; porPeriodo[id] = porPeriodo[id] || {}; porPeriodo[id][kt] = (porPeriodo[id][kt] || 0) + 1; });",
+              "    siguiente(k + 1); });",
+              "};",
+              "if (!cand.length) { fin(); } else { siguiente(0); }",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Comprobar sandbox con rollback (X-Test-Run-Id)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const eco = pm.response.headers.get('X-Test-Run-Id');",
+              "const ok = pm.variables.get('permitir_escritura') === 'SI' && !!pm.variables.get('sandbox_secret') && !!eco && eco === pm.collectionVariables.get('run_sandbox');",
+              "pm.collectionVariables.set('sandbox_activo', ok ? 'SI' : '');",
+              "pm.test('Sandbox con rollback: ' + (ok ? 'ACTIVO (las peticiones [escritura] corren en una transaccion que se revierte)' : 'NO ACTIVO (las peticiones [escritura] se omiten)'), () => {});",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]
@@ -184,7 +256,7 @@
               "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
               "const t = [pm.response.responseTime]; let pend = 9;",
               "for (let i = 0; i < 9; i++) pm.sendRequest({ url: pm.variables.get('base_url') + '/finanzas/lineas/' + pm.collectionVariables.get('linea_medir') + '/cadena', method: 'GET',",
-              "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') } }, (e, r) => { t.push(r ? r.responseTime : 99999);",
+              "  header: (function () { var h = { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') }; if (pm.collectionVariables.get('sandbox_activo') === 'SI') { h['X-Test-Run-Id'] = pm.collectionVariables.get('run_sandbox'); h['X-Sandbox-Secret'] = pm.variables.get('sandbox_secret'); } return h; })() }, (e, r) => { t.push(r ? r.responseTime : 99999);",
               "  if (--pend === 0) { t.sort((a, b) => a - b); console.log('TIEMPOS_MS', JSON.stringify(t)); pm.test(\"percentil 90 <= 2000 ms (\" + t[8] + \" ms)\", () => pm.expect(t[8]).to.be.at.most(2000)); } });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
@@ -227,7 +299,7 @@
             "type": "text/javascript",
             "exec": [
               "if (!pm.collectionVariables.get('id_abierto')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo ABIERTO'); pm.execution.skipRequest(); }",
-              "if (pm.variables.get('permitir_escritura') !== 'SI') { console.log('ESCRITURA NO AUTORIZADA: ejecutar con --env-var permitir_escritura=SI'); pm.execution.skipRequest(); }"
+              "if (pm.collectionVariables.get('sandbox_activo') !== 'SI') { console.log('ESCRITURA OMITIDA: requiere --env-var permitir_escritura=SI, --env-var sandbox_secret=... y el sandbox activo en TEST'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -271,6 +343,61 @@
           ]
         }
       }
+    },
+    {
+      "name": "Cerrar sandbox (rollback)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('sandbox_activo') !== 'SI') { console.log('SANDBOX NO ACTIVO: nada que revertir'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.test(\"Rollback exitoso\", () => { pm.expect(j.status).to.eql('Rollback exitoso'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/test-control/runs/{{run_sandbox}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test-control",
+            "runs",
+            "{{run_sandbox}}"
+          ]
+        }
+      }
     }
   ],
   "variable": [
@@ -281,6 +408,18 @@
     {
       "key": "permitir_escritura",
       "value": "NO"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "sandbox_activo",
+      "value": ""
+    },
+    {
+      "key": "run_sandbox",
+      "value": ""
     },
     {
       "key": "tok_cont",
