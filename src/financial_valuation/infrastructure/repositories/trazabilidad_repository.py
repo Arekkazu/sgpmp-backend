@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-91: eslabones de la cadena telemetría → evento → valoración → línea |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-288-G32 RF-91: una cadena de período cerrado no aborta la verificación |
+# | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 """Implementación SQL de :class:`TrazabilidadRepository`.
 
 Nivel 1 (IoT): lecturas del dispositivo del activo marcadas ``apto_para_nic41`` en RF-62, en las
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.contabilidad import LineaAsiento
 from src.financial_valuation.domain.repositories.trazabilidad_repository import TrazabilidadRepository
 from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila
+from src.shared.database import como_sistema
 
 _ORIGENES = {  # tabla de origen -> (PK, columna de evento, columna de precio)
     "variaciones_valor_razonable": ("id_variacion_valor_razonable", "id_evento", "id_precio_mercado"),
@@ -123,6 +125,13 @@ class SqlAlchemyTrazabilidadRepository(TrazabilidadRepository):
               "p": eslabones.get("ids", {}).get("id_precio_mercado"), "estado": _ESTADO_VERIFICACION.get(nivel, "PENDIENTE"),
               "nivel": nivel, "u": id_usuario, "j": ", ".join(eslabones.get("faltantes", [])) or None, "t": tipo_evidencia,
               "es": a_json(eslabones)})
+
+    def periodo_de_linea(self, id_linea: int) -> Optional[int]:
+        """Período de la línea aunque la RLS se la oculte a quien consulta (RFC-027: 403 y no 404). Solo el id."""
+        with como_sistema(self.db):
+            f = fila(self.db, "SELECT id_periodo_contable FROM modulo6.lineas_asiento_nic41 WHERE id_linea_asiento_nic41 = :id",
+                     {"id": id_linea})
+        return f["id_periodo_contable"] if f else None
 
     def cadena(self, id_linea: int) -> Optional[dict]:
         return fila(self.db, """

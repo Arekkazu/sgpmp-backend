@@ -3,6 +3,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-306-G07 RF-82: RBAC de M06 que audita el rechazo 403 |
 # | 2026-11-10 | Arekkazu | INC-M06-351 RF-87: el 403 auditado también nombra el rol del usuario |
 # | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: variante «alguno de» para lecturas compartidas |
+# | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 """Dependencia RBAC de M06 que registra en RF-94 cada rechazo 403 (RNF-82-05).
 
 La autorización sigue siendo ``require_permission_sobre``; esta capa solo agrega el evento
@@ -11,7 +12,7 @@ o inválido es un 401 de M01 y no llega hasta aquí."""
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Optional
+from typing import NoReturn, Optional
 
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
@@ -45,6 +46,25 @@ def require_alguno_m06(pares: list[tuple[str, int]], *, mensaje_denegado: Option
     return _auditada(require_alguno_sobre(pares, mensaje_denegado=mensaje_denegado), *pares[0])
 
 
+def _auditar(request: Request, db: Session, usuario_actual: UsuarioActual, nombre_recurso: str, id_accion: int,
+             error_code: str) -> None:
+    RegistrarAccesoNoAutorizadoUseCase(db, SqlAlchemyAuditoriaFinancieraRepository(db)).execute(
+        id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol, recurso=nombre_recurso,
+        id_accion=id_accion, error_code=error_code, metodo_http=request.method,
+        ruta=getattr(request.scope.get("route"), "path", request.url.path),
+        id_activo_biologico=_id_de_ruta(request, "id_activo_biologico"),
+        id_periodo_contable=_id_de_ruta(request, "id_periodo_contable"),
+    )
+
+
+def denegar_m06(request: Request, db: Session, usuario_actual: UsuarioActual, nombre_recurso: str, id_accion: int,
+                mensaje: str) -> NoReturn:
+    """403 que decide la ruta y no la matriz (RFC-027: el registro existe, pero su estado no es para este rol);
+    también queda en RF-94."""
+    _auditar(request, db, usuario_actual, nombre_recurso, id_accion, "ACCESO_DENEGADO")
+    raise AuthorizationError(code="ACCESO_DENEGADO", message=mensaje)
+
+
 def _auditada(verificar_permiso: Callable, nombre_recurso: str, id_accion: int) -> Callable:
     def dependency(
         request: Request,
@@ -54,13 +74,7 @@ def _auditada(verificar_permiso: Callable, nombre_recurso: str, id_accion: int) 
         try:
             verificar_permiso(db=db, usuario_actual=usuario_actual)
         except AuthorizationError as exc:
-            RegistrarAccesoNoAutorizadoUseCase(db, SqlAlchemyAuditoriaFinancieraRepository(db)).execute(
-                id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol, recurso=nombre_recurso,
-                id_accion=id_accion, error_code=exc.code, metodo_http=request.method,
-                ruta=getattr(request.scope.get("route"), "path", request.url.path),
-                id_activo_biologico=_id_de_ruta(request, "id_activo_biologico"),
-                id_periodo_contable=_id_de_ruta(request, "id_periodo_contable"),
-            )
+            _auditar(request, db, usuario_actual, nombre_recurso, id_accion, exc.code)
             raise
 
     # Las pruebas lo usan para asegurar que ninguna ruta de M06 quede con RBAC sin auditoría.

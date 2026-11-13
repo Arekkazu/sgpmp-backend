@@ -6,6 +6,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: estados e informes solo de los titulares de las fincas de quien consulta |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: excluir_activos en los movimientos del estado de resultados |
+# | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from src.financial_valuation.domain.repositories.reporte_repository import Repor
 from src.financial_valuation.infrastructure.repositories.sql import (
     CONSUMIDO_POR_COSECHA, a_json, alcance_periodo, escribir, fila, filas,
 )
+from src.shared.database import como_sistema
 from src.shared.nombre_activo import nombre_activo_sql
 
 ES_BASE_C = "COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false"
@@ -185,6 +187,13 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                  FROM modulo6.informes_revelacion_nic41 i
                                  LEFT JOIN modulo1.usuarios u ON u.id_usuario = i.id_contador_aprobador
                                  WHERE i.id_informe = :id AND {alcance_periodo('i.id_periodo_contable')}""", {"id": id_informe})
+
+    def periodo_de_informe(self, id_informe: int) -> Optional[int]:
+        """Período del informe aunque la RLS se lo oculte a quien consulta (RFC-027: 403 y no 404). Solo el id."""
+        with como_sistema(self.db):
+            f = fila(self.db, "SELECT id_periodo_contable FROM modulo6.informes_revelacion_nic41 WHERE id_informe = :id",
+                     {"id": id_informe})
+        return f["id_periodo_contable"] if f else None
 
     def aprobar_informe(self, id_informe: int, id_usuario: int) -> None:
         informe = self.obtener_informe(id_informe)
