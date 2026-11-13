@@ -1,0 +1,95 @@
+{
+  "caso": "TC-M06-G115",
+  "subcaso": "TC-M06-45",
+  "fuente": "resultados/primera_evaluacion (evaluación histórica 2026-11-08; valores sin modificación)",
+  "generado_en_fuente": "2026-11-08T16:17:12.835391+00:00",
+  "productor_post": {
+    "http": 403,
+    "code": "ACCESO_DENEGADO",
+    "cuerpo_valido": true
+  },
+  "rol_productor": [
+    {
+      "rol": "Productor",
+      "autenticado": true,
+      "http": 200,
+      "id_usuario": 2,
+      "nombre_rol": "Productor",
+      "estado_cuenta": "Activo",
+      "cotizaciones": {
+        "http": 200,
+        "total_permisos": 58,
+        "cotizaciones": [
+          "leer"
+        ],
+        "puede_crear": false
+      }
+    }
+  ],
+  "escenario": {
+    "subcaso": "TC-M06-45",
+    "estado": "APROBADO",
+    "motivo": "El Productor autenticado recibió 403 ACCESO_DENEGADO. No aumentaron las cotizaciones ni los eventos, y el valor razonable leído no cambió."
+  },
+  "conteos": {
+    "cotizaciones_inicial": 2,
+    "cotizaciones_final": 2,
+    "eventos_inicial": 0,
+    "eventos_final": 0,
+    "valor_razonable_sin_cambio": true
+  },
+  "peticiones_relevantes": [
+    {
+      "metodo": "GET",
+      "consulta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 360,
+      "escritura": false,
+      "en": "2026-11-08T16:17:18.617102+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "id_usuario": 2,
+        "nombre_rol": "Productor",
+        "estado_cuenta": "Activo"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 353,
+      "escritura": false,
+      "en": "2026-11-08T16:17:18.970263+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "total_permisos": 58,
+        "cotizaciones": [
+          "leer"
+        ],
+        "puede_crear": false
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 403,
+      "duracion_ms": 361,
+      "escritura": false,
+      "en": "2026-11-08T16:17:19.331537+00:00",
+      "cuerpo": {
+        "activos_cotizados": [
+          943
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T16:17:18.314732+00:00"
+      }
+    }
+  ]
+}
