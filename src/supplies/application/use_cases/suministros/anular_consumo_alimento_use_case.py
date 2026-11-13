@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError, NotFoundError
-from src.supplies.application.use_cases.exportacion.generador_archivos import fecha_hora
+from src.shared.fechas import en_zona_usuario
 from src.supplies.application.use_cases.costeo_suministros.compensar_anulacion import CompensadorAnulacion
 from src.supplies.domain.entities.consumo_alimento import ConsumoAlimento
 from src.supplies.domain.repositories.consumo_alimento_repository import ConsumoAlimentoRepository
@@ -50,7 +50,7 @@ class AnularConsumoAlimentoUseCase:
 
         if consumo.estado_registro == EstadoRegistro.ANULADO.value:
             desde = (
-                f" desde el {fecha_hora(consumo.fecha_hora_anulacion)}" if consumo.fecha_hora_anulacion else ""
+                f" desde el {en_zona_usuario(consumo.fecha_hora_anulacion):%d/%m/%Y a las %H:%M}" if consumo.fecha_hora_anulacion else ""
             )
             raise ConflictError(
                 code="CONSUMO_YA_ANULADO",

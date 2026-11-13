@@ -23,8 +23,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError, NotFoundError
-from src.shared.fechas import hoy_usuario
-from src.supplies.application.use_cases.exportacion.generador_archivos import fecha_hora
+from src.shared.fechas import en_zona_usuario, hoy_usuario
 from src.supplies.application.use_cases.costeo_suministros.compensar_anulacion import CompensadorAnulacion
 from src.supplies.domain.entities.medicamento import Medicamento
 from src.supplies.domain.repositories.activo_consulta_port import ESTADO_EN_TRATAMIENTO, ActivoConsultaPort
@@ -68,7 +67,8 @@ class AnularMedicamentoUseCase:
             )
 
         if medicamento.estado_registro == EstadoRegistro.ANULADO.value:
-            desde = f" desde el {fecha_hora(medicamento.fecha_hora_anulacion)}" if medicamento.fecha_hora_anulacion else ""
+            desde = (f" desde el {en_zona_usuario(medicamento.fecha_hora_anulacion):%d/%m/%Y a las %H:%M}"
+                     if medicamento.fecha_hora_anulacion else "")
             raise ConflictError(
                 code="MEDICAMENTO_YA_ANULADO",
                 message=(

@@ -81,3 +81,20 @@ def test_excel_con_encabezados_en_la_fila_1_y_hojas_completas():
     assert [c.value for c in datos[2]] == ["Costos de mantenimiento", "Gasto", "−$ 10"]
     assert not datos.merged_cells.ranges
     assert [r[0].value for r in info.iter_rows()] == [titulo, "Versión 2 · Aprobado", "Resultado neto: +$ 5 (Ganancia)"]
+
+
+def test_aviso_de_consumo_ya_anulado_con_hora_local_sin_zona_ni_id():
+    import pytest
+
+    from src.shared.errors import ConflictError
+    from src.supplies.application.use_cases.suministros.anular_consumo_alimento_use_case import (
+        AnularConsumoAlimentoUseCase,
+    )
+
+    anulado = SimpleNamespace(estado_registro="ANULADO", fecha_hora_anulacion=datetime(2026, 11, 11, 13, 30, tzinfo=timezone.utc))
+    uc = AnularConsumoAlimentoUseCase(db=None, consumo_repo=SimpleNamespace(obtener_por_id=lambda _i: anulado), compensador=None)
+    with pytest.raises(ConflictError) as error:
+        uc.execute(4321, SimpleNamespace(justificacion="x" * 25), SimpleNamespace(id_usuario=1))
+    # Sin cabecera X-Zona-Horaria la hora es UTC; lo que importa: fecha legible, sin «UTC», sin id ni estado crudo.
+    assert "desde el 11/11/2026 a las 13:30" in error.value.message
+    assert "UTC" not in error.value.message and "4321" not in error.value.message and "ANULADO" not in error.value.message
