@@ -6,6 +6,7 @@
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: incidente en auditoría cuando el registro falla con 500/503 |
+# | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-76: el detalle del incidente en palabras; el error técnico va al log |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -148,6 +149,11 @@ class RegistrarMedicamentoUseCase:
         if self.auditoria_port is None:
             return
         codigo = exc.code if isinstance(exc, AppError) else type(exc).__name__
+        # El detalle sale en la bitácora y en su Excel/PDF: en palabras; el error técnico va al log.
+        logger.warning("Registro de medicamento del activo %s revertido por fallo técnico %s: %s",
+                       dto.id_activo_biologico, codigo, exc)
+        causa = ("el servicio no estaba disponible" if getattr(exc, "status_code", None) == 503
+                 else "ocurrió un error interno del sistema")
         try:
             self.db.rollback()
             self.auditoria_port.registrar(
@@ -158,9 +164,8 @@ class RegistrarMedicamentoUseCase:
                     resultado="FALLIDO",
                     id_activo_biologico=dto.id_activo_biologico,
                     detalle_causa=(
-                        f"Registro de medicamento revertido por un error técnico: medicamento="
-                        f"{dto.nombre_medicamento}; fecha_aplicacion={dto.fecha_aplicacion.isoformat()}; "
-                        f"periodo_retiro_dias={dto.periodo_retiro_dias}; error={codigo}: {exc}"
+                        f"No se guardó la aplicación de {dto.nombre_medicamento} del {dia(dto.fecha_aplicacion)} "
+                        f"({dto.periodo_retiro_dias} días de retiro) porque {causa}; se revirtió el registro completo."
                     )[:1000],
                     numero_reintentos=0,
                 )

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre         | Que se hizo                                                              |
 # |------------|----------------|--------------------------------------------------------------------------|
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: fin de retiro al Veterinario y fallos en auditoría |
+# | 2026-11-12 | Arekkazu       | Lote M05/M06 11-12 RF-76: el incidente se lee en palabras, sin códigos  |
 """INC-M05-352-G18 (#1072), TC-M05-G18.
 
 Defecto 1 (S1_03): el job diario que devuelve a ACTIVO los animales con el retiro vencido avisaba
@@ -140,7 +141,8 @@ def test_fallo_al_calcular_fin_de_retiro_deja_incidente(cliente, db_session, adm
     assert r.status_code == 500 and r.json()["error_code"] == "ERROR_INTERNO"
     _nada_guardado(db_session, esc)
     [incidente] = _incidentes(db_session, esc["activo"])
-    assert incidente.resultado == "FALLIDO" and "OverflowError" in incidente.detalle_causa
+    assert incidente.resultado == "FALLIDO" and "error interno del sistema" in incidente.detalle_causa
+    assert "OverflowError" not in incidente.detalle_causa  # sin nombres técnicos en la bitácora
 
 
 def test_bd_no_disponible_al_guardar_deja_incidente(cliente, db_session, admin, monkeypatch):
@@ -159,7 +161,8 @@ def test_bd_no_disponible_al_guardar_deja_incidente(cliente, db_session, admin, 
     assert r.status_code == 503, r.text
     _nada_guardado(db_session, esc)
     [incidente] = _incidentes(db_session, esc["activo"])
-    assert incidente.resultado == "FALLIDO" and r.json()["error_code"] in incidente.detalle_causa
+    assert incidente.resultado == "FALLIDO" and "no estaba disponible" in incidente.detalle_causa
+    assert r.json()["error_code"] not in incidente.detalle_causa
 
 
 def test_un_error_de_validacion_no_es_incidente(cliente, db_session, admin):

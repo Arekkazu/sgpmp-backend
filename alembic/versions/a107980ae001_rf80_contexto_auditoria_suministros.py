@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-12 | Leandro | INC-M05-354-G39 RF-80: completar y validar el contexto de emisión antes de sellar la bitácora. |
+# | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-80: campos faltantes con nombres legibles y sin repetir los de la app |
 """RF-80: completar la auditoría DML de M05 y proteger las nuevas emisiones."""
 
 from alembic import op
@@ -89,19 +90,21 @@ def _sellar(*, con_contexto: bool) -> None:
     completar = """
         -- El rechazo por falta de campos base se mantiene en los constraints.
         -- Una emisión ya marcada como incompleta debe aportar su propia causa.
+        -- El detalle sale en la bitácora y en su Excel/PDF: los campos se nombran como los ve el
+        -- usuario, igual que EventoAuditoriaSuministro; si la app ya los listó, no se repiten.
         IF NEW.registro_incompleto IS NOT TRUE OR NULLIF(btrim(NEW.detalle_causa), '') IS NOT NULL THEN
-            IF NEW.id_activo_biologico IS NULL
-               AND strpos(COALESCE(NEW.detalle_causa, ''), 'id_activo_biologico') = 0 THEN
-                v_faltantes := array_append(v_faltantes, 'id_activo_biologico');
-            END IF;
-            IF NEW.id_ciclo_productivo IS NULL
-               AND strpos(COALESCE(NEW.detalle_causa, ''), 'id_ciclo_productivo') = 0 THEN
-                v_faltantes := array_append(v_faltantes, 'id_ciclo_productivo');
+            IF strpos(COALESCE(NEW.detalle_causa, ''), 'Campos faltantes:') = 0 THEN
+                IF NEW.id_activo_biologico IS NULL THEN
+                    v_faltantes := array_append(v_faltantes, 'activo biológico');
+                END IF;
+                IF NEW.id_ciclo_productivo IS NULL THEN
+                    v_faltantes := array_append(v_faltantes, 'ciclo productivo');
+                END IF;
             END IF;
             IF cardinality(v_faltantes) > 0 THEN
                 NEW.detalle_causa := concat_ws(
-                    '. ', NULLIF(btrim(NEW.detalle_causa), ''),
-                    'Campos faltantes: ' || array_to_string(v_faltantes, ', ')
+                    '. ', NULLIF(rtrim(btrim(NEW.detalle_causa), '.'), ''),
+                    'Campos faltantes: ' || array_to_string(v_faltantes, ', ') || '.'
                 );
             END IF;
             IF NEW.id_activo_biologico IS NULL OR NEW.id_ciclo_productivo IS NULL THEN

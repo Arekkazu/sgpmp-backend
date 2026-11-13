@@ -3,6 +3,7 @@
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: validar migración histórica, deduplicación concurrente, hash e inmutabilidad HTTP en PostgreSQL. |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RLS modulo5: bitácora sin UPDATE/DELETE para la API, identidad RLS y fn_ en la función de hash |
 # | 2026-11-12 | Leandro | INC-M05-354-G39 RF-80: verificar cierre, contexto de los triggers y campos mínimos en PostgreSQL. |
+# | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-80: campos faltantes con nombres legibles y sin repetir los de la app |
 """Regresión de #964 con rol real de API y restricciones activas."""
 from __future__ import annotations
 
@@ -484,7 +485,7 @@ def test_rechaza_fecha_emision_ausente_y_marca_contexto_faltante(db_session, esc
         text(insercion.format(fecha='clock_timestamp()')), {'usuario': usuario}
     ).one()
     assert incompleto and activo is None and ciclo is None
-    assert causa == 'Causa original. Campos faltantes: id_activo_biologico, id_ciclo_productivo'
+    assert causa == 'Causa original. Campos faltantes: activo biológico, ciclo productivo.'
 
 
 def crear_usuario_efimero(db, password_hash):
