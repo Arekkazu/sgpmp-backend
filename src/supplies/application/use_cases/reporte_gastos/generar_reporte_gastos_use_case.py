@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar cada reporte persistido antes del commit, incluido el worker. |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-13 | Arekkazu | INC-M05-360-G23 RF-77: el período anterior entero antes del ciclo también se nota como recortado |
 """Caso de uso: generar el reporte de gastos acumulados (RF-77).
 
 Decide síncrono vs. asíncrono según el rango solicitado (R8/R13: > 12 meses
@@ -355,12 +356,14 @@ class GenerarReporteGastosUseCase:
             and activo.fecha_inicio_ciclo is not None
             and fecha_inicio_anterior < activo.fecha_inicio_ciclo
         ):
+            # Paso 6: se recorta al inicio del ciclo y se avisa, aunque el período anterior quede vacío
+            # (cae entero antes del ciclo): sin la nota parece que no hubo gastos, no que no había ciclo.
             fecha_inicio_anterior = activo.fecha_inicio_ciclo
             fecha_recorte = activo.fecha_inicio_ciclo
-            recortado = fecha_inicio_anterior <= fecha_fin_anterior
+            recortado = True
 
         if fecha_inicio_anterior > fecha_fin_anterior:
-            return _CERO, False, None
+            return _CERO, recortado, fecha_recorte
 
         lineas_anteriores = self.detalle_port.consultar(
             fecha_inicio=fecha_inicio_anterior,
