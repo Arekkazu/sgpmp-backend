@@ -6,6 +6,7 @@
 # | 2026-11-10 | Arekkazu | TC-DIS-246/259/264 RF-87/92/93: descargas con montos, fechas, signo y Ganancia/Pérdida en palabras |
 # | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-93: cada activo excluido con su causa en palabras y el resultado que quedó fuera |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: los títulos de las secciones salen del constructor y el estado por sección no se imprime |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el informe de revelaciones se descarga en PDF/A-1b |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -176,10 +177,12 @@ _TIPOS = {"csv": ("text/csv", "csv"), "excel": ("application/vnd.openxmlformats-
           "pdf": ("application/pdf", "pdf")}
 
 
-def _archivo(doc: Documento, formato: str) -> tuple[bytes, str, str]:
+def _archivo(doc: Documento, formato: str, pdfa: bool = False) -> tuple[bytes, str, str]:
     if formato not in _TIPOS:
         raise BusinessRuleError(code="FORMATO_NO_SOPORTADO", message="Formato no soportado: use csv, excel o pdf.")
-    contenido = {"csv": generar_csv, "excel": generar_excel}.get(formato, lambda d: generar_pdf(d, datetime.now(timezone.utc)))(doc)
+    pdf = (lambda d: generar_pdf(d, datetime.now(timezone.utc), pdfa=True)) if pdfa else (
+        lambda d: generar_pdf(d, datetime.now(timezone.utc)))
+    contenido = {"csv": generar_csv, "excel": generar_excel}.get(formato, pdf)(doc)
     tipo, extension = _TIPOS[formato]
     return contenido, tipo, extension
 
@@ -258,4 +261,5 @@ class ExportarReporteUseCase:
         doc = Documento(titulo=f"Informe de revelaciones NIC 41 {informe['version_informe']}", columnas=["Sección", "Detalle"],
                         filas=filas, encabezado=[f"Estado: {_ESTADO_DOC.get(informe['estado'], _rotulo(informe['estado']))}{aprobado}",
                                                  f"Huella de integridad: {informe['hash_informe']}"])
-        return (*_archivo(doc, formato), f"revelaciones_nic41_{informe['version_informe']}")
+        # RNF-92-02 / RNF-92-03: el informe se conserva 10 años; el PDF va en PDF/A-1b (TC-M06-G70).
+        return (*_archivo(doc, formato, pdfa=True), f"revelaciones_nic41_{informe['version_informe']}")

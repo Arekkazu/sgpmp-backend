@@ -2,19 +2,24 @@
 # |------------|----------------|-----------------------------------------------------------------------|
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: la conciliación suma los ingresos de individuos sin costo |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección y aprobación bloqueada |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el PDF del informe aprobado es PDF/A-1b |
 """Informe de revelaciones NIC 41 (RF-92), sin base de datos.
 
 - TC-M06-G62 (#1107): el ingreso de individuos a un lote por compra, donación o traslado sube el valor del
   activo sin asentar líneas; la conciliación (¶50) lo suma para que inicio + movimientos = cierre.
 - TC-M06-G67 (#1110): el informe expone el estado de cada sección (Restricción 6) y una sección BLOQUEADA
   impide aprobarlo.
+- TC-M06-G70 (#1108): el PDF del informe aprobado declara y cumple PDF/A-1b (RNF-92-02).
 """
+import io
+import re
 from datetime import date
 from decimal import Decimal as D
 
 import pytest
 
 from src.financial_valuation.application.services.reportes import FUENTES_SECCION, ConstructorInformeRevelaciones
+from src.financial_valuation.application.use_cases.reportes.exportar_reporte_use_case import ExportarReporteUseCase
 from src.financial_valuation.application.use_cases.reportes.generar_informe_revelaciones_use_case import (
     GenerarInformeRevelacionesUseCase,
 )
@@ -128,3 +133,27 @@ def test_una_seccion_bloqueada_impide_aprobar_el_informe():
     assert error.value.code == "INFORME_SECCIONES_BLOQUEADAS"
     assert "Activos medidos al costo" in error.value.message and "Valoración por costo" in error.value.message
     assert not reportes.aprobado
+
+
+def test_el_pdf_del_informe_aprobado_es_pdf_a_1b():
+    from PIL import ImageCms
+
+    reportes = _Informes({"parr_49_restricciones_compromisos": {"declaracion_sin_novedad": True},
+                          "estado_secciones": [{"seccion": "parr_53_riesgos", "estado": "COMPLETA"}]})
+    reportes.informe.update(estado="APROBADO", hash_informe="abc123", fecha_aprobacion=None)
+
+    pdf, tipo, _, _ = ExportarReporteUseCase(periodos=None, reportes=reportes).informe(41, "pdf")
+
+    assert tipo == "application/pdf" and pdf.startswith(b"%PDF-1.4\n%")
+    assert b"<pdfaid:part>1</pdfaid:part>" in pdf and b"<pdfaid:conformance>B</pdfaid:conformance>" in pdf
+    assert b"/S /GTS_PDFA1" in pdf and re.search(rb"/ID\s*\[", pdf)
+    assert b"Helvetica" not in pdf and b"/FontFile2" in pdf  # todas las fuentes incrustadas
+    assert not any(k in pdf for k in (b"/SMask", b"/Encrypt", b"/Group"))  # sin transparencias ni cifrado
+    metadatos = re.search(rb"<<([^>]*?/Type /Metadata[^>]*?)>>\s*stream", pdf).group(1)
+    assert b"/Filter" not in metadatos
+    perfil = re.search(rb"<<\s*/Length (\d+) /N 3\s*>>\s*stream\n", pdf)
+    icc = pdf[perfil.end():perfil.end() + int(perfil.group(1))]
+    assert icc[8] == 2 and icc[12:20] == b"mntrRGB "  # ICC versión 2, monitor RGB
+    assert ImageCms.ImageCmsProfile(io.BytesIO(icc)).profile.xcolor_space.strip() == "RGB"
+    fecha = re.search(rb"/CreationDate \(D:(\d{14})", pdf).group(1).decode()
+    assert f"<xmp:CreateDate>{fecha[:4]}-{fecha[4:6]}-{fecha[6:8]}T{fecha[8:10]}:{fecha[10:12]}".encode() in pdf
