@@ -1,434 +1,303 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 import http from 'node:http';
-import { randomInt } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { CASOS, IDS, CONTRATO, mock, validarMock, leerCampo, validarActor, idsNuevos,
-  seleccionarCandidatos, oraculo011, oraculo012, oraculo013, decidirVerificacion } from '../lib/g37_core.mjs';
-import { CAPACIDADES, compararEsquema, esquema, evaluarRollbackSandbox,
-  contrastarRespuesta, lecturasPrevias, aplicarDiscrepancias, informe, principal,
-  conPeticiones, fetchEnContexto } from '../g37.mjs';
+import { randomInt } from 'node:crypto';
+import { principal, CAPACIDADES } from '../g37.mjs';
+import { CASOS, CONTRATO, mock, oraculo011, oraculo013, periodoDestino } from '../lib/g37_core.mjs';
 import { clasificarRegistro } from './registro_qa.mjs';
 
-let n = 0;
-let runTemporalEliminado = null;
-function modo(nombre, fn) { fn(); n++; process.stdout.write(`OK ${nombre}\n`); }
-const v = (id, tipo, monto, activo = 1) => ({ ...mock('variaciones')[0], id_variacion_valor_razonable: id,
-  id_activo_biologico: activo, tipo, monto_variacion: monto, _periodo: 8 });
-const a = (variacion, id) => ({ ...mock('auditoria').eventos[0], id_evento: id,
-  id_referencia: variacion.id_variacion_valor_razonable, id_activo_biologico: variacion.id_activo_biologico,
-  id_periodo_contable: variacion._periodo, monto_afectado: variacion.monto_variacion,
-  tipo_evento: 'VARIACION_REGISTRADA', payload_evento: { tipo: variacion.tipo, monto: String(variacion.monto_variacion),
-    id_evento: null, id_cierre: null } });
-const vs = [v(10, 'GANANCIA_TRANSFORMACION_BIOLOGICA', 8), v(11, 'PERDIDA_TRANSFORMACION_BIOLOGICA', -4),
-  v(12, 'GANANCIA_PRECIO_MERCADO', 3), v(13, 'PERDIDA_PRECIO_MERCADO', -2)];
-modo('011_cumple', () => assert.equal(oraculo011({ antes: { total_ingresos: 10, total_gastos: 5 },
-  despues: { total_ingresos: 21, total_gastos: 11 }, variaciones: vs, otroPeriodo: [v(99, 'GANANCIA_PRECIO_MERCADO', 100)] }).estado, 'APROBADO'));
-modo('011_falla', () => assert.equal(oraculo011({ antes: { total_ingresos: 10, total_gastos: 5 },
-  despues: { total_ingresos: 19, total_gastos: 11 }, variaciones: vs }).estado, 'RECHAZADO'));
-modo('011_decimal_exacto', () => {
-  const xs = ['GANANCIA_TRANSFORMACION_BIOLOGICA', 'PERDIDA_TRANSFORMACION_BIOLOGICA',
-    'GANANCIA_PRECIO_MERCADO', 'PERDIDA_PRECIO_MERCADO'].map((tipo, i) => v(i + 1, tipo, i % 2 ? '-0.10' : '0.10'));
-  assert.equal(oraculo011({ antes: { total_ingresos: '0.10', total_gastos: '0.10' },
-    despues: { total_ingresos: '0.30', total_gastos: '0.30' }, variaciones: xs }).estado, 'APROBADO');
-  assert.equal(oraculo011({ antes: { total_ingresos: '0.10', total_gastos: '0.10' },
-    despues: { total_ingresos: '0.30000000000000001', total_gastos: '0.30' }, variaciones: xs }).estado, 'RECHAZADO');
-});
-modo('012_cumple', () => assert.equal(oraculo012(vs, vs.map((x,i) => a(x, i+1))).estado, 'APROBADO'));
-modo('012_falla', () => assert.equal(oraculo012(vs, [a(vs[0], 1), a(vs[0], 2)]).estado, 'RECHAZADO'));
-const c = { ...mock('cadena'), estado_verificacion: 'VERIFICADO', nivel_fallo: null, eslabones: { nivel_fallo: null,
-  ids: { id_evento: 50, ids_lectura_iot: [60], id_precio_mercado: null } } };
-const inicial = { estado_trazabilidad: 'VERIFICACION_PENDIENTE' }, final = { estado_trazabilidad: 'VERIFICADO' };
-const cadenaInicial = { ...mock('cadena'), estado_trazabilidad: 'VERIFICACION_PENDIENTE',
-  estado_verificacion: null, nivel_fallo: null, eslabones: null };
-modo('cadena_pendiente_eslabones_null', () => {
-  assert.equal(validarMock('cadena', cadenaInicial), true);
-  assert.equal(compararEsquema('cadena', esquema(cadenaInicial)), true);
-  assert.equal(oraculo013({ inicial, cadenaInicial, final, cadena: c, evento: 50, lecturaApta: 60 }).estado, 'APROBADO');
-});
-modo('cadena_verificada_con_ids', () => assert.equal(oraculo013({ inicial, cadenaInicial, final,
-  cadena: c, evento: 50, lecturaApta: 60 }).estado, 'APROBADO'));
-modo('cadena_verificada_sin_ids_falla', () => {
-  const sinIds = structuredClone(c); sinIds.eslabones.ids.ids_lectura_iot = [];
-  assert.equal(oraculo013({ inicial, cadenaInicial, final, cadena: sinIds,
-    evento: 50, lecturaApta: 60 }).estado, 'RECHAZADO');
-  const nivelIncorrecto = { ...c, nivel_fallo: 1 };
-  assert.equal(oraculo013({ inicial, cadenaInicial, final, cadena: nivelIncorrecto,
-    evento: 50, lecturaApta: 60 }).estado, 'BLOQUEADO');
-});
-modo('013_cumple', () => assert.equal(oraculo013({ inicial, cadenaInicial, final, cadena: c, evento: 50, lecturaApta: 60 }).estado, 'APROBADO'));
-modo('013_falla', () => assert.equal(oraculo013({ inicial, cadenaInicial, final: { estado_trazabilidad: 'PENDIENTE_TRAZABILIDAD' },
-  cadena: c, evento: 50, lecturaApta: 60 }).estado, 'RECHAZADO'));
-modo('013_verificacion_500_requiere_causa_confirmada', () => {
-  const decision = decidirVerificacion(500, 'ERROR_INTERNO');
-  assert.equal(decision.estado, 'RECHAZADO');
-  assert.equal(decision.incidencia, null);
-  assert.equal(decidirVerificacion(500, 'ERROR_INTERNO', true).incidencia, 'INC-M06-G32-01');
-});
-modo('013_sin_lectura_iot', () => assert.equal(oraculo013({ inicial, cadenaInicial, final, cadena: c, evento: 50,
-  lecturaApta: null }).estado, 'RECHAZADO'));
-modo('mock_campo_ausente_falla', () => {
-  const x = mock('variaciones');
-  assert.throws(() => leerCampo('variaciones', x, '[].id_evento'), /ausente/);
-  assert.throws(() => validarMock('variaciones', [{ ...x[0], id_evento: 50 }]), /no declarado/);
-  const incompleto = { ...x[0] }; delete incompleto.monto_variacion;
-  assert.throws(() => validarMock('variaciones', [incompleto]), /ausente/);
-  assert.equal(compararEsquema('variaciones', esquema(x)), true);
-});
-{
-  const r = { contraste_contrato: [], discrepancias_contrato: [], problemas_tecnicos: [],
-    casos: {}, comprobaciones: [], incidencias: [] };
-  const llamadas = []; let cierres = 0;
-  const q = async (peticion, ruta, actor = 'contador', body) => {
-    llamadas.push({ peticion, metodo: body === undefined ? 'GET' : 'POST' });
-    const data = mock(peticion);
-    if (peticion === 'estados_get') delete data[0].total_ingresos;
-    if (peticion === 'auditoria') { data.pagina_actual = 1; data.registros_por_pagina = 500; }
-    if (peticion === 'm03_historial') { data.pagina = 1; data.por_pagina = 100; data.paginas_totales = 1; }
-    return { http: 200, eco: true, esquema_valido: contrastarRespuesta(r, peticion, actor, 200, data, ruta) };
-  };
-  try {
-    await lecturasPrevias(q, 8, 1, '2026-11-08');
-    if (r.discrepancias_contrato.length) throw Error('Lecturas previas: esquema discordante; sin escrituras');
-  } catch (e) {
-    assert.match(e.message, /sin escrituras/);
-  } finally { cierres++; }
-  aplicarDiscrepancias(r);
-  assert.equal(cierres, 1);
-  assert.deepEqual(llamadas.map(x => x.peticion), ['estados_get']);
-  assert.ok(llamadas.every(x => x.metodo === 'GET'));
-  assert.equal(r.casos['TC-M06-011'].estado, 'NO_CONCLUYENTE');
-  assert.equal(r.incidencias.length, 0);
-  assert.equal(r.discrepancias_contrato[0].esquema_real.items[0].total_ingresos, undefined);
-  n++; process.stdout.write('OK esquema_rf93_distinto_sin_escrituras\n');
+const DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const TMP_EXAMPLE = path.join(os.tmpdir(), 'g37-verificar-ejemplo');
+const pre = JSON.parse(fs.readFileSync(path.join(DIR, 'pruebas/precondicion_iot.json'), 'utf8'));
+const hoy = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota',
+  year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const copia = id => structuredClone(mock(id));
+function respuesta(res, status, data, runId) {
+  res.writeHead(status, { 'content-type': 'application/json', 'x-test-run-id': runId });
+  res.end(JSON.stringify(data));
 }
-modo('esquema_coincide', () => {
-  const r = { contraste_contrato: [], discrepancias_contrato: [], problemas_tecnicos: [] };
-  for (const p of ['estados_get', 'auditoria', 'm03_historial']) {
-    const data = mock(p);
-    if (p === 'auditoria') { data.pagina_actual = 1; data.registros_por_pagina = 500; }
-    if (p === 'm03_historial') { data.pagina = 1; data.por_pagina = 100; data.paginas_totales = 1; }
-    const ruta = p === 'auditoria' ? '/finanzas/auditoria?pagina=1&tamano=500' :
-      p === 'm03_historial' ? '/iot/monitoreo/historial?pagina=1&por_pagina=100' : '/finanzas/periodos/8/estados-resultados';
-    assert.equal(contrastarRespuesta(r, p, 'contador', 200, data, ruta), true);
-  }
-  assert.equal(r.discrepancias_contrato.length, 0);
-  assert.ok(r.contraste_contrato.every(x => x.resultado === 'coincide'));
-});
-let maximoSolicitudesEnsayo = 0;
-async function ensayoPrecontraste(escenario) {
-  const r = { contraste_contrato: [], discrepancias_contrato: [], problemas_tecnicos: [] };
-  const llamadas = [];
-  const q = async (peticion, ruta, actor = 'contador', body) => {
-    llamadas.push({ peticion, metodo: body === undefined ? 'GET' : 'POST', actor });
-    let data = structuredClone(mock(peticion));
-    if (peticion === 'auditoria') { data.pagina_actual = 1; data.registros_por_pagina = 500; }
-    if (peticion === 'm03_historial') { data.pagina = 1; data.por_pagina = 100; data.paginas_totales = 1; }
-    if (peticion === 'variaciones' && escenario === 'discrepa') data[0].monto_variacion = { inesperado: true };
-    if (escenario === 'vacias') {
-      if (['estados_get', 'variaciones', 'mediciones', 'lineas'].includes(peticion)) data = [];
-      if (peticion === 'auditoria') data.eventos = [];
-      if (peticion === 'm03_historial') data.items = [];
-      if (peticion === 'eventos_get') data.eventos = [];
+async function simular(escenario, conservar = false) {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'g37-ensayo-v2-'));
+  const runId = `RUN-G37-V2-20261112-${String(randomInt(1000000)).padStart(6, '0')}`;
+  const dir = path.join(base, runId); fs.mkdirSync(dir);
+  const referencia = 'AUT-LOCAL-SIMULADO';
+  const contexto = path.join(dir, 'contexto_operacion.json');
+  fs.writeFileSync(contexto, JSON.stringify({ grupo: 'G37', run_id: runId, version: 2,
+    intento: 1, operacion: escenario === 'reintentar' ? 'REINTENTAR' : 'REEVALUAR',
+    version_anterior: escenario === 'reintentar' ? null : 1,
+    alcance_reevaluacion: { motivo: 'Simulación local V2', casos: CASOS }, referencia, casos: CASOS }));
+  const estado = { borrado: false, escritos: 0, solicitudes: [], eventos: [], variaciones: [],
+    lineas: [], auditorias: [], precios: [], verificado: false, siguiente: 1000 };
+  const bovinos = [1831, 1627, 1832, 1833];
+  let servidor;
+  try {
+    servidor = http.createServer(async (req, res) => {
+      const u = new URL(req.url, 'http://127.0.0.1'), p = u.pathname, m = req.method;
+      let body = ''; for await (const x of req) body += x;
+      const registro = { metodo: m, ruta: p, run: req.headers['x-test-run-id'] ?? null };
+      estado.solicitudes.push(registro);
+      if (['POST','PATCH'].includes(m) && p !== '/sesiones/') estado.escritos++;
+      let status = 200, data = null;
+      const activo = Number(p.match(/\/activos-biologicos\/(\d+)/)?.[1]);
+      if (p === '/sesiones/' && m === 'POST') data = { token: 'token-local-ficticio' };
+      else if (p === '/sesiones/me/permisos') data = { permisos:
+        Object.values(CONTRATO.roles).flatMap(rol => Object.entries(rol.permisos).flatMap(
+          ([nombre_recurso, acciones]) => acciones.map(id_accion => ({ id_recurso: 1, id_accion, nombre_recurso })))) };
+      else if (p === '/notificaciones') data = { items: [] };
+      else if (p === '/finanzas/activos') data = bovinos.map(id => ({ ...copia('activos')[0],
+        id_activo_biologico: id, id_especie: 10, especie: 'Bovino', tipo: 'INDIVIDUAL',
+        estado: 'ACTIVO', valorado_por_costo: false }));
+      else if (p === '/finanzas/periodos') data = [241,220].map(id => ({ ...copia('periodos')[0],
+        id_periodo_contable: id, numero_id_tributaria: 'NIT-D',
+        fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31',
+        estado: id === 241 && escenario === 'cerrado' ? 'CERRADO' : 'ABIERTO',
+        ...(id === 241 && escenario === 'periodo_estado_invalido' ? { estado: 42 } : {}),
+        ...(id === 241 && escenario === 'cierre_en_proceso' ? { ultimo_cierre: {
+          paso_actual: 3, activos_procesados: null, activos_pendientes: null,
+          activos_excluidos: null, precios_congelados: null, error_detalle: null,
+          fecha_fin: null, tiempo_ejecucion_ms: null, hash_cierre: null } } : {}),
+        ...(id === 241 && escenario === 'periodo_forma_extra' ? { ultimo_cierre: 42 } : {}) }));
+      else if (/^\/finanzas\/activos\/\d+$/.test(p)) {
+        data = copia('activo_detalle'); const id = Number(p.split('/').at(-1));
+        data.activo.numero_id_tributaria = 'NIT-D';
+        data.activo.id_dispositivo_iot = id === 1831 && escenario !== 'sin_dispositivo' ? 856 : null;
+        data.calculos[0].estado = 'CALCULADO'; data.calculos[0].id_precio_mercado = 18;
+        data.calculos[0].fecha_calculo = hoy();
+      }
+      else if (p.endsWith('/ficha-integral')) {
+        data = copia('ficha'); data.peso_actual = '100.00'; data.unidad_peso = 'kg';
+        data.estado_actual = estado.borrado ? 'ACTIVO' :
+          estado.eventos.some(e => e.activo === activo && e.tratamiento) ? 'EN_TRATAMIENTO' : 'ACTIVO';
+      }
+      else if (p.endsWith('/eventos') && m === 'GET') {
+        data = copia('eventos_get'); data.eventos = estado.borrado ? [] :
+          estado.eventos.filter(e => e.activo === activo).map(e => ({ id_eventos: e.id }));
+      }
+      else if (p.endsWith('/eventos/crecimiento') && m === 'POST') {
+        status = 201; data = copia('evento_crecimiento'); data.evento.id_eventos = ++estado.siguiente;
+        estado.eventos.push({ id: data.evento.id_eventos, activo, procesado: false });
+      }
+      else if (p.endsWith('/estado') && m === 'PATCH') {
+        data = copia('estado_patch'); const ev = [...estado.eventos].reverse().find(e => e.activo === activo);
+        if (ev) ev.tratamiento = true;
+      }
+      else if (p === '/finanzas/precios' && m === 'GET') data = [{ ...copia('precios_get')[0],
+        id_precio_mercado: 18, id_especie: 10, categoria: 'PESO_KG', fuente: 'MERCADO_ACTIVO',
+        fecha_vigencia: '2026-01-01', fecha_vencimiento: '2026-12-31',
+        precio_unitario: '18.00' }, ...(estado.borrado ? [] : estado.precios)];
+      else if (p === '/finanzas/precios' && m === 'POST') {
+        status = 201; data = copia('precios_post'); data.id_precio_mercado = ++estado.siguiente;
+        estado.precios.push({ ...copia('precios_get')[0], id_precio_mercado: data.id_precio_mercado,
+          id_especie: 10, categoria: 'PESO_KG', fuente: 'MERCADO_ACTIVO',
+          fecha_vigencia: hoy(), fecha_vencimiento: '2026-12-31' });
+      }
+      else if (p === '/finanzas/eventos/procesar' && m === 'POST') {
+        data = copia('procesar');
+        for (const ev of estado.eventos.filter(e => !e.procesado)) {
+          ev.procesado = true;
+          const tipos = ev.activo === 1831 ? [['GANANCIA_TRANSFORMACION_BIOLOGICA','10.00']] :
+            ev.activo === 1627 ? [['PERDIDA_TRANSFORMACION_BIOLOGICA','-4.00']] :
+            ev.activo === 1832 ? [['GANANCIA_TRANSFORMACION_BIOLOGICA','5.00'],
+              ['PERDIDA_PRECIO_MERCADO','-2.00']] : [['GANANCIA_PRECIO_MERCADO','8.00']];
+          for (const [tipo, monto] of tipos) {
+            const v = copia('variaciones')[0];
+            Object.assign(v, { id_variacion_valor_razonable: ++estado.siguiente,
+              id_activo_biologico: ev.activo, id_linea: ++estado.siguiente,
+              tipo, monto_variacion: monto, estado_trazabilidad: 'VERIFICACION_PENDIENTE' });
+            estado.variaciones.push(v);
+            estado.lineas.push({ ...copia('lineas')[0], id_linea_asiento_nic41: v.id_linea });
+            const a = copia('auditoria').eventos[0];
+            Object.assign(a, { id_evento: ++estado.siguiente,
+              id_referencia: v.id_variacion_valor_razonable, id_activo_biologico: ev.activo,
+              id_periodo_contable: 241, tipo_evento: 'VARIACION_REGISTRADA', monto_afectado: monto });
+            a.payload_evento = { tipo, monto, id_evento: ev.id, id_cierre: null };
+            estado.auditorias.push(a);
+          }
+        }
+      }
+      else if (p === '/finanzas/periodos/241/variaciones') data = estado.borrado ? [] : estado.variaciones;
+      else if (p === '/finanzas/periodos/241/mediciones') data = [];
+      else if (p === '/finanzas/lineas') data = estado.borrado ? [] : estado.lineas;
+      else if (/^\/finanzas\/lineas\/\d+\/cadena$/.test(p)) {
+        data = copia('cadena'); data.id_linea_asiento_nic41 = Number(p.split('/')[3]);
+        data.estado_trazabilidad = estado.verificado ? 'VERIFICADO' : 'VERIFICACION_PENDIENTE';
+        data.estado_verificacion = estado.verificado ? 'VERIFICADO' : null; data.nivel_fallo = null;
+        if (estado.verificado) {
+          data.eslabones.nivel_fallo = null;
+          data.eslabones.ids.id_evento = estado.eventos.find(e => e.activo === 1831)?.id ?? 1;
+          data.eslabones.ids.ids_lectura_iot = escenario === 'sin_lectura_cadena' ? [] : [120035];
+        } else data.eslabones = null;
+      }
+      else if (/^\/finanzas\/periodos\/(241|220)\/estado-resultados\/acumulado$/.test(p)) {
+        const id = Number(p.split('/')[3]);
+        if (id === 241 && escenario === 'codigo_v1') { status = 422; data = { error_code:'PERIODO_NO_CERRADO' }; }
+        else {
+          data = copia('acumulado');
+          data.id_periodo_contable = id; data.estado_periodo = 'ABIERTO'; data.es_definitivo = false;
+          const vs = id === 241 && !estado.borrado ? estado.variaciones : [];
+          const sum = tipo => vs.filter(x => x.tipo === tipo).reduce((n,x) => n + Math.abs(Number(x.monto_variacion)),0);
+          const comp = data.componentes;
+          for (const [tipo,campo] of Object.entries({
+            GANANCIA_TRANSFORMACION_BIOLOGICA:'ganancia_transformacion_biologica',
+            PERDIDA_TRANSFORMACION_BIOLOGICA:'perdida_transformacion_biologica',
+            GANANCIA_PRECIO_MERCADO:'ganancia_precio_mercado',
+            PERDIDA_PRECIO_MERCADO:'perdida_precio_mercado'
+          })) comp[campo] = String(sum(tipo).toFixed(2));
+          data.total_ingresos = String((sum('GANANCIA_TRANSFORMACION_BIOLOGICA') +
+            sum('GANANCIA_PRECIO_MERCADO')).toFixed(2));
+          data.total_gastos = String((sum('PERDIDA_TRANSFORMACION_BIOLOGICA') +
+            sum('PERDIDA_PRECIO_MERCADO')).toFixed(2));
+          if (escenario === 'sin_delta' && id === 241) {
+            data.total_ingresos = '0.00'; comp.ganancia_transformacion_biologica = '0.00';
+          }
+          if (escenario === 'otro_alterado' && id === 220 && estado.variaciones.length) data.total_ingresos = '1.00';
+        }
+      }
+      else if (p === '/finanzas/auditoria') {
+        data = copia('auditoria'); data.eventos = estado.borrado ? [] : estado.auditorias;
+        data.total_registros = data.eventos.length; data.pagina_actual = Number(u.searchParams.get('pagina'));
+        data.registros_por_pagina = 500;
+      }
+      else if (p === '/iot/monitoreo/historial') {
+        data = copia('m03_historial'); data.items = [{ ...data.items[0],
+          id_telemetria: 120035, id_activo_biologico: 1831,
+          timestamp_captura: pre.timestamp_lectura }];
+        data.total = 1; data.pagina = 1; data.por_pagina = 100; data.paginas_totales = 1;
+      }
+      else if (p === '/finanzas/periodos/241/trazabilidad' && m === 'POST') {
+        if (escenario === 'codigo_v1') { status = 500; data = { error_code: 'ERROR_INTERNO' }; }
+        else { data = copia('trazabilidad'); data.verificadas = estado.variaciones.length;
+          data.pendientes = []; estado.verificado = true;
+          estado.variaciones.forEach(v => { v.estado_trazabilidad = 'VERIFICADO'; }); }
+      }
+      else if (p === `/test-control/runs/${runId}` && m === 'DELETE') {
+        status = escenario === 'delete_fallido' ? 500 : 200;
+        if (status === 200) estado.borrado = true;
+        data = {};
+      }
+      else { status = 404; data = { error_code: 'RUTA_NO_SIMULADA' }; }
+      if (escenario === 'con_campos' && status === 200 && data && !Array.isArray(data) &&
+          typeof data === 'object') data.campo_adicional = true;
+      registro.http = status;
+      respuesta(res,status,data,runId);
+    });
+    await new Promise(resolve => servidor.listen(0,'127.0.0.1',resolve));
+    const baseUrl = `http://127.0.0.1:${servidor.address().port}`;
+    const args = ['--autorizacion',referencia,'--operacion',
+      escenario === 'reintentar' ? 'reintentar' : 'reevaluar','--version','2',
+      '--intento','1','--run-id',runId,'--contexto',contexto];
+    const proceso = { QA_AUTORIZADO:'SI', SIGAB_API_TEST_BASE:baseUrl,
+      QA_SANDBOX_SECRET:'secreto-local', QA_CONTADOR_EMAIL:'contador@invalid.local',
+      QA_CONTADOR_PASSWORD:'local', QA_ADMIN_EMAIL:'admin@invalid.local',
+      QA_ADMIN_PASSWORD:'local' };
+    const archivoIoT = escenario === 'plazo_vencido' ? path.join(base,'iot-vencido.json') : null;
+    if (archivoIoT) fs.writeFileSync(archivoIoT,JSON.stringify({ ...pre, timestamp_lectura:'2026-11-10T07:06:25Z' }));
+    const salida = await principal(args,{ proceso, archivoEnv:path.join(base,'no-existe.env'),
+      ensayo:true, precondicionIoTArchivo:archivoIoT });
+    if (!salida.resultado) throw Error(`Preflight estático: ${salida.preflight.barreras.join(', ')}`);
+    const r = salida.resultado;
+    if (conservar) {
+      assert.equal(path.resolve(TMP_EXAMPLE),path.join(os.tmpdir(),'g37-verificar-ejemplo'));
+      fs.rmSync(TMP_EXAMPLE,{recursive:true,force:true});
+      fs.mkdirSync(TMP_EXAMPLE);
+      fs.cpSync(dir,path.join(TMP_EXAMPLE,runId),{recursive:true});
+      fs.writeFileSync(path.join(TMP_EXAMPLE,'capacidades.json'),JSON.stringify(CAPACIDADES,null,2));
+      process.stdout.write(`EJEMPLO_RUN=${path.join(TMP_EXAMPLE,runId)}\nEJEMPLO_CAPACIDADES=${path.join(TMP_EXAMPLE,'capacidades.json')}\n`);
     }
-    if (peticion === 'ficha') data.peso_actual = null;
-    if (peticion === 'activos') data[0].valor_razonable_neto = null;
-    if (peticion === 'periodos') data[0].numero_id_tributaria = null;
-    if (peticion === 'estado_detalle') data.total_ingresos = '1.25';
-    if (peticion === 'variaciones' && escenario !== 'discrepa' && data.length) data[0].monto_variacion = '1.25';
-    const valido = contrastarRespuesta(r, peticion, actor, 200, data, ruta);
-    return { http: 200, data: valido ? data : null, eco: true, esquema_valido: valido };
-  };
-  let previo = null;
-  await q('activos', '/finanzas/activos');
-  await q('periodos', '/finanzas/periodos');
-  try { previo = await lecturasPrevias(q, 8, 1, '2026-11-08', r); }
-  catch (e) { assert.match(e.message, /sin escrituras/); }
-  if (previo) {
-    llamadas.push({ peticion: 'estado_post', metodo: 'POST', actor: 'contador' });
-    llamadas.push({ peticion: 'estados_get', metodo: 'GET', actor: 'contador' });
-  }
-  maximoSolicitudesEnsayo = Math.max(maximoSolicitudesEnsayo, llamadas.length);
-  return { r, llamadas, previo };
-}
-function informeEnsayo(r) {
-  const datos = { ...r, casos: Object.fromEntries(CASOS.map(caso => [caso,
-    { estado: 'NO_CONCLUYENTE', motivo: 'Ensayo local' }])), comprobaciones: [], incidencias: [],
-    herramientas: { newman: null }, evidencias: [], cierre: { run: { cierre_http: 200 },
-      rollback: { verificado: true, motivo: 'Sin escrituras en simulación' } },
-    efectos_persistentes_declarados: { precios_registrados: 0, id_precio_mercado: [],
-      registros_sin_id: 0, tipo: 'ALERTA_FINANCIERA_NIC41', bandeja_contador_qa: { estado: 'NO_VERIFICABLE' } } };
-  return informe({ version: 1, intento: 1, runId: 'SIMULACION_LOCAL', referencia: 'SIMULACION_LOCAL' }, datos);
-}
-{
-  const { r, llamadas, previo } = await ensayoPrecontraste('coincide');
-  assert.ok(previo?.cadena && previo?.estado_detalle);
-  assert.equal(r.discrepancias_contrato.length, 0);
-  assert.equal(llamadas.filter(x => x.metodo === 'POST').length, 1);
-  assert.ok(llamadas.find(x => x.peticion === 'ficha' && x.actor === 'admin'));
-  assert.ok(llamadas.find(x => x.peticion === 'eventos_get' && x.actor === 'admin'));
-  n++; process.stdout.write('OK precontraste_todas_get_coinciden\n');
-}
-{
-  const { r, llamadas, previo } = await ensayoPrecontraste('discrepa');
-  assert.equal(previo, null);
-  assert.equal(llamadas.filter(x => ['POST', 'PATCH'].includes(x.metodo)).length, 0);
-  assert.match(r.discrepancias_contrato[0].motivo, /variaciones\[\].monto_variacion.*esperado decimal\|number.*llegó object/);
-  assert.equal(r.discrepancias_contrato[0].ruta, '/finanzas/periodos/{periodo}/variaciones');
-  assert.match(informeEnsayo(r), /\/finanzas\/periodos\/\{periodo\}\/variaciones.*variaciones\[\]\.monto_variacion.*esperado decimal\|number.*llegó object/);
-  n++; process.stdout.write('OK precontraste_variaciones_discrepa\n');
-}
-{
-  const { r, llamadas, previo } = await ensayoPrecontraste('vacias');
-  assert.ok(previo);
-  assert.equal(previo.cadena, null);
-  assert.equal(previo.estado_detalle, null);
-  assert.equal(llamadas.filter(x => x.metodo === 'POST').length, 1);
-  assert.ok(r.contraste_contrato.some(x => x.id === 'cadena' && x.resultado === 'sin elementos para contrastar'));
-  assert.ok(r.contraste_contrato.some(x => x.id === 'estado_detalle' && x.resultado === 'sin elementos para contrastar'));
-  assert.match(informeEnsayo(r), /Rutas sin elementos para contrastar:.*\/finanzas\/lineas\/\{linea\}\/cadena/);
-  n++; process.stdout.write('OK precontraste_listas_vacias\n');
-}
-assert.ok(maximoSolicitudesEnsayo < 150);
-process.stdout.write(`Solicitudes máximas del ensayo de precontraste y continuación: ${maximoSolicitudesEnsayo}/150\n`);
-modo('presupuesto_flujo_completo', () => {
-  const catalogoReal = 26, permisos = 2, logins = 2, estadoPost = 1;
-  const rebase = 6, cuatroPasos = 16, precios = 2, patch = 1;
-  const posteriores = 5, rf91 = 4, newman = 3, cierrePublico = 23, deleteRun = 1, bandeja = 2;
-  const techo = catalogoReal + permisos + logins + estadoPost + rebase + cuatroPasos +
-    precios + patch + posteriores + rf91 + newman + cierrePublico + deleteRun + bandeja;
-  assert.equal(techo, 94);
-  assert.ok(techo <= 140);
-  process.stdout.write(`Techo calculado del flujo completo: ${techo}/150 solicitudes\n`);
-});
-modo('actor_sin_permiso_falla', () => assert.throws(() => validarActor('ficha', 'contador'), /sin permiso/));
-modo('seleccion_todos_y_precio_vigente', () => {
-  const base = { especie: 'Bovino', tipo: 'INDIVIDUAL', estado: 'ACTIVO', valorado_por_costo: false,
-    periodo: { estado: 'ABIERTO' }, precio: { id_precio_mercado: 18 }, calculo: { estado: 'CALCULADO', id_precio_mercado: 18 }, peso: 100 };
-  const xs = [{ ...base, id_activo_biologico: 1, calculo: { estado: 'CALCULADO', id_precio_mercado: 17 } },
-    { ...base, id_activo_biologico: 2 }, { ...base, id_activo_biologico: 3, peso: null }];
-  const s = seleccionarCandidatos(xs, 2);
-  assert.equal(s.elegido[0].id_activo_biologico, 2);
-  assert.equal(s.motivos.length, 3);
-  assert.ok(s.motivos[2].motivos.includes('sin peso actual positivo'));
-});
-modo('aislamiento_ids_y_linea_base', () => {
-  assert.deepEqual(idsNuevos([{ id: 1 }], [{ id: 1 }, { id: 2 }], 'id'), [{ id: 2 }]);
-});
-modo('registro_qa_fiel', () => {
-  const fixture = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'resultado_g36_fixture.json'), 'utf8'));
-  for (const k of ['run_id', 'version', 'casos', 'comprobaciones', 'evidencias', 'herramientas', 'cypress', 'cierre', 'oficial', 'consume_version'])
-    assert.ok(fixture.campos_raiz.includes(k));
-  for (const k of ['caso', 'fuente', 'id', 'tipo', 'estado', 'evidencia']) assert.ok(fixture.campos_comprobacion.includes(k));
-  assert.equal(fixture.oficial, true);
-  const runId = 'RUN-G37-V1-20261108-161426', referencia = 'AUT-G37-V1-20261108';
-  const r = { run_id: runId, autorizacion_referencia: referencia, version: 1, oficial: true, consume_version: true,
-    cierre: { run: { cierre_http: 200 }, rollback: { verificado: true } },
-    casos: Object.fromEntries(CASOS.map(c => [c, { estado: 'RECHAZADO' }])),
-    comprobaciones: CASOS.map((c, i) => ({ caso: c, fuente: 'API', id: IDS[i], tipo: 'ASSERT',
-      estado: 'RECHAZADO', evidencia: 'resultado.json' })), herramientas: { newman: { iteraciones: 1 } },
-    cypress: { total_pruebas: 0 }, evidencias: ['resultado.json', 'TC-M06-G37_resultado.md',
-      'newman/newman-G37.json', 'newman/newman-G37.html'] };
-  const presentes = new Set(r.evidencias);
-  assert.equal(clasificarRegistro(CAPACIDADES, r, presentes, { runId, referencia, version: 1 }), true);
-  assert.equal(clasificarRegistro(CAPACIDADES, { ...r, run_id: 'RUN-OTRO' }, presentes, { runId, referencia, version: 1 }), false);
-  assert.equal(clasificarRegistro(CAPACIDADES, { ...r, autorizacion_referencia: 'AUT-OTRA' }, presentes,
-    { runId, referencia, version: 1 }), false);
-});
-modo('precios_con_aviso_rollback_verificado', () => {
-  const rollback = evaluarRollbackSandbox({ deleteHttp: 200, lecturasCompletas: true,
-    registrosPresentes: [], inciertas: false, conciliadas: true });
-  assert.equal(rollback.verificado, true);
-  const runId = 'RUN-G37-V1-20261108-161426', referencia = 'AUT-G37-V1-20261108';
-  const evidencias = ['resultado.json', 'TC-M06-G37_resultado.md', 'newman/newman-G37.json', 'newman/newman-G37.html'];
-  const r = { run_id: runId, autorizacion_referencia: referencia, version: 1, oficial: true, consume_version: true,
-    cierre: { run: { cierre_http: 200 }, rollback },
-    efectos_persistentes_declarados: { tipo: 'ALERTA_FINANCIERA_NIC41', precios_registrados: 2,
-      id_precio_mercado: [172, 173], bandeja_contador_qa: { estado: 'OBSERVADO', avisos_observados: 2 } },
-    casos: Object.fromEntries(CASOS.map(c => [c, { estado: 'RECHAZADO' }])),
-    comprobaciones: CASOS.map((c, i) => ({ caso: c, fuente: 'API', id: IDS[i], tipo: 'ASSERT',
-      estado: 'RECHAZADO', evidencia: 'resultado.json' })),
-    herramientas: { newman: { iteraciones: 1 } }, cypress: { total_pruebas: 0 }, evidencias };
-  assert.equal(clasificarRegistro(CAPACIDADES, r, new Set(evidencias), { runId, referencia, version: 1 }), true);
-});
-modo('registro_persistente_tras_delete', () => {
-  const rollback = evaluarRollbackSandbox({ deleteHttp: 200, lecturasCompletas: true,
-    registrosPresentes: ['precio RF-89'], inciertas: false, conciliadas: true });
-  assert.equal(rollback.verificado, false);
-  assert.match(rollback.motivo, /Persisten registros del RUN/);
-  assert.equal(evaluarRollbackSandbox({ deleteHttp: 200, lecturasCompletas: true,
-    registrosPresentes: [], inciertas: true, conciliadas: false }).verificado, false);
-});
-modo('rollback_sin_escrituras', () => {
-  const r = evaluarRollbackSandbox({ deleteHttp: 200, escrituras: false,
-    lecturasCompletas: false, registrosPresentes: [], inciertas: false, conciliadas: true });
-  assert.equal(r.verificado, true);
-  assert.equal(evaluarRollbackSandbox({ deleteHttp: 200, escrituras: true,
-    lecturasCompletas: false, registrosPresentes: [], inciertas: false, conciliadas: true }).verificado, false);
-});
-modo('run_id_sin_redactar', () => {
-  const id = 'RUN-G37-V1-20261108-161426', referencia = 'AUT-G37-V1-20261108';
-  assert.equal(JSON.stringify({ id, referencia }).includes(id), true);
-  assert.equal(JSON.stringify({ id, referencia }).includes(referencia), true);
-});
-if (process.argv.includes('--sin-run')) {
-  process.stdout.write(`OK G37: ${n}/${n} modos locales sin carpetas RUN; integración pendiente\n`);
-  process.exit(0);
-}
-{
-  const grupo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  let runId, directorio;
-  const temporal = fs.mkdtempSync(path.join(os.tmpdir(), 'g37-ensayo-'));
-  do {
-    runId = `RUN-G37-V1-20261108-${String(randomInt(1000000)).padStart(6, '0')}`;
-    directorio = path.join(temporal, runId);
-  } while (fs.existsSync(directorio));
-  const referencia = 'AUT-G37-V1-20261108';
-  const llamadas = [];
-  try {
-    fs.mkdirSync(directorio, { recursive: true });
-    const ruta = path.join(directorio, 'contexto_operacion.json');
-    fs.writeFileSync(ruta, JSON.stringify({ grupo: 'G37', run_id: runId, version: 1, intento: 1,
-      operacion: 'EVALUAR', referencia, casos: CASOS }));
-    const archivoEnv = path.join(temporal, 'local.env');
-    fs.writeFileSync(archivoEnv, [
-      'SIGAB_API_TEST_BASE=http://127.0.0.1:1234', 'QA_SANDBOX_SECRET=secreto-ficticio',
-      'QA_CONTADOR_EMAIL=contador@ejemplo.invalid', 'QA_CONTADOR_PASSWORD=clave-ficticia',
-      'QA_ADMIN_EMAIL=admin@ejemplo.invalid', 'QA_ADMIN_PASSWORD=clave-ficticia'
-    ].join('\n'));
-    const respuesta = (status, data) => ({ status, json: async () => data,
-      headers: { get: () => runId } });
-    const fetcher = async (url, opciones) => {
-      const ruta = new URL(url).pathname;
-      llamadas.push(`${opciones.method} ${ruta}`);
-      assert.equal(JSON.parse(fs.readFileSync(path.join(directorio, 'preflight.json'))).ok, true);
-      if (ruta === '/sesiones/') return respuesta(200, { token: 'token-ficticio' });
-      if (ruta === '/sesiones/me/permisos') return respuesta(200, { permisos: Object.entries(CONTRATO.roles.contador.permisos).flatMap(([nombre_recurso, acciones]) => acciones.map(id_accion => ({ id_recurso: 1, id_accion, nombre_recurso }))).concat(Object.entries(CONTRATO.roles.admin.permisos).flatMap(([nombre_recurso, acciones]) => acciones.map(id_accion => ({ id_recurso: 1, id_accion, nombre_recurso })))) });
-      if (ruta === '/notificaciones') return respuesta(200, { items: [] });
-      if (ruta.endsWith(`/test-control/runs/${runId}`)) return respuesta(200, null);
-      if (ruta === '/finanzas/activos' || ruta === '/finanzas/periodos') return respuesta(200, []);
-      throw Error('Ruta inesperada del ensayo');
-    };
-    const args = ['--autorizacion', referencia, '--operacion', 'evaluar', '--version', '1',
-      '--intento', '1', '--run-id', runId, '--contexto', ruta];
-    const salida = await principal(args, { proceso: { QA_AUTORIZADO: 'SI' }, archivoEnv,
-      fetcher, ensayo: true });
-    assert.equal(salida.preflight.ok, true);
-    assert.equal(salida.resultado.cierre.run.cierre_http, 200);
-    assert.equal(salida.resultado.cierre.rollback.verificado, true);
-    assert.deepEqual(salida.resultado.cierre.lecturas_poscierre, []);
-    assert.equal(salida.resultado.oficial, false);
-    assert.ok(llamadas.includes(`DELETE /api-sgpmp-test/test-control/runs/${runId}`) ||
-      llamadas.includes(`DELETE /test-control/runs/${runId}`));
-    assert.ok(fs.existsSync(path.join(directorio, 'resultado.json')));
-    assert.ok(fs.existsSync(path.join(directorio, 'TC-M06-G37_resultado.md')));
-    n++; process.stdout.write('OK arranque_lanzador\n');
+    const presentes = new Set(r.evidencias.filter(x => fs.existsSync(path.join(dir,x))));
+    const informe = fs.readFileSync(path.join(dir, 'TC-M06-G37_reevaluacion_V2.md'), 'utf8');
+    return { r, estado, runId, dir, salida, presentes, informe };
   } finally {
-    assert.equal(path.dirname(path.resolve(directorio)), temporal);
-    runTemporalEliminado = directorio;
-    fs.rmSync(temporal, { recursive: true, force: true });
+    if (servidor) await new Promise(resolve => servidor.close(resolve));
+    fs.rmSync(base,{recursive:true,force:true});
   }
 }
-{
-  let liberar;
-  const pendiente = new Promise(resolve => { liberar = resolve; });
-  await conPeticiones(async () => { await pendiente; return { status: 200, json: async () => null }; }, async () => {
-    const primera = fetchEnContexto('http://127.0.0.1:1/primera');
-    await assert.rejects(fetchEnContexto('http://127.0.0.1:1/segunda'), /PETICION_CONCURRENTE/);
-    liberar();
-    await primera;
-  });
-  n++; process.stdout.write('OK peticion_concurrente\n');
+function validar(r, estado, esperado) {
+  assert.deepEqual(Object.keys(r.casos).sort(), [...CASOS].sort());
+  assert.deepEqual(CASOS.map(k => r.casos[k].estado), esperado);
+  assert.equal(estado.solicitudes.some(x => x.ruta.includes('/estados-resultados') &&
+    x.metodo === 'POST'), false);
+  assert.equal(estado.solicitudes.some(x => x.ruta === '/finanzas/periodos/241/trazabilidad' &&
+    x.metodo === 'POST') || esperado[1] === 'NO_CONCLUYENTE', true);
+  assert.ok(estado.solicitudes.every(x => x.run == null ||
+    x.run.startsWith('RUN-G37-V2-')));
 }
-async function ensayoSeleccion(escenario) {
-  const grupo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  let runId, directorio;
-  const temporal = fs.mkdtempSync(path.join(os.tmpdir(), 'g37-seleccion-'));
-  do {
-    runId = `RUN-G37-V1-20261108-${String(randomInt(1000000)).padStart(6, '0')}`;
-    directorio = path.join(temporal, runId);
-  } while (fs.existsSync(directorio));
-  let simultaneas = 0, fallosConcurrencia = 0;
-  const servidor = http.createServer(async (req, res) => {
-    const mismoRun = req.headers['x-test-run-id'] === runId;
-    if (mismoRun && simultaneas) {
-      fallosConcurrencia++;
-      res.writeHead(500, { 'content-type': 'application/json', 'x-test-run-id': runId });
-      res.end(JSON.stringify({ code: 'CONCURRENCIA' })); return;
-    }
-    if (mismoRun) simultaneas++;
-    await new Promise(resolve => setTimeout(resolve, 60));
-    const ruta = new URL(req.url, 'http://127.0.0.1').pathname;
-    let status = 200, data;
-    if (ruta === '/sesiones/') data = { token: 'token-ficticio' };
-    else if (ruta === '/sesiones/me/permisos') data = { permisos: Object.entries(CONTRATO.roles.contador.permisos).flatMap(([nombre_recurso, acciones]) => acciones.map(id_accion => ({ id_recurso: 1, id_accion, nombre_recurso }))).concat(Object.entries(CONTRATO.roles.admin.permisos).flatMap(([nombre_recurso, acciones]) => acciones.map(id_accion => ({ id_recurso: 1, id_accion, nombre_recurso })))) };
-    else if (ruta === '/notificaciones') data = { items: [] };
-    else if (ruta === `/test-control/runs/${runId}`) data = null;
-    else if (ruta === '/finanzas/activos') {
-      data = mock('activos'); Object.assign(data[0], { especie: 'Bovino', tipo: 'INDIVIDUAL', estado: 'ACTIVO' });
-    } else if (ruta === '/finanzas/periodos') {
-      data = mock('periodos'); Object.assign(data[0], { fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31', estado: 'CERRADO' });
-    } else if (ruta === '/finanzas/precios') {
-      data = mock('precios_get'); Object.assign(data[0], { fuente: 'MERCADO_ACTIVO', fecha_vigencia: '2026-01-01', fecha_vencimiento: '2026-12-31' });
-    } else if (ruta === '/finanzas/activos/1') {
-      if (escenario === 'seleccion_con_500') { status = 500; data = { code: 'ERROR_INTERNO' }; }
-      else { data = mock('activo_detalle'); data.calculos[0].estado = 'CALCULADO'; }
-    } else if (ruta === '/activos-biologicos/1/ficha-integral') {
-      data = mock('ficha'); Object.assign(data, { peso_actual: '0.00', unidad_peso: 'kg' });
-    } else { status = 404; data = { code: 'RUTA_INESPERADA' }; }
-    if (mismoRun) simultaneas--;
-    res.writeHead(status, { 'content-type': 'application/json', 'x-test-run-id': runId });
-    res.end(JSON.stringify(data));
-  });
+if (process.argv.includes('--example-child')) {
+  await simular('conforme',true);
+} else {
+  let n = 0;
+  const seguro = { QA_AUTORIZADO:'NO' };
+  // A1: el módulo importado y los oráculos no deben iniciar red.
+  let remotos = 0; const original = globalThis.fetch;
+  globalThis.fetch = async () => { remotos++; throw Error('Red prohibida'); };
   try {
-    await new Promise(resolve => servidor.listen(0, '127.0.0.1', resolve));
-    fs.mkdirSync(directorio, { recursive: true });
-    const contexto = path.join(directorio, 'contexto_operacion.json');
-    const referencia = 'AUT-G37-V1-20261108';
-    fs.writeFileSync(contexto, JSON.stringify({ grupo: 'G37', run_id: runId, version: 1, intento: 1,
-      operacion: 'EVALUAR', referencia, casos: CASOS }));
-    const base = `http://127.0.0.1:${servidor.address().port}`;
-    const archivoEnv = path.join(temporal, 'local.env');
-    fs.writeFileSync(archivoEnv, [`SIGAB_API_TEST_BASE=${base}`, 'QA_SANDBOX_SECRET=secreto-ficticio',
-      'QA_CONTADOR_EMAIL=contador@ejemplo.invalid', 'QA_CONTADOR_PASSWORD=clave-ficticia',
-      'QA_ADMIN_EMAIL=admin@ejemplo.invalid', 'QA_ADMIN_PASSWORD=clave-ficticia'].join('\n'));
-    const args = ['--autorizacion', referencia, '--operacion', 'evaluar', '--version', '1',
-      '--intento', '1', '--run-id', runId, '--contexto', contexto];
-    const salida = await principal(args, { proceso: { QA_AUTORIZADO: 'SI' }, archivoEnv, ensayo: true });
-    assert.equal(fallosConcurrencia, 0);
-    assert.equal(simultaneas, 0);
-    assert.equal(salida.resultado.cierre.run.cierre_http, 200);
-    const esperado = escenario === 'seleccion_con_500' ? 'NO_CONCLUYENTE' : 'BLOQUEADO';
-    for (const caso of CASOS) assert.equal(salida.resultado.casos[caso].estado, esperado);
-    if (escenario === 'seleccion_con_500') {
-      assert.match(salida.resultado.casos[CASOS[0]].motivo, /\/finanzas\/activos\/1 \(HTTP 500, ERROR_INTERNO\)/);
-      assert.deepEqual(salida.resultado.observaciones.candidatos.at(-1).motivos, ['detalle no legible: HTTP 500']);
-    } else {
-      assert.ok(salida.resultado.observaciones.candidatos[0].motivos.includes('sin peso actual positivo'));
-      assert.match(fs.readFileSync(path.join(directorio, 'TC-M06-G37_resultado.md'), 'utf8'), /sin peso actual positivo/);
+    assert.equal(periodoDestino([{ numero_id_tributaria:'NIT-D',estado:'CERRADO',
+      fecha_inicio:'2026-01-01',fecha_fin:'2026-12-31' }],'NIT-D',hoy()),null);
+    assert.equal(remotos,0); n++;
+  } finally { globalThis.fetch = original; }
+  for (const [escenario,esperado,oficial] of [
+    ['conforme',['APROBADO','APROBADO'],true],
+    ['cierre_en_proceso',['APROBADO','APROBADO'],true],
+    ['periodo_forma_extra',['APROBADO','APROBADO'],true],
+    ['periodo_estado_invalido',['NO_CONCLUYENTE','NO_CONCLUYENTE'],false],
+    ['con_campos',['APROBADO','APROBADO'],true],
+    ['codigo_v1',['RECHAZADO','RECHAZADO'],true],
+    ['sin_delta',['RECHAZADO','APROBADO'],true],
+    ['otro_alterado',['RECHAZADO','APROBADO'],true],
+    ['sin_lectura_cadena',['APROBADO','RECHAZADO'],true],
+    ['sin_dispositivo',['NO_CONCLUYENTE','NO_CONCLUYENTE'],false],
+    ['plazo_vencido',['NO_CONCLUYENTE','NO_CONCLUYENTE'],false],
+    ['cerrado',['NO_CONCLUYENTE','NO_CONCLUYENTE'],false],
+    ['reintentar',['APROBADO','APROBADO'],true],
+    ['delete_fallido',['APROBADO','APROBADO'],false]
+  ]) {
+    const { r,estado,presentes,informe } = await simular(escenario);
+    validar(r,estado,esperado);
+    assert.equal(r.oficial,oficial,`${escenario}: ${JSON.stringify(r.condiciones_oficialidad)}; ${JSON.stringify(r.cierre.rollback)}; ${r.problemas_tecnicos.join('; ')}`);
+    if (escenario === 'conforme' || escenario === 'reintentar')
+      assert.deepEqual(Object.values(r.seguimiento),['CORREGIDA','CORREGIDA']);
+    if (escenario === 'periodo_forma_extra') {
+      assert.ok(r.contraste_contrato.some(x => x.id === 'periodos' && x.resultado === 'observacion'));
+      assert.equal(r.discrepancias_contrato.some(x => x.id === 'periodos'), false);
     }
-  } finally {
-    await new Promise(resolve => servidor.close(resolve));
-    assert.equal(path.dirname(path.resolve(directorio)), temporal);
-    fs.rmSync(temporal, { recursive: true, force: true });
+    if (escenario === 'periodo_estado_invalido') {
+      assert.match(informe, /Problema técnico de automatización \(ERROR_QA\), no incidencia del producto/);
+      assert.match(informe, /Sin incidencia de producto nueva comprobada/);
+      assert.equal(estado.escritos, 0);
+    }
+    if (escenario === 'codigo_v1')
+      assert.deepEqual(Object.values(r.seguimiento),['REPRODUCIDA','REPRODUCIDA']);
+    if (['sin_dispositivo','plazo_vencido','cerrado'].includes(escenario)) {
+      assert.equal(estado.escritos,0); assert.ok(estado.solicitudes.some(x => x.metodo === 'DELETE'));
+    }
+    if (escenario === 'delete_fallido') assert.equal(r.condiciones_oficialidad.delete_200,false);
+    if (oficial) {
+      assert.equal(clasificarRegistro(CAPACIDADES,r,presentes,
+        {runId:r.run_id,referencia:r.autorizacion_referencia,version:2}),true);
+    }
+    n++; process.stdout.write(`OK ${escenario}: ${esperado.join('/')} oficial=${r.oficial} solicitudes=${r.solicitudes_totales}/150\n`);
   }
+  const ejemplo = await new Promise(resolve => {
+    let h;
+    try { h = spawn(process.execPath,[fileURLToPath(import.meta.url),'--example-child'],
+      {cwd:DIR,windowsHide:true,stdio:['ignore','pipe','pipe']}); }
+    catch(e) { resolve({error:e}); return; }
+    let out='',err='';
+    h.stdout.on('data',x=>{out+=x});
+    h.stderr.on('data',x=>{err+=x});
+    h.on('error',e=>resolve({error:e}));
+    h.on('close',code=>resolve({code,out,err}));
+  });
+  if (ejemplo.error?.code === 'EPERM') process.stdout.write('A4 spawn EPERM: ejemplo pendiente\n');
+  else {
+    assert.equal(ejemplo.code,0,ejemplo.err);
+    assert.match(ejemplo.out,/EJEMPLO_RUN=/);
+    process.stdout.write(ejemplo.out);
+    n++;
+  }
+  process.stdout.write(`OK G37 V2: ${n} comprobaciones locales\n`);
 }
-for (const escenario of ['seleccion_con_500', 'seleccion_sin_candidatos_validos']) {
-  await ensayoSeleccion(escenario);
-  n++; process.stdout.write(`OK ${escenario}\n`);
-}
-modo('sin_residuos', () => {
-  const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  assert.equal(fs.existsSync(runTemporalEliminado), false);
-  assert.equal(fs.existsSync(path.join(dir, 'diagnostico')), false);
-  assert.equal(fs.existsSync(path.join(dir, 'informe.md')), false);
-  assert.deepEqual(fs.readdirSync(path.join(dir, 'Resultados')).sort(), [
-    'RUN-G37-V1-20261108-202328', 'RUN-G37-V1-20261108-203910',
-    'RUN-G37-V1-20261108-205523', 'RUN-G37-V1-20261108-212224',
-    'RUN-G37-V1-20261108-213859', 'RUN-G37-V1-20261108-220244',
-    'RUN-G37-V1-20261108-230500'
-  ]);
-});
-process.stdout.write(`OK G37: ${n}/${n} modos locales; sin ejecución de RUN ni comprobación real de cierre\n`);

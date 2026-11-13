@@ -1,0 +1,97 @@
+{
+  "grupo": "G34",
+  "run_id": "RUN-G34-V2-20261112-052510",
+  "fase": "PREFLIGHT_LOCAL",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 90,
+    "solicitudes_cypress": 16,
+    "logins_fuera_run": 2,
+    "eventos_m02": 3,
+    "disparos": 3,
+    "put_costos": 3,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 1200
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2",
+    "cypress": "14.5.4"
+  },
+  "efectos": [
+    "Dos logins fuera del RUN",
+    "Hasta tres eventos M02 y tres procesamientos M06",
+    "Un PUT de costos a 100 %, restauración explícita y una reserva condicionada por lectura discrepante",
+    "Cypress antes de restaurar y cerrar; Newman con exportación temporal",
+    "DELETE con secreto y lecturas poscierre; HTTP 200 solo no prueba rollback"
+  ],
+  "vivo": [
+    {
+      "requisito": "Período de hoy ABIERTO",
+      "esperado": "Titular con período que contiene hoy en America/Bogota y ABIERTO",
+      "observado": {
+        "elegibles": 5,
+        "descartados": [
+          {
+            "activo": 943,
+            "motivo": "período que contiene hoy CERRADO"
+          },
+          {
+            "activo": 944,
+            "motivo": "período que contiene hoy CERRADO"
+          },
+          {
+            "activo": 945,
+            "motivo": "período que contiene hoy CERRADO"
+          }
+        ]
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "Precio vigente",
+      "esperado": "Precio PESO_KG vigente de la especie bovina",
+      "observado": 8,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "Dos bovinos elegibles, A sin mediciones del período",
+      "esperado": "A sin filas en GET mediciones antes de escribir; B bovino elegible",
+      "observado": {
+        "pares": 20,
+        "pares_con_A_sin_mediciones": 16,
+        "lectura_completa": true
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "Matriz TB/PM",
+      "esperado": "Asignaciones activas presentes en lista de configuración",
+      "observado": {
+        "lista_leida": true,
+        "tb": true,
+        "pm": true
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "Costos de venta restaurables",
+      "esperado": "Fracciones GENERAL activas legibles",
+      "observado": {
+        "pct_transporte": "0.0200",
+        "pct_comisiones": "0.0300",
+        "pct_impuestos": "0.0100"
+      },
+      "cumple": true,
+      "bloqueante": true
+    }
+  ],
+  "apto_para_escrituras": true
+}

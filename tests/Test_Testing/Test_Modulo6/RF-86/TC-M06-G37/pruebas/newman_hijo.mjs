@@ -26,8 +26,7 @@ export function resumirEjecuciones(summary, input) {
     const nombre = e.item?.name, http = e.response?.code ?? null;
     const actor = nombre === 'ficha' ? 'admin' : 'contador';
     const parametro = key => input.environment.values.find(x => x.key === key)?.value;
-    const ruta = nombre === 'estados_get' ? `/finanzas/periodos/${parametro('periodo')}/estados-resultados` :
-      nombre === 'auditoria' ? `/finanzas/auditoria?id_periodo_contable=${parametro('periodo')}&tipo_evento=VARIACION_REGISTRADA&formato=TECNICO&pagina=1&tamano=500` :
+    const ruta = nombre === 'acumulado' ? `/finanzas/periodos/${parametro('periodo')}/estado-resultados/acumulado` :
         `/finanzas/lineas/${parametro('linea')}/cadena`;
     const contraste = { contraste_contrato: [], discrepancias_contrato: [], problemas_tecnicos: [] };
     if (http === 200) {

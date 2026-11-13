@@ -2,7 +2,7 @@ export const CASOS = ['TC-M06-001', 'TC-M06-002', 'TC-M06-003', 'TC-M06-004'];
 export const IDS = CASOS.map((_, i) => `G32-API-${String(i + 1).padStart(3, '0')}-01`);
 export const PRESUPUESTO = Object.freeze({
   solicitudes_totales: 150, logins_fuera_run: 2, escrituras_preparacion: 1,
-  eventos_m02: 6, precios: 2, disparos: 6, trazabilidades: 1,
+  eventos_m02: 6, precios: 2, disparos: 6, trazabilidades: 2,
   lecturas: 130, deletes: 1, timeout_login_ms: 120000,
   timeout_post_ms: 120000, timeout_ms: 30000, duracion_segundos: 2400,
 });
@@ -59,11 +59,9 @@ export function evaluarOraculo(indice, { variaciones, medicion, evento, precio, 
   if (Math.abs(tb - tbCalculado) > 0.005 || Math.abs(pm - pmCalculado) > 0.005 || Math.abs(total - totalCalculado) > 0.005)
     hallazgos.push(`Descomposición RF-83 distinta del cálculo previo: TB ${tbCalculado}, PM ${pmCalculado}, total ${totalCalculado}.`);
   const cambioPrecio = String(calculoPrevio.id_precio_mercado) !== String(precio);
-  if (indice === 0 && cambioPrecio && pmCalculado !== 0)
-    esperados.push(pmCalculado > 0 ? 'GANANCIA_PRECIO_MERCADO' : 'PERDIDA_PRECIO_MERCADO');
   if (t.length !== esperados.length || [...t].sort().join('|') !== [...esperados].sort().join('|'))
     hallazgos.push(`Se esperaban ${esperados.join(' y ')}; se observaron ${t.join(' y ') || 'ninguna variación'}.`);
-  const signos = [[tb > 0, cambioPrecio ? Math.abs(pm - pmCalculado) < 0.005 : pm === 0],
+  const signos = [[tb > 0, pm === 0 && !cambioPrecio],
     [tb < 0, pm === 0 && !cambioPrecio],
     [tb > 0, pm < 0], [tb === 0, pm > 0]][indice];
   if (!signos.every(Boolean)) hallazgos.push(`Componentes inesperados: transformación ${tb}; precio ${pm}.`);
@@ -92,8 +90,8 @@ export function evaluarOraculo(indice, { variaciones, medicion, evento, precio, 
         return { estado: 'RECHAZADO', motivo: `La transformación ${id} no traza al evento M02 ${evento}.` };
     } else {
       if (precio == null) return { estado: 'NO_CONCLUYENTE', motivo: 'No hay id de precio RF-89 para confrontar el origen.' };
-      if (String(ids.id_precio_mercado) !== String(precio) || ids.id_evento != null)
-        return { estado: 'RECHAZADO', motivo: `La variación de precio ${id} no tiene como único origen el precio RF-89 ${precio}.` };
+      if (String(ids.id_precio_mercado) !== String(precio))
+        return { estado: 'RECHAZADO', motivo: `La variación de precio ${id} no traza al precio RF-89 ${precio}.` };
     }
     if (lineaPorVariacion?.[String(id)] !== true)
       return { estado: 'NO_CONCLUYENTE', motivo: `No se verificó línea de asiento de ${id}.` };

@@ -1,12 +1,12 @@
 export const CASOS = ['TC-M06-006'];
 export const IDS = ['G34-API-006-A', 'G34-API-006-B', 'G34-UI-006-01'];
-export const PRESUPUESTO = Object.freeze({ solicitudes_totales: 90, logins_fuera_run: 2, eventos_m02: 3,
+export const PRESUPUESTO = Object.freeze({ solicitudes_totales: 90, solicitudes_cypress: 16, logins_fuera_run: 2, eventos_m02: 3,
   disparos: 3, put_costos: 3, timeout_login_ms: 120000, timeout_post_ms: 120000,
   timeout_ms: 30000, duracion_segundos: 1200 });
 export const CAPACIDADES = Object.freeze({ contrato: 'sigab-qa-ejecutor/1', grupo: 'G34', casos: CASOS,
   operaciones: ['evaluar', 'reintentar', 'reevaluar'], versiones: { min: 1, max: 99 },
   comprobaciones_obligatorias: { 'TC-M06-006': { API: IDS.slice(0, 2), UI: [IDS[2]] } },
-  limite: { solicitudes_totales: 90, duracion_segundos: 1200, timeout_post_ms: 120000 }, baja_automatizada: false });
+  limite: { solicitudes_totales: 90, solicitudes_cypress: 16, duracion_segundos: 1200, timeout_post_ms: 120000 }, baja_automatizada: false });
 export const casoCompleto = c => 'TC-M06-G34 / ' + c;
 export const numero = x => x == null || x === '' ? NaN : Number(x);
 export const igualMonto = (a,b) => Number.isFinite(numero(a)) && Number.isFinite(numero(b)) && Math.abs(numero(a)-numero(b)) < .005;
@@ -25,9 +25,14 @@ export function costosDe(config, especie) {
   return Object.fromEntries(['pct_transporte','pct_comisiones','pct_impuestos'].map(k => [k, String(x[k])]));
 }
 export const mismosCostos = (a,b) => !!a && !!b && Object.keys(a).every(k => igualMonto(a[k],b[k]));
-const causaAviso = x => /RF_83_NO_COMPLETADO|medici[oó]n\s+(?:no\s+completada|sin\s+completar|pendiente)|no\s+se\s+complet[oó]\s+la\s+medici[oó]n/i
-  .test(String(x.mensaje ?? ''));
-export function evaluarA(base, post, { activo, periodo, evento, identificador }) {
+export const avisoSuspension = (x, identificador, fechaEvento, tipoAlerta = null) => {
+  const mensaje = String(x?.mensaje ?? '');
+  return (tipoAlerta == null || String(x.tipo_evento) === String(tipoAlerta)) &&
+    /no se pudo completar la medici[oó]n|qued[oó] suspendid[oa]/i.test(mensaje) &&
+    Boolean(identificador && mensaje.includes(String(identificador))) &&
+    Boolean(fechaEvento && mensaje.includes(fechaEvento));
+};
+export function evaluarA(base, post, { activo, periodo, evento, identificador, fechaEvento, tipoAlerta }) {
   if (!base?.completa || !post?.completa) return { estado: 'NO_CONCLUYENTE', fallos: ['Lectura incompleta de A.'] };
   const campos = { variaciones:'id_variacion_valor_razonable', lineas:'id_linea_asiento_nic41',
     mediciones:'id_medicion_posterior', calculos:'id_calculo_valor_razonable' };
@@ -39,24 +44,24 @@ export function evaluarA(base, post, { activo, periodo, evento, identificador })
   const pendientes = auditorias.filter(x => x.tipo === 'MEDICION_PENDIENTE' && String(x.activo) === String(activo)
     && String(x.periodo) === String(periodo) && (String(x.referencia) === String(evento) ||
       String(x.evento_payload) === String(evento)) && x.motivo === 'VALOR_NETO_NO_POSITIVO');
-  const vinculados = post.bandeja.filter(x => {
-    const mensaje=String(x.mensaje ?? '');
-    return (String(x.id_activo_biologico) === String(activo) ||
-      (identificador != null && String(identificador).length>=3 && mensaje.includes(String(identificador))) ||
-      new RegExp('activo\\s*#?\\s*'+String(activo)+'(?!\\d)','i').test(mensaje)) &&
-      (String(x.id_referencia) === String(evento) || String(x.id_evento_productivo) === String(evento) ||
-        new RegExp('evento\\s*#?\\s*'+String(evento)+'(?!\\d)','i').test(mensaje));
-  });
-  const validos = vinculados.filter(causaAviso);
+  const vinculados = post.bandeja.filter(x => avisoSuspension(x, identificador, fechaEvento, tipoAlerta));
+  const validos = vinculados;
   const avisos = post.bandeja.map(x=>({id:x.id_notificacion,
-    causa_rf83:causaAviso(x),
+    tipo_evento:x.tipo_evento,
     vinculado:vinculados.includes(x)}));
   const fallos = [];
   if (Object.values(nuevos).some(x => x.length)) fallos.push('A creó variación, línea, medición o cálculo.');
   if (pendientes.length !== 1) fallos.push('A sin auditoría MEDICION_PENDIENTE con motivo, activo, período y evento.');
-  if (!validos.length) fallos.push('Falta aviso al Contador QA con causa, activo y evento.');
+  const pendientesPublicos = post.eventosPendientes?.filter(x => String(x.id_evento) === String(evento) &&
+    String(x.id_activo_biologico) === String(activo)) ?? [];
+  if (pendientesPublicos.length !== 1) fallos.push('Evento de A ausente de eventos-pendientes del período.');
+  if (validos.length !== 1) fallos.push(validos.length ? 'Aviso de suspensión duplicado para A.' :
+    'Falta aviso al Contador QA con medición suspendida, identificador y fecha del evento.');
   return { estado: fallos.length ? 'RECHAZADO' : 'APROBADO', fallos,
-    observado: { nuevos, auditorias, avisos, avisos_relacionados:vinculados.length, avisos_validos:validos.length,
+    observado: { nuevos, auditorias, eventos_pendientes:pendientesPublicos.map(x=>x.id_evento), avisos,
+      avisos_relacionados:vinculados.length, avisos_validos:validos.length,
+      tipo_evento_aviso_valido:validos.length === 1 ? validos[0].tipo_evento : null,
+      tipo_contrastado_con_referencia_previa:tipoAlerta != null,
       bandeja_linea_base:base.bandejaLineaBase } };
 }
 export function evaluarB(base, post, { activo, evento, periodo, calculoPrevio, pesoNuevo }) {

@@ -1,73 +1,66 @@
-# TC-M06-G41 — RF-87 v1.1
+# TC-M06-G41 - reevaluacion V2 de RF-87
 
-Automatización API de TC-M06-019 y TC-M06-020. Oráculo original: fila `TC-M06-G41` de `tests/Test_Testing/Test_Modulo6/Casos_Prueba(Modulo6Agrup).csv`, CA-1, CA-7, CA-9, CA-11, proceso 1–9, salida y actualización v1.1. La orden `ORD-G41-001` fija las decisiones D1–D4. La existencia de un cálculo previo no sustituye el valor inicial requerido por TC-M06-020.
+## Preparación ORD-G41-018 (ronda 4)
 
-## Archivos activos
+TC-M06-019 conserva los oráculos de la matriz. Dentro de un RUN autorizado, el ejecutor registra un precio nuevo por cada especie presente en los activos a valor razonable, con la fuente y categoría del precio vigente y una variación calculada bajo el umbral configurado; confirma la desviación solo cuando el mínimo de 0,01 alcanza ese umbral. Comprueba mediante GET que cada precio nuevo quedó vigente antes del cierre. Así, el 1572, si sigue en VR con especie 423, recibe variación como los activos de especie 422 en V1. `resultado.json` conserva por activo VR el precio usado y la variación de precio unitario esperada, no cero; la medición de cierre con los campos exigidos sigue siendo el oráculo.
 
-- `g41.mjs`: ejecutor canónico. `--capacidades` y `--comprobar` son locales.
-- `lib/g41_core.mjs`: oráculos y decimal exacto con `BigInt`.
-- `G41.postman_collection.json`: cuatro lecturas finales Newman, sin UI.
-- `pruebas/newman_hijo.mjs`: proceso Newman con reportes saneados.
-- `pruebas/registro_qa.mjs`: validación estructural para el registro QA externo.
-- `pruebas/g41_local.test.mjs`: pruebas locales sin TEST.
-- `pruebas/g41_dto.test.py`: validación local con los DTO Pydantic reales del backend.
-- `pruebas/contrato_g41.json`: contrato de rutas, cuerpos y respuestas con citas del backend.
-- `preparacion_ORD-G41-009.md`: informe local de preparación; no es informe de RUN.
+El DELETE se verifica con lecturas sin cabeceras del RUN para todas las especies VR: ningún precio nuevo debe persistir y el vigente de cada especie debe volver al de la base. El aviso de cierre a cada Contador y las alertas NIC 41 que puedan emitir los precios nuevos, una por especie, además de la alerta del párrafo 30, pueden persistir. La preparación local no consulta TEST ni crea un RUN.
 
-G41 estaba vacío antes de esta orden. Se consultaron en solo lectura G40 (`g40.mjs`, `lib/g40_core.mjs`, colección y pruebas), G39 (baja y contrato) y G37 (colección de reportes). No hay duplicados ni legado G41.
+## Adaptación local ORD-G41-015 (ronda 3)
 
-## Operación
+Este apartado describe el estado de la ronda 3; la preparación vigente es ORD-G41-018, indicada arriba.
 
-### Permisos del flujo (ORD-G41-005)
+TC-M06-019 conserva el criterio de RF-87. Según la consulta de solo lectura entregada por QA el 2026-11-12, un Contador cambió el activo 1572 de costo a valor razonable el 2026-11-10; su valoración por costo quedó inactiva aunque el reconocimiento histórico conserva ese indicador. El activo 1573 sigue por costo. El preflight lee el método vigente de cada activo en la lista y contrasta el historial individual con la valoración por costo activa. Forma VR con 1569, 1570 y cada uno de 1572/1573 que esté a valor razonable; forma COSTO con los restantes de 1572/1573. El 1571 se da de baja dentro del RUN y queda excluido del cierre. Exige precio vigente para cada especie presente en VR antes de cualquier escritura; no crea un precio para la especie 423. El oráculo exige medición de cierre y campos de RF-87 para VR, ausencia de medición de cierre para COSTO y ausencia de revaluación para el activo dado de baja.
 
-Acciones M06: C=1, R=2, E=5 (`src/financial_valuation/infrastructure/routers/m06_router.py:8-10,48`). El preflight exige solo las dependencias de las rutas utilizadas:
+`resultado.json` guarda la clasificación con su origen y los datos leídos que motivaron cualquier aborto del preflight en `observado.preflight_vivo`; el informe los cita en prosa. Persisten potencialmente el aviso de cierre a todos los Contadores y alertas NIC 41, incluida la del párrafo 30 si el 1573 tiene precio de su especie. Esta preparación no ejecutó TEST ni creó un RUN.
 
-| Actor | Recurso:acción | Declaración de ruta |
-| --- | --- | --- |
-| Contador | `cierre_periodo:2`, `cierre_periodo:5` | `m06_router.py:295,302-303,312-313` |
-| Contador | `configuracion_contable:2`, `configuracion_contable:1` | `m06_router.py:79,115-116` |
-| Contador | `precios_mercado:2`, `precios_mercado:1` | `m06_router.py:137,143` |
-| Contador | `valoracion_activos:2`, `valoracion_activos:5` | `m06_router.py:190,196,219,225,234-249` |
-| Contador | `estado_resultados:2` | `m06_router.py:423-424,429` |
-| Contador | `revelaciones_nic41:2` | `m06_router.py:458-459,464` |
-| Contador | `auditoria_financiera:2` | `m06_router.py:498` |
-| Administrador | `activos_biologicos:2`, `activos_biologicos:1`, `activos_biologicos:5` | `src/biological_assets/infrastructure/routers/activo_biologico_router.py:219,1132-1135,1223-1227,1343-1347` |
+## Alcance y archivos vigentes
 
-La bandeja `/notificaciones` exige autenticación y no permiso de recurso (`tests/Test_Testing/Test_Modulo6/RF-86/TC-M06-G40/pruebas/contrato_g40.json:468-486`). Los faltantes se guardan por actor en `permisos_faltantes`, como pares `recurso:acción`. Si el flujo no envió escrituras, el DELETE 200 y las lecturas válidas de períodos y activos acreditan `SIN_ESCRITURAS`. La protección de rutas detiene localmente cualquier `undefined` o `null` antes de la petición. Las pruebas locales usan loopback y reportes Newman temporales; no son evidencia de TEST.
+ORD-G41-012, fase preparar, ronda 1 de 2. V2 prueba solo TC-M06-019. TC-M06-020 quedo APROBADO en V1, RUN-G41-V1-20261109-175216, y no se ejecuta ni evalua aqui. El informe V1 y su evidencia permanecen en Resultados/ sin cambios.
 
-El lanzador externo crea `contexto_operacion.json` dentro de `Resultados/RUN-G41-V1-.../` o `EvaluacionV2/Resultados/RUN-G41-V2-.../`, aporta autorización particular y ejecuta el CLI. El ejecutor escribe `preflight.json` antes de cualquier petición. No se debe invocar aquí para TEST en fase preparar. `QA_AUTORIZADO=SI` y el host exacto son barreras; los dos cierres producen dos avisos persistentes para cinco Contadores fuera del sandbox. El registro de los dos precios vigentes también emite dos alertas persistentes para esos Contadores (`registrar_precio_use_case.py:84-95`). Diciembre se cierra anticipadamente por D2. Estos efectos externos deben constar en la solicitud del RUN.
+- g41.mjs: ejecutor canonico; --capacidades y --comprobar son locales.
+- lib/g41_core.mjs: oraculos de 019 y prevalidacion.
+- G41.postman_collection.json: unica coleccion Newman vigente, cuatro lecturas finales.
+- pruebas/newman_hijo.mjs: reportes Newman saneados.
+- pruebas/registro_qa.mjs: contrato del registro QA.
+- pruebas/g41_local.test.mjs y pruebas/contrato_g41.json: ensayos locales y contrato.
+- pruebas/g41_dto.test.py: contraste local de DTO.
+- preparacion_ORD-G41-009.md: preparacion historica V1; no es informe de RUN.
 
-El informe oficial se genera solo dentro del RUN, junto a `resultado.json` y Newman JSON/HTML reales. El `DELETE /test-control/runs/{id}` va seguido de lecturas de período, activos, matriz, precios y mediciones. Un `DELETE 200` aislado no acredita rollback. No hay Cypress porque los casos son solo API.
+No hay spec Cypress: la matriz exige solo API. El ejecutor produce un unico Markdown oficial en EvaluacionV2/Resultados/RUN-G41-V2-<timestamp>/TC-M06-G41_reevaluacion_V2.md, junto con resultado.json, preflight.json y los reportes Newman realmente generados.
 
-## Equivalencias de TC-M06-019(c)
+## Fuentes revisadas
 
-| RF-87 | API pública |
-| --- | --- |
-| `valor_razonable_inicio` | `mediciones[].valor_razonable_anterior` |
-| `valor_razonable_cierre` | `mediciones[].valor_razonable_actual` |
-| `variacion_total` | `mediciones[].variacion_total` |
-| `variacion_transformacion_biologica` | `mediciones[].ganancia_perdida_transformacion` |
-| `variacion_precio_mercado` | `mediciones[].ganancia_perdida_precio_mercado` |
-| `metodo_valoracion` | `activos[].valorado_por_costo` (`false` = valor razonable, `true` = costo) |
+Casos_Prueba(Modulo6Agrup).csv, linea 384, Windows-1252; ANALISIS-G41-V2.md, decisiones D1-D4; informe y resultado V1 del RUN 175216. Rutas de codigo consultadas con git show origin/test:src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py, git show origin/test:src/identity_access/domain/value_objects/evento_categoria.py y git show origin/test:src/financial_valuation/infrastructure/adapters/notificacion_financiera_m01_adapter.py. Para el patron de contexto V2 se leyo TC-M06-G40/g40.mjs. No se consulto TEST en esta preparacion.
 
-Fuentes de código consultadas: `src/financial_valuation/infrastructure/routers/m06_router.py:190-252,295-330,423-508`; `src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-340`; `src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:54-65,93-153,187-301,342-357`; `src/financial_valuation/application/services/medidor.py:7-9,62-114`; `src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:59-95,104-116`; `src/financial_valuation/infrastructure/adapters/notificacion_financiera_m01_adapter.py:33-57`; `src/financial_valuation/domain/entities/contabilidad.py:16-30`; `src/financial_valuation/infrastructure/dto/m06_dto.py:64-77,132-134`; `src/biological_assets/infrastructure/routers/activo_biologico_router.py:1133-1170,1223-1261,1343-1370`; DTO de cambio de estado y baja en `src/biological_assets/infrastructure/dto/`.
+## Decisiones D1-D4
 
-## Riesgo funcional candidato
+D1: todos los criterios a-f de 019, un solo cierre del periodo 220; el segundo cierre de diciembre servia a 020 y se retiro. D2: se conserva la preparacion dentro del RUN de los activos 1569-1573, la baja RF-45 de 1571, los eventos y pendientes, y un precio vigente. D3: el aviso debe tener id nuevo respecto de la bandeja completa del Contador QA y el texto exacto del mes cerrado, tolerando solo el punto final. D4: un aviso de cierre para cada Contador del sistema, sin filtro de finca, persiste despues del DELETE aunque el periodo 220 vuelva a ABIERTO. Tambien pueden persistir las alertas NIC 41 y de precio emitidas.
 
-`medidor.py` usa el último cálculo para `valor_razonable_anterior`; TC-M06-020 pide el valor inicial RF-82 o el cierre anterior. Esta discrepancia se clasifica `DEFECTO_FUNCIONAL_CANDIDATO` hasta comprobarla por API pública en un RUN autorizado. No es veredicto local.
+## Preflight y cierre
 
-## Ajustes ORD-G41-002
+Antes de escribir, el preflight vivo exige periodo 220 ABIERTO y del mes actual en America/Bogota; periodo siguiente inexistente o ABIERTO; activos 1569-1573 inicialmente ACTIVO; precio vigente coherente con simulacion; prevalidacion sin bloqueos, activos sin precio ni trazabilidad incompleta, y sin autorizacion requerida; ningun cierre previo o en curso. La prevalidacion de origin/test despues de 0fcde3bb revisa titular de finca y matriz para los hechos que el cierre registraria. Una falta deja 019 NO_CONCLUYENTE sin escrituras del escenario y se solicita DELETE. Un 409 EXCLUSION_REQUIERE_AUTORIZACION o un periodo EN_CIERRE tambien deja 019 NO_CONCLUYENTE: no se autorizan exclusiones.
 
-Para el primer cierre, el ejecutor toma del historial leído antes del cierre las mediciones posteriores al reconocimiento CONFIRMADO, ordenadas por fecha e identificador. Sin mediciones intermedias (rama a), exige `valor_razonable_anterior` del cierre igual al inicio RF-82. Con ellas (rama b), exige que la primera parta de RF-82 y que inicio RF-82 + variaciones intermedias + variación del cierre iguale el valor actual del cierre. En ambas ramas verifica además variación del cierre = actual − anterior y transformación + precio = variación. `resultado.json` y el informe enumeran la rama y los ids por activo. En diciembre se conserva el valor actual del cierre de noviembre como inicio esperado.
+El rollback se comprueba con GET sin cabeceras del RUN: periodo 220, siguiente, cinco activos, mediciones, variaciones, calculos, lineas, matriz, precios, eventos RF-45 y reportes. El DELETE 200 por si solo no confirma restauracion.
 
-Los dos precios nuevos usan `general.pct_umbral_desviacion_precio` leído de `/finanzas/configuracion`: el primero busca la mitad del umbral y el segundo una cuarta parte, con dos decimales. Si el cambio mínimo de 0,01 alcanza o supera el umbral, el POST envía `confirmar_desviacion=true`; cada decisión queda registrada en `resultado.json` y el informe. Las pruebas locales incluyen la rama b con Newman en loopback y el umbral bajo. Son ensayos locales, no evidencia de TEST.
+## Validacion local
 
-## Ajustes ORD-G41-008: orden de respuestas
+node --check g41.mjs, node --check lib/g41_core.mjs, node --check pruebas/g41_local.test.mjs, node g41.mjs --comprobar y node pruebas/g41_local.test.mjs. La suite usa solo loopback local y no es evidencia de TEST. A4 intenta un ensayo en proceso hijo y, si el entorno permite spawn, copia el RUN local completo y capacidades.json a TEMP/g41-verificar-ejemplo e imprime las rutas. En esta ronda el hijo fue impedido por spawn EPERM; el test documenta la causa.
 
-- `g41.mjs:99-100`: activos 1569-1573 seleccionados por `id_activo_biologico`; especie de 1569, igualdad con 1570 y 1571, y costo de 1572 y 1573. Falta de un id: `ACTIVO_FALTANTE_<id>`. La consulta global puede incluir activos de otras fincas.
-- `g41.mjs:100`: precio vigente por fuente, `fecha_vigencia` e `id_precio_mercado`, sin tomar el primer elemento de la lista.
-- `g41.mjs:76`: HTTP del cierre por id de período, sin tomar el último elemento de la lista de cierres local.
-- `lib/g41_core.mjs:24`: primera medición previa por fecha e id de medición, sin tomar la primera posición recibida.
-- `g41.mjs:50,94`: los dos logins constan en `solicitudes[]` con método, ruta y HTTP o timeout, sin cuerpo ni credenciales; no se cuentan como escrituras del sandbox.
+## Reglas y protecciones restauradas (ORD-G41-013)
 
-Las demás listas leídas de API usan `find`/`some` por id, origen, tipo o estado, `filter` por identidad de línea base, o recorren todos los elementos. `medicionesPrevias` se ordena explícitamente por fecha e id para la traza cronológica; no depende del orden del servidor. El fixture de `/finanzas/activos` ordena por `identificador`, presenta primero los equinos e incluye dos activos ajenos. `orden_api_distinto` invierte además períodos, mediciones, matriz, notificaciones, auditoría y precios; las listas vacías de variaciones, cálculos y líneas se conservan vacías. El ensayo integral con Newman en loopback obtuvo 019 y 020 APROBADO; los reportes temporales del ensayo no son evidencia de TEST.
+V2 conserva un único cierre del período 220 para TC-M06-019. El lanzador externo aporta `contexto_operacion.json` y autorización particular; `--capacidades` declara solo `TC-M06-019` y `G41-API-019-01`. `--comprobar` comprueba dependencias locales. El preflight escribe `preflight.json` antes de toda petición y exige `QA_AUTORIZADO=SI`, host canónico y datos de acceso. La lectura de `.env.qa` está condicionada a esa autorización. Las pruebas locales usan valores ficticios en loopback.
+
+Los permisos se derivan de las rutas realmente usadas. En M06, C=1, R=2 y E=5; el contador necesita `cierre_periodo:2,5`, `configuracion_contable:1,2`, `precios_mercado:1,2`, `valoracion_activos:2,5`, `estado_resultados:2`, `revelaciones_nic41:2` y `auditoria_financiera:2`. El administrador necesita `activos_biologicos:1,2,5` para eventos y estado. `/finanzas/periodos` admite permisos alternativos de lectura en el router actual; el cierre y la prevalidación siguen exigiendo `cierre_periodo`. Los faltantes se registran por actor. Sin permisos suficientes, 019 queda NO_CONCLUYENTE y no se hacen escrituras del escenario.
+
+La guarda de rutas rechaza `undefined` y `null` antes de enviar una petición. Las solicitudes son seriales. El flujo selecciona activos por `id_activo_biologico`, no por posición de respuesta; la lista puede incluir otras fincas y especies mezcladas. El precio vigente debe corresponder a la especie y categoría configurada (`PESO_KG` o `POR_CABEZA`) y concordar con la simulación. El umbral se toma de `config.general.pct_umbral_desviacion_precio`; si el paso mínimo de 0,01 alcanza el umbral, se envía `confirmar_desviacion=true`.
+
+Las asignaciones contables que faltan se crean a partir de una cuenta existente del mismo sentido y se guardan sus ids para comprobar el rollback. La auditoría se consulta con `tipo_evento` de inicio y fin, filtrada por período. El aviso se compara por texto exacto del mes cerrado y por id nuevo respecto de la bandeja previa; un aviso preexistente no satisface el criterio. El DELETE se sigue de lecturas sin cabeceras de RUN; un HTTP 200 aislado no acredita restauración.
+
+Para 019(c), `valor_razonable_inicio` corresponde a `mediciones[].valor_razonable_anterior`, `valor_razonable_cierre` a `valor_razonable_actual`, `variacion_total` a `variacion_total`, las dos variaciones a `ganancia_perdida_transformacion` y `ganancia_perdida_precio_mercado`, y el método a `activos[].valorado_por_costo=false`. Las pruebas de decisión comprueban cada criterio de `evaluar019` por separado. Las líneas de baja RF-45 de 1571 y la depreciación por costo de 1572/1573 no incumplen por sí mismas el criterio b.
+
+## Cobertura local V1 retirada de V2
+
+La suite V1 de HEAD tenía 72 pruebas; ORD-G41-012 dejó 18. Esta ronda conserva las 18 y restaura la cobertura aplicable a 019, con 57 pruebas locales. Se retiraron las decisiones `inicio_distinto_rf82`, `inicio_distinto_anterior`, `total_incorrecto`, `componentes_incorrectos`, `rama_a_conforme`, `rama_b_conforme` y `rama_b_suma_incorrecta`, junto con `decimal exacto`: verificaban el cálculo acumulado y las ramas de TC-M06-020. Los escenarios `medicion_intermedia`, `segundo_inicio`, `inicio_rf82`, `componentes_mal` y `segundo_cierre_fallido` dependían de 020 o del cierre de diciembre. Las aserciones de 020 dentro de los escenarios compartidos se retiraron; las de 019 permanecen. Las pruebas de variantes de error de V1 se concentran en la tabla de decisión 019 y en los escenarios V2 vigentes. No se modificaron oráculos ni evidencias V1.
+
+Rutas de lectura de código consultadas en esta ronda: `src/financial_valuation/infrastructure/routers/m06_router.py` y `src/biological_assets/infrastructure/routers/activo_biologico_router.py`. La revisión de protecciones se hizo en `g41.mjs` y `lib/g41_core.mjs`. No se consultó TEST.

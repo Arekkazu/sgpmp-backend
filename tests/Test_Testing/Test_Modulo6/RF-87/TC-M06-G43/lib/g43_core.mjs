@@ -1,5 +1,5 @@
 export const CASOS=['TC-M06-024','TC-M06-025','TC-M06-026','TC-M06-027'];
-export const LIMITE={solicitudes_totales:240,duracion_segundos:1800};
+export const LIMITE={solicitudes_totales:230,cypress_solicitudes:120,duracion_segundos:1800};
 export const hoyBogota=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bogota',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 export const porId=(xs,campo,id)=>xs.find(x=>{try{return Number(x[campo])===Number(id);}catch{return false;}});
 // Origen del patrón: TC-M06-G42/lib/g42_core.mjs; aquí solo se compara evidencia observable en este RUN.

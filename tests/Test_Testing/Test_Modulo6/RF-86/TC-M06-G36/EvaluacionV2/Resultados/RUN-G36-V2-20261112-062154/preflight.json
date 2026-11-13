@@ -1,0 +1,151 @@
+{
+  "grupo": "G36",
+  "run_id": "RUN-G36-V2-20261112-062154",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 150,
+    "duracion_segundos": 900,
+    "logins_fuera_run": 3,
+    "eventos_m02": 2,
+    "procesamientos": 2,
+    "intentos_modificacion": 9,
+    "precios": 0,
+    "configuracion": 0,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos_externos": [
+    "M02 puede registrar bitÃ¡cora RF-52 fuera de la transacciÃ³n del RUN.",
+    "Procesar eventos M06 puede incluir backlog ajeno; comprobar antes de autorizar TEST.",
+    "DELETE del sandbox requiere lecturas poscierre; no prueba reversiÃ³n de archivos o notificaciones externas."
+  ],
+  "vivo": {
+    "requisitos": [
+      {
+        "requisito": "periodo_hoy_abierto",
+        "esperado": "Periodo actual ABIERTO",
+        "observado": [
+          "CERRADO",
+          "CERRADO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO"
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "dos_bovinos_elegibles",
+        "esperado": "Al menos dos bovinos",
+        "observado": [
+          1627,
+          1831
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "precio_vigente",
+        "esperado": "PESO_KG vigente",
+        "observado": [
+          18,
+          18
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "matriz_tb_pm",
+        "esperado": "TB y PM presentes",
+        "observado": [
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB"
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "contador2_acceso",
+        "esperado": "GET activo 200",
+        "observado": [
+          1627,
+          1831
+        ],
+        "cumple": true,
+        "bloqueante": true
+      }
+    ]
+  }
+}

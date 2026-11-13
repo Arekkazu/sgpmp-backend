@@ -13,7 +13,7 @@ import {DIR,CASOS,IDS,CONTRATO,PRESUPUESTO,entrada,validarActor,periodoDestino,v
 const ROOT=path.resolve(DIR,'../../../../..'), API='https://www.api.inmero.co/api-sgpmp-test';
 const COL=path.join(DIR,'G40.postman_collection.json'), CONTRACT=path.join(DIR,'pruebas/contrato_g40.json');
 const SHA={coleccion:'242bffafae66f1858c6663c177a4b4e1d18f084875a58cd8909be45f6fca1292',
-  contrato:'42a848025dc4e0be3d9afb6ffb494b3465b718aed428b3d57b7f50c4f0f43113'};
+  contrato:'03f42000274a48579b628a63efa52b277ec08a4e715a57178e34b25c9b1952e6'};
 const require=createRequire(import.meta.url), local=new AsyncLocalStorage();
 const hash=p=>createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const sha=p=>fs.existsSync(p)?hash(p):null;
@@ -34,7 +34,8 @@ function resumenCypress(r,dir){let conteos={};try{conteos=JSON.parse(fs.readFile
 export const CAPACIDADES={contrato:'sigab-qa-ejecutor/1',grupo:'G40',casos:CASOS,
   operaciones:['evaluar','reintentar','reevaluar'],versiones:{min:1,max:99},
   comprobaciones_obligatorias:{'TC-M06-018':{API:['G40-API-018-01'],UI:['G40-UI-018-01']}},
-  limite:{solicitudes_totales:150,duracion_segundos:1800},baja_automatizada:false};
+  limite:{solicitudes_totales:150,solicitudes_api_ejecutor_newman:150,solicitudes_cypress:24,duracion_segundos:1800},baja_automatizada:false,
+  reevaluacion:{version:2,version_anterior:1,casos:CASOS,sentidos:['GANANCIA','PERDIDA']}};
 export const conPeticiones=(fetcher,fn)=>local.run({fetcher,ocupado:false,hijo:false,solicitudes:0},fn);
 export async function fetchEnContexto(...args){const s=local.getStore();if(!s)return globalThis.fetch(...args);
   if(s.ocupado||s.hijo)throw Error('PETICION_CONCURRENTE');s.ocupado=true;
@@ -46,6 +47,7 @@ export function leerEnv(proceso=process.env,archivo=path.join(ROOT,'.env.qa')){c
   Object.assign(e,proceso);e.QA_AUTORIZADO=proceso.QA_AUTORIZADO;return e;}
 export function contexto(argv,ensayo=false){const v=k=>argv.includes(k)?argv[argv.indexOf(k)+1]:null;
   const operacion=v('--operacion'),version=Number(v('--version')),intento=Number(v('--intento'));
+  const sentidoFlag=v('--sentido');
   const runId=v('--run-id'),referencia=v('--autorizacion'),archivo=path.resolve(v('--contexto')??'.');
   if(!CAPACIDADES.operaciones.includes(operacion)||!Number.isInteger(version)||version<1||
     !Number.isInteger(intento)||intento<1||!referencia||!new RegExp(`^RUN-G40-V${version}-\\d{8}-\\d{6}$`).test(runId??''))
@@ -54,9 +56,17 @@ export function contexto(argv,ensayo=false){const v=k=>argv.includes(k)?argv[arg
   if(ensayo&&(path.basename(dir)!==runId||!dir.startsWith(path.resolve(os.tmpdir())+path.sep)))throw Error('Ensayo fuera de temporal');
   if(path.dirname(archivo)!==dir||path.basename(archivo)!=='contexto_operacion.json')throw Error('Contexto fuera del RUN');
   const c=JSON.parse(fs.readFileSync(archivo,'utf8'));
+  const sentido=sentidoFlag??c.sentido??null;
+  if(sentido!==null&&!['GANANCIA','PERDIDA'].includes(sentido))throw Error('Sentido inválido');
   if(c.grupo!=='G40'||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()||
-    c.referencia!==referencia||JSON.stringify(c.casos)!==JSON.stringify(CASOS))throw Error('Contexto incoherente');
-  return{operacion,version,intento,runId,referencia,dir,ensayo};}
+    c.referencia!==referencia||JSON.stringify(c.casos)!==JSON.stringify(CASOS)||
+    (c.sentido!=null&&c.sentido!==sentido)||
+    (version>1&&!(operacion==='reevaluar'&&c.version_anterior===version-1&&c.alcance_reevaluacion||
+      operacion==='reintentar'&&(c.version_anterior===null||c.version_anterior===version-1)&&
+      typeof c.alcance_reevaluacion?.motivo==='string'&&c.alcance_reevaluacion.motivo.trim()))||
+    (version===1&&operacion==='reevaluar'))throw Error('Contexto incoherente');
+  return{operacion,version,intento,runId,referencia,dir,ensayo,sentido,
+    sentidoModo:sentido===null?'AUTO':'EXPLICITO'};}
 export function preflight(c,e){const b=['SIGAB_API_TEST_BASE','QA_SANDBOX_SECRET','QA_CONTADOR_EMAIL','QA_CONTADOR_PASSWORD',
   'QA_ADMIN_EMAIL','QA_ADMIN_PASSWORD'].filter(k=>!String(e[k]??'').trim());
   if(e.QA_AUTORIZADO!=='SI')b.push('QA_AUTORIZADO');const base=String(e.SIGAB_API_TEST_BASE??'').replace(/\/+$/,'');
@@ -95,7 +105,7 @@ async function login(api,email,password){const x=await fetchEnContexto(api+'/ses
   headers:{'Content-Type':'application/json'},body:JSON.stringify({correo_electronico:email,contrasena:password}),signal:AbortSignal.timeout(120000)});
   return x.status===200?(await x.json())?.token:null;}
 async function request(r,c,e,t,id,ruta,body){validarActor(id,t.actor);const p=entrada(id);
-  if(r.solicitudes.length>=110||Date.now()>r._deadline)throw Error('PRESUPUESTO_AGOTADO');
+  if(r.solicitudes.length>=140||Date.now()>r._deadline)throw Error('PRESUPUESTO_AGOTADO');
   const row={id,metodo:p.metodo,ruta:ruta.split('?')[0],actor:t.actor,http:null};r.solicitudes.push(row);
   const headers={Authorization:`Bearer ${t[t.actor]}`,'X-Test-Run-Id':c.runId,'X-Sandbox-Secret':t.secret,
     ...(body===undefined?{}:{'Content-Type':'application/json'})};
@@ -145,49 +155,59 @@ async function runCypress(r,c,e,t,expected){const dir=path.join(c.dir,'cypress')
 async function close(r,c,e,t,h){const x=await fetchEnContexto(e.SIGAB_API_TEST_BASE+`/test-control/runs/${c.runId}`,{method:'DELETE',
   headers:{Authorization:`Bearer ${t.contador}`,'X-Sandbox-Secret':t.secret},signal:AbortSignal.timeout(120000)});
   r.cierre.run.cierre_http=x.status;if(x.status!==200){r.cierre.rollback.motivo='DELETE distinto de 200';return;}
-  if(!h.wrote&&!h.inciertas){r.cierre.rollback={verificado:true,motivo:'Sin escrituras; DELETE 200'};return;}
   if(!h.pid){r.cierre.rollback={verificado:false,motivo:'Escritura incierta sin período para lecturas poscierre'};return;}
   const get=async ruta=>{const z=await fetchEnContexto(e.SIGAB_API_TEST_BASE+ruta,{headers:{Authorization:`Bearer ${t.contador}`},signal:AbortSignal.timeout(30000)});
     return{http:z.status,data:await z.json()};};
   const cfg=await get('/finanzas/configuracion'),lineas=await get(`/finanzas/lineas?id_periodo_contable=${h.pid}`),
-    vars=await get(`/finanzas/periodos/${h.pid}/variaciones`);
+    vars=await get(`/finanzas/periodos/${h.pid}/variaciones`),periodos=await get('/finanzas/periodos');
   const originales=h.matriz.every(m=>cfg.data?.matriz?.some(x=>x.id_asignacion_cuenta_contable===m.id_asignacion_cuenta_contable));
   const nuevaAusente=!cfg.data?.matriz?.some(x=>x.id_asignacion_cuenta_contable===h.nueva);
   const lineaAusente=!lineas.data?.some(x=>x.id_linea_asiento_nic41===h.linea);
   const varAusente=!vars.data?.some(x=>x.id_variacion_valor_razonable===h.variacion);
   const sinLineasNuevas=Array.isArray(lineas.data)&&lineas.data.every(x=>h.baseLineas?.includes(x.id_linea_asiento_nic41));
   const sinVariacionesNuevas=Array.isArray(vars.data)&&vars.data.every(x=>h.baseVars?.includes(x.id_variacion_valor_razonable));
-  r.cierre.lecturas_poscierre=[{ruta:'configuracion',http:cfg.http},{ruta:'lineas',http:lineas.http},{ruta:'variaciones',http:vars.http}];
-  r.cierre.rollback={verificado:[cfg,lineas,vars].every(z=>z.http===200)&&originales&&nuevaAusente&&lineaAusente&&varAusente&&
+  const periodoAbierto=periodos.data?.some(p=>Number(p.id_periodo_contable)===h.pid&&p.estado==='ABIERTO');
+  r.cierre.lecturas_poscierre=[{ruta:'configuracion',http:cfg.http},{ruta:'lineas',http:lineas.http},{ruta:'variaciones',http:vars.http},{ruta:'periodos',http:periodos.http}];
+  r.cierre.rollback={verificado:[cfg,lineas,vars,periodos].every(z=>z.http===200)&&originales&&nuevaAusente&&lineaAusente&&varAusente&&periodoAbierto&&
     sinLineasNuevas&&sinVariacionesNuevas&&!h.inciertas,
-    motivo:`matriz original ${originales}; nueva ausente ${nuevaAusente}; línea ausente ${lineaAusente}; variación ausente ${varAusente}; IDs nuevos ausentes ${sinLineasNuevas&&sinVariacionesNuevas}; escritura incierta ${h.inciertas}`};}
+    motivo:`matriz original ${originales}; nueva ausente ${nuevaAusente}; línea ausente ${lineaAusente}; variación ausente ${varAusente}; período ABIERTO ${periodoAbierto}; IDs nuevos ausentes ${sinLineasNuevas&&sinVariacionesNuevas}; escritura incierta ${h.inciertas}`};}
 export function informe(c,r){
   const caso=r.casos[CASOS[0]],o=r.observado,cy=r.herramientas.cypress?.acta??{};
+  const sentido=o.sentido??c.sentido??'no seleccionado';
+  const descarte=(o.sentidos_descartados??[]).find(x=>x.sentido==='GANANCIA');
+  const preparacionSentido=o.sentido_modo==='AUTO'&&sentido==='PERDIDA'&&descarte?
+    `Se usó pérdida porque la ganancia de ${o.combinacion?.nombre_especie??'la especie'} ya tenía aviso en el período ${o.periodo??'no seleccionado'} (aviso ${descarte.id_aviso}).`:
+    o.sentido_modo==='AUTO'&&sentido==='GANANCIA'?'Se eligió ganancia automáticamente porque no tenía aviso previo para la combinación.':
+    o.sentido_modo==='AUTO'&&(o.sentidos_descartados??[]).length===2?'No se eligió sentido: ambas combinaciones ya notificadas en el período.':
+    `Se solicitó el sentido explícito ${sentido}.`;
+  const fallidos=['a','b','c','d'].filter(paso=>o[paso]===false);
+  const razon=fallidos.length?`no se cumplieron los pasos ${fallidos.join(', ')}`:
+    caso.estado==='APROBADO'?'se cumplieron los cuatro pasos':'faltan comprobaciones concluyentes';
   const detalle=[
     ['a','Hecho pendiente sin cuentas','PENDIENTE_CUENTA y ninguna línea registrada con cuentas',
       `Variación ${o.variacion??'—'} y línea ${o.linea??'—'} PENDIENTE_CUENTA sin cuentas.`,o.a],
     ['b','Panel de configuración','Pendiente visible y conteo incrementado',
       `Aviso visible; líneas pendientes ${o.conteo_base??'—'} → ${o.conteo_pendiente??'—'}.`,o.b],
-    ['c','Alerta al Contador','Aviso nuevo que identifica VARIACION_VR_TB/GANANCIA y especie',
-      `API: ${o.avisos_nuevos??'—'} avisos nuevos; UI: bandeja abierta con ${cy.avisos_en_ui??'—'} anteriores y ningún aviso nuevo de la combinación. La combinación solo consta en auditoría; el panel no la detalla.`,o.c],
+    ['c','Alerta al Contador',`Aviso nuevo que identifica VARIACION_VR_TB/${sentido} y ${o.combinacion?.nombre_especie??'la especie'}`,
+      `API: ${o.avisos_nuevos??'—'} avisos nuevos; aviso coincidente ${o.aviso?.id??'ninguno'}: ${o.aviso?.texto??'sin texto coincidente'}. UI: bandeja ${cy.bandeja_abierta?'abierta':'no comprobada'}, texto coincidente ${cy.campana_visible===true?'visible':'no acreditado'}.`,o.c],
     ['d','Matriz completada','La misma línea pasa a REGISTRADA con las cuentas nuevas',
-      `POST matriz 201; línea ${o.linea??'—'} REGISTRADA; pendientes ${o.conteo_final??'—'}.`,o.d]
+      `POST matriz HTTP ${o.post_matriz_http??'—'}: ${o.lineas_resueltas??'—'} líneas resueltas; línea ${o.linea_final?.id??o.linea??'—'} ${o.linea_final?.estado??'no observada'} con débito ${o.linea_final?.cuenta_debito??'—'} y crédito ${o.linea_final?.cuenta_credito??'—'}; asignación creada ${o.asignacion_creada?.id??'—'} con débito ${o.asignacion_creada?.cuenta_debito??'—'} y crédito ${o.asignacion_creada?.cuenta_credito??'—'}; conteos base ${o.conteo_base??'—'}, pendiente ${o.conteo_pendiente??'—'}, final ${o.conteo_final??'—'}.`,o.d]
   ].map(([id,verificacion,esperado,observado,ok])=>`| ${id} | ${verificacion} | ${esperado} | ${observado} | ${ok===true?'Cumple':ok===false?'Falla':'No comprobado'} |`).join('\n');
   const incidencias=r.incidencias.map(x=>`### ${x.id??'INC-M06-G40-01'} — ${x.titulo}
 
 - Requisito: RF-86 v2.0 FA-5 y proceso, paso 11: alerta al Contador con la combinación faltante.
-- Reproducción: dejar sin par VARIACION_VR_TB/GANANCIA para la especie del activo, registrar pesaje con ganancia y procesar.
-- Esperado: aviso al Contador que identifique la combinación. Observado: línea PENDIENTE_CUENTA y conteo en el panel, sin aviso nuevo en bandeja por API ni UI; combinación visible solo en la auditoría.
+- Reproducción: dejar sin par VARIACION_VR_TB/${sentido} para ${o.combinacion?.nombre_especie??'la especie'}, registrar pesaje y procesar.
+- Esperado: aviso nuevo al Contador con hecho, sentido y especie por API y UI. Observado: ${o.aviso?.texto??'no se acreditó aviso coincidente'}; UI ${cy.campana_visible===true?'visible':'no acreditada'}.
 - Impacto: el Contador debe revisar la auditoría para identificar el par; la línea pendiente impide cerrar el período hasta completar la matriz.
 - Severidad: ${x.severidad}. ${x.justificacion_severidad}
 - Certeza: ${x.certeza}. Equipo inicial: ${x.equipo_inicial}. Fundamento: ${x.fundamento_equipo}
-- Causa raíz: NO DETERMINADA. El código consultado en contabilizador.py:70-86 registra la auditoría y no muestra una llamada al notificador; es apoyo para investigar, no prueba de la causa en TEST.
+- Causa raíz: NO DETERMINADA. La primera discrepancia pública orienta la atención, sin atribuir causa técnica.
 - Evidencias: resultado.json, cypress/G40-UI-018-01.json, cypress/screenshots/g40.cy.js/G40-UI-018-01.png y newman/.\n`).join('\n');
   return `# TC-M06-G40 — ${caso.estado}
 
 ## Identificación
 
-Grupo G40; caso TC-M06-018; RF-86 v2.0, CA-21 y FA-5; RUN ${c.runId}; V${c.version}, intento ${c.intento}; ambiente ${c.ensayo?'loopback local':'TEST'}; autorización ${c.referencia}; commit no consultado. Node ${r.herramientas.node??process.version}; Newman ${r.herramientas.newman?.version??'no verificado'} (código ${r.herramientas.newman?.codigo??'—'}); Cypress ${r.cypress?.version??'no verificado'} (código ${r.herramientas.cypress?.codigo??'—'}, ${r.cypress?.total_pruebas??0} prueba). Oficial ${r.oficial}.
+Grupo G40; caso TC-M06-018; RF-86 v2.0, CA-21 y FA-5; RUN ${c.runId}; V${c.version}, intento ${c.intento}; operación ${c.operacion.toUpperCase()}, V1 previo; ambiente ${c.ensayo?'loopback local':'TEST'}; autorización ${c.referencia}; referencia backend origin/test 453277e4 (despliegue a verificar en RUN). Node ${r.herramientas.node??process.version}; Newman ${r.herramientas.newman?.version??'no verificado'} (código ${r.herramientas.newman?.codigo??'—'}); Cypress ${r.cypress?.version??'no verificado'} (código ${r.herramientas.cypress?.codigo??'—'}, ${r.cypress?.total_pruebas??0} prueba). Oficial ${r.oficial}.
 
 ## Veredicto y oráculo
 
@@ -201,26 +221,26 @@ Esperado: no se crea línea registrada con cuentas; el hecho queda PENDIENTE_CUE
 | --- | --- | --- | --- | --- |
 ${detalle}
 
-Activo ${o.activo??'—'}, período ${o.periodo??'—'}, variación ${o.variacion??'—'}, línea ${o.linea??'—'}. Auditoría LINEA_ASIENTO_PENDIENTE_CUENTA: ${JSON.stringify(o.auditoria_combinacion??null)}. Solicitudes API ${r.total_solicitudes_api??'—'}/150. Cypress ejecutó el acta G40-UI-018-01: ${cy.estado??'no disponible'}; su código 0 acredita ejecución, no aprobación del producto.
+Detalle del caso — qué se verifica: el hecho pendiente, su visibilidad en M06, el aviso al Contador y la resolución al completar la matriz. Preparación: activo ${o.activo??'no seleccionado'}, período ${o.periodo??'no seleccionado'}, combinación VARIACION_VR_TB/${sentido}/${o.combinacion?.nombre_especie??'especie no seleccionada'}. Modo ${o.sentido_modo??c.sentidoModo}; ${preparacionSentido} Se identificaron ${r.observado.asignaciones_desactivadas??0} asignaciones del sentido elegido. Qué se hizo: ${o.variacion?`se registró el pesaje y se observó la variación ${o.variacion} y la línea ${o.linea??'no acreditada'}.`:'no se acreditó variación ni línea del RUN; consultar las solicitudes y el motivo antes de inferir escrituras.'} Esperado: los cuatro pasos del oráculo original. Observado: paso a ${o.a===true?'cumple':'no cumple o no comprobado'}, b ${o.b===true?'cumple':'no cumple o no comprobado'}, c ${o.c===true?'cumple':'no cumple o no comprobado'} y d ${o.d===true?'cumple':'no cumple o no comprobado'}; aviso ${o.aviso?.id??'no acreditado'}; auditoría pendiente ${o.auditoria_pendiente===true?'acreditada':'no acreditada'}. Antes del POST, los IDs pendientes del período fueron ${o.ids_pendientes_antes?.join(', ')||'ninguno o no comprobados'}; después, ${o.ids_pendientes_despues?.join(', ')||'ninguno o no comprobados'}. ${Number.isInteger(o.conteo_final)&&Number.isInteger(o.conteo_pendiente)&&o.conteo_final<o.conteo_pendiente-1?'El POST resolvió además otras líneas pendientes preexistentes; es el comportamiento esperado de resolver_pendientes.':''} Por qué se decide: ${razon}; veredicto ${caso.estado.toLowerCase()}. Solicitudes API ${r.total_solicitudes_api??'—'}/150; solicitudes Cypress ${r.solicitudes_cypress??0} con presupuesto independiente. Cypress: ${cy.estado??'no ejecutado'}; un código 0 acredita ejecución, no funcionalidad.
 
 ## Contrato y evidencias
 
 ${r.contraste_contrato.map(x=>`- ${x.ruta}: ${x.resultado}, HTTP ${x.http}.`).join('\n')||'Sin lecturas.'}
 
-Evidencias: ${r.evidencias.join(', ')||'ninguna'}. D1: el producto modela una línea PENDIENTE_CUENTA sin cuentas en vez de omitir la línea; QA aprobó tratarlo como observación. La asignación genérica 12 se desactivó únicamente dentro del RUN (DELETE 204) y la matriz se restauró al cerrar.
+Evidencias reales: ${r.evidencias.filter(x=>x!=='resultado.json'&&x!==reportName(c.version)).join(', ')||'ninguna'}. D1: la línea PENDIENTE_CUENTA sin cuentas representa el hecho pendiente. La matriz del sentido elegido se desactiva solo en el RUN. El aviso ALERTA_FINANCIERA_NIC41 persiste fuera del rollback: uno por cada Contador activo de la finca 468 y un evento M01, si el backend lo emitió.
 
 ## Incidencias y análisis
 
 ${incidencias||'Ninguna incidencia de producto acreditada.'}
-Problemas técnicos de automatización: ${r.problemas_tecnicos.join('; ')||'ninguno durante el RUN'}. El bloque Cypress de la raíz corrige el formato que consume el registro QA.
+Seguimiento INC-M06-G40-01: ${r.seguimiento?.estado_v2??'NO_CONCLUYENTE'}. Problemas técnicos de automatización: ${r.problemas_tecnicos.join('; ')||'ninguno durante el RUN'}. Oficialidad: ${r.oficial?'se cumplieron los criterios de API, UI, Newman, presupuesto y rollback':r.no_oficial_motivos?.join('; ')||'faltan comprobaciones obligatorias'}.
 
 ## Cierre y rollback
 
-DELETE HTTP ${r.cierre.run.cierre_http??'—'}; rollback ${r.cierre.rollback.verificado?'verificado':'no verificado'}: ${r.cierre.rollback.motivo??'sin lectura'}.
+DELETE HTTP ${r.cierre.run.cierre_http??'—'}; rollback de datos del sandbox ${r.cierre.rollback.verificado?'verificado':'no verificado'}: ${r.cierre.rollback.motivo??'sin lectura'}. El aviso persistente y su evento M01 quedan excluidos del rollback.
 
 ## Conclusión
 
-${r.oficial?'Remitir el RUN oficial RECHAZADO al responsable QA para actualizar el registro y derivar INC-M06-G40-01 a Desarrollo; solicitar corrección y reevaluar solo con autorización.':'Revisar el impedimento antes de solicitar una nueva ejecución autorizada.'}
+${r.oficial?`Remitir el RUN oficial ${caso.estado} al responsable QA; actualizar INC-M06-G40-01 como ${r.seguimiento?.estado_v2}.`:'Resolver la condición de oficialidad indicada antes de decidir la incidencia; revisar el motivo de selección del sentido antes de reintentar.'}
 `;}
 export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.dir))throw Error('RUN no autorizado');
   const r=blank(c),h={wrote:false,inciertas:false,matriz:[],pid:null,linea:null,variacion:null,nueva:null,
@@ -236,7 +256,8 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
       if(entrada(id).metodo!=='GET'&&x.http===null)h.inciertas=true;return x;};
     const activos=await q('activos','/finanzas/activos'),periodos=await q('periodos','/finanzas/periodos');
     if(!good(activos)||!good(periodos))throw Error('Catálogo o períodos ilegibles');
-    let selected=null;for(const a of activos.data){if(!/bovin/i.test(a.especie??'')||a.estado!=='ACTIVO'||a.tipo!=='INDIVIDUAL')continue;
+    let selected=null;for(const candidate of [1833,1832,1627]){const a=activos.data.find(x=>Number(x.id_activo_biologico)===candidate);
+      if(!a||!/bovin/i.test(a.especie??'')||a.estado!=='ACTIVO'||a.tipo!=='INDIVIDUAL')continue;
       const aid=n(a.id_activo_biologico),detail=await q('activo_detalle',`/finanzas/activos/${aid}`),
         ficha=await q('ficha',`/activos-biologicos/${aid}/ficha-integral`,'admin'),
         precios=await q('precios_get',`/finanzas/precios?id_especie=${a.id_especie}`);
@@ -244,11 +265,12 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
       const periodo=periodoDestino(periodos.data,detail.data.activo.numero_id_tributaria,today());
       const precio=vigente(precios.data,a.id_especie,today());
       const calculo=detail.data.calculos.find(x=>x.estado==='CALCULADO'&&x.json_metodo_costo?.es_producto!==true);
-      if(periodo?.estado==='ABIERTO'&&precio&&calculo&&ficha.data.estado_actual==='ACTIVO'&&
+      if(Number(periodo?.id_periodo_contable)===241&&precio&&calculo&&ficha.data.estado_actual==='ACTIVO'&&
         ficha.data.unidad_peso==='kg'&&Number(ficha.data.peso_actual)>0){selected={a,aid,periodo,precio,ficha,calculo};break;}}
-    if(!selected)throw Error('Sin bovino apto; dato imprescindible no preparable');
+    if(!selected)throw Error('Sin candidato apto en período 241; no se escribe');
     const {a,aid,periodo,ficha}=selected,pid=n(periodo.id_periodo_contable),species=n(a.id_especie);h.pid=pid;
-    r.observado.activo=aid;r.observado.periodo=pid;
+    r.observado.activo=aid;r.observado.periodo=pid;r.observado.sentido_modo=c.sentidoModo;
+    r.observado.sentido=c.sentido;r.observado.sentidos_descartados=[];
     const cfg=await q('configuracion','/finanzas/configuracion'),lb=await q('lineas',`/finanzas/lineas?id_periodo_contable=${pid}`),
       vb=await q('variaciones',`/finanzas/periodos/${pid}/variaciones`),
       pending=await q('lineas',`/finanzas/lineas?id_periodo_contable=${pid}&estado=PENDIENTE_CUENTA`);
@@ -257,16 +279,27 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
     if(![cfg,lb,vb,pending].every(x=>good(x))||r.discrepancias_contrato.length)throw Error('Contrato GET previo discordante');
     h.baseLineas=lb.data.map(x=>x.id_linea_asiento_nic41);h.baseVars=vb.data.map(x=>x.id_variacion_valor_razonable);
     r.observado.conteo_base=cfg.data.lineas_pendientes_cuenta;
-    const matches=cfg.data.matriz.filter(x=>x.tipo_hecho==='VARIACION_VR_TB'&&x.sentido==='GANANCIA'&&
+    const candidatos=c.sentidoModo==='AUTO'?['GANANCIA','PERDIDA']:[c.sentido];
+    let sentido=null;const descartados=[];
+    for(const candidato of candidatos){const previo=bandejaBase.find(x=>coincideCombinacion(x.mensaje,species,a.especie,candidato));
+      if(previo)descartados.push({sentido:candidato,id_aviso:previo.id_notificacion});
+      else{sentido=candidato;break;}}
+    r.observado.sentidos_descartados=descartados;r.observado.sentido=sentido??c.sentido;
+    r.observado.combinacion={tipo_hecho:'VARIACION_VR_TB',sentido:r.observado.sentido,id_especie:species,nombre_especie:a.especie};
+    if(!sentido)throw Error(c.sentidoModo==='AUTO'?'ambas combinaciones ya notificadas en el período':
+      'combinación ya notificada; reintentar con el otro sentido');
+    const matches=cfg.data.matriz.filter(x=>x.tipo_hecho==='VARIACION_VR_TB'&&x.sentido===sentido&&
       x.subtipo_costo===null&&(x.id_especie===null||Number(x.id_especie)===species));
-    if(!matches.length)throw Error('Matriz sin par TB/GANANCIA inicial; D2 no aplicable');h.matriz=matches;
+    if(!matches.length)throw Error('Matriz sin par inicial del sentido elegido; D2 no aplicable');h.matriz=matches;
+    r.observado.asignaciones_desactivadas=matches.length;
     for(const m of matches){const del=await q('matriz_delete',`/finanzas/configuracion/matriz/${m.id_asignacion_cuenta_contable}`);
       if(!good(del,204))throw Error(`DELETE matriz HTTP ${del.http}`);h.wrote=true;}
     const sinPar=await q('configuracion','/finanzas/configuracion');
-    if(!good(sinPar)||sinPar.data.matriz.some(x=>x.tipo_hecho==='VARIACION_VR_TB'&&x.sentido==='GANANCIA'&&
+    if(!good(sinPar)||sinPar.data.matriz.some(x=>x.tipo_hecho==='VARIACION_VR_TB'&&x.sentido===sentido&&
       x.subtipo_costo===null&&(x.id_especie===null||Number(x.id_especie)===species)))
-      throw Error('Matriz mantiene par TB/GANANCIA tras DELETE; no se provoca pesaje');
-    const peso=Number(ficha.data.peso_actual)+1;
+      throw Error('Matriz mantiene par del sentido elegido tras DELETE; no se provoca pesaje');
+    const peso=Number(ficha.data.peso_actual)+(sentido==='GANANCIA'?1:-1);
+    if(peso<=0)throw Error('Peso de pérdida no positivo');
     const ev=await q('evento_crecimiento',`/activos-biologicos/${aid}/eventos/crecimiento`,'admin',
       {tipo_medicion:'PESO',valor_medicion:peso,unidad_medida:'kg',descripcion:`QA ${c.runId}`});
     if(!good(ev,201)||!n(ev.data?.evento?.id_eventos))throw Error(`Pesaje HTTP ${ev.http}`);h.wrote=true;
@@ -275,25 +308,26 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
       ca=await q('configuracion','/finanzas/configuracion');
     if(![va,la,ca].every(x=>good(x)))throw Error('Lecturas tras pesaje ilegibles');
     const newVars=idsNuevos(vb.data,va.data,'id_variacion_valor_razonable').filter(x=>Number(x.id_activo_biologico)===aid);
-    const tb=newVars.find(x=>x.tipo==='GANANCIA_TRANSFORMACION_BIOLOGICA');h.variacion=tb?.id_variacion_valor_razonable??null;
+    const tb=newVars.find(x=>x.tipo===`${sentido}_TRANSFORMACION_BIOLOGICA`);h.variacion=tb?.id_variacion_valor_razonable??null;
     const newLines=idsNuevos(lb.data,la.data,'id_linea_asiento_nic41');
     const line=newLines.find(x=>x.tipo_hecho==='VARIACION_VR_TB'&&x.id_origen===h.variacion);h.linea=line?.id_linea_asiento_nic41??null;
     r.observado.variacion=h.variacion;r.observado.linea=h.linea;r.observado.conteo_pendiente=ca.data.lineas_pendientes_cuenta;
     const aok=Boolean(line&&tb&&Number(line.id_activo_biologico)===aid&&Number(line.id_especie)===species&&
-      line.sentido==='GANANCIA'&&line.estado==='PENDIENTE_CUENTA'&&line.cuenta_debito===null&&line.cuenta_credito===null&&
+      line.sentido===sentido&&line.estado==='PENDIENTE_CUENTA'&&line.cuenta_debito===null&&line.cuenta_credito===null&&
       !newLines.some(x=>x.id_origen===h.variacion&&x.estado==='REGISTRADA'&&x.cuenta_debito&&x.cuenta_credito));
     r.observado.a=aok;
     const cy=await runCypress(r,c,e,t,{conteo:ca.data.lineas_pendientes_cuenta,especie:species,
-      especieNombre:a.especie,avisosBase:bandejaBase.map(x=>x.id_notificacion)});
+      especieNombre:a.especie,sentido,avisosBase:bandejaBase.map(x=>x.id_notificacion)});
     const panel=cy?.acta??null;const bok=panel?.panel_visible===true&&panel.conteo===ca.data.lineas_pendientes_cuenta&&
       ca.data.lineas_pendientes_cuenta>cfg.data.lineas_pendientes_cuenta;r.observado.b=bok;
     const avisos=await pages(q,'bandeja','items','total',p=>`/notificaciones?pagina=${p}&tamano=50`);
     const baseIds=ids(bandejaBase,'id_notificacion');const nuevos=avisos.filter(x=>!baseIds.has(String(x.id_notificacion)));
-    const avisoCoincide=x=>coincideCombinacion(x.mensaje,species,a.especie);
+    const avisoCoincide=x=>coincideCombinacion(x.mensaje,species,a.especie,sentido);
     const cok=nuevos.some(avisoCoincide)&&panel?.campana_visible===true;
     r.observado.c=cok;r.observado.avisos_nuevos=nuevos.length;
+    const aviso=nuevos.find(avisoCoincide);r.observado.aviso=aviso?{id:aviso.id_notificacion,texto:clean(aviso.mensaje)}:null;
     r.observado.bandeja_nueva=nuevos.map(x=>({id:x.id_notificacion,coincide_combinacion:avisoCoincide(x),
-      mensaje_combinacion:avisoCoincide(x)?'VARIACION_VR_TB/GANANCIA/'+species:null}));
+      mensaje_combinacion:avisoCoincide(x)?`VARIACION_VR_TB/${sentido}/${species}`:null}));
     r.observado.panel_combinacion_visible=panel?.combinacion_visible??null;
     const aud=await pages(q,'auditoria','eventos','total_registros',p=>`/finanzas/auditoria?id_activo_biologico=${aid}&id_periodo_contable=${pid}&formato=TECNICO&tamano=500&pagina=${p}`);
     const audIds=ids(auditoriaBase,'id_evento');const eventoAud=aud.find(x=>!audIds.has(String(x.id_evento))&&x.tipo_evento==='LINEA_ASIENTO_PENDIENTE_CUENTA');
@@ -301,21 +335,37 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
     r.observado.auditoria_combinacion=eventoAud?{tipo_hecho:eventoAud.payload_evento?.tipo_hecho??null,
       sentido:eventoAud.payload_evento?.sentido??null,id_especie:eventoAud.payload_evento?.id_especie??null}:null;
     const original=matches.find(x=>x.id_especie===null)??matches[0];const post=await q('matriz_post','/finanzas/configuracion/matriz','contador',
-      {tipo_hecho:'VARIACION_VR_TB',sentido:'GANANCIA',id_especie:species,subtipo_costo:null,
+      {tipo_hecho:'VARIACION_VR_TB',sentido,id_especie:species,subtipo_costo:null,
         cuenta_debito:original.cuenta_debito,cuenta_credito:original.cuenta_credito});
     if(good(post,201)){h.nueva=post.data.id_asignacion_cuenta_contable;h.wrote=true;}
     const lf=await q('lineas',`/finanzas/lineas?id_periodo_contable=${pid}`),cf=await q('configuracion','/finanzas/configuracion');
     const same=lf.data?.find(x=>x.id_linea_asiento_nic41===h.linea);
-    const dok=good(post,201)&&post.data.lineas_resueltas>=1&&same?.estado==='REGISTRADA'&&
-      same.cuenta_debito===original.cuenta_debito&&same.cuenta_credito===original.cuenta_credito&&
-      cf.data?.lineas_pendientes_cuenta===cfg.data.lineas_pendientes_cuenta;
-    r.observado.d=dok;r.observado.conteo_final=cf.data?.lineas_pendientes_cuenta;
+    const creada=cf.data?.matriz?.find(x=>x.id_asignacion_cuenta_contable===h.nueva);
+    const idsPendientes=rows=>Array.isArray(rows)?rows.filter(x=>x.estado==='PENDIENTE_CUENTA')
+      .map(x=>x.id_linea_asiento_nic41):null;
+    r.observado.post_matriz_http=post.http;
+    r.observado.lineas_resueltas=post.data?.lineas_resueltas??null;
+    r.observado.asignacion_creada=creada?{id:creada.id_asignacion_cuenta_contable,
+      cuenta_debito:creada.cuenta_debito,cuenta_credito:creada.cuenta_credito}:null;
+    r.observado.linea_final=same?{id:same.id_linea_asiento_nic41,estado:same.estado,
+      cuenta_debito:same.cuenta_debito,cuenta_credito:same.cuenta_credito}:null;
+    r.observado.ids_pendientes_antes=idsPendientes(la.data);
+    r.observado.ids_pendientes_despues=idsPendientes(lf.data);
+    r.observado.conteo_final=cf.data?.lineas_pendientes_cuenta??null;
+    const dok=good(post,201)&&good(lf)&&good(cf)&&Number.isInteger(post.data.lineas_resueltas)&&
+      post.data.lineas_resueltas>=1&&creada&&
+      typeof creada.cuenta_debito==='string'&&creada.cuenta_debito.trim()&&
+      typeof creada.cuenta_credito==='string'&&creada.cuenta_credito.trim()&&same?.estado==='REGISTRADA'&&
+      same.cuenta_debito===creada.cuenta_debito&&same.cuenta_credito===creada.cuenta_credito&&
+      Number.isInteger(r.observado.conteo_pendiente)&&Number.isInteger(r.observado.conteo_final)&&
+      r.observado.conteo_final<=r.observado.conteo_pendiente-1;
+    r.observado.d=Boolean(dok);
     const estado=aok&&bok&&cok&&dok?'APROBADO':aok&&bok&&dok&&!cok?'RECHAZADO':'RECHAZADO';
     r.casos[CASOS[0]]={caso:'TC-M06-G40 / TC-M06-018',estado,motivo:`a=${aok}; b=${bok}; c=${cok}; d=${dok}`};
     if(!c.sinNewman)await runNewman(r,c,e,t,pid);
   }catch(error){r.problemas_tecnicos.push(clean(error.message));if(!r.casos[CASOS[0]])r.casos[CASOS[0]]={
     caso:'TC-M06-G40 / TC-M06-018',
-    estado:/Sin bovino apto|Matriz sin par TB\/GANANCIA inicial/.test(error.message)?'BLOQUEADO':'NO_CONCLUYENTE',
+    estado:'NO_CONCLUYENTE',
     motivo:clean(error.message)};}
   finally{if(t)try{await close(r,c,e,t,h);}catch(error){r.cierre.rollback={verificado:false,motivo:clean(error.message)};}
     if(!r.casos[CASOS[0]])r.casos[CASOS[0]]={caso:'TC-M06-G40 / TC-M06-018',estado:'NO_CONCLUYENTE',motivo:'Sin comprobación completa'};
@@ -328,14 +378,18 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
       (r.herramientas.newman?.codigo!==0||r.herramientas.newman?.iteraciones!==1||
         r.herramientas.newman?.fallos!==0||!r.cierre.rollback.verificado)){
       r.casos[CASOS[0]].estado='NO_CONCLUYENTE';r.casos[CASOS[0]].motivo='Newman o rollback no verificado';}
+    if(!r.cierre.rollback.verificado&&r.casos[CASOS[0]].estado==='RECHAZADO'){
+      r.casos[CASOS[0]].estado='NO_CONCLUYENTE';r.casos[CASOS[0]].motivo='Rollback no verificado';}
     r.comprobaciones.push(...['API','UI'].map(fuente=>({caso:CASOS[0],fuente,id:fuente==='API'?IDS[0]:'G40-UI-018-01',tipo:'ASSERT',
       estado:r.casos[CASOS[0]].estado,evidencia:fuente==='API'?'resultado.json':'cypress/G40-UI-018-01.json'})));
-    if(r.casos[CASOS[0]].estado==='RECHAZADO')r.incidencias.push({id:'INC-M06-G40-01',caso:CASOS[0],
+    r.seguimiento={id:'INC-M06-G40-01',estado_v2:r.observado.c===true&&r.herramientas.cypress?.codigo===0?'CORREGIDA':
+      r.casos[CASOS[0]].estado==='RECHAZADO'&&r.observado.c===false?'REPRODUCIDA':'NO_CONCLUYENTE'};
+    if(r.seguimiento.estado_v2==='REPRODUCIDA')r.incidencias.push({id:'INC-M06-G40-01',caso:CASOS[0],
       titulo:'FA-5: no se alerta al Contador de la combinación faltante',equipo_inicial:'Desarrollo',
       severidad:'MEDIA',justificacion_severidad:'El aviso dirigido falla, pero el pendiente es visible en el panel y la auditoría, y completar la matriz lo resuelve.',
       certeza:c.ensayo?'NO DETERMINADA':'CONFIRMADA',fundamento_equipo:'Primera discrepancia comprobada en API y UI pública de M06; causa raíz no determinada'});
-    r.total_solicitudes_api=(local.getStore()?.solicitudes??0)+(r.herramientas.newman?.solicitudes??0)+
-      (r.herramientas.cypress?.acta?.peticiones??[]).filter(x=>!x.local).length;
+    r.total_solicitudes_api=(local.getStore()?.solicitudes??0)+(r.herramientas.newman?.solicitudes??0);
+    r.solicitudes_cypress=(r.herramientas.cypress?.acta?.peticiones??[]).filter(x=>!x.local).length;
     r.oficial=r.total_solicitudes_api<=150&&Date.now()<=r._deadline&&!r.discrepancias_contrato.length&&!h.inciertas&&r.cierre.rollback.verificado&&
       r.herramientas.newman?.codigo===0&&r.herramientas.newman.fallos===0&&r.herramientas.newman.iteraciones===1&&
       r.herramientas.cypress?.codigo===0&&
@@ -344,7 +398,20 @@ export async function evaluar(c,e){if(e.QA_AUTORIZADO!=='SI'||!fs.existsSync(c.d
       (c.ensayo||r.herramientas.cypress.acta.host_bloqueado===null)&&
       (c.ensayo||['APROBADO','RECHAZADO'].includes(r.herramientas.cypress.acta.estado))&&
       (c.ensayo||r.evidencias.includes('cypress/screenshots/g40.cy.js/G40-UI-018-01.png'))&&
-      ['APROBADO','RECHAZADO'].includes(r.casos[CASOS[0]].estado);
+      r.solicitudes_cypress<=24&&['APROBADO','RECHAZADO'].includes(r.casos[CASOS[0]].estado);
+    r.no_oficial_motivos=[r.total_solicitudes_api>150?'Presupuesto API excedido':null,
+      r.solicitudes_cypress>24?'Presupuesto Cypress excedido':null,
+      Date.now()>r._deadline?'Duración excedida':null,
+      r.discrepancias_contrato.length?'Contrato discordante':null,h.inciertas?'Escritura incierta':null,
+      !r.cierre.rollback.verificado?'Rollback no verificado':null,
+      r.herramientas.newman?.codigo!==0?'Newman incompleto':null,
+      r.herramientas.cypress?.codigo!==0?'Cypress incompleto':null,
+      !r.herramientas.cypress?.acta?.captura?'Captura UI ausente':null,
+      !c.ensayo&&r.herramientas.cypress?.acta?.login_resuelto_localmente!==true?'Login UI no resuelto':null,
+      !c.ensayo&&r.herramientas.cypress?.acta?.host_bloqueado?'Host UI bloqueado':null,
+      !c.ensayo&&!r.evidencias.includes('cypress/screenshots/g40.cy.js/G40-UI-018-01.png')?'Archivo de captura ausente':null,
+      !['APROBADO','RECHAZADO'].includes(r.casos[CASOS[0]].estado)?'Caso sin veredicto concluyente':null].filter(Boolean);
+    if(!r.oficial){r.seguimiento.estado_v2='NO_CONCLUYENTE';r.incidencias=[];}
     r.consume_version=r.oficial;r.cypress=resumenCypress(r,c.dir);r.evidencias.unshift('resultado.json',reportName(c.version));
     delete r._deadline;save(path.join(c.dir,'resultado.json'),r);fs.writeFileSync(path.join(c.dir,reportName(c.version)),informe(c,r));}
   return r;}

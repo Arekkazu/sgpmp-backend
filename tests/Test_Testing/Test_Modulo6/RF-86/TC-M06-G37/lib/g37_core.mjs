@@ -3,12 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const CASOS = ['TC-M06-011', 'TC-M06-012', 'TC-M06-013'];
-export const IDS = ['G37-API-011-01', 'G37-API-012-01', 'G37-API-013-01'];
+export const CASOS = ['TC-M06-011', 'TC-M06-013'];
+export const IDS = ['G37-API-011-01', 'G37-API-013-01'];
 export const CONTRATO = JSON.parse(fs.readFileSync(path.join(DIR, 'pruebas', 'contrato_g37.json'), 'utf8'));
 export const PRESUPUESTO = Object.freeze({ solicitudes_totales: 150, duracion_segundos: 1800,
   logins_fuera_run: 2, eventos_m02: 5, precios: 2, procesamientos: 5, cambios_estado: 1,
-  estados_resultados: 2, verificaciones_rf91: 1 });
+  acumulados: 4, verificaciones_rf91: 1 });
 
 export function entrada(id) {
   const p = CONTRATO.peticiones.find(x => x.id === id);
@@ -137,8 +137,7 @@ export function periodoDestino(periodos, nit, hoy) {
   const propios = periodos.filter(p => String(p.numero_id_tributaria) === String(nit));
   const actual = propios.find(p => p.fecha_inicio <= hoy && p.fecha_fin >= hoy);
   if (actual?.estado === 'ABIERTO') return actual;
-  return propios.filter(p => p.estado === 'ABIERTO' && p.fecha_inicio > (actual?.fecha_fin ?? hoy))
-    .sort((a, b) => String(a.fecha_inicio).localeCompare(String(b.fecha_inicio)))[0] ?? null;
+  return null;
 }
 export function seleccionarCandidatos(candidatos, cantidad = 4, precondicion = null) {
   const motivos = [], elegibles = [];
@@ -179,20 +178,31 @@ export function seleccionarCandidatos(candidatos, cantidad = 4, precondicion = n
     m.motivos.push('menos de cuatro elegibles en el mismo período');
   return { elegido, motivos };
 }
-export function oraculo011({ antes, despues, variaciones, otroPeriodo = [] }) {
-  if (!antes || !despues) return { estado: 'NO_CONCLUYENTE', motivo: 'Faltan estados RF-93 comparables.' };
-  const tipos = new Set(variaciones.map(v => v.tipo));
-  if (!['GANANCIA_TRANSFORMACION_BIOLOGICA', 'PERDIDA_TRANSFORMACION_BIOLOGICA',
-    'GANANCIA_PRECIO_MERCADO', 'PERDIDA_PRECIO_MERCADO'].every(t => tipos.has(t)))
-    return { estado: 'NO_CONCLUYENTE', motivo: 'No se prepararon los cuatro tipos de variación de TC-M06-001 a TC-M06-004.' };
+export function oraculo011({ antes, despues, variaciones, otroAntes, otroDespues }) {
+  if (!antes || !despues || !otroAntes || !otroDespues)
+    return { estado: 'RECHAZADO', severidad: 'ALTA', motivo: 'No responde el acumulado público comparable.' };
+  const campos = { GANANCIA_TRANSFORMACION_BIOLOGICA: 'ganancia_transformacion_biologica',
+    PERDIDA_TRANSFORMACION_BIOLOGICA: 'perdida_transformacion_biologica',
+    GANANCIA_PRECIO_MERCADO: 'ganancia_precio_mercado',
+    PERDIDA_PRECIO_MERCADO: 'perdida_precio_mercado' };
+  const fallos = [];
+  for (const [tipo, campo] of Object.entries(campos)) {
+    const xs = variaciones.filter(v => v.tipo === tipo).map(v => {
+      const x = monto(v.monto_variacion); return { n: x.n < 0n ? -x.n : x.n, escala: x.escala };
+    });
+    if (!diferenciaIgual(despues.componentes?.[campo], antes.componentes?.[campo], xs)) fallos.push(campo);
+  }
   const ganancias = variaciones.filter(v => v.tipo.startsWith('GANANCIA_')).map(v => v.monto_variacion);
   const perdidas = variaciones.filter(v => v.tipo.startsWith('PERDIDA_')).map(v => {
     const x = monto(v.monto_variacion); return { n: x.n < 0n ? -x.n : x.n, escala: x.escala };
   });
-  const correcto = diferenciaIgual(despues.total_ingresos, antes.total_ingresos, ganancias) &&
-    diferenciaIgual(despues.total_gastos, antes.total_gastos, perdidas) &&
-    otroPeriodo.every(v => !variaciones.some(x => x.id_variacion_valor_razonable === v.id_variacion_valor_razonable));
-  return { estado: correcto ? 'APROBADO' : 'RECHAZADO', motivo: correcto ? 'Los acumulados corresponden exactamente a las nuevas variaciones del período.' : 'Los acumulados no corresponden exactamente a las nuevas variaciones del período.' };
+  for (const [campo, xs] of [['total_ingresos', ganancias], ['total_gastos', perdidas]])
+    if (!diferenciaIgual(despues[campo], antes[campo], xs)) fallos.push(campo);
+  if (JSON.stringify(otroAntes) !== JSON.stringify(otroDespues)) fallos.push('otro período');
+  return { estado: fallos.length ? 'RECHAZADO' : 'APROBADO',
+    severidad: fallos.length >= 6 ? 'ALTA' : fallos.length ? 'MEDIA' : null,
+    motivo: fallos.length ? `Acumulado discordante: ${fallos.join(', ')}.` :
+      'Los componentes y totales cambian exactamente; otro período sin cambios.' };
 }
 export function oraculo012(variaciones, auditorias) {
   const tipos = new Set(variaciones.map(v => v.tipo));
@@ -214,20 +224,21 @@ export function oraculo012(variaciones, auditorias) {
     return { estado: 'NO_CONCLUYENTE', motivo: 'Las entradas RF-94 observadas coinciden, pero faltan tipos de variación exigidos.' };
   return { estado: 'APROBADO', motivo: 'Cada variación tiene una entrada RF-94 con identificador, activo, tipo, monto y período.' };
 }
-export function oraculo013({ inicial, cadenaInicial, final, cadena, evento, lecturaApta }) {
+export function oraculo013({ inicial, cadenaInicial, final, cadena, evento, lecturaApta, verificadas = 1 }) {
   const ids = cadena?.eslabones?.ids;
-  if (cadena?.nivel_fallo === 1) return { estado: 'BLOQUEADO', motivo: 'Nivel 1: lectura IoT apta no acreditada antes del RUN.' };
-  const ok = inicial?.estado_trazabilidad === 'VERIFICACION_PENDIENTE' &&
+  const ok = Number(verificadas) >= 1 && inicial?.estado_trazabilidad === 'VERIFICACION_PENDIENTE' &&
     cadenaInicial?.estado_trazabilidad === 'VERIFICACION_PENDIENTE' &&
-    cadenaInicial?.estado_verificacion == null && cadenaInicial?.nivel_fallo == null &&
     final?.estado_trazabilidad === 'VERIFICADO' && cadena?.estado_verificacion === 'VERIFICADO' &&
     cadena?.nivel_fallo == null && cadena?.eslabones?.nivel_fallo == null &&
-    Number(ids?.id_evento) === Number(evento) && Array.isArray(ids?.ids_lectura_iot) && ids.ids_lectura_iot.includes(lecturaApta);
-  return { estado: ok ? 'APROBADO' : 'RECHAZADO', motivo: ok ? 'Estado y cadena completa navegables hasta M02 y M03.' : 'Estado o cadena de la variación no cumplen RF-91 hasta M02 y M03.' };
+    Number(ids?.id_evento) === Number(evento) && Array.isArray(ids?.ids_lectura_iot) &&
+    ids.ids_lectura_iot.some(x => Number(x) === Number(lecturaApta));
+  return { estado: ok ? 'APROBADO' : 'RECHAZADO',
+    motivo: ok ? 'VERIFICACION_PENDIENTE inicial, VERIFICADO final y navegación a M02 y M03.' :
+      `Cadena incompleta: nivel_fallo ${cadena?.nivel_fallo ?? cadena?.eslabones?.nivel_fallo ?? 'sin dato'}; evento M02 ${ids?.id_evento ?? 'faltante'}; lectura M03 ${ids?.ids_lectura_iot?.some(x => Number(x) === Number(lecturaApta)) ? 'presente' : 'faltante'}.` };
 }
 export function decidirVerificacion(http, codigo = '', causaG32Confirmada = false) {
   if (http === 422 && codigo === 'PERIODO_NO_ABIERTO') return { estado: 'NO_CONCLUYENTE',
-    motivo: 'RF-91 devolvió PERIODO_NO_ABIERTO aunque el período 8 fue seleccionado ABIERTO; contraste técnico de período pendiente.' };
+    motivo: 'RF-91 devolvió PERIODO_NO_ABIERTO aunque el período 241 fue seleccionado ABIERTO; contraste técnico de período pendiente.' };
   if (http === 500) return { estado: 'RECHAZADO',
     motivo: `POST RF-91 HTTP 500 (${codigo || 'sin código'}); origen no navegable. Síntoma similar a INC-M06-G32-01; causa no demostrada en este RUN.`,
     incidencia: causaG32Confirmada ? 'INC-M06-G32-01' : null };

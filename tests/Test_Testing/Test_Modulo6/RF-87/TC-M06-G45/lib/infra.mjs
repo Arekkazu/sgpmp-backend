@@ -30,13 +30,14 @@ export function contexto(args,{capacidades,grupo,casos,dir,prueba=false}){
   const intento=Number(arg('--intento'));
   const runId=arg('--run-id');
   const ref=arg('--autorizacion');
-  if(!capacidades.operaciones.includes(operacion)||!Number.isInteger(version)||version<1||!Number.isInteger(intento)||intento<1||!ref||!new RegExp(`^RUN-${grupo}-V${version}-\\d{8}-\\d{6}$`).test(runId??''))throw Error('CONTEXTO_INCOMPLETO');
+  if(!capacidades.operaciones.includes(operacion)||!Number.isInteger(version)||version<capacidades.versiones.min||version>capacidades.versiones.max||!Number.isInteger(intento)||intento<1||!ref||!new RegExp(`^RUN-${grupo}-V${version}-\\d{8}-\\d{6}$`).test(runId??''))throw Error('CONTEXTO_INCOMPLETO');
   const archivo=arg('--contexto');
   const salida=prueba?path.dirname(path.resolve(archivo??'.')):path.join(dir,...(version===1?['Resultados',runId]:[`EvaluacionV${version}`,'Resultados',runId]));
   if(prueba&&(path.basename(salida)!==runId||!salida.startsWith(path.resolve(os.tmpdir())+path.sep)))throw Error('PRUEBA_FUERA_TEMPORAL');
   if(!archivo||path.resolve(archivo)!==path.join(salida,'contexto_operacion.json'))throw Error('CONTEXTO_FUERA_RUN');
   const c=JSON.parse(fs.readFileSync(archivo));
   if(c.grupo!==grupo||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()||c.referencia!==ref||JSON.stringify(c.casos)!==JSON.stringify(casos))throw Error('CONTEXTO_INCOHERENTE');
+  if(operacion==='reintentar'&&c.version_anterior!=null)throw Error('CONTEXTO_INCOHERENTE');
   return{dir:salida,runId,version,intento,operacion,ref};
 }
 
@@ -54,7 +55,8 @@ export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,va
   let escrituras=0;
   async function req(metodo,ruta,cuerpo,sinRun=false){
     if(ocupado)throw Error('PETICION_CONCURRENTE');
-    if(++cuenta>limite.solicitudes_totales||Date.now()-inicio>1800000)throw Error('PRESUPUESTO_AGOTADO');
+      ++cuenta;
+      if(metodo!=='DELETE'&&!(sinRun&&metodo==='GET')&&(cuenta>limite.solicitudes_totales||Date.now()-inicio>1800000))throw Error('PRESUPUESTO_AGOTADO');
     if(!esquema(metodo,ruta)&&!(metodo==='GET'&&ruta==='/sesiones/me/permisos'))throw Error(`RUTA_FUERA_CONTRATO_${metodo}_${ruta}`);
     ocupado=true;
     const fila={id:id(cuenta),metodo,ruta:ruta.split('?')[0],http:null};

@@ -5,18 +5,73 @@
     "ruta": "/sesiones/me/permisos",
     "metodo": "GET",
     "http": 200,
-    "actores": ["contador", "admin"],
-    "campos": {"permisos": [{"id_recurso": "number", "id_accion": "number", "nombre_recurso": "string|null"}]},
+    "actores": [
+      "contador",
+      "admin"
+    ],
+    "campos": {
+      "permisos": [
+        {
+          "id_recurso": "number",
+          "id_accion": "number",
+          "nombre_recurso": "string|null"
+        }
+      ]
+    },
     "fuente": "src/identity_access/infrastructure/schema/permisos_schema.py:7-20; src/identity_access/infrastructure/routers/sesiones_routers.py:217-243"
   },
   "evidencia_escrituras": {
-    "evento_crecimiento": {"http": 201, "campos_usados": ["evento.id_eventos"], "evidencia": "G32 TEST, resultado.json solicitudes y g32.mjs:502-580"},
-    "precios_post": {"http": 201, "campos_usados": ["id_precio_mercado"], "evidencia": "G32 TEST, resultado.json solicitudes y g32.mjs:502-580"},
-    "estado_patch": {"http": 200, "campos_usados": [], "evidencia": "G32 TEST, resultado.json solicitudes"},
-    "procesar": {"http": 200, "campos_usados": ["eventos", "provisiones_m05"], "evidencia": "G32 TEST HTTP; cuerpo del código m06_router.py:218-223"},
-    "estado_post_abierto": {"http": 422, "campos_usados": ["error_code"], "codigo": "PERIODO_NO_CERRADO", "evidencia": "código generar_estado_resultados_use_case.py:28-35; sin TEST G32"},
-    "trazabilidad_ok": {"http": 200, "campos_usados": ["verificadas", "pendientes"], "evidencia": "código m06_router.py:401-407; sin éxito TEST G32"},
-    "trazabilidad_error": {"http": 500, "campos_usados": ["error_code"], "codigo": "ERROR_INTERNO", "evidencia": "G32 TEST, resultado.json solicitudes"}
+    "evento_crecimiento": {
+      "http": 201,
+      "campos_usados": [
+        "evento.id_eventos"
+      ],
+      "evidencia": "G32 TEST, resultado.json solicitudes y g32.mjs:502-580"
+    },
+    "precios_post": {
+      "http": 201,
+      "campos_usados": [
+        "id_precio_mercado"
+      ],
+      "evidencia": "G32 TEST, resultado.json solicitudes y g32.mjs:502-580"
+    },
+    "estado_patch": {
+      "http": 200,
+      "campos_usados": [],
+      "evidencia": "G32 TEST, resultado.json solicitudes"
+    },
+    "procesar": {
+      "http": 200,
+      "campos_usados": [
+        "eventos",
+        "provisiones_m05"
+      ],
+      "evidencia": "G32 TEST HTTP; cuerpo del código m06_router.py:218-223"
+    },
+    "estado_post_abierto": {
+      "http": 422,
+      "campos_usados": [
+        "error_code"
+      ],
+      "codigo": "PERIODO_NO_CERRADO",
+      "evidencia": "código generar_estado_resultados_use_case.py:28-35; sin TEST G32"
+    },
+    "trazabilidad_ok": {
+      "http": 200,
+      "campos_usados": [
+        "verificadas",
+        "pendientes"
+      ],
+      "evidencia": "código m06_router.py:401-407; sin éxito TEST G32"
+    },
+    "trazabilidad_error": {
+      "http": 500,
+      "campos_usados": [
+        "error_code"
+      ],
+      "codigo": "ERROR_INTERNO",
+      "evidencia": "G32 TEST, resultado.json solicitudes"
+    }
   },
   "roles": {
     "contador": {
@@ -130,16 +185,25 @@
         "fecha_inicio": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
         "fecha_fin": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
         "estado": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
-        "ultimo_cierre": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
-        "ultimo_cierre.precios_congelados[].precio_unitario": "src/financial_valuation/infrastructure/routers/m06_router.py:297-299; src/financial_valuation/infrastructure/repositories/periodo_repository.py:124-132; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300"
+        "ultimo_cierre": "src/financial_valuation/infrastructure/routers/m06_router.py:433-438; src/financial_valuation/infrastructure/repositories/periodo_repository.py:141-147",
+        "ultimo_cierre.precios_congelados[].precio_unitario": "src/financial_valuation/infrastructure/routers/m06_router.py:433-438; src/financial_valuation/infrastructure/repositories/periodo_repository.py:141-147"
       },
       "subcampos_ultimo_cierre": {
-        "precios_congelados": [
+        "paso_actual": "number|null",
+        "activos_procesados": "number|null",
+        "activos_pendientes": "number|null",
+        "activos_excluidos": "number|null",
+        "precios_congelados": "array|null",
+        "error_detalle": "string|null",
+        "fecha_fin": "string|null",
+        "tiempo_ejecucion_ms": "number|null",
+        "hash_cierre": "string|null"
+      },
+      "subcampos_precios_congelados": [
           {
             "precio_unitario": "decimal"
           }
         ]
-      }
     },
     {
       "id": "activo_detalle",
@@ -408,7 +472,9 @@
         "nivel_fallo": "number|null",
         "ids": {
           "id_evento": "number|null",
-          "ids_lectura_iot": ["number"],
+          "ids_lectura_iot": [
+            "number"
+          ],
           "id_precio_mercado": "number|null"
         }
       },
@@ -441,7 +507,9 @@
             "id_linea": "number",
             "tipo_hecho": "string",
             "id_activo_biologico": "number",
-            "faltantes": ["string"],
+            "faltantes": [
+              "string"
+            ],
             "nivel_fallo": "number|null"
           }
         ]
@@ -653,6 +721,42 @@
       },
       "fuentes_campos": {
         "eventos[].id_eventos": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:325-346; respuesta src/biological_assets/infrastructure/routers/activo_biologico_router.py:1132-1148"
+      }
+    },
+    {
+      "id": "acumulado",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{periodo}/estado-resultados/acumulado",
+      "actor": "contador",
+      "permiso": "estado_resultados:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:587-591",
+      "respuesta": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46; src/financial_valuation/application/services/reportes.py:31-43",
+      "tipo": "object",
+      "campos": {
+        "componentes": {
+          "ganancia_transformacion_biologica": "decimal|number",
+          "perdida_transformacion_biologica": "decimal|number",
+          "ganancia_precio_mercado": "decimal|number",
+          "perdida_precio_mercado": "decimal|number"
+        },
+        "total_ingresos": "decimal|number",
+        "total_gastos": "decimal|number",
+        "resultado_neto": "decimal|number",
+        "id_periodo_contable": "number",
+        "estado_periodo": "string",
+        "es_definitivo": "boolean"
+      },
+      "fuentes_campos": {
+        "componentes.ganancia_transformacion_biologica": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "componentes.perdida_transformacion_biologica": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "componentes.ganancia_precio_mercado": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "componentes.perdida_precio_mercado": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "total_ingresos": "src/financial_valuation/application/services/reportes.py:31-43",
+        "total_gastos": "src/financial_valuation/application/services/reportes.py:31-43",
+        "resultado_neto": "src/financial_valuation/application/services/reportes.py:31-43",
+        "id_periodo_contable": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46",
+        "estado_periodo": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46",
+        "es_definitivo": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46"
       }
     }
   ],

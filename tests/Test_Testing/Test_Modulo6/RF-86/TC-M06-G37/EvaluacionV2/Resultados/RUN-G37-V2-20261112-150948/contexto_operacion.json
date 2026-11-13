@@ -1,0 +1,16 @@
+{
+  "grupo": "G37",
+  "version": 2,
+  "intento": 10,
+  "run_id": "RUN-G37-V2-20261112-150948",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G37-V2-R2-20261112",
+  "casos": [
+    "TC-M06-011",
+    "TC-M06-013"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico de V2 (intento 2 de V2) de TC-M06-G37, casos 011 y 013. El intento anterior (RUN-G37-V2-20261112-145628, AUT-G37-V2-20261112 consumida) quedó TECNICO sin escrituras (DELETE 200, rollback CONFIRMADO) por ERROR_QA: el contrato exigía ultimo_cierre.precios_congelados como array y el backend lo devuelve NULL en cierres que no congelaron precios (periodo_repository.py:141-147; hoy el cierre 67 del período 8). ORD-G37-028 (ronda 2) admite esos nulos y solo bloquea por los campos usados. SHA-256: g37.mjs 015e83aca2e4e96bfa8d677a955da2e4e304a51a140f2634d63fae7e17666d51; lib/g37_core.mjs 73548c03dee67222ce91c39efc00d8b822e7f9c325da7aea19343b2137d821de (sin cambios); colección 7328ca2bf779428203e0518556a86a24ec0cf33d7b5558c6ce10edb57c3753e3; contrato 342643d3ab3f95a0ac79d5b6c38eee7df73fa242558e33178956fed9bad590fa. Verificación del responsable QA: 5/5, 6/6, 14 escenarios y validar del ejemplo A4 → OFICIAL. Mismos oráculos, precondiciones y efectos que SOL-G37-027. Plazo: antes de 2026-11-13 07:06 UTC (ventana de 24 h de la lectura 120035)."
+  },
+  "version_anterior": null
+}

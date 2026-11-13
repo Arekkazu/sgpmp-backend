@@ -15,10 +15,12 @@ const {coincideCombinacion,clasificarIntercepcion}=avisoG40;
 const DIR=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const RUN='RUN-G40-V1-20261109-120000';
 test('aviso acepta código y traducción, rechaza genérico y especie distinta',()=>{
-  assert.equal(coincideCombinacion('VARIACION_VR_TB GANANCIA especie 39',39,'Bovino'),true);
+  assert.equal(coincideCombinacion('VARIACION_VR_TB GANANCIA especie 39',39,'Bovino'),false);
   assert.equal(coincideCombinacion('Variación por transformación biológica. Ganancia. Especie Bovino',39,'Bovino'),true);
   assert.equal(coincideCombinacion('Línea sin cuenta contable',39,'Bovino'),false);
   assert.equal(coincideCombinacion('VARIACION_VR_TB GANANCIA especie 40',39,'Bovino'),false);
+  assert.equal(coincideCombinacion('Falta la cuenta contable de Variación por transformación biológica (pérdida) para Bovino',39,'Bovino','PERDIDA'),true);
+  assert.equal(coincideCombinacion('Falta la cuenta contable de Variación por transformación biológica (ganancia) para Bovino',39,'Bovino','PERDIDA'),false);
 });
 test('interceptor clasifica frontal, API y terceros en modo real',()=>{
   const api='https://www.api.inmero.co/api-sgpmp-test';
@@ -82,6 +84,14 @@ test('contexto RUN coherente y sin salida fuera del temporal',()=>{const s=setup
   assert.equal(contexto(s.args,true).runId,RUN);const invalido=[...s.args];invalido[invalido.indexOf('--run-id')+1]='RUN-G39-V1-20261109-120000';
   assert.throws(()=>contexto(invalido,true));
   }finally{fs.rmSync(s.tmp,{recursive:true,force:true});}});
+test('contexto V2 acepta sentido PERDIDA y delimita 018',()=>{const s=setup();try{
+  const run='RUN-G40-V2-20261112-120000',dir=path.join(s.tmp,run),file=path.join(dir,'contexto_operacion.json');
+  fs.mkdirSync(dir);fs.writeFileSync(file,JSON.stringify({grupo:'G40',run_id:run,version:2,intento:1,
+    operacion:'REEVALUAR',referencia:'AUT-LOCAL',casos:['TC-M06-018'],version_anterior:1,
+    alcance_reevaluacion:{motivo:'INC-M06-G40-01'},sentido:'PERDIDA'}));
+  assert.equal(contexto(['--operacion','reevaluar','--version','2','--intento','1','--run-id',run,
+    '--autorizacion','AUT-LOCAL','--contexto',file],true).sentido,'PERDIDA');
+  }finally{fs.rmSync(s.tmp,{recursive:true,force:true});}});
 test('preflight se escribe antes de cualquier petición',async()=>{const s=setup();try{let calls=0;
   const r=await principal(s.args,{proceso:{QA_AUTORIZADO:'NO'},ensayo:true,fetcher:async()=>{calls++;throw Error('No debe llamar');}});
   assert.equal(r.preflight.ok,false);assert.equal(calls,0);assert.equal(fs.existsSync(path.join(s.dir,'preflight.json')),true);
@@ -96,6 +106,19 @@ test('registro QA exige UI y evidencia real',()=>{const c={...CAPACIDADES};
     oficial:true,consume_version:true,cierre:{run:{cierre_http:200},rollback:{verificado:true}},
     casos:{'TC-M06-018':{estado:'APROBADO'}},herramientas:{newman:{codigo:0},cypress:{codigo:0,acta:{captura:true}}},
     comprobaciones:[],evidencias:[]},new Set(),{runId:RUN,version:1,referencia:'AUT-LOCAL'}),false);});
+test('registro QA clasifica la estructura V2 de REEVALUAR 018',()=>{
+  const run='RUN-G40-V2-20261112-120000',report='TC-M06-G40_reevaluacion_V2.md';
+  const paths=[report,'resultado.json','cypress/G40-UI-018-01.json','cypress/G40-cypress.json',
+    'cypress/screenshots/g40.cy.js/G40-UI-018-01.png','newman/newman-G40.json','newman/newman-G40.html'];
+  const r={run_id:run,version:2,autorizacion_referencia:'AUT-LOCAL',oficial:true,consume_version:true,
+    cierre:{run:{cierre_http:200},rollback:{verificado:true}},casos:{'TC-M06-018':{estado:'APROBADO'}},
+    herramientas:{newman:{codigo:0},cypress:{codigo:0,acta:{captura:true}}},evidencias:paths,
+    comprobaciones:[{caso:'TC-M06-018',fuente:'API',id:'G40-API-018-01',tipo:'ASSERT',estado:'APROBADO',evidencia:'resultado.json'},
+      {caso:'TC-M06-018',fuente:'UI',id:'G40-UI-018-01',tipo:'ASSERT',estado:'APROBADO',evidencia:'cypress/G40-UI-018-01.json'}]};
+  assert.equal(clasificarRegistro(CAPACIDADES,r,new Set(paths),{runId:run,version:2,referencia:'AUT-LOCAL'}),true);
+  assert.equal(clasificarRegistro(CAPACIDADES,r,new Set(paths.filter(x=>!x.endsWith('.png'))),
+    {runId:run,version:2,referencia:'AUT-LOCAL'}),false);
+});
 test('preflight rechaza host no canónico sin red',()=>{const s=setup();try{const p=preflight(contexto(s.args,true),{
   QA_AUTORIZADO:'SI',SIGAB_API_TEST_BASE:'https://www.api.inmero.co/api-sgpmp-test',
   QA_SANDBOX_SECRET:'local',QA_CONTADOR_EMAIL:'c',QA_CONTADOR_PASSWORD:'p',QA_ADMIN_EMAIL:'a',QA_ADMIN_PASSWORD:'p'});

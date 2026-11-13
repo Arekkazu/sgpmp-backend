@@ -1,24 +1,21 @@
-# TC-M06-G44 / RF-87 / ORD-G44-010
+# TC-M06-G44 / RF-87 / ORD-G44-012
 
-Preparacion local V2 para TC-M06-028, 029 y 030. Solo API. La fuente del oraculo sigue siendo la matriz original `Casos_Prueba(Modulo6Agrup).csv`, RF-87 v1.1, RF-86 CA-21 y CU06; el codigo no cambia el esperado. La orden actual aporta los datos TEST verificados por el responsable QA el 2026-11-10. No se accede a TEST en esta fase.
+Preparación local de la reevaluación V3 de TC-M06-028, 029 y 030. Los oráculos provienen de la fila TC-M06-G44 de `Casos_Prueba(Modulo6Agrup).csv`, RF-87 FA-4/FA-5 y la decisión D1 del responsable QA del 2026-11-13. Los mensajes se juzgan por el contenido exigido; una redacción diferente se registra como OBS-G44-01.
 
-## Archivos activos
+## Archivos vigentes
 
-`g44.mjs` es el ejecutor; `G44.postman_collection.json` es la coleccion Newman; `lib/g44_core.mjs` evalua criterios; `lib/informe.mjs` genera el unico informe oficial dentro del RUN; `pruebas/g44_escenarios.test.mjs` simula la API; `pruebas/verificar.mjs` ejecuta validaciones locales. No hay spec Cypress: estos casos exigen API. `Resultados/` V1 y el RUN V2 anterior quedan intactos.
+`g44.mjs` es el ejecutor canónico, `G44.postman_collection.json` la única colección Newman y `lib/informe.mjs` la plantilla del único informe oficial. `lib/g44_core.mjs`, `lib/infra.mjs` y `lib/contrato.mjs` contienen los criterios, las lecturas y el contrato. `pruebas/g44_escenarios.test.mjs` simula respuestas locales; `pruebas/verificar.mjs` es la validación local. Los casos de G44 solo requieren API. V1 y V2 son evidencia histórica de solo lectura.
 
-## Secuencia para un RUN V2 autorizado externamente
+## Secuencia V3 para un RUN autorizado externamente
 
-1. Cuatro logins y lecturas previas. `preflight_datos` registra por separado estado de 7/8/219/220/260, NIT de 219/260, linea 17 del 8, prevalidaciones de 220/260, titulares de 466/467 y matrices 34/49. GET `/finanzas/activos` con el token del Contador registra 1572 y 1573 como datos informativos no bloqueantes. El requisito bloqueante `finca_467_activo_por_costo` exige al menos un activo de la finca 467 con `valorado_por_costo === true` y `vida_util_meses > 0`; los ids se guardan en `activos_por_costo_467` y sustentan 028-b. Solo un requisito bloqueante incumplido produce `PREFLIGHT_DATOS_NO_CONCLUYENTE` y detiene las escrituras de producto. El DELETE del RUN y las lecturas poscierre sin cabeceras se hacen igualmente para comprobar rollback frente a las bases.
-2. 029: tres roles intentan cerrar 220; Administrador consulta periodos y prevalidacion 220.
-3. 030: POST de 7 CERRADO y observacion adicional de 219 CERRADO, cuyo `ultimo_cierre` aporta el ejecutor 141; dos POST de 8 sin autorizacion.
-4. 028-a: DELETE matriz 34; costo MANO_OBRA_PROPIA 103.00 con fecha actual en caprino 1569 de NIT-C/220; linea PENDIENTE_CUENTA; prevalidacion y cierre 220 deben listar faltantes y mantenerlo ABIERTO.
-5. Restaurar matriz 34 con la asignacion generica 158405/250505; comprobar linea resuelta y prevalidacion 220 sin bloqueos. Si no se limpia, 028-b queda NO_CONCLUYENTE sin DELETE 49 ni cierre.
-6. 028-b: DELETE matriz 49; cierre 220 debe bloquear depreciacion sin cuenta y dejarlo ABIERTO.
-7. 028-c, independiente de 220: PUT de los cuatro campos tributarios de 466 a null; prevalidacion y cierre 260 deben informar finca sin titular y dejarlo ABIERTO. Un PUT 4xx deja 028-c NO_CONCLUYENTE.
-8. Newman, DELETE del RUN y lecturas sin cabeceras. Se comparan matrices, costo, titular, estados, lineas, comprobantes, variaciones y lista de periodos.
+1. Preflight sin escrituras: cuatro roles, permisos, períodos 7/8/219/220/260, prevalidaciones 220/260, siete líneas de 467 en 220, ausencia de líneas en 260, titulares completos 466/467, asignaciones 34/49 y activos al costo 1567/1573. El 8 se admite ABIERTO o EN_CIERRE con ejecución 67 EN_PROCESO en paso 3. Un requisito incumplido deja NO_CONCLUYENTE con detalle y sin escrituras de producto.
+2. 029: Administrador, Veterinario y Productor intentan cerrar 220; se compara HTTP 403, rol, exclusividad del Contador y ausencia de cambios. El Administrador consulta períodos y prevalidación.
+3. 030: POST de 7 CERRADO y observación de 219. Si 8 está en cierre, se cancela 67 dentro del RUN. Se exige línea 17, se hace primer POST sin autorización, se identifica la nueva ejecución X, se hace segundo POST y se comprueban HTTP 409, hora, ejecutor, mismo X y ausencia de artefactos nuevos. Se cancela X y se comprueba ABIERTO con líneas, comprobantes y variaciones originales.
+4. 028_a: se elimina 34, se crea costo MANO_OBRA_PROPIA del día sobre 1569 si está en 467 o sobre otro activo de esa finca elegido en preflight, se exige LINEAS_PENDIENTE_CUENTA, lista de faltantes y 220 ABIERTO sin artefactos nuevos; se restaura 34 y se comprueba prevalidación limpia.
+5. 028_b: en 260, se elimina 49, se exige MATRIZ_CONTABLE_INCOMPLETA por depreciación del activo al costo 1567, lista de faltantes y 260 ABIERTO sin artefactos nuevos; se restaura 49 y se comprueban 220/260 sin bloqueos.
+6. 028_c: en 220, se anula temporalmente el titular de 467, se exige FINCA_SIN_TITULAR, lista de faltantes y 220 ABIERTO sin artefactos nuevos; se restaura el titular. Si un escenario previo cerró 220, 028_c es NO_CONCLUYENTE.
+7. Newman real, DELETE del RUN y lecturas sin cabeceras incluso si se agotó el presupuesto. Se comparan los cinco períodos, ambas asignaciones, el costo creado, ambos titulares, líneas, comprobantes, variaciones y ausencia de períodos nuevos.
 
-Cada POST de cierre guarda el cuerpo saneado en `respuestas_cierre`; ante 200, guarda tambien comprobantes y lineas. Las incidencias V1 01/02/03/05 conservan seguimiento REPRODUCIDA/NO_REPRODUCIDA; 06 conserva NUEVA_CONFIRMADA_EN_V2/NO_CONFIRMADA_EN_V2. No se atribuye causa raiz a partir de codigo local.
+El informe, `resultado.json` y Newman JSON/HTML reales deben quedar en `EvaluacionV3/Resultados/RUN-G44-V3-<timestamp>/`. No se crea un RUN durante `preparar`. El código revisado para esta preparación fue `src/financial_valuation/infrastructure/routers/m06_router.py`, `src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py`, `src/financial_valuation/infrastructure/repositories/periodo_repository.py`, `src/financial_valuation/infrastructure/repositories/asiento_repository.py`, `src/financial_valuation/infrastructure/adapters/activo_financiero_m02_adapter.py` y la referencia local G43 `lib/g43_v2.mjs`; el despliegue indicado por la orden no se verificó.
 
-Efectos TEST previstos: 4 logins; un GET `/finanzas/activos`; DELETE 34 y 49; un costo en 220; un POST matriz; un PUT titular 466; POST cierre en 7 x1, 219 x1, 8 x2, 220 x5 y 260 x1; DELETE del RUN. Solo el lanzador externo autorizado puede ejecutar estos efectos. El informe oficial V2 pertenece a `EvaluacionV2/Resultados/RUN-G44-V2-<timestamp>/TC-M06-G44_reevaluacion_V2.md` con `resultado.json` y Newman real. Esta preparacion no crea RUN.
-
-`node pruebas/verificar.mjs` valida localmente 20 simulaciones con y sin campos inyectados, sintaxis, CLI, Newman, DTO, contrato y `--comprobar`, sin red remota.
+La simulación local cubre 16 situaciones con y sin campos adicionales (32 ensayos). En este entorno, `node pruebas/verificar.mjs` valida los escenarios, la forma y el contrato, pero sus pasos que crean procesos hijos reciben `spawn EPERM`; se ejecutan por separado sintaxis, CLI y DTO. El script `registro_qa.py` no está presente en el repositorio accesible, por lo que el ejemplo conforme se contrasta con `clasificarRegistro` local hasta que el lanzador externo ejecute su validación.

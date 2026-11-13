@@ -1,12 +1,13 @@
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const child=path.join(ROOT,'pruebas','cypress_hijo.mjs');
-const results=path.join(ROOT,'Resultados');
+const results=path.join(os.tmpdir(),'g40-cypress-smoke-local');
 const resultsExisted=fs.existsSync(results);
 const secret='g40-smoke-secret-local';
 const species='Bovino';
@@ -68,7 +69,7 @@ async function scenario(s,index){
       'access-control-allow-headers':'X-Test-Run-Id, X-Sandbox-Secret'};
     if(req.method==='OPTIONS'){res.writeHead(204,headers).end();return;}
     if(req.url==='/finanzas/configuracion')res.writeHead(200,headers).end(JSON.stringify({lineas_pendientes_cuenta:s.conteo,panelDelay:s.panelDelay}));
-    else if(req.url==='/notificaciones')res.writeHead(200,headers).end(JSON.stringify({items:s.notice?[{id_notificacion:2,mensaje:`Variación por transformación biológica. Ganancia. Especie ${species}`}]:[]}));
+    else if(req.url==='/notificaciones')res.writeHead(200,headers).end(JSON.stringify({items:s.notice?[{id_notificacion:2,mensaje:`Falta la cuenta contable de Variación por transformación biológica (ganancia) para ${species}. El registro quedó pendiente de cuenta.`}]:[]}));
     else res.writeHead(404,headers).end('{}');
   });
   let frontServer;
@@ -80,7 +81,7 @@ async function scenario(s,index){
     const front=`http://127.0.0.1:${frontServer.address().port}`;
     fs.mkdirSync(dir,{recursive:true});
     const input={dir,runId,api,front,token:'g40-local-token',secret,
-      expected:{conteo:s.conteo,especie:39,especieNombre:species,avisosBase:[1]},localSmoke:true};
+      expected:{conteo:s.conteo,especie:39,especieNombre:species,sentido:'GANANCIA',avisosBase:[1]},localSmoke:true};
     if(index===0){
       const blocked=await runChild({...input,localSmoke:false});
       if(blocked.error?.code==='EPERM')throw blocked.error;

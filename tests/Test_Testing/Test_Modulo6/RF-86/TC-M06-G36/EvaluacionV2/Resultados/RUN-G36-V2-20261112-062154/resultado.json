@@ -1,0 +1,1686 @@
+{
+  "grupo": "G36",
+  "run_id": "RUN-G36-V2-20261112-062154",
+  "autorizacion_referencia": "AUT-G36-V2-20261112",
+  "version": 2,
+  "intento": 3,
+  "casos": {
+    "TC-M06-009": {
+      "estado": "APROBADO",
+      "motivo": "Nueve bloqueos 409 orientados al correctivo; huellas identicas.",
+      "observados": {
+        "intentos": [
+          {
+            "ruta": "/finanzas/variaciones/411",
+            "metodo": "PUT",
+            "http": 409,
+            "codigo": "VARIACION_INMUTABLE",
+            "mensaje": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+          },
+          {
+            "ruta": "/finanzas/variaciones/411",
+            "metodo": "PATCH",
+            "http": 409,
+            "codigo": "VARIACION_INMUTABLE",
+            "mensaje": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+          },
+          {
+            "ruta": "/finanzas/variaciones/411",
+            "metodo": "DELETE",
+            "http": 409,
+            "codigo": "VARIACION_INMUTABLE",
+            "mensaje": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+          },
+          {
+            "ruta": "/finanzas/periodos/241/variaciones/411",
+            "metodo": "PUT",
+            "http": 409,
+            "codigo": "VARIACION_INMUTABLE",
+            "mensaje": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+          },
+          {
+            "ruta": "/finanzas/periodos/241/variaciones/411",
+            "metodo": "PATCH",
+            "http": 409,
+            "codigo": "VARIACION_INMUTABLE",
+            "mensaje": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+          },
+          {
+            "ruta": "/finanzas/periodos/241/variaciones/411",
+            "metodo": "DELETE",
+            "http": 409,
+            "codigo": "VARIACION_INMUTABLE",
+            "mensaje": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+          },
+          {
+            "ruta": "/finanzas/lineas/5646",
+            "metodo": "PUT",
+            "http": 409,
+            "codigo": "LINEA_ASIENTO_INMUTABLE",
+            "mensaje": "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige con su reversión."
+          },
+          {
+            "ruta": "/finanzas/lineas/5646",
+            "metodo": "PATCH",
+            "http": 409,
+            "codigo": "LINEA_ASIENTO_INMUTABLE",
+            "mensaje": "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige con su reversión."
+          },
+          {
+            "ruta": "/finanzas/lineas/5646",
+            "metodo": "DELETE",
+            "http": 409,
+            "codigo": "LINEA_ASIENTO_INMUTABLE",
+            "mensaje": "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige con su reversión."
+          }
+        ],
+        "orientados": 9,
+        "bloqueados": 9,
+        "campos_alterados": []
+      },
+      "severidad": null,
+      "comparacion_campo_a_campo": {
+        "variacion": {
+          "campos": [
+            "clasificacion",
+            "es_correctivo",
+            "especie",
+            "estado_correctivo",
+            "estado_trazabilidad",
+            "fecha_registro",
+            "finca",
+            "id_activo_biologico",
+            "id_especie",
+            "id_linea",
+            "id_solicitud_correctivo",
+            "id_variacion_corregida",
+            "id_variacion_valor_razonable",
+            "identificador",
+            "monto_variacion",
+            "tiene_estimacion",
+            "tipo",
+            "tipo_activo",
+            "tipo_evidencia",
+            "valor_razonable_anterior",
+            "valor_razonable_nuevo"
+          ],
+          "sha256_antes": "4aa927f3ae6daf726ac6ba607e6b24899ef532b1cf97d139caad9a3c1f5e367a",
+          "sha256_despues": "4aa927f3ae6daf726ac6ba607e6b24899ef532b1cf97d139caad9a3c1f5e367a"
+        },
+        "linea": {
+          "campos": [
+            "cuenta_credito",
+            "cuenta_debito",
+            "es_estimacion",
+            "es_reverso",
+            "estado",
+            "estado_trazabilidad",
+            "extra",
+            "fecha_hecho",
+            "id_activo_biologico",
+            "id_comprobante_nic41",
+            "id_especie",
+            "id_finca",
+            "id_linea_asiento_nic41",
+            "id_linea_corregida",
+            "id_origen",
+            "id_periodo_contable",
+            "id_usuario",
+            "justificacion",
+            "numero_id_tributaria",
+            "sentido",
+            "subtipo_costo",
+            "tabla_origen",
+            "tipo_evidencia",
+            "tipo_hecho",
+            "tipo_hecho_corregido",
+            "valor"
+          ],
+          "sha256_antes": "b595ba688ca6c319de951393008dceb7e65b708b3b08199c16f3ae382a2cb78d",
+          "sha256_despues": "b595ba688ca6c319de951393008dceb7e65b708b3b08199c16f3ae382a2cb78d"
+        }
+      }
+    },
+    "TC-M06-010": {
+      "estado": "APROBADO",
+      "motivo": "Solicitud pendiente, aprobacion, historial y linea inversa acreditados.",
+      "observados": {
+        "creacion_http": 201,
+        "doble_control": "Doble control activo: el solicitante no pudo aprobar.",
+        "doble_control_http": 403,
+        "doble_control_codigo": "APROBADOR_DEBE_SER_OTRO",
+        "aprobacion_http": 200,
+        "solicitud_id": 1,
+        "original_id": 412,
+        "correctivo_id": 413,
+        "efectivo_antes": false,
+        "original_visible": true,
+        "correctivo_visible": true,
+        "linea_inversa": true
+      },
+      "severidad": null
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-009",
+      "fuente": "API",
+      "id": "G36-API-009-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Nueve bloqueos 409 orientados al correctivo; huellas identicas.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-009",
+      "fuente": "API",
+      "id": "G36-API-009-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Nueve bloqueos 409 orientados al correctivo; huellas identicas.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-010",
+      "fuente": "API",
+      "id": "G36-API-010-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Solicitud pendiente, aprobacion, historial y linea inversa acreditados.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-010",
+      "fuente": "API",
+      "id": "G36-API-010-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Solicitud pendiente, aprobacion, historial y linea inversa acreditados.",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "fuera_run": true,
+      "duracion_ms": 1406,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": "Sesión iniciada exitosamente."
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "fuera_run": true,
+      "duracion_ms": 668,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": "Sesión iniciada exitosamente."
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "fuera_run": true,
+      "duracion_ms": 389,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": "Sesión iniciada exitosamente."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 245,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 224,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 300,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 140,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 238,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 184,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 280,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1634",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 156,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1634/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 184,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1634",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 219,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 157,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 202,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 404,
+      "fuera_run": false,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/944/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 200,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 404,
+      "fuera_run": false,
+      "duracion_ms": 144,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 247,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 195,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 404,
+      "fuera_run": false,
+      "duracion_ms": 145,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 162,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/946/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 207,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "http": 404,
+      "fuera_run": false,
+      "duracion_ms": 153,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 171,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/947/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 196,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947",
+      "http": 404,
+      "fuera_run": false,
+      "duracion_ms": 146,
+      "eco": true,
+      "codigo": "ACTIVO_NO_ENCONTRADO",
+      "mensaje_saneado": "El activo biológico no existe."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 142,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 193,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 153,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 156,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 305,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 307,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 166,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 207,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 140,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 351,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1627/eventos/crecimiento",
+      "http": 201,
+      "fuera_run": false,
+      "duracion_ms": 188,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 206,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 144,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 338,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 307,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 171,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 188,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 149,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 416,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 309,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 632,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 302,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 340,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 304,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 292,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 325,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1831/eventos/crecimiento",
+      "http": 201,
+      "fuera_run": false,
+      "duracion_ms": 340,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 315,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 320,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 226,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 159,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 183,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 144,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 138,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/finanzas/variaciones/411",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 144,
+      "eco": true,
+      "codigo": "VARIACION_INMUTABLE",
+      "mensaje_saneado": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/finanzas/variaciones/411",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 134,
+      "eco": true,
+      "codigo": "VARIACION_INMUTABLE",
+      "mensaje_saneado": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/finanzas/variaciones/411",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 139,
+      "eco": true,
+      "codigo": "VARIACION_INMUTABLE",
+      "mensaje_saneado": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/finanzas/periodos/241/variaciones/411",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 138,
+      "eco": true,
+      "codigo": "VARIACION_INMUTABLE",
+      "mensaje_saneado": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/finanzas/periodos/241/variaciones/411",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 143,
+      "eco": true,
+      "codigo": "VARIACION_INMUTABLE",
+      "mensaje_saneado": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/finanzas/periodos/241/variaciones/411",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 139,
+      "eco": true,
+      "codigo": "VARIACION_INMUTABLE",
+      "mensaje_saneado": "Las variaciones de valor razonable no se modifican ni se eliminan: quedan como registro permanente. Para corregir una, solicite un correctivo; se registrará uno nuevo con el monto opuesto que referencia el original, y se aplicará cuando otro Contador lo apruebe."
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/finanzas/lineas/5646",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 143,
+      "eco": true,
+      "codigo": "LINEA_ASIENTO_INMUTABLE",
+      "mensaje_saneado": "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige con su reversión."
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/finanzas/lineas/5646",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 136,
+      "eco": true,
+      "codigo": "LINEA_ASIENTO_INMUTABLE",
+      "mensaje_saneado": "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige con su reversión."
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/finanzas/lineas/5646",
+      "http": 409,
+      "fuera_run": false,
+      "duracion_ms": 139,
+      "eco": true,
+      "codigo": "LINEA_ASIENTO_INMUTABLE",
+      "mensaje_saneado": "Las líneas de asiento no se modifican ni se eliminan. Si la línea viene de una variación errónea, solicite el correctivo de esa variación: al aprobarse se registra la línea inversa. Un reconocimiento inicial se corrige con su reversión."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 136,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 301,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 312,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 177,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 176,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 288,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 149,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 221,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 160,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 148,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 185,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 138,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 272,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/variaciones/412/correctivos",
+      "http": 201,
+      "fuera_run": false,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 299,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 162,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 183,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 136,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 148,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/correctivos/1/aprobacion",
+      "http": 403,
+      "fuera_run": false,
+      "duracion_ms": 148,
+      "eco": true,
+      "codigo": "APROBADOR_DEBE_SER_OTRO",
+      "mensaje_saneado": "Quien solicitó el correctivo no puede resolverlo: debe aprobarlo o rechazarlo otro Contador."
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/correctivos/1/aprobacion",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 330,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 157,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 159,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 181,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 145,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 218,
+      "eco": true,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G36-API-009-01",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G36-API-009-02",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G36-API-010-01",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "G36-API-010-02",
+      "http": 200,
+      "herramienta": "Newman"
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G36-V2-20261112-062154",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 134,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 137,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 332,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 303,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 250,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 202,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 147,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 259,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 149,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 221,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1831",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 154,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/eventos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 157,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1831/ficha-integral",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 194,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/correctivos",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 138,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "fuera_run": false,
+      "duracion_ms": 147,
+      "eco": null,
+      "codigo": "",
+      "mensaje_saneado": ""
+    }
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M06-G36_reevaluacion_V2.md",
+    "newman/newman-G36.json",
+    "newman/newman-G36.html"
+  ],
+  "candidatos": [
+    {
+      "activo_id": 1627,
+      "estado": "SELECCIONADO",
+      "motivo": "Precondiciones acreditadas"
+    },
+    {
+      "activo_id": 1629,
+      "estado": "DESCARTADO",
+      "motivo": "Activo no elegible"
+    },
+    {
+      "activo_id": 1634,
+      "estado": "DESCARTADO",
+      "motivo": "Precio, periodo, matriz, acceso, reconocimiento o calculo no acreditado"
+    },
+    {
+      "activo_id": 943,
+      "estado": "DESCARTADO",
+      "motivo": "Precio, periodo, matriz, acceso, reconocimiento o calculo no acreditado"
+    },
+    {
+      "activo_id": 944,
+      "estado": "DESCARTADO",
+      "motivo": "Precio, periodo, matriz, acceso, reconocimiento o calculo no acreditado"
+    },
+    {
+      "activo_id": 945,
+      "estado": "DESCARTADO",
+      "motivo": "Precio, periodo, matriz, acceso, reconocimiento o calculo no acreditado"
+    },
+    {
+      "activo_id": 946,
+      "estado": "DESCARTADO",
+      "motivo": "Precio, periodo, matriz, acceso, reconocimiento o calculo no acreditado"
+    },
+    {
+      "activo_id": 947,
+      "estado": "DESCARTADO",
+      "motivo": "Precio, periodo, matriz, acceso, reconocimiento o calculo no acreditado"
+    },
+    {
+      "activo_id": 948,
+      "estado": "DESCARTADO",
+      "motivo": "Activo no elegible"
+    },
+    {
+      "activo_id": 1567,
+      "estado": "DESCARTADO",
+      "motivo": "Activo no elegible"
+    },
+    {
+      "activo_id": 951,
+      "estado": "DESCARTADO",
+      "motivo": "Activo no elegible"
+    },
+    {
+      "activo_id": 1568,
+      "estado": "DESCARTADO",
+      "motivo": "Activo no elegible"
+    },
+    {
+      "activo_id": 1831,
+      "estado": "SELECCIONADO",
+      "motivo": "Precondiciones acreditadas"
+    },
+    {
+      "activo_id": 1832,
+      "estado": "DESCARTADO",
+      "motivo": ""
+    }
+  ],
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 4,
+      "fallos": 0,
+      "codigo": 0,
+      "problema": false
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "casos": [
+        {
+          "verificado": true,
+          "residuos": [],
+          "estado_original": "ACTIVO",
+          "estado_final": "ACTIVO",
+          "motivo": "ACTIVO y peso restaurados; eventos M02, solicitudes correctivas, variaciones, lineas, calculos y auditoria del RUN ausentes en lecturas poscierre."
+        },
+        {
+          "verificado": true,
+          "residuos": [],
+          "estado_original": "ACTIVO",
+          "estado_final": "ACTIVO",
+          "motivo": "ACTIVO y peso restaurados; eventos M02, solicitudes correctivas, variaciones, lineas, calculos y auditoria del RUN ausentes en lecturas poscierre."
+        }
+      ],
+      "motivo": "Ambos activos restaurados tras DELETE."
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "_solicitudesRun": 119,
+  "preflight_vivo": {
+    "requisitos": [
+      {
+        "requisito": "periodo_hoy_abierto",
+        "esperado": "Periodo actual ABIERTO",
+        "observado": [
+          "CERRADO",
+          "CERRADO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO",
+          "ABIERTO"
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "dos_bovinos_elegibles",
+        "esperado": "Al menos dos bovinos",
+        "observado": [
+          1627,
+          1831
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "precio_vigente",
+        "esperado": "PESO_KG vigente",
+        "observado": [
+          18,
+          18
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "matriz_tb_pm",
+        "esperado": "TB y PM presentes",
+        "observado": [
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "AJUSTE_PERIODO_ANTERIOR",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "BAJA_ACTIVO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "CONSUMO_INSUMO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DEPRECIACION_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "DETERIORO_ACTIVO_COSTO",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "MANO_OBRA_PROPIA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "PRODUCTO_AGRICOLA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_DIFERENCIA",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "RECONOCIMIENTO_NACIMIENTO",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_PM",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB",
+          "VARIACION_VR_TB"
+        ],
+        "cumple": true,
+        "bloqueante": true
+      },
+      {
+        "requisito": "contador2_acceso",
+        "esperado": "GET activo 200",
+        "observado": [
+          1627,
+          1831
+        ],
+        "cumple": true,
+        "bloqueante": true
+      }
+    ]
+  },
+  "preparacion": {
+    "TC-M06-009": {
+      "activo_id": 1627,
+      "periodo_id": 241,
+      "precio_id": 18,
+      "evento_id": 1644,
+      "variacion_id": 411,
+      "linea_id": 5646
+    },
+    "TC-M06-010": {
+      "activo_id": 1831,
+      "periodo_id": 241,
+      "precio_id": 18,
+      "evento_id": 1645,
+      "variacion_id": 412,
+      "linea_id": 5647
+    }
+  },
+  "seguimiento_incidencias_v1": [
+    {
+      "id": "INC-M06-G36-01",
+      "estado_v2": "CORREGIDA",
+      "motivo": "TC-M06-009: APROBADO; TC-M06-010: APROBADO"
+    }
+  ],
+  "condiciones_oficialidad": {
+    "rollback": true,
+    "casos_decididos": true,
+    "newman": true,
+    "presupuesto": true
+  },
+  "estado_ejecucion": "OFICIAL"
+}

@@ -57,7 +57,7 @@
             "_nullable": true,
             "precios_congelados": [
               {
-                "id_especie": "integer",
+                "id_especie": "integer|especie_estimacion",
                 "id_precio_mercado": "integer",
                 "precio_unitario": "decimal",
                 "fuente": "string",
@@ -68,7 +68,7 @@
           "fecha_fin": "date"
         }
       ],
-      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:295-299; src/financial_valuation/infrastructure/repositories/periodo_repository.py:19-20,65,68-72,124-130; src/financial_valuation/domain/entities/contabilidad.py:16-23; numero_id_tributaria null observado en RUN-G42-V1-20261109-203716 para periodo ajeno; precios_congelados: src/financial_valuation/infrastructure/repositories/periodo_repository.py:124-130; campos congelados: src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:287-291"
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:295-299; src/financial_valuation/infrastructure/repositories/periodo_repository.py:115,145; src/financial_valuation/domain/entities/contabilidad.py:16-23; numero_id_tributaria null observado en RUN-G42-V1-20261109-203716 para periodo ajeno; precios_congelados.id_especie: src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:339,431 (clave tuple[int,bool] serializada como [entero,booleano])"
     },
     {
       "metodo": "GET",
@@ -220,10 +220,11 @@
             "id_linea": "integer",
             "tipo_hecho": "string",
             "id_activo_biologico": "integer",
+            "identificador": "string|null?",
             "faltantes": [
               "string"
             ],
-            "nivel_fallo": "string"
+            "nivel_fallo": "integer|null"
           }
         ],
         "puede_cerrar": "boolean",
@@ -302,7 +303,8 @@
       "dto": "CierreDTO",
       "cuerpo": {
         "autorizar_exclusiones": "boolean",
-        "incluir_activos_sin_precio": "boolean"
+        "incluir_activos_sin_precio": "boolean",
+        "activos_estimados": ["integer"]
       },
       "respuesta": {
         "id_cierre": "integer",
@@ -326,7 +328,7 @@
             "faltantes": [
               "string"
             ],
-            "nivel_fallo": "string"
+            "nivel_fallo": "integer|null"
           }
         ],
         "comprobantes": [],
@@ -338,6 +340,20 @@
         }
       },
       "cita": "src/financial_valuation/infrastructure/dto/m06_dto.py:132-134; src/financial_valuation/infrastructure/routers/m06_router.py:312-318; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:298-302"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/{id}/cierre/cancelacion",
+      "http": 200,
+      "respuesta": {"id_periodo_contable": "integer", "id_cierre": "integer", "estado": "string"},
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:462-467; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:318-341"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "respuesta": {"items": [{"id_notificacion": "integer", "mensaje": "string"}], "total": "integer"},
+      "cita": "src/identity_access/infrastructure/routers/notificaciones_routers.py:30-60"
     },
     {
       "metodo": "DELETE",

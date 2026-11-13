@@ -8,7 +8,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import os from 'node:os';
 import { CASOS, IDS, CONTRATO, DIR, PRESUPUESTO, entrada, validarActor, idsNuevos,
   vigente, periodoDestino, seleccionarCandidatos, oraculo011, oraculo012, oraculo013, decidirVerificacion,
-  validarDecimales } from './lib/g37_core.mjs';
+  validarDecimales, igual } from './lib/g37_core.mjs';
 
 const require = createRequire(import.meta.url);
 const COL = path.join(DIR, 'G37.postman_collection.json');
@@ -17,8 +17,8 @@ const API = 'https://www.api.inmero.co/api-sgpmp-test';
 const CONTRATO_ARCHIVO = path.join(DIR, 'pruebas', 'contrato_g37.json');
 const PRECONDICION_IOT = path.join(DIR, 'pruebas', 'precondicion_iot.json');
 const HUELLAS = {
-  coleccion: 'eafc2de6fa78d5927d460a27d1d1c5bda5cbf5e245c8ecd65820cb0fbd4ab098',
-  contrato: '6475f1dafdab428a7a68250bd162daff43cc56dd1642416b1d0affd136adf99e'
+  coleccion: '7328ca2bf779428203e0518556a86a24ec0cf33d7b5558c6ce10edb57c3753e3',
+  contrato: '342643d3ab3f95a0ac79d5b6c38eee7df73fa242558e33178956fed9bad590fa'
 };
 const peticiones = new AsyncLocalStorage();
 export async function fetchEnContexto(...args) {
@@ -104,7 +104,7 @@ export function comprobar() {
   const actores = items.every(x => { const p = entrada(x.name); return validarActor(p.id, p.actor) &&
     x.request.header.some(h => h.key === 'Authorization' && h.value === `Bearer {{${p.actor}_token}}`); });
   const marcas = fs.existsSync(path.join(DIR, 'Resultados')) && fs.readdirSync(path.join(DIR, 'Resultados')).some(x => x.endsWith('.md'));
-  const ok = !faltan.length && items.length === 3 && actores && !marcas;
+  const ok = !faltan.length && items.length === 2 && actores && !marcas;
   console.log(JSON.stringify({ grupo: 'G37', ok, faltan, newman_local: versionNewman(), items: items.length,
     actores_correctos: actores, markdown_superior: !!marcas, presupuesto: PRESUPUESTO }));
   return ok ? 0 : 2;
@@ -125,7 +125,11 @@ export function contexto(argv, ensayo = false) {
   const c = JSON.parse(fs.readFileSync(archivo, 'utf8'));
   if (c.grupo !== 'G37' || c.run_id !== runId || c.version !== version || c.intento !== intento ||
     c.operacion !== operacion.toUpperCase() || c.referencia !== referencia ||
-    JSON.stringify(c.casos) !== JSON.stringify(CASOS)) throw Error('Contexto incoherente');
+    JSON.stringify(c.casos) !== JSON.stringify(CASOS) ||
+    (version > 1 && !(operacion === 'reevaluar' && c.version_anterior === version - 1 && c.alcance_reevaluacion ||
+      operacion === 'reintentar' && (c.version_anterior === null || c.version_anterior === version - 1) &&
+      typeof c.alcance_reevaluacion?.motivo === 'string' && c.alcance_reevaluacion.motivo.trim())) ||
+    (version === 1 && operacion === 'reevaluar')) throw Error('Contexto incoherente');
   return { operacion, version, intento, runId, referencia, directorio };
 }
 export function esquema(v, profundidad = 0) {
@@ -139,7 +143,7 @@ export function esquema(v, profundidad = 0) {
     Object.fromEntries(Object.entries(v).map(([k, x]) => [k, esquema(x, profundidad + 1)]));
   return typeof v;
 }
-export function compararEsquema(id, observado) {
+export function compararEsquema(id, observado, soloCamposEscenario = false) {
   const plantilla = entrada(id);
   const comparar = (esperado, real, ruta) => {
     if (typeof esperado === 'string') {
@@ -161,30 +165,45 @@ export function compararEsquema(id, observado) {
       comparar(t, real[k], `${ruta}.${k}`);
     }
   };
-  comparar(plantilla.tipo === 'array' ? [plantilla.campos] : plantilla.campos, observado, id);
+  const campos = id === 'periodos' && soloCamposEscenario
+    ? Object.fromEntries(['id_periodo_contable', 'numero_id_tributaria', 'fecha_inicio', 'fecha_fin', 'estado']
+      .map(k => [k, plantilla.campos[k]])) : plantilla.campos;
+  comparar(plantilla.tipo === 'array' ? [campos] : campos, observado, id);
   if (id === 'cadena' && observado.eslabones !== 'null')
     comparar(plantilla.subcampos_eslabones, observado.eslabones, 'cadena.eslabones');
-  if (id === 'periodos') for (const item of observado.items ?? []) {
+  if (id === 'periodos' && !soloCamposEscenario) for (const item of observado.items ?? []) {
     const cierre = item.ultimo_cierre;
     if (cierre === 'null') continue;
+    comparar(plantilla.subcampos_ultimo_cierre, cierre, 'periodos[].ultimo_cierre');
     const precios = cierre?.precios_congelados;
-    if (precios?.tipo !== 'array') throw Error('Esquema discordante: periodos[].ultimo_cierre.precios_congelados; esperado array, llegó ausente');
-    for (const precio of precios.items ?? [])
-      comparar(entrada('periodos').subcampos_ultimo_cierre.precios_congelados[0], precio,
+    for (const precio of precios?.items ?? [])
+      comparar(plantilla.subcampos_precios_congelados[0], precio,
         'periodos[].ultimo_cierre.precios_congelados[]');
   }
   return true;
 }
 const CASOS_POR_RESPUESTA = {
-  estados_get: [CASOS[0]], estado_detalle: [CASOS[0]], estado_post: [CASOS[0]],
-  auditoria: [CASOS[1]], m03_historial: [CASOS[2]], cadena: [CASOS[2]], trazabilidad: [CASOS[2]],
+  acumulado: [CASOS[0]], m03_historial: [CASOS[1]], cadena: [CASOS[1]], trazabilidad: [CASOS[1]],
 };
 export function contrastarRespuesta(r, idPeticion, actor, http, data, ruta = entrada(idPeticion).ruta) {
   const p = entrada(idPeticion), real = esquema(data);
   let motivo = null;
   try {
-    compararEsquema(idPeticion, real);
-    validarDecimales(idPeticion, data);
+    if (idPeticion === 'periodos') {
+      compararEsquema(idPeticion, real, true);
+      try {
+        compararEsquema(idPeticion, real);
+        validarDecimales(idPeticion, data);
+      } catch (e) {
+        const observacion = { id: idPeticion, ruta: p.ruta, actor, http,
+          resultado: 'observacion', motivo: e.message, esquema_real: real };
+        r.contraste_contrato.push(observacion);
+        (r.observaciones.contrato_periodos ??= []).push(e.message);
+      }
+    } else {
+      compararEsquema(idPeticion, real);
+      validarDecimales(idPeticion, data);
+    }
     if (idPeticion === 'auditoria' || idPeticion === 'm03_historial') {
       const pagina = idPeticion === 'auditoria' ? data.pagina_actual : data.pagina;
       const tamano = idPeticion === 'auditoria' ? data.registros_por_pagina : data.por_pagina;
@@ -215,13 +234,11 @@ function motivoDiscrepanciaPrevia(registro) {
   return m ? `Lectura previa ${registro.ruta}: campo ${m[1]} esperado ${m[2]}, recibido ${m[3]}; sin escrituras.` :
     `Lectura previa ${registro.ruta}: ${detalle}; sin escrituras.`;
 }
-export async function lecturasPrevias(q, pid, aid, fecha, r = null, fechaInicio = fecha) {
+export async function lecturasPrevias(q, pid, aid, fecha, r = null, fechaInicio = fecha, sensor = 1318) {
   const rutas = [
-    ['estados_get', `/finanzas/periodos/${pid}/estados-resultados`],
+    ['acumulado', `/finanzas/periodos/${pid}/estado-resultados/acumulado`],
     ['auditoria', `/finanzas/auditoria?id_periodo_contable=${pid}&tipo_evento=VARIACION_REGISTRADA&formato=TECNICO&pagina=1&tamano=500`],
-    ['m03_historial', aid === 943 ?
-      '/iot/monitoreo/historial?fecha_inicio=2026-11-07&fecha_fin=2026-11-07&sensor_id=1311&pagina=1&por_pagina=100' :
-      `/iot/monitoreo/historial?fecha_inicio=${fechaInicio}&fecha_fin=${fecha}&id_activo_biologico=${aid}&pagina=1&por_pagina=100`],
+    ['m03_historial', `/iot/monitoreo/historial?fecha_inicio=${fechaInicio}&fecha_fin=${fecha}&sensor_id=${sensor}&pagina=1&por_pagina=100`],
     ['variaciones', `/finanzas/periodos/${pid}/variaciones`],
     ['mediciones', `/finanzas/periodos/${pid}/mediciones`],
     ['lineas', `/finanzas/lineas?id_periodo_contable=${pid}`],
@@ -233,13 +250,14 @@ export async function lecturasPrevias(q, pid, aid, fecha, r = null, fechaInicio 
     const desde = r?.contraste_contrato.length ?? 0;
     const x = await q(peticion, ruta, actor);
     for (const registro of r?.contraste_contrato.slice(desde) ?? []) registro.fase = 'previa';
-    if (x.http !== 200 && r) {
+    if (x.http !== 200 && r && peticion !== 'acumulado') {
       const registro = { id: peticion, ruta, actor, http: x.http, codigo: x.codigo,
         fase: 'previa', resultado: 'discrepa', motivo: `respuesta no esperada en ${ruta} (HTTP ${x.http ?? 'sin respuesta'}, ${x.codigo ?? 'sin código'})` };
       r.contraste_contrato.push(registro);
       r.discrepancias_contrato.push(registro);
       r.problemas_tecnicos.push(`Contrato ${peticion}: ${registro.motivo}`);
     }
+    if (peticion === 'acumulado' && x.http !== 200) { respuestas[peticion] = x; return x; }
     if (x.http !== 200 || x.esquema_valido === false || !x.eco) {
       const campo = x.http !== 200 ? 'HTTP' : x.esquema_valido === false ? 'esquema' : 'X-Test-Run-Id';
       const esperado = campo === 'HTTP' ? '200' : campo === 'esquema' ? 'contrato' : 'eco del RUN';
@@ -266,10 +284,6 @@ export async function lecturasPrevias(q, pid, aid, fecha, r = null, fechaInicio 
   if (linea != null) await leer('cadena', `/finanzas/lineas/${linea}/cadena`);
   else { respuestas.cadena = null; r?.contraste_contrato.push({ id: 'cadena',
     ruta: entrada('cadena').ruta, actor: 'contador', http: null, fase: 'previa', resultado: 'sin elementos para contrastar' }); }
-  const estado = respuestas.estados_get.data[0]?.id_estado;
-  if (estado != null) await leer('estado_detalle', `/finanzas/estados-resultados/${estado}`);
-  else { respuestas.estado_detalle = null; r?.contraste_contrato.push({ id: 'estado_detalle',
-    ruta: entrada('estado_detalle').ruta, actor: 'contador', http: null, fase: 'previa', resultado: 'sin elementos para contrastar' }); }
   return respuestas;
 }
 function resultado(c) {
@@ -312,6 +326,7 @@ export function aplicarDiscrepancias(r) {
 function incidencia(r, caso, titulo, requisito, pasos, esperado, obtenido, apoyo, impacto, severidad = 'ALTA', existente = null) {
   r.incidencias.push({ id: existente ?? `INC-M06-G37-${String(r.incidencias.length + 1).padStart(2, '0')}`,
     caso, titulo, requisito, pasos, esperado, obtenido, apoyo_codigo: apoyo, impacto, severidad,
+    clasificacion_v2: existente ? 'SEGUIMIENTO_V2' : 'NUEVA_EN_V2',
     justificacion_severidad: severidad === 'ALTA' ? 'Funcionalidad relevante sin alternativa pública comprobada.' : 'Impacto parcial en una integración.',
     equipo_inicial: 'Desarrollo', fundamento_equipo: 'Primera discrepancia observada en API pública de M06.',
     certeza: 'CONFIRMADA', causa_raiz: 'NO DETERMINADA', evidencias: ['resultado.json'] });
@@ -366,22 +381,12 @@ export function verificarPermisos(data, actor) {
   return true;
 }
 export function validarPrecondicionIoT(p, ahora = new Date()) {
-  const fechas = ['timestamp_lectura', 'ultimo_evento_m02', 'fecha_creacion_activo',
-    'fecha_evento_rebase', 'fecha_evento_tb', 'sensor_asociado_area'];
-  if (p?.id_activo_biologico !== 943 || p.id_dispositivo_iot !== 849 ||
-    p.id_telemetria_apta !== 120011 || p.id_sensor !== 1311 || p.id_infraestructura !== 741 ||
-    ![184, 463].includes(p.id_finca) || p.vinculacion_activo !== null ||
-    fechas.some(k => typeof p[k] !== 'string' ||
-      !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(p[k]) || !Number.isFinite(Date.parse(p[k]))))
-    throw Error('datos de precondición IoT incompletos o incoherentes');
-  const t = Object.fromEntries(fechas.map(k => [k, Date.parse(p[k])]));
-  if (!(t.fecha_evento_rebase < t.fecha_evento_tb) ||
-    [t.fecha_evento_rebase, t.fecha_evento_tb].some(x => x < t.ultimo_evento_m02 ||
-      x < t.fecha_creacion_activo || x > ahora.getTime()) ||
-    t.timestamp_lectura < t.fecha_evento_tb - 86400000 ||
-    t.timestamp_lectura > t.fecha_evento_tb + 3600000 ||
-    t.sensor_asociado_area < t.fecha_creacion_activo || t.sensor_asociado_area > t.fecha_evento_tb)
-    throw Error('ventana temporal IoT inválida');
+  if (!Number.isInteger(p?.id_activo_biologico) || !Number.isInteger(p.id_dispositivo_iot) ||
+      !Number.isInteger(p.id_telemetria_apta) || !Number.isInteger(p.id_sensor) ||
+      !Number.isInteger(p.id_periodo_contable) || !Array.isArray(p.bovinos) ||
+      p.bovinos.length !== 4 || new Set(p.bovinos).size !== 4 ||
+      !p.bovinos.includes(p.id_activo_biologico) || !Number.isFinite(Date.parse(p.timestamp_lectura)))
+    throw Error('Precondición IoT incompleta');
   return p;
 }
 export function leerPrecondicionIoT(archivo = PRECONDICION_IOT) {
@@ -447,44 +452,117 @@ async function newman(r, c, api, tokens, periodo, linea) {
       r.problemas_tecnicos.push(`Contrato Newman ${s.nombre}: ${registro.motivo}`);
     }
   }
-  r.herramientas.newman = { version: versionNewman(), iteraciones: resumen.solicitudes?.length === 3 ? 1 : 0,
-    fallos: resumen.solicitudes?.flatMap(x => x.aserciones ?? []).filter(x => x.error).length ?? 3,
+  r.herramientas.newman = { version: versionNewman(), iteraciones: resumen.solicitudes?.length === 2 ? 1 : 0,
+    solicitudes: resumen.solicitudes?.length ?? 0,
+    fallos: resumen.solicitudes?.flatMap(x => x.aserciones ?? []).filter(x => x.error).length ?? 2,
     codigo: out.status, error: out.error?.code ?? resumen.error ?? null };
   if (fs.existsSync(path.join(sub, 'newman-G37.json')) && fs.existsSync(path.join(sub, 'newman-G37.html')))
     r.evidencias.push('newman/newman-G37.json', 'newman/newman-G37.html');
   if (out.status !== 0) r.problemas_tecnicos.push('Newman no completó todas las lecturas; revisar reporte generado.');
 }
 export function informe(c, r) {
+  const casos = CASOS.map(k => r.casos[k]);
+  const agregado = casos.some(x => x.estado === 'RECHAZADO') ? 'RECHAZADO' :
+    casos.every(x => x.estado === 'APROBADO') ? 'APROBADO' : 'NO_CONCLUYENTE';
   const decisiones = CASOS.map(k => `| ${k} | ${r.casos[k].estado} | ${texto(r.casos[k].motivo)} |`).join('\n');
-  const esperado = [
-    'El acumulado RF-93 cambia exactamente en ganancias como ingresos y pérdidas como gastos, sin sumar otro período.',
-    'Cada variación nueva tiene exactamente una entrada RF-94 con registro, activo, tipo, monto y período.',
-    'VERIFICACION_PENDIENTE al crear; tras CADENA_COMPLETA, VERIFICADO y navegación M02→lectura M03.'
-  ];
-  const filasVariaciones = [1, 2, 3, 4].flatMap(n => {
-    const paso = r.observaciones?.[`paso_${n}`];
-    return (paso?.variaciones ?? []).map(v => `| ${v.id} | ${paso.activo} | ${v.tipo} | ${v.monto} | ${paso.evento} | ${v.linea} | ID individual no conservado |`);
-  });
-  const tablaVariaciones = filasVariaciones.length ? `\n\n| Variación | Activo | Tipo | Monto | Evento M02 | Línea | Auditoría RF-94 |\n|---|---:|---|---:|---:|---:|---|\n${filasVariaciones.join('\n')}\n\nIDs RF-94 nuevos conservados: ${(r.observaciones?.nuevos?.auditorias ?? []).join(', ') || 'ninguno'}. El resultado del oráculo confirma la correspondencia de campos, pero el RUN no conserva el ID individual por variación.` : '';
-  const detalle = CASOS.map((k, i) => { const x = r.casos[k]; return `### ${k}\n\n- **Preparación:** ${texto(x.preparacion ?? 'No completada')}\n- **Esperado:** ${esperado[i]}\n- **Observado:** ${texto(x.observado ?? x.motivo)}${i === 1 ? tablaVariaciones : ''}\n\n- **Qué se cumplió:** ${texto(x.cumplido ?? 'Sin confirmación suficiente')}\n- **Qué falló y por qué:** ${x.estado === 'APROBADO' ? 'Ninguna discrepancia observada.' : texto(x.motivo)}\n- **Decisión:** ${x.estado}.`; }).join('\n\n');
-  const incidentes = r.incidencias.length ? r.incidencias.map(x => `### ${x.id.startsWith('INC-M06-G37-') ? x.id : `Incidencia reutilizada: ${x.id}`}: ${x.titulo}\n\n- **Requisito:** ${x.requisito}\n- **Pasos:** ${x.pasos}\n- **Esperado:** ${x.esperado}\n- **Obtenido:** ${x.obtenido}\n- **Apoyo de código:** ${x.apoyo_codigo}\n- **Impacto:** ${x.impacto}\n- **Severidad:** ${x.severidad}; ${x.justificacion_severidad}\n- **Equipo inicial:** ${x.equipo_inicial}; ${x.fundamento_equipo}\n- **Certeza:** ${x.certeza}; causa raíz ${x.causa_raiz}\n- **Evidencias:** ${x.evidencias.join(', ')}`).join('\n\n') : 'Ninguna incidencia de producto confirmada.';
-  const agregado = CASOS.some(k => r.casos[k].estado === 'RECHAZADO') ? 'RECHAZADO' :
-    CASOS.every(k => r.casos[k].estado === 'APROBADO') ? 'APROBADO' : 'NO_CONCLUYENTE';
-  const comprobaciones = r.comprobaciones.map(x => `| ${x.id} | ${x.caso} | ${x.estado} | ${texto(x.motivo)} | ${x.evidencia} |`).join('\n');
-  const efecto = r.efectos_persistentes_declarados;
-  const aviso = `Efecto de precios: ${efecto.precios_registrados} registrados (IDs ${efecto.id_precio_mercado.join(', ') || 'ninguno'}; registros sin ID ${efecto.registros_sin_id}). Estado de la bandeja del Contador QA: ${efecto.bandeja_contador_qa.estado}; avisos observados ${efecto.bandeja_contador_qa.avisos_observados ?? 'no verificable'}.`;
-  const contraste = r.contraste_contrato.length ? r.contraste_contrato.map(x =>
-    `- ${x.ruta} (${x.actor}, HTTP ${x.http}, ${x.fuente ?? 'ejecutor'}): ${x.resultado}${x.motivo ? `; ${String(x.motivo).replace(/[\r\n]/g, ' ').slice(0, 350)}` : ''}.`).join('\n') :
-    'Sin respuestas con cuerpo esperado contrastables.';
-  const previas = r.contraste_contrato.filter(x => x.fase === 'previa');
-  const vacias = new Set(previas.filter(x => x.resultado === 'sin elementos para contrastar').map(x => x.id));
-  const conElementos = [...new Set(previas.filter(x => x.resultado === 'coincide' && !vacias.has(x.id)).map(x => x.ruta))];
-  const sinElementos = [...new Set(previas.filter(x => x.resultado === 'sin elementos para contrastar').map(x => x.ruta))];
-  const candidatos = (r.observaciones?.candidatos ?? []).map(x =>
-    `| ${x.activo ?? 'sin ID'} | ${x.motivos.length ? x.motivos.map(texto).join('; ') : 'ninguna'} |`).join('\n');
-  const resumenPrevio = `Rutas previas contrastadas con elementos reales: ${conElementos.join(', ') || 'ninguna'}. Rutas sin elementos para contrastar: ${sinElementos.join(', ') || 'ninguna'}.\n\n### Selección de candidatos\n\n| Activo | Condiciones no cumplidas |\n|---|---|\n${candidatos || '| Sin observaciones | No se completó la selección |'}\n\n### Observación M03\n\n${texto(r.observaciones?.m03 ?? 'Sin observación M03 acreditada')}`;
-  const acciones = CASOS.map(k => `${k} ${r.casos[k].estado}${r.incidencias.find(x => x.caso === k) ? ` por ${r.incidencias.find(x => x.caso === k).id}` : ''}`).join('; ');
-  return `# TC-M06-G37 — ${agregado}\n\n## Identificación\n\nCasos: ${CASOS.join(', ')}. RF-86 con RF-93, RF-94 y RF-91. Versión ${c.version}, intento ${c.intento}; RUN ${c.runId}. Ambiente TEST. Autorización ${c.referencia}. Commit: no consultado en este ejecutor. Herramientas: Node ${process.version}; Newman ${r.herramientas.newman?.version ?? 'no ejecutado'}.\n\n## Decisión del caso\n\n| Caso | Estado | Motivo |\n|---|---|---|\n${decisiones}\n\n## Detalle por caso\n\n${detalle}\n\n## Comprobaciones API/UI\n\n| ID | Caso | Estado | Observación | Evidencia |\n|---|---|---|---|---|\n${comprobaciones}\n\nUI: no exigida por la matriz original (API Postman/Newman).\n\n## Contraste de contrato\n\n${contraste}\n\n${resumenPrevio}\n\n## Evidencias reales\n\n${r.evidencias.join(', ') || 'Sin evidencias completas'}.\n\n## Incidencias\n\n${incidentes}\n\n## Análisis de causas\n\nLas discrepancias se derivan por la primera respuesta pública observada. La causa raíz de cada incidencia se consigna según su evidencia. Problemas de automatización: ${r.problemas_tecnicos.map(texto).join('; ') || 'ninguno observado'}.\n\n## Conclusión y acciones\n\n${acciones}. Desarrollo debe atender las incidencias de producto; QA reevaluará los casos rechazados después de corrección y autorización específica.\n\n## Cierre y rollback\n\nDELETE del RUN: HTTP ${r.cierre.run.cierre_http ?? 'no observado'}. Rollback de datos del sandbox verificado: ${r.cierre.rollback.verificado ? 'sí' : 'no'}; ${texto(r.cierre.rollback.motivo ?? 'sin comprobación suficiente').replace(/\.$/, '')}. ${aviso} El rollback verificado se limita a los datos del sandbox.\n`;
+  const a = r.observaciones?.acumulados ?? {};
+  const suma = o => o ? `ingresos ${o.total_ingresos}, gastos ${o.total_gastos}; TB+ ${o.componentes?.ganancia_transformacion_biologica}, TB- ${o.componentes?.perdida_transformacion_biologica}, PM+ ${o.componentes?.ganancia_precio_mercado}, PM- ${o.componentes?.perdida_precio_mercado}` : 'sin lectura comparable';
+  const variaciones = (r.observaciones?.variaciones ?? []).map(x =>
+    `| ${x.id} | ${x.activo} | ${x.tipo} | ${x.monto} | ${x.linea} |`).join('\n');
+  const cadena = r.observaciones?.cadena_013?.final;
+  const eslabones = cadena?.eslabones;
+  const detalles = {
+    'TC-M06-011': `### TC-M06-011
+
+**Qué se verifica.** El acumulado del período abierto cambia por componente y total exactamente con las variaciones del RUN; el de otro período abierto permanece igual.
+
+**Preparación.** Período ${a.periodo ?? 'sin confirmar'} y control ${a.otro_periodo ?? 'sin confirmar'}; cuatro bovinos y precio vigente.
+
+**Qué se hizo.** GET del acumulado antes y después de procesar, sin POST de RF-93 ni recálculo manual.
+
+**Esperado.** Ganancias en ingresos; pérdidas en gastos por valor absoluto; otro período sin cambios.
+
+**Observado.** Período antes: ${suma(a.antes)}. Después: ${suma(a.despues)}. Otro período antes: ${suma(a.otro_antes)}. Después: ${suma(a.otro_despues)}.
+
+| Variación | Activo | Tipo | Monto | Línea |
+|---|---:|---|---:|---:|
+${variaciones || '| Sin variaciones acreditadas | | | | |'}
+
+**Por qué se decide.** ${texto(r.casos['TC-M06-011'].motivo)} Estado: ${r.casos['TC-M06-011'].estado}.`,
+    'TC-M06-013': `### TC-M06-013
+
+**Qué se verifica.** La variación TB+ inicia VERIFICACION_PENDIENTE, RF-91 recibe la verificación y la cadena llega a VERIFICADO con navegación a M02 y M03.
+
+**Preparación.** Bovino ${r.observaciones?.paso_1?.activo ?? 'sin confirmar'}; dispositivo 856; lectura 120035 apta dentro de la ventana de 24 h.
+
+**Qué se hizo.** Se consultó la variación y la cadena inicial, se invocó POST RF-91 y se consultaron variación y cadena finales.
+
+**Esperado.** HTTP 200 con verificadas y pendientes; VERIFICADO, evento M02 del paso y lectura M03 120035 en ids_lectura_iot.
+
+**Observado.** Evento M02 ${r.observaciones?.paso_1?.evento ?? 'no observado'}; estado final ${cadena?.estado_verificacion ?? 'no observado'}; nivel_fallo ${cadena?.nivel_fallo ?? eslabones?.nivel_fallo ?? 'sin dato'}; evento en cadena ${eslabones?.ids?.id_evento ?? 'faltante'}; lecturas en cadena ${(eslabones?.ids?.ids_lectura_iot ?? []).join(', ') || 'ninguna'}; verificadas RF-91 ${r.observaciones?.cadena_013?.respuesta_rf91?.verificadas ?? 'sin respuesta'}.
+
+**Por qué se decide.** ${texto(r.casos['TC-M06-013'].motivo)} Estado: ${r.casos['TC-M06-013'].estado}.`
+  };
+  const comprobaciones = r.comprobaciones.map(x =>
+    `| ${x.id} | ${x.caso} | ${x.estado} | ${texto(x.motivo)} | ${x.evidencia} |`).join('\n');
+  const incidencias = r.incidencias.length ? r.incidencias.map(x =>
+    `### ${x.id}: ${x.titulo}
+
+Caso ${x.caso}. Requisito: ${x.requisito}. Pasos: ${x.pasos}. Esperado: ${x.esperado}. Observado: ${x.obtenido}. Impacto: ${x.impacto}. Severidad ${x.severidad}: ${x.justificacion_severidad}. Primer contacto: ${x.equipo_inicial}, por ${x.fundamento_equipo}. Certeza ${x.certeza}; causa raíz ${x.causa_raiz}. Evidencia: ${x.evidencias.join(', ')}.`).join('\n\n') : 'Sin incidencia de producto nueva comprobada.';
+  const fallasOficialidad = Object.entries(r.condiciones_oficialidad ?? {}).filter(([, ok]) => !ok).map(([k]) => k);
+  const abortoContratoPrevio = r.discrepancias_contrato.some(x => x.fase === 'previa');
+  return `# TC-M06-G37 — ${agregado}
+
+## Identificación
+
+Casos V2: ${CASOS.join(', ')}. TC-M06-012: APROBADO en V1, RUN-G37-V1-20261108-233956; fuera de V2. RF-86, versión ${c.version}, intento ${c.intento}, RUN ${c.runId}. Ambiente TEST. Autorización ${c.referencia}. Commit de backend indicado para la reevaluación: 453277e4; no verificado por el ejecutor. Node ${process.version}; Newman ${r.herramientas.newman?.version ?? 'no ejecutado'}.
+
+## Precondiciones preparadas
+
+Con autorización del responsable QA se vinculó por SQL el dispositivo 856 al bovino 1831 porque no hay API. Se insertó por SQL la lectura 120035 con apto_para_nic41=true; telemetria_calidad figura INDETERMINADA. Se aceptó la desviación TEMP_CORPORAL frente al pesaje IoT de la matriz porque el producto no ofrece variable de peso. Son precondiciones persistentes fuera del rollback del RUN; el preflight vivo comprueba dispositivo y ventana antes de escribir.
+
+## Resumen de veredictos
+
+| Caso | Estado | Motivo |
+|---|---|---|
+${decisiones}
+
+## Detalle por caso
+
+${detalles['TC-M06-011']}
+
+${detalles['TC-M06-013']}
+
+## Comprobaciones API/UI
+
+| ID | Caso | Estado | Observación | Evidencia |
+|---|---|---|---|---|
+${comprobaciones}
+
+UI no exigida por estos casos de la matriz.
+
+## Evidencias reales
+
+${r.evidencias.join(', ') || 'Sin evidencias completas'}. Los montos, cuatro acumulados y la cadena completa están en resultado.json. Solicitudes del ejecutor y Newman: ${r.solicitudes_totales ?? 'sin conteo'} / ${PRESUPUESTO.solicitudes_totales}.
+
+## Seguimiento e incidencias
+
+INC-M06-G37-01: ${r.seguimiento?.['INC-M06-G37-01'] ?? 'NO_CONCLUYENTE'}. INC-M06-G32-01: ${r.seguimiento?.['INC-M06-G32-01'] ?? 'NO_CONCLUYENTE'}. Cualquier otra discrepancia acreditada en V2 se registra como nueva en V2.
+
+${incidencias}
+
+## Análisis de causas y problemas técnicos
+
+La derivación inicial usa la primera respuesta pública discrepante. Causa raíz solo donde exista evidencia independiente. Problemas internos de automatización o datos: ${r.problemas_tecnicos.map(texto).join('; ') || 'ninguno observado'}. ${abortoContratoPrevio ? 'El preflight abortó por contrato: Problema técnico de automatización (ERROR_QA), no incidencia del producto; el contraste impidió comprobar los oráculos.' : ''}
+
+## Conclusión y acciones
+
+${CASOS.map(k => `${k}: ${r.casos[k].estado}`).join('; ')}. ${r.oficial ? 'Ejecución oficial.' : `No oficial: fallan ${fallasOficialidad.join(', ') || 'condiciones no determinadas'}.`} Desarrollo revisará las incidencias reproducidas; QA decidirá la siguiente evaluación con nueva autorización.
+
+## Cierre y rollback
+
+DELETE del RUN HTTP ${r.cierre.run.cierre_http ?? 'no observado'}. Rollback ${r.cierre.rollback.verificado ? 'verificado' : 'no verificado'}: ${r.cierre.rollback.motivo ?? 'sin comprobación suficiente'}. Lecturas poscierre sin cabeceras del RUN: ${r.cierre.lecturas_poscierre?.length ?? 0}. La lectura M03 y el vínculo del dispositivo persisten como precondiciones.
+`;
 }
 async function login(api, correo, clave) {
   const res = await fetchEnContexto(api + '/sesiones/', { method: 'POST', redirect: 'manual',
@@ -531,7 +609,6 @@ async function cierre(r, c, api, tokens, hechos) {
     const lecturas = [
       ['variaciones', '/finanzas/periodos/' + hechos.periodo + '/variaciones', 'contador', 'id_variacion_valor_razonable', hechos.variaciones],
       ['lineas', '/finanzas/lineas?id_periodo_contable=' + hechos.periodo, 'contador', 'id_linea_asiento_nic41', hechos.lineas],
-      ['estados_get', '/finanzas/periodos/' + hechos.periodo + '/estados-resultados', 'contador', 'id_estado', hechos.estados],
       ['mediciones', '/finanzas/periodos/' + hechos.periodo + '/mediciones', 'contador', 'id_medicion_posterior', hechos.mediciones],
     ];
     const fallos = []; let lecturasCompletas = true;
@@ -589,6 +666,26 @@ async function cierre(r, c, api, tokens, hechos) {
         lecturasCompletas = false; fallos.push('estado M02: lectura incompleta');
       } else if (b.estado_actual !== activo.estado) fallos.push('estado M02');
     }
+    const periodoCierre = await fetchEnContexto(api + '/finanzas/periodos', { method: 'GET',
+      headers: { Authorization: `Bearer ${tokens.contador}` }, signal: AbortSignal.timeout(30000) });
+    const periodosCierre = await periodoCierre.json().catch(() => null);
+    r.cierre.lecturas_poscierre.push({ ruta: '/finanzas/periodos', http: periodoCierre.status });
+    if (periodoCierre.status !== 200 || !Array.isArray(periodosCierre) ||
+        !contrastarRespuesta(r, 'periodos', 'contador', periodoCierre.status, periodosCierre) ||
+        periodosCierre.find(x => Number(x.id_periodo_contable) === 241)?.estado !== 'ABIERTO') {
+      lecturasCompletas = false; fallos.push('período 241 ABIERTO');
+    }
+    for (const activo of hechos.activosIniciales ?? []) {
+      const ruta = `/activos-biologicos/${activo.id}/ficha-integral`;
+      const respuesta = await fetchEnContexto(api + ruta, { method: 'GET',
+        headers: { Authorization: `Bearer ${tokens.admin}` }, signal: AbortSignal.timeout(30000) });
+      const ficha = await respuesta.json().catch(() => null);
+      r.cierre.lecturas_poscierre.push({ ruta, http: respuesta.status });
+      if (respuesta.status !== 200 || !contrastarRespuesta(r, 'ficha', 'admin', respuesta.status, ficha) ||
+          ficha.estado_actual !== activo.estado || !igual(ficha.peso_actual, activo.peso)) {
+        lecturasCompletas = false; fallos.push(`activo ${activo.id} estado/peso`);
+      }
+    }
     r.cierre.rollback = evaluarRollbackSandbox({ deleteHttp: res.status, lecturasCompletas,
       registrosPresentes: fallos, inciertas: hechos.inciertas, conciliadas: hechos.conciliadas,
       escrituras: huboEscrituras });
@@ -601,7 +698,7 @@ async function cierre(r, c, api, tokens, hechos) {
           avisos_observados: posterior.filter(x => id(x.id_notificacion) > ultimo &&
             String(x.mensaje ?? '').startsWith('Hay un nuevo precio de mercado vigente.')).length };
     }
-  } catch (e) { if (e.message === 'PETICION_CONCURRENTE') r.problemas_tecnicos.push(e.message);
+  } catch (e) { r.problemas_tecnicos.push(`Cierre: ${texto(e.message)}`);
     r.cierre.rollback = { verificado: false, motivo: 'No se completaron lecturas poscierre.' }; }
 }
 export async function evaluar(c, env) {
@@ -612,7 +709,7 @@ export async function evaluar(c, env) {
   r._limite = Date.now() + 1800000;
   const hechos = { iniciado: false, periodo: null, eventos: [], precios: [], variaciones: [], lineas: [],
     estados: [], mediciones: [], auditorias: [], estadosActivos: [], inciertas: false, conciliadas: false,
-    bandejaInicial: null };
+    bandejaInicial: null, activosIniciales: [] };
   let tokens = null;
   try {
     if (!versionNewman()) throw Error('NEWMAN_NO_DISPONIBLE');
@@ -653,6 +750,10 @@ export async function evaluar(c, env) {
     const candidatos = a.data;
     const precondicion = leerPrecondicionIoT(c.precondicionIoTArchivo);
     let bloqueoIoT = null;
+    if (Date.now() >= Date.parse(precondicion.timestamp_lectura) + 86400000) {
+      registrar(r, 'TC-M06-013', { estado: 'NO_CONCLUYENTE', motivo: 'Ventana de 24 h de la lectura M03 vencida; sin escrituras.' });
+      throw Error('Ventana de 24 h de M03 vencida; sin escrituras');
+    }
     const precios = new Map(), preparados = [];
     for (const especie of [...new Set(candidatos.map(x => x.id_especie))]) {
       const ruta = `/finanzas/precios?id_especie=${especie}`;
@@ -660,7 +761,7 @@ export async function evaluar(c, env) {
       if (!bueno(px) || !valores(px)) throw Error(`respuesta no esperada en ${ruta} (HTTP ${px.http ?? 'sin respuesta'}, ${px.codigo ?? 'sin código'})`);
       precios.set(especie, px.data);
     }
-    for (const x of candidatos) {
+    for (const x of candidatos.filter(x => precondicion.bovinos.includes(Number(x.id_activo_biologico)))) {
       if (r.solicitudes.length > 75) throw Error('Presupuesto de selección agotado antes de revisar todo el catálogo');
       if (!/bovin/i.test(x.especie ?? '') || x.tipo !== 'INDIVIDUAL' || x.estado !== 'ACTIVO' || x.valorado_por_costo) {
         preparados.push({ ...x, periodo: null, precio: null, calculo: null, peso: null });
@@ -679,7 +780,7 @@ export async function evaluar(c, env) {
         throw Error(`respuesta no esperada en ${rutaFicha} (HTTP ${f.http ?? 'sin respuesta'}, ${f.codigo ?? 'sin código'})`); }
       const calculo = bueno(d) ? (d.data?.calculos ?? []).filter(z => z.estado === 'CALCULADO' && z.json_metodo_costo?.es_producto !== true)
         .sort((u, v) => String(v.fecha_calculo).localeCompare(String(u.fecha_calculo)))[0] : null;
-      const diaHecho = aid === precondicion.id_activo_biologico ? precondicion.fecha_evento_tb.slice(0, 10) : hoy();
+      const diaHecho = hoy();
       preparados.push({ ...x, periodo: periodoDestino(p.data, d.data?.activo?.numero_id_tributaria, diaHecho),
         precio: vigente(precios.get(x.id_especie) ?? [], x.id_especie, diaHecho), calculo,
         peso: f.data?.unidad_peso === 'kg' ? Number(f.data.peso_actual) : null,
@@ -687,82 +788,51 @@ export async function evaluar(c, env) {
     }
     let seleccion = seleccionarCandidatos(preparados, 4, precondicion);
     if (Number(seleccion.elegido[0]?.id_activo_biologico) !== precondicion.id_activo_biologico ||
-      Number(seleccion.elegido[0]?.dispositivo) !== precondicion.id_dispositivo_iot) {
-      const razones = seleccion.motivos.find(x => Number(x.activo) === 943)?.motivos ?? ['943 ausente del catálogo'];
-      bloqueoIoT = `Activo 943 no elegible: ${razones.join('; ')}; comprobar dispositivo 849, estado, período y precio.`;
-      seleccion = seleccionarCandidatos(preparados.filter(x => Number(x.id_activo_biologico) !== 943));
+      Number(seleccion.elegido[0]?.dispositivo) !== precondicion.id_dispositivo_iot ||
+      seleccion.elegido.some(x => Number(x.periodo?.id_periodo_contable) !== precondicion.id_periodo_contable)) {
+      registrar(r, 'TC-M06-013', { estado: 'NO_CONCLUYENTE',
+        motivo: '1831 sin dispositivo 856, período 241 abierto actual o cuatro bovinos aptos; sin escrituras.' });
+      throw Error('Preflight vivo de 1831 y período 241 incumplido; sin escrituras');
     }
     r.observaciones.candidatos = seleccion.motivos;
+    hechos.activosIniciales = seleccion.elegido.map(x => ({ id: id(x.id_activo_biologico), estado: x.estado, peso: x.peso }));
     const primerPeriodo = seleccion.elegido[0]?.periodo?.id_periodo_contable;
     let elegidos = seleccion.elegido;
-    if (elegidos.length < 4) { if (bloqueoIoT) registrar(r, 'TC-M06-013', { estado: 'BLOQUEADO', motivo: bloqueoIoT });
+    if (elegidos.length < 4) {
       r.impedimento_datos = 'No hay cuatro bovinos individuales del mismo período ABIERTO con reconocimiento, peso, precio y cálculo previo';
       throw Error(r.impedimento_datos); }
     const pid = id(primerPeriodo); hechos.periodo = pid;
     if (r.discrepancias_contrato.length) throw Error('Selección: esquema discordante; sin escrituras');
-    let previas = await lecturasPrevias(q, pid, id(elegidos[0].id_activo_biologico),
-      bloqueoIoT ? hoy() : precondicion.fecha_evento_tb.slice(0, 10), r,
-      bloqueoIoT ? hoy() : precondicion.timestamp_lectura.slice(0, 10));
-    if (!bloqueoIoT) {
-      const lecturas = [...(previas.m03_historial.data?.items ?? [])];
-      const totalPaginas = Math.min(Number(previas.m03_historial.data?.paginas_totales ?? 1), 3);
-      for (let pagina = 2; pagina <= totalPaginas && !lecturas.some(x => id(x.id_telemetria) === 120011); pagina++) {
-        const ruta = `/iot/monitoreo/historial?fecha_inicio=2026-11-07&fecha_fin=2026-11-07&sensor_id=1311&pagina=${pagina}&por_pagina=100`;
-        const otra = await q('m03_historial', ruta);
-        if (!bueno(otra) || !Array.isArray(otra.data?.items)) break;
-        lecturas.push(...otra.data.items);
-      }
-      if (!lecturas.some(x => id(x.id_telemetria) === 120011)) {
-        bloqueoIoT = 'Historial M03 público por sensor 1311 no incluye id_telemetria 120011 en 2026-11-07; renovar precondición.';
-        const alternativa = seleccionarCandidatos(preparados.filter(x => Number(x.id_activo_biologico) !== 943));
-        if (alternativa.elegido.length === 4 && alternativa.elegido[0].periodo.id_periodo_contable === pid) {
-          elegidos = alternativa.elegido;
-          previas = await lecturasPrevias(q, pid, id(elegidos[0].id_activo_biologico), hoy(), r);
-        } else {
-          elegidos = [];
-          r.impedimento_datos = 'Tras descartar 943 por historial M03 no hay cuatro activos alternativos en el mismo período ABIERTO.';
-        }
-      } else {
-        r.observaciones.m03 = 'La lectura 120011 es visible por sensor 1311; precede a la creación del activo 943 y a la asociación sensor-área 741. RF-91 enlaza por dispositivo 849, aptitud NIC41 y ventana del evento (trazabilidad_repository.py:59-75).';
-      }
+    const previas = await lecturasPrevias(q, pid, id(elegidos[0].id_activo_biologico),
+      hoy(), r, precondicion.timestamp_lectura.slice(0, 10), precondicion.id_sensor);
+    const historial = previas.m03_historial?.data;
+    if (!Array.isArray(historial?.items) || !historial.items.some(x =>
+      Number(x.id_telemetria) === precondicion.id_telemetria_apta)) {
+      registrar(r, 'TC-M06-013', { estado: 'NO_CONCLUYENTE',
+        motivo: `La lectura M03 ${precondicion.id_telemetria_apta} no está en historial público del sensor; sin escrituras.` });
+      throw Error('Preflight M03 sin lectura esperada; sin escrituras');
     }
-    if (bloqueoIoT) registrar(r, 'TC-M06-013', { estado: 'BLOQUEADO', motivo: bloqueoIoT });
-    if (r.impedimento_datos) throw Error(r.impedimento_datos);
-    const { estados_get: e0, auditoria: auPrevia, m03_historial: m03Base,
+    const otra = p.data.find(x => Number(x.id_periodo_contable) !== pid && x.estado === 'ABIERTO');
+    if (!otra) throw Error('No hay otro período ABIERTO comparable sin actividad del RUN');
+    const otroId = id(otra.id_periodo_contable);
+    const otroAntes = await q('acumulado', `/finanzas/periodos/${otroId}/estado-resultados/acumulado`);
+
+    r.observaciones.m03 = `Lectura ${precondicion.id_telemetria_apta} y dispositivo ${precondicion.id_dispositivo_iot} preparados; aptitud NIC41 se comprobar? por cadena RF-91.`;
+    const { acumulado: acumuladoAntes, auditoria: auPrevia, m03_historial: m03Base,
       variaciones: v0, lineas: l0, mediciones: m0 } = previas;
     if (r.discrepancias_contrato.length) throw Error('Lecturas previas: esquema discordante; sin escrituras');
     const au0 = await auditoriaTodas(r, api, pid, tokens, c, auPrevia);
     if (r.discrepancias_contrato.length) throw Error('Auditoría previa: esquema discordante; sin escrituras');
-    if (![v0, l0, e0, m0].every(x => bueno(x)) || [v0, l0, e0, m0].some(x => !Array.isArray(x.data)) || !au0)
+    if (![v0, l0, m0].every(x => bueno(x)) || [v0, l0, m0].some(x => !Array.isArray(x.data)) || !au0)
       throw Error('Línea base del período incompleta');
     r.observaciones.periodo_destino = pid;
-    r.observaciones.precio_tb_943 = !bloqueoIoT && elegidos[0]?.id_activo_biologico === 943 ?
-      { id_precio_mercado: id(elegidos[0].precio.id_precio_mercado), fecha_hecho: precondicion.fecha_evento_tb.slice(0, 10),
-        fecha_vigencia: elegidos[0].precio.fecha_vigencia } : null;
+
     r.observaciones.linea_base = { variaciones: v0.data.map(x => x.id_variacion_valor_razonable),
-      lineas: l0.data.map(x => x.id_linea_asiento_nic41), estados: e0.data.map(x => x.id_estado),
+      lineas: l0.data.map(x => x.id_linea_asiento_nic41),
       mediciones: m0.data.map(x => x.id_medicion_posterior), auditorias: au0.map(x => x.id_evento) };
     for (const registro of r.contraste_contrato) registro.fase ??= 'previa';
-    const estadoAntes = await q('estado_post', `/finanzas/periodos/${pid}/estados-resultados`, 'contador', {});
-    let estadoInicial = null;
-    if (bueno(estadoAntes, 201)) { estadoInicial = estadoAntes.data;
-      if (!id(estadoAntes.data?.id_estado)) hechos.inciertas = true;
-      else hechos.estados.push(id(estadoAntes.data.id_estado)); }
-    else if (estadoAntes.http == null || (estadoAntes.http === 201 && !estadoAntes.id_necesario)) hechos.inciertas = true;
-    else if (estadoAntes.http === 422 && estadoAntes.codigo === 'PERIODO_NO_CERRADO') {
-      registrar(r, 'TC-M06-011', { estado: 'RECHAZADO', motivo: 'RF-93 rechazó generar el estado antes de variaciones en período ABIERTO: PERIODO_NO_CERRADO.' },
-        { preparacion: `período abierto ${pid}`, observado: 'POST RF-93 HTTP 422, PERIODO_NO_CERRADO', cumplido: 'Se comprobó la API pública.' });
-      incidencia(r, 'TC-M06-011', 'RF-93 no genera acumulado del período abierto', 'RF-86 CA-3, CA-9 y RF-93',
-        'Consultar versiones y solicitar generación RF-93 antes de las variaciones en período abierto.',
-        'Estado previo y posterior comparables sin recálculo manual.', 'HTTP 422 PERIODO_NO_CERRADO.',
-        'generar_estado_resultados_use_case.py:31-35 exige CERRADO.',
-        'No se puede demostrar el acumulado dinámico exigido por TC-M06-011.');
-    }
-    else if (estadoAntes.http === 403) {
-      r.problemas_tecnicos.push('RF-93 POST HTTP 403 pese a permiso estado_resultados:1 acreditado; revisar autorización efectiva.');
-      registrar(r, 'TC-M06-011', { estado: 'NO_CONCLUYENTE', motivo: 'POST RF-93 HTTP 403; discrepancia de autorización, distinta de PERIODO_NO_CERRADO.' },
-        { preparacion: `período abierto ${pid}`, observado: `POST RF-93 HTTP 403, ${estadoAntes.codigo ?? 'sin código'}`, cumplido: 'Permiso consultado antes de escribir.' });
-    }
+    r.observaciones.acumulados = { periodo: pid, otro_periodo: otroId,
+      antes: acumuladoAntes.data, otro_antes: otroAntes.data };
     const nuevas = [];
     let ultimoPostVariaciones = null;
     for (let i = 0; i < 4; i++) {
@@ -775,12 +845,8 @@ export async function evaluar(c, env) {
       if (i < 2 && id(previo.id_precio_mercado) !== id(s.precio.id_precio_mercado)) {
         const re = await q('evento_crecimiento', `/activos-biologicos/${aid}/eventos/crecimiento`, 'admin',
           { tipo_medicion: 'PESO', valor_medicion: s.peso, unidad_medida: 'kg', descripcion: `Rebase QA ${c.runId}`,
-            ...(aid === 943 ? { fecha: precondicion.fecha_evento_rebase } : {}) });
+             });
         if (!bueno(re, 201) || !id(re.data?.evento?.id_eventos)) {
-          if (aid === 943 && ['FECHA_INCOHERENTE', 'FECHA_ANTERIOR_REGISTRO', 'FECHA_FUTURA'].includes(re.codigo)) {
-            bloqueoIoT = `Rebase M02 HTTP ${re.http}: ${re.codigo}; renovar precondición.`;
-            registrar(r, 'TC-M06-013', { estado: 'BLOQUEADO', motivo: bloqueoIoT });
-          }
           hechos.inciertas ||= re.http == null || (re.http === 201 && !re.id_necesario); paso.motivo = 'Rebase M02 sin confirmación'; continue; }
         hechos.eventos.push({ id: id(re.data.evento.id_eventos), activo: aid });
         const pr = await q('procesar', '/finanzas/eventos/procesar', 'contador', {});
@@ -811,12 +877,8 @@ export async function evaluar(c, env) {
       const pesoNuevo = Number((s.peso * [1.02, 0.98, 1.1, 1][i]).toFixed(2));
       const ev = await q('evento_crecimiento', `/activos-biologicos/${aid}/eventos/crecimiento`, 'admin',
         { tipo_medicion: 'PESO', valor_medicion: pesoNuevo, unidad_medida: 'kg', descripcion: `QA ${c.runId} tipo ${i}`,
-          ...(aid === 943 ? { fecha: precondicion.fecha_evento_tb } : {}) });
+           });
       if (!bueno(ev, 201) || !id(ev.data?.evento?.id_eventos)) {
-        if (aid === 943 && ['FECHA_INCOHERENTE', 'FECHA_ANTERIOR_REGISTRO', 'FECHA_FUTURA'].includes(ev.codigo)) {
-          bloqueoIoT = `TB+ M02 HTTP ${ev.http}: ${ev.codigo}; renovar precondición.`;
-          registrar(r, 'TC-M06-013', { estado: 'BLOQUEADO', motivo: bloqueoIoT });
-        }
         hechos.inciertas ||= ev.http == null || (ev.http === 201 && !ev.id_necesario); paso.motivo = 'Evento M02 no confirmado'; continue; }
       const eid = id(ev.data.evento.id_eventos); hechos.eventos.push({ id: eid, activo: aid });
       if (i === 1) {
@@ -840,45 +902,42 @@ export async function evaluar(c, env) {
     }
     const vF = ultimoPostVariaciones ?? await q('variaciones', `/finanzas/periodos/${pid}/variaciones`);
     const lF = await q('lineas', `/finanzas/lineas?id_periodo_contable=${pid}`);
-    const eF = await q('estados_get', `/finanzas/periodos/${pid}/estados-resultados`);
+    const acumuladoDespues = await q('acumulado', `/finanzas/periodos/${pid}/estado-resultados/acumulado`);
+    const otroDespues = await q('acumulado', `/finanzas/periodos/${otroId}/estado-resultados/acumulado`);
+    r.observaciones.acumulados.despues = acumuladoDespues.data;
+    r.observaciones.acumulados.otro_despues = otroDespues.data;
+    r.observaciones.variaciones = nuevas.map(x => ({
+      id: x.id_variacion_valor_razonable, activo: x.id_activo_biologico,
+      tipo: x.tipo, monto: x.monto_variacion, linea: x.id_linea }));
     const mF = await q('mediciones', `/finanzas/periodos/${pid}/mediciones`);
     const auF = await auditoriaTodas(r, api, pid, tokens, c);
-    const final = Object.fromEntries([['variaciones', vF], ['lineas', lF], ['estados', eF], ['mediciones', mF]]
+    const final = Object.fromEntries([['variaciones', vF], ['lineas', lF], ['mediciones', mF]]
       .map(([k, x]) => [k, bueno(x) && Array.isArray(x.data) ? x.data : null]));
     final.auditorias = auF;
     const campos = { variaciones: ['id_variacion_valor_razonable', v0.data], lineas: ['id_linea_asiento_nic41', l0.data],
-      estados: ['id_estado', e0.data], mediciones: ['id_medicion_posterior', m0.data], auditorias: ['id_evento', au0] };
+      mediciones: ['id_medicion_posterior', m0.data], auditorias: ['id_evento', au0] };
     r.observaciones.nuevos = Object.fromEntries(Object.entries(campos).map(([k, [campo, antes]]) =>
       [k, final[k] ? idsNuevos(antes, final[k], campo).map(x => id(x[campo])) : null]));
     for (const k of Object.keys(campos)) if (r.observaciones.nuevos[k]) hechos[k] = r.observaciones.nuevos[k];
     hechos.conciliadas = Object.values(r.observaciones.nuevos).every(xs => xs && xs.every(Boolean));
     if (!hechos.conciliadas) r.problemas_tecnicos.push('Lecturas posteriores incompletas; conciliación del RUN pendiente.');
-    if (!r.casos['TC-M06-011']) {
-      const estadoDespues = final.estados?.filter(x => id(x.id_estado) === id(estadoInicial?.id_estado) ||
-        Number(x.version) > Number(estadoInicial?.version ?? Infinity))
-        .sort((a, b) => Number(b.version) - Number(a.version))[0];
-      const dec = !final.estados || !final.variaciones ?
-        { estado: 'NO_CONCLUYENTE', motivo: 'Lecturas posteriores RF-93 o variaciones incompletas.' } :
-        nuevas.length && estadoInicial && !estadoDespues ?
-        { estado: 'RECHAZADO', motivo: 'El GET RF-93 posterior no muestra acumulado actualizado sin regeneración manual.' } :
-        oraculo011({ antes: estadoInicial, despues: estadoDespues, variaciones: nuevas });
-      registrar(r, 'TC-M06-011', dec, { preparacion: `período ${pid}, ${nuevas.length} variaciones`,
-        observado: dec.motivo, cumplido: 'Se comparó el GET RF-93 posterior sin segundo POST.' });
-      if (dec.estado === 'RECHAZADO') incidencia(r, 'TC-M06-011', 'Acumulado RF-93 discordante', 'RF-86 CA-3, CA-9',
-        'Consultar estado antes y después de variaciones, sin regeneración manual posterior.', 'Ingresos y gastos reflejan suma exacta.', dec.motivo,
-        'reporte_repository.py:40-62', 'Acumulado del período incorrecto.');
-    }
-    const audNuevas = auF ? idsNuevos(au0, auF, 'id_evento') : [];
-    const d12 = !final.variaciones || !auF ?
-      { estado: 'NO_CONCLUYENTE', motivo: 'Lecturas posteriores de variaciones o RF-94 incompletas.' } :
-      nuevas.length ? oraculo012(nuevas, audNuevas) :
-      { estado: 'NO_CONCLUYENTE', motivo: 'No se observaron variaciones nuevas; revisar los pasos M02/M06 antes de atribuir un incumplimiento a RF-94.' };
-    registrar(r, 'TC-M06-012', d12, { preparacion: `período ${pid}; cuatro tipos intentados`,
-      observado: `${nuevas.length} variaciones y ${audNuevas.length} auditorías nuevas`,
-      cumplido: 'RF-94 consultado con filtro de período y paginación.' });
-    if (d12.estado === 'RECHAZADO') incidencia(r, 'TC-M06-012', 'Auditoría RF-94 incompleta o discordante', 'RF-86 CA-10',
-      'Registrar variaciones y consultar auditoría técnica paginada.', 'Una entrada exacta por variación.', d12.motivo,
-      'medidor.py:129-133; consultar_auditoria_financiera_use_case.py:58-82', 'Trazabilidad de auditoría incompleta.', 'MEDIA');
+    const faltanAcumulados = [acumuladoAntes, acumuladoDespues, otroAntes, otroDespues].filter(x => !bueno(x));
+    const falloConocido = faltanAcumulados.every(x => x.http == null || x.http >= 500 ||
+      x.http === 422 && x.codigo === 'PERIODO_NO_CERRADO');
+    const d11 = faltanAcumulados.length ?
+      falloConocido ? { estado: 'RECHAZADO', severidad: 'ALTA',
+        motivo: 'El acumulado público del período ABIERTO no responde o no está disponible.' } :
+      { estado: 'NO_CONCLUYENTE', motivo: `Acumulado HTTP/código ajeno: ${faltanAcumulados.map(x => `${x.http}/${x.codigo}`).join(', ')}.` } :
+      !final.variaciones || !nuevas.length ? { estado: 'NO_CONCLUYENTE', motivo: 'No se acreditaron las cuatro variaciones.' } :
+      oraculo011({ antes: acumuladoAntes.data, despues: acumuladoDespues.data,
+        otroAntes: otroAntes.data, otroDespues: otroDespues.data, variaciones: nuevas });
+    registrar(r, 'TC-M06-011', d11, { preparacion: `período ${pid} ABIERTO, otro ${otroId}; ${nuevas.length} variaciones`,
+      observado: d11.motivo, cumplido: 'Acumulados públicos antes y después, sin regeneración.' });
+    if (d11.estado === 'RECHAZADO') incidencia(r, 'TC-M06-011', 'Acumulado discordante',
+      'RF-86 CA-3, CA-9', 'Leer acumulados antes y después sin RF-93 versionado.',
+      'Componentes y totales exactos; otro período sin cambios.', d11.motivo,
+      'm06_router.py:587-591; application/services/reportes.py:31-43', 'Resultado del período incorrecto.',
+      d11.severidad, 'INC-M06-G37-01');
     const primera = r.observaciones.paso_1, variacion = nuevas.find(x => x.id_activo_biologico === primera?.activo &&
       x.tipo === 'GANANCIA_TRANSFORMACION_BIOLOGICA');
     if (bloqueoIoT) {
@@ -891,34 +950,32 @@ export async function evaluar(c, env) {
       const ini = { ...variacion };
       const chInicial = await q('cadena', `/finanzas/lineas/${id(variacion.id_linea)}/cadena`);
       const ver = await q('trazabilidad', `/finanzas/periodos/${pid}/trazabilidad`, 'contador', {});
-      if (ver.http === 500) {
-        const decision = decidirVerificacion(ver.http, ver.codigo);
+      if (ver.http >= 500) {
+        const decision = { estado: 'RECHAZADO', motivo: `RF-91 HTTP ${ver.http} (${ver.codigo ?? 'sin código'}); verificación abortada.` };
         registrar(r, 'TC-M06-013', decision,
           { preparacion: `variación ${variacion.id_variacion_valor_razonable}, período ${pid}`,
             observado: 'Verificación del período abortada con HTTP 500.', cumplido: 'Estado inicial consultado.' });
         incidencia(r, 'TC-M06-013', 'Verificación RF-91 del período abortada', 'RF-86 CA-2, CA-11',
           'Crear TB+ y verificar período.', 'CADENA_COMPLETA y VERIFICADO.', 'POST RF-91 HTTP 500.',
           'trazabilidad_repository.py:106-117; síntoma similar a INC-M06-G32-01, causa no confirmada',
-          'No se navega al evento M02 y lectura M03.', 'ALTA', decision.incidencia);
+          'No se navega al evento M02 y lectura M03.', 'ALTA', 'INC-M06-G32-01');
       } else if (bueno(ver)) {
         const vf = await q('variaciones', `/finanzas/periodos/${pid}/variaciones`);
         const ch = await q('cadena', `/finanzas/lineas/${id(variacion.id_linea)}/cadena`);
         const final = Array.isArray(vf.data) ? vf.data.find(x => x.id_variacion_valor_razonable === variacion.id_variacion_valor_razonable) : null;
+        r.observaciones.cadena_013 = { inicial: chInicial.data, final: ch.data, respuesta_rf91: ver.data };
         let d13 = bueno(chInicial) && bueno(vf) && bueno(ch) ? oraculo013({ inicial: ini,
           cadenaInicial: chInicial.data, final, cadena: ch.data,
-          evento: primera.evento, lecturaApta: precondicion.id_telemetria_apta }) :
+          evento: primera.evento, lecturaApta: precondicion.id_telemetria_apta,
+          verificadas: ver.data?.verificadas }) :
           { estado: 'NO_CONCLUYENTE', motivo: 'No se completaron las lecturas públicas de variación y cadena antes o después de RF-91.' };
-        if (d13.estado === 'BLOQUEADO' && precondicion &&
-          precondicion.id_activo_biologico === primera.activo)
-          d13 = { estado: 'RECHAZADO', motivo: 'RF-91 dejó nivel_fallo 1 pese a precondición IoT apta acreditada antes del RUN; cadena HTTP 200.' };
-        if (d13.estado === 'RECHAZADO' && ch.data?.nivel_fallo === 1 && !precondicion)
-          d13 = { estado: 'BLOQUEADO', motivo: 'RF-91 dejó nivel_fallo 1 y no hay precondición IoT apta acreditada antes del RUN.' };
         registrar(r, 'TC-M06-013', d13, { preparacion: `variación ${variacion.id_variacion_valor_razonable}, evento ${primera.evento}`,
           observado: `RF-91 HTTP ${ver.http}; cadena HTTP ${ch.http}`, cumplido: 'Se consultaron estado inicial, final y cadena.' });
         if (d13.estado === 'RECHAZADO') incidencia(r, 'TC-M06-013', 'Cadena RF-91 incompleta', 'RF-86 CA-11',
           'Verificar período y consultar cadena de la variación.', 'Estado VERIFICADO, M02 y M03 navegables.', d13.motivo,
-          'trazabilidad_repository.py:37-87,106-117', 'Origen no navegable.', 'ALTA');
-      } else registrar(r, 'TC-M06-013', decidirVerificacion(ver.http, ver.codigo));
+          'trazabilidad_repository.py:37-87,106-117', 'Origen no navegable.', 'ALTA', 'INC-M06-G32-01');
+      } else registrar(r, 'TC-M06-013', decidirVerificacion(ver.http, ver.codigo) ??
+        { estado: 'NO_CONCLUYENTE', motivo: 'RF-91 respondió con esquema discordante; contraste técnico pendiente.' });
     }
     if (!c.sinNewman) await newman(r, c, api, tokens, pid, variacion?.id_linea);
   } catch (e) { r.problemas_tecnicos.push(texto(e.message)); }
@@ -928,14 +985,25 @@ export async function evaluar(c, env) {
     if (tokens) await cierre(r, c, api, tokens, hechos);
     aplicarDiscrepancias(r);
     for (const k of CASOS) if (!r.casos[k]) registrar(r, k,
-      { estado: r.impedimento_datos ? 'BLOQUEADO' : 'NO_CONCLUYENTE',
+      { estado: 'NO_CONCLUYENTE',
         motivo: r.impedimento_datos ?? `Preparación o automatización incompleta: ${r.problemas_tecnicos.at(-1) ?? 'sin diagnóstico'}.` });
-    r.oficial = !r.discrepancias_contrato.length && r.cierre.run.cierre_http === 200 && r.cierre.rollback.verificado &&
+    r.solicitudes_totales = r.solicitudes.length + (r.herramientas.newman?.solicitudes ?? 0);
+    r.oficial = r.solicitudes_totales <= PRESUPUESTO.solicitudes_totales && !r.discrepancias_contrato.length && r.cierre.run.cierre_http === 200 && r.cierre.rollback.verificado &&
       CASOS.every(k => ['APROBADO', 'RECHAZADO'].includes(r.casos[k].estado)) &&
-      r.herramientas.newman?.iteraciones === 1 && r.herramientas.newman?.fallos === 0;
+      r.herramientas.newman?.iteraciones === 1 && r.herramientas.newman?.fallos === 0 &&
+      r.herramientas.newman?.codigo === 0;
     r.consume_version = r.oficial;
+    r.condiciones_oficialidad = { presupuesto: r.solicitudes_totales <= PRESUPUESTO.solicitudes_totales,
+      contrato: !r.discrepancias_contrato.length, delete_200: r.cierre.run.cierre_http === 200,
+      rollback: r.cierre.rollback.verificado, casos: CASOS.every(k => ['APROBADO','RECHAZADO'].includes(r.casos[k].estado)),
+      newman: r.herramientas.newman?.iteraciones === 1 && r.herramientas.newman?.fallos === 0 &&
+        r.herramientas.newman?.codigo === 0 };
+    r.seguimiento = { 'INC-M06-G37-01': r.casos['TC-M06-011'].estado === 'APROBADO' ? 'CORREGIDA' :
+      r.casos['TC-M06-011'].estado === 'RECHAZADO' ? 'REPRODUCIDA' : 'NO_CONCLUYENTE',
+      'INC-M06-G32-01': r.casos['TC-M06-013'].estado === 'APROBADO' ? 'CORREGIDA' :
+      r.casos['TC-M06-013'].estado === 'RECHAZADO' ? 'REPRODUCIDA' : 'NO_CONCLUYENTE' };
     r.estado_ejecucion = r.oficial ? 'OFICIAL' : 'NO_OFICIAL';
-    r.evidencias.push('resultado.json', nombreInforme(c.version));
+    r.evidencias.push('preflight.json', 'resultado.json', nombreInforme(c.version));
     delete r._limite;
     guardar(path.join(c.directorio, 'resultado.json'), r);
     fs.writeFileSync(path.join(c.directorio, nombreInforme(c.version)), informe(c, r), 'utf8');

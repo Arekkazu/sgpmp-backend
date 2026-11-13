@@ -12,13 +12,12 @@ import { ejecutarNewman } from './newman_hijo.mjs';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'g36-env-'));
 try {
   const col = JSON.parse(fs.readFileSync(new URL('../G36.postman_collection.json', import.meta.url), 'utf8'));
-  assert.equal(PRESUPUESTO.solicitudes_totales, 80);
+  assert.equal(PRESUPUESTO.solicitudes_totales, 150);
   assert.equal(PRESUPUESTO.duracion_segundos, 900);
   assert.equal(validarColeccionPermisos(col), true);
   for (let i = 0; i < col.item.length; i++) {
     const cambio = structuredClone(col);
-    if (i < 2) cambio.item[i].request.header.find(h => h.key === 'Authorization').value = 'Bearer {{actor_incorrecto}}';
-    else cambio.item[i].request.header.push({ key: 'Authorization', value: 'Bearer {{token}}' });
+    cambio.item[i].request.header.find(h => h.key === 'Authorization').value = 'Bearer {{actor_incorrecto}}';
     assert.equal(validarColeccionPermisos(cambio), false, `Actor incorrecto en ${col.item[i].name}`);
   }
   const archivo = path.join(tmp, 'falso.env');

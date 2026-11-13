@@ -41,6 +41,16 @@
     },
     {
       "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "respuesta": {
+        "general": {},
+        "especies": [{"id_especie": "integer", "categoria_precio": "string|null"}]
+      },
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:110-114; configuración de especies del backend"
+    },
+    {
+      "metodo": "GET",
       "ruta": "/finanzas/periodos",
       "http": 200,
       "respuesta": [
@@ -55,15 +65,7 @@
             "id_usuario_ejecutor": "integer|null",
             "fecha_fin": "datetime|null",
             "_nullable": true,
-            "precios_congelados": [
-              {
-                "id_especie": "integer",
-                "id_precio_mercado": "integer",
-                "precio_unitario": "decimal",
-                "fuente": "string",
-                "fecha_vigencia": "date"
-              }
-            ]
+            "precios_congelados": "array|null"
           },
           "fecha_fin": "date"
         }
@@ -268,6 +270,7 @@
         "activo": {
           "id_activo_biologico": "integer",
           "estado": "string",
+          "id_especie": "integer",
           "id_finca": "integer"
         },
         "reconocimientos": [
@@ -304,6 +307,61 @@
       "ruta": "/docs/openapi.json",
       "cita": "OpenAPI p?blica de TEST; fallback 404 aprobado en ORD-G45-001",
       "respuesta": {}
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/{id}/cierre/cancelacion",
+      "respuesta": {},
+      "cita": "ORD-G45-006; rutas p?blicas consultadas en c?digo local"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/lineas-asiento/{id}/ajustes",
+      "respuesta": {},
+      "cita": "ORD-G45-006; rutas p?blicas consultadas en c?digo local"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "respuesta": {
+        "eventos": []
+      },
+      "cita": "ORD-G45-006; rutas p?blicas consultadas en c?digo local"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/{id}/eventos",
+      "respuesta": {},
+      "cita": "ORD-G45-006; rutas p?blicas consultadas en c?digo local"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/{id}/eventos/crecimiento",
+      "respuesta": {},
+      "cita": "ORD-G45-006; rutas p?blicas consultadas en c?digo local"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "respuesta": {},
+      "cita": "ORD-G45-006; rutas p?blicas consultadas en c?digo local"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/{id}/ficha-integral",
+      "respuesta": {
+        "peso_actual": "decimal|null",
+        "fecha_ultimo_peso": "date|null",
+        "unidad_peso": "string|null",
+        "estado_actual": "string"
+      },
+      "cita": "src/biological_assets/infrastructure/routers/activo_biologico_router.py:1729-1776"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/mediciones",
+      "respuesta": [],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:289-295"
     }
   ]
 }

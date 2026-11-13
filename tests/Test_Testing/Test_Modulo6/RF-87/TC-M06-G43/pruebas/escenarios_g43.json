@@ -3,21 +3,21 @@
   "paneles": {
     "8": {
       "panel": "027",
-      "esperado": {"linea": 17, "activos": [945]},
-      "prevalidacion": {"activos_sin_precio": [], "lineas_sin_trazabilidad": [{"id_linea": 17, "id_activo_biologico": 945}]},
-      "html": "<li class=\"fin-check\">17 945 lectura NIC 41</li><input type=\"checkbox\">"
+      "esperado": {"linea": 17, "activos": [944], "identificador": "A-944", "eslabones": ["lecturas_nic41"]},
+      "prevalidacion": {"activos_sin_precio": [], "lineas_sin_trazabilidad": [{"id_linea": 17, "id_activo_biologico": 944, "identificador": "A-944", "faltantes": ["lecturas_nic41"]}]},
+      "html": "<table><caption>1 línea con la cadena de trazabilidad incompleta</caption><thead><tr><th>Asiento</th><th>Activo</th><th>Qué falta</th></tr></thead><tbody><tr><td>Línea 17</td><td>A-944</td><td>Lecturas IoT aptas</td></tr></tbody></table><label><input type=\"checkbox\">Autorizo excluir del comprobante las líneas con trazabilidad incompleta (pasan al período siguiente)</label><button disabled>Cerrar período</button>"
     },
-    "219": {
+    "266": {
       "panel": "025",
-      "esperado": {"activos": [{"id": 1568, "identificador": "A-1568", "especie": "Caprino"}], "conteo": 1},
-      "prevalidacion": {"activos_sin_precio": [{"id_activo_biologico": 1568, "identificador": "A-1568", "especie": "Caprino"}], "lineas_sin_trazabilidad": []},
-      "html": "<li class=\"fin-check\">1 A-1568 Caprino</li><button disabled>Ejecutar</button><input type=\"radio\" name=\"sin-precio\"><input type=\"radio\" name=\"sin-precio\">"
+      "esperado": {"activos": [{"id": 1644, "identificador": "A-1644", "especie": "Bovino"}], "conteo": 1},
+      "prevalidacion": {"activos_sin_precio": [{"id_activo_biologico": 1644, "identificador": "A-1644", "especie": "Bovino"}], "lineas_sin_trazabilidad": []},
+      "html": "<table><caption>Activos sin precio vigente</caption><thead><tr><th>Activo</th><th>Especie</th><th>Motivo</th><th>Decisión</th></tr></thead><tbody><tr><td>A-1644</td><td>Bovino</td><td>Sin precio de mercado vigente para su especie</td><td><label><input type=\"radio\" name=\"sin-precio-1644\">Excluir de este cierre (pasa al período siguiente)</label><label><input type=\"radio\" name=\"sin-precio-1644\">Medir con el último precio conocido, como estimación</label></td></tr></tbody></table><button disabled>Cerrar período</button><button>Cancelar cierre (No)</button>"
     },
-    "220": {
+    "267": {
       "panel": "026",
-      "esperado": {"activos": [1569,1570,1571,1572,1573], "sinPrecio": [1569,1570,1571]},
-      "prevalidacion": {"activos_sin_precio": [{"id_activo_biologico": 1569}, {"id_activo_biologico": 1570}, {"id_activo_biologico": 1571}], "lineas_sin_trazabilidad": []},
-      "html": "<label>1569 párrafo 30<input type=\"checkbox\"></label><label>1570 párrafo 30<input type=\"checkbox\"></label><label>1571 párrafo 30<input type=\"checkbox\"></label><label>1572 párrafo 30<input type=\"checkbox\"></label><label>1573 párrafo 30<input type=\"checkbox\"></label>"
+      "esperado": {"activos": [1644], "sinPrecio": [1644]},
+      "prevalidacion": {"activos_sin_precio": [{"id_activo_biologico": 1644, "identificador": "A-1644", "especie": "Bovino"}], "lineas_sin_trazabilidad": []},
+      "html": "<table><caption>Activos sin precio vigente</caption><thead><tr><th>Activo</th><th>Especie</th><th>Motivo</th><th>Decisión</th></tr></thead><tbody><tr><td>A-1644</td><td>Bovino</td><td>Sin precio de mercado vigente para su especie</td><td><label><input type=\"radio\" name=\"sin-precio-1644\">Excluir de este cierre (pasa al período siguiente)</label><label><input type=\"radio\" name=\"sin-precio-1644\">Medir con el último precio conocido, como estimación</label></td></tr></tbody></table><button disabled>Cerrar período</button>"
     }
   }
 }

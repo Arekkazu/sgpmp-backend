@@ -139,7 +139,15 @@ try{
     }
     const ejemplo=path.join(os.tmpdir(),'g45-verificar-ejemplo');
     fs.mkdirSync(ejemplo,{recursive:true});
+    const contextoEjemplo=path.join(salidas,'conforme_normal','contexto_operacion.json');
+    const operacionEjemplo=JSON.parse(fs.readFileSync(contextoEjemplo,'utf8'));
+    assert.equal(operacionEjemplo.operacion,'REINTENTAR');
+    assert.equal(operacionEjemplo.version,2);
+    assert.equal(operacionEjemplo.version_anterior,null);
+    fs.copyFileSync(contextoEjemplo,path.join(ejemplo,'contexto_operacion.json'));
     fs.copyFileSync(path.join(salidas,'conforme_normal','resultado.json'),path.join(ejemplo,'resultado.json'));
+    fs.copyFileSync(path.join(salidas,'conforme_normal','TC-M06-G45_reevaluacion_V2.md'),path.join(ejemplo,'TC-M06-G45_reevaluacion_V2.md'));
+    fs.cpSync(path.join(salidas,'conforme_normal','newman'),path.join(ejemplo,'newman'),{recursive:true});
     fs.writeFileSync(path.join(ejemplo,'capacidades.json'),JSON.stringify(CAPACIDADES,null,2));
     process.stdout.write(`python scripts/registro_qa.py validar --grupo ${grupo} --resultado <ruta> --capacidades <ruta>\nEjemplo local: ${ejemplo}\n`);
   });

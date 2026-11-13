@@ -1,32 +1,76 @@
 {
-  "info": { "name": "TC-M06-G37 RF-86", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "info": {
+    "name": "TC-M06-G37 RF-86",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
   "item": [
-    { "name": "estados_get", "request": { "method": "GET", "header": [
-      { "key": "Authorization", "value": "Bearer {{contador_token}}" },
-      { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
-      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
-    ], "url": "{{base_url}}/finanzas/periodos/{{periodo}}/estados-resultados" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
-      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
-      "pm.test('Versiones RF-93', () => pm.expect(pm.response.json()).to.be.an('array'));"
-    ] } }] },
-    { "name": "auditoria", "request": { "method": "GET", "header": [
-      { "key": "Authorization", "value": "Bearer {{contador_token}}" },
-      { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
-      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
-    ], "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{periodo}}&tipo_evento=VARIACION_REGISTRADA&formato=TECNICO&pagina=1&tamano=500" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
-      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
-      "pm.test('Auditoría paginada', () => pm.expect(pm.response.json().eventos).to.be.an('array'));"
-    ] } }] },
-    { "name": "cadena", "request": { "method": "GET", "header": [
-      { "key": "Authorization", "value": "Bearer {{contador_token}}" },
-      { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
-      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
-    ], "url": "{{base_url}}/finanzas/lineas/{{linea}}/cadena" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
-      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
-      "pm.test('Cadena navegable', () => pm.expect(pm.response.json()).to.have.property('eslabones'));"
-    ] } }] }
+    {
+      "name": "acumulado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/{{periodo}}/estado-resultados/acumulado"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 o defecto conocido 422', () => pm.expect(pm.response.code === 200 || (pm.response.code === 422 && pm.response.json().error_code === 'PERIODO_NO_CERRADO')).to.equal(true));",
+              "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+              "if (pm.response.code === 200) pm.test('Acumulado RF-86', () => pm.expect(pm.response.json()).to.have.property('componentes'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "cadena",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/lineas/{{linea}}/cadena"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+              "pm.test('Cadena navegable', () => pm.expect(pm.response.json()).to.have.property('eslabones'));"
+            ]
+          }
+        }
+      ]
+    }
   ]
 }

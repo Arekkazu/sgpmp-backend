@@ -54,7 +54,9 @@ export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,va
   let escrituras=0;
   async function req(metodo,ruta,cuerpo,sinRun=false){
     if(ocupado)throw Error('PETICION_CONCURRENTE');
-    if(++cuenta>limite.solicitudes_totales||Date.now()-inicio>1800000)throw Error('PRESUPUESTO_AGOTADO');
+    // El DELETE y las lecturas de rollback son obligatorios aun si se agotó el presupuesto.
+    cuenta++;
+    if((cuenta>limite.solicitudes_totales||Date.now()-inicio>1800000)&&metodo!=='DELETE'&&!(sinRun&&metodo==='GET'))throw Error('PRESUPUESTO_AGOTADO');
     if(!esquema(metodo,ruta)&&!(metodo==='GET'&&ruta==='/sesiones/me/permisos'))throw Error(`RUTA_FUERA_CONTRATO_${metodo}_${ruta}`);
     ocupado=true;
     const fila={id:id(cuenta),metodo,ruta:ruta.split('?')[0],http:null};

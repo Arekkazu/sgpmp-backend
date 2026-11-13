@@ -27,11 +27,12 @@ SAMPLES = {
     "RegistrarEventoBajaDTO": [{"tipo_baja": "venta", "fecha_baja": TODAY,
                                 "motivo_baja": "QA local"}],
     "PrecioDTO": [
-        {"id_especie": 39, "categoria": category, "precio_unitario": "10.05",
+        {"id_especie": species, "categoria": category, "precio_unitario": "10.05",
          "fecha_vigencia": TODAY, "fuente": source, "evidencia_documental": "QA local",
          **({"justificacion_estimacion": "QA local"} if source == "ESTIMADA" else {}),
          "confirmar_desviacion": source == "ESTIMADA"}
-        for category, source in (("POR_CABEZA", "MERCADO_ACTIVO"), ("PESO_KG", "ESTIMADA"))
+        for species, category, source in ((39, "POR_CABEZA", "MERCADO_ACTIVO"),
+                                          (40, "PESO_KG", "ESTIMADA"))
     ],
     "AsignacionCuentaDTO": [
         {"tipo_hecho": kind, "sentido": sense, "id_especie": None,
