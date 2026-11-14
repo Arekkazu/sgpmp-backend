@@ -8,6 +8,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección (COMPLETA, ADVERTENCIA o BLOQUEADA) con su fuente y motivo |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: revelar supuestos y detectar datos insuficientes por activo. |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -53,15 +54,15 @@ def avisar_supuestos_insuficientes(notificador: NotificacionFinancieraPort, id_p
         )
 
 SECCIONES_INFORME = {
-    "parr_41_43_descripcion": "Descripción de los grupos de activos (¶41-43)",
-    "parr_40_ganancias_perdidas": "Ganancia o pérdida del período (¶40)",
-    "parr_51_separacion_precio_transformacion": "Separación entre precio y transformación biológica (¶51)",
-    "parr_50_conciliacion": "Conciliación del valor en libros (¶50)",
-    "niif13_93_metodos_y_supuestos": "Técnicas y datos de medición (NIIF 13 ¶93)",
-    "niif13_93_precios_referencia": "Precios de referencia utilizados (NIIF 13 ¶93)",
-    "parr_49_restricciones_compromisos": "Restricciones, garantías y compromisos (¶49)",
-    "parr_53_riesgos": "Riesgos climáticos, sanitarios y otros (¶53)",
-    "parr_54_56_activos_al_costo": "Activos medidos al costo (¶54-56)",
+    "parr_41_43_descripcion": "Descripción de los grupos de activos",
+    "parr_40_ganancias_perdidas": "Ganancia o pérdida del período",
+    "parr_51_separacion_precio_transformacion": "Separación entre precio y transformación biológica",
+    "parr_50_conciliacion": "Conciliación del valor en libros",
+    "niif13_93_metodos_y_supuestos": "Técnicas y datos de medición",
+    "niif13_93_precios_referencia": "Precios de referencia utilizados",
+    "parr_49_restricciones_compromisos": "Restricciones, garantías y compromisos",
+    "parr_53_riesgos": "Riesgos climáticos, sanitarios y otros",
+    "parr_54_56_activos_al_costo": "Activos medidos al costo",
     "exclusiones_cierre": "Activos excluidos del cierre",
     "alertas_consistencia": "Alertas de consistencia",
 }
