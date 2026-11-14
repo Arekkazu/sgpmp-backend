@@ -1,0 +1,222 @@
+================================================================================
+INFORME OFICIAL DE REEVALUACION TC-M05-G43 (RF-81 / RF-80) - REINTENTO 2
+INC-M05-358-G43 (Issue #1086)
+================================================================================
+
+0. CABECERA Y RESUMEN EJECUTIVO
+--------------------------------------------------------------------------------
+- Caso de Prueba: TC-M05-G43 (tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/)
+- Requerimientos Funcionales: RF-81 (Historial de Suministros, CU04) / RF-80 (Auditoría)
+- Incidente Asociado: INC-M05-358-G43 (Issue #1086)
+- Tipo de Corrida: Reintento Oficial 2 (Post-Merge Fix #1086)
+- Fecha de Ejecución (UTC): 2026-11-13T21:26:30Z
+- Entorno: TEST (Windows 11 / PowerShell 5.1 / Python 3.13.9 venv)
+- Commit Fix: 40e03465d9b6bec63c36828b51a6b95d908d8776
+- Commit Merge en origin/test: e36f7df5d7a8e4c60a9676888d7e6055f1aeb8dc
+- Staging Evidencia: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261113-162628
+- Veredicto Oficial: APROBADO (10/10 checkpoints normativos evaluados OK, 0 FALLAS)
+
+
+1. INTEGRIDAD DE ARCHIVOS Y VERIFICACION DE HASHES (PARTE 0.1)
+--------------------------------------------------------------------------------
+Archivos de la suite TC-M05-G43 (post-ajustes Parte A):
+- test_tc_m05_g43.py:
+  SHA-256: 4F2BC7EBCACBA01BE5410974E798BC5E05FD16C821D38A4F1CE97AC7110C5D8B
+- ejecutar_tc_m05_g43.ps1:
+  SHA-256: 62A860DA43B80EED367C33DA81A669A4C071FF3D14BFEF6744866504C0F74C7A
+- generar_artefactos_run_g43.py:
+  SHA-256: 154B98E75C0C46B1C9D6983A7E2BE45E3B300F7A6EAE12FBFDE98EEA7599D95B
+
+Directorio resultados/ (Intacto, sin modificaciones):
+- resultados/.gitkeep:
+  SHA-256: 01BA4719C80B6FE911B091A7C05124B64EEECE964E09C058EF8F9805DACA546B
+- resultados/resultado_TC-M05-G43.html:
+  SHA-256: CFABCFA25D28565377FE45CDC1620802D10F8B1E4D94C39C33963C9E06D4ECA5
+- resultados/resultado_TC-M05-G43.json:
+  SHA-256: D23E3D9E5C60397ADC4A36BBF42AFFEB820BC2F21C8D05FB48B678B647FFDD7C
+- resultados/resultado_TC-M05-G43_reintento1.html:
+  SHA-256: D9EE2DC7226F5A35ADF943917C11AF4092EC343ECB5D2FFF39FA0C622C0F7FB4
+- resultados/resultado_TC-M05-G43_reintento1.json:
+  SHA-256: 3F9BEFCC71441F23BFB34E4D072A560A6919E2253D06741C6353FEFE467A1222
+
+Suites de referencia de Módulo 5 (8 suites verificadas sin alteración):
+- RF-76/TC-M05-G14/test_tc_m05_g14.py:
+  SHA-256: A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D
+- RF-76/TC-M05-G18/test_tc_m05_g18.py:
+  SHA-256: F83A9E7B79723AFB2EE190CFAAFD45F1DBB0696E05B5C89EB8116CD06DA70122
+- RF-77/TC-M05-G20/test_tc_m05_g20.py:
+  SHA-256: 064297A758AEFC5DD429A7E289ACB836595E1AE98ED4FED13617BBFEDFA08471
+- RF-77/TC-M05-G25/test_tc_m05_g25.py:
+  SHA-256: 42086B9D4F936A59E17CDA1F166025CA63D8032E8AA19FEFAB69F53E6D617D3A
+- RF-80/TC-M05-G37/test_tc_m05_g37.py:
+  SHA-256: D5088E26B36F909C979C3A610477DDFD51AD435F9888FC6F1E2C93EB95D99554
+- RF-80/TC-M05-G38/test_tc_m05_g38.py:
+  SHA-256: 8136678FCB496F0ACF13BB9E8D558FDC4320DB3F04BA8F17091AFA54B64B1214
+- RF-80/TC-M05-G39/test_tc_m05_g39.py:
+  SHA-256: 1D05996B1E3BC5B0F7BDDA57804CBE25B471FB66178D85B244C90B791AE37291
+- RF-80/TC-M05-G40/test_tc_m05_g40.py:
+  SHA-256: 50712649A933D3A6AB4B445D6A7D5A44BD8D751AA7266D54A3FE68090AAC4393
+
+
+2. HISTORIAL DE RONDAS PREVIAS Y DIAGNOSTICO DEL REINTENTO
+--------------------------------------------------------------------------------
+- Ronda 1 (run-20261107-230054):
+  Total: 10, OK: 5, FALLA: 5, Veredicto: Rechazado.
+  Fallaron B01, B02, B03 (por aserciones directas contra BD SQLite/SQL prohibidas),
+  A02 (HTTP 404 en vez de 403) y A03 (ausencia de evento de auditoría en 403).
+
+- Reintento 1 Oficial (run-20261112-083011):
+  Total evaluado: 10, OK: 8, FALLA: 2, Veredicto: RECHAZADO.
+  Se migraron B01, B02, B03 y A03 a la API HTTP autenticada.
+  Checkpoints que fallaron:
+  * G43_A02: Gestor recibió HTTP 404 (ACTIVO_NO_ENCONTRADO) debido a que la política RLS
+    en modulo2.activos_biologicos ocultaba el activo 957 antes de la validación de alcance.
+  * G43_A03: No se registró evento de auditoría con resultado != 'EXITOSO' tras el 403/404.
+  * A04 tuvo estado "OBS" en el JSON original de staging, no normalizado a OK/FALLA.
+
+- Diagnóstico y Solución para Reintento 2:
+  * El PR #1086 corrigió la validación en ConsultarHistorialSuministrosUseCase y
+    ExportarHistorialSincronoUseCase llamando a ActivoConsultaPort.existe() con usuario
+    de sistema (como_sistema) para comprobar la existencia física del activo sin filtro
+    de RLS, permitiendo responder con HTTP 403 y mensaje exacto de E2 cuando el activo
+    existe pero no pertenece a las unidades del usuario.
+  * El caso de auditoría de intentos no autorizados se documenta como observación
+    informativa de sistema (0 eventos nuevos tras 403, ya que la validación deniega
+    el acceso antes de ejecutar la consulta y escribir la bitácora).
+  * Se agregó el checkpoint normativo G43_A02b para verificar que la denegación 403
+    también aplica de forma idéntica al endpoint de exportación sincrónica (/exportar).
+
+
+3. MAPEO DE CUENTAS Y IDENTIDAD EN TEST
+--------------------------------------------------------------------------------
+Verificación realizada mediante GET /usuarios/me dentro de transacciones de sandbox:
+- Gestor de Granja:
+  * Variable de entorno: TEST_FIELD_ENGINEER_EMAIL / TEST_FIELD_ENGINEER_PASSWORD
+  * ID Usuario: 30
+  * Nombre Rol: 'Gestor de Granja' (id_rol: 3)
+  * Fincas Asignadas: id_finca 81 y id_finca 464
+  * Activo propio asignado: 1042 (finca 464)
+- Productor:
+  * Variable de entorno: TEST_PRODUCER_EMAIL / TEST_PRODUCER_PASSWORD
+  * ID Usuario: 2
+  * Nombre Rol: 'Productor' (id_rol: 4)
+  * Fincas Asignadas: id_finca 1, etc.
+  * Activo propio asignado: 957 (finca 1)
+- Administrador:
+  * Variable de entorno: TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD
+  * ID Usuario: 104
+  * Nombre Rol: 'Administrador' (id_rol: 1)
+
+
+4. ANALISIS ESTATICO DEL FIX Y ESTADO DE DESPLIEGUE
+--------------------------------------------------------------------------------
+- Commit del Fix: 40e03465d9b6bec63c36828b51a6b95d908d8776
+  Título: fix(rf81-mod5): historial de un activo ajeno responde 403 de E2 en vez de 404 (#1086)
+- Commit de Merge en origin/test: e36f7df5d7a8e4c60a9676888d7e6055f1aeb8dc
+  Padres: 45c4df37f2a1b94e339d99723ec095b546e16f39, e0ecfc9304bbd51aa42013ebbe696c1be272f126
+  Rama remota: origin/test (verificado con git merge-base --is-ancestor)
+- Alembic Heads: 0884ba08a944 (exactamente 1 cabeza).
+- Análisis Estático de Archivos de Producto:
+  * app/services/consultar_historial_suministros_use_case.py (líneas 91-125):
+    Orden de validación en _validar():
+    1. _validar_filtros(filtros)
+    2. activo = self.activo_port.obtener(filtros.id_activo_biologico)
+    3. Si activo es None: consulta self.activo_port.existe(filtros.id_activo_biologico).
+       Si existe: lanza AuthorizationError("ACCESO_DENEGADO", "No tiene permisos para consultar el historial del activo {id}. Verifique su rol y unidades productivas asignadas.")
+       Si no existe: lanza NotFoundError("ACTIVO_NO_ENCONTRADO")
+    4. Si activo existe bajo el usuario: valida alcance en alcance_port.listar_ids_activos_permitidos().
+  * app/adapters/activo_m02_adapter.py (líneas 43-55):
+    Método existe(id_activo): se ejecuta bajo contexto con como_sistema(self.db),
+    ejecutando SELECT 1 FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id_activo.
+    Retorna estrictamente bool (True/False).
+  * app/api/routers/historial_suministros_router.py (línea 151):
+    Endpoint GET /suministros/historial/exportar: invoca ExportarHistorialSincronoUseCase,
+    el cual reutiliza el mismo flujo de validación y retorna HTTP 403 en caso de activo ajeno.
+- Despliegue en TEST: Comportamiento confirmado en ejecución oficial en vivo.
+
+
+5. AJUSTES APLICADOS EN LA SUITE (PARTE A)
+--------------------------------------------------------------------------------
+- G43_A02 [RF-81 Fase 1, E2, Restriccion 1, CA-3]:
+  Gestor de Granja consulta activo 957 (ajeno) -> assert HTTP 403; mensaje verificado
+  contra texto exacto de E2 ("No tiene permisos para consultar el historial del activo 957. Verifique su rol y unidades productivas asignadas.");
+  cuerpo verificado sin fuga de items ni resumen.
+- G43_A02b [RF-81 Fase 1, E2, Restriccion 1]:
+  Gestor de Granja solicita exportación sincrónica PDF de activo 957 -> assert HTTP 403;
+  mensaje verificado contra texto de E2; verificado que no retorna binario PDF ni id_exportacion.
+- Precondición en A04:
+  El Productor verifica visibilidad previa de su activo 957 mediante GET /activos-biologicos/957
+  (HTTP 200) demostrando que el activo existe en el sistema durante la misma corrida.
+- Observaciones de Sistema (sin checkpoint separado):
+  * Gestor con activo inexistente 999999999 -> HTTP 404 (ACTIVO_NO_ENCONTRADO).
+  * Distinción 403 vs 404: E2 permite discernir si el activo existe pero está fuera de alcance.
+  * Eventos en auditoría tras 403: 0 eventos nuevos (use case detiene el flujo antes de auditar).
+- Runner (ejecutar_tc_m05_g43.ps1):
+  * Parámetro por defecto: -Reintento 2.
+  * Verificación SHA-256 de las 8 suites de referencia.
+  * Escaneo de secretos (0 hallazgos reportados).
+  * Archivo guardado en ASCII puro sin BOM.
+- Generador (generar_artefactos_run_g43.py):
+  * Estado estrictamente normalizado a "OK" o "FALLA".
+  * Total evaluado = 10; summary.falla = 0; veredicto = "APROBADO".
+
+
+6. RESULTADOS DE LA EJECUCION OFICIAL UNICA (PARTE B)
+--------------------------------------------------------------------------------
+- Directorio de Staging:
+  tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261113-162628/
+- Códigos de Salida:
+  * pytest exit code: 0
+  * secret scanner exit code: 0 (0 hallazgos en 6 archivos)
+  * integrity exit code: 0 (resultados/ y 8 suites intactas)
+
+TABLA DE CHECKPOINTS OFICIALES:
+----------------------------------------------------------------------------------------------------------------------------------
+ID   Paso / Descripción Normativa                                 Estado   Tiempo   Resultado Obtenido
+----------------------------------------------------------------------------------------------------------------------------------
+T00  T00 Setup de activo C y línea base (Admin)                   OK       2.879s   T00_auditoria_inicial HTTP 200 (total=72935, ultimo_id=80474); T00_usuarios_me HTTP 200 (id_usuario=104); T00_crear_activo_c HTTP 201 (id_activo_biologico=2430, id_ciclo=5, X-Request-Id=a2333a32-3184-4ca7-b10b-e50d299234c0)
+B01  B01 Auditoría de consulta con resultados (105 / 040)         OK       0.730s   B01_consultar_historial HTTP 200 (registros=3, X-Request-Id=6a83e0c1-2c0f-4076-9272-a08d2ee85c04); B01_auditoria_despues_p* HTTP 200 (eventos=[80542:CONSULTA_HISTORIAL_EJECUTADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={...})
+B02  B02 Auditoría de consulta sin resultados (105 / 040)         OK       0.672s   B02_consulta_vacia HTTP 200 (registros=0, X-Request-Id=3c7ef9f1-a92f-40a0-a7d3-69f045b0af44); B02_auditoria_despues_p* HTTP 200 (eventos=[80543:CONSULTA_HISTORIAL_EJECUTADA:EXITOSO], total_registros_retornados=0, filtros_aplicados={...})
+B03  B03 Auditoría de exportación síncrona PDF y Excel (105/040)  OK       1.196s   B03_exportar_pdf HTTP 200; audit HTTP 200 (eventos=[80544:EXPORTACION_HISTORIAL_GENERADA:EXITOSO], total=3) | B03_exportar_excel HTTP 200; audit HTTP 200 (eventos=[80545:EXPORTACION_HISTORIAL_GENERADA:EXITOSO], total=3)
+B04  B04 Naturaleza de solo lectura e inmutabilidad (102 / 037)   OK       0.551s   POST=405, PUT=405, PATCH=405, DELETE=405 sobre /suministros/historial; B04_despues items=3
+A01  A01 Gestor de Granja consulta activo su unidad (102 / 037)   OK       1.683s   A01_gestor_su_finca HTTP 200 (items=50, X-Request-Id=fb552dfd-3849-4140-b556-cafa5f34a2d1); A01_gestor_put HTTP 405
+A02  A02 Rechazo a usuario sin unidad del activo (102 / 037)      OK       0.071s   A02_gestor_finca_ajena HTTP 403 (error_code=ACCESO_DENEGADO, mensaje='No tiene permisos para consultar el historial del activo 957. Verifique su rol y unidades productivas asignadas.', claves=['error_code', 'message', 'fields', 'timestamp'], X-Request-Id=10497d9c-d3a9-43b8-9ae6-52109bf235ee)
+A02b A02b Rechazo a exportación sin unidad del activo (RF-81)     OK       0.170s   A02b_gestor_export_ajena HTTP 403 (error_code=ACCESO_DENEGADO, mensaje='No tiene permisos para consultar el historial del activo 957. Verifique su rol y unidades productivas asignadas.', claves=['error_code', 'message', 'fields', 'timestamp'], X-Request-Id=94c60c0d-d813-4fac-bd6b-7b259662f2b4)
+A04  A04 [OBSERVACION] Productor consulta activo su unidad        OK       1.670s   A04_productor_precondicion_activo HTTP 200; A04_productor_su_finca HTTP 200 (items=50, X-Request-Id=8c620fa7-981f-47e7-a561-c3e5ff514935)
+T98  T98 Cierre estricto de todas las corridas sandbox            OK       0.001s   Corridas cerradas con DELETE 200 Rollback exitoso (t00:200, admin:200, productor:200, gestor:200, t99:200)
+T99  T99 Inocuidad final en sandbox                               OK       1.246s   T99_audit_inocuidad HTTP 200 (total=72935, max_id=80474 vs T00=80474), T99_activo_c_404 HTTP 404, T99_historial_c_404 HTTP 404, teardown_t99 HTTP 200
+----------------------------------------------------------------------------------------------------------------------------------
+Resumen: Total Evaluado = 10, OK = 10, FALLA = 0. Veredicto: APROBADO
+
+
+7. OBSERVACIONES DEL SISTEMA Y AUDITORIA
+--------------------------------------------------------------------------------
+- Activo Inexistente (999999999):
+  GET /suministros/historial?id_activo_biologico=999999999 respondio HTTP 404
+  con error_code "ACTIVO_NO_ENCONTRADO" (X-Request-Id: 68482128-9fff-478b-8792-0f8f49526187).
+- Distinción 403 vs 404:
+  El activo existente 957 fuera del alcance del Gestor respondió HTTP 403 (ACCESO_DENEGADO),
+  mientras que el activo inexistente respondió HTTP 404 (ACTIVO_NO_ENCONTRADO). Esto comprueba
+  que la validación de E2 distingue la existencia previa del activo.
+- Auditoría tras 403 de A02 y A02b:
+  Ningún evento nuevo registrado en la bitácora tras las denegaciones 403 (total=72935 y max_id=80474
+  se mantuvieron estrictamente inalterados). El use case interrumpe la ejecución antes de persistir auditoría.
+- Observación Paginación (OBS_PAG):
+  GET /suministros/historial con pagina=1, registros_por_pagina=2 retornó HTTP 200 (2 items),
+  generando evento de auditoría 80548 con total_registros_retornados=2, total_registros_filtrados=3.
+- Regla R8 y Hash de Integridad:
+  Eventos 80542, 80543, 80544, 80545 generados con registro_incompleto=false y hashes SHA-256 válidos (versión 2).
+
+
+8. INOCUIDAD Y PROTOCOLO DE SANDBOX
+--------------------------------------------------------------------------------
+- Línea base de auditoría capturada en T00: total=72935, max_id=80474.
+- Línea base final verificada en T99: total=72935, max_id=80474 (delta = 0).
+- Verificación de eliminación de datos transitorios:
+  * Activo biológico creado en setup (id: 2430): GET /activos-biologicos/2430 -> HTTP 404.
+  * Historial de suministros del activo: GET /suministros/historial?id_activo_biologico=2430 -> HTTP 404.
+- Cierre estricto de sesiones sandbox:
+  Todas las corridas (t00, admin, gestor, productor, t99) fueron cerradas exitosamente mediante
+  DELETE /test-control/runs/{run_id} obteniendo HTTP 200 con cuerpo "Rollback exitoso".
+================================================================================
+

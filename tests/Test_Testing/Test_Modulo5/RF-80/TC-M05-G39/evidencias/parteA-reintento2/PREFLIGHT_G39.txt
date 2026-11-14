@@ -1,0 +1,37 @@
+PREFLIGHT TC-M05-G39 REINTENTO 2 (no es la corrida oficial; solo GET; sandbox aparte)
+Fecha: 2026-11-13T20:43:35.884870+00:00 | run_id: tc-m05-g39-preflight-9ca9df7f
+Funcion de recalculo: test_tc_m05_g39_preflight._recalcular_hash_m05 importada de test_tc_m05_g39.py
+====================================================================================================
+POST /sesiones/ -> 200 [X-Request-Id=7d98cef1-aad6-496a-82a8-798998261ad2]
+
+a) entidad_afectada=registros_consumo_alimentos
+   GET /suministros/auditoria pagina=1 -> 200 total=1141 [X-Request-Id=2093f55d-9c72-4356-bf50-a4932bdfb588]
+   GET /suministros/auditoria pagina=2 -> 200 total=1141 [X-Request-Id=49d13ff3-5b37-43e1-96a8-e85d88bff1ab]
+   GET /suministros/auditoria pagina=3 -> 200 total=1141 [X-Request-Id=8a0c191d-e7d9-4a4c-b9e4-1147bcc7c4f4]
+   GET /suministros/auditoria pagina=4 -> 200 total=1141 [X-Request-Id=69fe2715-8611-45b0-b96c-fed123d99a9f]
+   GET /suministros/auditoria pagina=5 -> 200 total=1141 [X-Request-Id=7ee71005-1ea2-49fa-bfae-16959ac41e3a]
+   id=71991 tipo=INSERT fecha_emision=None GET /71991 -> 200 [X-Request-Id=3781651f-048c-4fbb-9396-442ca8659e4d]
+      hash almacenado=e045cae4212b7c9abe9dd9b86223e5428705a40993ba5b33df79d142680e04b5
+      hash recalculado=c67f6844b099b28520b58e1bc2dd880af87338428d67a89c5b1508f04f3b9753  ->  NO COINCIDE
+      numericos tal como llegan en el JSON: {"id_auditoria_suministro": "int 71991", "version_hash_integridad": "int 2", "id_usuario": "int 100", "datos_nuevos.id_consumo_alimeto": "int 1969", "datos_nuevos.id_activo_biologico": "int 1634", "datos_nuevos.id_tipo_alimento": "int 6", "datos_nuevos.cantidad_suministrada": "float 7.0", "datos_nuevos.costo_total": "float 14700.0", "datos_nuevos.id_usuario": "int 100", "datos_nuevos.costo_unitario": "float 2100.0"}
+
+a) entidad_afectada=registros_medicamentos
+   GET /suministros/auditoria pagina=1 -> 200 total=257 [X-Request-Id=5269b640-9e4d-48de-ad1d-aa2f55194db0]
+   GET /suministros/auditoria pagina=2 -> 200 total=257 [X-Request-Id=f30748d4-cfc0-4dae-95f3-2ae3ce4ad192]
+   GET /suministros/auditoria pagina=3 -> 200 total=257 [X-Request-Id=66bb7735-ae20-450a-a3db-f61378ec17e7]
+   GET /suministros/auditoria pagina=4 -> 200 total=257 [X-Request-Id=89266df4-9409-494e-8058-56c9e44ee1bc]
+   GET /suministros/auditoria pagina=5 -> 200 total=257 [X-Request-Id=09e724e2-6c40-4db2-9c73-c23db38d9c27]
+   id=71995 tipo=INSERT fecha_emision=None GET /71995 -> 200 [X-Request-Id=fd4fba5c-3d33-46fd-af7f-182c14b971ee]
+      hash almacenado=019d0190f79c588e103f4b73bcbb1e2c4cc48689dfc16b5eea0e38c99b4c44dc
+      hash recalculado=b69dd9ea40067e5b3937e8d9e96a235f8341f757d547c66569c64a8589718bc0  ->  NO COINCIDE
+      numericos tal como llegan en el JSON: {"id_auditoria_suministro": "int 71995", "version_hash_integridad": "int 2", "id_usuario": "int 100", "datos_nuevos.id_registro_medicamento": "int 241", "datos_nuevos.id_activo_biologico": "int 1634", "datos_nuevos.cantidad": "float 10.0", "datos_nuevos.costo_unitario_medicamento": "float 450.0", "datos_nuevos.costo_total_medicamento": "float 4500.0", "datos_nuevos.id_usuario": "int 100", "datos_nuevos.periodo_retiro_dias": "int 0"}
+
+b) GET /suministros/consumo-alimentos/tipos-alimento?solo_activos=true -> 200 [X-Request-Id=62b42d41-710a-4939-9c88-9964f3403c7f]
+   forma: dict con claves ['items', 'total']
+   claves del primer elemento: ['costo_unitario', 'estado', 'id_tipo_alimento', 'nombre', 'unidad_medida']
+   primer elemento: {"id_tipo_alimento": 2, "nombre": "Concentrado bovino QA-M06", "unidad_medida": "kg", "costo_unitario": "1850.0000", "estado": "ACTIVO"}
+   seleccion del test: int(tipos[0]['id_tipo_alimento']) = 2; campos de estado en el elemento: []
+
+DELETE /test-control/runs/tc-m05-g39-preflight-9ca9df7f -> 200 [X-Request-Id=2c1997c0-542d-4f81-b900-449b7b3a3648]
+====================================================================================================
+RESUMEN: {"a": {"registros_consumo_alimentos": {"evaluados": 1, "coinciden": 0}, "registros_medicamentos": {"evaluados": 1, "coinciden": 0}}, "b": {"http": 200, "forma": "dict", "elementos": 8, "id_seleccionado": 2, "interpreta_bien": true}, "delete": 200}

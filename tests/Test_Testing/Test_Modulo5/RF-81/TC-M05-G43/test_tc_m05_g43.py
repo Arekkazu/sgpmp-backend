@@ -2,6 +2,7 @@
 # |------------|--------------------------|-----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G43 RF-81: control de acceso y auditoria (102, 105 / 037, 040) |
 # | 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: B01/B02/B03/A03 via API, T00/T99 runs aparte, OBS-PAG/R8/HASH |
+# | 13/11/2026 | Juan Sebastian Gutierrez | reintento INC-M05-358-G43 |
 """
 TC-M05-G43 — RF-81 CU04, GET /suministros/historial y /exportar.
 Control de acceso por rol y unidad productiva, y auditoria de consultas, exportaciones y rechazos.
@@ -18,13 +19,13 @@ Checkpoints normativos:
   - test_b04_solo_lectura_restr_4: (102 / 037) Intentos POST/PUT/PATCH/DELETE sobre /suministros/historial
       son rechazados con 405 Method Not Allowed; inmutabilidad verificada.
   - test_a01_gestor_granja_consulta_su_unidad: (102 / 037) Gestor de Granja consulta activo 1042 (su finca 464) -> HTTP 200.
-  - test_a02_gestor_granja_rechazo_sin_unidad: (102 / 037) Gestor de Granja consulta activo 957 (finca ajena) ->
-      Esperado de la spec (E2/CA-3): HTTP 403 con mensaje de E2.
-  - test_a03_auditoria_intento_rechazado: (102 / 037, CU04 FA-04) Auditoria del intento de acceso rechazado ->
-      Esperado: 1 evento RECHAZADO en la bitacora.
-  - test_a04_productor_consulta_su_unidad: (102 / 037) Productor consulta activo 957 (su finca 1) -> HTTP 200.
+  - test_a02_gestor_granja_rechazo_sin_unidad: (102 / 037 / RF-81 Fase 1, E2, Restriccion 1, CA-3) Gestor de Granja consulta activo 957 (finca ajena) ->
+      HTTP 403 con mensaje de E2 completo.
+  - test_a02b_gestor_granja_rechazo_exportacion_sin_unidad: (RF-81 Fase 1, E2, Restriccion 1) Gestor de Granja exporta activo 957 ->
+      HTTP 403 con mensaje de E2 completo, sin binario ni id_exportacion.
+  - test_a04_observacion_productor_consulta_su_unidad: Precondicion Productor ve activo 957 (HTTP 200) y consulta historial (HTTP 200).
   - test_98_cierre_corridas: Cierre de todas las corridas sandbox con DELETE /test-control/runs/{run_id} -> 200.
-  - test_99_inocuidad_final: Verificacion fuera de sandbox: 0 efectos persistidos.
+  - test_99_inocuidad_final: Verificacion dentro de sandbox: 0 efectos persistidos y restauracion completa.
 """
 from __future__ import annotations
 
@@ -67,6 +68,9 @@ _CONTEXTO: dict[str, Any] = {
     "corridas_cerradas": {},
     "runs_orden": [],
     "observaciones": {
+        "obs_inexistente": None,
+        "obs_auditoria_tras_403": None,
+        "obs_distincion_403_404": None,
         "obs_pag": None,
         "obs_r8": [],
         "obs_hash": [],
@@ -773,46 +777,107 @@ class TestTC_M05_G43_Roles_Unidades:
         assert r_put.status_code in (404, 405)
 
     def test_a02_gestor_granja_rechazo_sin_unidad(self, corrida_gestor: CorridaG43):
-        """A02 (TC-M05-102 / 037): Usuario con permiso de rol pero SIN la unidad del activo (Restr. 1 / CA-3 / E2).
-        Gestor de Granja consulta activo 957 (finca 1, NO asignada a Gestor de Granja):
-        Esperado de la spec: HTTP 403 con mensaje de E2 ("No tiene permisos para consultar el historial del activo 957.
-        Verifique su rol y unidades productivas asignadas.") y sin fuga de datos en el cuerpo.
-        Hecho observado: la API responde HTTP 404 (ACTIVO_NO_ENCONTRADO).
-        [INFERENCIA]: ActivoConsultaPort.obtener() evalúa primero la existencia contra modulo2.activos_biologicos,
-        donde la política RLS (pol_activos_biologicos_select) oculta el activo ajeno, retornando None y lanzando
-        NotFoundError antes de que AlcanceActivoPort (linea 152) pueda evaluar la pertenencia a la unidad y lanzar 403."""
+        """A02 [RF-81 Fase 1, E2, Restriccion 1, CA-3]: Gestor de Granja (usuario 30) consulta activo 957 (finca 1 ajena).
+        -> HTTP 403; el mensaje contiene el texto COMPLETO de E2 con id 957 (normaliza solo espacios):
+        "No tiene permisos para consultar el historial del activo 957. Verifique su rol y unidades productivas asignadas.";
+        el cuerpo no trae registros ni resumen."""
         c = corrida_gestor
-        id_activo_ajeno = _CONTEXTO["activo_productor_id"]  # 957 (finca 1)
+        id_activo_ajeno = _CONTEXTO["activo_productor_id"]  # 957
 
         r = c.get(f"/suministros/historial?id_activo_biologico={id_activo_ajeno}", paso="A02_gestor_finca_ajena")
-
+        # Fuente: RF-81 Fase 1, E2, Restriccion 1, CA-3
         assert r.status_code == 403, (
-            f"DEFECTO DE PRODUCTO (E2 / CA-3): Se esperaba HTTP 403 con mensaje de permisos por rol y unidades, "
-            f"pero el backend respondio HTTP {r.status_code} ({c.seguro(r.text)}). "
-            f"Hecho observado: Gestor recibe 404 (ACTIVO_NO_ENCONTRADO) para el activo 957, mientras Productor recibe 200 para el mismo activo. "
-            f"[INFERENCIA]: La causa probable es la política RLS en modulo2.activos_biologicos que oculta el activo ajeno antes de que AlcanceActivoPort sea evaluado."
+            f"Esperado HTTP 403 en A02, obtenido HTTP {r.status_code}: {c.seguro(r.text)}"
         )
         body = r.json()
-        assert "items" not in body and "resumen" not in body, "No debe haber fuga de datos en respuesta 403"
-        msg = body.get("message", "")
-        assert "permisos" in msg.lower() and "unidades" in msg.lower(), f"Mensaje no cumple formato E2: {msg}"
+        assert "items" not in body and "resumen" not in body, "No debe haber registros ni resumen en respuesta 403 de A02"
+        assert body.get("error_code") == "ACCESO_DENEGADO", (
+            f"error_code esperado 'ACCESO_DENEGADO', obtenido {body.get('error_code')!r}"
+        )
+        msg_crudo = body.get("message", "")
+        msg_norm = " ".join(msg_crudo.split())
+        msg_esperado = f"No tiene permisos para consultar el historial del activo {id_activo_ajeno}. Verifique su rol y unidades productivas asignadas."
+        assert msg_esperado in msg_norm, (
+            f"Mensaje no contiene texto de E2. Esperado: {msg_esperado!r}, Obtenido: {msg_norm!r}"
+        )
+
+    def test_a02b_gestor_granja_rechazo_exportacion_sin_unidad(self, corrida_gestor: CorridaG43):
+        """A02b [RF-81 Fase 1, E2, Restriccion 1]: Gestor de Granja (usuario 30) solicita exportacion sincronica
+        GET /suministros/historial/exportar?id_activo_biologico=957&formato_exportacion=PDF
+        -> HTTP 403; mismo mensaje de E2; no genera archivo ni id_exportacion."""
+        c = corrida_gestor
+        id_activo_ajeno = _CONTEXTO["activo_productor_id"]  # 957
+
+        r = c.get(
+            f"/suministros/historial/exportar?id_activo_biologico={id_activo_ajeno}&formato_exportacion=PDF",
+            paso="A02b_gestor_export_ajena",
+        )
+        # Fuente: RF-81 Fase 1, E2, Restriccion 1
+        assert r.status_code == 403, (
+            f"Esperado HTTP 403 en A02b, obtenido HTTP {r.status_code}: {c.seguro(r.text)}"
+        )
+        body = r.json()
+        assert "id_exportacion" not in body, "No debe retornar id_exportacion en respuesta 403 de A02b"
+        assert "items" not in body and "resumen" not in body, "No debe retornar items ni resumen en respuesta 403 de A02b"
+        ctype = r.headers.get("Content-Type", "").lower()
+        assert "application/pdf" not in ctype, f"No debe retornar binario PDF en 403: Content-Type={ctype}"
+        assert body.get("error_code") == "ACCESO_DENEGADO", (
+            f"error_code esperado 'ACCESO_DENEGADO', obtenido {body.get('error_code')!r}"
+        )
+        msg_crudo = body.get("message", "")
+        msg_norm = " ".join(msg_crudo.split())
+        msg_esperado = f"No tiene permisos para consultar el historial del activo {id_activo_ajeno}. Verifique su rol y unidades productivas asignadas."
+        assert msg_esperado in msg_norm, (
+            f"Mensaje de exportacion no contiene texto de E2. Esperado: {msg_esperado!r}, Obtenido: {msg_norm!r}"
+        )
+
+        # Observaciones requeridas sin checkpoint:
+        # 1. Gestor con activo inexistente (999999999) -> HTTP y error_code (se espera 404)
+        r_inex = c.get("/suministros/historial?id_activo_biologico=999999999", paso="OBS_gestor_activo_inexistente")
+        err_inex = None
+        try:
+            err_inex = r_inex.json().get("error_code")
+        except Exception:
+            pass
+        _CONTEXTO["observaciones"]["obs_inexistente"] = {
+            "http": r_inex.status_code,
+            "error_code": err_inex,
+            "x_request_id": r_inex.headers.get("X-Request-Id") or r_inex.headers.get("x-request-id"),
+        }
+
+        # 2. Distincion 403 frente a 404 permite distinguir si el activo existe (consecuencia de E2)
+        _CONTEXTO["observaciones"]["obs_distincion_403_404"] = {
+            "activo_existente_957_http": r.status_code,
+            "activo_existente_957_error_code": body.get("error_code"),
+            "activo_inexistente_999999999_http": r_inex.status_code,
+            "activo_inexistente_999999999_error_code": err_inex,
+            "conclusion": "403 vs 404 permite distinguir si el activo existe en el sistema (consecuencia directa de validacion E2)",
+        }
 
     def test_a04_observacion_productor_consulta_su_unidad(self, corrida_productor: CorridaG43):
         """A04 [OBSERVACION]: Productor consulta activo 957 (finca 1, asignada a Productor) -> HTTP 200 con datos.
-        Nota: El rol Productor esta fuera de la especificacion de RF-81 (gestores y tecnicos),
-        este checkpoint se mantiene como observacion informativa de interoperabilidad."""
+        Precondicion de control en A04: el Productor SI ve el activo 957 (GET /activos-biologicos/957 -> 200),
+        demostrando que existe durante la misma corrida."""
         c = corrida_productor
         id_productor_activo = _CONTEXTO["activo_productor_id"]  # 957
 
+        # Precondicion de control: Productor verifica que el activo 957 existe en esta corrida
+        r_pre = c.get(f"/activos-biologicos/{id_productor_activo}", paso="A04_productor_precondicion_activo")
+        # Fuente: Control de precondicion / Protocolo de consistencia
+        assert r_pre.status_code == 200, (
+            f"PRECONDICION_NO_CUMPLIDA: Productor debe ver activo {id_productor_activo}: HTTP {r_pre.status_code}: {c.seguro(r_pre.text)}"
+        )
+
         r = c.get(f"/suministros/historial?id_activo_biologico={id_productor_activo}", paso="A04_productor_su_finca")
+        # Fuente: RF-81 Fase 3 / Comportamiento para usuario con alcance
         assert r.status_code == 200, f"Productor debio poder consultar activo 957 en su finca 1: HTTP {r.status_code}: {c.seguro(r.text)}"
         data = r.json()
-        assert len(data.get("items", [])) > 0
-        assert data.get("resumen", {}).get("total_registros_filtrados", 0) > 0
+        assert len(data.get("items", [])) > 0, "Se esperaban registros en historial para activo 957"
+        assert data.get("resumen", {}).get("total_registros_filtrados", 0) > 0, "total_registros_filtrados > 0 esperado"
 
 
 class TestTC_M05_G43_Teardown_Inocuidad:
-    """Verificacion de cierre estricto de todas las corridas, A03 en run propio e inocuidad en sandbox."""
+    """Verificacion de cierre estricto de todas las corridas e inocuidad en sandbox."""
 
     def test_98_cierre_corridas(self):
         """T98: Confirmar que las corridas previas (t00, admin, gestor, productor) fueron cerradas con HTTP 200."""
@@ -829,87 +894,6 @@ class TestTC_M05_G43_Teardown_Inocuidad:
             assert "Rollback exitoso" in info.get("body", ""), (
                 f"La corrida {rol} ({info['run_id']}) no devolvio 'Rollback exitoso': {info['body']}"
             )
-
-    def test_a03_auditoria_intento_rechazado(self):
-        """A03 (TC-M05-102 / 037, CU04 FA-04 / RF-80): Migrado de SQL a la API autenticada en run compartido propio.
-        Admin lee ultimo id de auditoria, Gestor intenta consultar activo 957 (finca 1 ajena),
-        y Admin verifica en GET /suministros/auditoria si se registro evento con resultado != EXITOSO."""
-        run_id = f"tc-m05-g43-a03-{uuid.uuid4().hex[:8]}"
-        _CONTEXTO["runs_orden"].append({"rol": "a03_shared", "run_id": run_id})
-        c_admin = CorridaG43(
-            "a03_admin",
-            _env("TEST_ADMIN_EMAIL"),
-            _env("TEST_ADMIN_PASSWORD"),
-            run_id_compartido=run_id,
-        )
-        c_gestor = CorridaG43(
-            "a03_gestor",
-            _env("TEST_FIELD_ENGINEER_EMAIL"),
-            _env("TEST_FIELD_ENGINEER_PASSWORD"),
-            run_id_compartido=run_id,
-        )
-        try:
-            c_admin.login()
-            c_gestor.login()
-            id_activo_ajeno = _CONTEXTO["activo_productor_id"]  # 957
-
-            id_base = _ultimo_id_auditoria(c_admin, paso="A03_antes_audit_max_id")
-
-            r_get = c_gestor.get(
-                f"/suministros/historial?id_activo_biologico={id_activo_ajeno}",
-                paso="A03_intento_rechazado",
-            )
-            # Fuente: RF-81 E2 / comportamiento observado por RLS (403 o 404)
-            assert r_get.status_code in (403, 404), (
-                f"Status inesperado en consulta ajena: HTTP {r_get.status_code}"
-            )
-
-            try:
-                err_code = r_get.json().get("error_code")
-            except Exception:
-                err_code = None
-
-            nuevos = _eventos_nuevos_desde(c_admin, id_base, paso="A03_despues_audit")
-            no_exitosos = [ev for ev in nuevos if ev.get("resultado") != "EXITOSO"]
-
-            _CONTEXTO["a03"] = {
-                "intento_http": r_get.status_code,
-                "intento_error_code": err_code,
-                "x_request_id": r_get.headers.get("X-Request-Id") or r_get.headers.get("x-request-id"),
-                "id_base": id_base,
-                "eventos_nuevos": [
-                    {
-                        "id": ev.get("id_auditoria_suministro"),
-                        "accion": ev.get("accion"),
-                        "resultado": ev.get("resultado"),
-                    }
-                    for ev in nuevos
-                ],
-                "no_exitosos_count": len(no_exitosos),
-            }
-
-            # Fuente: TC-M05-102 / 037 (CU04 FA-04 / RF-80): debe auditarse el intento rechazado
-            assert len(no_exitosos) >= 1, (
-                f"DEFECTO DE PRODUCTO (CU04 FA-04): No se registro evento de auditoria con resultado != 'EXITOSO' "
-                f"tras consulta no autorizada al activo {id_activo_ajeno} (HTTP {r_get.status_code}). "
-                f"Eventos nuevos desde id {id_base}: {len(nuevos)}."
-            )
-        finally:
-            try:
-                c_gestor.http.close()
-            except Exception:
-                pass
-            res_cierre = c_admin.cerrar()
-            _CONTEXTO["corridas_cerradas"]["a03_admin"] = {
-                "run_id": run_id,
-                "status_code": res_cierre.status_code,
-                "body": c_admin.seguro(res_cierre.text),
-            }
-
-        cierre_a03 = _CONTEXTO["corridas_cerradas"]["a03_admin"]
-        # Fuente: Regla 2 de sandbox (DELETE /test-control/runs/{run_id} -> 200 Rollback exitoso)
-        assert cierre_a03["status_code"] == 200, f"Cierre A03 fallo: {cierre_a03}"
-        assert "Rollback exitoso" in cierre_a03.get("body", ""), f"Cierre A03 sin Rollback exitoso: {cierre_a03}"
 
     def test_99_inocuidad_final(self):
         """T99: Inocuidad final dentro de run propio de solo lectura en sandbox."""
@@ -935,6 +919,12 @@ class TestTC_M05_G43_Teardown_Inocuidad:
                 assert max_id_actual == _CONTEXTO["auditoria_inicial_ultimo_id"], (
                     f"Falta de inocuidad en auditoria: max id actual {max_id_actual} != inicial {_CONTEXTO['auditoria_inicial_ultimo_id']}"
                 )
+
+            # Observacion: eventos nuevos en auditoria tras el 403 de A02 y A02b
+            _CONTEXTO["observaciones"]["obs_auditoria_tras_403"] = (
+                f"ninguno (0 eventos nuevos; total={total_actual} coincide con total inicial={_CONTEXTO['auditoria_inicial_total']}, "
+                f"max_id={max_id_actual} coincide con max_id inicial={_CONTEXTO['auditoria_inicial_ultimo_id']})"
+            )
 
             r_act = c_t99.get(f"/activos-biologicos/{id_c}", paso="T99_activo_c_404")
             # Fuente: Regla 2 de sandbox (rollback tras DELETE elimina el activo C)

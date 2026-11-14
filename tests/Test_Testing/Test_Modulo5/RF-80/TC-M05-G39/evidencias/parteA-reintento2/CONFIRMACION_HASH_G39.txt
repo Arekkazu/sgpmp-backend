@@ -1,0 +1,192 @@
+CONFIRMACION DEL HASH - TC-M05-G39 REINTENTO 2 (solo GET; sandbox aparte; no es la corrida oficial)
+Fecha: 2026-11-13T20:47:55.666070+00:00 | run_id: tc-m05-g39-hashconf-22415693
+Funcion: _recalcular_hash_m05 importada de test_tc_m05_g39.py (la misma de B03)
+V1 = rg.json() (B03 hoy) | V2 = json.loads(text, parse_float=decimal.Decimal) sin otro cambio | V3 = solo diagnostico: escala de esquema_baseline.sql y Decimal escrito como literal
+==============================================================================================================
+POST /sesiones/ -> 200 [X-Request-Id=aa25b575-5ef1-4254-97fd-de3fd7d9abe4]
+GET /suministros/auditoria?tipo_operacion=SUMINISTRO_REGISTRADO -> 200 [X-Request-Id=7824193c-eff4-4925-9a0b-71361644c0d0]
+
+### GET /suministros/auditoria/71991 -> 200 [X-Request-Id=541164bc-f20d-46ca-8a61-d960ed22d229]
+CUERPO CRUDO (response.text):
+{"id_auditoria_suministro":71991,"id_evento_m05":"93e21dfc-44f6-4319-913b-7272a426f0f1","version_hash_integridad":2,"entidad_afectada":"registros_consumo_alimentos","tipo_operacion":"INSERT","id_usuario":100,"resultado":"EXITOSO","fecha_evento":"2026-11-11T16:16:57.056732Z","datos_anteriores":null,"datos_nuevos":{"id_consumo_alimeto":1969,"id_activo_biologico":1634,"id_tipo_alimento":6,"tipo_alimento":"Concentrado de levante","tipo_unidad":"kg","cantidad_suministrada":7.0,"costo_total":14700.0,"observacion":"Ración de la mañana en el Corral El Rosal.","fecha_inicio_periodo":null,"fecha_fin_periodo":null,"fecha_registro":"2026-11-11T16:16:57.056732+00:00","id_usuario":100,"estado_registro":"VALIDADO","fecha_consumo":"2026-11-11","hora_suministro":"07:00:00","costo_unitario":2100.0,"consumo_por_individuo_kg":null,"justificacion_anulacion":null,"fecha_hora_anulacion":null,"id_registro_rf75":"dc0c9334-6142-4dc4-b97d-85513fa44f3f"},"ip_origen":null,"id_sesion":null,"fecha_emision":null,"id_activo_biologico":null,"id_ciclo_productivo":null,"costo_afectado":null,"origen_precio":null,"clasificacion_registro":"NIC41","retencion_aplicable":"5 años","hash_integridad":"e045cae4212b7c9abe9dd9b86223e5428705a40993ba5b33df79d142680e04b5","registro_incompleto":false,"detalle_causa":null,"numero_reintentos":null,"fecha_intentos":null,"id_gestion_fases":null,"nombre_activo":null,"nombre_usuario":"Admin Camila"}
+RECALCULO:
+{
+  "id": 71991,
+  "entidad": "registros_consumo_alimentos",
+  "tipo": "INSERT",
+  "version": 2,
+  "fecha_emision": null,
+  "almacenado": "e045cae4212b7c9abe9dd9b86223e5428705a40993ba5b33df79d142680e04b5",
+  "V1": "c67f6844b099b28520b58e1bc2dd880af87338428d67a89c5b1508f04f3b9753",
+  "V1_coincide": false,
+  "V2": "ERROR TypeError: Object of type Decimal is not JSON serializable",
+  "V2_coincide": false,
+  "V3": "d402d44814604c1cd7f341878dd8406498d4d714a755ccd445b3b9b17a07be20",
+  "V3_coincide": false,
+  "V3_escalas": [],
+  "numericos_texto_crudo": {
+    "datos_nuevos.id_consumo_alimeto": "1969",
+    "datos_nuevos.id_activo_biologico": "1634",
+    "datos_nuevos.id_tipo_alimento": "6",
+    "datos_nuevos.cantidad_suministrada": "7.0",
+    "datos_nuevos.costo_total": "14700.0",
+    "datos_nuevos.id_usuario": "100",
+    "datos_nuevos.costo_unitario": "2100.0"
+  }
+}
+
+### GET /suministros/auditoria/71995 -> 200 [X-Request-Id=d0f6cfe0-8769-4505-8a14-c23a1085ac0f]
+CUERPO CRUDO (response.text):
+{"id_auditoria_suministro":71995,"id_evento_m05":"1ebc3d73-0783-418f-abe9-325720ea9f3e","version_hash_integridad":2,"entidad_afectada":"registros_medicamentos","tipo_operacion":"INSERT","id_usuario":100,"resultado":"EXITOSO","fecha_evento":"2026-11-11T16:17:53.070897Z","datos_anteriores":null,"datos_nuevos":{"id_registro_medicamento":241,"id_activo_biologico":1634,"nombre_medicamento":"Complejo B inyectable","descripcion_clinica":"Suplemento vitamínico por baja de apetito después del destete; recomendado por el veterinario.","unidad_dosis":"ml","cantidad":10.0,"fecha_aplicacion":"2026-11-11","costo_unitario_medicamento":450.0,"costo_total_medicamento":4500.0,"via_aplicacion":"IM","lote_medicameto":"CB2510-031","fehca_vencimietno_lote":"2027-10-31","fecha_registro":"2026-11-11T16:17:53.070897+00:00","id_usuario":100,"id_usuario_veterinario":null,"estado_registro":"VALIDADO","hora_aplicacion":"08:30:00","periodo_retiro_dias":0,"fecha_fin_retiro":null,"dosis_por_individuo":null,"motivo_aplicacion":"Suplemento vitamínico por baja de apetito después del destete; recomendado por el veterinario.","id_evento_sanitario":null,"justificacion_anulacion":null,"fecha_hora_anulacion":null,"id_registro_rf76":"899d754e-2a05-49fe-a40c-46f4dfb379cd","nombre_veterinario":"Carlos Ramírez","observaciones":null},"ip_origen":null,"id_sesion":null,"fecha_emision":null,"id_activo_biologico":null,"id_ciclo_productivo":null,"costo_afectado":null,"origen_precio":null,"clasificacion_registro":"NIC41","retencion_aplicable":"5 años","hash_integridad":"019d0190f79c588e103f4b73bcbb1e2c4cc48689dfc16b5eea0e38c99b4c44dc","registro_incompleto":false,"detalle_causa":null,"numero_reintentos":null,"fecha_intentos":null,"id_gestion_fases":null,"nombre_activo":null,"nombre_usuario":"Admin Camila"}
+RECALCULO:
+{
+  "id": 71995,
+  "entidad": "registros_medicamentos",
+  "tipo": "INSERT",
+  "version": 2,
+  "fecha_emision": null,
+  "almacenado": "019d0190f79c588e103f4b73bcbb1e2c4cc48689dfc16b5eea0e38c99b4c44dc",
+  "V1": "b69dd9ea40067e5b3937e8d9e96a235f8341f757d547c66569c64a8589718bc0",
+  "V1_coincide": false,
+  "V2": "ERROR TypeError: Object of type Decimal is not JSON serializable",
+  "V2_coincide": false,
+  "V3": "52673aa4f2336beb81a1145fc5ea0cb474c9c1153dc068a951edebce3b005712",
+  "V3_coincide": false,
+  "V3_escalas": [],
+  "numericos_texto_crudo": {
+    "datos_nuevos.id_registro_medicamento": "241",
+    "datos_nuevos.id_activo_biologico": "1634",
+    "datos_nuevos.cantidad": "10.0",
+    "datos_nuevos.costo_unitario_medicamento": "450.0",
+    "datos_nuevos.costo_total_medicamento": "4500.0",
+    "datos_nuevos.id_usuario": "100",
+    "datos_nuevos.periodo_retiro_dias": "0"
+  }
+}
+
+### GET /suministros/auditoria/80426 -> 200 [X-Request-Id=f54c347c-7739-4a8d-8bd1-4ca7c7e6033b]
+CUERPO CRUDO (response.text):
+{"id_auditoria_suministro":80426,"id_evento_m05":"e6646497-1367-4bcd-b826-361e8656c226","version_hash_integridad":2,"entidad_afectada":"resultado_ica","tipo_operacion":"INSERT","id_usuario":132,"resultado":"EXITOSO","fecha_evento":"2026-11-13T04:57:53.238812Z","datos_anteriores":null,"datos_nuevos":{"id_resultado_ica":36231,"id_activo_biologico":235,"periodo_evaluacion":"POR_CICLO","fecha_inicio_periodo":"2026-01-01","fecha_fin_periodo":"2026-11-12","alimento_consumido_total_kg":null,"ganancia_peso_kg":null,"ca_calculado":null,"clasificacion_ca":null,"data_quality_score":0,"causa_no_calculo":"SIN_PESO_INICIAL","tipo_calculo":"AUTOMATICO","fecha_calculo":"2026-11-13T04:57:53.238812+00:00","id_usuario":132,"id_version":1,"creado_en":"2026-11-13T04:57:53.238812+00:00","estado_resultado":"CA_NO_CALCULABLE","es_vigente":true,"intento":1,"id_gestion_fases":null},"ip_origen":null,"id_sesion":null,"fecha_emision":"2026-11-13T04:57:53.276282Z","id_activo_biologico":235,"id_ciclo_productivo":null,"costo_afectado":null,"origen_precio":null,"clasificacion_registro":"NIC41","retencion_aplicable":"5 años","hash_integridad":"78425fac23330be12bfd1ed79010bf68aa5ef6b80a3156dc88cace9122081555","registro_incompleto":true,"detalle_causa":"Campos faltantes: ciclo productivo.","numero_reintentos":null,"fecha_intentos":null,"id_gestion_fases":null,"nombre_activo":"QA-G36-ActivoA-1789010065","nombre_usuario":"Sistema (cálculo automático)"}
+RECALCULO:
+{
+  "id": 80426,
+  "entidad": "resultado_ica",
+  "tipo": "INSERT",
+  "version": 2,
+  "fecha_emision": "2026-11-13T04:57:53.276282Z",
+  "almacenado": "78425fac23330be12bfd1ed79010bf68aa5ef6b80a3156dc88cace9122081555",
+  "V1": "9b390138535c59bb1f2d2f2188e66d528f039fe0ca480bfb1eeb281aa37d017e",
+  "V1_coincide": false,
+  "V2": "9b390138535c59bb1f2d2f2188e66d528f039fe0ca480bfb1eeb281aa37d017e",
+  "V2_coincide": false,
+  "V3": "9b390138535c59bb1f2d2f2188e66d528f039fe0ca480bfb1eeb281aa37d017e",
+  "V3_coincide": false,
+  "V3_escalas": [],
+  "numericos_texto_crudo": {
+    "datos_nuevos.id_resultado_ica": "36231",
+    "datos_nuevos.id_activo_biologico": "235",
+    "datos_nuevos.data_quality_score": "0",
+    "datos_nuevos.id_usuario": "132",
+    "datos_nuevos.id_version": "1",
+    "datos_nuevos.intento": "1"
+  }
+}
+
+### GET /suministros/auditoria/80425 -> 200 [X-Request-Id=9b2bae3e-a18d-4ad2-b08a-cf0216c5fcc5]
+CUERPO CRUDO (response.text):
+{"id_auditoria_suministro":80425,"id_evento_m05":"04f23aaf-bb2c-4c5d-9627-fd6dc78fdee7","version_hash_integridad":2,"entidad_afectada":"resultado_ica","tipo_operacion":"UPDATE","id_usuario":1,"resultado":"EXITOSO","fecha_evento":"2026-11-13T04:57:53.238812Z","datos_anteriores":{"id_resultado_ica":34548,"id_activo_biologico":235,"periodo_evaluacion":"POR_CICLO","fecha_inicio_periodo":"2026-01-01","fecha_fin_periodo":"2026-11-13","alimento_consumido_total_kg":null,"ganancia_peso_kg":null,"ca_calculado":null,"clasificacion_ca":null,"data_quality_score":0,"causa_no_calculo":"SIN_PESO_INICIAL","tipo_calculo":"AUTOMATICO","fecha_calculo":"2026-11-13T02:00:01.120195+00:00","id_usuario":null,"id_version":1,"creado_en":"2026-11-13T02:00:01.120195+00:00","estado_resultado":"CA_NO_CALCULABLE","es_vigente":true,"intento":1,"id_gestion_fases":null},"datos_nuevos":{"id_resultado_ica":34548,"id_activo_biologico":235,"periodo_evaluacion":"POR_CICLO","fecha_inicio_periodo":"2026-01-01","fecha_fin_periodo":"2026-11-13","alimento_consumido_total_kg":null,"ganancia_peso_kg":null,"ca_calculado":null,"clasificacion_ca":null,"data_quality_score":0,"causa_no_calculo":"SIN_PESO_INICIAL","tipo_calculo":"AUTOMATICO","fecha_calculo":"2026-11-13T02:00:01.120195+00:00","id_usuario":null,"id_version":1,"creado_en":"2026-11-13T02:00:01.120195+00:00","estado_resultado":"CA_NO_CALCULABLE","es_vigente":false,"intento":1,"id_gestion_fases":null},"ip_origen":null,"id_sesion":null,"fecha_emision":"2026-11-13T04:57:53.272962Z","id_activo_biologico":235,"id_ciclo_productivo":null,"costo_afectado":null,"origen_precio":null,"clasificacion_registro":"NIC41","retencion_aplicable":"5 años","hash_integridad":"2fe298bb4b33f0131c4958d77d6b33cdeaf08adad03873f30e3d42671d02f924","registro_incompleto":true,"detalle_causa":"Campos faltantes: ciclo productivo.","numero_reintentos":null,"fecha_intentos":null,"id_gestion_fases":null,"nombre_activo":"QA-G36-ActivoA-1789010065","nombre_usuario":"Sistema (cálculo automático)"}
+RECALCULO:
+{
+  "id": 80425,
+  "entidad": "resultado_ica",
+  "tipo": "UPDATE",
+  "version": 2,
+  "fecha_emision": "2026-11-13T04:57:53.272962Z",
+  "almacenado": "2fe298bb4b33f0131c4958d77d6b33cdeaf08adad03873f30e3d42671d02f924",
+  "V1": "60bd73b0c27c923b574f8a03169dd641b7968f439d1b629f2cf7efe1bd2f0e9f",
+  "V1_coincide": false,
+  "V2": "60bd73b0c27c923b574f8a03169dd641b7968f439d1b629f2cf7efe1bd2f0e9f",
+  "V2_coincide": false,
+  "V3": "60bd73b0c27c923b574f8a03169dd641b7968f439d1b629f2cf7efe1bd2f0e9f",
+  "V3_coincide": false,
+  "V3_escalas": [],
+  "numericos_texto_crudo": {
+    "datos_anteriores.id_resultado_ica": "34548",
+    "datos_anteriores.id_activo_biologico": "235",
+    "datos_anteriores.data_quality_score": "0",
+    "datos_anteriores.id_version": "1",
+    "datos_anteriores.intento": "1",
+    "datos_nuevos.id_resultado_ica": "34548",
+    "datos_nuevos.id_activo_biologico": "235",
+    "datos_nuevos.data_quality_score": "0",
+    "datos_nuevos.id_version": "1",
+    "datos_nuevos.intento": "1"
+  }
+}
+
+### GET /suministros/auditoria/75560 -> 404 [X-Request-Id=9c979590-8eff-40e0-bdc3-087c4d5205fc]
+CUERPO CRUDO (response.text):
+{"error_code":"AUDITORIA_SUMINISTRO_NO_ENCONTRADA","message":"No existe el evento de auditoría 75560.","fields":[],"timestamp":"2026-11-13T20:47:59.796208+00:00"}
+
+### GET /suministros/auditoria/76597 -> 200 [X-Request-Id=77d5dbc2-858a-4ec5-81a5-766afec86c1c]
+CUERPO CRUDO (response.text):
+{"id_auditoria_suministro":76597,"id_evento_m05":"422fd958-c229-45ba-9855-494b319aada8","version_hash_integridad":2,"entidad_afectada":"registro_suministro","tipo_operacion":"SUMINISTRO_REGISTRADO","id_usuario":137,"resultado":"EXITOSO","fecha_evento":"2026-11-12T07:13:07.215771Z","datos_anteriores":null,"datos_nuevos":null,"ip_origen":null,"id_sesion":null,"fecha_emision":"2026-11-12T07:13:07.232823Z","id_activo_biologico":825,"id_ciclo_productivo":4,"costo_afectado":"211729.0000","origen_precio":"MANUAL","clasificacion_registro":"NIC41","retencion_aplicable":"5 años","hash_integridad":"cd4263b56a821d4ba62a9ea99505a6da4a48699c05bed0d3f7217d66ac5c1fa5","registro_incompleto":false,"detalle_causa":null,"numero_reintentos":null,"fecha_intentos":null,"id_gestion_fases":300,"nombre_activo":"IND-G49B-iqrasynd","nombre_usuario":"Admin Sistema"}
+RECALCULO:
+{
+  "id": 76597,
+  "entidad": "registro_suministro",
+  "tipo": "SUMINISTRO_REGISTRADO",
+  "version": 2,
+  "fecha_emision": "2026-11-12T07:13:07.232823Z",
+  "almacenado": "cd4263b56a821d4ba62a9ea99505a6da4a48699c05bed0d3f7217d66ac5c1fa5",
+  "V1": "dea9627e44bf57f7b28a1e654ed81b6498ee0e5a6b313f9fce7a0105090b2e71",
+  "V1_coincide": false,
+  "V2": "dea9627e44bf57f7b28a1e654ed81b6498ee0e5a6b313f9fce7a0105090b2e71",
+  "V2_coincide": false,
+  "V3": "dea9627e44bf57f7b28a1e654ed81b6498ee0e5a6b313f9fce7a0105090b2e71",
+  "V3_coincide": false,
+  "V3_escalas": [],
+  "numericos_texto_crudo": {}
+}
+
+DELETE /test-control/runs/tc-m05-g39-hashconf-22415693 -> 200 [X-Request-Id=4d9f9d9c-ab67-4466-bb2c-86e8be98385c]
+==============================================================================================================
+TABLA RESUMEN:
+  id=71991 registros_consumo_alimentos/INSERT v2 fecha_emision=None | V1=NO V2=NO V3=NO
+  id=71995 registros_medicamentos/INSERT v2 fecha_emision=None | V1=NO V2=NO V3=NO
+  id=80426 resultado_ica/INSERT v2 fecha_emision=2026-11-13T04:57:53.276282Z | V1=NO V2=NO V3=NO
+  id=80425 resultado_ica/UPDATE v2 fecha_emision=2026-11-13T04:57:53.272962Z | V1=NO V2=NO V3=NO
+  id=75560 HTTP 404 (no disponible fuera del sandbox)
+  id=76597 registro_suministro/SUMINISTRO_REGISTRADO v2 fecha_emision=2026-11-12T07:13:07.232823Z | V1=NO V2=NO V3=NO
+
+==============================================================================================================
+DIAGNOSTICO OFFLINE ADICIONAL (sin HTTP, sobre los cuerpos crudos de arriba; misma _recalcular_hash_m05).
+Nota: en la tabla de arriba la V3 no aplico escalas por un defecto del script de diagnostico (convertia los Decimal a texto antes de escalar); esta seccion la corrige.
+Diagnostico offline (sin HTTP). E = sin nombre_activo/nombre_usuario (campos de la API que no son columnas).
+id=71991 registros_consumo_alimentos/INSERT v2 fecha_emision=None
+    V1                                       no coincide
+    V1+E                                     no coincide
+    V2+E (Decimal escrito como literal)      no coincide
+    V3+E (escala DDL)                        COINCIDE
+    escalas aplicadas: ['datos_nuevos.cantidad_suministrada=7.000 (esquema_baseline.sql:26382)', 'datos_nuevos.costo_total=14700.0000 (esquema_baseline.sql:26383)', 'datos_nuevos.costo_unitario=2100.0000 (esquema_baseline.sql:26392)']
+id=71995 registros_medicamentos/INSERT v2 fecha_emision=None
+    V1                                       no coincide
+    V1+E                                     no coincide
+    V2+E (Decimal escrito como literal)      no coincide
+    V3+E (escala DDL)                        no coincide
+    escalas aplicadas: ['datos_nuevos.cantidad=10.000 (esquema_baseline.sql:26435)', 'datos_nuevos.costo_unitario_medicamento=450.0000 (esquema_baseline.sql:26437)', 'datos_nuevos.costo_total_medicamento=4500.0000 (esquema_baseline.sql:26438)']
+id=80426 resultado_ica/INSERT v2 fecha_emision=2026-11-13T04:57:53.276282Z
+    V1                                       no coincide
+    V1+E                                     COINCIDE
+    V2+E (Decimal escrito como literal)      COINCIDE
+    V3+E (escala DDL)                        COINCIDE
+id=80425 resultado_ica/UPDATE v2 fecha_emision=2026-11-13T04:57:53.272962Z
+    V1                                       no coincide
+    V1+E                                     COINCIDE
+    V2+E (Decimal escrito como literal)      COINCIDE
+    V3+E (escala DDL)                        COINCIDE
+id=76597 registro_suministro/SUMINISTRO_REGISTRADO v2 fecha_emision=2026-11-12T07:13:07.232823Z
+    V1                                       no coincide
+    V1+E                                     COINCIDE
+    V2+E (Decimal escrito como literal)      COINCIDE
+    V3+E (escala DDL)                        COINCIDE

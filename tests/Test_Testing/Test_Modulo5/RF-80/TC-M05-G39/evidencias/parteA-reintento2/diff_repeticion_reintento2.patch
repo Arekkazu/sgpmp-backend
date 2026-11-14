@@ -1,0 +1,83 @@
+diff --git "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py" b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
+index bfcc8815..e06feb4d 100644
+--- "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py"
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
+@@ -1290,11 +1290,11 @@ _COLUMNAS_AUDITORIA = frozenset({
+     "id_gestion_fases",
+     "id_evento_m05", "version_hash_integridad",
+ })
+-# Alcance de B03: entidades evaluadas en el reintento 1 (run-20261111-232824) mas resultado_ica.
+-_ENTIDADES_B03 = ("registro_suministro", "provision_nic41", "auditorias_suministros", "resultado_ica")
+-# Hash no verificable via API (CONFIRMACION_HASH_G39.txt): la respuesta devuelve sus numericos sin la escala
+-# con la que se sellaron; se registran como observacion, fuera del checkpoint.
+-_ENTIDADES_HASH_NO_VERIFICABLE = ("registros_consumo_alimentos", "registros_medicamentos")
++# Alcance de B03: entidades evaluadas en el reintento 1 (run-20261111-232824).
++_ENTIDADES_B03 = ("registro_suministro", "provision_nic41", "auditorias_suministros")
++# Hash no verificable via API (CONFIRMACION_HASH_G39.txt; run-20261113-155227 evento 80498): la respuesta
++# devuelve sus numericos sin la escala con la que se sellaron; se registran como observacion, fuera del checkpoint.
++_ENTIDADES_HASH_NO_VERIFICABLE = ("registros_consumo_alimentos", "registros_medicamentos", "resultado_ica")
+ 
+ 
+ def _solo_columnas(evento: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+diff --git "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py" b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py
+index 5ac276db..70f3c224 100644
+--- "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py"
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/generar_artefactos_run_g39.py
+@@ -190,9 +190,11 @@ def main() -> None:
+         error = tc.find("error")
+         skipped = tc.find("skipped")
+ 
++        diagnostico = None
+         if failure is not None or error is not None:
+             nodo = failure if failure is not None else error
+-            estado = "PENDIENTE_DIAGNOSTICO"
++            estado = "FALLA"
++            diagnostico = "PENDIENTE_DIAGNOSTICO"
+             falla += 1
+             msg_raw = (nodo.attrib.get("message") or nodo.text or "Fallo de aserto").strip()
+             msg_primera_linea = msg_raw.splitlines()[0]
+@@ -206,7 +208,9 @@ def main() -> None:
+                 "clasificacion": "PENDIENTE_DIAGNOSTICO",
+             })
+         elif skipped is not None:
+-            estado = "OMITIDO"
++            estado = "FALLA"
++            diagnostico = "OMITIDO"
++            falla += 1
+             msg_raw = (skipped.attrib.get("message") or skipped.text or "Omitido").strip()
+             obtenido = f"SKIPPED: {msg_raw} | HTTP: {resumen_http}"
+         else:
+@@ -214,12 +218,16 @@ def main() -> None:
+             ok += 1
+             obtenido = f"OBTENIDO: {resumen_http}"
+ 
+-        checkpoints.append({
++        # Guia 5.1.1: "estado" solo OK o FALLA; la clasificacion de un fallo va en "diagnostico".
++        checkpoint = {
+             "paso": meta["paso"],
+             "esperado": meta["esperado"],
+             "obtenido": obtenido,
+             "estado": estado,
+-        })
++        }
++        if diagnostico is not None:
++            checkpoint["diagnostico"] = diagnostico
++        checkpoints.append(checkpoint)
+ 
+     veredicto = "Aprobado" if falla == 0 and total > 0 else "Rechazado"
+ 
+diff --git "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1" b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1
+index ef92d4ee..5097875b 100644
+--- "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1"
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/ejecutar_tc_m05_g39.ps1
+@@ -116,8 +116,8 @@ foreach ($p in $previos) {
+ # --- Reintento 2: SHA-256 esperados (Parte 0.1 y Parte A); si alguno difiere NO se ejecuta
+ $m5 = Join-Path $repo 'tests\Test_Testing\Test_Modulo5'
+ $shaEsperados = [ordered]@{
+-    'RF-80\TC-M05-G39\test_tc_m05_g39.py'                           = '4E8CCBF7ADEAE5A3D3787E1D25FAF67F64ECDFBD4ABF0EED511129D0E2383B90'
+-    'RF-80\TC-M05-G39\generar_artefactos_run_g39.py'                = 'A9781DC90B755609C3063E592B2FBD39E2C5C75EFBA2829CFDAA1CFB7BDBB454'
++    'RF-80\TC-M05-G39\test_tc_m05_g39.py'                           = '6B99A076F1ED311C08CEC9E3AD3AB5BDA03E75A9A42B6A44CAEB76E49705B342'
++    'RF-80\TC-M05-G39\generar_artefactos_run_g39.py'                = 'D289C5161CC7B6F5746367F994488D6BC147757B48C4743B846389C2DE7005EC'
+     'RF-80\TC-M05-G39\resultados\.gitkeep'                          = 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855'
+     'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39.html'         = 'A9138011FE9694C8BE9439466DEABC3040587635C11017EA5C3557C77D1ACC57'
+     'RF-80\TC-M05-G39\resultados\resultado_TC-M05-G39.json'         = '354983D6ABCAE2C13D04A87268E9DAC29AF9DD52E2E865B2A9554F34BED43351'

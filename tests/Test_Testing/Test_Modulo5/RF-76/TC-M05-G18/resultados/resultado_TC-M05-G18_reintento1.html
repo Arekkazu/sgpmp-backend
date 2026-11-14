@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title id="head-title">resultado_TC-M05-G18_reintento1.html</title>
+      <style type="text/css">body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  vertical-align: top;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+#environment ul {
+  margin: 0;
+  padding: 0 20px;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+.col-links__extra {
+  margin-right: 3px;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.logwrapper {
+  max-height: 230px;
+  overflow-y: scroll;
+  background-color: #e6e6e6;
+}
+.logwrapper.expanded {
+  max-height: none;
+}
+.logwrapper.expanded .logexpander:after {
+  content: "collapse [-]";
+}
+.logwrapper .logexpander {
+  z-index: 1;
+  position: sticky;
+  top: 10px;
+  width: max-content;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 5px 7px;
+  margin: 10px 0 10px calc(100% - 80px);
+  cursor: pointer;
+  background-color: #e6e6e6;
+}
+.logwrapper .logexpander:after {
+  content: "expand [+]";
+}
+.logwrapper .logexpander:hover {
+  color: #000;
+  border-color: #000;
+}
+.logwrapper .log {
+  min-height: 40px;
+  position: relative;
+  top: -50px;
+  height: calc(100% + 50px);
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  padding: 5px;
+  padding-right: 80px;
+  white-space: pre-wrap;
+}
+
+div.media {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin: 0 5px;
+  overflow: hidden;
+  width: 320px;
+}
+
+.media-container {
+  display: grid;
+  grid-template-columns: 25px auto 25px;
+  align-items: center;
+  flex: 1 1;
+  overflow: hidden;
+  height: 200px;
+}
+
+.media-container--fullscreen {
+  grid-template-columns: 0px auto 0px;
+}
+
+.media-container__nav--right,
+.media-container__nav--left {
+  text-align: center;
+  cursor: pointer;
+}
+
+.media-container__viewport {
+  cursor: pointer;
+  text-align: center;
+  height: inherit;
+}
+.media-container__viewport img,
+.media-container__viewport video {
+  object-fit: cover;
+  width: 100%;
+  max-height: 100%;
+}
+
+.media__name,
+.media__counter {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex: 0 0 25px;
+  align-items: center;
+}
+
+.collapsible td:not(.col-links) {
+  cursor: pointer;
+}
+.collapsible td:not(.col-links):hover::after {
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.col-result {
+  width: 130px;
+}
+.col-result:hover::after {
+  content: " (hide details)";
+}
+
+.col-result.collapsed:hover::after {
+  content: " (show details)";
+}
+
+#environment-header h2:hover::after {
+  content: " (hide details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#environment-header.collapsed h2:hover::after {
+  content: " (show details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+.sortable.desc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: -12.5px;
+  border: 10px solid #4caf50;
+  border-bottom: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+.sortable.asc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: 12.5px;
+  border: 10px solid #4caf50;
+  border-top: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.hidden, .summary__reload__button.hidden {
+  display: none;
+}
+
+.summary__data {
+  flex: 0 0 550px;
+}
+.summary__reload {
+  flex: 1 1;
+  display: flex;
+  justify-content: center;
+}
+.summary__reload__button {
+  flex: 0 0 300px;
+  display: flex;
+  color: white;
+  font-weight: bold;
+  background-color: #4caf50;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.summary__reload__button:hover {
+  background-color: #46a049;
+}
+.summary__spacer {
+  flex: 0 0 550px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+.filters,
+.collapse {
+  display: flex;
+  align-items: center;
+}
+.filters button,
+.collapse button {
+  color: #999;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.filters button:hover,
+.collapse button:hover {
+  color: #ccc;
+}
+
+.filter__label {
+  margin-right: 10px;
+}
+
+      </style>
+    
+  </head>
+  <body>
+    <h1 id="title">resultado_TC-M05-G18_reintento1.html</h1>
+    <p>Report generated on 13-Nov-2026 at 15:16:23 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a>
+        v4.2.0</p>
+    <div id="environment-header">
+      <h2>Environment</h2>
+    </div>
+    <table id="environment"></table>
+    <!-- TEMPLATES -->
+      <template id="template_environment_row">
+      <tr>
+        <td></td>
+        <td></td>
+      </tr>
+    </template>
+    <template id="template_results-table__body--empty">
+      <tbody class="results-table-row">
+        <tr id="not-found-message">
+          <td colspan="4">No results found. Check the filters.</td>
+        </tr>
+      </tbody>
+    </template>
+    <template id="template_results-table__tbody">
+      <tbody class="results-table-row">
+        <tr class="collapsible">
+        </tr>
+        <tr class="extras-row">
+          <td class="extra" colspan="4">
+            <div class="extraHTML"></div>
+            <div class="media">
+              <div class="media-container">
+                  <div class="media-container__nav--left">&lt;</div>
+                  <div class="media-container__viewport">
+                    <img src="" />
+                    <video controls>
+                      <source src="" type="video/mp4">
+                    </video>
+                  </div>
+                  <div class="media-container__nav--right">&gt;</div>
+                </div>
+                <div class="media__name"></div>
+                <div class="media__counter"></div>
+            </div>
+            <div class="logwrapper">
+              <div class="logexpander"></div>
+              <div class="log"></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </template>
+    <!-- END TEMPLATES -->
+    <div class="summary">
+      <div class="summary__data">
+        <h2>Summary</h2>
+        <div class="additional-summary prefix">
+        </div>
+        <p class="run-count">17 tests took 00:00:21.</p>
+        <p class="filter">(Un)check the boxes to filter the results.</p>
+        <div class="summary__reload">
+          <div class="summary__reload__button hidden" onclick="location.reload()">
+            <div>There are still tests running. <br />Reload this page to get the latest results!</div>
+          </div>
+        </div>
+        <div class="summary__spacer"></div>
+        <div class="controls">
+          <div class="filters">
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="failed" disabled>
+            <span class="failed">0 Failed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="passed" >
+            <span class="passed">17 Passed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="skipped" disabled>
+            <span class="skipped">0 Skipped,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xfailed" disabled>
+            <span class="xfailed">0 Expected failures,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xpassed" disabled>
+            <span class="xpassed">0 Unexpected passes,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="error" disabled>
+            <span class="error">0 Errors,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="rerun" disabled>
+            <span class="rerun">0 Reruns</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="retried" disabled>
+            <span class="retried">0 Retried,</span>
+          </div>
+          <div class="collapse">
+            <button id="show_all_details">Show all details</button>&nbsp;/&nbsp;<button id="hide_all_details">Hide all details</button>
+          </div>
+        </div>
+      </div>
+      <div class="additional-summary summary">
+      </div>
+      <div class="additional-summary postfix">
+      </div>
+    </div>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable" data-column-type="result">Result</th>
+          <th class="sortable" data-column-type="testId">Test</th>
+          <th class="sortable" data-column-type="duration">Duration</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+    </table>
+  <footer>
+    <div id="data-container" data-jsonblob="{&#34;environment&#34;: {&#34;Python&#34;: &#34;3.13.9&#34;, &#34;Platform&#34;: &#34;Windows-11-10.0.26300-SP0&#34;, &#34;Packages&#34;: {&#34;pytest&#34;: &#34;9.0.3&#34;, &#34;pluggy&#34;: &#34;1.6.0&#34;}, &#34;Plugins&#34;: {&#34;anyio&#34;: &#34;4.13.0&#34;, &#34;cov&#34;: &#34;7.1.0&#34;, &#34;html&#34;: &#34;4.2.0&#34;, &#34;metadata&#34;: &#34;3.1.1&#34;}}, &#34;tests&#34;: {&#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte&#34;, &#34;duration&#34;: &#34;34 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;34 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;---------------------------- Captured stdout setup -----------------------------\nRUTA_SRC_SUPPLIES=C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\__init__.py\nRUTA_MAIN=C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\main.py\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte&#34;, &#34;duration&#34;: &#34;24 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;24 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter:notificacion_medicamento_email_adapter.py:137 No se pudo dejar el aviso interno de fin de retiro del activo 853.\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\adapters\\notificacion_medicamento_email_adapter.py&amp;quot;, line 120, in _avisar_en_bandeja\n    f&amp;quot;Termin\u00f3 el per\u00edodo de retiro del activo {activo.identificador} &amp;quot;\n                                               ^^^^^^^^^^^^^^^^^^^^\nAttributeError: &amp;#x27;types.SimpleNamespace&amp;#x27; object has no attribute &amp;#x27;identificador&amp;#x27;\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03a_fin_retiro_aviso_interno_productor_y_veterinario&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03a_fin_retiro_aviso_interno_productor_y_veterinario&#34;, &#34;duration&#34;: &#34;544 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03a_fin_retiro_aviso_interno_productor_y_veterinario&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;544 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03b_dos_tratamientos_uno_vigente_sin_aviso_fin_retiro&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03b_dos_tratamientos_uno_vigente_sin_aviso_fin_retiro&#34;, &#34;duration&#34;: &#34;29 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03b_dos_tratamientos_uno_vigente_sin_aviso_fin_retiro&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;29 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_obs_s1_tratamiento_sin_veterinario&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_obs_s1_tratamiento_sin_veterinario&#34;, &#34;duration&#34;: &#34;27 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_obs_s1_tratamiento_sin_veterinario&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;27 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion&#34;, &#34;duration&#34;: &#34;53 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;53 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.shared.error_handlers:error_handlers.py:94 InfrastructureError [ERROR_ESTADO_EN_TRATAMIENTO] en http://testserver/suministros/medicamentos: RuntimeError(&amp;#x27;Falla simulada de RF-44 al transicionar activo a EN_TRATAMIENTO&amp;#x27;)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido&#34;, &#34;duration&#34;: &#34;40 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;40 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.shared.error_handlers:error_handlers.py:94 InfrastructureError [ERROR_ESTADO_EN_TRATAMIENTO] en http://testserver/suministros/medicamentos: RuntimeError(&amp;#x27;Falla simulada de RF-44 al transicionar activo a EN_TRATAMIENTO&amp;#x27;)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion&#34;, &#34;duration&#34;: &#34;43 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;43 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.shared.error_handlers:error_handlers.py:94 InfrastructureError [ERROR_ESTADO_EN_TRATAMIENTO] en http://testserver/suministros/medicamentos: RuntimeError(&amp;#x27;Falla simulada de RF-44 al transicionar activo a EN_TRATAMIENTO&amp;#x27;)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro&#34;, &#34;duration&#34;: &#34;243 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;243 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.shared.error_handlers:error_handlers.py:371 Error no controlado en http://testserver/suministros/medicamentos [709d78c6-768c-4204-b1b9-fe6a04067e9e]\n  + Exception Group Traceback (most recent call last):\n  |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 81, in collapse_excgroups\n  |     yield\n  |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 192, in __call__\n  |     async with anyio.create_task_group() as task_group:\n  |                ~~~~~~~~~~~~~~~~~~~~~~~^^\n  |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 799, in __aexit__\n  |     raise BaseExceptionGroup(\n  |         &amp;quot;unhandled errors in a TaskGroup&amp;quot;, self._exceptions\n  |     ) from None\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Traceback (most recent call last):\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py&amp;quot;, line 164, in __call__\n    |     await self.app(scope, receive, _send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ~~~~~~~~~~~~~~~~~~^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    |     self.gen.throw(value)\n    |     ~~~~~~~~~~~~~~^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 136, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ~~~~~~~~~~~~~~~~~~^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    |     self.gen.throw(value)\n    |     ~~~~~~~~~~~~~~^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 96, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py&amp;quot;, line 88, in __call__\n    |     await self.app(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py&amp;quot;, line 63, in __call__\n    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py&amp;quot;, line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 660, in __call__\n    |     await self.middleware_stack(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 680, in app\n    |     await route.handle(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 276, in handle\n    |     await self.app(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 134, in app\n    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 120, in app\n    |     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 674, in app\n    |     raw_response = await run_endpoint_function(\n    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |     ...&amp;lt;3 lines&amp;gt;...\n    |     )\n    |     ^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 330, in run_endpoint_function\n    |     return await run_in_threadpool(dependant.call, **values)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\concurrency.py&amp;quot;, line 32, in run_in_threadpool\n    |     return await anyio.to_thread.run_sync(func)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\to_thread.py&amp;quot;, line 63, in run_sync\n    |     return await get_async_backend().run_sync_in_worker_thread(\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |         func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |     )\n    |     ^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 2518, in run_sync_in_worker_thread\n    |     return await future\n    |            ^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 1002, in run\n    |     result = context.run(func, *args)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\routers\\medicamento_router.py&amp;quot;, line 69, in registrar_medicamento\n    |     resultado = build_registrar_medicamento_use_case(db).execute(dto, usuario_actual)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 138, in execute\n    |     return self._registrar(dto, usuario_actual)\n    |            ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 266, in _registrar\n    |     fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)\n    |                                               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 1946, in _fallar_timedelta\n    |     raise OverflowError(&amp;quot;Falla simulada calculando fecha_fin_retiro (CU03 FA-09)&amp;quot;)\n    | OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\n    +------------------------------------\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py&amp;quot;, line 164, in __call__\n    await self.app(scope, receive, _send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ~~~~~~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 136, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ~~~~~~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 96, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py&amp;quot;, line 88, in __call__\n    await self.app(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py&amp;quot;, line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py&amp;quot;, line 18, in __call__\n    await self.app(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 660, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 680, in app\n    await route.handle(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 276, in handle\n    await self.app(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 134, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 120, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 674, in app\n    raw_response = await run_endpoint_function(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...&amp;lt;3 lines&amp;gt;...\n    )\n    ^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 330, in run_endpoint_function\n    return await run_in_threadpool(dependant.call, **values)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\concurrency.py&amp;quot;, line 32, in run_in_threadpool\n    return await anyio.to_thread.run_sync(func)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\to_thread.py&amp;quot;, line 63, in run_sync\n    return await get_async_backend().run_sync_in_worker_thread(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 2518, in run_sync_in_worker_thread\n    return await future\n           ^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 1002, in run\n    result = context.run(func, *args)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\routers\\medicamento_router.py&amp;quot;, line 69, in registrar_medicamento\n    resultado = build_registrar_medicamento_use_case(db).execute(dto, usuario_actual)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 138, in execute\n    return self._registrar(dto, usuario_actual)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 266, in _registrar\n    fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)\n                                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 1946, in _fallar_timedelta\n    raise OverflowError(&amp;quot;Falla simulada calculando fecha_fin_retiro (CU03 FA-09)&amp;quot;)\nOverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback&#34;, &#34;duration&#34;: &#34;41 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;41 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.supplies.application.use_cases.suministros.registrar_medicamento_use_case:registrar_medicamento_use_case.py:170 No se pudo registrar en auditor\u00eda el fallo del registro de medicamento del activo 853.\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 138, in execute\n    return self._registrar(dto, usuario_actual)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 314, in _registrar\n    guardado = self.medicamento_repo.guardar(medicamento)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\medicamento_repository.py&amp;quot;, line 129, in guardar\n    raise_from_db_error(exc, _CONFLICTO_DUP)\n    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\db_error_translator.py&amp;quot;, line 439, in raise_from_db_error\n    raise ServiceUnavailableError(\n    ...&amp;lt;6 lines&amp;gt;...\n    )\nsrc.shared.errors.ServiceUnavailableError: El servicio no est\u00e1 disponible temporalmente. Intenta de nuevo en unos momentos.\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\auditoria_suministro_repository.py&amp;quot;, line 62, in registrar\n    self.db.flush()\n    ~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 446, in flush\n    raise self.flush_error\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\medicamento_repository.py&amp;quot;, line 126, in guardar\n    self.db.flush()\n    ~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 446, in flush\n    raise self.flush_error\nsqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to PostgreSQL server lost during flush\n[SQL: INSERT INTO modulo5.registros_medicamentos ...]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 153, in _registrar_incidente\n    self.auditoria_port.registrar(\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        EventoAuditoriaSuministro(\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...&amp;lt;11 lines&amp;gt;...\n        )\n        ^\n    )\n    ^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\auditoria_suministro_repository.py&amp;quot;, line 64, in registrar\n    raise_from_db_error(exc)\n    ~~~~~~~~~~~~~~~~~~~^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\db_error_translator.py&amp;quot;, line 439, in raise_from_db_error\n    raise ServiceUnavailableError(\n    ...&amp;lt;6 lines&amp;gt;...\n    )\nsrc.shared.errors.ServiceUnavailableError: El servicio no est\u00e1 disponible temporalmente. Intenta de nuevo en unos momentos.\nERROR    src.shared.error_handlers:error_handlers.py:94 ServiceUnavailableError [BD_NO_DISPONIBLE] en http://testserver/suministros/medicamentos: OperationalError(&amp;#x27;(psycopg2.OperationalError) connection to PostgreSQL server lost during flush&amp;#x27;)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03a_escenario_a_falla_calculo_fecha_fin_retiro_incidente&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03a_escenario_a_falla_calculo_fecha_fin_retiro_incidente&#34;, &#34;duration&#34;: &#34;61 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03a_escenario_a_falla_calculo_fecha_fin_retiro_incidente&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;61 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.shared.error_handlers:error_handlers.py:371 Error no controlado en http://testserver/suministros/medicamentos [92edb7a5-81b9-4aef-b6fe-a3893f84358a]\n  + Exception Group Traceback (most recent call last):\n  |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 81, in collapse_excgroups\n  |     yield\n  |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 192, in __call__\n  |     async with anyio.create_task_group() as task_group:\n  |                ~~~~~~~~~~~~~~~~~~~~~~~^^\n  |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 799, in __aexit__\n  |     raise BaseExceptionGroup(\n  |         &amp;quot;unhandled errors in a TaskGroup&amp;quot;, self._exceptions\n  |     ) from None\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Traceback (most recent call last):\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py&amp;quot;, line 164, in __call__\n    |     await self.app(scope, receive, _send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ~~~~~~~~~~~~~~~~~~^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    |     self.gen.throw(value)\n    |     ~~~~~~~~~~~~~~^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 136, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ~~~~~~~~~~~~~~~~~~^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    |     self.gen.throw(value)\n    |     ~~~~~~~~~~~~~~^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 96, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py&amp;quot;, line 88, in __call__\n    |     await self.app(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py&amp;quot;, line 63, in __call__\n    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py&amp;quot;, line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 660, in __call__\n    |     await self.middleware_stack(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 680, in app\n    |     await route.handle(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 276, in handle\n    |     await self.app(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 134, in app\n    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    |     raise exc\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 120, in app\n    |     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 674, in app\n    |     raw_response = await run_endpoint_function(\n    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |     ...&amp;lt;3 lines&amp;gt;...\n    |     )\n    |     ^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 330, in run_endpoint_function\n    |     return await run_in_threadpool(dependant.call, **values)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\concurrency.py&amp;quot;, line 32, in run_in_threadpool\n    |     return await anyio.to_thread.run_sync(func)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\to_thread.py&amp;quot;, line 63, in run_sync\n    |     return await get_async_backend().run_sync_in_worker_thread(\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |         func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |     )\n    |     ^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 2518, in run_sync_in_worker_thread\n    |     return await future\n    |            ^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 1002, in run\n    |     result = context.run(func, *args)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\routers\\medicamento_router.py&amp;quot;, line 69, in registrar_medicamento\n    |     resultado = build_registrar_medicamento_use_case(db).execute(dto, usuario_actual)\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 138, in execute\n    |     return self._registrar(dto, usuario_actual)\n    |            ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 266, in _registrar\n    |     fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)\n    |                                               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 2068, in _fallar_timedelta\n    |     raise OverflowError(&amp;quot;Falla simulada calculando fecha_fin_retiro (CU03 FA-09)&amp;quot;)\n    | OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\n    +------------------------------------\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py&amp;quot;, line 164, in __call__\n    await self.app(scope, receive, _send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ~~~~~~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 136, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ~~~~~~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\anaconda3\\Lib\\contextlib.py&amp;quot;, line 162, in __exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_utils.py&amp;quot;, line 87, in collapse_excgroups\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\middlewares.py&amp;quot;, line 96, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py&amp;quot;, line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py&amp;quot;, line 88, in __call__\n    await self.app(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py&amp;quot;, line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py&amp;quot;, line 18, in __call__\n    await self.app(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 660, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 680, in app\n    await route.handle(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\routing.py&amp;quot;, line 276, in handle\n    await self.app(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 134, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 53, in wrapped_app\n    raise exc\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py&amp;quot;, line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 120, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 674, in app\n    raw_response = await run_endpoint_function(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...&amp;lt;3 lines&amp;gt;...\n    )\n    ^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\fastapi\\routing.py&amp;quot;, line 330, in run_endpoint_function\n    return await run_in_threadpool(dependant.call, **values)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\starlette\\concurrency.py&amp;quot;, line 32, in run_in_threadpool\n    return await anyio.to_thread.run_sync(func)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\to_thread.py&amp;quot;, line 63, in run_sync\n    return await get_async_backend().run_sync_in_worker_thread(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 2518, in run_sync_in_worker_thread\n    return await future\n           ^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py&amp;quot;, line 1002, in run\n    result = context.run(func, *args)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\routers\\medicamento_router.py&amp;quot;, line 69, in registrar_medicamento\n    resultado = build_registrar_medicamento_use_case(db).execute(dto, usuario_actual)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 138, in execute\n    return self._registrar(dto, usuario_actual)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 266, in _registrar\n    fecha_fin_retiro = dto.fecha_aplicacion + timedelta(days=dto.periodo_retiro_dias)\n                                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 2068, in _fallar_timedelta\n    raise OverflowError(&amp;quot;Falla simulada calculando fecha_fin_retiro (CU03 FA-09)&amp;quot;)\nOverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03b_escenario_b_error_bd_al_guardar_incidente&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03b_escenario_b_error_bd_al_guardar_incidente&#34;, &#34;duration&#34;: &#34;58 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03b_escenario_b_error_bd_al_guardar_incidente&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;58 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.shared.error_handlers:error_handlers.py:94 ServiceUnavailableError [BD_NO_DISPONIBLE] en http://testserver/suministros/medicamentos: OperationalError(&amp;#x27;(psycopg2.OperationalError) connection to PostgreSQL server lost&amp;#x27;)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03c_escenario_b_tambien_falla_escritura_incidente&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03c_escenario_b_tambien_falla_escritura_incidente&#34;, &#34;duration&#34;: &#34;41 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03c_escenario_b_tambien_falla_escritura_incidente&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;41 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;------------------------------ Captured log call -------------------------------\nERROR    src.supplies.application.use_cases.suministros.registrar_medicamento_use_case:registrar_medicamento_use_case.py:170 No se pudo registrar en auditor\u00eda el fallo del registro de medicamento del activo 853.\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\medicamento_repository.py&amp;quot;, line 126, in guardar\n    self.db.flush()\n    ~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 1118, in flush\n    self._escribir_pendientes()\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 1109, in _escribir_pendientes\n    raise self.bd.fallar_flush_medicamento\nsqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to PostgreSQL server lost\n[SQL: INSERT INTO registros de medicamento (escenario B)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 138, in execute\n    return self._registrar(dto, usuario_actual)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 314, in _registrar\n    guardado = self.medicamento_repo.guardar(medicamento)\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\medicamento_repository.py&amp;quot;, line 129, in guardar\n    raise_from_db_error(exc, _CONFLICTO_DUP)\n    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\db_error_translator.py&amp;quot;, line 439, in raise_from_db_error\n    raise ServiceUnavailableError(\n    ...&amp;lt;6 lines&amp;gt;...\n    )\nsrc.shared.errors.ServiceUnavailableError: El servicio no est\u00e1 disponible temporalmente. Intenta de nuevo en unos momentos.\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\auditoria_suministro_repository.py&amp;quot;, line 61, in registrar\n    self.db.execute(sentencia)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-76\\TC-M05-G18\\test_tc_m05_g18.py&amp;quot;, line 1172, in execute\n    raise self.bd.fallar_insert_auditoria\nsqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to PostgreSQL server lost\n[SQL: INSERT INTO auditoria de suministros (escenario C)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\application\\use_cases\\suministros\\registrar_medicamento_use_case.py&amp;quot;, line 153, in _registrar_incidente\n    self.auditoria_port.registrar(\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        EventoAuditoriaSuministro(\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...&amp;lt;11 lines&amp;gt;...\n        )\n        ^\n    )\n    ^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\supplies\\infrastructure\\repositories\\auditoria_suministro_repository.py&amp;quot;, line 64, in registrar\n    raise_from_db_error(exc)\n    ~~~~~~~~~~~~~~~~~~~^^^^^\n  File &amp;quot;C:\\Users\\Juansegutt\\Integrador\\sgpmp-g18-45c4df37-r1\\src\\shared\\db_error_translator.py&amp;quot;, line 439, in raise_from_db_error\n    raise ServiceUnavailableError(\n    ...&amp;lt;6 lines&amp;gt;...\n    )\nsrc.shared.errors.ServiceUnavailableError: El servicio no est\u00e1 disponible temporalmente. Intenta de nuevo en unos momentos.\nERROR    src.shared.error_handlers:error_handlers.py:94 ServiceUnavailableError [BD_NO_DISPONIBLE] en http://testserver/suministros/medicamentos: OperationalError(&amp;#x27;(psycopg2.OperationalError) connection to PostgreSQL server lost&amp;#x27;)\n\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_obs_s3_400_validacion_sin_incidente&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_obs_s3_400_validacion_sin_incidente&#34;, &#34;duration&#34;: &#34;49 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_obs_s3_400_validacion_sin_incidente&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;49 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_t00_linea_base_sandbox&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_t00_linea_base_sandbox&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_t00_linea_base_sandbox&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad&#34;, &#34;duration&#34;: &#34;00:00:04&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:04&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_t99_inocuidad_post_rollback&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_t99_inocuidad_post_rollback&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_t99_inocuidad_post_rollback&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}]}, &#34;renderCollapsed&#34;: [&#34;passed&#34;], &#34;initialSort&#34;: &#34;result&#34;, &#34;title&#34;: &#34;resultado_TC-M05-G18_reintento1.html&#34;}"></div>
+    <script>
+      (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const { getCollapsedCategory, setCollapsedIds } = require('./storage.js')
+
+class DataManager {
+    setManager(data) {
+        const collapsedCategories = [...getCollapsedCategory(data.renderCollapsed)]
+        const collapsedIds = []
+        const tests = Object.values(data.tests).flat().map((test, index) => {
+            const collapsed = collapsedCategories.includes(test.result.toLowerCase())
+            const id = `test_${index}`
+            if (collapsed) {
+                collapsedIds.push(id)
+            }
+            return {
+                ...test,
+                id,
+                collapsed,
+            }
+        })
+        const dataBlob = { ...data, tests }
+        this.data = { ...dataBlob }
+        this.renderData = { ...dataBlob }
+        setCollapsedIds(collapsedIds)
+    }
+
+    get allData() {
+        return { ...this.data }
+    }
+
+    resetRender() {
+        this.renderData = { ...this.data }
+    }
+
+    setRender(data) {
+        this.renderData.tests = [...data]
+    }
+
+    toggleCollapsedItem(id) {
+        this.renderData.tests = this.renderData.tests.map((test) =>
+            test.id === id ? { ...test, collapsed: !test.collapsed } : test,
+        )
+    }
+
+    set allCollapsed(collapsed) {
+        this.renderData = { ...this.renderData, tests: [...this.renderData.tests.map((test) => (
+            { ...test, collapsed }
+        ))] }
+    }
+
+    get testSubset() {
+        return [...this.renderData.tests]
+    }
+
+    get environment() {
+        return this.renderData.environment
+    }
+
+    get initialSort() {
+        return this.data.initialSort
+    }
+}
+
+module.exports = {
+    manager: new DataManager(),
+}
+
+},{"./storage.js":8}],2:[function(require,module,exports){
+const mediaViewer = require('./mediaviewer.js')
+const templateEnvRow = document.getElementById('template_environment_row')
+const templateResult = document.getElementById('template_results-table__tbody')
+
+function htmlToElements(html) {
+    const temp = document.createElement('template')
+    temp.innerHTML = html
+    return temp.content.childNodes
+}
+
+const find = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return elem.querySelector(selector)
+}
+
+const findAll = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return [...elem.querySelectorAll(selector)]
+}
+
+const dom = {
+    getStaticRow: (key, value) => {
+        const envRow = templateEnvRow.content.cloneNode(true)
+        const isObj = typeof value === 'object' && value !== null
+        const values = isObj ? Object.keys(value).map((k) => `${k}: ${value[k]}`) : null
+
+        const valuesElement = htmlToElements(
+            values ? `<ul>${values.map((val) => `<li>${val}</li>`).join('')}<ul>` : `<div>${value}</div>`)[0]
+        const td = findAll('td', envRow)
+        td[0].textContent = key
+        td[1].appendChild(valuesElement)
+
+        return envRow
+    },
+    getResultTBody: ({ testId, id, log, extras, resultsTableRow, tableHtml, result, collapsed }) => {
+        const resultBody = templateResult.content.cloneNode(true)
+        resultBody.querySelector('tbody').classList.add(result.toLowerCase())
+        resultBody.querySelector('tbody').id = testId
+        resultBody.querySelector('.collapsible').dataset.id = id
+
+        resultsTableRow.forEach((html) => {
+            const t = document.createElement('template')
+            t.innerHTML = html
+            resultBody.querySelector('.collapsible').appendChild(t.content)
+        })
+
+        if (log) {
+            // Wrap lines starting with "E" with span.error to color those lines red
+            const wrappedLog = log.replace(/^E.*$/gm, (match) => `<span class="error">${match}</span>`)
+            resultBody.querySelector('.log').innerHTML = wrappedLog
+        } else {
+            resultBody.querySelector('.log').remove()
+        }
+
+        if (collapsed) {
+            resultBody.querySelector('.collapsible > .col-result')?.classList.add('collapsed')
+            resultBody.querySelector('.extras-row').classList.add('hidden')
+        } else {
+            resultBody.querySelector('.collapsible > .col-result')?.classList.remove('collapsed')
+        }
+
+        const media = []
+        extras?.forEach(({ name, format_type, content }) => {
+            if (['image', 'video'].includes(format_type)) {
+                media.push({ path: content, name, format_type })
+            }
+
+            if (format_type === 'html') {
+                resultBody.querySelector('.extraHTML').insertAdjacentHTML('beforeend', `<div>${content}</div>`)
+            }
+        })
+        mediaViewer.setup(resultBody, media)
+
+        // Add custom html from the pytest_html_results_table_html hook
+        tableHtml?.forEach((item) => {
+            resultBody.querySelector('td[class="extra"]').insertAdjacentHTML('beforeend', item)
+        })
+
+        return resultBody
+    },
+}
+
+module.exports = {
+    dom,
+    htmlToElements,
+    find,
+    findAll,
+}
+
+},{"./mediaviewer.js":6}],3:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const storageModule = require('./storage.js')
+
+const getFilteredSubSet = (filter) =>
+    manager.allData.tests.filter(({ result }) => filter.includes(result.toLowerCase()))
+
+const doInitFilter = () => {
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+}
+
+const doFilter = (type, show) => {
+    if (show) {
+        storageModule.showCategory(type)
+    } else {
+        storageModule.hideCategory(type)
+    }
+
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+
+    const sortColumn = storageModule.getSort()
+    doSort(sortColumn, true)
+}
+
+module.exports = {
+    doFilter,
+    doInitFilter,
+}
+
+},{"./datamanager.js":1,"./sort.js":7,"./storage.js":8}],4:[function(require,module,exports){
+const { redraw, bindEvents, renderStatic } = require('./main.js')
+const { doInitFilter } = require('./filter.js')
+const { doInitSort } = require('./sort.js')
+const { manager } = require('./datamanager.js')
+const data = JSON.parse(document.getElementById('data-container').dataset.jsonblob)
+
+function init() {
+    manager.setManager(data)
+    doInitFilter()
+    doInitSort()
+    renderStatic()
+    redraw()
+    bindEvents()
+}
+
+init()
+
+},{"./datamanager.js":1,"./filter.js":3,"./main.js":5,"./sort.js":7}],5:[function(require,module,exports){
+const { dom, find, findAll } = require('./dom.js')
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const { doFilter } = require('./filter.js')
+const {
+    getVisible,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    getSortDirection,
+    possibleFilters,
+} = require('./storage.js')
+
+const removeChildren = (node) => {
+    while (node.firstChild) {
+        node.removeChild(node.firstChild)
+    }
+}
+
+const renderStatic = () => {
+    const renderEnvironmentTable = () => {
+        const environment = manager.environment
+        const rows = Object.keys(environment).map((key) => dom.getStaticRow(key, environment[key]))
+        const table = document.getElementById('environment')
+        removeChildren(table)
+        rows.forEach((row) => table.appendChild(row))
+    }
+    renderEnvironmentTable()
+}
+
+const addItemToggleListener = (elem) => {
+    elem.addEventListener('click', ({ target }) => {
+        const id = target.parentElement.dataset.id
+        manager.toggleCollapsedItem(id)
+
+        const collapsedIds = getCollapsedIds()
+        if (collapsedIds.includes(id)) {
+            const updated = collapsedIds.filter((item) => item !== id)
+            setCollapsedIds(updated)
+        } else {
+            collapsedIds.push(id)
+            setCollapsedIds(collapsedIds)
+        }
+        redraw()
+    })
+}
+
+const renderContent = (tests) => {
+    const sortAttr = getSort(manager.initialSort)
+    const sortAsc = JSON.parse(getSortDirection())
+    const rows = tests.map(dom.getResultTBody)
+    const table = document.getElementById('results-table')
+    const tableHeader = document.getElementById('results-table-head')
+
+    const newTable = document.createElement('table')
+    newTable.id = 'results-table'
+
+    // remove all sorting classes and set the relevant
+    findAll('.sortable', tableHeader).forEach((elem) => elem.classList.remove('asc', 'desc'))
+    tableHeader.querySelector(`.sortable[data-column-type="${sortAttr}"]`)?.classList.add(sortAsc ? 'desc' : 'asc')
+    newTable.appendChild(tableHeader)
+
+    if (!rows.length) {
+        const emptyTable = document.getElementById('template_results-table__body--empty').content.cloneNode(true)
+        newTable.appendChild(emptyTable)
+    } else {
+        rows.forEach((row) => {
+            if (!!row) {
+                findAll('.collapsible td:not(.col-links', row).forEach(addItemToggleListener)
+                find('.logexpander', row).addEventListener('click',
+                    (evt) => evt.target.parentNode.classList.toggle('expanded'),
+                )
+                newTable.appendChild(row)
+            }
+        })
+    }
+
+    table.replaceWith(newTable)
+}
+
+const renderDerived = () => {
+    const currentFilter = getVisible()
+    possibleFilters.forEach((result) => {
+        const input = document.querySelector(`input[data-test-result="${result}"]`)
+        input.checked = currentFilter.includes(result)
+    })
+}
+
+const bindEvents = () => {
+    const filterColumn = (evt) => {
+        const { target: element } = evt
+        const { testResult } = element.dataset
+
+        doFilter(testResult, element.checked)
+        const collapsedIds = getCollapsedIds()
+        const updated = manager.renderData.tests.map((test) => {
+            return {
+                ...test,
+                collapsed: collapsedIds.includes(test.id),
+            }
+        })
+        manager.setRender(updated)
+        redraw()
+    }
+
+    const header = document.getElementById('environment-header')
+    header.addEventListener('click', () => {
+        const table = document.getElementById('environment')
+        table.classList.toggle('hidden')
+        header.classList.toggle('collapsed')
+    })
+
+    findAll('input[name="filter_checkbox"]').forEach((elem) => {
+        elem.addEventListener('click', filterColumn)
+    })
+
+    findAll('.sortable').forEach((elem) => {
+        elem.addEventListener('click', (evt) => {
+            const { target: element } = evt
+            const { columnType } = element.dataset
+            doSort(columnType)
+            redraw()
+        })
+    })
+
+    document.getElementById('show_all_details').addEventListener('click', () => {
+        manager.allCollapsed = false
+        setCollapsedIds([])
+        redraw()
+    })
+    document.getElementById('hide_all_details').addEventListener('click', () => {
+        manager.allCollapsed = true
+        const allIds = manager.renderData.tests.map((test) => test.id)
+        setCollapsedIds(allIds)
+        redraw()
+    })
+}
+
+const redraw = () => {
+    const { testSubset } = manager
+
+    renderContent(testSubset)
+    renderDerived()
+}
+
+module.exports = {
+    redraw,
+    bindEvents,
+    renderStatic,
+}
+
+},{"./datamanager.js":1,"./dom.js":2,"./filter.js":3,"./sort.js":7,"./storage.js":8}],6:[function(require,module,exports){
+class MediaViewer {
+    constructor(assets) {
+        this.assets = assets
+        this.index = 0
+    }
+
+    nextActive() {
+        this.index = this.index === this.assets.length - 1 ? 0 : this.index + 1
+        return [this.activeFile, this.index]
+    }
+
+    prevActive() {
+        this.index = this.index === 0 ? this.assets.length - 1 : this.index -1
+        return [this.activeFile, this.index]
+    }
+
+    get currentIndex() {
+        return this.index
+    }
+
+    get activeFile() {
+        return this.assets[this.index]
+    }
+}
+
+
+const setup = (resultBody, assets) => {
+    if (!assets.length) {
+        resultBody.querySelector('.media').classList.add('hidden')
+        return
+    }
+
+    const mediaViewer = new MediaViewer(assets)
+    const container = resultBody.querySelector('.media-container')
+    const leftArrow = resultBody.querySelector('.media-container__nav--left')
+    const rightArrow = resultBody.querySelector('.media-container__nav--right')
+    const mediaName = resultBody.querySelector('.media__name')
+    const counter = resultBody.querySelector('.media__counter')
+    const imageEl = resultBody.querySelector('img')
+    const sourceEl = resultBody.querySelector('source')
+    const videoEl = resultBody.querySelector('video')
+
+    const setImg = (media, index) => {
+        if (media?.format_type === 'image') {
+            imageEl.src = media.path
+
+            imageEl.classList.remove('hidden')
+            videoEl.classList.add('hidden')
+        } else if (media?.format_type === 'video') {
+            sourceEl.src = media.path
+
+            videoEl.classList.remove('hidden')
+            imageEl.classList.add('hidden')
+        }
+
+        mediaName.innerText = media?.name
+        counter.innerText = `${index + 1} / ${assets.length}`
+    }
+    setImg(mediaViewer.activeFile, mediaViewer.currentIndex)
+
+    const moveLeft = () => {
+        const [media, index] = mediaViewer.prevActive()
+        setImg(media, index)
+    }
+    const doRight = () => {
+        const [media, index] = mediaViewer.nextActive()
+        setImg(media, index)
+    }
+    const openImg = () => {
+        window.open(mediaViewer.activeFile.path, '_blank')
+    }
+    if (assets.length === 1) {
+        container.classList.add('media-container--fullscreen')
+    } else {
+        leftArrow.addEventListener('click', moveLeft)
+        rightArrow.addEventListener('click', doRight)
+    }
+    imageEl.addEventListener('click', openImg)
+}
+
+module.exports = {
+    setup,
+}
+
+},{}],7:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const storageModule = require('./storage.js')
+
+const genericSort = (list, key, ascending, customOrder) => {
+    let sorted
+    if (customOrder) {
+        sorted = list.sort((a, b) => {
+            const aValue = a.result.toLowerCase()
+            const bValue = b.result.toLowerCase()
+
+            const aIndex = customOrder.findIndex((item) => item.toLowerCase() === aValue)
+            const bIndex = customOrder.findIndex((item) => item.toLowerCase() === bValue)
+
+            // Compare the indices to determine the sort order
+            return aIndex - bIndex
+        })
+    } else {
+        sorted = list.sort((a, b) => a[key] === b[key] ? 0 : a[key] > b[key] ? 1 : -1)
+    }
+
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const durationSort = (list, ascending) => {
+    const parseDuration = (duration) => {
+        if (duration.includes(':')) {
+            // If it's in the format "HH:mm:ss"
+            const [hours, minutes, seconds] = duration.split(':').map(Number)
+            return (hours * 3600 + minutes * 60 + seconds) * 1000
+        } else {
+            // If it's in the format "nnn ms"
+            return parseInt(duration)
+        }
+    }
+    const sorted = list.sort((a, b) => parseDuration(a['duration']) - parseDuration(b['duration']))
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const doInitSort = () => {
+    const type = storageModule.getSort(manager.initialSort)
+    const ascending = storageModule.getSortDirection()
+    const list = manager.testSubset
+    const initialOrder = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed', 'Skipped', 'Passed']
+
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    if (type?.toLowerCase() === 'original') {
+        manager.setRender(list)
+    } else {
+        let sortedList
+        switch (type) {
+        case 'duration':
+            sortedList = durationSort(list, ascending)
+            break
+        case 'result':
+            sortedList = genericSort(list, type, ascending, initialOrder)
+            break
+        default:
+            sortedList = genericSort(list, type, ascending)
+            break
+        }
+        manager.setRender(sortedList)
+    }
+}
+
+const doSort = (type, skipDirection) => {
+    const newSortType = storageModule.getSort(manager.initialSort) !== type
+    const currentAsc = storageModule.getSortDirection()
+    let ascending
+    if (skipDirection) {
+        ascending = currentAsc
+    } else {
+        ascending = newSortType ? false : !currentAsc
+    }
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    const list = manager.testSubset
+    const sortedList = type === 'duration' ? durationSort(list, ascending) : genericSort(list, type, ascending)
+    manager.setRender(sortedList)
+}
+
+module.exports = {
+    doInitSort,
+    doSort,
+}
+
+},{"./datamanager.js":1,"./storage.js":8}],8:[function(require,module,exports){
+const possibleFilters = [
+    'passed',
+    'skipped',
+    'failed',
+    'error',
+    'xfailed',
+    'xpassed',
+    'rerun',
+]
+
+const getVisible = () => {
+    const url = new URL(window.location.href)
+    const settings = new URLSearchParams(url.search).get('visible')
+    const lower = (item) => {
+        const lowerItem = item.toLowerCase()
+        if (possibleFilters.includes(lowerItem)) {
+            return lowerItem
+        }
+        return null
+    }
+    return settings === null ?
+        possibleFilters :
+        [...new Set(settings?.split(',').map(lower).filter((item) => item))]
+}
+
+const hideCategory = (categoryToHide) => {
+    const url = new URL(window.location.href)
+    const visibleParams = new URLSearchParams(url.search).get('visible')
+    const currentVisible = visibleParams ? visibleParams.split(',') : [...possibleFilters]
+    const settings = [...new Set(currentVisible)].filter((f) => f !== categoryToHide).join(',')
+
+    url.searchParams.set('visible', settings)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const showCategory = (categoryToShow) => {
+    if (typeof window === 'undefined') {
+        return
+    }
+    const url = new URL(window.location.href)
+    const currentVisible = new URLSearchParams(url.search).get('visible')?.split(',').filter(Boolean) ||
+        [...possibleFilters]
+    const settings = [...new Set([categoryToShow, ...currentVisible])]
+    const noFilter = possibleFilters.length === settings.length || !settings.length
+
+    noFilter ? url.searchParams.delete('visible') : url.searchParams.set('visible', settings.join(','))
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getSort = (initialSort) => {
+    const url = new URL(window.location.href)
+    let sort = new URLSearchParams(url.search).get('sort')
+    if (!sort) {
+        sort = initialSort || 'result'
+    }
+    return sort
+}
+
+const setSort = (type) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('sort', type)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getCollapsedCategory = (renderCollapsed) => {
+    let categories
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        const collapsedItems = new URLSearchParams(url.search).get('collapsed')
+        switch (true) {
+        case !renderCollapsed && collapsedItems === null:
+            categories = ['passed']
+            break
+        case collapsedItems?.length === 0 || /^["']{2}$/.test(collapsedItems):
+            categories = []
+            break
+        case /^all$/.test(collapsedItems) || collapsedItems === null && /^all$/.test(renderCollapsed):
+            categories = [...possibleFilters]
+            break
+        default:
+            categories = collapsedItems?.split(',').map((item) => item.toLowerCase()) || renderCollapsed
+            break
+        }
+    } else {
+        categories = []
+    }
+    return categories
+}
+
+const getSortDirection = () => JSON.parse(sessionStorage.getItem('sortAsc')) || false
+const setSortDirection = (ascending) => sessionStorage.setItem('sortAsc', ascending)
+
+const getCollapsedIds = () => JSON.parse(sessionStorage.getItem('collapsedIds')) || []
+const setCollapsedIds = (list) => sessionStorage.setItem('collapsedIds', JSON.stringify(list))
+
+module.exports = {
+    getVisible,
+    hideCategory,
+    showCategory,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    setSort,
+    getSortDirection,
+    setSortDirection,
+    getCollapsedCategory,
+    possibleFilters,
+}
+
+},{}]},{},[4]);
+    </script>
+  </footer>
+  <script id="data-jsonblob" type="application/json">{"tc": "TC-M05-G18", "reintento": 1, "summary": {"total": 15, "ok": 15, "falla": 0, "veredicto": "Aprobado"}, "checkpoints": [{"paso": "G18_S1_01", "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.", "obtenido": "activo_estado=3, revert_calls=0, listar_calls=1, vigente_calls=1", "estado": "OK"}, {"paso": "G18_S1_02", "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.", "obtenido": "activo_estado=1, revert_calls=1, commits=1, listar_calls=1", "estado": "OK"}, {"paso": "G18_S1_03a", "esperado": "[RF-76 paso 12 y paso 13; CA-4] Activo EN_TRATAMIENTO con tratamiento VALIDADO, veterinario asignado y fecha_fin_retiro=hoy (2026-11-10): RF-44 se invoca 1 vez, el activo pasa a ACTIVO y hay notificacion INTERNA (bandeja RF-14) de fin de retiro para el Productor del activo y para el Veterinario del tratamiento (>= 1 cada uno), referida a ese activo.", "obtenido": "{\"invocaciones_rf44\": 1, \"estado_final\": 1, \"notificaciones_internas\": [[301, \"Veterinario\", \"42/FIN_PERIODO_RETIRO\", 853], [401, \"Productor\", \"42/FIN_PERIODO_RETIRO\", 853]], \"conteo_por_rol\": {\"Veterinario\": 1, \"Productor\": 1}, \"correos\": [[\"productor.g18@finca.example\", \"=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?=\"], [\"veterinario.g18@finca.example\", \"=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?=\"]], \"iteraciones_job\": 2, \"listar_en_tratamiento_calls\": 1, \"sesiones_job\": [\"job1\", \"job2\", \"job3\"], \"sql_no_reconocido\": [], \"consultas_no_evaluables\": []}", "estado": "OK"}, {"paso": "G18_S1_03b", "esperado": "[RF-76 paso 11, Restricciones 10-11, paso 13] Mismo activo con dos tratamientos (uno vence hoy y otro manana): sigue EN_TRATAMIENTO, RF-44 no lo revierte y hay 0 notificaciones internas de fin de retiro para ese activo.", "obtenido": "{\"invocaciones_rf44\": 0, \"estado_final\": 3, \"notificaciones_internas\": [], \"conteo_por_rol\": {}, \"correos\": [], \"iteraciones_job\": 2, \"listar_en_tratamiento_calls\": 1, \"sesiones_job\": [\"job1\", \"job2\"], \"sql_no_reconocido\": [], \"consultas_no_evaluables\": []}", "estado": "OK"}, {"paso": "G18_S2_01", "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.", "obtenido": "http=500, error_code=ERROR_ESTADO_EN_TRATAMIENTO", "estado": "OK"}, {"paso": "G18_S2_02", "esperado": "Rollback ejecutado (>=1) y 0 registros de medicamento persistidos; medida (reintento): lo confirmado contiene 0 registros de medicamento, 0 cambios de estado y como maximo 1 incidente.", "obtenido": "{\"http\": 500, \"rollbacks\": 3, \"commits_sesion_request\": 1, \"commits_total\": 1, \"confirmados_por_tipo\": {\"registros_medicamento\": 0, \"cambios_estado_activo\": 0, \"auditorias_suministros\": 1}, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.356796+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=ERROR_ESTADO_EN_TRATAMIENTO: El medicamento fue registrado correctamente, pero ocurrió un error al actualizar el estado del activo a EN_TRATAMIENTO. El s\"}]}", "estado": "OK"}, {"paso": "G18_S2_03", "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.", "obtenido": "activo_estado=1, notificaciones_inicio=0", "estado": "OK"}, {"paso": "G18_S3_01", "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio; medida (reintento): lo confirmado contiene 0 registros de medicamento, 0 cambios de estado y como maximo 1 incidente.", "obtenido": "{\"http\": 500, \"error_code\": \"ERROR_INTERNO\", \"rollbacks\": 2, \"timedelta_calls\": 1, \"commits_sesion_request\": 1, \"commits_total\": 1, \"confirmados_por_tipo\": {\"registros_medicamento\": 0, \"cambios_estado_activo\": 0, \"auditorias_suministros\": 1}, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.441820+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\"}]}", "estado": "OK"}, {"paso": "G18_S3_02", "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.", "obtenido": "http=503, error_code=BD_NO_DISPONIBLE, flush_calls=2, rollbacks=4", "estado": "OK"}, {"paso": "G18_S3_03a", "esperado": "[TC-M05-G18 esperado 3 / CU03 FA-09, FA-13; RF-76 E10] Escenario A (error al calcular fecha_fin_retiro): 5xx con error_code y sin traza en el cuerpo; en la secuencia observada, rollback() de la operacion ANTES del alta del incidente y commit() del incidente DESPUES; lo confirmado contiene 0 registros de medicamento, 0 cambios de estado del activo y 0 eventos de exito; EXACTAMENTE 1 incidente con tipo_operacion no nulo, resultado de fallo y fecha_emision no nula (RF-80 Restriccion 8).", "obtenido": "{\"http\": 500, \"error_code\": \"ERROR_INTERNO\", \"confirmados_por_tipo\": {\"auditorias_suministros\": 1, \"cambios_estado_activo\": 0}, \"registros_medicamento_confirmados\": 0, \"cambios_estado_confirmados\": 0, \"estado_activo\": 1, \"rf44_marcados\": 0, \"eventos_exito_confirmados\": 0, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.728222+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)\", \"sesion\": \"req\", \"id_sesion\": 2257442063184, \"indice_insert\": 1, \"indice_commit\": 3}], \"id_sesion_request\": 2257442063184, \"indices_rollback_req\": [0, 4], \"secuencia\": [\"0:rollback(req)\", \"1:execute:insert_auditorias_suministros(req)\", \"2:flush(req)\", \"3:commit(req)\", \"4:rollback(req)\", \"5:close(req)\"], \"sesiones_abiertas\": [\"req\"], \"correos_enviados\": 0, \"sql_no_reconocido\": [], \"calculos_fecha_fin_retiro_fallidos\": 1}", "estado": "OK"}, {"paso": "G18_S3_03b", "esperado": "[TC-M05-G18 esperado 3 / CU03 FA-09, FA-13; RF-76 E10] Escenario B (OperationalError al guardar el registro): 5xx con error_code y sin traza en el cuerpo; en la secuencia observada, rollback() de la operacion ANTES del alta del incidente y commit() del incidente DESPUES; lo confirmado contiene 0 registros de medicamento, 0 cambios de estado del activo y 0 eventos de exito; EXACTAMENTE 1 incidente con tipo_operacion no nulo, resultado de fallo y fecha_emision no nula (RF-80 Restriccion 8).", "obtenido": "{\"http\": 503, \"error_code\": \"BD_NO_DISPONIBLE\", \"confirmados_por_tipo\": {\"auditorias_suministros\": 1, \"cambios_estado_activo\": 0}, \"registros_medicamento_confirmados\": 0, \"cambios_estado_confirmados\": 0, \"estado_activo\": 1, \"rf44_marcados\": 0, \"eventos_exito_confirmados\": 0, \"incidentes_confirmados\": 1, \"incidentes\": [{\"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"FALLIDO\", \"fecha_emision\": \"2026-11-13 20:16:14.801655+00:00\", \"id_activo\": 853, \"id_registro_suministro\": \"no mapeada en el modelo\", \"registro_incompleto\": false, \"detalle_causa\": \"Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=BD_NO_DISPONIBLE: El servicio no está disponible temporalmente. Intenta de nuevo en unos momentos.\", \"sesion\": \"req\", \"id_sesion\": 2257442067536, \"indice_insert\": 4, \"indice_commit\": 6}], \"id_sesion_request\": 2257442067536, \"indices_rollback_req\": [2, 3, 7], \"secuencia\": [\"0:add:RegistroMedicamentoModel(req)\", \"1:flush(req)\", \"2:rollback(req)\", \"3:rollback(req)\", \"4:execute:insert_auditorias_suministros(req)\", \"5:flush(req)\", \"6:commit(req)\", \"7:rollback(req)\", \"8:close(req)\"], \"sesiones_abiertas\": [\"req\"], \"correos_enviados\": 0, \"sql_no_reconocido\": [], \"flush_con_registro_intentado\": true}", "estado": "OK"}, {"paso": "G18_S3_03c", "esperado": "[CU03 FA-13: se informa el error al usuario] Escenario B con fallo tambien en la escritura del incidente: la respuesta sigue siendo 5xx con error_code (no se pierde ni cambia por una excepcion del escritor), sin traza en el cuerpo y sin registro persistido.", "obtenido": "{\"http\": 503, \"error_code\": \"BD_NO_DISPONIBLE\", \"confirmados_por_tipo\": {\"auditorias_suministros\": 0, \"cambios_estado_activo\": 0}, \"registros_medicamento_confirmados\": 0, \"cambios_estado_confirmados\": 0, \"estado_activo\": 1, \"rf44_marcados\": 0, \"eventos_exito_confirmados\": 0, \"incidentes_confirmados\": 0, \"incidentes\": [], \"id_sesion_request\": 2257442344784, \"indices_rollback_req\": [2, 3, 5, 6], \"secuencia\": [\"0:add:RegistroMedicamentoModel(req)\", \"1:flush(req)\", \"2:rollback(req)\", \"3:rollback(req)\", \"4:execute:insert_auditorias_suministros(req)\", \"5:rollback(req)\", \"6:rollback(req)\", \"7:close(req)\"], \"sesiones_abiertas\": [\"req\"], \"correos_enviados\": 0, \"sql_no_reconocido\": [], \"intentos_escritura_incidente\": 1}", "estado": "OK"}, {"paso": "G18_T00", "esperado": "[Regla sandbox / inocuidad] Corrida aparte de solo lectura: total y ultimo id de GET /suministros/auditoria capturados; cierre DELETE -> 200.", "obtenido": "{\"auditoria_total\": 72935, \"auditoria_ultimo_id\": 80474, \"run_id\": \"tc-m05-g18-t00-64059cc7\", \"tipo_42\": [{\"id_tipo_evento\": 42, \"nombre\": \"FIN_PERIODO_RETIRO\", \"accion\": \"Fin del periodo de retiro de un medicamento\", \"categoria\": \"MODIFICACION\"}], \"tipo_42_presente_en_TEST\": \"si\", \"catalogo_http\": 200} | HTTP: POST /sesiones/ -> 200 [X-Request-Id=f998476c-e5d6-4f1c-8547-1a7689a94365]; GET /suministros/auditoria -> 200 [X-Request-Id=01240909-968c-46db-8eca-b97a86646150]; GET /auditoria/catalogo/tipos-evento -> 200 [X-Request-Id=34e19606-aa5a-4f0b-af1b-955347eb0cc3]; DELETE /test-control/runs/tc-m05-g18-t00-64059cc7 -> 200 [X-Request-Id=6525e649-cb4a-45b6-9e5e-464526e9c649]", "estado": "OK"}, {"paso": "G18_R_01", "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.", "obtenido": "{\"run1\": \"tc-m05-g18-r01-696bb625\", \"total_rango_base\": 112, \"activo_creado\": 2423, \"post_Hoy_http\": 201, \"post_Hoy\": {\"estado_registro\": \"VALIDADO\", \"periodo_retiro_dias\": 0, \"fecha_fin_retiro\": null}, \"post_D6_http\": 201, \"post_D6\": {\"estado_registro\": \"VALIDADO\", \"periodo_retiro_dias\": 0, \"fecha_fin_retiro\": null}, \"medicamentos_creados\": [278, 279], \"total_activo_en_sandbox\": 2, \"id_estado_activo\": 1, \"run2\": \"tc-m05-g18-r01b-cccdd75d\", \"total_rango_post_rollback\": 112} | HTTP: POST /sesiones/ -> 200 [X-Request-Id=9ba733d7-a03b-4a77-a145-8c33f710d25f]; GET /suministros/medicamentos -> 200 [X-Request-Id=295e7c59-a69c-4655-b475-aee3b35da006]; POST /activos-biologicos -> 201 [X-Request-Id=79010cb8-a574-43f6-bef2-2020d5bd2e1f]; POST /activos-biologicos/2423/fases -> 201 [X-Request-Id=2662d89e-bd81-439d-bd6c-e03931a8c2fa]; POST /suministros/medicamentos -> 201 [X-Request-Id=6c971a36-e8c5-46fc-80e9-a493686f4ddd]; POST /suministros/medicamentos -> 201 [X-Request-Id=bd781aa9-0ce9-4d06-b663-23999534e23e]; GET /suministros/medicamentos -> 200 [X-Request-Id=91ae2ec8-453c-46a6-aae5-a676e1220f65]; GET /activos-biologicos/2423 -> 200 [X-Request-Id=7e2607ff-ec35-4ddc-b4d3-d208488a25a8]; DELETE /test-control/runs/tc-m05-g18-r01-696bb625 -> 200 [X-Request-Id=45995a77-c6a6-4464-85be-ca10357f09a4]; POST /sesiones/ -> 200 [X-Request-Id=1936cc65-0660-4154-88d0-64ff16248882]; GET /suministros/medicamentos -> 200 [X-Request-Id=5f0c062f-8d41-4246-90ea-b3bc40698e57]; DELETE /test-control/runs/tc-m05-g18-r01b-cccdd75d -> 200 [X-Request-Id=da66860d-6322-417b-96b4-1433776ef3a0]", "estado": "OK"}, {"paso": "G18_T99", "esperado": "[Regla sandbox / inocuidad] Corrida aparte de solo lectura: total y ultimo id de GET /suministros/auditoria iguales a T00; GET del activo creado -> 404 y medicamentos creados ausentes; cierre DELETE -> 200.", "obtenido": "{\"auditoria_total\": 72935, \"auditoria_ultimo_id\": 80474, \"run_id\": \"tc-m05-g18-t99-f4d12573\", \"auditoria_total_T00\": 72935, \"auditoria_ultimo_id_T00\": 80474, \"get_activo_creado_http\": 404, \"get_medicamentos_rango_http\": 200, \"medicamentos_creados_visibles\": []} | HTTP: POST /sesiones/ -> 200 [X-Request-Id=26edae01-dcf9-4328-b8ce-067da3eeb33c]; GET /suministros/auditoria -> 200 [X-Request-Id=83924f30-faf1-4aa7-9438-b9b593aabcf4]; GET /activos-biologicos/2423 -> 404 (ACTIVO_NO_ENCONTRADO) [X-Request-Id=7d8f5f46-834e-448b-b644-9974376ee7b8]; GET /suministros/medicamentos -> 200 [X-Request-Id=1a87c5ed-0af4-4ec3-9483-2f9f706eccb1]; DELETE /test-control/runs/tc-m05-g18-t99-f4d12573 -> 200 [X-Request-Id=00bba089-8c7e-4bb3-8d69-3537f34c3e0a]", "estado": "OK"}], "observaciones": [{"observacion": "S1_correo_fin_retiro_destinatarios", "datos": {"correos": [["productor.g18@finca.example", "=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?="], ["veterinario.g18@finca.example", "=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?="]]}, "timestamp": "2026-11-13T15:16:14.210089-05:00"}, {"observacion": "S1_tratamiento_sin_veterinario", "datos": {"invocaciones_rf44": 1, "estado_final": 1, "notificaciones_internas": [[302, "Veterinario", "42/FIN_PERIODO_RETIRO", 853], [401, "Productor", "42/FIN_PERIODO_RETIRO", 853]], "conteo_por_rol": {"Veterinario": 1, "Productor": 1}, "correos": [["productor.g18@finca.example", "=?utf-8?q?Fin_de_per=C3=ADodo_de_retiro?="]], "iteraciones_job": 2, "listar_en_tratamiento_calls": 1, "sesiones_job": ["job1", "job2", "job3"], "sql_no_reconocido": [], "consultas_no_evaluables": [], "veterinarios_de_la_finca_en_bd": [302]}, "timestamp": "2026-11-13T15:16:14.280379-05:00"}, {"observacion": "S3_A_sesion_del_incidente", "datos": {"nota": "el incidente usa la misma sesion de la request; si la conexion esta caida no se puede escribir", "id_sesion_request": 2257442063184, "sesiones_del_incidente": [["req", 2257442063184]], "sesiones_abiertas": ["req"], "registro_incompleto_y_detalle_causa": [[false, "Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=OverflowError: Falla simulada calculando fecha_fin_retiro (CU03 FA-09)"]]}, "timestamp": "2026-11-13T15:16:14.759989-05:00"}, {"observacion": "S3_B_sesion_del_incidente", "datos": {"nota": "el incidente usa la misma sesion de la request; si la conexion esta caida no se puede escribir", "id_sesion_request": 2257442067536, "sesiones_del_incidente": [["req", 2257442067536]], "sesiones_abiertas": ["req"], "registro_incompleto_y_detalle_causa": [[false, "Registro de medicamento revertido por un error técnico: medicamento=Oxitetraciclina 20%; fecha_aplicacion=2026-11-13; periodo_retiro_dias=5; error=BD_NO_DISPONIBLE: El servicio no está disponible temporalmente. Intenta de nuevo en unos momentos."]]}, "timestamp": "2026-11-13T15:16:14.819016-05:00"}, {"observacion": "S3_400_validacion", "datos": {"validacion_entrada": {"http": 400, "error_code": "VAL_ENTRADA", "confirmados_por_tipo": {"auditorias_suministros": 0, "cambios_estado_activo": 0}, "registros_medicamento_confirmados": 0, "cambios_estado_confirmados": 0, "estado_activo": 1, "rf44_marcados": 0, "eventos_exito_confirmados": 0, "incidentes_confirmados": 0, "incidentes": [], "id_sesion_request": 2257442349584, "indices_rollback_req": [0], "secuencia": ["0:rollback(req)", "1:close(req)"], "sesiones_abiertas": ["req"], "correos_enviados": 0, "sql_no_reconocido": []}, "fecha_futura": {"http": 400, "error_code": "FECHA_FUTURA", "confirmados_por_tipo": {"auditorias_suministros": 0, "cambios_estado_activo": 0}, "registros_medicamento_confirmados": 0, "cambios_estado_confirmados": 0, "estado_activo": 1, "rf44_marcados": 0, "eventos_exito_confirmados": 0, "incidentes_confirmados": 0, "incidentes": [], "id_sesion_request": 2257441872080, "indices_rollback_req": [0], "secuencia": ["0:rollback(req)", "1:close(req)"], "sesiones_abiertas": ["req"], "correos_enviados": 0, "sql_no_reconocido": []}}, "timestamp": "2026-11-13T15:16:14.926373-05:00"}, {"observacion": "TEST_tipo_42_presente", "datos": {"tipo 42 presente en TEST": "si", "http": 200, "x_request_id": "34e19606-aa5a-4f0b-af1b-955347eb0cc3", "fila": [{"id_tipo_evento": 42, "nombre": "FIN_PERIODO_RETIRO", "accion": "Fin del periodo de retiro de un medicamento", "categoria": "MODIFICACION"}]}, "timestamp": "2026-11-13T15:16:17.009754-05:00"}], "tests_de_observacion": {"test_g18_obs_s1_tratamiento_sin_veterinario": "OK", "test_g18_obs_s3_400_validacion_sin_incidente": "OK"}, "fallas": []}</script></body>
+</html>

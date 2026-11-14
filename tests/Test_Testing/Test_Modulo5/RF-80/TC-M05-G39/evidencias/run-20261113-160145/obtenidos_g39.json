@@ -1,0 +1,560 @@
+{
+  "test_a01_incompletos_con_causa": {
+    "ultimo_id_inicio_corrida": 80474,
+    "estimulo_i": {
+      "id_activo": 2427,
+      "http": 409,
+      "error_code": "CICLO_NO_ACTIVO",
+      "x_request_id": "0ff78033-5331-42ed-8b32-3bf9cc503b1c",
+      "latencia_s": 0.489
+    },
+    "eventos_i": [
+      {
+        "id_auditoria_suministro": 80507,
+        "entidad_afectada": "registro_suministro",
+        "tipo_operacion": "REGISTRO_FALLIDO",
+        "resultado": "RECHAZADO",
+        "fecha_emision": "2026-11-13T21:01:54.083285Z",
+        "id_activo_biologico": 2427,
+        "id_ciclo_productivo": null,
+        "registro_incompleto": true,
+        "detalle_causa": "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2427. Solicitud: ecc1b56a-fe5d-470b-9c98-d89b254aff93. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo."
+      }
+    ],
+    "cierre_b": {
+      "id_activo": 2428,
+      "http": 200,
+      "x_request_id": "99c21966-1436-4af0-8721-7eebd8afc1dd"
+    },
+    "estimulo_ii": {
+      "id_objetivo": 80507,
+      "http": 405,
+      "allow": "GET",
+      "x_request_id": "0131ca87-f1fc-4fbb-bc91-5ad9c8fa0112"
+    },
+    "eventos_ii": [
+      {
+        "id_auditoria_suministro": 80514,
+        "entidad_afectada": "auditorias_suministros",
+        "tipo_operacion": "UPDATE",
+        "resultado": "RECHAZADO",
+        "fecha_emision": "2026-11-13T21:01:55.983085Z",
+        "id_activo_biologico": null,
+        "id_ciclo_productivo": null,
+        "registro_incompleto": true,
+        "detalle_causa": "Se rechazó una solicitud de actualización parcial del registro 80507 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo."
+      }
+    ],
+    "eventos_nuevos": [
+      {
+        "id_auditoria_suministro": 80507,
+        "entidad_afectada": "registro_suministro",
+        "tipo_operacion": "REGISTRO_FALLIDO",
+        "resultado": "RECHAZADO",
+        "fecha_emision": "2026-11-13T21:01:54.083285Z",
+        "id_activo_biologico": 2427,
+        "id_ciclo_productivo": null,
+        "registro_incompleto": true,
+        "detalle_causa": "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2427. Solicitud: ecc1b56a-fe5d-470b-9c98-d89b254aff93. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo."
+      },
+      {
+        "id_auditoria_suministro": 80508,
+        "entidad_afectada": "registro_suministro",
+        "tipo_operacion": "SUMINISTRO_REGISTRADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:54.878517Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      {
+        "id_auditoria_suministro": 80509,
+        "entidad_afectada": "registro_suministro",
+        "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:54.878517Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      {
+        "id_auditoria_suministro": 80510,
+        "entidad_afectada": "registro_suministro",
+        "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:54.878517Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      {
+        "id_auditoria_suministro": 80511,
+        "entidad_afectada": "resultado_ica",
+        "tipo_operacion": "INSERT",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:55.302253Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      {
+        "id_auditoria_suministro": 80512,
+        "entidad_afectada": "provision_nic41",
+        "tipo_operacion": "CICLO_CONSOLIDADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:55.347600Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      {
+        "id_auditoria_suministro": 80513,
+        "entidad_afectada": "provision_nic41",
+        "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:55.351764Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      {
+        "id_auditoria_suministro": 80514,
+        "entidad_afectada": "auditorias_suministros",
+        "tipo_operacion": "UPDATE",
+        "resultado": "RECHAZADO",
+        "fecha_emision": "2026-11-13T21:01:55.983085Z",
+        "id_activo_biologico": null,
+        "id_ciclo_productivo": null,
+        "registro_incompleto": true,
+        "detalle_causa": "Se rechazó una solicitud de actualización parcial del registro 80507 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo."
+      }
+    ],
+    "conteos": {
+      "eventos_nuevos": 8,
+      "con_campos_base_nulos": 0,
+      "sin_activo_o_sin_ciclo": 2,
+      "sin_contexto_que_incumplen": 0
+    },
+    "consolidacion": {
+      "CICLO_CONSOLIDADO": {
+        "id_auditoria_suministro": 80512,
+        "entidad_afectada": "provision_nic41",
+        "tipo_operacion": "CICLO_CONSOLIDADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:55.347600Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      },
+      "REPORTE_COSTOS_GENERADO": {
+        "id_auditoria_suministro": 80513,
+        "entidad_afectada": "provision_nic41",
+        "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:55.351764Z",
+        "id_activo_biologico": 2428,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      }
+    }
+  },
+  "test_a02_emisores_contexto_completo": {
+    "ultimo_id_inicio_a02": 80514,
+    "activo": 2429,
+    "fases_activas": [
+      1000
+    ],
+    "rf78": {
+      "http": 200,
+      "x_request_id": "5c995796-d0f0-4efd-89e7-9d3f8f0f78f6",
+      "eventos": [
+        {
+          "id_auditoria_suministro": 80515,
+          "entidad_afectada": "registro_suministro",
+          "tipo_operacion": "SUMINISTRO_REGISTRADO",
+          "resultado": "EXITOSO",
+          "fecha_emision": "2026-11-13T21:01:58.270173Z",
+          "id_activo_biologico": 2429,
+          "id_ciclo_productivo": 1,
+          "registro_incompleto": false,
+          "detalle_causa": null
+        }
+      ]
+    },
+    "ciclo_referencia_rf78": 1,
+    "consumo": {
+      "http": 201,
+      "x_request_id": "7052871a-6f1c-4c9c-ad48-4d7c0c91ae12"
+    },
+    "medicamento": {
+      "http": 201,
+      "x_request_id": "639ffb44-b627-4085-87ab-5f33276e8b52"
+    },
+    "cierre": {
+      "http": 200,
+      "x_request_id": "4dcb0ac4-30ff-4327-bae3-510e0146af9e"
+    },
+    "por_entidad": {
+      "consumo": [
+        {
+          "id_auditoria_suministro": 80518,
+          "entidad_afectada": "registros_consumo_alimentos",
+          "tipo_operacion": "INSERT",
+          "resultado": "EXITOSO",
+          "fecha_emision": "2026-11-13T21:01:58.795145Z",
+          "id_activo_biologico": 2429,
+          "id_ciclo_productivo": 1,
+          "registro_incompleto": false,
+          "detalle_causa": null
+        }
+      ],
+      "medicamento": [
+        {
+          "id_auditoria_suministro": 80521,
+          "entidad_afectada": "registros_medicamentos",
+          "tipo_operacion": "INSERT",
+          "resultado": "EXITOSO",
+          "fecha_emision": "2026-11-13T21:01:58.970645Z",
+          "id_activo_biologico": 2429,
+          "id_ciclo_productivo": 1,
+          "registro_incompleto": false,
+          "detalle_causa": null
+        }
+      ],
+      "resultado_ica": [
+        {
+          "id_auditoria_suministro": 80524,
+          "entidad_afectada": "resultado_ica",
+          "tipo_operacion": "INSERT",
+          "resultado": "EXITOSO",
+          "fecha_emision": "2026-11-13T21:01:59.209907Z",
+          "id_activo_biologico": 2429,
+          "id_ciclo_productivo": 1,
+          "registro_incompleto": false,
+          "detalle_causa": null
+        }
+      ]
+    },
+    "incumplen": [],
+    "resultado_ica_insert": [
+      {
+        "id_auditoria_suministro": 80524,
+        "entidad_afectada": "resultado_ica",
+        "tipo_operacion": "INSERT",
+        "resultado": "EXITOSO",
+        "fecha_emision": "2026-11-13T21:01:59.209907Z",
+        "id_activo_biologico": 2429,
+        "id_ciclo_productivo": 1,
+        "registro_incompleto": false,
+        "detalle_causa": null
+      }
+    ],
+    "detalle_resultado_ica": [
+      {
+        "id": 80524,
+        "http": 200,
+        "x_request_id": "877591f7-1516-4497-810b-2156dfd15b43",
+        "campos_distintos": {}
+      }
+    ]
+  },
+  "test_a03_filtro_activo_ciclo_orden_emision": {
+    "parametros": {
+      "id_activo_biologico": 2429,
+      "id_ciclo_productivo": 1,
+      "ordenar_por": "fecha_emision",
+      "pagina": 1,
+      "registros_por_pagina": 100
+    },
+    "http": 200,
+    "x_request_id": "d0652154-33fb-4d45-a27a-165282fbf036",
+    "total": 12,
+    "lista": [
+      [
+        80526,
+        "provision_nic41",
+        "2026-11-13T21:01:59.247423Z"
+      ],
+      [
+        80525,
+        "provision_nic41",
+        "2026-11-13T21:01:59.244567Z"
+      ],
+      [
+        80524,
+        "resultado_ica",
+        "2026-11-13T21:01:59.209907Z"
+      ],
+      [
+        80523,
+        "registro_suministro",
+        "2026-11-13T21:01:58.988807Z"
+      ],
+      [
+        80522,
+        "registro_suministro",
+        "2026-11-13T21:01:58.988807Z"
+      ],
+      [
+        80521,
+        "registros_medicamentos",
+        "2026-11-13T21:01:58.970645Z"
+      ],
+      [
+        80520,
+        "registro_suministro",
+        "2026-11-13T21:01:58.817363Z"
+      ],
+      [
+        80519,
+        "registro_suministro",
+        "2026-11-13T21:01:58.817363Z"
+      ],
+      [
+        80518,
+        "registros_consumo_alimentos",
+        "2026-11-13T21:01:58.795145Z"
+      ],
+      [
+        80517,
+        "registro_suministro",
+        "2026-11-13T21:01:58.270173Z"
+      ],
+      [
+        80516,
+        "registro_suministro",
+        "2026-11-13T21:01:58.270173Z"
+      ],
+      [
+        80515,
+        "registro_suministro",
+        "2026-11-13T21:01:58.270173Z"
+      ]
+    ],
+    "esperados_de_a02": [
+      80515,
+      80516,
+      80517,
+      80518,
+      80519,
+      80520,
+      80521,
+      80522,
+      80523,
+      80524,
+      80525,
+      80526
+    ],
+    "faltan": [],
+    "sin_fecha_emision": [],
+    "direccion_detectada": "NO_CRECIENTE",
+    "posiciones": {
+      "resultado_ica": 2,
+      "rf78": 11
+    },
+    "fecha_emision": {
+      "resultado_ica": "2026-11-13T21:01:59.209907+00:00",
+      "rf78": "2026-11-13T21:01:58.270173+00:00"
+    }
+  },
+  "test_b03_recalculo_hash": {
+    "claves no columna excluidas": [
+      "nombre_activo",
+      "nombre_usuario"
+    ],
+    "evaluados_v2": [
+      {
+        "id": 80507,
+        "entidad": "registro_suministro",
+        "almacenado": "ad24a71e60acdecf2c42f4f0ebff1b92de2b243e0abe93e0147a5b95392f248b",
+        "recalculado": "ad24a71e60acdecf2c42f4f0ebff1b92de2b243e0abe93e0147a5b95392f248b",
+        "coincide": true
+      },
+      {
+        "id": 80508,
+        "entidad": "registro_suministro",
+        "almacenado": "7da9b7cf1880c0fb1523acc720e22da332a15815929f5047f9672ef6e0deb3a9",
+        "recalculado": "7da9b7cf1880c0fb1523acc720e22da332a15815929f5047f9672ef6e0deb3a9",
+        "coincide": true
+      },
+      {
+        "id": 80509,
+        "entidad": "registro_suministro",
+        "almacenado": "45045884791ed5296b80c10a11b715d5e2606c875022d0b301a4a82495e3d1dc",
+        "recalculado": "45045884791ed5296b80c10a11b715d5e2606c875022d0b301a4a82495e3d1dc",
+        "coincide": true
+      },
+      {
+        "id": 80510,
+        "entidad": "registro_suministro",
+        "almacenado": "c8675c881f9b312f2f6e345624fd5462ca680d042f5a8d18a8d75b7d8293ea79",
+        "recalculado": "c8675c881f9b312f2f6e345624fd5462ca680d042f5a8d18a8d75b7d8293ea79",
+        "coincide": true
+      },
+      {
+        "id": 80512,
+        "entidad": "provision_nic41",
+        "almacenado": "b09b8123862c0fd00d237c92c21114ffd7c47351b62ba782ded1ed13159b35f3",
+        "recalculado": "b09b8123862c0fd00d237c92c21114ffd7c47351b62ba782ded1ed13159b35f3",
+        "coincide": true
+      },
+      {
+        "id": 80513,
+        "entidad": "provision_nic41",
+        "almacenado": "1a804d117d65f8144d59de505d547acc98b1b70e9b3533ad8a80254b9f187554",
+        "recalculado": "1a804d117d65f8144d59de505d547acc98b1b70e9b3533ad8a80254b9f187554",
+        "coincide": true
+      },
+      {
+        "id": 80514,
+        "entidad": "auditorias_suministros",
+        "almacenado": "c91dc90374ace3b4360897df40d72bbe7556ab91701f03c84d2698ae7bb46260",
+        "recalculado": "c91dc90374ace3b4360897df40d72bbe7556ab91701f03c84d2698ae7bb46260",
+        "coincide": true
+      },
+      {
+        "id": 80515,
+        "entidad": "registro_suministro",
+        "almacenado": "074c39441740ef005ee37f14468abd50119b5ca790cded0c5f200e0eeb0cca20",
+        "recalculado": "074c39441740ef005ee37f14468abd50119b5ca790cded0c5f200e0eeb0cca20",
+        "coincide": true
+      },
+      {
+        "id": 80516,
+        "entidad": "registro_suministro",
+        "almacenado": "d73e26dca13228b36432aacd883c3ca645b2be0bcb185d2c3af033b353628ac6",
+        "recalculado": "d73e26dca13228b36432aacd883c3ca645b2be0bcb185d2c3af033b353628ac6",
+        "coincide": true
+      },
+      {
+        "id": 80517,
+        "entidad": "registro_suministro",
+        "almacenado": "a7217e2437a04e316dfd2f4699e0d582e27b3ff0287253d1308e0085d7d4e1dd",
+        "recalculado": "a7217e2437a04e316dfd2f4699e0d582e27b3ff0287253d1308e0085d7d4e1dd",
+        "coincide": true
+      },
+      {
+        "id": 80519,
+        "entidad": "registro_suministro",
+        "almacenado": "ed0a41e9b5ae88533796ee66d4a0da622ffb7a7be472c34c77fe620aefccf2f1",
+        "recalculado": "ed0a41e9b5ae88533796ee66d4a0da622ffb7a7be472c34c77fe620aefccf2f1",
+        "coincide": true
+      },
+      {
+        "id": 80520,
+        "entidad": "registro_suministro",
+        "almacenado": "f31e45d3365d06cb5c1f6e90510e5354f38fb92cab8ef0a588dc75c4df9bcafe",
+        "recalculado": "f31e45d3365d06cb5c1f6e90510e5354f38fb92cab8ef0a588dc75c4df9bcafe",
+        "coincide": true
+      },
+      {
+        "id": 80522,
+        "entidad": "registro_suministro",
+        "almacenado": "baf03068d594b4a97d20afe0aa74078cd23392ce896e58b7ced425c55c8fb214",
+        "recalculado": "baf03068d594b4a97d20afe0aa74078cd23392ce896e58b7ced425c55c8fb214",
+        "coincide": true
+      },
+      {
+        "id": 80523,
+        "entidad": "registro_suministro",
+        "almacenado": "5f2ccf1bb555071b7742dcb6c743e5873bf2297dd0a51159b4895fb856ce2a07",
+        "recalculado": "5f2ccf1bb555071b7742dcb6c743e5873bf2297dd0a51159b4895fb856ce2a07",
+        "coincide": true
+      },
+      {
+        "id": 80525,
+        "entidad": "provision_nic41",
+        "almacenado": "882a37b55f716471579f63d38763a932427a8923dddbf24a1983415debb49f27",
+        "recalculado": "882a37b55f716471579f63d38763a932427a8923dddbf24a1983415debb49f27",
+        "coincide": true
+      },
+      {
+        "id": 80526,
+        "entidad": "provision_nic41",
+        "almacenado": "ff6908200ecb969462b808d59ddc9f60446b63ab675a03328974bc4aece40873",
+        "recalculado": "ff6908200ecb969462b808d59ddc9f60446b63ab675a03328974bc4aece40873",
+        "coincide": true
+      },
+      {
+        "id": 80527,
+        "entidad": "auditorias_suministros",
+        "almacenado": "4df09cac7a907daa626064c4b73fe8b90afe715dade68759dd1b6a50ccb34dea",
+        "recalculado": "4df09cac7a907daa626064c4b73fe8b90afe715dade68759dd1b6a50ccb34dea",
+        "coincide": true
+      },
+      {
+        "id": 80528,
+        "entidad": "auditorias_suministros",
+        "almacenado": "a40abc450c2bdb3d1d72c2d8027b162b18ea956e541e498d9d1be741a05a3a7a",
+        "recalculado": "a40abc450c2bdb3d1d72c2d8027b162b18ea956e541e498d9d1be741a05a3a7a",
+        "coincide": true
+      },
+      {
+        "id": 80529,
+        "entidad": "auditorias_suministros",
+        "almacenado": "3f98735bcc6e0db2bad0c32d637cf498a8c5ba24c1885834cfda3086850d0a47",
+        "recalculado": "3f98735bcc6e0db2bad0c32d637cf498a8c5ba24c1885834cfda3086850d0a47",
+        "coincide": true
+      },
+      {
+        "id": 80530,
+        "entidad": "auditorias_suministros",
+        "almacenado": "fd29aebfbdd58b6bd716743eca72b4e2b214ee9913fe116237bfa6a8923f5854",
+        "recalculado": "fd29aebfbdd58b6bd716743eca72b4e2b214ee9913fe116237bfa6a8923f5854",
+        "coincide": true
+      },
+      {
+        "id": 80531,
+        "entidad": "auditorias_suministros",
+        "almacenado": "132e23c2da754f0e4d4cc22d0d88ef602d1d97b71097f27a085ef7819089fbd3",
+        "recalculado": "132e23c2da754f0e4d4cc22d0d88ef602d1d97b71097f27a085ef7819089fbd3",
+        "coincide": true
+      },
+      {
+        "id": 80532,
+        "entidad": "auditorias_suministros",
+        "almacenado": "6b8ee00fe600c4637fa27907b2c4b7c03928eafae4e7f8ed63ce139f0f27d5c4",
+        "recalculado": "6b8ee00fe600c4637fa27907b2c4b7c03928eafae4e7f8ed63ce139f0f27d5c4",
+        "coincide": true
+      }
+    ],
+    "evaluados_v1": [
+      {
+        "id": 87,
+        "almacenado": "45a6225d4f1bafe51b7f2baaa9ade4d264fd6ff928dccb304ac7bc02d6e0f709",
+        "recalculado": "45a6225d4f1bafe51b7f2baaa9ade4d264fd6ff928dccb304ac7bc02d6e0f709",
+        "coincide": true
+      },
+      {
+        "id": 88,
+        "almacenado": "a1b313195807e485ff295c393695ec736b9cbce1e90cd11f37d140de85257b34",
+        "recalculado": "a1b313195807e485ff295c393695ec736b9cbce1e90cd11f37d140de85257b34",
+        "coincide": true
+      },
+      {
+        "id": 89,
+        "almacenado": "4adc4c0b1338b6744984222e7fae8613afe6f43f7d04b4e350e88c13c923b68d",
+        "recalculado": "4adc4c0b1338b6744984222e7fae8613afe6f43f7d04b4e350e88c13c923b68d",
+        "coincide": true
+      }
+    ],
+    "conteo_por_entidad": {
+      "registro_suministro": 11,
+      "provision_nic41": 4,
+      "auditorias_suministros": 7
+    },
+    "v2_fuera_de_alcance": [
+      "registros_consumo_alimentos",
+      "registros_medicamentos",
+      "resultado_ica"
+    ]
+  }
+}
