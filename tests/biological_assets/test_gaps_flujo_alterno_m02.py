@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-14 | Arekkazu | QA-M06 RF-40: «hoy» con el reloj del usuario adelantado se acepta y se guarda en ahora |
 """Códigos HTTP de flujo alterno del Módulo 2, fijados contra el texto de cada RF.
 
 Cubre los gaps de `anotaciones/modulo_2/gaps_flujo_alterno_modulo2.md`: casos donde
@@ -162,6 +163,14 @@ def test_rf40_41_42_fecha_anterior_al_registro_es_400() -> None:
 
 def test_rf40_41_42_fecha_coherente_pasa() -> None:
     validar_fecha_evento(AHORA - timedelta(days=1), _activo(), _EventoRepo())
+
+
+def test_rf40_reloj_del_usuario_adelantado_no_vuelve_futuro_el_dia_de_hoy() -> None:
+    # QA M06 (14-11): el front manda «hoy» con la hora del equipo del usuario; unos segundos por
+    # delante del servidor daban FECHA_FUTURA. Se acepta y se guarda con la hora del servidor.
+    guardada = validar_fecha_evento(datetime.now(timezone.utc) + timedelta(seconds=2), _activo(), _EventoRepo())
+
+    assert guardada <= datetime.now(timezone.utc)
 
 
 # --------------------------------------------------------------------------- #

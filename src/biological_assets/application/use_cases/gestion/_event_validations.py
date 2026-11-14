@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-14 | Arekkazu | QA-M06 RF-40: futura es un día posterior a hoy, no un instante por delante del servidor |
 """Validaciones compartidas por los use cases de eventos y edición del activo (RF-35,
 RF-39, RF-44).
 """
@@ -13,7 +14,7 @@ from src.biological_assets.domain.entities.activo_biologico import ActivoBiologi
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
-from src.shared.fechas import fecha_usuario
+from src.shared.fechas import fecha_usuario, hasta_ahora
 
 # RF-39: estados que permiten registro de eventos
 _ESTADOS_PERMITEN_EVENTOS = {1, 3, 4}  # ACTIVO, EN_TRATAMIENTO, AISLADO
@@ -104,17 +105,16 @@ def validar_fecha_evento(
     fecha: datetime,
     activo: ActivoBiologico,
     evento_repo: EventoActivoRepository,
-) -> None:
+) -> datetime:
     """Valida que la fecha del evento no sea futura ni anterior al registro del activo
-    (400).
+    (400) y devuelve el instante a guardar (ver ``hasta_ahora``).
     """
     # RF-39/40/41/42 clasifican "Fecha inválida" como HTTP 400, no como regla de
     # negocio: ValidationError, no BusinessRuleError. RF-43 no pasa por aquí, pide
     # 422 para su propio caso de fecha.
-    ahora = datetime.now(timezone.utc)
-    fecha_utc = fecha.astimezone(timezone.utc)
+    fecha_utc = hasta_ahora(fecha)
 
-    if fecha_utc > ahora:
+    if fecha_utc is None:
         raise ValidationError(
             code='FECHA_FUTURA',
             message='La fecha del evento no puede ser posterior a la fecha actual.',
@@ -147,3 +147,5 @@ def validar_fecha_evento(
                 ),
                 field='fecha',
             )
+
+    return fecha_utc
