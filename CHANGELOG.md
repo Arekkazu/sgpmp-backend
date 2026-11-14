@@ -1,3 +1,32 @@
+## [1.4.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.65...v1.4.0-rc.66) (2026-11-14)
+
+### Features
+
+* **rf25-mod9:** filtro por finca del usuario en Suministros, Finanzas e Integración contable ([813d91b](https://github.com/Arekkazu/sgpmp-backend/commit/813d91bc30eaaff404559437a4d67d058ea3fada))
+* **rf25-mod9:** infraestructuras de una finca del usuario en /usuarios/me/fincas/{id_finca}/infraestructuras para el filtro por finca ([66424fe](https://github.com/Arekkazu/sgpmp-backend/commit/66424fe85efa3c9b7b3001b81481d9ba316a0db4))
+* **rf82-mod6:** la propuesta de reconocimiento trae el id de la finca para el filtro por finca ([e29aca0](https://github.com/Arekkazu/sgpmp-backend/commit/e29aca052eb8f949a8d4bb0320b55701f546a2cb))
+
+## [1.4.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.64...v1.4.0-rc.65) (2026-11-14)
+
+### Bug Fixes
+
+* **rf40-mod2:** «hoy» con el reloj del usuario adelantado ya no es fecha futura en eventos ni en el cambio de fase (QA M06 punto 5) ([3cded22](https://github.com/Arekkazu/sgpmp-backend/commit/3cded22476a4f0bacac9d6d4a7e8822a9d5162da))
+* **rf82-mod6:** la fecha del reconocimiento inicial viaja como día y no como instante UTC (QA M06 punto 5) ([92fe557](https://github.com/Arekkazu/sgpmp-backend/commit/92fe55764b82cfb68a485280e8a61f1c4d8b46b6))
+* **rf82-mod6:** la reversión del reconocimiento se bloquea con deterioros o registros contables posteriores y el activo revertido al costo se reconoce de nuevo (QA M06 CU01 H-03) ([bce2329](https://github.com/Arekkazu/sgpmp-backend/commit/bce23298b8468fe53fb26a438db60b006032cac6))
+* **rf92-mod6:** los textos que ve el usuario no citan párrafos de la NIC 41 ([854c624](https://github.com/Arekkazu/sgpmp-backend/commit/854c624565fefcca6919f05bf42b93bb9d72ba59))
+
+## [1.4.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.63...v1.4.0-rc.64) (2026-11-14)
+
+### Bug Fixes
+
+* **rf97-mod7:** el ExchangeId del documento AAEF sigue el formato AF-SIGAB-AAAA-MM-NNNNNNN que exige SIGCON ([4353483](https://github.com/Arekkazu/sgpmp-backend/commit/4353483f484213636e1611d4e6a471fb92d08850))
+
+## [1.4.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.62...v1.4.0-rc.63) (2026-11-14)
+
+### Features
+
+* **identity-access:** la cuenta creada por el SSO de AgroFusion nace Administrador y se retira el rol Externo AgroFusion ([9ff4d38](https://github.com/Arekkazu/sgpmp-backend/commit/9ff4d381082f21d0ae8e147ff9c37dbd0c496d6c))
+
 ## [1.4.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.61...v1.4.0-rc.62) (2026-11-14)
 
 ### Features

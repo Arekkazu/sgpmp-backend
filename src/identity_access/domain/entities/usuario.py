@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-18 RF-01: EDAD_MAXIMA=100 y guarda única del rango [18, 100) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: la cuenta mínima por SSO recibe el rol Administrador |
 """Entidad de dominio ``Usuario`` del contexto de identidad y acceso.
 
 A diferencia del modelo ORM (``infrastructure/models/usuarios_model.py``), esta
@@ -147,7 +148,7 @@ class Usuario:
             correo: Correo verificado por AgroFusion.
             contrasena: Hash de un secreto aleatorio inutilizable (la cuenta no
                 tiene contraseña propia hasta que el usuario la fije).
-            id_rol: Rol de mínimo privilegio para cuentas SSO sin sincronizar.
+            id_rol: Rol que recibe la cuenta (el Administrador, ver ``SsoLoginUseCase``).
 
         Returns:
             Una nueva instancia de :class:`Usuario` lista para guardar.

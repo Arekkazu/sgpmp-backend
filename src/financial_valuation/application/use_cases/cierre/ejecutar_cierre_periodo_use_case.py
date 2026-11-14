@@ -12,6 +12,7 @@
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43 RF-87: precio congelado al iniciar, activos estimados en la respuesta; RF-88 FA-2 sin vida útil bloquea |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar los supuestos faltantes del borrador creado al cerrar. |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -273,8 +274,8 @@ class EjecutarCierrePeriodoUseCase:
         if resultado["activos_al_costo_con_precio"]:  # RF-88 v2.0: ¶30 exige pasarlos a valor razonable
             self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
                 f"Al cerrar el período {resultado['periodo']}, estos activos valorados por costo ya tienen precio de mercado "
-                f"para su especie: {', '.join(resultado['activos_al_costo_con_precio'])}. La NIC 41 ¶30 exige pasarlos a "
-                "valor razonable."), {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
+                f"para su especie: {', '.join(resultado['activos_al_costo_con_precio'])}. Deben pasar a valor razonable."),
+                {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
         for alerta in self.medidor.tomar_alertas():  # RF-83: mediciones estimadas o pendientes del cierre
             self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", alerta.mensaje, alerta.detalle, alerta.id_finca)
         return resultado
@@ -545,7 +546,7 @@ class EjecutarCierrePeriodoUseCase:
             self.contabilizador.auditar(EventoAuditoria(
                 tipo_evento="MEDICION_PENDIENTE", severidad=Severidad.WARNING.value, id_usuario=id_usuario,
                 payload={"mensaje": (f"El activo {activo.identificador} está valorado por costo y ya hay precio de mercado "
-                                     "para su especie: la NIC 41 ¶30 exige pasarlo a valor razonable.")},
+                                     "para su especie: debe pasar a valor razonable.")},
                 id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
             ))
 

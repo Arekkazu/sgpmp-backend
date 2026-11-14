@@ -7,6 +7,7 @@
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-87: el notificador de prueba responde ya_notificado (avisos sin duplicados) |
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: verificar el contrato HTTP y los efectos de registrar una cotización. |
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: verificar un pesaje auditado y las exclusiones del cierre. |
+# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82: el deterioro bloquea la reversión, el costo revertido se reconoce de nuevo y la fecha sale como día |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -17,7 +18,7 @@ from __future__ import annotations
 import random
 import string
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal as D
 
 import pytest
@@ -298,6 +299,48 @@ def test_modelo_de_costo_sin_precio_y_bloqueo_sin_valor(db_session, m06, contado
     assert cambio["valor_razonable"] == D("1425000.0000")  # 30 × 50.000 × 0,95
     assert cambio["diferencia"] == D("225000.0000")
     assert m06.valoraciones.valoracion_costo_activa(comprado) is None
+
+
+def _evento_sanitario(db: Session, id_activo: int) -> int:
+    id_evento = _id()
+    db.execute(text("SET LOCAL session_replication_role = replica"))
+    db.execute(text("INSERT INTO modulo2.eventos_activos (id_eventos, id_activo_biologico, fecha) VALUES (:e, :a, now())"),
+               {"e": id_evento, "a": id_activo})
+    db.execute(text("""INSERT INTO modulo2.eventos_sanitarios (id_evento, tipo, observaciones)
+                       VALUES (:e, 'CONTROL_PREVENTIVO', 'Control de rutina')"""), {"e": id_evento})
+    db.execute(text("SET LOCAL session_replication_role = origin"))
+    return id_evento
+
+
+def test_reversion_al_costo_bloqueada_por_deterioro_y_reconocible_de_nuevo(db_session, m06, contador):
+    uid = contador["id_usuario"]
+    especie = 3  # sin precios en el repositorio: los dos activos se reconocen al costo
+    finca = _finca(db_session, uid)
+    _configurar(m06, uid, especie, vida=24)
+    limpio = _activo(db_session, finca, uid, especie=especie, origen="compra", costo=D("1200000"))
+    deteriorado = _activo(db_session, finca, uid, especie=especie, origen="compra", costo=D("2000000"))
+    for activo in (limpio, deteriorado):
+        _pesaje(db_session, activo, "30")
+        assert m06.confirmar_reconocimiento().execute(activo, uid)["indicador_valoracion"] == "VALORACION_POR_COSTO"
+    motivo = "Error en el costo de adquisición registrado"
+
+    # QA CU01 H-03: un deterioro posterior al reconocimiento bloquea la reversión (FA-6).
+    m06.registrar_deterioro().execute(deteriorado, _evento_sanitario(db_session, deteriorado), D("2500000"),
+                                      "Pérdida por enfermedad comprobada en el control veterinario", uid)
+    with pytest.raises(AppError) as bloqueo:
+        m06.revertir_reconocimiento().execute(deteriorado, motivo, uid)
+    assert bloqueo.value.code == "REVERSION_BLOQUEADA" and "deterioro del" in bloqueo.value.message
+    reconocimiento = m06.valoraciones.reconocimiento_confirmado(deteriorado)
+    # La fecha contable viaja como día: como instante UTC, en Colombia se veía el día anterior.
+    assert type(reconocimiento.fecha_reconocimiento) is date
+    [fila] = [a for a in m06.valoraciones.activos_valorados(NIT) if a["id_activo_biologico"] == deteriorado]
+    assert fila["fecha_reconocimiento"] == reconocimiento.fecha_reconocimiento
+
+    # Sin registros posteriores se revierte, y la valoración por costo inactiva no impide reconocerlo otra vez.
+    m06.revertir_reconocimiento().execute(limpio, motivo, uid)
+    assert m06.valoraciones.valoracion_costo_activa(limpio) is None
+    assert m06.confirmar_reconocimiento().execute(limpio, uid)["indicador_valoracion"] == "VALORACION_POR_COSTO"
+    assert m06.valoraciones.valoracion_costo_activa(limpio).valor_contable_por_costo == D("1200000")
 
 
 def test_costo_manual_con_factura_y_reparto(db_session, m06, contador):
