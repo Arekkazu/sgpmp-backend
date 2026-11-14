@@ -1,0 +1,325 @@
+{
+  "caso": "TC-M06-G104",
+  "subcaso": "TC-M06-29",
+  "fase": "verificacion_lectura_administrador",
+  "generado_en": "2026-11-13T06:01:05.038891+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "escritura_funcional": false,
+  "rol_solicitado": "Administrador",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "nota": "login_administrador",
+      "respuesta": {
+        "ok": true,
+        "tipo": "Bearer"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "perfil",
+      "respuesta": {
+        "nombre_rol": "Administrador"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "permisos",
+      "respuesta": {
+        "cierre_periodo": true,
+        "precios_mercado": true,
+        "valoracion_activos": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/precios?id_especie=544",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "precios_especie_544",
+      "respuesta": {
+        "total": 1,
+        "criterio": {
+          "http_200": true,
+          "precio_492_presente": true,
+          "precio_492": {
+            "estado": "VENCIDO",
+            "es_aplicado": false,
+            "fecha_vigencia": "2026-11-09",
+            "fecha_vencimiento": "2026-11-10",
+            "precio_unitario": "1000000.00",
+            "categoria": "POR_CABEZA",
+            "fuente": "MERCADO_ACTIVO"
+          },
+          "esperado_492": {
+            "fecha_vigencia": "2026-11-09",
+            "fecha_vencimiento": "2026-11-10",
+            "precio_unitario": "1000000.00",
+            "categoria": "POR_CABEZA",
+            "fuente": "MERCADO_ACTIVO",
+            "estado": "VENCIDO",
+            "es_aplicado": false
+          },
+          "coincide_esperado_492": true,
+          "sin_otro_aplicado": true,
+          "aplicados_ids": [],
+          "ok": true
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1644",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "activo_1644",
+      "respuesta": {
+        "http": 200,
+        "activo": {
+          "id_activo_biologico": 1644,
+          "id_especie": 544,
+          "id_finca": 472,
+          "estado": "ACTIVO",
+          "identificador": "Lote 1644"
+        },
+        "criterio": {
+          "http_200": true,
+          "activo_ok": true,
+          "reconocimiento_533_presente": true,
+          "reconocimiento_533": {
+            "estado": "CONFIRMADO",
+            "indicador_valoracion": "VALOR_RAZONABLE",
+            "id_periodo_contable": 266,
+            "id_precio_mercado": 492
+          },
+          "rec_ok": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000104",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "periodo_266",
+      "respuesta": {
+        "periodo_266": {
+          "id_periodo_contable": 266,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "Titular Qa Precios Aislado"
+        },
+        "criterio": {
+          "http_200": true,
+          "periodo_266_presente": true,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "ok": true
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1644/simulacion",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "simulacion_1644",
+      "respuesta": {
+        "motivo": "SIN_PRECIO",
+        "es_valido": false,
+        "criterio": {
+          "http_200": true,
+          "motivo": "SIN_PRECIO",
+          "es_valido": false,
+          "precio_nulo": true,
+          "calculo_nulo": true,
+          "ok_si_sin_aplicado": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=PRECIO_REFERENCIA_VENCIDO&formato=TECNICO&tamano=5&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "auditoria_precio_referencia_vencido",
+      "respuesta": {
+        "total_registros": 0,
+        "error_code": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones?pagina=1&tamano=50",
+      "codigo": 200,
+      "escritura": false,
+      "nota": "notificaciones",
+      "respuesta": {
+        "http": 200,
+        "total": 269,
+        "avisos_precio_en_pagina": 0
+      }
+    }
+  ],
+  "criterios": {
+    "precio_y_vencimiento": true,
+    "ausencia_reemplazo_vigente": true,
+    "transicion_SIN_PRECIO_VIGENTE": false,
+    "simulacion_SIN_PRECIO_procedimiento": true,
+    "notificacion_o_flujo_RF88": false
+  },
+  "dictamen_tc_m06_29": {
+    "categoria": "RECHAZADO",
+    "motivo": "Las 4 GET del procedimiento cumplen (precio 492 VENCIDO sin reemplazo aplicado; activo 1644/rec 533; periodo 266 ABIERTO; simulacion SIN_PRECIO). No se declara APROBADO porque no hay evidencia del estado SIN_PRECIO_VIGENTE (no existe en API/RFC-024) ni de activacion automatica del flujo RF-88 / PRECIO_REFERENCIA_VENCIDO.",
+    "consultas_procedimiento": {
+      "1_precios": true,
+      "2_activo": true,
+      "3_periodo": true,
+      "4_simulacion": true
+    },
+    "criterios_enunciado_usuario": {
+      "precio_y_vencimiento": true,
+      "ausencia_reemplazo_vigente": true,
+      "transicion_SIN_PRECIO_VIGENTE": false,
+      "simulacion_SIN_PRECIO_procedimiento": true,
+      "notificacion_o_flujo_RF88": false
+    }
+  },
+  "estado_g104_consolidado": {
+    "TC-M06-25": "APROBADO (sin cambios)",
+    "TC-M06-26": "APROBADO (sin cambios)",
+    "TC-M06-29": "RECHAZADO",
+    "grupo_completo_aprobado": false
+  },
+  "rol_obtenido": "Administrador",
+  "permisos_lectura": {
+    "cierre_periodo": true,
+    "precios_mercado": true,
+    "valoracion_activos": true
+  },
+  "consulta_1_precios": {
+    "http": 200,
+    "total": 1,
+    "resumen": [
+      {
+        "id_precio_mercado": 492,
+        "estado": "VENCIDO",
+        "es_aplicado": false,
+        "fecha_vigencia": "2026-11-09",
+        "fecha_vencimiento": "2026-11-10",
+        "precio_unitario": "1000000.00",
+        "categoria": "POR_CABEZA",
+        "fuente": "MERCADO_ACTIVO"
+      }
+    ],
+    "criterio": {
+      "http_200": true,
+      "precio_492_presente": true,
+      "precio_492": {
+        "estado": "VENCIDO",
+        "es_aplicado": false,
+        "fecha_vigencia": "2026-11-09",
+        "fecha_vencimiento": "2026-11-10",
+        "precio_unitario": "1000000.00",
+        "categoria": "POR_CABEZA",
+        "fuente": "MERCADO_ACTIVO"
+      },
+      "esperado_492": {
+        "fecha_vigencia": "2026-11-09",
+        "fecha_vencimiento": "2026-11-10",
+        "precio_unitario": "1000000.00",
+        "categoria": "POR_CABEZA",
+        "fuente": "MERCADO_ACTIVO",
+        "estado": "VENCIDO",
+        "es_aplicado": false
+      },
+      "coincide_esperado_492": true,
+      "sin_otro_aplicado": true,
+      "aplicados_ids": [],
+      "ok": true
+    }
+  },
+  "consulta_2_activo": {
+    "http": 200,
+    "activo": {
+      "id_activo_biologico": 1644,
+      "id_especie": 544,
+      "id_finca": 472,
+      "estado": "ACTIVO",
+      "identificador": "Lote 1644"
+    },
+    "criterio": {
+      "http_200": true,
+      "activo_ok": true,
+      "reconocimiento_533_presente": true,
+      "reconocimiento_533": {
+        "estado": "CONFIRMADO",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "id_periodo_contable": 266,
+        "id_precio_mercado": 492
+      },
+      "rec_ok": true,
+      "ok": true
+    }
+  },
+  "consulta_3_periodo": {
+    "http": 200,
+    "periodo_266": {
+      "http_200": true,
+      "periodo_266_presente": true,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "ok": true
+    },
+    "criterio": {
+      "http_200": true,
+      "periodo_266_presente": true,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "ok": true
+    }
+  },
+  "consulta_4_simulacion": {
+    "http": 200,
+    "respuesta": {
+      "es_valido": false,
+      "motivo": "SIN_PRECIO",
+      "mensaje": "No hay precio de mercado vigente para la especie Caprino Aislado Precios. Registre uno en Precios de mercado.",
+      "calculo": null,
+      "precio": null
+    },
+    "criterio": {
+      "http_200": true,
+      "motivo": "SIN_PRECIO",
+      "es_valido": false,
+      "precio_nulo": true,
+      "calculo_nulo": true,
+      "ok_si_sin_aplicado": true,
+      "ok": true
+    }
+  },
+  "rf88_observado": {
+    "estado_SIN_PRECIO_VIGENTE_en_api": false,
+    "motivo_simulacion": "SIN_PRECIO",
+    "auditoria_PRECIO_REFERENCIA_VENCIDO_http": 200,
+    "auditoria_PRECIO_REFERENCIA_VENCIDO_total": 0,
+    "notificaciones_http": 200,
+    "avisos_relacionados_precio_en_bandeja": [],
+    "nota": "RFC-024/procedimiento: no existe estado SIN_PRECIO_VIGENTE; simulacion usa SIN_PRECIO. RF-88 no se activa solo al vencer un precio."
+  }
+}

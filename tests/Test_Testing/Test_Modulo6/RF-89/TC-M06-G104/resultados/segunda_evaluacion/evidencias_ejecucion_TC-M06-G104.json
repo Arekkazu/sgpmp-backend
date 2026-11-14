@@ -1,0 +1,789 @@
+{
+  "caso": "TC-M06-G104",
+  "generado_en": "2026-11-10T19:55:03.936853+00:00",
+  "tc_m06_25_ejecutado": true,
+  "sql_escritura": false,
+  "periodos_cerrados": false,
+  "tc_m06_26": {
+    "alternativa": "evidencia historica",
+    "precio_nuevo": null,
+    "auditoria_programado": {
+      "id_evento": 7062,
+      "tipo_evento": "PRECIO_REGISTRADO",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-08T21:24:54.529057Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 132,
+      "nombre_usuario": "",
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": null,
+      "id_referencia": 437,
+      "payload_evento": {
+        "estado": "PROGRAMADO",
+        "fuente": "UPRA",
+        "categoria": "POR_CABEZA",
+        "id_especie": 424,
+        "desviacion_pct": null,
+        "fecha_vigencia": "2026-11-09",
+        "precio_unitario": "3900000",
+        "id_precio_corregido": null,
+        "desviacion_confirmada": true
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": "3900000.0000",
+      "identificador_activo": null
+    },
+    "catalogo_activo_antes_del_precio_490": {
+      "fuente": "tests/Test_Testing/Test_Modulo6/RF-89/TC-M06-G102/resultados/ultima_evaluacion/evidencias_ejecucion_TC-M06-G102.json",
+      "precio": {
+        "id_precio_mercado": 437,
+        "fuente": "UPRA",
+        "precio_unitario": "3900000.00",
+        "fecha_vigencia": "2026-11-09",
+        "estado": "ACTIVO",
+        "es_aplicado": false
+      }
+    },
+    "catalogo_superado_2026_11_10": {
+      "id_precio_mercado": 437,
+      "estado": "SUPERADO",
+      "precio_unitario": "3900000.00",
+      "fecha_vigencia": "2026-11-09"
+    }
+  },
+  "tc_m06_29": {
+    "clasificacion": "PREPARADO, PENDIENTE DE FECHA",
+    "comprobacion_pendiente": "2026-11-11",
+    "zona": "America/Bogota",
+    "pasos": [
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/reconocimientos/propuestas/1643",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": {
+          "id_activo_biologico": 1643,
+          "identificador": null,
+          "tipo": "POBLACIONAL",
+          "especie": "Caprino Aislado Precios",
+          "id_especie": 544,
+          "finca": "Finca Qa Precios Aislada",
+          "estado": "ACTIVO",
+          "origen_financiero": "compra",
+          "costo_adquisicion": "500000.0000",
+          "soporte_documental": "Factura de compra QA TC-M06-29 del lote que se reconoce por costo.",
+          "fecha_reconocimiento": "2026-11-10",
+          "es_apertura": false,
+          "clasificacion": "PRODUCCION",
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "valor_inicial": "500000.0000",
+          "costos_venta": "0",
+          "magnitud": null,
+          "unidad_magnitud": null,
+          "precio": null,
+          "hechos": [],
+          "bloqueos": [],
+          "advertencias": [
+            "Valoración por costo por ausencia de precio de mercado para la especie Caprino Aislado Precios (NIC 41 ¶30)."
+          ],
+          "requiere_costos_manuales": false,
+          "es_confirmable": true
+        }
+      },
+      {
+        "metodo": "POST",
+        "ruta": "/finanzas/reconocimientos/1643",
+        "codigo": 201,
+        "cuerpo": {},
+        "respuesta": {
+          "id_reconocimiento_inicial": 532,
+          "id_activo_biologico": 1643,
+          "indicador_valoracion": "VALORACION_POR_COSTO",
+          "valor_inicial": "500000.0000",
+          "fecha_reconocimiento": "2026-11-10",
+          "id_periodo_contable": 266,
+          "es_apertura": false,
+          "advertencias": [
+            "Valoración por costo por ausencia de precio de mercado para la especie Caprino Aislado Precios (NIC 41 ¶30)."
+          ],
+          "lineas": []
+        }
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/activos/1643/simulacion",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": {
+          "es_valido": false,
+          "motivo": "SIN_PRECIO",
+          "mensaje": "No hay precio de mercado vigente para la especie Caprino Aislado Precios. Registre uno en Precios de mercado.",
+          "calculo": null,
+          "precio": null
+        }
+      },
+      {
+        "metodo": "POST",
+        "ruta": "/finanzas/activos/1643/valor-razonable",
+        "codigo": 422,
+        "cuerpo": null,
+        "respuesta": {
+          "error_code": "SIN_PRECIO_PARA_VALOR_RAZONABLE",
+          "message": "No es posible cambiar al valor razonable: No hay precio de mercado vigente para la especie Caprino Aislado Precios. Registre uno en Precios de mercado.",
+          "fields": [],
+          "timestamp": "2026-11-10T19:53:45.471335+00:00"
+        }
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/activos/1643",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": {
+          "activo": {
+            "id_activo_biologico": 1643,
+            "identificador": null,
+            "tipo": "POBLACIONAL",
+            "id_especie": 544,
+            "especie": "Caprino Aislado Precios",
+            "estado": "ACTIVO",
+            "id_infraestructura": 1059,
+            "id_finca": 472,
+            "finca": "Finca Qa Precios Aislada",
+            "numero_id_tributaria": "900000104",
+            "razon_social": "Titular Qa Precios Aislado",
+            "fecha_ingreso": "2026-11-10",
+            "origen_financiero": "compra",
+            "costo_adquisicion": "500000.0000",
+            "soporte_documental": "Factura de compra QA TC-M06-29 del lote que se reconoce por costo.",
+            "cantidad_actual": 1,
+            "peso_kg": null,
+            "id_evento_peso": null,
+            "id_dispositivo_iot": null
+          },
+          "reconocimientos": [
+            {
+              "id_reconocimiento_inicial": 532,
+              "id_activo_biologico": 1643,
+              "estado": "CONFIRMADO",
+              "clasificacion": "PRODUCCION",
+              "indicador_valoracion": "VALORACION_POR_COSTO",
+              "valor_razonable_neto_inicial": "500000.0000",
+              "fecha_reconocimiento": "2026-11-10T00:00:00Z",
+              "id_periodo_contable": 266,
+              "origen_financiero": "compra",
+              "costo_adquisicion": "500000.0000",
+              "id_precio_mercado": null,
+              "id_calculo_valor_razonable": null,
+              "id_valoracion_por_costo": 44,
+              "es_apertura": false,
+              "cuenta_debito": null,
+              "cuenta_credito": null,
+              "costos_venta_estimados": "0.0000",
+              "justificacion_reversion": null,
+              "fecha_reversion": null,
+              "fecha_creacion": "2026-11-10T19:53:41.441751Z"
+            }
+          ],
+          "calculos": [],
+          "mediciones": [],
+          "productos": [],
+          "valoracion_costo": {
+            "id_valoracion_por_costo": 44,
+            "escenario_activacion": "INICIAL_RF82",
+            "costos_adquisicion": "500000.0000",
+            "vida_util_meses": 120,
+            "depreciacion_acumulada": "0.0000",
+            "deterioro_acumulado": "0.0000",
+            "valor_contable_por_costo": "500000.0000",
+            "razon_sin_mercado": "Ausencia verificada de precio de mercado en el repositorio de precios",
+            "es_activa": true,
+            "fecha_marcacion": "2026-11-10T19:53:41.441751Z"
+          },
+          "lineas": []
+        }
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/precios?id_especie=544",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": []
+      },
+      {
+        "metodo": "POST",
+        "ruta": "/finanzas/precios",
+        "codigo": 201,
+        "cuerpo": {
+          "id_especie": 544,
+          "categoria": "POR_CABEZA",
+          "precio_unitario": "1000000.00",
+          "fecha_vigencia": "2026-11-09",
+          "fecha_vencimiento": "2026-11-10",
+          "fuente": "MERCADO_ACTIVO",
+          "evidencia_documental": "Referencia de mercado QA TC-M06-29 para la especie aislada.",
+          "confirmar_desviacion": false
+        },
+        "respuesta": {
+          "id_precio_mercado": 492,
+          "estado": "ACTIVO",
+          "unidad_medida": "cabeza",
+          "desviacion_pct": null,
+          "fecha_vigencia": "2026-11-09"
+        }
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/precios?id_especie=544",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": [
+          {
+            "id_precio_mercado": 492,
+            "id_especie": 544,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "1000000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "MERCADO_ACTIVO",
+            "fecha_vigencia": "2026-11-09",
+            "fecha_vencimiento": "2026-11-10",
+            "id_metrica_produccion": null,
+            "evidencia": "Referencia de mercado QA TC-M06-29 para la especie aislada.",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": true
+          }
+        ]
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/reconocimientos/propuestas/1644",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": {
+          "id_activo_biologico": 1644,
+          "identificador": null,
+          "tipo": "POBLACIONAL",
+          "especie": "Caprino Aislado Precios",
+          "id_especie": 544,
+          "finca": "Finca Qa Precios Aislada",
+          "estado": "ACTIVO",
+          "origen_financiero": "compra",
+          "costo_adquisicion": "900000.0000",
+          "soporte_documental": "Factura de compra QA TC-M06-29 del lote que se reconoce a valor razonable.",
+          "fecha_reconocimiento": "2026-11-10",
+          "es_apertura": false,
+          "clasificacion": "PRODUCCION",
+          "indicador_valoracion": "VALOR_RAZONABLE",
+          "valor_inicial": "940000.0000",
+          "costos_venta": "60000.0000",
+          "magnitud": "1",
+          "unidad_magnitud": "cabeza",
+          "precio": {
+            "id_precio_mercado": 492,
+            "precio_unitario": "1000000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "MERCADO_ACTIVO",
+            "fecha_vigencia": "2026-11-09"
+          },
+          "hechos": [
+            {
+              "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+              "sentido": "GANANCIA",
+              "valor": "40000.00"
+            }
+          ],
+          "bloqueos": [],
+          "advertencias": [],
+          "requiere_costos_manuales": false,
+          "es_confirmable": true
+        }
+      },
+      {
+        "metodo": "POST",
+        "ruta": "/finanzas/reconocimientos/1644",
+        "codigo": 201,
+        "cuerpo": {},
+        "respuesta": {
+          "id_reconocimiento_inicial": 533,
+          "id_activo_biologico": 1644,
+          "indicador_valoracion": "VALOR_RAZONABLE",
+          "valor_inicial": "940000.0000",
+          "fecha_reconocimiento": "2026-11-10",
+          "id_periodo_contable": 266,
+          "es_apertura": false,
+          "advertencias": [],
+          "lineas": [
+            {
+              "id_linea": 3726,
+              "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+              "sentido": "GANANCIA",
+              "valor": "40000.00",
+              "cuenta_debito": "158405",
+              "cuenta_credito": "424815",
+              "estado": "REGISTRADA"
+            }
+          ]
+        }
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/activos/1644",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": {
+          "activo": {
+            "id_activo_biologico": 1644,
+            "identificador": null,
+            "tipo": "POBLACIONAL",
+            "id_especie": 544,
+            "especie": "Caprino Aislado Precios",
+            "estado": "ACTIVO",
+            "id_infraestructura": 1059,
+            "id_finca": 472,
+            "finca": "Finca Qa Precios Aislada",
+            "numero_id_tributaria": "900000104",
+            "razon_social": "Titular Qa Precios Aislado",
+            "fecha_ingreso": "2026-11-10",
+            "origen_financiero": "compra",
+            "costo_adquisicion": "900000.0000",
+            "soporte_documental": "Factura de compra QA TC-M06-29 del lote que se reconoce a valor razonable.",
+            "cantidad_actual": 1,
+            "peso_kg": null,
+            "id_evento_peso": null,
+            "id_dispositivo_iot": null
+          },
+          "reconocimientos": [
+            {
+              "id_reconocimiento_inicial": 533,
+              "id_activo_biologico": 1644,
+              "estado": "CONFIRMADO",
+              "clasificacion": "PRODUCCION",
+              "indicador_valoracion": "VALOR_RAZONABLE",
+              "valor_razonable_neto_inicial": "940000.0000",
+              "fecha_reconocimiento": "2026-11-10T00:00:00Z",
+              "id_periodo_contable": 266,
+              "origen_financiero": "compra",
+              "costo_adquisicion": "900000.0000",
+              "id_precio_mercado": 492,
+              "id_calculo_valor_razonable": 875,
+              "id_valoracion_por_costo": null,
+              "es_apertura": false,
+              "cuenta_debito": "158405",
+              "cuenta_credito": "424815",
+              "costos_venta_estimados": "60000.0000",
+              "justificacion_reversion": null,
+              "fecha_reversion": null,
+              "fecha_creacion": "2026-11-10T19:53:49.643165Z"
+            }
+          ],
+          "calculos": [
+            {
+              "id_calculo_valor_razonable": 875,
+              "id_activo_biologico": 1644,
+              "id_precio_mercado": 492,
+              "id_periodo_contable": 266,
+              "magnitud": "1.0000",
+              "unidad_magnitud": "cabeza",
+              "precio_unitario": "1000000.0000",
+              "valor_razonable_bruto": "1000000.0000",
+              "costo_transporte": "20000.0000",
+              "costo_comisiones": "30000.0000",
+              "costo_impuestos_transaccion": "10000.0000",
+              "otros_costos_disposicion": "0.0000",
+              "valor_neto": "940000.0000",
+              "metodo_costo": "PARAMETRIZADO",
+              "json_metodo_costo": {
+                "cabezas": 1,
+                "categoria": "POR_CABEZA",
+                "impuestos": "PARAMETRIZADO",
+                "comisiones": "PARAMETRIZADO",
+                "transporte": "PARAMETRIZADO",
+                "fuente_precio": "MERCADO_ACTIVO"
+              },
+              "id_usuario": 141,
+              "estado": "CALCULADO",
+              "justificacion": null,
+              "id_parametro_costo_venta": 299,
+              "id_evento_magnitud": null,
+              "tiene_valor_estimado": false,
+              "fecha_calculo": "2026-11-10T19:53:49.643165Z"
+            }
+          ],
+          "mediciones": [],
+          "productos": [],
+          "valoracion_costo": null,
+          "lineas": [
+            {
+              "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+              "sentido": "GANANCIA",
+              "valor": "40000.00",
+              "fecha_hecho": "2026-11-10",
+              "id_periodo_contable": 266,
+              "id_activo_biologico": 1644,
+              "id_especie": 544,
+              "id_finca": 472,
+              "numero_id_tributaria": "900000104",
+              "tabla_origen": "reconocimientos_iniciales",
+              "id_origen": 533,
+              "tipo_evidencia": "REGISTRO_MANUAL",
+              "subtipo_costo": null,
+              "es_estimacion": false,
+              "es_reverso": false,
+              "tipo_hecho_corregido": null,
+              "id_linea_corregida": null,
+              "cuenta_debito": "158405",
+              "cuenta_credito": "424815",
+              "justificacion": null,
+              "id_usuario": 141,
+              "id_linea_asiento_nic41": 3726,
+              "estado": "REGISTRADA",
+              "extra": {}
+            }
+          ]
+        }
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/periodos?numero_id_tributaria=900000104",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": [
+          {
+            "id_periodo_contable": 266,
+            "numero_id_tributaria": "900000104",
+            "tipo_cierre": "MENSUAL",
+            "fecha_inicio": "2026-11-01",
+            "fecha_fin": "2026-11-30",
+            "estado": "ABIERTO",
+            "fecha_cierre": null,
+            "ultimo_cierre": null
+          }
+        ]
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": [
+          {
+            "id_periodo_contable": 220,
+            "numero_id_tributaria": "900000003",
+            "tipo_cierre": "MENSUAL",
+            "fecha_inicio": "2026-11-01",
+            "fecha_fin": "2026-11-30",
+            "estado": "ABIERTO",
+            "fecha_cierre": null,
+            "ultimo_cierre": null
+          }
+        ]
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/precios?id_especie=424",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": [
+          {
+            "id_precio_mercado": 491,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "4500000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "ESTIMADA",
+            "fecha_vigencia": "2026-11-10",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Descripción del mercado de referencia QA TC-M06-18 para Ovino Qa Precios.",
+            "justificacion": "No existe una transacción observada que permita usar MERCADO_ACTIVO para esta estimación. No se toma el boletín UPRA como fuente de este valor. Los comparables son referencias internas de ovinos de QA para la especie 424.",
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": false
+          },
+          {
+            "id_precio_mercado": 490,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "4800000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "UPRA",
+            "fecha_vigencia": "2026-11-10",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Boletín UPRA QA TC-M06-17, referencia de precio de Ovino Qa Precios.",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": false
+          },
+          {
+            "id_precio_mercado": 489,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "5000000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "MERCADO_ACTIVO",
+            "fecha_vigencia": "2026-11-10",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Acta de feria QA TC-M06-16, mercado de referencia de Ovino Qa Precios.",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": true
+          },
+          {
+            "id_precio_mercado": 437,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "3900000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "UPRA",
+            "fecha_vigencia": "2026-11-09",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Boletín de precios de referencia para pruebas QA (sembrado 2026-11-08)",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "SUPERADO",
+            "es_aplicado": false
+          },
+          {
+            "id_precio_mercado": 436,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "4000000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "MERCADO_ACTIVO",
+            "fecha_vigencia": "2026-11-01",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Boletín de precios de referencia para pruebas QA (sembrado 2026-11-08)",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "SUPERADO",
+            "es_aplicado": false
+          }
+        ]
+      },
+      {
+        "metodo": "GET",
+        "ruta": "/finanzas/precios?id_especie=424",
+        "codigo": 200,
+        "cuerpo": null,
+        "respuesta": [
+          {
+            "id_precio_mercado": 491,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "4500000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "ESTIMADA",
+            "fecha_vigencia": "2026-11-10",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Descripción del mercado de referencia QA TC-M06-18 para Ovino Qa Precios.",
+            "justificacion": "No existe una transacción observada que permita usar MERCADO_ACTIVO para esta estimación. No se toma el boletín UPRA como fuente de este valor. Los comparables son referencias internas de ovinos de QA para la especie 424.",
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": false
+          },
+          {
+            "id_precio_mercado": 490,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "4800000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "UPRA",
+            "fecha_vigencia": "2026-11-10",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Boletín UPRA QA TC-M06-17, referencia de precio de Ovino Qa Precios.",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": false
+          },
+          {
+            "id_precio_mercado": 489,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "5000000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "MERCADO_ACTIVO",
+            "fecha_vigencia": "2026-11-10",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Acta de feria QA TC-M06-16, mercado de referencia de Ovino Qa Precios.",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "ACTIVO",
+            "es_aplicado": true
+          },
+          {
+            "id_precio_mercado": 437,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "3900000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "UPRA",
+            "fecha_vigencia": "2026-11-09",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Boletín de precios de referencia para pruebas QA (sembrado 2026-11-08)",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "SUPERADO",
+            "es_aplicado": false
+          },
+          {
+            "id_precio_mercado": 436,
+            "id_especie": 424,
+            "categoria": "POR_CABEZA",
+            "precio_unitario": "4000000.00",
+            "unidad_medida": "cabeza",
+            "fuente": "MERCADO_ACTIVO",
+            "fecha_vigencia": "2026-11-01",
+            "fecha_vencimiento": null,
+            "id_metrica_produccion": null,
+            "evidencia": "Boletín de precios de referencia para pruebas QA (sembrado 2026-11-08)",
+            "justificacion": null,
+            "id_precio_corregido": null,
+            "estado": "SUPERADO",
+            "es_aplicado": false
+          }
+        ]
+      }
+    ]
+  },
+  "tc_m06_25": {
+    "estado": "APROBADO",
+    "referencia": {
+      "id_precio_mercado": 489,
+      "fuente": "MERCADO_ACTIVO",
+      "precio_unitario": "5000000.00",
+      "estado": "ACTIVO",
+      "es_aplicado": true
+    },
+    "umbral": "50.00",
+    "desviacion_pct": "2.00",
+    "post": {
+      "codigo": 201,
+      "cuerpo": {
+        "id_especie": 424,
+        "categoria": "POR_CABEZA",
+        "precio_unitario": "5100000.00",
+        "fecha_vigencia": "2026-11-11",
+        "fuente": "MERCADO_ACTIVO",
+        "evidencia_documental": "Acta de feria QA TC-M06-25, vigencia futura de Ovino Qa Precios.",
+        "confirmar_desviacion": false
+      },
+      "respuesta": {
+        "id_precio_mercado": 493,
+        "estado": "PROGRAMADO",
+        "unidad_medida": "cabeza",
+        "desviacion_pct": "2.00",
+        "fecha_vigencia": "2026-11-11"
+      }
+    },
+    "catalogo_despues": [
+      {
+        "id_precio_mercado": 493,
+        "fuente": "MERCADO_ACTIVO",
+        "precio_unitario": "5100000.00",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-11",
+        "fecha_vencimiento": null,
+        "estado": "PROGRAMADO",
+        "es_aplicado": false
+      },
+      {
+        "id_precio_mercado": 491,
+        "fuente": "ESTIMADA",
+        "precio_unitario": "4500000.00",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-10",
+        "fecha_vencimiento": null,
+        "estado": "ACTIVO",
+        "es_aplicado": false
+      },
+      {
+        "id_precio_mercado": 490,
+        "fuente": "UPRA",
+        "precio_unitario": "4800000.00",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-10",
+        "fecha_vencimiento": null,
+        "estado": "ACTIVO",
+        "es_aplicado": false
+      },
+      {
+        "id_precio_mercado": 489,
+        "fuente": "MERCADO_ACTIVO",
+        "precio_unitario": "5000000.00",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-10",
+        "fecha_vencimiento": null,
+        "estado": "ACTIVO",
+        "es_aplicado": true
+      },
+      {
+        "id_precio_mercado": 437,
+        "fuente": "UPRA",
+        "precio_unitario": "3900000.00",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-09",
+        "fecha_vencimiento": null,
+        "estado": "SUPERADO",
+        "es_aplicado": false
+      },
+      {
+        "id_precio_mercado": 436,
+        "fuente": "MERCADO_ACTIVO",
+        "precio_unitario": "4000000.00",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-01",
+        "fecha_vencimiento": null,
+        "estado": "SUPERADO",
+        "es_aplicado": false
+      }
+    ],
+    "auditoria_registro": [
+      {
+        "id_evento": 13098,
+        "tipo_evento": "PRECIO_REGISTRADO",
+        "timestamp_evento": "2026-11-10T20:10:00.637838Z",
+        "id_referencia": 493,
+        "payload_evento": {
+          "estado": "PROGRAMADO",
+          "fuente": "MERCADO_ACTIVO",
+          "categoria": "POR_CABEZA",
+          "id_especie": 424,
+          "desviacion_pct": "2.00",
+          "fecha_vigencia": "2026-11-11",
+          "precio_unitario": "5100000.00",
+          "id_precio_corregido": null,
+          "desviacion_confirmada": false
+        }
+      }
+    ],
+    "auditoria_reemplazo": [
+      {
+        "id_evento": 13099,
+        "tipo_evento": "PRECIO_MARCADO_REEMPLAZADO",
+        "timestamp_evento": "2026-11-10T20:10:00.637838Z",
+        "id_referencia": 493,
+        "payload_evento": {
+          "id_precio_nuevo": 493,
+          "id_precio_anterior": 489
+        }
+      }
+    ]
+  }
+}

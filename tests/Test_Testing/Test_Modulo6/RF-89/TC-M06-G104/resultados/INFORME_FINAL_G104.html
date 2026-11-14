@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe final — TC-M06-G104</title>
+<style>
+:root {
+  --ink: #1a2332;
+  --muted: #5a6577;
+  --line: #d5dbe6;
+  --bg: #f7f8fb;
+  --card: #ffffff;
+  --ok: #0f6b3c;
+  --ok-bg: #e7f6ee;
+  --warn: #8a5a00;
+  --warn-bg: #fff4d9;
+  --pend: #8b2e1f;
+  --pend-bg: #fdeceb;
+  --accent: #1f4e79;
+  --accent-soft: #e8eef6;
+}
+* { box-sizing: border-box; }
+html { font-size: 15px; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.55;
+}
+.page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+.cover {
+  background: linear-gradient(160deg, #1f4e79 0%, #2a6a9a 55%, #3d7eab 100%);
+  color: #fff;
+  border-radius: 10px;
+  padding: 2.4rem 2rem;
+  margin-bottom: 1.75rem;
+}
+.cover .eyebrow {
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-size: .78rem;
+  opacity: .9;
+  margin: 0 0 .6rem;
+}
+.cover h1 {
+  margin: 0 0 .5rem;
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.cover .meta {
+  margin: .35rem 0;
+  opacity: .95;
+  font-size: .95rem;
+}
+.badge-row { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.badge {
+  display: inline-block;
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.badge-ok { background: #d9f2e4; color: #0b5a33; }
+.badge-delim { background: #fff0c9; color: #7a4f00; }
+.badge-pend { background: #ffd9d4; color: #7a2418; }
+section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.35rem 1.4rem 1.5rem;
+  margin-bottom: 1.1rem;
+}
+h2 {
+  margin: 0 0 .85rem;
+  font-size: 1.2rem;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent-soft);
+  padding-bottom: .4rem;
+}
+h3 {
+  margin: 1.1rem 0 .45rem;
+  font-size: 1.02rem;
+  color: var(--ink);
+}
+p, li { color: var(--ink); }
+.muted { color: var(--muted); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: .7rem 0 0;
+  font-size: .92rem;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: .55rem .65rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--accent-soft); color: var(--accent); }
+.status {
+  display: inline-block;
+  font-weight: 700;
+  font-size: .78rem;
+  padding: .2rem .5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.st-ok { background: var(--ok-bg); color: var(--ok); }
+.st-delim { background: var(--warn-bg); color: var(--warn); }
+.st-pend { background: var(--pend-bg); color: var(--pend); }
+.st-hist { background: #eee; color: #555; }
+.callout {
+  border-left: 4px solid var(--pend);
+  background: var(--pend-bg);
+  padding: .85rem 1rem;
+  border-radius: 0 6px 6px 0;
+  margin: .8rem 0 0;
+}
+.callout.warn {
+  border-left-color: var(--warn);
+  background: var(--warn-bg);
+}
+.callout.ok {
+  border-left-color: var(--ok);
+  background: var(--ok-bg);
+}
+code, .path {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: .84em;
+  background: #f0f3f8;
+  padding: .05rem .3rem;
+  border-radius: 3px;
+}
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.toc ol { margin: .4rem 0 0; padding-left: 1.2rem; }
+.footer {
+  margin-top: 1.5rem;
+  color: var(--muted);
+  font-size: .85rem;
+  text-align: center;
+}
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  body { background: #fff; font-size: 11.5pt; }
+  .page { max-width: none; padding: 0; }
+  .cover {
+    break-after: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  section {
+    break-inside: avoid;
+    border-color: #ccc;
+    box-shadow: none;
+    margin-bottom: .85rem;
+    padding: 1rem 1.05rem;
+  }
+  .badge, .status, .callout, th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+<header class="cover">
+  <p class="eyebrow">Informe final de pruebas · Módulo 6</p>
+  <h1>TC-M06-G104 — Ciclo de vida de precios (RF-89)</h1>
+  <p class="meta"><strong>RF relacionadas:</strong> RF-89 v1.2 · RFC-024 C24.5 · RFC-026 C26.4 · FA-5 / CA-8</p>
+  <p class="meta"><strong>Ambiente:</strong> https://api.inmero.co/api-sgpmp-test</p>
+  <p class="meta"><strong>Fecha de la tercera evaluación:</strong> 13 de noviembre de 2026</p>
+  <p class="meta"><strong>Escrituras funcionales en TEST:</strong> no (salvo login de sesión en evidencias de lectura)</p>
+  <div class="badge-row">
+    <span class="badge badge-delim">Dictamen general: APROBADO CON ALCANCE DELIMITADO</span>
+    <span class="badge badge-ok">TC-25 / TC-26 / TC-29 (delimitado): APROBADOS</span>
+    <span class="badge badge-pend">CA-8: validación complementaria pendiente</span>
+  </div>
+</header>
+
+<section class="toc">
+  <h2>Índice</h2>
+  <ol>
+    <li><a href="#objetivo">Objetivo y alcance</a></li>
+    <li><a href="#resumen">Resumen ejecutivo</a></li>
+    <li><a href="#tabla">Tabla de resultados</a></li>
+    <li><a href="#evaluaciones">Las tres evaluaciones</a></li>
+    <li><a href="#rf89">Aplicación de RF-89 v1.2</a></li>
+    <li><a href="#tc29">Dictamen de TC-M06-29 y delimitación</a></li>
+    <li><a href="#ca8">CA-8 — validación complementaria pendiente</a></li>
+    <li><a href="#conclusion">Conclusión general de G104</a></li>
+    <li><a href="#indice-evidencias">Índice de evidencias</a></li>
+  </ol>
+</section>
+
+<section id="objetivo">
+  <h2>1. Objetivo y alcance de las pruebas</h2>
+  <p>El grupo <strong>TC-M06-G104</strong> valida el ciclo de vida de precios de mercado en el módulo financiero:</p>
+  <ul>
+    <li><strong>TC-M06-25:</strong> registro de un precio futuro en estado PROGRAMADO.</li>
+    <li><strong>TC-M06-26:</strong> transición automática de PROGRAMADO a ACTIVO al llegar la vigencia.</li>
+    <li><strong>TC-M06-29:</strong> vencimiento sin reemplazo y exclusión del precio vencido en simulación, conforme a RF-89 v1.2.</li>
+  </ul>
+  <p class="muted">Alcance de cierre de TC-M06-29: vencimiento del precio 492 (especie 544, activo 1644) y respuesta de simulación con motivo <code>SIN_PRECIO</code>. Queda fuera del cierre la demostración del aviso diario al Contador (CA-8 / FA-5).</p>
+</section>
+
+<section id="resumen">
+  <h2>2. Resumen ejecutivo</h2>
+  <p>Tras tres evaluaciones (8, 10 y 13 de noviembre de 2026), los tres subcasos del grupo están <strong>APROBADOS</strong>. TC-M06-29 se aprueba con <strong>alcance delimitado</strong> bajo RF-89 v1.2: se demostró el vencimiento sin reemplazo y la exclusión en simulación; no se demostró el aviso diario CA-8.</p>
+  <div class="callout warn">
+    <strong>Estado general de G104:</strong> APROBADO CON ALCANCE DELIMITADO.
+    El grupo <strong>no</strong> se declara completamente APROBADO mientras la validación complementaria de CA-8 permanezca pendiente.
+  </div>
+</section>
+
+<section id="tabla">
+  <h2>3. Tabla de resultados</h2>
+  <table>
+    <thead>
+      <tr><th>Caso</th><th>Resultado</th><th>Notas</th><th>Evidencia principal</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>TC-M06-25</td>
+        <td><span class="status st-ok">APROBADO</span></td>
+        <td>Precio 493 PROGRAMADO (vigencia 2026-11-11). Confirmado en la segunda evaluación.</td>
+        <td><span class="path">segunda_evaluacion/resumen_ejecucion_TC-M06-G104.json</span></td>
+      </tr>
+      <tr>
+        <td>TC-M06-26</td>
+        <td><span class="status st-ok">APROBADO</span></td>
+        <td>Precio 437: PROGRAMADO → ACTIVO (evidencia histórica de auditoría + catálogo).</td>
+        <td><span class="path">segunda_evaluacion/resumen_ejecucion_TC-M06-G104.json</span></td>
+      </tr>
+      <tr>
+        <td>TC-M06-29</td>
+        <td><span class="status st-delim">APROBADO (alcance delimitado)</span></td>
+        <td>RF-89 v1.2: precio 492 VENCIDO sin reemplazo; simulación <code>SIN_PRECIO</code>. Sin CA-8.</td>
+        <td><span class="path">tercera_evaluacion/evidencia_verificacion_lectura_tc_m06_29.json</span></td>
+      </tr>
+      <tr>
+        <td>CA-8 / FA-5</td>
+        <td><span class="status st-pend">PENDIENTE</span></td>
+        <td>Validación complementaria: aviso diario al Contador no demostrado.</td>
+        <td><span class="path">tercera_evaluacion/VALIDACION_COMPLEMENTARIA_CA8_AVISO_DIARIO_PENDIENTE.md</span></td>
+      </tr>
+      <tr>
+        <td><strong>G104 (grupo)</strong></td>
+        <td><span class="status st-delim">APROBADO CON ALCANCE DELIMITADO</span></td>
+        <td>No completo mientras CA-8 siga abierta.</td>
+        <td><span class="path">estado_oficial_G104.json</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="evaluaciones">
+  <h2>4. Descripción de las tres evaluaciones</h2>
+
+  <h3>4.1 Primera evaluación — 8 de noviembre de 2026</h3>
+  <p>Corrida inicial de solo lectura. No se registró precio futuro compartido. Resultado:</p>
+  <table>
+    <tr><th>Subcaso</th><th>Estado entonces</th></tr>
+    <tr><td>TC-M06-25</td><td><span class="status st-hist">BLOQUEADO</span></td></tr>
+    <tr><td>TC-M06-26</td><td><span class="status st-hist">BLOQUEADO</span></td></tr>
+    <tr><td>TC-M06-29</td><td><span class="status st-hist">REQUIERE ACLARACIÓN</span></td></tr>
+  </table>
+  <p class="muted">Hallazgo clave: la API responde <code>SIN_PRECIO</code>; no existe <code>SIN_PRECIO_VIGENTE</code> ni eventos <code>PRECIO_REFERENCIA_VENCIDO</code>. Generado: 2026-11-08T08:06:27Z.</p>
+
+  <h3>4.2 Segunda evaluación — 10 de noviembre de 2026</h3>
+  <p>Se cerraron TC-M06-25 y TC-M06-26. TC-M06-29 quedó preparado con escenario 492/544/1644, pendiente de la fecha posterior al vencimiento (2026-11-11, America/Bogotá).</p>
+  <table>
+    <tr><th>Subcaso</th><th>Estado entonces</th></tr>
+    <tr><td>TC-M06-25</td><td><span class="status st-ok">APROBADO</span></td></tr>
+    <tr><td>TC-M06-26</td><td><span class="status st-ok">APROBADO</span></td></tr>
+    <tr><td>TC-M06-29</td><td><span class="status st-hist">PREPARADO, PENDIENTE DE FECHA</span></td></tr>
+  </table>
+  <p class="muted">Generado: 2026-11-10T19:55:03Z. Incluye soporte de preparación del escenario.</p>
+
+  <h3>4.3 Tercera evaluación — 13 de noviembre de 2026</h3>
+  <p>Verificación de lectura del escenario vencido, reevaluación normativa con RF-89 v1.2, dictamen definitivo delimitado de TC-M06-29 y apertura formal de la validación complementaria CA-8. Evidencia de lectura generada: 2026-11-13T06:01:05Z.</p>
+  <table>
+    <tr><th>Subcaso / criterio</th><th>Estado actual</th></tr>
+    <tr><td>TC-M06-25</td><td><span class="status st-ok">APROBADO</span> (sin cambio)</td></tr>
+    <tr><td>TC-M06-26</td><td><span class="status st-ok">APROBADO</span> (sin cambio)</td></tr>
+    <tr><td>TC-M06-29 — vencimiento y exclusión</td><td><span class="status st-ok">APROBADO</span></td></tr>
+    <tr><td>TC-M06-29 — CA-8</td><td><span class="status st-pend">FUERA DE ALCANCE / PENDIENTE</span></td></tr>
+  </table>
+</section>
+
+<section id="rf89">
+  <h2>5. Aplicación de RF-89 v1.2</h2>
+  <table>
+    <thead><tr><th>Versión</th><th>Efecto sobre TC-M06-29</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>RF-89 v1.0</td>
+        <td>Diseño original: <code>SIN_PRECIO_VIGENTE</code> + notificación <em>o</em> RF-88. Fundamentó el <strong>RECHAZADO</strong> histórico (antecedente conservado).</td>
+      </tr>
+      <tr>
+        <td>RF-89 v1.1 / RFC-024 C24.5</td>
+        <td>Retira estado <code>SIN_PRECIO_VIGENTE</code>, evento <code>PRECIO_REFERENCIA_VENCIDO</code> y RF-88 por vencimiento. Simulación con motivo <code>SIN_PRECIO</code>. Aviso Contador (CA-8) permanece.</td>
+      </tr>
+      <tr>
+        <td>RF-89 v1.2 + RFC-026 C26.4</td>
+        <td>Versión vigente aplicada en este cierre. <strong>No</strong> restituye los criterios v1.0 retirados.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Criterios operativos vigentes: <span class="path">criterios_tc_m06_29_rf89_v1_2.md</span>.</p>
+</section>
+
+<section id="tc29">
+  <h2>6. Dictamen de TC-M06-29 y delimitación de alcance</h2>
+  <div class="callout ok">
+    <strong>Dictamen del subcaso:</strong> APROBADO (alcance delimitado).
+  </div>
+  <h3>Alcance aprobado</h3>
+  <ol>
+    <li>Precio 492 queda <strong>VENCIDO</strong> (vencimiento 2026-11-10) sin reemplazo aplicado.</li>
+    <li>El activo 1644 no requiere estado <code>SIN_PRECIO_VIGENTE</code>.</li>
+    <li>La simulación excluye el precio vencido y responde <code>SIN_PRECIO</code> con <code>es_valido=false</code>.</li>
+  </ol>
+  <h3>Fuera del alcance de cierre</h3>
+  <ul>
+    <li>Entrega del aviso diario al Contador (CA-8 / FA-5).</li>
+    <li>Criterios v1.0 retirados (<code>SIN_PRECIO_VIGENTE</code>, <code>PRECIO_REFERENCIA_VENCIDO</code>, RF-88 por vencimiento).</li>
+  </ul>
+  <p>Documento: <span class="path">tercera_evaluacion/DICTAMEN_DEFINITIVO_TC_M06_29.md</span>.</p>
+</section>
+
+<section id="ca8">
+  <h2>7. CA-8 — validación complementaria pendiente</h2>
+  <div class="callout">
+    <strong>Estado:</strong> PENDIENTE DE EVIDENCIA.<br>
+    <strong>Exigencia:</strong> el Contador recibe el aviso diario de que el precio venció sin reemplazo.<br>
+    <strong>Observado:</strong> bandeja Contador sin aviso identificable del precio 492; ejecución del job diario del 11/11 UTC no confirmada.<br>
+    <strong>Qué no se afirma:</strong> que el aviso se generó, que el job corrió, ni que CA-8 está APROBADO.
+  </div>
+  <p>Documento: <span class="path">tercera_evaluacion/VALIDACION_COMPLEMENTARIA_CA8_AVISO_DIARIO_PENDIENTE.md</span>.</p>
+</section>
+
+<section id="conclusion">
+  <h2>8. Conclusión general de G104</h2>
+  <p>Los casos individuales TC-M06-25, TC-M06-26 y TC-M06-29 (este último con alcance delimitado conforme a RF-89 v1.2) están <strong>APROBADOS</strong>.</p>
+  <p>El dictamen general del grupo es <strong>APROBADO CON ALCANCE DELIMITADO</strong>, con la observación explícita de que falta cerrar la validación complementaria de <strong>CA-8</strong>.</p>
+  <p><strong>G104 no se declara completamente APROBADO</strong> mientras CA-8 siga pendiente. No se inventaron porcentajes, logs ni notificaciones.</p>
+</section>
+
+<section id="indice-evidencias">
+  <h2>9. Índice de evidencias</h2>
+
+  <h3>Primera evaluación — <span class="path">resultados/primera_evaluacion/</span></h3>
+  <table>
+    <tr><th>Archivo</th><th>Descripción</th></tr>
+    <tr><td><span class="path">resumen_ejecucion_TC-M06-G104.json</span></td><td>Resumen de la corrida 2026-11-08</td></tr>
+    <tr><td><span class="path">evidencia_peticiones_TC-M06-G104.json</span></td><td>Peticiones HTTP de la primera evaluación</td></tr>
+    <tr><td><span class="path">resultado_ejecucion_TC-M06-G104.html</span></td><td>Informe HTML de la primera evaluación</td></tr>
+  </table>
+
+  <h3>Segunda evaluación — <span class="path">resultados/segunda_evaluacion/</span></h3>
+  <table>
+    <tr><th>Archivo</th><th>Descripción</th></tr>
+    <tr><td><span class="path">resumen_ejecucion_TC-M06-G104.json</span></td><td>Resumen 2026-11-10 (25/26 APROBADO; 29 preparado)</td></tr>
+    <tr><td><span class="path">evidencias_ejecucion_TC-M06-G104.json</span></td><td>Evidencias detalladas de ejecución</td></tr>
+    <tr><td><span class="path">resultado_ejecucion_TC-M06-G104.html</span></td><td>Informe HTML de la segunda evaluación</td></tr>
+    <tr><td><span class="path">soporte_preparacion/preparacion_tc_m06_29.json</span></td><td>Preparación del escenario TC-29</td></tr>
+    <tr><td><span class="path">soporte_preparacion/inspeccion_precio_vencido_tc_m06_29.json</span></td><td>Inspección alternativa de precio vencido</td></tr>
+  </table>
+
+  <h3>Tercera evaluación — <span class="path">resultados/tercera_evaluacion/</span></h3>
+  <table>
+    <tr><th>Archivo</th><th>Descripción</th></tr>
+    <tr><td><span class="path">evidencia_verificacion_lectura_tc_m06_29.json</span></td><td>GET de verificación (precio 492 VENCIDO + simulación SIN_PRECIO)</td></tr>
+    <tr><td><span class="path">DICTAMEN_DEFINITIVO_TC_M06_29.md</span></td><td>Dictamen vigente APROBADO (alcance delimitado)</td></tr>
+    <tr><td><span class="path">VALIDACION_COMPLEMENTARIA_CA8_AVISO_DIARIO_PENDIENTE.md</span></td><td>Registro formal de CA-8 pendiente</td></tr>
+    <tr><td><span class="path">estado_consolidado_G104.md</span></td><td>Resumen consolidado del grupo</td></tr>
+    <tr><td><span class="path">dictamen_historico_rechazo_rf89_v1_0.md</span></td><td>Antecedente RECHAZADO bajo criterios v1.0</td></tr>
+  </table>
+
+  <h3>Raíz de resultados</h3>
+  <table>
+    <tr><th>Archivo</th><th>Descripción</th></tr>
+    <tr><td><span class="path">INFORME_FINAL_G104.html</span></td><td>Este informe</td></tr>
+    <tr><td><span class="path">estado_oficial_G104.json</span></td><td>Estado oficial machine-readable</td></tr>
+    <tr><td><span class="path">README.md</span></td><td>Guía de la estructura</td></tr>
+  </table>
+</section>
+
+<p class="footer">TC-M06-G104 · Informe final · Tercera evaluación 2026-11-13 · Sin declaración de aprobación total del grupo mientras CA-8 permanezca pendiente.</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{
+  "caso": "TC-M06-G104",
+  "rf": ["RF-89"],
+  "dictamen_general": "APROBADO_CON_ALCANCE_DELIMITADO",
+  "grupo_completo_aprobado": false,
+  "motivo_grupo_no_completo": "TC-M06-25, TC-M06-26 y TC-M06-29 (alcance delimitado) están APROBADOS; permanece pendiente la validación complementaria CA-8/FA-5 del aviso diario al Contador.",
+  "normativa_vigente_tc_m06_29": {
+    "rf": "RF-89 v1.2",
+    "rfc": ["RFC-024 C24.5", "RFC-026 C26.4"],
+    "criterios_operativos": "criterios_tc_m06_29_rf89_v1_2.md",
+    "dictamen": "resultados/tercera_evaluacion/DICTAMEN_DEFINITIVO_TC_M06_29.md",
+    "informe_final": "resultados/INFORME_FINAL_G104.html"
+  },
+  "actualizado_en": "2026-11-13",
+  "ambiente_evidencia": "https://api.inmero.co/api-sgpmp-test",
+  "escritura_test": false,
+  "commit_push": false,
+  "estructura_evaluaciones": {
+    "primera_evaluacion": {
+      "fecha": "2026-11-08",
+      "descripcion": "Ejecución inicial de solo lectura; TC-25/26 bloqueados, TC-29 requiere aclaración bajo criterios RF-89 v1.0.",
+      "carpeta": "resultados/primera_evaluacion/"
+    },
+    "segunda_evaluacion": {
+      "fecha": "2026-11-10",
+      "descripcion": "TC-25 y TC-26 APROBADOS; TC-29 preparado pendiente de fecha de vencimiento (2026-11-11).",
+      "carpeta": "resultados/segunda_evaluacion/"
+    },
+    "tercera_evaluacion": {
+      "fecha": "2026-11-13",
+      "descripcion": "Verificación de lectura TC-29, aplicación RF-89 v1.2, dictamen delimitado y registro de CA-8 pendiente.",
+      "carpeta": "resultados/tercera_evaluacion/"
+    }
+  },
+  "subcasos": [
+    {
+      "subcaso": "TC-M06-25",
+      "estado": "APROBADO",
+      "modificado_en_este_cierre": false,
+      "fuente": "resultados/segunda_evaluacion/resumen_ejecucion_TC-M06-G104.json"
+    },
+    {
+      "subcaso": "TC-M06-26",
+      "estado": "APROBADO",
+      "modificado_en_este_cierre": false,
+      "fuente": "resultados/segunda_evaluacion/resumen_ejecucion_TC-M06-G104.json"
+    },
+    {
+      "subcaso": "TC-M06-29",
+      "estado": "APROBADO",
+      "alcance": "delimitado",
+      "alcance_descripcion": "Vencimiento del precio 492 sin reemplazo y exclusión en simulación (motivo SIN_PRECIO). Sin CA-8.",
+      "comportamientos": {
+        "A_vencimiento_y_exclusion": "APROBADO",
+        "B_aviso_diario_CA8": "PENDIENTE_VALIDACION_COMPLEMENTARIA",
+        "criterios_v1_0_SIN_PRECIO_VIGENTE_y_RF88": "RETIRADOS_ANTECEDENTE_RECHAZADO"
+      },
+      "evidencia_principal": "resultados/tercera_evaluacion/evidencia_verificacion_lectura_tc_m06_29.json",
+      "dictamen": "resultados/tercera_evaluacion/DICTAMEN_DEFINITIVO_TC_M06_29.md",
+      "modificado_en_este_cierre": true
+    }
+  ],
+  "validaciones_complementarias_grupo": [
+    {
+      "id": "CA-8_FA-5_aviso_diario_precio_492",
+      "estado": "PENDIENTE_DE_EVIDENCIA",
+      "documento": "resultados/tercera_evaluacion/VALIDACION_COMPLEMENTARIA_CA8_AVISO_DIARIO_PENDIENTE.md"
+    }
+  ],
+  "antecedente_rechazo_tc_m06_29": {
+    "estado_historico": "RECHAZADO",
+    "archivo": "resultados/tercera_evaluacion/dictamen_historico_rechazo_rf89_v1_0.md",
+    "fundamento": "RF-89 v1.0 (SIN_PRECIO_VIGENTE y RF-88/PRECIO_REFERENCIA_VENCIDO) — criterios retirados por RFC-024"
+  }
+}

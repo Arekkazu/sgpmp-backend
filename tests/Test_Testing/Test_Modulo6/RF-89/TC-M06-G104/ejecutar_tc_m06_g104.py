@@ -3,6 +3,14 @@
 Un precio futuro se guardaría en el catálogo compartido, así que no se registra.
 Las transiciones se comprueban con los precios que ya existen.
 
+TC-M06-29 (RF-89 v1.2 / RFC-024 C24.5): alcance de cierre = vencimiento sin
+reemplazo y simulación SIN_PRECIO. No exige SIN_PRECIO_VIGENTE,
+PRECIO_REFERENCIA_VENCIDO ni RF-88 por vencimiento. CA-8 (aviso Contador) es
+validación complementaria pendiente; ver criterios_tc_m06_29_rf89_v1_2.md y
+resultados/estado_oficial_G104.json. RF-88 solo en reconocimiento inicial.
+
+La evaluación del 2026-11-08 está en resultados/primera_evaluacion y no se regenera.
+
     python tests/Test_Testing/Test_Modulo6/RF-89/TC-M06-G104/ejecutar_tc_m06_g104.py
 """
 from __future__ import annotations
@@ -140,13 +148,13 @@ def main() -> int:
     escenarios = [
         subcaso("TC-M06-25", "Registrar un precio futuro y comprobar el estado PROGRAMADO."),
         subcaso("TC-M06-26", "Comprobar el paso automático de PROGRAMADO a ACTIVO."),
-        subcaso("TC-M06-29", "Comprobar el vencimiento sin reemplazo, SIN_PRECIO_VIGENTE y el flujo RF-88."),
+        subcaso("TC-M06-29", "Alcance delimitado RF-89 v1.2: precio vencido sin reemplazo y simulación SIN_PRECIO. CA-8 aviso Contador = validación complementaria pendiente."),
     ]
     hallazgos = [
         "El estado que devuelve GET /finanzas/precios se calcula en la consulta con la fecha de hoy. No hay un proceso que actualice la fila de PROGRAMADO a ACTIVO ni de ACTIVO a VENCIDO.",
-        "El proceso diario avisa a los contadores los precios que vencen en la ventana configurada y los que vencieron dentro del último día sin otro precio vigente. No cambia el método de valoración ni escribe PRECIO_REFERENCIA_VENCIDO.",
-        "QUESTION-M06-G104-01: el caso espera el estado SIN_PRECIO_VIGENTE. El valorador responde el motivo SIN_PRECIO y el paso a valor razonable responde SIN_PRECIO_PARA_VALOR_RAZONABLE.",
-        "QUESTION-M06-G104-02: RF-88 no se activa solo cuando un precio vence. La ausencia de precio se evalúa al simular, al reconocer o al intentar pasar de costo a valor razonable.",
+        "RF-89 v1.2 / RFC-024 C24.5: no existe SIN_PRECIO_VIGENTE en el activo; simulación SIN_PRECIO; sin PRECIO_REFERENCIA_VENCIDO ni RF-88 por vencimiento.",
+        "Estado oficial del grupo: resultados/estado_oficial_G104.json. TC-M06-29 APROBADO (alcance delimitado); CA-8 pendiente como validación complementaria.",
+        "Dictamen definitivo: resultados/tercera_evaluacion/DICTAMEN_DEFINITIVO_TC_M06_29.md.",
     ]
     informe = {
         "caso": "TC-M06-G104", "rf": ["RF-89", "RF-88"], "ambiente": BASE_API,
@@ -175,7 +183,7 @@ def main() -> int:
     resumen = resumir_precios(precios)
     informe["precios"] = resumen
     peticiones.append(evidencia("GET", "/finanzas/precios", codigo, duracion, {"total": resumen["total"], "por_estado": resumen["por_estado"], "por_especie": resumen["por_especie"]}))
-    for tipo in ("PRECIO_REGISTRADO", "PRECIO_REFERENCIA_VENCIDO", "PRECIO_MARCADO_REEMPLAZADO"):
+    for tipo in ("PRECIO_REGISTRADO", "PRECIO_MARCADO_REEMPLAZADO"):
         ruta = f"/finanzas/auditoria?tipo_evento={tipo}&formato=TECNICO&tamano=1"
         codigo_aud, auditoria, duracion = pedir("GET", ruta, token=token)
         total = auditoria.get("total_registros") if isinstance(auditoria, dict) else None
@@ -232,17 +240,11 @@ def main() -> int:
             simulaciones.append(fila)
             peticiones.append(evidencia("GET", f"/finanzas/activos/{activo}/simulacion", codigo_sim, duracion_sim, fila))
     informe["simulaciones"] = simulaciones
-    escenarios[2]["observacion"] = {"especies_sin_precio_aplicado": sin_aplicado, "simulaciones": simulaciones, "auditoria_vencido": informe["auditoria"].get("PRECIO_REFERENCIA_VENCIDO"), "avisos_precio": len(avisos)}
-    if sin_aplicado and any(s.get("motivo") == "SIN_PRECIO" for s in simulaciones):
-        escenarios[2]["estado"] = "REQUIERE ACLARACION"
-        escenarios[2]["motivo"] = (
-            "Las especies sin precio aplicado tienen precios VENCIDO y la simulación responde SIN_PRECIO. "
-            "No existe el estado SIN_PRECIO_VIGENTE. La auditoría PRECIO_REFERENCIA_VENCIDO no tiene eventos y no se observó una activación automática de RF-88."
-        )
-    else:
-        escenarios[2]["motivo"] = (
-            "No se provocó un vencimiento. La consulta no alcanzó a mostrar, en un activo real, la ausencia de precio y el flujo RF-88 juntos."
-        )
+    escenarios[2]["observacion"] = {"especies_sin_precio_aplicado": sin_aplicado, "simulaciones": simulaciones, "avisos_precio": len(avisos)}
+    escenarios[2]["motivo"] = (
+        "Este ejecutor solo consulta y no arma el escenario aislado. El motivo esperado de la simulación es SIN_PRECIO "
+        "y el del paso a valor razonable es SIN_PRECIO_PARA_VALOR_RAZONABLE. No se exige PRECIO_REFERENCIA_VENCIDO."
+    )
 
     informe["aprobados"] = sum(e["estado"] == "APROBADO" for e in escenarios)
     informe["rechazados"] = sum(e["estado"] == "RECHAZADO" for e in escenarios)

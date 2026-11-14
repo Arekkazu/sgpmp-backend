@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>TC-M06-G104 — evaluación del 10 de noviembre</title>
+<style>
+body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45;color:#222}
+table{border-collapse:collapse;width:100%;margin:1rem 0}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:#f3f3f3}
+.estado{font-weight:700}
+</style>
+</head>
+<body>
+<h1>TC-M06-G104 — subcasos 26 y 29</h1>
+<p>Ambiente <code>https://api.inmero.co/api-sgpmp-test</code>. Evaluación del 10 de noviembre de 2026. El caso completo no queda aprobado: TC-M06-29 sigue pendiente de la fecha del 11 de noviembre.</p>
+<p>Detalle en <a href="resumen_ejecucion_TC-M06-G104.json">resumen_ejecucion_TC-M06-G104.json</a> y <a href="evidencias_ejecucion_TC-M06-G104.json">evidencias_ejecucion_TC-M06-G104.json</a>.</p>
+<table>
+<tr><th>Subcaso</th><th>Estado</th><th>Resultado</th></tr>
+<tr><td>TC-M06-26</td><td class="estado">APROBADO</td><td>El precio 437 quedó PROGRAMADO al registrarse y ACTIVO en la consulta del 10 de noviembre, antes de que el precio 490 lo superara. No se creó otro precio.</td></tr>
+<tr><td>TC-M06-29</td><td class="estado">PREPARADO, PENDIENTE DE FECHA</td><td>La simulación y el rechazo del cambio de método ya se observaron. La ausencia de precio vigente del activo 1644 se comprueba el 11 de noviembre de 2026.</td></tr>
+<tr><td>TC-M06-25</td><td class="estado">APROBADO</td><td>El precio 493 quedó PROGRAMADO para el 11 de noviembre de 2026, por 5.100.000, y no está aplicado. El precio 489 sigue activo y aplicado.</td></tr>
+</table>
+<h2>TC-M06-25</h2>
+<p>La referencia vigente era el precio 489, mercado activo, 5.000.000 por cabeza, activo y aplicado. El umbral era 50 % y la desviación del nuevo importe fue 2,00 %. El alta respondió 201 y creó el precio 493, con vigencia 2026-11-11 y estado PROGRAMADO. La consulta posterior lo muestra sin aplicar. Los precios 489, 490, 491, 436 y 437 conservan importe, vigencia y estado. La auditoría registró el evento 13098 como PROGRAMADO y también el evento 13099, que señala al 489 como anterior; ese aviso no cambió la fila ni la aplicación de hoy.</p>
+<h2>TC-M06-26</h2>
+<p>La auditoría del registro, evento 7062 del 8 de noviembre de 2026 a las 21:24:54 UTC, guardó el precio 437 como PROGRAMADO, con vigencia 2026-11-09. La consulta de catálogo conservada por TC-M06-G102, anterior al alta del precio 490, lo devolvió ACTIVO, por 3.900.000, con la misma vigencia. Después del precio 490 la misma fila se lee SUPERADO, sin cambio de importe ni de fecha. Los precios 437 y 490 no se modificaron ni se borraron.</p>
+<h2>TC-M06-29</h2>
+<p>Especie 544, finca 472, titular 900000104, período 266 abierto y precio 492. El lote 1643 se reconoció por costo. Su simulación respondió <code>SIN_PRECIO</code> y el cambio a valor razonable respondió 422 <code>SIN_PRECIO_PARA_VALOR_RAZONABLE</code>. La valoración por costo 44 sigue activa. El lote 1644 se reconoció a valor razonable por 940.000, con el precio 492 vigente.</p>
+<p>Ese precio vence el 10 de noviembre de 2026 y sigue vigente durante ese día. La consulta que debe mostrar la ausencia de precio vigente es el 11 de noviembre de 2026, hora de Bogotá. Hasta entonces el subcaso no se aprueba. El aviso diario al Contador no se comprobó: el PR 1024 sigue abierto y no está en la rama <code>laura</code>.</p>
+<p>El mismo día se revisó si otro escenario aislado podía usar un precio ya vencido. El alta de precios sí admite una vigencia pasada, dentro de 365 días, y un vencimiento anterior a hoy. El reconocimiento no puede usarlo: valora el activo en su fecha de ingreso, y esa fecha es el día real de creación. Un activo creado hoy se valora hoy, cuando el precio vencido ya no es vigente. No se crearon datos ni se llamó a TEST para esa alternativa. El detalle está en <a href="soporte_preparacion/inspeccion_precio_vencido_tc_m06_29.json">inspeccion_precio_vencido_tc_m06_29.json</a>.</p>
+</body>
+</html>

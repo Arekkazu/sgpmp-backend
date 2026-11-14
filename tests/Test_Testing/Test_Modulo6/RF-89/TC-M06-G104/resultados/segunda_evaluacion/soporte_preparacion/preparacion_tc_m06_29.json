@@ -1,0 +1,375 @@
+{
+  "caso": "TC-M06-G104",
+  "proposito": "Datos usados para construir el escenario aislado de TC-M06-29. No es la evaluacion funcional.",
+  "identificadores": {
+    "especie": 544,
+    "nombre_especie": "Caprino Aislado Precios",
+    "finca": 472,
+    "nombre_finca": "Finca Qa Precios Aislada",
+    "infraestructura": 1059,
+    "titular_nit": "900000104",
+    "razon_social": "Titular Qa Precios Aislado",
+    "activo_costo": 1643,
+    "activo_valor_razonable": 1644,
+    "precio": 492,
+    "periodo": 266
+  },
+  "pasos": [
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/especies",
+      "codigo": 201,
+      "cuerpo": {
+        "nombre": "Caprino Aislado Precios",
+        "descripcion": "Especie exclusiva para TC-M06-29.",
+        "densidad_maxima_por_especie": "1.00",
+        "grupo_manejo": "ESPECIES_MEDIANAS"
+      },
+      "respuesta": {
+        "id_especie": 544,
+        "nombre": "Caprino Aislado Precios",
+        "descripcion": "Especie exclusiva para TC-M06-29.",
+        "densidad_poblacional_max": "1.0000",
+        "densidad_maxima_por_especie": "1.0000",
+        "grupo_manejo": "ESPECIES_MEDIANAS",
+        "esperanza_vida_dias": null,
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "es_activo": true,
+        "fecha_creacion": "2026-11-10T19:49:23.056502Z",
+        "fecha_actualizacion": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/especies?solo_activas=true",
+      "codigo": 200,
+      "cuerpo": null,
+      "respuesta": {
+        "id_especie": 544,
+        "nombre": "Caprino Aislado Precios",
+        "descripcion": "Especie exclusiva para TC-M06-29.",
+        "densidad_poblacional_max": "1.0000",
+        "densidad_maxima_por_especie": "1.0000",
+        "grupo_manejo": "ESPECIES_MEDIANAS",
+        "esperanza_vida_dias": null,
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "es_activo": true,
+        "fecha_creacion": "2026-11-10T19:49:23.056502Z",
+        "fecha_actualizacion": null
+      }
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/finanzas/configuracion/especies/544",
+      "codigo": 200,
+      "cuerpo": {
+        "clasificacion": "PRODUCCION",
+        "categoria_precio": "POR_CABEZA",
+        "vida_util_meses": 120
+      },
+      "respuesta": {
+        "id_especie": 544,
+        "clasificacion": "PRODUCCION",
+        "categoria_precio": "POR_CABEZA",
+        "vida_util_meses": 120
+      }
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/finanzas/configuracion/costos-venta/544",
+      "codigo": 200,
+      "cuerpo": {
+        "pct_transporte": "0.0200",
+        "pct_comisiones": "0.0300",
+        "pct_impuestos": "0.0100"
+      },
+      "respuesta": {
+        "id_parametro_costo_venta": 299
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/fincas",
+      "codigo": 201,
+      "cuerpo": {
+        "nombre": "Finca Qa Precios Aislada",
+        "ubicacion": {
+          "departamento": "Cundinamarca",
+          "municipio": "Bogota",
+          "vereda": "Qa",
+          "latitud": "4.600000",
+          "longitud": "-74.080000"
+        },
+        "tamano_h": "1.00"
+      },
+      "respuesta": {
+        "id_finca": 472,
+        "nombre": "Finca Qa Precios Aislada",
+        "ubicacion": {
+          "departamento": "Cundinamarca",
+          "municipio": "Bogota",
+          "vereda": "Qa",
+          "latitud": "4.600000",
+          "longitud": "-74.080000"
+        },
+        "tamano_h": "1.00",
+        "es_activo": true,
+        "fecha_creacion": "2026-11-10T19:49:26Z",
+        "fecha_actualizacion": "2026-11-10T19:49:26.385095Z",
+        "id_usuario": 137,
+        "nombre_usuario": "Admin Sistema"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/472",
+      "codigo": 200,
+      "cuerpo": null,
+      "respuesta": {
+        "id_finca": 472,
+        "nombre": "Finca Qa Precios Aislada",
+        "ubicacion": {
+          "departamento": "Cundinamarca",
+          "municipio": "Bogota",
+          "vereda": "Qa",
+          "latitud": "4.600000",
+          "longitud": "-74.080000"
+        },
+        "tamano_h": "1.00",
+        "es_activo": true,
+        "fecha_creacion": "2026-11-10T19:49:26Z",
+        "fecha_actualizacion": "2026-11-10T19:49:26.385095Z",
+        "id_usuario": 137,
+        "nombre_usuario": "Admin Sistema"
+      }
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/configuracion/fincas/472/titular",
+      "codigo": 200,
+      "cuerpo": {
+        "tipo_id_tributaria": "NIT",
+        "numero_id_tributaria": "900000104",
+        "dv": "2",
+        "razon_social": "Titular Qa Precios Aislado"
+      },
+      "respuesta": {
+        "id_finca": 472,
+        "nombre": "Finca Qa Precios Aislada",
+        "tipo_id_tributaria": "NIT",
+        "numero_id_tributaria": "900000104",
+        "dv": "2",
+        "razon_social": "Titular Qa Precios Aislado"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/472/titular",
+      "codigo": 200,
+      "cuerpo": null,
+      "respuesta": {
+        "id_finca": 472,
+        "nombre": "Finca Qa Precios Aislada",
+        "tipo_id_tributaria": "NIT",
+        "numero_id_tributaria": "900000104",
+        "dv": "2",
+        "razon_social": "Titular Qa Precios Aislado"
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/infraestructuras",
+      "codigo": 201,
+      "cuerpo": {
+        "nombre_infraestructura": "Corral Qa Precios Aislado",
+        "tipo_area": "Corral",
+        "superficie": "100.00",
+        "finca_id": 472,
+        "especies": [
+          544
+        ],
+        "tipo_modelo_asignado": "MODELO_ESPECIES_MEDIANAS",
+        "nivel_criticidad": "BAJA"
+      },
+      "respuesta": {
+        "id_infraestructura": 1059,
+        "nombre_infraestructura": "Corral Qa Precios Aislado",
+        "tipo_area": "Corral",
+        "superficie": "100.00",
+        "id_finca": 472,
+        "descripcion_infraestructura": null,
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          544
+        ],
+        "especie_id": 544,
+        "tipo_modelo_asignado": "MODELO_ESPECIES_MEDIANAS",
+        "nivel_criticidad": "BAJA",
+        "capacidad_maxima": 100
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/1059",
+      "codigo": 200,
+      "cuerpo": null,
+      "respuesta": {
+        "id_infraestructura": 1059,
+        "nombre_infraestructura": "Corral Qa Precios Aislado",
+        "tipo_area": "Corral",
+        "superficie": "100.00",
+        "id_finca": 472,
+        "descripcion_infraestructura": null,
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          544
+        ],
+        "especie_id": 544,
+        "tipo_modelo_asignado": "MODELO_ESPECIES_MEDIANAS",
+        "nivel_criticidad": "BAJA",
+        "capacidad_maxima": 100
+      }
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/usuarios/141/fincas",
+      "codigo": 200,
+      "cuerpo": {
+        "ids_fincas": [
+          463,
+          464,
+          465,
+          466,
+          467,
+          468,
+          469,
+          471,
+          472
+        ]
+      },
+      "respuesta": {
+        "message": "Fincas asignadas al usuario 141: [463, 464, 465, 466, 467, 468, 469, 471, 472]."
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "cuerpo": null,
+      "respuesta": {
+        "id_usuario": 141,
+        "ids_fincas": [
+          463,
+          464,
+          465,
+          466,
+          467,
+          468,
+          469,
+          471
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "cuerpo": null,
+      "respuesta": {
+        "ids_fincas": [
+          463,
+          464,
+          465,
+          466,
+          467,
+          468,
+          469,
+          471,
+          472
+        ]
+      }
+    }
+  ],
+  "altas_individuales_rechazadas": [
+    {
+      "codigo": 400,
+      "cuerpo": {
+        "tipo_activo": "INDIVIDUAL",
+        "id_especie": 544,
+        "fecha_inicio_ciclo": "2026-11-10",
+        "origen_financiero": "compra",
+        "costo_adquisicion": "500000.00",
+        "soporte_documental": "Factura de compra QA TC-M06-29 del activo que se reconoce por costo.",
+        "id_infraestructura": 1059,
+        "identificador": "QA-G104-COSTO-01",
+        "raza": "Criolla",
+        "sexo": "HEMBRA"
+      },
+      "respuesta": {
+        "error_code": "VALOR_NO_PERMITIDO",
+        "message": "El valor no cumple con las restricciones permitidas",
+        "fields": [
+          {
+            "field": "detalle_individual_sexo_valido",
+            "message": "El valor no cumple con las restricciones permitidas"
+          }
+        ],
+        "timestamp": "2026-11-10T19:49:30.928287+00:00"
+      }
+    },
+    {
+      "codigo": 409,
+      "cuerpo": {
+        "tipo_activo": "INDIVIDUAL",
+        "id_especie": 544,
+        "fecha_inicio_ciclo": "2026-11-10",
+        "origen_financiero": "compra",
+        "costo_adquisicion": "500000.00",
+        "soporte_documental": "Factura de compra QA TC-M06-29 del activo que se reconoce por costo.",
+        "id_infraestructura": 1059,
+        "identificador": "QA-G104-COSTO-01",
+        "raza": "Criolla",
+        "sexo": "Hembra"
+      },
+      "respuesta": {
+        "error_code": "RECURSO_DUPLICADO",
+        "message": "Ya existe un registro con esos datos.",
+        "fields": [
+          {
+            "field": "pkey",
+            "message": "Ya existe un registro con esos datos."
+          }
+        ],
+        "timestamp": "2026-11-10T19:51:25.500007+00:00"
+      }
+    },
+    {
+      "codigo": 409,
+      "cuerpo": {
+        "tipo_activo": "INDIVIDUAL",
+        "id_especie": 544,
+        "fecha_inicio_ciclo": "2026-11-10",
+        "origen_financiero": "compra",
+        "costo_adquisicion": "500000.00",
+        "soporte_documental": "Factura de compra QA TC-M06-29 del activo que se reconoce por costo.",
+        "id_infraestructura": 1059,
+        "identificador": "QA-G104-COSTO-01",
+        "raza": "Criolla",
+        "sexo": "Hembra"
+      },
+      "respuesta": {
+        "error_code": "RECURSO_DUPLICADO",
+        "message": "Ya existe un registro con esos datos.",
+        "fields": [
+          {
+            "field": "pkey",
+            "message": "Ya existe un registro con esos datos."
+          }
+        ],
+        "timestamp": "2026-11-10T19:52:06.448154+00:00"
+      }
+    }
+  ]
+}
