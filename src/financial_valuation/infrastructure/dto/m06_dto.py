@@ -12,6 +12,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio en el cierre |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: fecha de vigencia opcional en la corrección de un precio |
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: delegar el monto no positivo a la regla FA-6 de registro. |
+# | 2026-11-14 | destroyerban | INC-M06-034B-G64 RF-92: la declaración sin novedad no admite compromisos ni pignorados |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -240,6 +241,15 @@ class InformeRevelacionesDTO(BaseDTO):
     activos_pignorados: list[PignoracionDTO] = Field(default_factory=list)
     declaracion_sin_novedad: bool = False
     justificacion_inconsistencias: Optional[str] = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def _sin_novedad_excluye_compromisos_y_pignorados(self) -> "InformeRevelacionesDTO":
+        """RF-92 Entradas: declarar «sin novedad» es afirmar que no hay compromisos ni activos pignorados."""
+        if self.declaracion_sin_novedad and (self.compromisos_vigentes or self.activos_pignorados):
+            raise ValueError(
+                "La declaración de que no existen compromisos ni activos pignorados no puede ir junto con "
+                "compromisos o activos pignorados. Quite la declaración o deje vacías esas listas.")
+        return self
 
 
 class ResolverInformeDTO(BaseDTO):
