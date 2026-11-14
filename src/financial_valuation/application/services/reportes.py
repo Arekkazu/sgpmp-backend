@@ -7,6 +7,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: la conciliación suma los ingresos de individuos sin costo y omite los activos dados de baja antes |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección (COMPLETA, ADVERTENCIA o BLOQUEADA) con su fuente y motivo |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: revelar supuestos y detectar datos insuficientes por activo. |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -15,6 +16,7 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Iterable, Optional
 
+from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.costo_repository import CostoRepository
 from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
@@ -24,6 +26,7 @@ from src.financial_valuation.domain.services.consolidacion import (
     estado_resultados,
 )
 from src.financial_valuation.domain.services.nic41 import CERO, hash_sha256, q4
+from src.shared.errors import BusinessRuleError
 
 ETIQUETAS_PERIODO = {"MENSUAL": "M", "TRIMESTRAL": "Q", "ANUAL": "A"}
 _SUPUESTOS_BIOLOGICOS = ("supuestos_crecimiento", "produccion_esperada", "condicion_corporal")
@@ -91,6 +94,30 @@ def estado_secciones(problemas: dict[str, list[tuple[bool, str]]]) -> list[dict]
     return estados
 
 
+_HECHO_FUENTE = {"variaciones_valor_razonable": "la variación de valor razonable",
+                 "reconocimientos_productos_agricolas": "el producto agrícola"}
+
+
+class ConciliacionError(BusinessRuleError):
+    """RF-93 paso 5 / FA-2: el estado se arma con las líneas de asiento; si un hecho de sus fuentes (variación
+    RF-86, producto agrícola RF-85) no tiene la suya, el estado no cuadra con ellas y no se genera."""
+
+    def __init__(self, id_periodo_contable: int, faltantes: list[dict]) -> None:
+        self.id_periodo_contable, self.faltantes = id_periodo_contable, faltantes
+        detalle = "; ".join(f"{_HECHO_FUENTE[f['fuente']]} de {f['identificador']}" for f in faltantes[:10])
+        super().__init__(code="ESTADO_RESULTADOS_NO_CONCILIA", message=(
+            f"El estado de resultados no cuadra con sus fuentes: {len(faltantes)} hechos del período no tienen asiento "
+            f"contable ({detalle}). Revíselos antes de generar el estado."))
+
+    def evento(self, id_usuario: int) -> EventoAuditoria:
+        return EventoAuditoria(tipo_evento="ERROR_CONCILIACION", severidad="CRITICAL", id_usuario=id_usuario,
+                               payload={"hechos_sin_asiento": self.faltantes}, id_periodo_contable=self.id_periodo_contable,
+                               id_referencia=self.id_periodo_contable)
+
+    def avisar(self, notificador: NotificacionFinancieraPort) -> None:
+        notificador.a_contadores("ALERTA_FINANCIERA_NIC41", self.message, {"id_periodo_contable": self.id_periodo_contable})
+
+
 class ConstructorEstadoResultados:
     def __init__(self, reportes: ReporteRepository, costos: CostoRepository) -> None:
         self.reportes = reportes
@@ -116,6 +143,9 @@ class ConstructorEstadoResultados:
                 "costos": len(costos)}
 
     def guardar(self, id_periodo_contable: int, filtros: dict, id_usuario: int, excluidos: list) -> dict:
+        faltantes = self.reportes.hechos_sin_asiento(id_periodo_contable)
+        if faltantes:
+            raise ConciliacionError(id_periodo_contable, faltantes)
         ids_excluidos = sorted({e["id_activo_biologico"] for e in excluidos if e.get("id_activo_biologico")})
         calculo = self.calcular(id_periodo_contable, filtros, ids_excluidos)
         excluidos = self._con_montos(id_periodo_contable, filtros, excluidos)

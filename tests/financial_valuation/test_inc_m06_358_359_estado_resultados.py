@@ -1,6 +1,7 @@
 # | Fecha      | Nombre         | Que se hizo                                                                  |
 # |------------|----------------|------------------------------------------------------------------------------|
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 y INC-M06-359-G79 RF-93: ventas y bajas sin recuperación separadas, excluidos y ceros |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: el fake de reportes responde la conciliación |
 """Estado de resultados (RF-93).
 
 - INC-M06-358-G71/G72 (#1083): la baja sin venta (``BAJA_ACTIVO`` / ``PERDIDA``) se descartaba; ahora
@@ -52,6 +53,9 @@ class _Reportes:
 
     def siguiente_version_estado(self, id_periodo):
         return "V1"
+
+    def hechos_sin_asiento(self, id_periodo):
+        return []
 
     def agregar_estado(self, datos):
         self.estado = datos

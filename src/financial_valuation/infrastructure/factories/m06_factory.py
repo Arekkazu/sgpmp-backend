@@ -12,6 +12,7 @@
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-13 | Arekkazu | INC-M06-90-G97 RF-88: consulta de la depreciación de un activo al costo |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: conectar la notificación financiera de supuestos faltantes. |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -215,7 +216,8 @@ class M06:
         return RegistrarCotizacionUseCase(self.db, self.cotizaciones, self.activos, self.valoraciones, self.contabilizador)
     def modificar_cotizacion(self): return ModificarCotizacionUseCase(self.db, self.cotizaciones, self.auditoria)
     def estado_resultados(self):
-        return GenerarEstadoResultadosUseCase(self.db, self.periodos, self.reportes, self.constructor_estado, self.auditoria)
+        return GenerarEstadoResultadosUseCase(self.db, self.periodos, self.reportes, self.constructor_estado, self.auditoria,
+                                              self.notificador)
     def informe_revelaciones(self):
         return GenerarInformeRevelacionesUseCase(
             self.db, self.periodos, self.reportes, self.constructor_informe, self.auditoria, self.notificador,

@@ -11,6 +11,7 @@
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: excluir del comprobante líneas con auditorías fuente sin verificar. |
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43 RF-87: precio congelado al iniciar, activos estimados en la respuesta; RF-88 FA-2 sin vida útil bloquea |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar los supuestos faltantes del borrador creado al cerrar. |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -37,6 +38,7 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.application.services.contabilizador import Contabilizador
 from src.financial_valuation.application.services.medidor import Medidor
 from src.financial_valuation.application.services.reportes import (
+    ConciliacionError,
     ConstructorEstadoResultados,
     ConstructorInformeRevelaciones,
     avisar_supuestos_insuficientes,
@@ -260,6 +262,9 @@ class EjecutarCierrePeriodoUseCase:
                 f"El proceso de cierre falló en el paso {paso}. Se revirtieron todos los cambios y el período permanece "
                 "ABIERTO. Corrija el problema y reinicie el cierre.")) from exc
         informe = resultado.pop("_informe_revelaciones")
+        discrepancia = resultado.pop("_conciliacion")
+        if discrepancia is not None:  # RF-93 FA-2: el estado quedó pendiente; se avisa con el motivo
+            discrepancia.avisar(self.notificador)
         if informe is not None:
             avisar_supuestos_insuficientes(self.notificador, id_periodo_contable, informe)
         self.notificador.a_contadores("CIERRE_PERIODO_CONTABLE", (
@@ -483,7 +488,7 @@ class EjecutarCierrePeriodoUseCase:
         self._paso = 9
         self.periodos.cambiar_estado(periodo.id_periodo_contable, EstadoPeriodo.CERRADO.value)
         hash_cierre = hash_sha256({"periodo": periodo.id_periodo_contable, "comprobantes": codigos, "excluidos": excluidos})
-        reportes, informe = self._reportes(periodo, id_usuario, excluidos)
+        reportes, informe, discrepancia = self._reportes(periodo, id_usuario, excluidos)
         self.periodos.finalizar_cierre(id_cierre, "COMPLETADO", {
             "paso": 9, "procesados": procesados, "pendientes": len(excluidos), "excluidos": excluidos + pendientes,
             "precios": precios, "hash": hash_cierre})
@@ -498,7 +503,7 @@ class EjecutarCierrePeriodoUseCase:
                  "activos_procesados": procesados, "activos_excluidos": excluidos, "activos_estimados": activos_estimados,
                  "lineas_excluidas": pendientes,
                  "comprobantes": codigos, "hash_cierre": hash_cierre, "reportes": reportes,
-                 "_informe_revelaciones": informe,
+                 "_informe_revelaciones": informe, "_conciliacion": discrepancia,
                  "id_periodo_siguiente": siguiente.id_periodo_contable, "activos_al_costo_con_precio": al_costo_con_precio})
 
     def _depreciar(self, activo, costo, periodo, dia, id_cierre, id_usuario, precio_vigente) -> None:
@@ -550,14 +555,20 @@ class EjecutarCierrePeriodoUseCase:
         return existente or self.periodos.crear(periodo.numero_id_tributaria, self.contabilizador.config.obtener().tipo_cierre,
                                                 inicio, fin, id_usuario)
 
-    def _reportes(self, periodo: Periodo, id_usuario: int, excluidos: list) -> tuple[dict, dict | None]:
-        """Paso 8: si RF-92 o RF-93 fallan, el cierre se completa y quedan PENDIENTE_GENERACION (CA-11)."""
+    def _reportes(self, periodo: Periodo, id_usuario: int,
+                  excluidos: list) -> tuple[dict, dict | None, ConciliacionError | None]:
+        """Paso 8: si RF-92 o RF-93 fallan, el cierre se completa y quedan PENDIENTE_GENERACION (CA-11). Si el estado
+        no cuadra con sus fuentes (RF-93 FA-2), la discrepancia queda en RF-94 con el cierre y se avisa al terminar."""
         estado = {"estado_resultados": "PENDIENTE_GENERACION", "informe_revelaciones": "PENDIENTE_GENERACION"}
-        informe = None
+        informe = discrepancia = None
         try:
             with self.db.begin_nested():
                 er = self.estado_resultados.guardar(periodo.id_periodo_contable, {}, id_usuario, excluidos)
             estado["estado_resultados"] = {"id_estado": er["id_estado"], "resultado_neto": str(er["resultado_neto"])}
+        except ConciliacionError as exc:
+            discrepancia = exc
+            estado["motivo_estado_resultados"] = exc.message
+            self.contabilizador.auditar(exc.evento(id_usuario))
         except Exception:
             logger.exception("RF-87 paso 8: no se pudo generar el estado de resultados del período %s.", periodo.id_periodo_contable)
         try:
@@ -567,7 +578,7 @@ class EjecutarCierrePeriodoUseCase:
         except Exception:
             informe = None
             logger.exception("RF-87 paso 8: no se pudo generar el informe de revelaciones del período %s.", periodo.id_periodo_contable)
-        return estado, informe
+        return estado, informe, discrepancia
 
     def _fallar(self, id_periodo, id_cierre, paso, exc, id_usuario) -> None:
         try:

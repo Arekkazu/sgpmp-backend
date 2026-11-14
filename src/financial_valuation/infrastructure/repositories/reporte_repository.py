@@ -10,6 +10,7 @@
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: recuperar los supuestos al corte y la fuente de precio. |
 # | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -73,6 +74,27 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             FROM modulo6.lineas_asiento_nic41 l
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = l.id_activo_biologico
             WHERE {' AND '.join(condiciones)}""", params)
+
+    def hechos_sin_asiento(self, id_periodo_contable: int) -> list[dict]:
+        # La línea se busca por su origen, no por su período: el cierre traslada al siguiente las que excluye.
+        return filas(self.db, f"""
+            SELECT 'variaciones_valor_razonable' AS fuente, v.id_variacion_valor_razonable AS id_origen,
+                   v.id_activo_biologico, {nombre_activo_sql('ab')} AS identificador, v.monto_variacion AS monto
+            FROM modulo6.variaciones_valor_razonable v
+            JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = v.id_activo_biologico
+            WHERE v.id_periodo_contable = :p AND v.monto_variacion <> 0 AND NOT EXISTS (
+                SELECT 1 FROM modulo6.lineas_asiento_nic41 l
+                WHERE l.tabla_origen = 'variaciones_valor_razonable' AND l.id_origen = v.id_variacion_valor_razonable)
+            UNION ALL
+            SELECT 'reconocimientos_productos_agricolas', r.id_reconocimiento_producto_agricola,
+                   r.id_activo_biologico, {nombre_activo_sql('ab')}, r.valor_producto
+            FROM modulo6.reconocimientos_productos_agricolas r
+            JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+            WHERE r.id_periodo_contable = :p AND r.valor_producto <> 0 AND NOT EXISTS (
+                SELECT 1 FROM modulo6.lineas_asiento_nic41 l
+                WHERE l.tabla_origen = 'reconocimientos_productos_agricolas'
+                  AND l.id_origen = r.id_reconocimiento_producto_agricola)
+            ORDER BY 1, 2""", {"p": id_periodo_contable})
 
     def agregar_estado(self, datos: dict) -> int:
         return escribir(self.db, """
