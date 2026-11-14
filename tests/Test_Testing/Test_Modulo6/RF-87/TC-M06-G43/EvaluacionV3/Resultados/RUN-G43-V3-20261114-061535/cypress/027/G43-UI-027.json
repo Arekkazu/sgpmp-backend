@@ -1,0 +1,367 @@
+{
+  "caso": "TC-M06-027",
+  "id": "G43-UI-027-01",
+  "estado": "APROBADO",
+  "lista_completa": true,
+  "decision_por_activo": false,
+  "total_prevalidacion": 0,
+  "controles": [],
+  "captura": true,
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/__sonda__",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/titulares",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/prevalidacion",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "eco": true
+    }
+  ],
+  "post_prohibidos": [],
+  "titular_alias": "TITULAR_A",
+  "titular_seleccionado": true,
+  "consultas_periodos": [
+    {
+      "query": {
+        "numero_id_tributaria": "OTRO"
+      },
+      "otros_parametros": []
+    },
+    {
+      "query": {
+        "numero_id_tributaria": "TITULAR_A"
+      },
+      "otros_parametros": []
+    }
+  ],
+  "opciones_titular": [
+    "OPCION_1",
+    "OPCION_2",
+    "OPCION_3",
+    "TITULAR_A",
+    "OPCION_5",
+    "OPCION_6",
+    "OPCION_7",
+    "OPCION_8",
+    "OPCION_9",
+    "OPCION_10",
+    "OPCION_11",
+    "OPCION_12",
+    "OPCION_13"
+  ],
+  "opciones_periodo": [
+    {
+      "value": "8",
+      "texto": "Diciembre de 2026 · Abierto"
+    },
+    {
+      "value": "7",
+      "texto": "Noviembre de 2026 · Cerrado"
+    }
+  ],
+  "respuestas_periodos": [
+    [
+      {
+        "id": 8,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-12-01",
+        "fecha_fin": "2026-12-31"
+      },
+      {
+        "id": 7,
+        "estado": "CERRADO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      }
+    ]
+  ],
+  "resumen_dom": {
+    "encabezados": [
+      "Cierre del período — Diciembre de 2026",
+      "Período Diciembre de 2026",
+      "Precondiciones para cerrar",
+      "Comprobantes NIC 41",
+      "Períodos cerrados"
+    ],
+    "tablas": [
+      {
+        "titulo": "6 líneas con la cadena de trazabilidad incompleta",
+        "encabezados": [
+          "Asiento",
+          "Activo",
+          "Qué falta"
+        ],
+        "filas": [
+          "Línea 9 · Variación por transformación biológicaQA-M06-BOV-01Lecturas IoT aptas, Otro registro de origen",
+          "Línea 16 · Variación por transformación biológicaQA-M06-BOV-01Lecturas IoT aptas, Otro registro de origen",
+          "Línea 17 · Variación por transformación biológicaQA-M06-BOV-02Lecturas IoT aptas, Otro registro de origen",
+          "Línea 18 · Deterioro (modelo de costo)QA-M06-COSTO-01Otro registro de origen",
+          "Línea 21 · Consumo de insumosQA-M06-BOV-01Otro registro de origen",
+          "Línea 22 · Consumo de insumosQA-M06-BOV-01Otro registro de origen"
+        ]
+      },
+      {
+        "titulo": "",
+        "encabezados": [
+          "Período contable",
+          "Titular tributario",
+          "Fecha de cierre",
+          "Estado",
+          "Acciones"
+        ],
+        "filas": [
+          "Noviembre de 2026MensualNIT 9000000017/11/2026, 3:11 p. m.CerradoVer comprobantesVer revelaciones"
+        ]
+      }
+    ],
+    "controles": [
+      {
+        "tipo": "button",
+        "texto": "Valoración",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Cierre",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Reportes",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Datos",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Variaciones de valor",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Pendientes",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Cierre del período",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Ir al período en curso",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "checkbox",
+        "texto": "Autorizo excluir del comprobante las líneas con trazabilidad incompleta (pasan al período siguiente)",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Cerrar período",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": true
+      },
+      {
+        "tipo": "submit",
+        "texto": "Cancelar cierre (No)",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Ver comprobantes",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Ver revelaciones",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      }
+    ]
+  },
+  "controles_citados": [
+    "Valoración  ",
+    "Cierre  ",
+    "Reportes  ",
+    "Datos  ",
+    "Variaciones de valor  ",
+    "Pendientes  ",
+    "Cierre del período  ",
+    "Ir al período en curso  ",
+    "Autorizo excluir del comprobante las líneas con trazabilidad incompleta (pasan al período siguiente)  ",
+    "Cerrar período  ",
+    "Cancelar cierre (No)  ",
+    "Ver comprobantes  ",
+    "Ver revelaciones  "
+  ],
+  "casilla_autorizacion": true,
+  "etiquetas_genericas": [
+    "auditoria_m03"
+  ],
+  "boton_deshabilitado": true,
+  "pausa": false,
+  "diagnostico": null,
+  "faltas": [],
+  "decision_habilitada": true,
+  "capturas_tramos": [
+    "G43-UI-027-tabla-1.png",
+    "G43-UI-027-checkbox-2.png",
+    "G43-UI-027-submit-3.png",
+    "G43-UI-027-submit-4.png"
+  ]
+}
