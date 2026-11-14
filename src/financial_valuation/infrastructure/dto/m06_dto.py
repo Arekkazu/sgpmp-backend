@@ -12,6 +12,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio en el cierre |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: fecha de vigencia opcional en la corrección de un precio |
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: delegar el monto no positivo a la regla FA-6 de registro. |
+# | 2026-11-14 | destroyerban | INC-M06-043B-G65 RF-92: monto de compromisos y garantías mayor que cero |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import ConfigDict, Field, PositiveInt, model_validator
+from pydantic import ConfigDict, Field, PositiveInt, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 
@@ -221,18 +222,35 @@ class FiltrosEstadoDTO(BaseDTO):
     id_finca: Optional[int] = Field(default=None, gt=0)
 
 
+def _monto_positivo(valor: Optional[Decimal]) -> Optional[Decimal]:
+    """TC-92-043: un compromiso o una garantía en cero o negativa no es una revelación válida (opcional sí)."""
+    if valor is not None and valor <= 0:
+        raise ValueError("El monto debe ser mayor que cero. Si no lo conoce, déjelo vacío.")
+    return valor
+
+
 class CompromisoDTO(BaseDTO):
     descripcion: str = Field(min_length=3, max_length=500)
-    monto_estimado: Optional[Decimal] = None
+    monto_estimado: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
     contraparte: Optional[str] = Field(default=None, max_length=200)
     fecha_estimada: Optional[date] = None
+
+    @field_validator("monto_estimado")
+    @classmethod
+    def _monto_estimado_positivo(cls, valor: Optional[Decimal]) -> Optional[Decimal]:
+        return _monto_positivo(valor)
 
 
 class PignoracionDTO(BaseDTO):
     id_activo_biologico: int = Field(gt=0)
     entidad_acreedora: str = Field(min_length=2, max_length=200)
-    monto_garantia: Optional[Decimal] = None
+    monto_garantia: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
     fecha_vencimiento: Optional[date] = None
+
+    @field_validator("monto_garantia")
+    @classmethod
+    def _monto_garantia_positivo(cls, valor: Optional[Decimal]) -> Optional[Decimal]:
+        return _monto_positivo(valor)
 
 
 class InformeRevelacionesDTO(BaseDTO):
