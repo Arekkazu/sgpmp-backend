@@ -5,14 +5,14 @@ import datetime
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, computed_field
 
 
 class ConfiguracionGlobalResponse(BaseModel):
     """Configuración operativa global (minutos de muestreo y heartbeat)."""
     id_configuracion_global: int
     frecuencia_muestreo: int
-    heartbeat: int
+    heartbeat: int = Field(json_schema_extra={'deprecated': True}, description='Alias deprecado de umbral_sin_senal, en minutos.')
     fecha_actualizacion: datetime.datetime
     id_usuario: int
     #: Quién hizo la última actualización, para no mostrar "usuario #29".
@@ -20,6 +20,11 @@ class ConfiguracionGlobalResponse(BaseModel):
     es_activo: bool
 
     model_config = {"from_attributes": True}
+
+    @computed_field(description='Tiempo máximo sin datos, en minutos; distinto de intervalo_heartbeat.')
+    @property
+    def umbral_sin_senal(self) -> int:
+        return self.heartbeat
 
     @classmethod
     def from_entity(cls, config, nombre_usuario: Optional[str] = None) -> ConfiguracionGlobalResponse:

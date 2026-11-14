@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                     |
+# |------------|----------|-----------------------------------------------------------------|
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: rol sin permisos propio en vez del rol 9 retirado |
 """Pruebas de integración para RF-05/RF-06: perfil, RBAC y gestión de cuenta."""
 
 from __future__ import annotations
@@ -133,6 +136,7 @@ def test_completar_perfil_sso_parcialmente_no_revienta_en_500(
 
 def test_edicion_administrativa_requiere_permiso_del_router(
     client,
+    db_session: Session,
     crear_usuario_db,
     crear_auth_headers,
 ) -> None:
@@ -141,8 +145,16 @@ def test_edicion_administrativa_requiere_permiso_del_router(
         estado=2,
     )
 
+    id_rol_sin_permisos = db_session.execute(
+        text(
+            "INSERT INTO modulo1.roles (nombre_rol, descripcion, es_protegido) "
+            "VALUES (:nombre, 'Rol temporal de integración sin permisos', FALSE) RETURNING id_rol"
+        ),
+        {"nombre": f"Sin Permisos Integracion {uuid.uuid4().hex[:8]}"},
+    ).scalar_one()
+
     sin_permiso = crear_usuario_db(
-        id_rol=9,
+        id_rol=id_rol_sin_permisos,
         estado=2,
     )
 

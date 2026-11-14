@@ -84,3 +84,44 @@ class BitacoraIotM03Adapter(BitacoraIotPort):
             accion_detallada={"id_umbral_ambiental": id_umbral_ambiental, "estado": estado, **detalle},
             id_usuario=id_usuario,
         )
+
+    def registrar_propagacion_tipo_modelo(
+        self,
+        *,
+        evento: str,
+        id_dispositivo_iot: int,
+        serial: str,
+        id_infraestructura: int,
+        id_usuario: int,
+        estado: str,
+        detalle: dict,
+    ) -> None:
+        if estado == "APLICADA":
+            resultado, severidad = TipoResultado.EXITOSO, SeveridadLog.INFO
+        elif estado == "NO_CONF":
+            resultado, severidad = TipoResultado.FALLIDO, SeveridadLog.ERROR
+        else:
+            # PENDIENTE (Gateway desconectado) o sin broker en el ambiente: no se
+            # intentó publicar, el nodo sigue con el modelo anterior.
+            resultado, severidad = TipoResultado.ADVERTENCIA, SeveridadLog.WARNING
+        RegistrarEventoAuditoriaIotUseCase(
+            db=self.db, auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(self.db)
+        ).execute(
+            tipo_evento=evento,
+            resultado=resultado,
+            componente_origen=ComponenteOrigen.RF20,
+            severidad_log=severidad,
+            descripcion=(
+                f"Propagación del tipo_modelo_asignado del área {id_infraestructura} "
+                f"al Gateway Edge {serial}: {estado}"
+            ),
+            entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+            entidad_afectada_id=str(id_dispositivo_iot),
+            accion_detallada={
+                "serial": serial,
+                "id_infraestructura": id_infraestructura,
+                "estado": estado,
+                **detalle,
+            },
+            id_usuario=id_usuario,
+        )

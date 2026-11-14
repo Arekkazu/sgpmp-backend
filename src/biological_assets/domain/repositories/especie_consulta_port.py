@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """Puerto de lectura de especies del catálogo de M09."""
 
 from __future__ import annotations
@@ -13,6 +16,8 @@ class EspecieConsulta:
     id_especie: int
     nombre: str
     es_activo: bool
+    # RFC-014: esperanza de vida en días (RF-15); None = la especie no la define.
+    esperanza_vida_dias: Optional[int] = None
 
 
 class EspecieConsultaPort(ABC):

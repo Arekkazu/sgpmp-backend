@@ -1,8 +1,12 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: serializar publicaciones por area sin requerir edicion de infraestructura. |
 """Implementaciones SQLAlchemy de los puertos de calibración por visión (RF-24 v2.0)."""
 from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.calibracion_vision import CalibracionVision, LineaBaseVision
@@ -26,6 +30,14 @@ class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def bloquear_area(self, id_infraestructura: int) -> None:
+        # Namespace ASCII RF24. No exige UPDATE sobre infraestructura (RLS lo
+        # reserva al Administrador); commit/rollback libera el bloqueo.
+        self.db.execute(
+            text('SELECT pg_advisory_xact_lock(:espacio, :area)'),
+            {'espacio': 0x52463234, 'area': id_infraestructura},
+        )
 
     @staticmethod
     def _a_entidad(orm: CalibracionVisionModel) -> CalibracionVision:

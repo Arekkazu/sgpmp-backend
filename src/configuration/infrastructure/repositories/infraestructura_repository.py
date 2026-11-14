@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: especies del área en la puente y capacidad_maxima derivada |
 """Implementación SQLAlchemy del puerto ``InfraestructuraRepository``."""
 from __future__ import annotations
 
@@ -10,7 +13,12 @@ from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
 from src.configuration.domain.value_objects.nombre_infraestructura import NombreInfraestructura
 from src.configuration.domain.value_objects.superficie import Superficie
-from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
+from src.configuration.domain.services.capacidad_area import EspecieDelArea, capacidad_efectiva
+from src.configuration.infrastructure.models.especie_model import EspecieModel
+from src.configuration.infrastructure.models.infraestructura_model import (
+    InfraestructuraEspecieModel,
+    InfraestructuraModel,
+)
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.rehidratar import rehidratar
 
@@ -20,19 +28,39 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    @staticmethod
-    def _a_entidad(orm: InfraestructuraModel) -> Infraestructura:
+    def especies_del_area(self, orm: InfraestructuraModel) -> list[EspecieDelArea]:
+        ids = [fila.id_especie for fila in orm.especies]
+        if not ids:
+            return []
+        por_id = {
+            e.id_especie: e
+            for e in self.db.query(EspecieModel).filter(EspecieModel.id_especie.in_(ids)).all()
+        }
+        return [
+            EspecieDelArea(
+                id_especie=i,
+                nombre=por_id[i].nombre,
+                grupo_manejo=por_id[i].grupo_manejo,
+                densidad=por_id[i].densidad_maxima_por_especie,
+            )
+            for i in ids
+        ]
+
+    def _a_entidad(self, orm: InfraestructuraModel) -> Infraestructura:
+        superficie = Decimal(str(orm.superficie))
         return Infraestructura(
             id_infraestructura=orm.id_infraestructura,
             nombre=rehidratar(NombreInfraestructura, orm.nombre),
             tipo=orm.tipo,
-            superficie=rehidratar(Superficie, Decimal(str(orm.superficie))),
+            superficie=rehidratar(Superficie, superficie),
             id_finca=orm.id_finca,
             descripcion=orm.descripcion,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,
-            id_especie=orm.id_especie,
+            id_especies=[fila.id_especie for fila in orm.especies],
             tipo_modelo_asignado=orm.tipo_modelo_asignado,
+            nivel_criticidad=orm.nivel_criticidad,
+            capacidad_maxima=capacidad_efectiva(superficie, self.especies_del_area(orm)),
         )
 
     def obtener_por_id(
@@ -60,8 +88,9 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
             descripcion=infraestructura.descripcion,
             es_activo=infraestructura.es_activo,
             fecha_actualizacion=infraestructura.fecha_actualizacion,
-            id_especie=infraestructura.id_especie,
             tipo_modelo_asignado=infraestructura.tipo_modelo_asignado,
+            nivel_criticidad=infraestructura.nivel_criticidad,
+            especies=[InfraestructuraEspecieModel(id_especie=i) for i in infraestructura.id_especies],
         )
         try:
             self.db.add(orm)
@@ -83,8 +112,15 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         orm.descripcion = infraestructura.descripcion
         orm.es_activo = infraestructura.es_activo
         orm.fecha_actualizacion = infraestructura.fecha_actualizacion
-        orm.id_especie = infraestructura.id_especie
         orm.tipo_modelo_asignado = infraestructura.tipo_modelo_asignado
+        orm.nivel_criticidad = infraestructura.nivel_criticidad
+        # Diferencia, no delete-then-insert: la fila conserva su fecha de asociación
+        # (el downgrade de DB-06 toma la más antigua como especie principal).
+        nuevas = list(dict.fromkeys(infraestructura.id_especies))
+        for fila in [f for f in orm.especies if f.id_especie not in nuevas]:
+            orm.especies.remove(fila)
+        actuales = {f.id_especie for f in orm.especies}
+        orm.especies.extend(InfraestructuraEspecieModel(id_especie=i) for i in nuevas if i not in actuales)
         try:
             self.db.flush()
             self.db.refresh(orm)

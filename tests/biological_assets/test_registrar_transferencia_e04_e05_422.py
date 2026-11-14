@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48 (INC-M02-88-G83/TC-M02-G83, hallazgo DEF-G83-01): E-04
 (SIN_INFRAESTRUCTURA_ORIGEN) y E-05 (INFRAESTRUCTURA_DESTINO_INVALIDA) usaban
 ValidationError (HTTP 400), pero el contrato del endpoint (OpenAPI) no declara
@@ -42,6 +45,9 @@ class TransferenciaRepoFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, infras: dict[int, InfraestructuraConsulta]) -> None:
         self.infras = infras
 

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-07 RF-74: recalcular el ICA consolida la alerta abierta en vez de duplicarla |
+# | 2026-11-10 | Arekkazu | INC-M05-338-G02 RF-74: la alerta crítica lleva la infraestructura del activo (RLS) |
 """Adaptador para generar la alerta de conversión alimenticia crítica (RF-74 / CA-3).
 
 Inserta una alerta ``CONVERSION_ALIMENTICIA`` / ``CRITICO`` en ``modulo3.alertas``
@@ -27,12 +31,34 @@ _ACCION_SUGERIDA = (
     "la conversión alimenticia es crítica."
 )
 
+# M3-07 (RF-57 CA-4): recalcular el ICA del mismo activo creaba otra alerta cada vez
+# (4 iguales en 3 min). Como en telemetría, se consolida en la alerta abierta: sube
+# frecuencia_evento y ultima_ocurrencia; el contenido original es inmutable.
+_CONSOLIDAR = text(
+    """
+    UPDATE modulo3.alertas
+       SET frecuencia_evento = COALESCE(frecuencia_evento, 1) + 1,
+           ultima_ocurrencia = :ahora
+     WHERE id_alerta = (
+           SELECT id_alerta FROM modulo3.alertas
+            WHERE tipo_alerta = CAST(:tipo AS modulo3.enum_tipo_alerta)
+              AND id_activo_biologico = :id_activo
+              AND estado_alerta IN ('ACTIVA', 'EN_ATENCION')
+            ORDER BY fecha_generacion DESC
+            LIMIT 1
+              FOR UPDATE)
+    RETURNING id_alerta
+    """
+)
+
+# INC-M05-338-G02: la política RLS de INSERT de ``modulo3.alertas`` exige la infraestructura del
+# usuario; sin ella la fila se rechazaba y el cálculo crítico respondía 500.
 _INSERT = text(
     """
     INSERT INTO modulo3.alertas (
         tipo_alerta, severidad, estado_alerta, origen_evento, tipo_variable,
         valor, reglas_activas, metadato_evento, accion_sugerida,
-        id_activo_biologico, fecha_evento, fecha_generacion
+        id_activo_biologico, id_infraestructura, fecha_evento, fecha_generacion
     ) VALUES (
         CAST(:tipo AS modulo3.enum_tipo_alerta),
         CAST(:severidad AS modulo3.enum_buffer_nivel_severidad),
@@ -44,6 +70,7 @@ _INSERT = text(
         CAST(:metadato AS jsonb),
         :accion,
         :id_activo,
+        (SELECT id_infraestructura FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id_activo),
         :fecha_evento,
         :fecha_generacion
     )
@@ -72,6 +99,12 @@ class AlertaICAM03Adapter(AlertaICAPort):
             {"periodo_evaluacion": periodo_evaluacion, "regla": "CA > 5.0 (CRITICA)"}
         )
         try:
+            consolidada = self.db.execute(
+                _CONSOLIDAR, {"tipo": _TIPO_ALERTA, "id_activo": id_activo_biologico, "ahora": ahora},
+            ).fetchone()
+            if consolidada:
+                self.db.flush()
+                return consolidada.id_alerta
             row = self.db.execute(
                 _INSERT,
                 {

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: adapta dobles al catalogo y bloqueo de lectura |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58/59: sin activo se usa el umbral de la especie del área |
 """INC-M09-106-G31 (#297): la clasificación semafórica en tiempo real debe usar los
 niveles RF-17 (normal/precaución/crítico) apenas se conoce la especie de la lectura.
 
@@ -96,6 +100,10 @@ class _UmbralPortFake:
         })
         return self.umbral
 
+    def obtener_umbral_vigente_area(self, id_variable_ambiental, id_infraestructura, timestamp, id_sensor=None):
+        self.llamadas.append({'area': True, 'id_sensor': id_sensor})
+        return self.umbral
+
 
 class _MonitoreoRepoFake:
     def __init__(self) -> None:
@@ -128,7 +136,7 @@ def _use_case(
 
 
 class TestReclasificarSemaforoUseCase:
-    def test_sin_activo_biologico_no_hace_nada(self) -> None:
+    def test_sin_activo_biologico_ni_umbral_del_area_no_hace_nada(self) -> None:
         caso_uso, monitoreo_repo, db = _use_case(
             telemetria=_telemetria(valor_ajustado=Decimal("38.00")), id_especie=39, umbral=None,
         )
@@ -138,6 +146,19 @@ class TestReclasificarSemaforoUseCase:
         assert resultado is None
         assert monitoreo_repo.llamadas == []
         assert db.commits == 0
+
+    def test_sin_activo_biologico_usa_el_umbral_del_area_del_sensor(self) -> None:
+        # M3-09 / M3-12: un sensor ambiental del área ya no se queda con el VERDE del trigger.
+        caso_uso, monitoreo_repo, db = _use_case(
+            telemetria=_telemetria(valor_ajustado=Decimal("42.00")), id_especie=None, umbral={"niveles": _NIVELES},
+        )
+
+        resultado = caso_uso.execute(id_telemetria=1, id_activo_biologico=None)
+
+        assert resultado == "ROJO"
+        assert caso_uso.umbral_port.llamadas == [{'area': True, 'id_sensor': 101}]
+        assert monitoreo_repo.llamadas[0]['estado_semaforo'] == "ROJO"
+        assert db.commits == 1
 
     def test_telemetria_inexistente_no_hace_nada(self) -> None:
         caso_uso, monitoreo_repo, _db = _use_case(telemetria=None, id_especie=39, umbral=None)
@@ -206,7 +227,10 @@ class _VinculacionRepoFake:
     def __init__(self, vinculacion: VinculacionLectura) -> None:
         self.vinculacion = vinculacion
 
-    def obtener_por_id(self, id_vinculacion_lectura: int) -> VinculacionLectura:
+    def bloquear_lectura(self, identificador):
+        pass
+
+    def obtener_por_id(self, id_vinculacion_lectura: int, *, ids_fincas_permitidas=None) -> VinculacionLectura:
         return self.vinculacion
 
     def actualizar(self, vinculacion: VinculacionLectura) -> VinculacionLectura:
@@ -230,11 +254,21 @@ class _ReclasificarFake:
         return 'AMARILLO'
 
 
+def _activo_port_elegible(identificador):
+    from unittest.mock import Mock
+    from src.telemetry.domain.repositories.activo_biologico_dependency_port import ActivoBiologicoInfo
+    port=Mock()
+    port.obtener_activos_en_momento.return_value=[ActivoBiologicoInfo(identificador,'INDIVIDUAL')]
+    port.obtener_contexto.return_value={}
+    return port
+
+
 class TestResolverVinculacionDisparaReclasificacion:
     def test_resolver_ambigua_reclasifica_con_el_activo_elegido(self) -> None:
         reclasificar = _ReclasificarFake()
         caso_uso = ResolverVinculacionUseCase(
             db=_DbFake(),
+            activo_port=_activo_port_elegible(7),
             vinculacion_repo=_VinculacionRepoFake(_vinculacion(estado='AMBIGUA')),
             reclasificar_semaforo_use_case=reclasificar,
         )
@@ -250,6 +284,7 @@ class TestResolverVinculacionDisparaReclasificacion:
     def test_fallo_en_reclasificacion_no_rompe_la_resolucion(self) -> None:
         caso_uso = ResolverVinculacionUseCase(
             db=_DbFake(),
+            activo_port=_activo_port_elegible(7),
             vinculacion_repo=_VinculacionRepoFake(_vinculacion(estado='AMBIGUA')),
             reclasificar_semaforo_use_case=_ReclasificarFake(falla=True),
         )
@@ -260,7 +295,7 @@ class TestResolverVinculacionDisparaReclasificacion:
             id_usuario=1,
         )
 
-        assert resultado.estado_vinculacion == 'VINCULADA'
+        assert resultado.estado_vinculacion == 'CONFIRMADA'
 
 
 class TestCorregirVinculacionDisparaReclasificacion:
@@ -268,7 +303,8 @@ class TestCorregirVinculacionDisparaReclasificacion:
         reclasificar = _ReclasificarFake()
         caso_uso = CorregirVinculacionUseCase(
             db=_DbFake(),
-            vinculacion_repo=_VinculacionRepoFake(_vinculacion(estado='VINCULADA', id_activo_biologico=3)),
+            activo_port=_activo_port_elegible(9),
+            vinculacion_repo=_VinculacionRepoFake(_vinculacion(estado='CONFIRMADA', id_activo_biologico=3)),
             reclasificar_semaforo_use_case=reclasificar,
         )
 
@@ -283,7 +319,8 @@ class TestCorregirVinculacionDisparaReclasificacion:
     def test_fallo_en_reclasificacion_no_rompe_la_correccion(self) -> None:
         caso_uso = CorregirVinculacionUseCase(
             db=_DbFake(),
-            vinculacion_repo=_VinculacionRepoFake(_vinculacion(estado='VINCULADA', id_activo_biologico=3)),
+            activo_port=_activo_port_elegible(9),
+            vinculacion_repo=_VinculacionRepoFake(_vinculacion(estado='CONFIRMADA', id_activo_biologico=3)),
             reclasificar_semaforo_use_case=_ReclasificarFake(falla=True),
         )
 

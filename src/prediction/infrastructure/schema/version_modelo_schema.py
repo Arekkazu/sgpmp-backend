@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-03 | Arekkazu     | QA-M04 RF-69: la versión trae el identificador del animal además del id |
 from __future__ import annotations
 
 import uuid
@@ -17,6 +21,11 @@ class VersionModeloResponse(BaseModel):
     paradigma: Optional[str] = None
     componente: Optional[str] = None
     metricas_poblacionales: Optional[dict] = None
+    # RFC-010: animal del modelo INDIVIDUAL y fuente de los datos de entrenamiento.
+    id_activo_biologico: Optional[int] = None
+    # Para mostrar «BOV-001» y no «Animal #49»; lo llena el router.
+    identificador_activo: Optional[str] = None
+    fuente_datos: str = "REAL"
     estado_version: str
     formato_artefacto: Optional[str]
     tamanio_artefacto_bytes: Optional[int]
@@ -48,6 +57,8 @@ class VersionModeloResponse(BaseModel):
             paradigma=e.paradigma,
             componente=e.componente,
             metricas_poblacionales=e.metricas_poblacionales,
+            id_activo_biologico=e.id_activo_biologico,
+            fuente_datos=e.fuente_datos,
             estado_version=e.estado_version,
             formato_artefacto=e.formato_artefacto,
             tamanio_artefacto_bytes=e.tamanio_artefacto_bytes,

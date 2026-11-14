@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-21 RF-15: el doble del repositorio lista áreas ocupadas (vacío) |
 """RF-36: configuración M09 de densidad máxima por especie."""
 from __future__ import annotations
 
@@ -46,6 +49,9 @@ class EspecieRepoFake:
         especie.id_especie = 4
         self.especie = especie
         return especie
+
+    def listar_areas_ocupadas(self, _id_especie: int):
+        return []
 
     def actualizar(self, especie: Especie) -> Especie:
         self.especie = especie

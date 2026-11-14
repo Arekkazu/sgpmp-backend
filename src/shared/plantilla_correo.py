@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Plantilla HTML común a todos los correos de SIGAB.
 
 Una sola estructura para los avisos de cuenta (RF-14), los correos con enlace
@@ -17,14 +20,13 @@ nunca se interpretan como HTML.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from html import escape
 from typing import Literal, Optional, Sequence
 
-Tono = Literal["info", "atencion", "critico"]
+from src.shared.fechas import en_zona_usuario, etiqueta_zona
 
-# Colombia no tiene horario de verano: UTC-5 fijo, sin depender de tzdata.
-_HORA_COLOMBIA = timezone(timedelta(hours=-5))
+Tono = Literal["info", "atencion", "critico"]
 
 _MESES = (
     "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -56,13 +58,16 @@ class Accion:
 
 
 def formatear_fecha(momento: datetime) -> str:
-    """``10 de octubre de 2026, 6:42 p. m.`` en hora de Colombia."""
-    if momento.tzinfo is None:
-        momento = momento.replace(tzinfo=timezone.utc)
-    local = momento.astimezone(_HORA_COLOMBIA)
+    """``10 de octubre de 2026, 6:42 p. m. (UTC-05:00)``.
+
+    En la zona de quien hizo la petición (``X-Zona-Horaria``) o en UTC si no la
+    hay, como en las tareas de fondo. La etiqueta evita que el destinatario,
+    que puede estar en otra zona, lea la hora como si fuera la suya.
+    """
+    local = en_zona_usuario(momento)
     hora = local.hour % 12 or 12
     sufijo = "a. m." if local.hour < 12 else "p. m."
-    return f"{formatear_dia(local.date())}, {hora}:{local.minute:02d} {sufijo}"
+    return f"{formatear_dia(local.date())}, {hora}:{local.minute:02d} {sufijo} ({etiqueta_zona(local)})"
 
 
 def formatear_dia(dia: date) -> str:
@@ -71,7 +76,7 @@ def formatear_dia(dia: date) -> str:
 
 
 def formatear_hora(momento: datetime) -> str:
-    """``6:42 p. m.`` en hora de Colombia."""
+    """``6:42 p. m. (UTC-05:00)``, ver ``formatear_fecha``."""
     return formatear_fecha(momento).split(", ", 1)[1]
 
 

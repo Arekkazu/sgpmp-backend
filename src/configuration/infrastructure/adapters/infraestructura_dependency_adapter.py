@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: activos por especie y carga del área (RFC-012) |
 """Implementación real de :class:`InfraestructuraDependencyPort` (RF-20 FA-04).
 
 Verifica dispositivos IoT activos y sensores asociados vigentes vía
@@ -6,8 +9,6 @@ dispositivo al área, incluyendo reasignaciones de RF-22) y activos biológicos
 activos alojados directamente en el área, vía ``modulo2.activos_biologicos``.
 """
 from __future__ import annotations
-
-from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -45,16 +46,27 @@ class InfraestructuraDependencyAdapter(InfraestructuraDependencyPort):
         ).scalar()
         return bool(tiene_activos_biologicos)
 
-    def contar_activos_de_otra_especie(self, id_infraestructura: int, id_especie: int) -> tuple[int, Optional[str]]:
+    def contar_activos_por_especie(self, id_infraestructura: int) -> dict[int, int]:
         filas = self.db.execute(
             text(
-                "SELECT e.nombre, count(*) AS cantidad "
-                "FROM modulo2.activos_biologicos a "
-                "JOIN modulo9.especies e ON e.id_especie = a.id_especie "
-                "WHERE a.id_infraestructura = :id AND a.id_especie <> :especie "
-                "  AND a.id_estado NOT IN (5, 6) "  # excluye CERRADO y BAJA
-                "GROUP BY e.nombre ORDER BY cantidad DESC"
+                "SELECT id_especie, count(*) AS cantidad FROM modulo2.activos_biologicos "
+                "WHERE id_infraestructura = :id AND id_estado NOT IN (5, 6) "  # excluye CERRADO y BAJA
+                "GROUP BY id_especie"
             ),
-            {"id": id_infraestructura, "especie": id_especie},
+            {"id": id_infraestructura},
         ).fetchall()
-        return sum(f.cantidad for f in filas), (filas[0].nombre if filas else None)
+        return {f.id_especie: f.cantidad for f in filas}
+
+    def calcular_carga(self, id_infraestructura: int) -> int:
+        # Misma regla que InfraestructuraM09Adapter.calcular_ocupacion de M02 (RF-34/RF-48).
+        return int(self.db.execute(
+            text(
+                "SELECT COALESCE(SUM(CASE WHEN ab.tipo = 'INDIVIDUAL' THEN 1 "
+                "  ELSE COALESCE(dp.cantidad_actual, 0) END), 0) "
+                "FROM modulo2.activos_biologicos ab "
+                "LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales dp "
+                "  ON dp.id_activo_biologico = ab.id_activo_biologico "
+                "WHERE ab.id_infraestructura = :id AND ab.id_estado NOT IN (5, 6)"  # excluye CERRADO y BAJA
+            ),
+            {"id": id_infraestructura},
+        ).scalar())

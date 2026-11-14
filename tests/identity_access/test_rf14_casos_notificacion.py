@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-14: casos que deben notificar y contenido mínimo de cada aviso.
 
 - Cada intento de login fallido notifica (el anti-spam deja uno cada 5 min).
@@ -153,9 +156,15 @@ def test_cambio_de_estado_dice_que_le_paso_a_la_cuenta() -> None:
     assert "Cambio de estado de la cuenta" in html
 
 
-def test_fecha_en_hora_de_colombia() -> None:
+def test_fecha_en_hora_de_colombia(en_colombia) -> None:
     # 23:42 UTC son las 6:42 p. m. en Colombia (UTC-5, sin horario de verano).
     assert formatear_fecha(datetime(2026, 10, 10, 23, 42, tzinfo=timezone.utc)) == (
-        "10 de octubre de 2026, 6:42 p. m."
+        "10 de octubre de 2026, 6:42 p. m. (UTC-05:00)"
     )
-    assert "6:42 p. m." in cuenta_bloqueada_email(datetime(2026, 10, 10, 23, 42, tzinfo=timezone.utc))
+    assert "6:42 p. m. (UTC-05:00)" in cuenta_bloqueada_email(datetime(2026, 10, 10, 23, 42, tzinfo=timezone.utc))
+
+
+def test_sin_zona_del_usuario_la_fecha_va_en_utc() -> None:
+    assert formatear_fecha(datetime(2026, 10, 10, 23, 42, tzinfo=timezone.utc)) == (
+        "10 de octubre de 2026, 11:42 p. m. (UTC)"
+    )

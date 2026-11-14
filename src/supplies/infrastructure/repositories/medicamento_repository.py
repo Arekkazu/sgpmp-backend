@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones y E11 tratamientos   |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Implementación SQLAlchemy del puerto :class:`MedicamentoRepository` (RF-76).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -13,6 +17,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.nombre_activo import nombres_activos
 from src.supplies.domain.entities.medicamento import Medicamento
 from src.supplies.domain.repositories.medicamento_repository import MedicamentoRepository
 from src.supplies.domain.value_objects.estado_registro import EstadoRegistro
@@ -51,6 +56,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             via_aplicacion=orm.via_aplicacion,
             motivo_aplicacion=orm.motivo_aplicacion,
             nombre_veterinario=orm.nombre_veterinario,
+            observaciones=orm.observaciones,
             id_usuario=orm.id_usuario,
             id_usuario_veterinario=orm.id_usuario_veterinario,
             estado_registro=orm.estado_registro,
@@ -113,6 +119,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             motivo_aplicacion=medicamento.motivo_aplicacion,
             id_evento_sanitario=medicamento.id_evento_sanitario,
             nombre_veterinario=medicamento.nombre_veterinario,
+            observaciones=medicamento.observaciones,
         )
         try:
             self.db.add(orm)
@@ -150,6 +157,17 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             .scalar()
         )
 
+    def contar_tratamientos_activos(self, id_activo: int, hoy: date) -> int:
+        return (
+            self.db.query(RegistroMedicamentoModel.id_registro_medicamento)
+            .filter(
+                RegistroMedicamentoModel.id_activo_biologico == id_activo,
+                RegistroMedicamentoModel.estado_registro == EstadoRegistro.VALIDADO.value,
+                RegistroMedicamentoModel.fecha_fin_retiro >= hoy,
+            )
+            .count()
+        )
+
     def obtener_tratamiento_vigente(self, id_activo: int) -> Optional[Medicamento]:
         orm = (
             self.db.query(RegistroMedicamentoModel)
@@ -170,8 +188,11 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         fecha_desde: Optional[date] = None,
         fecha_hasta: Optional[date] = None,
         estado_registro: Optional[str] = None,
+        ids_permitidos: Optional[list[int]] = None,
     ) -> list[Medicamento]:
         query = self.db.query(RegistroMedicamentoModel)
+        if ids_permitidos is not None:
+            query = query.filter(RegistroMedicamentoModel.id_activo_biologico.in_(ids_permitidos))
         if id_activo_biologico is not None:
             query = query.filter(RegistroMedicamentoModel.id_activo_biologico == id_activo_biologico)
         if fecha_desde is not None:
@@ -184,4 +205,8 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             RegistroMedicamentoModel.fecha_aplicacion.desc(),
             RegistroMedicamentoModel.id_registro_medicamento.desc(),
         ).all()
-        return [self._a_entidad(o) for o in registros]
+        entidades = [self._a_entidad(o) for o in registros]
+        nombres = nombres_activos(self.db, (e.id_activo_biologico for e in entidades))
+        for e in entidades:
+            e.identificador_activo = nombres.get(e.id_activo_biologico)
+        return entidades

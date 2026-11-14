@@ -1,9 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para las cuentas creadas por AgroFusion |
 """Router FastAPI para el módulo de usuarios (`/usuarios`).
 
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
 gestión de estado de cuenta y registro de tokens FCM.
 """
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
@@ -54,6 +57,7 @@ from src.identity_access.infrastructure.schema.gestion_schema import (
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse, MessageResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -127,7 +131,7 @@ def listar_usuarios_admin(
     estado_cuenta: Optional[str] = Query(
         None, description="Nombre del estado de cuenta (ej: Activo, Bloqueado), case-insensitive."
     ),
-    actualizado_desde: Optional[datetime] = Query(
+    actualizado_desde: Optional[FechaHoraUtc] = Query(
         None, description="Solo usuarios modificados (datos o estado de cuenta) desde este instante."
     ),
     pagina: int = Query(1, ge=1),
@@ -285,8 +289,8 @@ def activar_cuenta(
         ),
     )
 
-    use_case.execute(token, ip, user_agent)
-
+    if use_case.execute(token, ip, user_agent):  # RFC-019 D-19.6: cuenta creada por AgroFusion
+        return {"message": "La cuenta ya está activa."}
     return {
         "message": "Cuenta activada exitosamente. Ya puedes iniciar sesión."
     }

@@ -1,3 +1,8 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: expone marca externa sin editar evidencia |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63 E8: sin componente identificable se clasifica NIC41 |
+# | 2026-10-28 | destroyerban | INC-M03-165-G71 RF-63: equivalencias entre los nombres de RF-57 y el catálogo |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -17,6 +22,7 @@ class TipoResultado(str, Enum):
 
 class EntidadAfectadaTipo(str, Enum):
     LECTURA = 'LECTURA'
+    HEARTBEAT = 'HEARTBEAT'
     DISPOSITIVO = 'DISPOSITIVO'
     ALERTA = 'ALERTA'
     VINCULACION = 'VINCULACION'
@@ -41,6 +47,7 @@ class ClasificacionRegistro(str, Enum):
 
 class ComponenteOrigen(str, Enum):
     RF17 = 'RF17'  # propagación de umbrales ambientales al Nodo Edge (INC-M09-70-G29)
+    RF20 = 'RF20'  # propagación del tipo_modelo_asignado de un área al Gateway Edge (DEV-10)
     RF23 = 'RF23'  # credencial MQTT y Gateway Edge de los dispositivos (TC-M09-250/251)
     RF53 = 'RF53'
     RF54 = 'RF54'
@@ -59,8 +66,12 @@ _COMPONENTES_NIC41 = {ComponenteOrigen.RF53, ComponenteOrigen.RF56, ComponenteOr
 
 
 def clasificar_componente(componente: Optional[ComponenteOrigen]) -> tuple[ClasificacionRegistro, int]:
-    """Retorna (clasificacion, retencion_anios)."""
-    if componente in _COMPONENTES_NIC41:
+    """Retorna (clasificacion, retencion_anios).
+
+    RF-63 E8: si no se puede saber qué RF lo emitió la clasificación es ambigua, y
+    lo ambiguo va como NIC41 con la retención más larga.
+    """
+    if componente is None or componente in _COMPONENTES_NIC41:
         return ClasificacionRegistro.NIC41, 5
     return ClasificacionRegistro.TECNICO, 1
 
@@ -90,3 +101,21 @@ class EventoAuditoriaIot:
     registro_incompleto: bool = False
     componente_origen: Optional[ComponenteOrigen] = None
     timestamp_registro: Optional[datetime] = None
+    integridad_comprometida: bool = False  # Proyección externa; no forma parte del hash.
+
+
+#: INC-M03-165-G71: RF-57 nombra en su texto algunos eventos distinto que el catálogo de RF-63, que
+#: es lo que se registra (E4 "EVENTO_CORRELACIONADO" = DUPLICADO_ALERTA_CORRELACIONADO; el registro de
+#: "ESTADO_CAMBIADO" = cada transición del catálogo). Consultar por cualquiera de los dos encuentra
+#: los mismos eventos, sin duplicar evidencia ni renombrar la histórica.
+TIPOS_EVENTO_EQUIVALENTES: dict[str, tuple[str, ...]] = {
+    "EVENTO_CORRELACIONADO": ("EVENTO_CORRELACIONADO", "DUPLICADO_ALERTA_CORRELACIONADO"),
+    "DUPLICADO_ALERTA_CORRELACIONADO": ("EVENTO_CORRELACIONADO", "DUPLICADO_ALERTA_CORRELACIONADO"),
+    "ESTADO_CAMBIADO": ("ESTADO_CAMBIADO", "ALERTA_RECONOCIDA", "ALERTA_RESUELTA", "ALERTA_DESCARTADA",
+                        "ALERTA_VENCIDA"),
+}
+
+
+def tipos_evento_equivalentes(tipo_evento: str) -> tuple[str, ...]:
+    tipo = tipo_evento.strip().upper()
+    return TIPOS_EVENTO_EQUIVALENTES.get(tipo, (tipo_evento,))

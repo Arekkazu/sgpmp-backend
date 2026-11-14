@@ -1,12 +1,35 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: tipo_modelo vacío llega al caso de uso (422 con los tipos admitidos) |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
 from typing import Optional
 
 from fastapi import File, Form, UploadFile
 from pydantic import UUID4
+
+from src.shared.errors import BusinessRuleError
+from src.shared.fechas import FechaHoraUtc
+
+
+def _json_de_formulario(valor: str, campo: str, tipo: type, descripcion: str):
+    """RF-69 E2 (DEV-34): un campo JSON del formulario que no parsea o no es del tipo esperado es 422."""
+    try:
+        resultado = json.loads(valor)
+    except (json.JSONDecodeError, TypeError):
+        resultado = None
+    if not isinstance(resultado, tipo):
+        raise BusinessRuleError(
+            code="METADATOS_JSON_INVALIDO",
+            message=f"Los metadatos del modelo son inválidos o incompletos: {campo} debe ser {descripcion} JSON válido.",
+            field=campo,
+        )
+    return resultado
 
 
 class RegistrarVersionModeloDTO:
@@ -17,25 +40,34 @@ class RegistrarVersionModeloDTO:
 
     def __init__(
         self,
-        tipo_modelo: str = Form(...),
+        # Vacío u omitido lo rechaza el caso de uso con la lista de tipos admitidos.
+        tipo_modelo: Optional[str] = Form(None),
         hash_artefacto_sha256: str = Form(...),
         dataset_entrenamiento_hash: str = Form(...),
         metricas_validacion: str = Form(...),
-        fecha_entrenamiento: datetime = Form(...),
+        fecha_entrenamiento: FechaHoraUtc = Form(...),
         compatibilidad_variables: str = Form(...),
         id_proceso_rf71: uuid.UUID = Form(...),
         version_referencia: Optional[int] = Form(None),
         archivo_modelo: UploadFile = File(...),
         # RF-69 v2.0 (RFC-009): obligatorio para modelos POBLACIONAL.
         componente: Optional[str] = Form(None),
+        # RFC-010: obligatorio para modelos INDIVIDUAL (un modelo por animal).
+        id_activo_biologico: Optional[int] = Form(None),
+        # RFC-010: REAL, SINTETICA, EXTERNA o MIXTA. SINTETICA solo puede correr en SOMBRA.
+        fuente_datos: str = Form("REAL"),
     ) -> None:
         self.tipo_modelo = tipo_modelo
         self.hash_artefacto_sha256 = hash_artefacto_sha256
         self.dataset_entrenamiento_hash = dataset_entrenamiento_hash
-        self.metricas_validacion: dict = json.loads(metricas_validacion)
+        self.metricas_validacion: dict = _json_de_formulario(metricas_validacion, "metricas_validacion", dict, "un objeto")
         self.fecha_entrenamiento = fecha_entrenamiento
-        self.compatibilidad_variables: list = json.loads(compatibilidad_variables)
+        self.compatibilidad_variables: list = _json_de_formulario(
+            compatibilidad_variables, "compatibilidad_variables", list, "una lista"
+        )
         self.id_proceso_rf71 = id_proceso_rf71
         self.version_referencia = version_referencia
         self.archivo_modelo = archivo_modelo
         self.componente = componente
+        self.id_activo_biologico = id_activo_biologico
+        self.fuente_datos = fuente_datos

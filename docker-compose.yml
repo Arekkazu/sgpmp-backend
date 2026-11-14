@@ -1,3 +1,9 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: mantener el respaldo de auditoría independiente en volumen persistente. |
+# | 2026-11-06 | Arekkazu | M07 RF-101: SGPMP_ENTORNO; credenciales de AgroFusion pasan al registro de clientes |
+# | 2026-11-07 | Sebastián Sandoval (Implementación) | SSO AgroFusion: montar la clave pública RS256 en /app/secrets |
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: AGROFUSION_ISSUER con valor por defecto (vacía rechazaba todo token) |
 services:
   db:
     # container_name único (no el genérico "db"): Dokploy conecta el backend
@@ -69,20 +75,38 @@ services:
       LOGOS_STORAGE_PATH: ${LOGOS_STORAGE_PATH:-/app/storage/modelos/logos}
       AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH}
       AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE}
-      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER}
-      AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID}
-      AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET}
+      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
+      SGPMP_ENTORNO: ${SGPMP_ENTORNO:-DEV}
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
+      BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN}
+      # RF-56/RF-66: cliente hacia el motor de inferencia M04 (motor-ia). URL vacía => los paquetes
+      # quedan pendientes. Cargar la URL solo cuando el motor tenga modelos (ver .env.example).
+      IOT_INFERENCIA_M04_URL: ${IOT_INFERENCIA_M04_URL:-}
+      IOT_INFERENCIA_M04_TOKEN: ${IOT_INFERENCIA_M04_TOKEN:-}
+      IOT_INFERENCIA_TLS_MIN: ${IOT_INFERENCIA_TLS_MIN:-1.3}
+      IOT_INFERENCIA_CA_FILE: ${IOT_INFERENCIA_CA_FILE:-}
+      IOT_AUDITORIA_RESPALDO_PATH: /app/storage/auditoria_iot/fallas.sqlite3
+      # DEV-15: URL firmada del artefacto OTA. Sin las dos, POST /prediccion/ota/distribuciones responde 503.
+      OTA_URL_SECRET: ${OTA_URL_SECRET:-}
+      OTA_URL_BASE: ${OTA_URL_BASE:-}
+      OTA_URL_TTL_SEGUNDOS: ${OTA_URL_TTL_SEGUNDOS:-86400}
     volumes:
       - sgpmp_modelos:/app/storage/modelos
+      - sgpmp_auditoria_iot:/app/storage/auditoria_iot
       # RF-14: credenciales del service account de Firebase (push FCM). El JSON
       # se carga como File Mount del compose en Dokploy con File Path
       # `firebase.json`, que Dokploy guarda en ../files/. FIREBASE_CREDENTIALS_PATH
       # debe apuntar a /app/secrets/firebase.json. Sin el archivo, Docker crea
       # una carpeta vacía y el backend solo deja el push deshabilitado.
       - ../files/firebase.json:/app/secrets/firebase.json:ro
+      # SSO AgroFusion (Mecanismo A): clave publica RS256 para verificar el
+      # token de handoff. Se carga como File Mount del compose en Dokploy con
+      # File Path `agrofusion_sso_public.pem` (Dokploy la guarda en ../files/).
+      # AGROFUSION_SSO_PUBLIC_KEY_PATH debe ser /app/secrets/agrofusion_sso_public.pem.
+      # Sin la variable, el SSO responde 503 y el resto del backend funciona igual.
+      - ../files/agrofusion_sso_public.pem:/app/secrets/agrofusion_sso_public.pem:ro
     expose:
       - "8000"
     depends_on:
@@ -94,3 +118,4 @@ services:
 volumes:
   sgpmp_pgdata:
   sgpmp_modelos:
+  sgpmp_auditoria_iot:

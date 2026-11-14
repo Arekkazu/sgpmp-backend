@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-79: contenido del consolidado a M06    |
 """Entidad de dominio ``ProvisionNic41`` (RF-79 — reporte consolidado NIC 41).
 
 Python puro. Representa una fila de ``modulo5.provision_nic41``, usada
@@ -68,6 +71,28 @@ class ProvisionNic41:
             motivo_correccion=motivo_correccion,
             estado="GENERADO",
         )
+
+    def contenido_m06(self) -> dict:
+        """Reporte consolidado para M06 (RF-79 Salida 2), sin el envoltorio del evento."""
+        fechas = sorted(r["fecha_aplicacion"] for r in self.lista_registros if r.get("fecha_aplicacion"))
+        return {
+            "id_reporte": self.id_provision,
+            "id_activo": self.id_activo_biologico,
+            "id_ciclo": self.id_ciclo_productivo,
+            "id_gestion_fases": self.id_gestion_fases,
+            "monto_total_ciclo": str(self.monto_provision),
+            "desglose_por_categoria": {k: str(v) for k, v in self.desglose_categoria.items()},
+            "lista_registros_suministros": self.lista_registros,
+            "cantidad_registros": len(self.lista_registros),
+            "fecha_primer_registro": fechas[0] if fechas else None,
+            "fecha_ultimo_registro": fechas[-1] if fechas else None,
+            "version_reporte": self.version_reporte,
+            "id_reporte_anterior": self.id_reporte_anterior,
+            "motivo_correccion": self.motivo_correccion,
+            "reporte_potencialmente_incompleto": self.es_reporte_potencialmente_incompleto,
+            "hash_integridad": self.hash_integridad,
+            "timestamp_generacion": self.fecha_generacion.isoformat() if self.fecha_generacion else None,
+        }
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ProvisionNic41):
