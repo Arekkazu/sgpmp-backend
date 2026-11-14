@@ -18,6 +18,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: listas del período filtradas por el titular (NIT validado) |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 # | 2026-11-12 | Arekkazu | TC-DIS-256 RF-91: las líneas también las lee quien solo consulta la trazabilidad (auditor externo) |
+# | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -697,3 +698,10 @@ def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
                "id_activo_biologico": id_activo_biologico, "severidad": severidad, "id_usuario": id_usuario,
                "id_referencia": id_referencia, "origen_registro": origen_registro, "desde": desde, "hasta": hasta}
     return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE", orden == "DESC")
+
+
+@router.get("/auditoria/usuarios", tags=["M06 · Auditoría financiera"],
+            dependencies=[Depends(permiso("auditoria_financiera", R))],
+            summary="Usuarios con eventos en la auditoría del período, para el filtro por usuario")
+def usuarios_auditoria(id_periodo_contable: int = Query(..., gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    return m.consultar_auditoria().actores(id_periodo_contable)

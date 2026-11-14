@@ -6,6 +6,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
 filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13)."""
 from __future__ import annotations
@@ -90,3 +91,7 @@ class ConsultarAuditoriaFinancieraUseCase:
             } for e in eventos]
         return {"total_registros": total, "pagina_actual": max(pagina, 1), "registros_por_pagina": tamano,
                 "resumen_severidad": resumen, "eventos": eventos}
+
+    def actores(self, id_periodo_contable: int) -> list[dict]:
+        """Opciones del filtro por usuario: se elige por nombre, no por un número que ninguna pantalla muestra."""
+        return self.auditoria.actores({"id_periodo_contable": id_periodo_contable})
