@@ -8,6 +8,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: EN_CIERRE en espera de autorización, cancelación, matriz y titular |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-02 RF-87: las líneas sin trazabilidad de la prevalidación nombran su activo |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio (excluir o estimar) |
+# | 2026-11-13 | Leandro | TC-M06-G52 RF-91: excluir del comprobante líneas con auditorías fuente sin verificar. |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -379,7 +380,7 @@ class EjecutarCierrePeriodoUseCase:
         # Paso 3 (RF-91): trazabilidad; lo incompleto se excluye con autorización y pasa al período siguiente.
         lineas = self.contabilizador.asientos.del_periodo(periodo.id_periodo_contable)
         verificacion = self.verificador.verificar(lineas, id_usuario)
-        pendientes = verificacion["PENDIENTE_TRAZABILIDAD"]
+        pendientes = verificacion["PENDIENTE_TRAZABILIDAD"] + verificacion.get("VERIFICACION_PENDIENTE", [])
         siguiente = self._abrir_siguiente(periodo, id_usuario)
         if pendientes:
             if not autorizar:
