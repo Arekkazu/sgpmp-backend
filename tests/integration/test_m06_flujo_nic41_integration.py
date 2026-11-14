@@ -5,6 +5,8 @@
 # | 2026-11-08 | Arekkazu | INC-M06-314-G15 / INC-M06-332-G88: filtros de mediciones y cotización en período cerrado |
 # | 2026-11-08 | Arekkazu | RFC-024 RF-88 v2.0 / RF-89 v1.1: aviso del cierre por activos al costo con precio y 400 en la justificación |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-87: el notificador de prueba responde ya_notificado (avisos sin duplicados) |
+# | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: verificar el contrato HTTP y los efectos de registrar una cotización. |
+# | 2026-11-13 | Leandro | TC-M06-G52 RF-91: verificar un pesaje auditado y las exclusiones del cierre. |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -15,7 +17,7 @@ from __future__ import annotations
 import random
 import string
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal as D
 
 import pytest
@@ -24,6 +26,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, registros_rf46
+from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
+    SqlAlchemyBitacoraAuditoriaRepository,
+)
 from src.financial_valuation.application.use_cases.costos.registrar_costo_use_case import SolicitudCosto
 from src.financial_valuation.application.use_cases.precios.registrar_precio_use_case import SolicitudPrecio
 from src.financial_valuation.domain.entities.contabilidad import ParametroEspecie
@@ -117,6 +123,20 @@ def _pesaje(db: Session, id_activo: int, kg: str, desfase=timedelta(0)) -> int:
     return id_evento
 
 
+def _auditar_pesaje(db, activo, evento, usuario):
+    SqlAlchemyBitacoraAuditoriaRepository(db).registrar(EventoAuditoria(
+        rf_origen="RF40", tipo_evento="EVENTO_CRECIMIENTO_REGISTRADO",
+        clasificacion_biologica="TRANSFORMACION_BIOLOGICA",
+        timestamp_evento=datetime.now(timezone.utc), id_activo_biologico=activo,
+        tipo_activo="INDIVIDUAL", id_usuario_responsable=usuario, descripcion="Pesaje registrado.",
+        detalle_tecnico={"registros_rf46": registros_rf46(eventos_activos=evento)},
+    ))
+    return str(_escalar(db, """
+        SELECT id_evento FROM modulo2.bitacora_auditoria_m02
+         WHERE id_activo_biologico = :a ORDER BY id_bitacora DESC LIMIT 1
+    """, a=activo))
+
+
 def _precio(m: M06, id_usuario: int, especie: int, valor: str, vigencia, fuente: str = "MERCADO_ACTIVO") -> dict:
     return m.registrar_precio().execute(SolicitudPrecio(
         id_especie=especie, categoria="PESO_KG", precio_unitario=D(valor), fecha_vigencia=vigencia, fuente=fuente,
@@ -171,6 +191,7 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     # RF-83/86: pesaje 420 kg y precio 8.500 → precio = 400×500×0,95 = 190.000; TB = 20×8.500×0,95 = 161.500.
     _precio(m06, uid, especie, "8500", HOY)
     evento = _pesaje(db_session, activo, "420")
+    _auditar_pesaje(db_session, activo, evento, uid)
     resultado_eventos = m06.procesar_eventos().execute()
     assert resultado_eventos.get("PROCESADO") == 1, (resultado_eventos, db_session.execute(text("SELECT resultado, detalle FROM modulo6.procesamientos_eventos_m02")).all())
     lineas = {(ln.tipo_hecho, ln.sentido): ln.valor for ln in m06.asientos.del_activo(activo)}
@@ -205,17 +226,20 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     # RF-87: cierre del período (sin variación nueva) con comprobante por tipo de hecho y especie.
     periodo = m06.periodos.que_contiene(NIT, HOY)
     assert m06.cierre().prevalidar(periodo).puede_cerrar
-    cierre = m06.cierre().execute(periodo.id_periodo_contable, uid)
+    with pytest.raises(AppError) as exclusiones:
+        m06.cierre().execute(periodo.id_periodo_contable, uid)
+    assert exclusiones.value.code == "EXCLUSION_REQUIERE_AUTORIZACION"
+    cierre = m06.cierre().execute(periodo.id_periodo_contable, uid, autorizar_exclusiones=True)
     assert cierre["estado"] == "CERRADO"
     codigos = sorted(c["codigo"].split("-")[3] for c in cierre["comprobantes"])
-    assert codigos == ["CONSUMO_INSUMO", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_PM", "VARIACION_VR_TB"]
+    assert codigos == ["VARIACION_VR_PM", "VARIACION_VR_TB"]
     assert m06.notificador.avisos and "cerrado" in m06.notificador.avisos[-1]
 
-    # RF-93: ingresos 40.000 + 161.500 + 190.000; gastos 150.000 + 80.000 (el servicio sí es gasto del período).
+    # RF-93: el ingreso de reconocimiento sin evidencia se difiere. Los costos del período son 150.000 + 80.000.
     id_estado = cierre["reportes"]["estado_resultados"]["id_estado"]
     estado = m06.reportes.obtener_estado(id_estado)
     assert (estado["total_ingresos"], estado["total_gastos"], estado["resultado_neto"]) == (
-        D("391500.0000"), D("230000.0000"), D("161500.0000"))
+        D("351500.0000"), D("230000.0000"), D("121500.0000"))
 
     # Un hecho con fecha del período cerrado entra al período siguiente (RF-87 v1.1, sin reapertura).
     _provision_m05(db_session, activo, "1000")
@@ -332,6 +356,73 @@ def test_rbac_contador_si_productor_no(db_session, crear_usuario_db, crear_auth_
         assert cliente.post("/finanzas/costos", headers=contador,
                             json={"subtipo_costo": "ALIMENTO", "origen_costo": "MANO_OBRA_PROPIA", "monto_costo": "1",
                                   "fecha_costo": HOY.isoformat(), "id_lote": 3}).status_code in (400, 422)  # CA-8
+
+
+def test_registro_cotizacion_valida_antes_de_persistir_y_audita_el_registro_valido(
+    integration_app, client, db_session, crear_auth_headers, contador, m06,
+):
+    from src.financial_valuation.infrastructure.routers.m06_router import router
+    from tests.integration.test_inc_m06_273_g67_01_reconocimiento_costo_integration import sembrar_activo
+
+    integration_app.include_router(router)
+    headers = crear_auth_headers(contador) | {"X-Zona-Horaria": "America/Bogota"}
+    usuario = contador["id_usuario"]
+    ayer = db_session.scalar(text("SELECT (now() AT TIME ZONE 'America/Bogota')::date - 1"))
+    activo = sembrar_activo(db_session, usuario)
+    especie = activo["especie"]
+    m06.guardar_parametro_especie().execute(ParametroEspecie(especie, "CONSUMO", "POR_CABEZA", 24), usuario)
+    m06.guardar_costos_venta().execute(especie, D("0.05"), D("0"), D("0"), usuario)
+    m06.guardar_asignacion().execute("RECONOCIMIENTO_DIFERENCIA", "GANANCIA", especie, None, "1586", "4250", usuario)
+    m06.registrar_precio().execute(SolicitudPrecio(
+        id_especie=especie, categoria="POR_CABEZA", precio_unitario=D("150"), fecha_vigencia=ayer,
+        fuente="MERCADO_ACTIVO", evidencia_documental="Boletín local de prueba", confirmar_desviacion=True,
+    ), usuario)
+    reconocimiento = m06.confirmar_reconocimiento().execute(activo["activo"], usuario)
+    assert reconocimiento["indicador_valoracion"] == "VALOR_RAZONABLE"
+    payload = {"activos_cotizados": [activo["activo"]]}
+    periodo = m06.periodos.que_contiene(NIT, ayer + timedelta(days=1))
+    assert periodo.esta_abierto
+    db_session.commit()
+
+    def registrar(campos):
+        return client.post("/finanzas/cotizaciones", headers=headers, json=payload | campos)
+
+    def estado():
+        return db_session.execute(text("""
+            SELECT
+                (SELECT count(*) FROM modulo6.cotizaciones),
+                (SELECT count(*) FROM modulo6.auditorias_financieras WHERE tipo_evento = 'COTIZACION_REGISTRADA'),
+                (SELECT estado::text FROM modulo6.periodos_contables WHERE id_periodo_contable = :periodo)
+        """), {"periodo": periodo.id_periodo_contable}).one()
+
+    previo = registrar({"valor_cotizacion_propuesto": "1"})
+    assert previo.status_code == 201, previo.text
+    id_previo = previo.json()["id_cotizacion"]
+    anterior = estado()
+    cotizacion_previa = m06.cotizaciones.obtener(id_previo)
+    for campos, status, codigo in (
+        ({"valor_cotizacion_propuesto": 0}, 422, "VALOR_COTIZACION_INVALIDO"),
+        ({"valor_cotizacion_propuesto": -1}, 422, "VALOR_COTIZACION_INVALIDO"),
+        ({"valor_cotizacion_propuesto": "-0.0001"}, 422, "VALOR_COTIZACION_INVALIDO"),
+        ({"valor_cotizacion_propuesto": "sin valor"}, 400, "VAL_ENTRADA"),
+        ({"valor_cotizacion_propuesto": "1.00001"}, 400, "VAL_ENTRADA"),
+        ({"valor_cotizacion_propuesto": "100000000000000"}, 400, "VAL_ENTRADA"),
+        ({}, 400, "VAL_ENTRADA"),
+        ({"valor_cotizacion_propuesto": "1", "fecha_vencimiento": ayer.isoformat()},
+         422, "FECHA_VENCIMIENTO_INVALIDA"),
+    ):
+        respuesta = registrar(campos)
+        assert respuesta.status_code == status, (campos, respuesta.text)
+        assert respuesta.json()["error_code"] == codigo
+        assert estado() == anterior
+    assert m06.cotizaciones.obtener(id_previo) == cotizacion_previa
+
+    respuesta = registrar({"valor_cotizacion_propuesto": "0.0001"})
+    assert respuesta.status_code == 201, respuesta.text
+    nueva = respuesta.json()
+    assert nueva["estado"] == "COTIZADO" and D(str(nueva["valor_razonable_referencia"])) == D("142.5")
+    assert m06.cotizaciones.obtener(nueva["id_cotizacion"])["valor_cotizacion_propuesto"] == D("0.0001")
+    assert estado() == (anterior[0] + 1, anterior[1] + 1, "ABIERTO")
 
 
 def test_cada_tipo_de_evento_de_auditoria_tiene_descripcion_legible(db_session):
