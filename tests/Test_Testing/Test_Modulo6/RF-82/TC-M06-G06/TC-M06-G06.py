@@ -2,13 +2,17 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-82: script del grupo TC-M06-G06 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-82: G06 alineado con la ficha (026 donación, 027 estricto, 029 bruto 8000, 030 diferencia 0) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G06-V2.0.html |
+# | 2026-11-12 | Daniela Castillo | M06 INC-302: 026 donación espera el hecho RECONOCIMIENTO_DONACION/UNICO con su par de la matriz; 027 retira ese par; 030 anota el hecho observado |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0: 025 muestra las líneas del activo si falla el conteo; 028 y 029 envían referencia_documental (INC-M06-316)
+# | 2026-11-13 | Daniela Castillo | M06 RF-82: 024 exige que el Administrador pueda cargar el precio RF-89 (Administrador con todos los permisos en el sistema)
 """
 TC-M06-G06 - Integración del reconocimiento con RF-33, RF-89, RF-84, M09 (costos y matriz contable RF-109) y RF-86.
 RF-82 (CU01).   Casos: TC-M06-023 a TC-M06-030.
 
 Notas de ejecución:
-- 024: la ficha dice que el Administrador carga el precio RF-89, pero RF-89 (Restricciones y CA-1) y CU01 dicen que solo el Contador
-  registra precios: se intenta con el Administrador, se documenta el 403 (correcto según RF-89; error de la ficha) y lo carga el Contador.
+- 024: el Administrador tiene todos los permisos del sistema (líder y Análisis, 13-nov): carga el precio RF-89 y el caso exige que pueda. Si recibe 403,
+  el caso sigue con el Contador para comprobar el resto del flujo y falla al final por el permiso del Administrador.
 - 026: para DONACION el crédito debe ser «Ingreso por donación» (RF-82 CA-7 y CA-10), distinto del de nacimiento; si coincide con el
   de nacimiento falla (hallazgo H-01, igual que TC-M06-003 y TC-M06-007).
 - 027: la matriz RF-109 de la especie se edita por la API de M09 dentro del run (se retira también la asignación general del hecho,
@@ -22,7 +26,7 @@ Notas de ejecución:
   (la ficha pedía el hecho con 0,0000; diferencia de la ficha, se documenta).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G06/TC-M06-G06.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G06/reporte-TC-M06-G06.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G06/TC-M06-G06.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G06/reporte-TC-M06-G06-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -73,15 +77,18 @@ def test_TC_M06_024_recuperacion_tras_bloqueo_por_precio_ausente(env):
                      "fecha_vigencia": str(hoy() - timedelta(days=1)), "fuente": "MERCADO_ACTIVO",
                      "evidencia_documental": "Boletín de precios QA TC-M06", "confirmar_desviacion": True}
     r_adm = env.call("POST", "/finanzas/precios", "admin", json=cuerpo_precio)
-    if r_adm.status in (200, 201):
+    admin_pudo = r_adm.status in (200, 201)
+    if admin_pudo:
         esc.precio, esc.id_precio = dec(PRECIO), r_adm.get("id_precio_mercado")
     else:
-        obs(f"el Administrador no pudo cargar el precio RF-89 (HTTP {r_adm.status} {r_adm.err}); lo carga el Contador.")
+        obs(f"el Administrador no pudo cargar el precio RF-89 (HTTP {r_adm.status} {r_adm.err}); se sigue el caso con el Contador y se exige al final.")
         env.precio(esc, PRECIO)
     p2 = env.propuesta(ida)
     assert p2.get("es_confirmable") is True and p2.get("indicador_valoracion") == "VALOR_RAZONABLE", p2.data
     assert env.confirmar(ida).status == 201
     assert env.contar("reconocimientos_iniciales", ida, "AND estado = 'CONFIRMADO'") == 1, "debe haber un solo reconocimiento"
+    assert admin_pudo, (f"el Administrador tiene todos los permisos (líder y Análisis, 13-nov) y debía poder cargar el precio RF-89 como dice la ficha: "
+                        f"HTTP {r_adm.status} {r_adm.err}")
 
 
 def test_TC_M06_025_repeticiones_secuenciales_no_duplican(env, esc):
@@ -93,14 +100,26 @@ def test_TC_M06_025_repeticiones_secuenciales_no_duplican(env, esc):
     assert env.confirmar(ida).status == 201
     assert env.confirmar(ida).status == 409
     assert env.contar("reconocimientos_iniciales", ida, "AND estado = 'CONFIRMADO'") == 1
-    assert int(uno(env.sql(f"SELECT count(*) FROM modulo6.lineas_asiento_nic41 WHERE id_activo_biologico = {ida} "
-                           f"AND tabla_origen = 'reconocimientos_iniciales'")) or 0) == 1, "debe haber un solo asiento"
+    hist = lineas_de(env.historial(ida))
+    del_hist = [ln for ln in hist if ln.get("tabla_origen") == "reconocimientos_iniciales"]
+    assert len(del_hist) == 1, f"el historial debe mostrar un solo asiento del reconocimiento: {hist}"
+    id_origen = int(del_hist[0]["id_origen"])
+    ln = del_hist[0]
+    assert ln.get("estado") == "REGISTRADA" and not ln.get("es_reverso"), f"el asiento del reconocimiento no quedó REGISTRADO: {ln}"
+    assert ln.get("cuenta_debito") and ln.get("cuenta_credito") and ln["cuenta_debito"] != ln["cuenta_credito"], f"cuentas del asiento: {ln}"
+    # El SQL del sandbox (/test-control/query) ya lleva identidad de sistema (13-nov): la base debe mostrar la misma línea que el historial.
+    cols = "id_linea_asiento_nic41 AS id, id_activo_biologico, tabla_origen, id_origen, estado::text AS estado, es_reverso, valor"
+    por_origen = env.sql(f"SELECT {cols} FROM modulo6.lineas_asiento_nic41 WHERE tabla_origen = 'reconocimientos_iniciales' AND id_origen = {id_origen} ORDER BY 1")
+    assert len(por_origen) == 1, (f"la base debe tener una sola línea del reconocimiento {id_origen}: devolvió {len(por_origen)} "
+                                  f"(el historial de la API muestra 1, línea {ln.get('id_linea_asiento_nic41')})")
+    por_activo = env.sql(f"SELECT {cols} FROM modulo6.lineas_asiento_nic41 WHERE id_activo_biologico = {ida} AND tabla_origen = 'reconocimientos_iniciales' ORDER BY 1")
+    assert len(por_activo) == 1, f"la base debe tener un solo asiento del reconocimiento para el activo {ida}: {len(por_activo)}"
 
 
 @pytest.mark.parametrize("origen,costo,soporte,clave", [
     ("compra", "2500000.0000", "Factura", ("RECONOCIMIENTO_DIFERENCIA", "GANANCIA")),
     ("nacimiento", None, None, ("RECONOCIMIENTO_NACIMIENTO", "UNICO")),
-    ("donacion", "1200000.0000", "Acta", ("RECONOCIMIENTO_NACIMIENTO", "UNICO")),
+    ("donacion", "1200000.0000", "Acta", ("RECONOCIMIENTO_DONACION", "UNICO")),
     ("transferencia_interna", None, None, ("RECONOCIMIENTO_NACIMIENTO", "TRASLADO")),
 ])
 def test_TC_M06_026_cuentas_del_asiento_salen_de_la_matriz(env, esc, origen, costo, soporte, clave):
@@ -123,7 +142,7 @@ def test_TC_M06_026_cuentas_del_asiento_salen_de_la_matriz(env, esc, origen, cos
 
 def test_TC_M06_027_matriz_sin_cuenta_de_contrapartida(env, esc):
     env.presupuesto(50)
-    clave = ("RECONOCIMIENTO_NACIMIENTO", "UNICO")
+    clave = ("RECONOCIMIENTO_DONACION", "UNICO")      # la donación tiene hecho propio (INC-302): se retira su par de cuentas
     id_asig = esc.asignaciones.get(clave)
     if not id_asig:
         bloqueado("M09 no expuso la asignación de la matriz para retirarla (id_asignacion_cuenta_contable).")
@@ -213,4 +232,4 @@ def test_TC_M06_030_hechos_enviados_a_rf86(env):
     for origen, costo, soporte in (("donacion", "1200000.0000", "Acta"), ("transferencia_interna", None, None)):
         ida = env.activo(esc, tipo="POBLACIONAL", cantidad=8, origen=origen, costo=costo, soporte=soporte)
         ln = (env.prep(env.confirmar(ida), (201,), f"confirmar {origen}").get("lineas") or [{}])[0]
-        obs(f"{origen}: hecho observado {ln.get('tipo_hecho')}/{ln.get('sentido')} por {ln.get('valor')} (RFC-018 no lo define).")
+        obs(f"{origen}: hecho observado {ln.get('tipo_hecho')}/{ln.get('sentido')} por {ln.get('valor')} (RFC-018 no lo define; la donación usa RECONOCIMIENTO_DONACION desde INC-302).")

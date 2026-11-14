@@ -1,6 +1,8 @@
 # | Fecha      | Nombre           | Que se hizo                                                              |
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-84: script del grupo TC-M06-G18 (pytest + sandbox, rol Contador) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G18-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G18 - Rangos y precisión de las entradas del cálculo: costos, valor bruto y DECIMAL(18,4).   RF-84.   Casos: TC-M06-087 a TC-M06-090 (con subcasos 089b, 090a y 090b).
 
@@ -19,7 +21,7 @@ El 5xx nunca es aceptable. Los 5 decimales (089b) siguen el criterio de H-03: ac
 El .json de esta carpeta (087 y 088) no se usa: este pytest cubre los cuatro casos; no hay tiempos que medir.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G18/TC-M06-G18.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G18/reporte-TC-M06-G18.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G18/TC-M06-G18.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G18/reporte-TC-M06-G18-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -52,6 +54,7 @@ def test_TC_M06_087_costos_negativos_se_rechazan(env):
         r = env.confirmar(ida, cuerpo={"costos_manuales": {comp: "-0.01"}, "justificacion": JUSTIF})
         assert _validacion(r), f"costo negativo en {comp} debía rechazarse con error de validación (400/422) y respondió {r}"
     assert env.calculo(ida) is None, "no debe calcularse con costos negativos"
+    assert env.contar("calculos_valor_razonable", ida) == 0, "base de datos: no debe existir cálculo con costos negativos"
 
 
 def test_TC_M06_087b_costo_cero_se_acepta_en_cada_componente(env):
@@ -67,6 +70,7 @@ def test_TC_M06_087b_costo_cero_se_acepta_en_cada_componente(env):
         clave = {"transporte": "costo_transporte", "comisiones": "costo_comisiones", "impuestos": "costo_impuestos_transaccion",
                  "otros": "otros_costos_disposicion"}[comp]
         assert c is not None and dec(c[clave]) == 0, c
+        env.comparar_calculo_bd(ida, c)
 
 
 def test_TC_M06_088_valor_bruto_invalido_via_precio(env):
@@ -93,6 +97,8 @@ def test_TC_M06_089_precision_de_cuatro_decimales(env):
     assert r.status in (200, 201), r
     c = env.calculo(ida)
     assert dec(c["valor_razonable_bruto"]) == dec("1234501.2345") and dec(c["valor_neto"]) == dec("1234501.2335"), c
+    bd = env.comparar_calculo_bd(ida, c)
+    assert dec(bd["valor_razonable_bruto"]) == dec("1234501.2345") and dec(bd["valor_neto"]) == dec("1234501.2335"), f"base de datos: {bd}"
 
 
 def test_TC_M06_089b_entrada_con_cinco_decimales(env):
@@ -103,13 +109,10 @@ def test_TC_M06_089b_entrada_con_cinco_decimales(env):
     ida = env.activo(esc, origen="nacimiento", costo=None, soporte=None)
     r = env.confirmar(ida, cuerpo={"costos_manuales": {"transporte": "100.00005"}, "justificacion": JUSTIF})
     assert r.status < 500, f"5 decimales no debe producir error de servidor: {r}"
-    if _validacion(r):
-        return                                                      # rechazo con error de validación: cumple
-    assert r.status in (200, 201), f"5 decimales debía rechazarse con 400/422 o aceptarse con aviso, y respondió {r}"
-    aplicado = env.calculo(ida)["costo_transporte"]
-    avisos = " ".join(str(a) for a in (r.get("advertencias") or [])).lower()
-    assert "redonde" in avisos or "decimal" in avisos, \
-        f"se aceptó 100.00005 y se guardó {aplicado} sin avisar del redondeo (advertencias: {r.get('advertencias')})"
+    # INC-M06-303 (corregido por Desarrollo, #990): más de 4 decimales se rechaza con 400 (ya no se acepta ni se redondea).
+    assert _validacion(r), (f"INC-M06-303: 100.00005 (5 decimales) debía rechazarse con 400/422 y respondió {r}; "
+                            f"cálculo guardado: {env.calculo(ida)}")
+    assert env.calculo(ida) is None and env.contar("calculos_valor_razonable", ida) == 0, "el rechazo no debe dejar cálculo guardado (API ni base)"
 
 
 CEROS = {"costos_manuales": {"transporte": "0", "comisiones": "0", "impuestos": "0", "otros": "0"}, "justificacion": JUSTIF}
@@ -142,6 +145,7 @@ def test_TC_M06_090a_valor_cercano_al_maximo_se_acepta(env):
     r = env.confirmar(ida, cuerpo=CEROS)
     assert r.status in (200, 201), f"el valor cercano al máximo debía aceptarse: {r}"
     assert dec(env.calculo(ida)["valor_razonable_bruto"]) == dec("99999999990000.0000")
+    assert dec(env.calculo_bd(ida)["valor_razonable_bruto"]) == dec("99999999990000.0000"), "base de datos: el bruto cercano al máximo debe guardarse completo"
 
 
 def test_TC_M06_090b_valor_que_desborda_se_rechaza_sin_5xx(env):
@@ -157,3 +161,4 @@ def test_TC_M06_090b_valor_que_desborda_se_rechaza_sin_5xx(env):
     assert r.err not in ("SIN_MAGNITUD", "SIN_PRECIO"), f"el rechazo no es por desborde sino por falta de datos del activo: {r}"
     assert _validacion(r), f"el valor que desborda DECIMAL(18,4) debe rechazarse con error de validación (400/422), sin 5xx, y respondió {r}"
     assert env.calculo(ida) is None, "no debe quedar un cálculo con el valor desbordado"
+    assert env.contar("calculos_valor_razonable", ida) == 0, "base de datos: no debe quedar cálculo con el valor desbordado"

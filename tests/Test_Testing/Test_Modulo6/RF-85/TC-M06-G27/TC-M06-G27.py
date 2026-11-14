@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G27 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | G27 revisado contra la ficha: 120 verifica el precio manual justificado (con y sin justificación) y que la cosecha pendiente se reconozca; 121 verifica el ingreso manual de costos del producto; 122 y 123 y 124 verifican lo que pide la ficha o quedan BLOQUEADOS por función no implementada |
 # | 2026-11-11 | Daniela Castillo | M06 RF-85 v1.2: 122, 123 y 124 reescritos con las reglas de conversión del sistema (masa a kg; volumen y unidades bloquean con aviso); 124b conserva «sin cantidad total» |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G27-V2.0.html; 122 exige el texto «Cantidad convertida: … = … kg» en la justificación del producto (#1011) |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G27 - Precio, costos de venta y conversión de unidades del producto agrícola.   RF-85 (FA-1, FA-2, FA-8 de CU04).   Casos: TC-M06-120 a TC-M06-124.
 
@@ -22,7 +24,7 @@ se asigna con POST /activos-biologicos/{id}/fases. Un producto no se registra do
 - PRODUCCION no se convierte (RF-85 v1.2): no hay caso propio en este grupo.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G27/TC-M06-G27.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G27/reporte-TC-M06-G27.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G27/TC-M06-G27.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G27/reporte-TC-M06-G27-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -98,11 +100,40 @@ def test_TC_M06_120c_precio_manual_justificado_reconoce_la_cosecha_pendiente(env
     assert r.status in (200, 201), f"el precio manual justificado debía registrarse: {r}"
     env.procesar_eventos()
     filas = env.producto_sql(ida)
+    if not filas:
+        # La operación de Desarrollo (#1010, POST /finanzas/productos/pendientes/{id_evento}/reconocimiento) es solo para costos de venta manuales (FA-2);
+        # el precio manual de FA-1 se registra en RF-89 y la cosecha pendiente debe continuar. Se imprime el estado para el diagnóstico.
+        lp = env.call("GET", RUTA_PENDIENTES, "contador")
+        obs(f"con el precio manual registrado y la cola procesada no se reconoció el producto. Cola: {_estado_cola(env, ida)}")
+        obs(f"GET {RUTA_PENDIENTES} tras registrar el precio: HTTP {lp.status} {str(lp.data)[:600]}")
     cola = _estado_cola(env, ida)
     assert filas, (f"con el precio manual justificado registrado la cosecha pendiente debía reconocerse y no se reconoció; estado de la cola de eventos: {cola}; "
                    f"eventos del activo: {env.tipos_auditoria(ida)}")
     esperado = trunc2(vn(200, PRECIO_MANUAL))
     assert dec(filas[-1]["valor_producto"]) == esperado, f"valor_producto esperado {esperado} (200 x {PRECIO_MANUAL} menos 6 %): {filas[-1]}"
+
+
+def test_TC_M06_120d_diagnostico_precio_de_mercado_activo_retoma_la_cosecha_pendiente(env):
+    """Diagnóstico de INC-M06-323 (FA-1), no es un caso de la ficha: separa «el precio ESTIMADA no se acepta» de «la cola no reintenta». Run propio:
+    cosecha pendiente por falta de precio, se registra un precio de fuente MERCADO_ACTIVO (el de siempre) y se procesa la cola. Imprime si el evento se reintenta y si se reconoce."""
+    env.nuevo_run()
+    env.presupuesto(80)
+    esc = env.escenario_producto("PRODUCCION", "20000.00", None)
+    ida = env.activo_productivo(esc, "1000")
+    env.prep(env.cosecha(ida, "200"), (200, 201), "evento productivo de 200 kg sin precio del producto")
+    env.procesar_eventos()
+    antes = _estado_cola(env, ida)
+    assert not env.producto_sql(ida), "precondición: la cosecha debe estar pendiente (sin producto)"
+    env.precio_producto(esc, ID_METRICA_PRODUCTIVA, PRECIO_MANUAL, desde=hoy() - timedelta(days=10))
+    rp = env.procesar_eventos()
+    despues = _estado_cola(env, ida)
+    filas = env.producto_sql(ida)
+    obs(f"cola antes del precio: {antes}")
+    obs(f"procesar la cola tras registrar un precio MERCADO_ACTIVO: HTTP {rp.status} {(rp.text or '')[:300]}")
+    obs(f"cola después: {despues}")
+    obs(f"producto reconocido: {'sí, valor_producto ' + str(filas[-1]['valor_producto']) if filas else 'no'}; eventos del activo: {env.tipos_auditoria(ida)}")
+    lp = env.call("GET", RUTA_PENDIENTES, "contador")
+    obs(f"GET {RUTA_PENDIENTES}: HTTP {lp.status} {str(lp.data)[:500]}")
 
 
 @pytest.fixture(scope="module")
@@ -131,11 +162,100 @@ def test_TC_M06_121_sin_costos_de_venta_queda_pendiente_y_solicita_ingreso_manua
     obs(f"Mensaje de la alerta: {str(ev[-1])[:250] if ev else 'n/d'}")
 
 
+RUTA_PENDIENTES = "/finanzas/productos/pendientes"
+
+
+def _operacion_reconocer_pendiente(env):
+    """INC-M06-323 (corregido por Desarrollo, #1010 / PR #1060): la cosecha pendiente se retoma con la operación
+    POST /finanzas/productos/pendientes/{id_evento}/reconocimiento. El RF no trae rutas: se ubica en el OpenAPI de TEST y se imprime su esquema."""
+    r = env.call("GET", "/openapi.json", sandbox=False)
+    assert r.status == 200 and isinstance(r.data, dict), ("no se pudo leer /openapi.json para ubicar la operación que retoma la cosecha pendiente "
+                                                         f"(INC-M06-323); respondió {r.status}. Pedirle a Desarrollo el endpoint y el cuerpo (PR #1060)")
+    doc = r.data
+    for ruta, ops in (doc.get("paths") or {}).items():
+        if ruta.lower().startswith(RUTA_PENDIENTES + "/") and "reconocimiento" in ruta.lower() and "post" in ops:
+            return doc, ruta, ops["post"]
+    todas = _rutas_api(env, "producto", "pendiente", "cosecha", "costos-venta", "costos_venta")
+    assert False, ("INC-M06-323: el OpenAPI de TEST no expone la operación que retoma la cosecha pendiente (Desarrollo la declaró corregida en #1010). "
+                   f"Rutas parecidas: {todas}")
+
+
+def _esquema_de(doc, op):
+    def res(e):
+        if isinstance(e, dict) and "$ref" in e:
+            e = (doc.get("components", {}).get("schemas", {}) or {}).get(e["$ref"].split("/")[-1], {})
+        return e if isinstance(e, dict) else {}
+    esq = res((((op.get("requestBody") or {}).get("content") or {}).get("application/json") or {}).get("schema") or {})
+    return esq, {k: res(v) for k, v in (esq.get("properties") or {}).items()}
+
+
+def _cuerpo_reconocimiento(props, modo):
+    """Arma el cuerpo con lo que declara el esquema: modo 'precio' (precio manual justificado) o 'costos' (costos de venta manuales)."""
+    cuerpo = {}
+    for k, e in props.items():
+        kl = k.lower()
+        if "justific" in kl:
+            cuerpo[k] = JUSTIFICACION if modo == "precio" else "Costos de venta manuales del producto QA TC-M06 con soporte documental: cotización No. 777."
+        elif modo == "precio" and "precio" in kl:
+            cuerpo[k] = PRECIO_MANUAL
+        elif modo == "costos" and kl in ("costos_manuales", "costos", "costos_venta", "costos_venta_producto"):
+            cuerpo[k] = {"transporte": "1000", "comisiones": "1000", "impuestos": "1000", "otros": "0"}
+        elif modo == "costos" and any(w in kl for w in ("transporte", "comision", "impuesto")):
+            cuerpo[k] = "1000"
+        elif modo == "costos" and "otros" in kl:
+            cuerpo[k] = "0"
+        elif any(w in kl for w in ("referencia", "evidencia", "soporte")):
+            cuerpo[k] = "Cotización QA TC-M06 No. 101"
+        elif kl.startswith("confirmar"):
+            cuerpo[k] = True
+    return cuerpo
+
+
+def _id_evento_pendiente(env, ida):
+    r = env.call("GET", RUTA_PENDIENTES, "contador")
+    obs(f"GET {RUTA_PENDIENTES}: HTTP {r.status} {str(r.data)[:600]}")
+    d = r.data
+    items = d if isinstance(d, list) else ((d.get("pendientes") or d.get("items") or d.get("eventos") or d.get("data") or []) if isinstance(d, dict) else [])
+    for it in items:
+        if isinstance(it, dict) and str(it.get("id_activo_biologico")) == str(ida):
+            ide = it.get("id_evento") or it.get("id_evento_productivo")
+            if ide is not None:
+                return ide
+    pr = env.sql("SELECT p.id_evento AS e FROM modulo6.procesamientos_eventos_m02 p JOIN modulo2.eventos_activos ev ON ev.id_eventos = p.id_evento "
+                 f"WHERE ev.id_activo_biologico = {int(ida)} AND p.resultado::text = 'MEDICION_PENDIENTE' ORDER BY p.id_evento DESC LIMIT 1")
+    return uno(pr)
+
+
+def _retomar_pendiente(env, ida, modo):
+    doc, plantilla, op = _operacion_reconocer_pendiente(env)
+    esq, props = _esquema_de(doc, op)
+    obs(f"operación de Desarrollo: POST {plantilla} ({op.get('summary')}); campos: "
+        f"{[(k, e.get('type'), k in (esq.get('required') or [])) for k, e in props.items()]}")
+    ide = _id_evento_pendiente(env, ida)
+    assert ide, f"no se encontró el evento pendiente del activo {ida} (cola: {_estado_cola(env, ida)})"
+    cuerpo = _cuerpo_reconocimiento(props, modo)
+    ruta = plantilla.replace("{id_evento}", str(ide))
+    import re as _re
+    for nombre in _re.findall(r"\{([^}]+)\}", ruta):
+        ruta = ruta.replace("{" + nombre + "}", str(ide))
+    r = env.call("POST", ruta, "contador", json=cuerpo)
+    obs(f"POST {ruta} con {cuerpo}: HTTP {r.status} {(r.text or '')[:500]}")
+    return r
+
+
 def test_TC_M06_121b_costos_manuales_del_producto(env, sin_costos):
-    rutas = _rutas_api(env, "producto", "costos-venta", "costos_venta")
-    obs(f"Operaciones de la API relacionadas con producto o costos de venta: {rutas if rutas is not None else 'no se pudo leer /openapi.json'}")
-    bloqueado("funcionalidad no implementada: RF-85 FA-2 y la ficha 121 piden ingresar manualmente los costos de venta del producto (con justificación) para continuar el reconocimiento, "
-              "y el backend solo deja el reconocimiento pendiente: no existe operación para costos manuales del producto ni se reprocesa la cosecha (ver operaciones listadas).")
+    """RF-85 FA-2 y ficha 121 (INC-M06-323, corregido por Desarrollo): con los costos de venta manuales del producto la cosecha pendiente continúa
+    y el producto se reconoce."""
+    esc, ida = sin_costos
+    assert not env.producto_sql(ida), "precondición: la cosecha debe estar pendiente (sin producto)"
+    r = _retomar_pendiente(env, ida, "costos")
+    assert r.status in (200, 201, 202), f"los costos manuales del producto debían aceptarse y respondió {r}"
+    env.procesar_eventos()
+    filas = env.producto_sql(ida)
+    assert filas, (f"con los costos manuales la cosecha pendiente debía continuar y reconocerse el producto; cola: {_estado_cola(env, ida)}; "
+                   f"eventos del activo: {env.tipos_auditoria(ida)}")
+    obs(f"producto reconocido con costos manuales: valor_producto {filas[-1]['valor_producto']}, precio {filas[-1]['precio_mercado_producto']}, costo_venta_producto {filas[-1]['costo_venta_producto']}")
+    assert 0 < dec(filas[-1]["valor_producto"]) <= dec("700000"), f"valor_producto debía ser positivo y no superar el bruto 200 kg x 3.500,00: {filas[-1]}"
 
 
 def _cosecha_consumo_en(env, unidad, cantidad):
@@ -178,7 +298,9 @@ def test_TC_M06_122_conversion_de_masa_a_kg_con_las_reglas_del_sistema(env, unid
     esperada_red = dec("18800000") * dec(kg) / dec("1000")
     assert abs(dec(p["valor_reduccion_activo"]) - esperada_red) <= dec("0.01") + dec("18800000") * dec("0.0001"), (
         f"la reducción del activo debía ser proporcional a {kg} kg (≈ {esperada_red}): {p}")
-    assert "convers" in str(uno(fila)).lower(), f"RF-85 v1.2: el texto de la conversión debe quedar en la justificación del producto: {str(uno(fila))[:400]}"
+    fila_txt = str(uno(fila)).lower()
+    assert "cantidad convertida" in fila_txt and f" {unidad.lower()} " in fila_txt and "kg" in fila_txt, (
+        f"RF-85 v1.2 (#1011): la conversión debe quedar en la justificación del producto con el formato «Cantidad convertida: {cantidad} {unidad} = ... kg»: {str(uno(fila))[:600]}")
 
 
 @pytest.mark.parametrize("unidad,cantidad", [("mL", "500000"), ("L", "500")])

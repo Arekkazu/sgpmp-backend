@@ -50,6 +50,7 @@ CUENTAS = {
     "productor": (os.getenv("QA_CORREO_PRODUCTOR", "daniiella.vargass@gmail.com"), "QA_CONTRASENA_PRODUCTOR", 68),
     "veterinario": (os.getenv("QA_CORREO_VETERINARIO", "mariajosecastillovargas57@gmail.com"), "QA_CONTRASENA_VETERINARIO", 157),
     "ingeniero": (os.getenv("QA_CORREO_INGENIERO", "ingedecampo6@gmail.com"), "QA_CONTRASENA_INGENIERO", 158),
+    "auditor": (os.getenv("QA_CORREO_AUDITOR", "auditor.rol@gmail.com"), "QA_CONTRASENA_AUDITOR", None),     # rol Auditor (13-nov): la cuenta ya trae su rol
 }
 ROL_INGENIERO, ROL_CONTADOR = 4, 5
 # Especie de TEST con métrica y ciclo productivo sembrados (Cachama: métrica PESO en kg): el evento productivo de M02 (RF-43) exige una
@@ -62,6 +63,7 @@ ID_CICLO_PRODUCTIVO = int(os.getenv("QA_ID_CICLO_PRODUCTIVO", "4"))
 CUENTAS_MATRIZ = {
     ("RECONOCIMIENTO_NACIMIENTO", "UNICO"): ("140105", "425010"),
     ("RECONOCIMIENTO_NACIMIENTO", "TRASLADO"): ("140105", "280505"),
+    ("RECONOCIMIENTO_DONACION", "UNICO"): ("140105", "425060"),      # Ingreso por donación (hecho propio, INC-302, 12-nov: el Contador asigna su par de cuentas)
     ("RECONOCIMIENTO_DIFERENCIA", "GANANCIA"): ("140105", "425020"),
     ("RECONOCIMIENTO_DIFERENCIA", "PERDIDA"): ("531520", "140105"),
     ("VARIACION_VR_TB", "GANANCIA"): ("140105", "425030"),
@@ -112,24 +114,30 @@ def dv_nit(numero: str) -> int:
 
 
 def bloqueado(m: str):
-    """Precondición que no se pudo preparar: el caso se omite (skipped). Si el motivo es una funcionalidad que el RF exige y no existe (o no está
-    desplegada) es un ERROR del sistema bajo prueba: el caso FALLA (rojo) para que el reporte HTML coincida con el resultado real."""
+    """Precondición que no se pudo preparar: desde el 13-nov (V2.0) el caso FALLA (rojo) con el diagnóstico; ya no se omite. Un dato que
+    «no se encontró» o una preparación que el backend rechaza es un hallazgo, no un motivo para saltar el caso. Solo se omiten los casos
+    acordados como «NO APLICA» (pytest.skip directo en el script) y los que se miden con Newman."""
     bajo = m.lower()
     if "funcionalidad no implementada" in bajo or "sin desplegar" in bajo:
         pytest.fail(f"FUNCIONALIDAD NO IMPLEMENTADA (error): {m}", pytrace=False)
-    pytest.skip(f"BLOQUEADO: {m}")
+    pytest.fail(f"PRECONDICION NO CUMPLIDA (el caso no se omite): {m}", pytrace=False)
 
 
 def sin_datos(m: str):
-    pytest.skip(f"SIN DATOS: {m}")
+    pytest.fail(f"SIN DATOS (el caso no se omite): {m}", pytrace=False)
 
 
 def no_verificable(m: str):
-    pytest.skip(f"NO VERIFICABLE: {m}")
+    pytest.fail(f"NO SE PUDO VERIFICAR (el caso no se omite): {m}", pytrace=False)
 
 
 def no_concluyente(m: str):
-    pytest.skip(f"NO CONCLUYENTE: {m}")
+    pytest.fail(f"NO CONCLUYENTE (el caso no se omite): {m}", pytrace=False)
+
+
+def sin_tiempo(m: str):
+    """Único caso que sigue omitiéndose: el run del sandbox dura 180 s y ya no alcanza para el caso (límite de la prueba, no del sistema)."""
+    pytest.skip(f"SIN TIEMPO EN EL RUN: {m}")
 
 
 def obs(m: str) -> None:
@@ -196,6 +204,9 @@ def _letras(n: int = 8) -> str:
     return "".join(chr(97 + int(c, 16)) for c in uuid.uuid4().hex[:n])
 
 
+REF_DOC = "Factura FE-QA-1234 Proveedor QA M06"      # referencia documental de costos manuales (3 a 200 caracteres)
+
+
 class Entorno:
     """Un run del sandbox con los tokens de los roles pedidos y los ayudantes para crear datos."""
 
@@ -228,7 +239,7 @@ class Entorno:
 
     def presupuesto(self, segundos: float = 25) -> None:
         if self.restante() < segundos:
-            no_concluyente(f"se agotó el presupuesto de {LIMITE_RUN_S} s del sandbox (quedan {self.restante():.0f} s).")
+            sin_tiempo(f"se agotó el presupuesto de {LIMITE_RUN_S} s del sandbox (quedan {self.restante():.0f} s).")
 
     def call(self, metodo: str, ruta: str, rol: Optional[str] = None, json: Any = None, params: Any = None,
              token: Optional[str] = None, sandbox: bool = True) -> R:
@@ -353,6 +364,8 @@ class Entorno:
                 if r.status in (200, 201):
                     esc.cuentas[(tipo, sentido)] = (deb, cre)
                     esc.asignaciones[(tipo, sentido)] = r.get("id_asignacion_cuenta_contable")
+                else:
+                    print(f"[AVISO] la matriz RF-109 no aceptó el par {tipo}/{sentido} ({deb}/{cre}): {r.status} {r.err}", flush=True)
         if precio:
             self.precio(esc, precio, fuente)
         return esc
@@ -419,7 +432,13 @@ class Entorno:
         return self.call("GET", f"/finanzas/reconocimientos/propuestas/{id_activo}", rol, params=params or None)
 
     def confirmar(self, id_activo: int, rol: str = "contador", cuerpo: Optional[dict] = None) -> R:
-        return self.call("POST", f"/finanzas/reconocimientos/{id_activo}", rol, json=cuerpo if cuerpo is not None else {})
+        cuerpo = dict(cuerpo) if cuerpo is not None else {}
+        manuales = cuerpo.get("costos_manuales")
+        if isinstance(manuales, dict) and any(v is not None for v in manuales.values()) and "referencia_documental" not in cuerpo:
+            # INC-M06-316 (corregido): RF-84 R4 exige la referencia del documento que respalda los costos manuales.
+            # Para probar su ausencia, el caso envía la clave explícita («referencia_documental»: None).
+            cuerpo["referencia_documental"] = REF_DOC
+        return self.call("POST", f"/finanzas/reconocimientos/{id_activo}", rol, json=cuerpo)
 
     def revertir(self, id_activo: int, motivo: str, rol: str = "contador") -> R:
         return self.call("POST", f"/finanzas/reconocimientos/{id_activo}/reversion", rol, json={"motivo_reversion": motivo})
@@ -491,6 +510,29 @@ class Entorno:
         pr = self.sql("SELECT id_evento, resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 "
                       "ORDER BY fecha_procesamiento DESC, id_evento DESC LIMIT 1")
         return pr[0] if pr else None
+
+    def calculo_bd(self, id_activo: int) -> dict:
+        """Último cálculo RF-84 del activo leído directamente de la base (fila completa en JSON: no depende de adivinar nombres de columnas)."""
+        import json as _json
+        filas = self.sql("SELECT row_to_json(c)::text AS j FROM modulo6.calculos_valor_razonable c "
+                         f"WHERE id_activo_biologico = {int(id_activo)} ORDER BY id_calculo_valor_razonable DESC LIMIT 1")
+        assert filas, f"la base de datos no tiene cálculo RF-84 del activo {id_activo}"
+        return _json.loads(filas[0]["j"])
+
+    def comparar_calculo_bd(self, id_activo: int, api: dict, campos=("valor_razonable_bruto", "valor_neto", "costo_transporte", "costo_comisiones",
+                                                                       "costo_impuestos_transaccion", "otros_costos_disposicion", "metodo_costo", "estado")) -> dict:
+        """La fuente de verdad es la base: cada campo del cálculo que existe en la fila de la base debe coincidir con lo que muestra la API."""
+        bd = self.calculo_bd(id_activo)
+        assert "valor_neto" in bd, f"la fila de calculos_valor_razonable no trae valor_neto: {sorted(bd)}"
+        for k in campos:
+            if k in bd and k in api and api[k] is not None and bd[k] is not None:
+                a, b = api[k], bd[k]
+                try:
+                    igual = dec(a) == dec(b)
+                except Exception:
+                    igual = str(a) == str(b)
+                assert igual, f"base de datos y API difieren en {k}: base {b!r}, API {a!r}"
+        return bd
 
     def procesamiento_de(self, id_evento: int) -> Optional[dict]:
         pr = self.sql("SELECT id_evento, resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 "
@@ -608,10 +650,44 @@ class Entorno:
                              f"WHERE id_activo_biologico = {int(id_activo)} ORDER BY 1 DESC LIMIT 1"))
         return int(v) if v is not None else None
 
+    # Tablas de modulo6 con RLS forzada: /test-control/query corre sin identidad de usuario (el sandbox la limpia en cada request y
+    # la ruta no declara ninguna), así que devuelve 0 filas o las que vea el último rol que llamó (comprobado el 13-nov en G06 025 y G07).
+    # Para esas tablas el conteo sale del historial del activo (API, rol Contador); el resto sigue por SQL.
+    _CLAVE_HISTORIAL = {"reconocimientos_iniciales": "reconocimientos", "calculos_valor_razonable": "calculos", "mediciones_posteriores": "mediciones"}
+
+    def variaciones(self, id_activo: int) -> list[dict]:
+        """Variaciones de valor razonable del activo (RF-86) por la API: GET /finanzas/periodos/{id}/variaciones de cada período donde el
+        activo tiene reconocimientos o mediciones (la tabla tiene RLS y el SQL del sandbox no la ve)."""
+        h = self.historial(id_activo)
+        periodos = {x.get("id_periodo_contable") for k in ("reconocimientos", "mediciones") for x in (h.get(k) or [])}
+        periodos |= {ln.get("id_periodo_contable") for ln in (h.get("lineas") or [])}
+        res: list[dict] = []
+        for pid in sorted(p for p in periodos if p):
+            r = self.call("GET", f"/finanzas/periodos/{pid}/variaciones", "contador")
+            assert r.status == 200, f"GET /finanzas/periodos/{pid}/variaciones respondió {r}"
+            res += [v for v in _lista(r.data) if v.get("id_activo_biologico") == id_activo]
+        return res
+
     def contar(self, tabla: str, id_activo: int, extra: str = "") -> int:
-        """SELECT count(*) sobre una tabla de modulo6 filtrada por activo (solo lectura, vía /test-control/query)."""
+        """Cuenta filas de una tabla de modulo6 filtradas por activo (solo lectura). La fuente es la base (/test-control/query, ya con identidad
+        de sistema desde el 13-nov). Para reconocimientos, cálculos, mediciones y variaciones se contrasta con la API: si la base devuelve 0 y la
+        API muestra filas, falla con el diagnóstico (el SQL del sandbox no ve modulo6); si difieren de otra forma, se anota como observación."""
         filas = self.sql(f"SELECT count(*) AS n FROM modulo6.{tabla} WHERE id_activo_biologico = {int(id_activo)} {extra}")
-        return int(uno(filas) or 0)
+        n_sql = int(uno(filas) or 0)
+        n_api = None
+        if tabla == "variaciones_valor_razonable" and not (extra or "").strip():
+            n_api = len(self.variaciones(id_activo))
+        else:
+            clave = self._CLAVE_HISTORIAL.get(tabla)
+            m = re.fullmatch(r"\s*(?:AND\s+estado\s*=\s*'(\w+)')?\s*", extra or "") if clave else None
+            if m:
+                filas_h = self.historial(id_activo).get(clave) or []
+                n_api = len([f for f in filas_h if not m.group(1) or f.get("estado") == m.group(1)])
+        if n_api is not None and n_sql != n_api:
+            assert not (n_sql == 0 and n_api > 0), (f"{tabla}: la base devolvió 0 filas y la API muestra {n_api} (activo {id_activo}): "
+                                                    "el SQL del sandbox no ve modulo6 (RLS sin identidad)")
+            obs(f"{tabla} (activo {id_activo}): la base cuenta {n_sql} y la API {n_api}.")
+        return n_sql
 
 
 # --------------------------------------------------------------------------- comprobaciones frecuentes

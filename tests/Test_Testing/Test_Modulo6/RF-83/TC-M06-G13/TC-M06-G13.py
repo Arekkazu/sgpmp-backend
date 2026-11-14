@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G13 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G13 con resultado por baja, clasificación, cuentas y exclusión del cierre |
 # | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 061b y 063b reescritos (la baja deja BAJA_ACTIVO por el valor en libros; sin valor_baja ni medición final) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G13-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G13 - Baja del activo en la medición posterior: venta, pérdida y exclusión posterior.   RF-83 (FA-3, CA-9, RFC-018).   Casos: TC-M06-061 a TC-M06-064.
 
@@ -14,7 +16,7 @@ Ya no se marca el historial como CERRADO.
 Activo de 400 kg a 20.000,00 por kg con costos 2/3/1 %: valor en libros 7.520.000,0000 (la ficha usa 10.000.000 como escala).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G13/TC-M06-G13.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G13/reporte-TC-M06-G13.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G13/TC-M06-G13.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G13/reporte-TC-M06-G13-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -75,7 +77,7 @@ def test_TC_M06_061a_baja_por_venta_emite_baja_activo_por_el_valor_en_libros(env
     assert lineas[0]["sentido"] == "UNICO", lineas[0]
     esperado = CUENTAS_MATRIZ[("BAJA_ACTIVO", "UNICO")]
     assert (lineas[0]["cuenta_debito"], lineas[0]["cuenta_credito"]) == esperado, f"débito costo de venta / crédito activo biológico: {lineas[0]}"
-    assert not env.mediciones(ida), "RF-83 no invoca RF-84 en la baja: no debe crearse medición"
+    assert not env.mediciones(ida) and env.contar("mediciones_posteriores", ida) == 0, "RF-83 no invoca RF-84 en la baja: no debe crearse medición (API ni base)"
     assert len(env.historial(ida)["calculos"]) == calculos, "la baja no debe calcular un nuevo valor razonable (RF-84)"
 
 
@@ -91,8 +93,9 @@ def test_TC_M06_061b_baja_por_venta_queda_trazada_al_valor_en_libros_sin_medicio
     esc, ida, calculos = _dar_de_baja(env, "venta")
     variaciones = _variaciones(env, ida)
     assert not variaciones, f"RF-83 v1.2: SGPMP ya no recibe valor_baja ni registra variación final de la baja: {variaciones}"
-    assert not env.mediciones(ida), "la baja no debe hacer una medición final"
+    assert not env.mediciones(ida) and env.contar("mediciones_posteriores", ida) == 0, "la baja no debe hacer una medición final (API ni base)"
     assert len(env.historial(ida)["calculos"]) == calculos, "la baja no debe calcular un nuevo valor razonable"
+    assert env.contar("variaciones_valor_razonable", ida) == 0, "la baja no debe registrar variación (base de datos)"
     lineas = _lineas(env, ida, "BAJA_ACTIVO")
     assert len(lineas) == 1 and dec(lineas[0]["valor"]) == trunc2(LIBROS), f"la baja queda al valor en libros {LIBROS}: {lineas}"
     _trazas_de_baja(env, ida)
@@ -121,8 +124,9 @@ def test_TC_M06_063b_baja_por_perdida_queda_trazada_sin_variacion_ni_medicion_fi
     esc, ida, calculos = _dar_de_baja(env, "muerte")
     variaciones = _variaciones(env, ida)
     assert not variaciones, f"RF-83 v1.2: la baja por pérdida no registra variación final (antes PERDIDA_TRANSFORMACION_BIOLOGICA): {variaciones}"
-    assert not env.mediciones(ida), "la baja no debe hacer una medición final"
+    assert not env.mediciones(ida) and env.contar("mediciones_posteriores", ida) == 0, "la baja no debe hacer una medición final (API ni base)"
     assert len(env.historial(ida)["calculos"]) == calculos
+    assert env.contar("variaciones_valor_razonable", ida) == 0, "la baja no debe registrar variación (base de datos)"
     lineas = _lineas(env, ida, "BAJA_ACTIVO")
     assert len(lineas) == 1 and lineas[0]["sentido"] == "PERDIDA" and dec(lineas[0]["valor"]) == trunc2(LIBROS), lineas
     _trazas_de_baja(env, ida)
@@ -135,7 +139,7 @@ def test_TC_M06_064a_crecimiento_sobre_activo_dado_de_baja_no_crea_medicion(env)
         "tipo_medicion": "PESO", "valor_medicion": "500", "unidad_medida": "kg"})
     assert r.status == 409 and r.err == "ESTADO_NO_PERMITE_EVENTOS", f"M02 debe rechazar el evento con 409 ESTADO_NO_PERMITE_EVENTOS: {r}"
     env.procesar_eventos()
-    assert not env.mediciones(ida), "no debe crearse ninguna medición para un activo dado de baja"
+    assert not env.mediciones(ida) and env.contar("mediciones_posteriores", ida) == 0, "no debe crearse ninguna medición para un activo dado de baja"
     assert len(_lineas(env, ida, "BAJA_ACTIVO")) == n_lineas, "no debe emitirse otro BAJA_ACTIVO ni reabrirse el historial"
     obs(f"evento de crecimiento sobre el activo en BAJA: M02 respondió {r.status} ({r.err}).")
 
@@ -145,8 +149,7 @@ def test_TC_M06_064b_el_cierre_no_mide_el_activo_dado_de_baja(env):
     env.presupuesto(45)
     env.precio(esc, "21000.00", desde=hoy())                       # un cambio de precio que sí mediría un activo vigente
     periodo = env.periodo(ida)
-    if not periodo:
-        no_verificable("no se pudo determinar el período contable del activo.")
+    assert periodo, "no se pudo determinar el período contable del activo"
     try:
         r = env.call("POST", f"/finanzas/periodos/{periodo}/cierre", "contador",
                      json={"autorizar_exclusiones": True, "incluir_activos_sin_precio": True})
@@ -154,6 +157,6 @@ def test_TC_M06_064b_el_cierre_no_mide_el_activo_dado_de_baja(env):
         no_concluyente(f"el cierre no respondió a tiempo dentro del sandbox: {exc}")
     if r.status not in (200, 201, 202):
         bloqueado(f"el cierre del período {periodo} no se pudo ejecutar dentro del run: {r}")
-    assert not env.mediciones(ida), f"el activo dado de baja debe quedar excluido del cierre: {env.mediciones(ida)}"
+    assert not env.mediciones(ida) and env.contar("mediciones_posteriores", ida) == 0, f"el activo dado de baja debe quedar excluido del cierre: {env.mediciones(ida)}"
     ids = {int(x["id_activo_biologico"]) for x in (r.data or {}).get("activos_excluidos", [])}
     obs(f"cierre completado; activo en baja medido: no; excluido por pendiente de precio: {ida in ids}")

@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G09 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G09 con los valores de la ficha (10.000.000 / 10.500.000 / 9.200.000), especie con ciclo, 048 real |
 # | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: caso nuevo 050b: evento de crecimiento sobre un activo por costo queda SIN_EFECTO |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G09-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G09 - Medición posterior por evento biológico y encadenamiento del historial.   RF-83 (CU02).   Casos: TC-M06-046 a TC-M06-050.
 
@@ -21,7 +23,7 @@ Cómo mide el backend: POST /finanzas/eventos/procesar toma los eventos de M02 d
 - 050: la ficha pide CRECIMIENTO, PRODUCCION y DETERIORO; como PRODUCCION no mide el activo, se usan CRECIMIENTO, CRECIMIENTO y DETERIORO.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G09/TC-M06-G09.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G09/reporte-TC-M06-G09.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G09/TC-M06-G09.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G09/reporte-TC-M06-G09-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -59,9 +61,10 @@ def _escenario(env):
 
 def _una_medicion(env, ida):
     ms = env.mediciones(ida)
-    if not ms:
-        no_verificable("no se generó medición: el procesamiento de eventos de M02 no produjo variación en el run "
-                       f"(eventos del activo: {env.tipos_auditoria(ida)}).")
+    assert ms, ("no se generó medición: el procesamiento de eventos de M02 no produjo variación "
+                f"(eventos del activo: {env.tipos_auditoria(ida)}; procesamientos: {env.sql('SELECT id_evento, resultado::text AS resultado, detalle FROM modulo6.procesamientos_eventos_m02 ORDER BY id_evento DESC LIMIT 3')})")
+    n_sql = env.contar("mediciones_posteriores", ida)
+    assert n_sql == len(ms), f"la base tiene {n_sql} mediciones del activo y la API {len(ms)}"
     return ms[-1]
 
 
@@ -75,10 +78,10 @@ def _evento_vinculado(env, m, ida, tipo_esperado):
     assert filas, f"el id_evento {ide} de la medición no figura como procesado en M06 (procesamientos_eventos_m02)"
     assert filas[0]["resultado"] == "PROCESADO", f"id_evento {ide}: resultado del procesamiento {filas[0]}"
     ea = env.sql(f"SELECT id_activo_biologico AS ida FROM modulo2.eventos_activos WHERE id_eventos = {int(ide)}")
-    obs(f"{tipo_esperado}: id_evento {ide} procesado; consulta a modulo2.eventos_activos desde el sandbox: "
-        f"{'activo ' + str(ea[0]['ida']) if ea else 'sin filas (el SELECT del sandbox no ve esa tabla)'}")
-    if ea:
-        assert int(ea[0]["ida"]) == int(ida), f"el evento {ide} pertenece al activo {ea[0]['ida']} y no al {ida}"
+    assert ea, (f"el evento {ide} no se ve en modulo2.eventos_activos desde /test-control/query: si el evento existe, el SQL del sandbox "
+                "no tiene visibilidad sobre M02 (preguntar a Desarrollo); si no existe, la medición apunta a un evento inexistente")
+    assert int(ea[0]["ida"]) == int(ida), f"el evento {ide} pertenece al activo {ea[0]['ida']} y no al {ida}"
+    obs(f"{tipo_esperado}: id_evento {ide} procesado en M06 y perteneciente al activo {ida} en M02")
 
 
 def _calculos_activo(env, ida, magnitud):
@@ -179,8 +182,8 @@ def test_TC_M06_050_encadenamiento_del_historial(env):
     for kg in ("525", "550", "505"):                                # CRECIMIENTO, CRECIMIENTO, DETERIORO
         assert env.medir(esc, ida, None, kg).status == 200
     ms = env.mediciones(ida)
-    if len(ms) < 3:
-        no_verificable(f"solo se generaron {len(ms)} de 3 mediciones.")
+    assert len(ms) == 3, f"se esperaban 3 mediciones y se generaron {len(ms)}"
+    assert env.contar("mediciones_posteriores", ida) == 3, "la base debe tener las 3 mediciones del activo"
     assert dec(ms[0]["valor_razonable_anterior"]) == inicial
     for previa, actual in zip(ms, ms[1:]):
         assert dec(actual["valor_razonable_anterior"]) == dec(previa["valor_razonable_actual"]), f"cadena rota: {previa} -> {actual}"
@@ -205,5 +208,6 @@ def test_TC_M06_050b_crecimiento_sobre_activo_por_costo_queda_sin_efecto(env):
     assert "costo" in str(pr.get("detalle")).lower(), f"el detalle debía decir «Activo valorado por costo (NIC 41 ¶30)»: {pr}"
     assert not env.mediciones(ida), f"un activo por costo no se mide por evento: {env.mediciones(ida)}"
     assert len(env.historial(ida)["calculos"]) == antes_calculos, "no debe calcularse un valor razonable"
-    assert not env.sql(f"SELECT 1 FROM modulo6.variaciones_valor_razonable WHERE id_activo_biologico = {int(ida)}"), "no debe registrarse variación"
+    assert env.contar("variaciones_valor_razonable", ida) == 0, "no debe registrarse variación"
+    assert env.contar("mediciones_posteriores", ida) == 0, "no debe registrarse medición"
     assert len(lineas_de(env.historial(ida))) == antes_lineas, "no debe generarse ninguna línea de asiento nueva"

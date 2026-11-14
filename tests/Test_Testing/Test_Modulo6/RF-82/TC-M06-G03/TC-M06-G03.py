@@ -2,6 +2,7 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-82: script del grupo TC-M06-G03 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-82: G03 alineado con la ficha (SELECT de conteo, 404/422, EN_PRODUCCION) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G03-V2.0.html |
 """
 TC-M06-G03 - Validación de entradas y precondiciones NIC 41 ¶10 del reconocimiento inicial.   RF-82 (CU01).
 Casos: TC-M06-010 a TC-M06-016.
@@ -18,7 +19,7 @@ Diferencias de nombres frente a la ficha (catálogo real de RF-33/M02), anotadas
 - M02 no tiene el estado EN_PRODUCCION: ese subcaso sale BLOQUEADO (no se puede preparar), no se sustituye por otro estado.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G03/TC-M06-G03.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G03/reporte-TC-M06-G03.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G03/TC-M06-G03.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G03/reporte-TC-M06-G03-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 

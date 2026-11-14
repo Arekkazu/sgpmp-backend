@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G12 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G12 con precio histórico real (vencido), alerta MEDICION_PENDIENTE, costo y motivo en auditoría |
 # | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 059 reescrito (sin precio ni histórico ya no se usa el costo: SIN_EFECTO por costo / MEDICION_PENDIENTE) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G12-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G12 - Medición sin precio de mercado: precio histórico, costo y marca de estimación.   RF-83 (FA-1, CA-5, CA-7).   Casos: TC-M06-058 a TC-M06-060.
 
@@ -20,7 +22,7 @@ especie queda sin precio vigente y con ese precio como último conocido. Un even
 - 060b: «el motivo de estimación queda en el registro de auditoría».
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G12/TC-M06-G12.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G12/reporte-TC-M06-G12.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G12/TC-M06-G12.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G12/reporte-TC-M06-G12-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -76,6 +78,8 @@ def test_TC_M06_058a_sin_precio_vigente_usa_el_ultimo_historico_y_marca_estimaci
     assert m["tiene_valor_estimado"] is True, m
     assert dec(m["valor_razonable_actual"]) == vn(1, HISTORICO), f"debía usar el último precio histórico ({HISTORICO} por cabeza): {m}"
     assert "MEDICION_CON_ESTIMACION" in env.tipos_auditoria(ida), env.tipos_auditoria(ida)
+    db = env.sql(f"SELECT tiene_valor_estimado FROM modulo6.mediciones_posteriores WHERE id_activo_biologico = {int(ida)}")
+    assert len(db) == len(ms) and db[-1]["tiene_valor_estimado"] in (True, "t", "true"), f"base de datos: la medición debe quedar marcada como estimada: {db}"
 
 
 def test_TC_M06_058b_alerta_medicion_pendiente_en_la_medicion_estimada(env):
@@ -84,12 +88,15 @@ def test_TC_M06_058b_alerta_medicion_pendiente_en_la_medicion_estimada(env):
     esc = env.escenario(categoria="PESO_KG", precio=P)
     ida = env.base_medible(esc, "400")
     _estimada(env, esc, ida)
-    if not env.mediciones(ida):
-        no_verificable("no se generó la medición estimada.")
+    assert env.mediciones(ida), "no se generó la medición estimada"
     tipos = env.tipos_auditoria(ida)
     obs(f"eventos de auditoría del activo: {tipos}")
-    assert "MEDICION_PENDIENTE" in tipos, ("la ficha y RF-83 (FA-1, salida 4, CA-7) piden la alerta MEDICION_PENDIENTE al Contador en la "
-                                           f"medición con estimación; solo quedó {sorted(set(tipos))} (M06 no notifica al Contador por este motivo)")
+    # INC-M06-308 (corregido por Desarrollo, #995): la medición estimada alerta MEDICION_PENDIENTE al Contador.
+    assert "MEDICION_PENDIENTE" in tipos, ("INC-M06-308: RF-83 (FA-1, salida 4, CA-7) pide la alerta MEDICION_PENDIENTE al Contador en la "
+                                           f"medición con estimación; solo quedó {sorted(set(tipos))}")
+    db = env.sql("SELECT count(*) AS n FROM modulo6.auditorias_financieras WHERE tipo_evento::text = 'MEDICION_PENDIENTE' "
+                 f"AND id_activo_biologico = {int(ida)}")
+    assert int(uno(db)) >= 1, f"base de datos: debe existir el evento MEDICION_PENDIENTE del activo {ida}: {db}"
 
 
 def _ultimo_procesamiento(env):
@@ -146,8 +153,8 @@ def test_TC_M06_060a_la_estimacion_no_se_oculta(env):
     assert env.medir(esc, a, "21000.00", "450").status == 200               # A: con precio vigente
     assert _estimada(env, esc, b).status == 200                             # B: sin precio vigente, con histórico
     ma, mb = env.mediciones(a), env.mediciones(b)
-    if not ma or not mb:
-        no_verificable(f"no se generaron ambas mediciones (precio vigente: {len(ma)}, estimada: {len(mb)}).")
+    assert ma and mb, f"no se generaron ambas mediciones (precio vigente: {len(ma)}, estimada: {len(mb)})"
+    assert env.contar("mediciones_posteriores", a) == len(ma) and env.contar("mediciones_posteriores", b) == len(mb), "la base y la API deben coincidir en las mediciones"
     assert ma[-1]["tiene_valor_estimado"] is False and mb[-1]["tiene_valor_estimado"] is True, (ma[-1], mb[-1])
     assert "MEDICION_POSTERIOR" in env.tipos_auditoria(a) and "MEDICION_CON_ESTIMACION" in env.tipos_auditoria(b)
     eventos_b = [e for e in env.auditoria(b) if e.get("tipo_evento") == "MEDICION_CON_ESTIMACION"]
@@ -166,8 +173,7 @@ def test_TC_M06_060b_el_motivo_de_la_estimacion_queda_en_auditoria(env):
     esc = env.escenario(categoria="PESO_KG", precio=P)
     ida = env.base_medible(esc, "400")
     _estimada(env, esc, ida)
-    if not env.mediciones(ida):
-        no_verificable("no se generó la medición estimada.")
+    assert env.mediciones(ida), "no se generó la medición estimada"
     # La API de consulta de auditoría no devolvió el contenido del evento (payload vacío): se lee la columna directamente por SELECT.
     filas = env.sql("SELECT datos_nuevos::text AS carga, severidad::text AS severidad FROM modulo6.auditorias_financieras "
                     f"WHERE tipo_evento::text = 'MEDICION_CON_ESTIMACION' AND id_activo_biologico = {int(ida)} ORDER BY 1")
@@ -176,6 +182,8 @@ def test_TC_M06_060b_el_motivo_de_la_estimacion_queda_en_auditoria(env):
     carga = json.loads(texto)
     obs(f"contenido del evento MEDICION_CON_ESTIMACION ({filas[-1]['severidad']}): {texto}")
     claves = {str(k).lower() for k in carga.keys()}
-    motivo = [k for k in claves if any(t in k for t in ("motivo", "razon", "causa", "fuente", "precio_unitario", "id_precio", "estimacion"))]
-    assert motivo, ("la ficha espera que el motivo de la estimación (sin precio vigente, último precio usado) quede en la auditoría; "
-                    f"el evento solo trae {sorted(claves)}")
+    motivo = [k for k in claves if any(t in k for t in ("motivo", "razon", "causa", "estimacion"))]
+    precio = [k for k in claves if "precio" in k]
+    # INC-M06-310 (corregido por Desarrollo, #997): el evento trae el motivo y el precio usado en la estimación.
+    assert motivo and precio, ("INC-M06-310: la auditoría debe guardar el motivo de la estimación (sin precio vigente) y el precio usado; "
+                               f"el evento trae {sorted(claves)} (motivo: {motivo}, precio: {precio})")

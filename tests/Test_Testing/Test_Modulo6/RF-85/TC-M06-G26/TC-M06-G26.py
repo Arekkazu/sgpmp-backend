@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G26 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | G26 revisado contra la ficha: un activo y un run por caso, rechazos con campo identificado, 116 y 119 con códigos de validación, 118 verifica que no se cree producto |
 # | 2026-11-11 | Daniela Castillo | G26 117 revisado: el conjunto válido lo define la unidad de la métrica (no KG, LT, UNIDAD, M2); se rechazan TON, vacía y XYZ y se observan LT, UNIDAD y M2 |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G26-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G26 - Validación de datos mínimos, catálogos, unidades, fecha y activo del evento productivo.   RF-85 / RF-43.   Casos: TC-M06-115 a TC-M06-119.
 
@@ -20,7 +22,7 @@ Precondición (RF-43): el activo necesita una fase activa de un ciclo de M09; QA
 Un producto no puede repetirse el mismo día para un activo (409): cada caso usa su propio run y su propio activo. Costos de venta de M09 del 6 %.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G26/TC-M06-G26.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G26/reporte-TC-M06-G26.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G26/TC-M06-G26.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G26/reporte-TC-M06-G26-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 

@@ -2,13 +2,17 @@
 # |------------|------------------|-------------------------------------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-84: script del grupo TC-M06-G22 (pytest + sandbox, rol Contador)                               |
 # | 2026-11-08 | Daniela Castillo | G22 revisado contra ficha y RF/CU: 101b (registro de los intentos), 102 con valores exactos, 103 en     |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G22-V2.0.html |
 # |            |                  | lotes de varios runs (20 cálculos), 104 con más escenarios, 105 completo con RF-85; 106 pasa a Newman |
+# | 2026-11-13 | Daniela Castillo | M06 RF-84: 101 y 101b con Administrador con todos los permisos (líder y Análisis, 13-nov) y rol Auditor nuevo: se retira el Administrador, se agrega el Auditor y 101c administrador valida y sobrescribe
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G22 - Autorización, auditoría, exactitud, consistencia entre módulos y tiempo de respuesta del cálculo.   RF-84.   Casos: TC-M06-101 a TC-M06-106.
 
 - Herramientas: 101 a 105 con pytest (este archivo); 106 (tiempo, responseTime) con Newman: TC-M06-G22.json
   (correr_newman.ps1 -Caso G22 -Modulo 6 -Rf RF-84). En pytest queda omitido con esa indicación.
-- Necesita las contraseñas de los cuatro roles (QA_CONTRASENA_ADMIN, _INGENIERO, _PRODUCTOR, _VETERINARIO).
+- Necesita las contraseñas de los cinco roles (QA_CONTRASENA_ADMIN, _INGENIERO, _PRODUCTOR, _VETERINARIO, _AUDITOR).
+- V2.0 (13-nov): el Administrador tiene todos los permisos (101c: valida y sobrescribe); 101 y 101b rechazan Productor, Veterinario, Auditor e Ingeniero de campo.
 - 101: confirmar el reconocimiento (única operación que valida/sobrescribe costos) con Productor, Veterinario, Ingeniero de campo (rol 4
   temporal), Administrador y sin token (401); el Contador sí puede y el Administrador configura los costos de venta. 101b: «cada intento
   rechazado queda registrado» (RNF-82-05; ya reportado como H-07 en G07 y G08).
@@ -20,7 +24,7 @@ TC-M06-G22 - Autorización, auditoría, exactitud, consistencia entre módulos y
   agrícola con la misma cantidad y el mismo precio).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G22/TC-M06-G22.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G22/reporte-TC-M06-G22.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G22/TC-M06-G22.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G22/reporte-TC-M06-G22-V2.0.html" --self-contained-html
     (repetición de 102 tras corregir el script: agregar  -k 102  y  reporte-TC-M06-G22-102.html)
 """
 from __future__ import annotations
@@ -50,7 +54,7 @@ CONSULTA_LOTE = (
 
 @pytest.fixture(scope="module")
 def env():
-    e = Entorno(("admin", "ingeniero", "productor", "veterinario"))
+    e = Entorno(("admin", "ingeniero", "productor", "veterinario", "auditor"))
     yield e
     e.cerrar()
 
@@ -68,7 +72,7 @@ def test_TC_M06_101_solo_el_contador_valida_y_sobrescribe(env):
     ruta = f"/finanzas/reconocimientos/{ida}"
     sin = env.call("POST", ruta, None, json=cuerpo)
     assert sin.status == 401, f"sin token debía responder 401: {sin}"
-    for rol in ("productor", "veterinario", "admin"):
+    for rol in ("productor", "veterinario", "auditor"):
         r = env.call("POST", ruta, rol, json=cuerpo)
         assert r.status == 403, f"{rol} no debe validar ni sobrescribir (403) y respondió {r}"
     env.set_rol(ROL_INGENIERO)
@@ -93,7 +97,7 @@ def test_TC_M06_101b_cada_intento_rechazado_queda_registrado(env):
     cuerpo = {"costos_manuales": {"comisiones": "250000"}, "justificacion": JUSTIF}
     ruta = f"/finanzas/reconocimientos/{ida}"
     sin_registro = []
-    for rol in ("productor", "veterinario", "admin"):
+    for rol in ("productor", "veterinario", "auditor"):
         antes = _contar_auditoria(env)
         r = env.call("POST", ruta, rol, json=cuerpo)
         assert r.status == 403, f"{rol}: {r}"
@@ -112,6 +116,25 @@ def test_TC_M06_101b_cada_intento_rechazado_queda_registrado(env):
         env.contador()
     assert not sin_registro, ("el intento rechazado debe quedar registrado en el log de auditoría (RNF-82-05, ficha 101) y no cambió el "
                               f"conteo de auditorias_financieras con: {', '.join(sin_registro)}")
+    # INC-M06-306 (corregido por Desarrollo, #993): cada 403 queda como ACCESO_NO_AUTORIZADO con el activo en el payload.
+    n = int(uno(env.sql("SELECT count(*) AS n FROM modulo6.auditorias_financieras WHERE tipo_evento::text = 'ACCESO_NO_AUTORIZADO' "
+                        f"AND datos_nuevos::text LIKE '%{int(ida)}%'")) or 0)
+    assert n >= 4, f"base de datos: se esperaban 4 eventos ACCESO_NO_AUTORIZADO del activo {ida} (uno por rol rechazado) y hay {n}"
+
+
+
+def test_TC_M06_101c_el_administrador_valida_y_sobrescribe(env):
+    """V2.0 (13-nov): el líder y Análisis definieron que el Administrador tiene todos los permisos: valida y sobrescribe costos."""
+    env.nuevo_run()
+    env.presupuesto(50)
+    esc = env.escenario(categoria="POR_CABEZA", precio="10000000.00")
+    ida = env.activo(esc, origen="nacimiento", costo=None, soporte=None)
+    r = env.confirmar(ida, "admin", {"costos_manuales": {"comisiones": "250000"}, "justificacion": JUSTIF})
+    assert r.status in (200, 201), f"[admin] debe poder validar y sobrescribir (todos los permisos) y respondió {r}"
+    c = env.calculo(ida)
+    assert c is not None and dec(c["costo_comisiones"]) == dec("250000"), f"el cálculo debe usar la sobrescritura del Administrador: {c}"
+    bd = env.comparar_calculo_bd(ida, c)
+    assert dec(bd["costo_comisiones"]) == dec("250000"), f"base de datos: el cálculo del Administrador debe guardar 250.000 en comisiones: {bd}"
 
 
 def test_TC_M06_102_el_calculo_persiste_componentes_metodo_usuario_y_fecha(env):
@@ -132,6 +155,8 @@ def test_TC_M06_102_el_calculo_persiste_componentes_metodo_usuario_y_fecha(env):
     assert (metodos.get("transporte"), metodos.get("comisiones"), metodos.get("impuestos"), metodos.get("otros")) == (
         "PARAMETRIZADO", "PARAMETRIZADO", "PARAMETRIZADO", "MANUAL"), f"método por componente: {c}"
     assert c["metodo_costo"] == "MIXTO", c
+    bd = env.comparar_calculo_bd(ida, c)
+    assert bd.get("id_usuario") is not None and bd.get("fecha_calculo") is not None, f"base de datos: el cálculo debe guardar usuario y fecha: {bd}"
     eventos = [e for e in env.auditoria(ida) if e.get("tipo_evento") == "RECONOCIMIENTO_INICIAL"]
     assert eventos and (eventos[-1].get("actor") or eventos[-1].get("id_usuario")), f"el evento de auditoría debe identificar al usuario: {env.auditoria(ida)}"
     assert any("fecha" in k for k in eventos[-1]), f"el evento de auditoría no trae fecha-hora: {eventos[-1]}"

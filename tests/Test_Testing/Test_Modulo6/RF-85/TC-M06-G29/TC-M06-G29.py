@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G29 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | G29: 128 toma el id del evento de la respuesta de M02 (el SELECT del sandbox no ve modulo2) |
 # | 2026-11-08 | Daniela Castillo | G29 revisado: cada caso abre su run; 128 verifica la restricción NOT NULL del vínculo y que no hay operación con id del cliente; 130 verifica el hecho completo hacia RF-86 (periódico y consumo); 131 compara contra el cálculo RF-84 del activo |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G29-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G29 - Integración del reconocimiento del producto con RF-43, RF-109, RF-86 y RF-84.   RF-85.   Casos: TC-M06-128 a TC-M06-131.
 
@@ -17,7 +19,7 @@ el mismo día para un activo (409): cada cosecha usa un activo propio. Costos de
 - Newman: no se usa en este grupo. La única medida de tiempo es 128 (<= 3 s, RNF-85-01) y, como en G30, todos los casos dependen de la fase activa del activo (RF-37) y del evento productivo (RF-43), que no se arman con una colección sin el escenario del run; el tiempo se mide con el responseTime de POST /finanzas/eventos/procesar en pytest.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G29/TC-M06-G29.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G29/reporte-TC-M06-G29.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G29/TC-M06-G29.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G29/reporte-TC-M06-G29-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -54,13 +56,8 @@ def _periodico(env, kg="150", precio="4000.00", kg_activo="1000", precio_activo=
 
 def _linea_completa(env, ida):
     """Línea del hecho PRODUCTO_AGRICOLA con su origen; None si la columna de origen no se puede consultar."""
-    try:
-        f = env.sql("SELECT tabla_origen, id_origen, id_activo_biologico, estado::text AS estado, sentido::text AS sentido, valor, cuenta_debito, cuenta_credito "
-                    f"FROM modulo6.lineas_asiento_nic41 WHERE id_activo_biologico = {int(ida)} AND NOT es_reverso AND tipo_hecho::text = 'PRODUCTO_AGRICOLA' ORDER BY 1")
-        return f
-    except AssertionError as e:
-        obs(f"No se pudo consultar el origen de la línea: {e}")
-        return None
+    return env.sql("SELECT tabla_origen, id_origen, id_activo_biologico, estado::text AS estado, sentido::text AS sentido, valor, cuenta_debito, cuenta_credito "
+                   f"FROM modulo6.lineas_asiento_nic41 WHERE id_activo_biologico = {int(ida)} AND NOT es_reverso AND tipo_hecho::text = 'PRODUCTO_AGRICOLA' ORDER BY 1")
 
 
 def test_TC_M06_128_el_producto_queda_ligado_al_evento_productivo(env):
@@ -92,10 +89,23 @@ def test_TC_M06_128b_sin_evento_productivo_no_hay_reconocimiento(env):
     rutas = _rutas_api(env, "producto")
     if rutas is None:
         no_verificable("no se pudo leer /openapi.json de TEST.")
-    escritura = [x for x in rutas if not x.startswith("GET ")]
+    # Desarrollo (#1010, PR #1060) agregó POST /finanzas/productos/pendientes/{id_evento}/reconocimiento: retoma un evento pendiente que YA existe
+    # (costos de venta manuales, RF-85 FA-2). No crea productos sin evento: se comprueba con un id_evento inexistente (ficha 128, segundo paso).
+    permitida = "POST /finanzas/productos/pendientes/{id_evento}/reconocimiento"
+    escritura = [x for x in rutas if not x.startswith("GET ") and x != permitida]
     assert not escritura, f"hay operaciones para crear o cambiar productos desde el cliente: {escritura}"
-    obs(f"El cliente no envía el id_evento_productivo (no hay operación de escritura de productos; rutas de producto: {rutas}); "
-        "«evento inexistente» no es reproducible por API y la restricción NOT NULL garantiza el vínculo.")
+    antes = uno(env.sql("SELECT count(*) FROM modulo6.reconocimientos_productos_agricolas"))
+    if permitida in rutas:
+        cuerpo = {"costos_manuales": {"transporte": "1000", "comisiones": "1000", "impuestos": "1000", "otros": "0"},
+                  "justificacion": "Costos de venta manuales QA TC-M06 con soporte documental: cotización No. 888."}
+        r = env.call("POST", "/finanzas/productos/pendientes/999999999/reconocimiento", "admin", json=cuerpo)
+        obs(f"Reconocer con un id_evento inexistente (999999999): HTTP {r.status} {(r.text or '')[:300]}")
+        assert r.status not in (401, 403), f"la llamada no llegó a evaluarse por permisos/token (HTTP {r.status}): no prueba el id inexistente. {r}"
+        assert 400 <= r.status < 500, f"un id_evento inexistente debía rechazarse con 4xx y respondió {r}"
+        despues = uno(env.sql("SELECT count(*) FROM modulo6.reconocimientos_productos_agricolas"))
+        assert despues == antes, f"con un id_evento inexistente no debía quedar ningún reconocimiento (antes {antes}, después {despues})"
+    obs(f"Operaciones de producto del cliente: {rutas}. El único camino de escritura retoma un evento pendiente existente; «evento inexistente» se rechaza y la restricción "
+        "NOT NULL garantiza el vínculo con el evento productivo.")
 
 
 def test_TC_M06_129_cuentas_del_asiento_salen_de_la_matriz_periodico(env):
@@ -133,11 +143,11 @@ def test_TC_M06_130_se_emite_el_hecho_producto_agricola_hacia_rf86(env):
     assert len(lineas) == 1 and lineas[0]["id_origen"] == filas[-1]["id"], f"la línea debe nacer del reconocimiento del producto: {lineas}"
     assert dec(lineas[0]["valor"]) == dec(filas[-1]["valor_producto"]), (lineas[0], filas[-1])
     completa = _linea_completa(env, ida)
-    if completa:
-        c = completa[-1]
-        assert c["tabla_origen"] == "reconocimientos_productos_agricolas", f"la línea debe referir al reconocimiento del producto: {c}"
-        assert int(c["id_activo_biologico"]) == int(ida), c
-        assert c["estado"] == "REGISTRADA" and c["cuenta_debito"] and c["cuenta_credito"], f"la línea debe quedar registrada con cuentas: {c}"
+    assert completa, f"la base de datos debe tener la línea PRODUCTO_AGRICOLA del activo {ida}"
+    c = completa[-1]
+    assert c["tabla_origen"] == "reconocimientos_productos_agricolas", f"la línea debe referir al reconocimiento del producto: {c}"
+    assert int(c["id_activo_biologico"]) == int(ida) and int(c["id_origen"]) == int(filas[-1]["id"]), c
+    assert c["estado"] == "REGISTRADA" and c["cuenta_debito"] and c["cuenta_credito"], f"la línea debe quedar registrada con cuentas: {c}"
 
 
 def test_TC_M06_130b_hecho_de_consumo_lleva_el_valor_de_la_reduccion(env):
@@ -153,6 +163,8 @@ def test_TC_M06_130b_hecho_de_consumo_lleva_el_valor_de_la_reduccion(env):
     assert len(lineas) == 1 and lineas[0]["id_origen"] == p["id"], f"la línea debe nacer del reconocimiento del producto: {lineas}"
     assert lineas[0]["sentido"] == "TRASLADO", lineas[0]
     assert dec(lineas[0]["valor"]) == dec(p["valor_producto"]) == dec(p["valor_reduccion_activo"]), (lineas[0], p)
+    db = _linea_completa(env, ida)
+    assert db and db[-1]["tabla_origen"] == "reconocimientos_productos_agricolas" and int(db[-1]["id_origen"]) == int(p["id"]), f"base de datos: origen de la línea de consumo: {db}"
 
 
 def test_TC_M06_131_valor_del_producto_coincide_con_la_formula_de_rf84(env):
