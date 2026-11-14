@@ -11,6 +11,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
 # | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82/88: la reversión cuenta deterioros y registros contables; el costo revertido se reutiliza; la fecha del reconocimiento sale como día |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-83..86: las filas del período traen el id de la finca para el filtro |
+# | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: el historial del activo marca el cálculo consumido y da el valor actual en cero |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -353,10 +354,24 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     def historial_activo(self, id_activo_biologico: int) -> dict:
         p = {"a": id_activo_biologico}
+        # Alias obligatorio: sin calificar, dentro del EXISTS la columna se resolvería contra la tabla de productos.
+        consumido = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")
+        calculos = filas(self.db, f"""SELECT {_COLUMNAS_CALCULO}, {ES_BASE} AS es_base, {consumido} AS consumido_por_cosecha
+                                      FROM modulo6.calculos_valor_razonable c
+                                      WHERE id_activo_biologico = :a ORDER BY fecha_calculo DESC LIMIT 100""", p)
+        # RF-85 FA-4 (INC-M06-361-G24): el cálculo que consumió una cosecha del 100 % ya no es valor del activo. La
+        # tabla no admite un cálculo en cero, así que el historial lo marca y dice cuánto vale hoy el activo.
+        bases = [c for c in calculos if c.pop("es_base") and c["estado"] == "CALCULADO"]
+        base = bases[0] if bases else None
+        cosechado = bool(base and base["consumido_por_cosecha"])
         return {
             "reconocimientos": self.reconocimientos_del_activo(id_activo_biologico),
-            "calculos": filas(self.db, f"""SELECT {_COLUMNAS_CALCULO} FROM modulo6.calculos_valor_razonable
-                                           WHERE id_activo_biologico = :a ORDER BY fecha_calculo DESC LIMIT 100""", p),
+            "cosechado_completamente": cosechado,
+            # Solo el valor razonable: un activo al costo tiene su valor en la valoración por costo, no aquí.
+            "valor_en_libros_actual": (
+                None if base is None or self.valoracion_costo_activa(id_activo_biologico) is not None
+                else Decimal(0) if cosechado else base["valor_neto"]),
+            "calculos": calculos,
             "mediciones": filas(self.db, """
                 SELECT id_medicion_posterior, id_evento, origen_medicion::text AS origen_medicion, valor_razonable_anterior,
                        valor_razonable_actual, ganancia_perdida_transformacion, ganancia_perdida_precio_mercado,
