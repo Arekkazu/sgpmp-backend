@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: el listado recibe id_finca |
 """TC-M02-031-G15 / #465: protección de datos financieros del activo."""
 from __future__ import annotations
 
@@ -120,6 +123,7 @@ def test_listado_aplica_el_mismo_permiso_a_todos_los_activos(
         id_especie=None,
         id_estado=None,
         id_infraestructura=None,
+        id_finca=None,
         pagina=1,
         page_size=20,
         db=DbFake(),

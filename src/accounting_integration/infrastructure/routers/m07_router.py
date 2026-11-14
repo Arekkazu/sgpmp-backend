@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: consulta AAEF para AgroFusion y administración de la integración |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 """Routers de M07 (``/integracion``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 - ``GET /integracion/aaef/productores/{nit}``: la consulta de AgroFusion (RF-AE01). Su autenticación
@@ -242,8 +243,10 @@ TAG_AUDITORIA = "M07 · Auditoría de integración"
 
 
 def _filtros(tipo_evento: Optional[TipoEvento], id_cliente_externo: Optional[int], desde: Optional[date],
-             hasta: Optional[date], endpoint: Optional[str], codigo_http: Optional[int]) -> FiltrosAuditoria:
-    return FiltrosAuditoria((tipo_evento,) if tipo_evento else None, id_cliente_externo, desde, hasta, endpoint, codigo_http)
+             hasta: Optional[date], endpoint: Optional[str], codigo_http: Optional[int],
+             numero_id_tributaria: Optional[str]) -> FiltrosAuditoria:
+    return FiltrosAuditoria((tipo_evento,) if tipo_evento else None, id_cliente_externo, desde, hasta, endpoint, codigo_http,
+                            numero_id_tributaria=numero_id_tributaria)
 
 
 @router.get("/auditoria", tags=[TAG_AUDITORIA], summary="Historial de la integración (paginado, con integridad por registro)")
@@ -254,6 +257,7 @@ def consultar_auditoria(
     hasta: Optional[date] = None,
     endpoint: Optional[str] = Query(None, max_length=255),
     codigo_http: Optional[int] = Query(None, ge=100, le=599),
+    numero_id_tributaria: Optional[str] = Query(None, pattern=r"^\d{6,15}$", description="Titular (NIT, sin DV)."),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -271,7 +275,7 @@ def consultar_auditoria(
                                              tipo_actor="USUARIO", id_usuario=usuario_actual.id_usuario,
                                              codigo_resultado="ACCESO_DENEGADO"))
         raise AuthorizationError(code="ACCESO_DENEGADO", message="No tiene permiso para consultar la auditoría de la integración.")
-    return m07.consultar_auditoria().execute(_filtros(tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http),
+    return m07.consultar_auditoria().execute(_filtros(tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http, numero_id_tributaria),
                                              pagina, tamano, restringida)
 
 
@@ -285,10 +289,11 @@ def exportar_auditoria(
     hasta: Optional[date] = None,
     endpoint: Optional[str] = Query(None, max_length=255),
     codigo_http: Optional[int] = Query(None, ge=100, le=599),
+    numero_id_tributaria: Optional[str] = Query(None, pattern=r"^\d{6,15}$", description="Titular (NIT, sin DV)."),
     m07: M07 = Depends(_m07),
 ):
     contenido = m07.consultar_auditoria().exportar(
-        _filtros(tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http), formato)
+        _filtros(tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http, numero_id_tributaria), formato)
     tipo = "application/json" if formato == "json" else "text/csv; charset=utf-8"
     nombre = f"auditoria_integracion_{datetime.now():%Y%m%d_%H%M%S}.{formato}"
     return Response(content=contenido, media_type=tipo, headers={"Content-Disposition": f'attachment; filename="{nombre}"'})

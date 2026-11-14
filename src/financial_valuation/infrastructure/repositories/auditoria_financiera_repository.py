@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M06-330-G86 RF-94: filtros por usuario, referencia y origen del registro |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-01/H-02 C3 RF-94: precios en la bitácora del período y nombre del autor |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-94: bitácora filtrable por la finca del activo |
 """Implementación SQL de :class:`AuditoriaFinancieraRepository` sobre ``modulo6.auditorias_financieras``.
 
 El hash SHA-256 lo calcula el trigger ``trg_hash_auditoria``; ``tgr_m06_27`` corre antes y exige
@@ -32,6 +33,8 @@ _GLOBALES = ["PRECIO_REGISTRADO", "PRECIO_MARCADO_REEMPLAZADO", "PRECIO_REFERENC
 # Filtros de RF-94 Fase 7 (en AND; uno vacío no filtra).
 _FILTROS = (("tipo_evento", "a.tipo_evento::text = ANY(:tipo_evento)"),
             ("id_activo_biologico", "a.id_activo_biologico = :id_activo_biologico"),
+            ("id_finca", """a.id_activo_biologico IN (SELECT ab.id_activo_biologico FROM modulo2.activos_biologicos ab
+                JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura WHERE i.id_finca = :id_finca)"""),
             ("id_periodo_contable", """(a.id_periodo_contable = :id_periodo_contable OR (
                 a.id_periodo_contable IS NULL AND a.tipo_evento::text = ANY(:globales) AND EXISTS (
                     SELECT 1 FROM modulo6.periodos_contables pc WHERE pc.id_periodo_contable = :id_periodo_contable

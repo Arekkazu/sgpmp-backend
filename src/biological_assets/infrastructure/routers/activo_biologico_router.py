@@ -8,6 +8,7 @@
 # | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
 # | 2026-11-10 | Arekkazu | #394 RF-36: la ficha del lote devuelve el estado de su densidad |
 # | 2026-11-10 | Arekkazu | #393 RF-36: el listado trae el estado de densidad de cada lote |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -509,6 +510,7 @@ def listar_activos(
     id_especie: int | None = Query(default=None, ge=1),
     id_estado: int | None = Query(default=None, ge=1),
     id_infraestructura: int | None = Query(default=None, ge=1),
+    id_finca: int | None = Query(default=None, ge=1, description='Solo los activos de esta finca.'),
     pagina: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -524,6 +526,7 @@ def listar_activos(
             id_especie=id_especie,
             id_estado=id_estado,
             id_infraestructura=id_infraestructura,
+            id_finca=id_finca,
             pagina=pagina,
             page_size=page_size,
         )
@@ -563,24 +566,25 @@ def listar_activos(
 
 
 def _completar_nombres_catalogo(db: Session, activos: list[ActivoBiologicoResponse]) -> None:
-    """M2-04: nombres de especie e infraestructura de la página, en una consulta."""
+    """M2-04: nombres de especie, infraestructura y finca de la página, en dos consultas."""
     if not activos:
         return
-    filas = db.execute(
+    especies = dict(db.execute(
+        text('SELECT id_especie, nombre FROM modulo9.especies WHERE id_especie = ANY(:esp)'),
+        {'esp': list({a.id_especie for a in activos})},
+    ).fetchall())
+    areas = {f.id_infraestructura: f for f in db.execute(
         text(
-            'SELECT \'E\' AS tipo, id_especie AS id, nombre FROM modulo9.especies WHERE id_especie = ANY(:esp) '
-            'UNION ALL '
-            'SELECT \'I\', id_infraestructura, nombre FROM modulo9.infraestructuras WHERE id_infraestructura = ANY(:inf)'
+            'SELECT i.id_infraestructura, i.nombre, f.id_finca, f.nombre AS finca FROM modulo9.infraestructuras i '
+            'JOIN modulo9.fincas f ON f.id_finca = i.id_finca WHERE i.id_infraestructura = ANY(:inf)'
         ),
-        {
-            'esp': list({a.id_especie for a in activos}),
-            'inf': list({a.id_infraestructura for a in activos if a.id_infraestructura}),
-        },
-    ).fetchall()
-    nombres = {(f.tipo, f.id): f.nombre for f in filas}
+        {'inf': list({a.id_infraestructura for a in activos if a.id_infraestructura})},
+    ).fetchall()}
     for a in activos:
-        a.nombre_especie = nombres.get(('E', a.id_especie))
-        a.nombre_infraestructura = nombres.get(('I', a.id_infraestructura))
+        a.nombre_especie = especies.get(a.id_especie)
+        area = areas.get(a.id_infraestructura)
+        if area is not None:
+            a.nombre_infraestructura, a.id_finca, a.nombre_finca = area.nombre, area.id_finca, area.finca
 
 
 _SQL_DENSIDAD_LOTES = text("""

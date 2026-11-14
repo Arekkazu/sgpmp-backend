@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: consulta limitada a las fincas     |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Caso de uso: consultar/buscar registros de consumo de alimento (RF-75).
 
 Permite filtrar por activo, rango de fechas, tipo de alimento y estado. Solo
@@ -34,6 +35,7 @@ class ConsultarConsumosUseCase:
         fecha_hasta: Optional[date] = None,
         tipo_alimento: Optional[str] = None,
         estado_registro: Optional[str] = None,
+        id_finca: Optional[int] = None,
     ) -> list[ConsumoAlimento]:
         return self.consumo_repo.listar(
             id_activo_biologico=id_activo_biologico,
@@ -42,6 +44,6 @@ class ConsultarConsumosUseCase:
             tipo_alimento=tipo_alimento,
             estado_registro=estado_registro,
             ids_permitidos=self.alcance_port.listar_ids_activos_permitidos(
-                usuario_actual.id_usuario, usuario_actual.id_rol
+                usuario_actual.id_usuario, usuario_actual.id_rol, id_finca=id_finca
             ),
         )

@@ -6,6 +6,7 @@
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: hidratar UUID y versión de integridad en consulta y exportación. |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroReadPort` (RF-80, CU-06).
 
 Mismo patrón de paginación que ``evento_auditoria_m04_repository.py``:
@@ -17,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select, text
 from sqlalchemy.orm import Session
 
 from src.configuration.infrastructure.repositories.nombre_usuario_lookup import nombres_usuarios
@@ -36,6 +37,11 @@ from src.supplies.infrastructure.models.auditoria_suministro_model import Audito
 # trigger del ICA lo dejaba a nombre del usuario 1; el tipo de cálculo lo delata en ese histórico.
 SISTEMA = "Sistema (cálculo automático)"
 _CALCULOS_AUTOMATICOS = {"AUTOMATICO", "REINTENTO_AUTOMATICO"}
+
+_ACTIVOS_DE_FINCA = text(
+    "SELECT ab.id_activo_biologico FROM modulo2.activos_biologicos ab "
+    "JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura WHERE i.id_finca = :id_finca"
+).columns(id_activo_biologico=Integer)
 
 
 def _es_automatico(e: EventoAuditoriaSuministroConsulta, id_servicio: int) -> bool:
@@ -97,6 +103,9 @@ class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
             q = q.where(AuditoriaSuministroModel.id_activo_biologico == filtros.id_activo_biologico)
         if filtros.id_ciclo_productivo is not None:
             q = q.where(AuditoriaSuministroModel.id_ciclo_productivo == filtros.id_ciclo_productivo)
+        if filtros.id_finca is not None:
+            q = q.where(AuditoriaSuministroModel.id_activo_biologico.in_(
+                _ACTIVOS_DE_FINCA.bindparams(id_finca=filtros.id_finca)))
         if filtros.resultado:
             q = q.where(AuditoriaSuministroModel.resultado == filtros.resultado)
         if filtros.clasificacion_registro:

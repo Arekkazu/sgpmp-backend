@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para las cuentas creadas por AgroFusion |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25: GET /usuarios/me/fincas para los filtros por finca |
 """Router FastAPI para el módulo de usuarios (`/usuarios`).
 
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
@@ -22,6 +23,7 @@ from src.identity_access.application.use_cases.registro.reenviar_token_use_case 
 from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import (
     ConsultarDetalleUsuarioUseCase,
     enmascarar_identificacion,
+    obtener_fincas_del_alcance,
     puede_ver_identificacion_completa,
 )
 from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
@@ -50,11 +52,13 @@ from src.identity_access.infrastructure.repositories.sesion_repository import Sq
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.shared.notificacion_service import NotificacionService
 from src.identity_access.infrastructure.schema.gestion_schema import (
+    FincasDelAlcanceResponse,
     UsuarioDetalleResponse,
     UsuarioListadoPaginadoResponse,
     UsuarioListadoResponse,
 )
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse, MessageResponse
 from src.shared.fechas import FechaHoraUtc
@@ -348,6 +352,25 @@ def consultar_perfil(
     )
     resultado = use_case.execute(usuario_actual)
     return UsuarioDetalleResponse(**resultado)
+
+
+@router.get(
+    "/me/fincas",
+    summary="Fincas que el usuario puede filtrar (RF-25)",
+    response_model=FincasDelAlcanceResponse,
+    responses={401: {"model": ErrorResponse}},
+)
+def listar_mis_fincas(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FincasDelAlcanceResponse:
+    """Fincas activas del alcance del usuario: las asignadas o, para el Administrador, todas.
+
+    **Acceso:** autenticado. Alimenta los filtros por finca de Suministros, Finanzas e
+    Integración contable sin exigir el permiso de Configuración «fincas».
+    """
+    ids = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+    return FincasDelAlcanceResponse(items=obtener_fincas_del_alcance(db, ids))
 
 @router.patch(
     "/me",

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25: fincas del alcance del usuario para los filtros (todas para el Administrador) |
 """Caso de uso: consulta del detalle completo de un usuario por un administrador.
 
 El número de identificación se muestra completo solo si el actor tiene el permiso
@@ -96,6 +99,25 @@ def obtener_fincas_asignadas(db: Session, id_usuario: int) -> list[dict]:
         {"id_usuario": id_usuario},
     ).mappings().all()
     return [{"id_finca": f["id_finca"], "nombre": f["nombre"]} for f in filas]
+
+
+def obtener_fincas_del_alcance(db: Session, ids_permitidas: Optional[list[int]]) -> list[dict]:
+    """Fincas activas que el usuario puede filtrar, con su titular tributario (RF-25).
+
+    ``ids_permitidas`` es ``None`` para el alcance global (Administrador). Lo usan
+    los filtros por finca de Suministros, Finanzas e Integración contable, que
+    no deben exigir el permiso de Configuración «fincas»: sin él, el Contador o
+    el Revisor Fiscal recibían 403 al cargar el filtro.
+    """
+    filas = db.execute(
+        text(
+            "SELECT id_finca, nombre, numero_id_tributaria, razon_social FROM modulo9.fincas "
+            "WHERE es_activo IS TRUE AND (CAST(:ids AS integer[]) IS NULL OR id_finca = ANY(CAST(:ids AS integer[]))) "
+            "ORDER BY nombre"
+        ),
+        {"ids": ids_permitidas},
+    ).mappings().all()
+    return [dict(f) for f in filas]
 
 
 class ConsultarDetalleUsuarioUseCase:

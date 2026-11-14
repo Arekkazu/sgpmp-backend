@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25: fincas del alcance del usuario para los filtros (todas para el Administrador) |
 """Schemas de respuesta para gestión de usuarios, auditoría y listados paginados.
 
 `UsuarioEnmascaradoResponse` incluye el número de identificación parcialmente
@@ -77,6 +80,17 @@ class FincaAsignadaResponse(BaseModel):
 
     id_finca: int
     nombre: str
+
+
+class FincaDelAlcanceResponse(FincaAsignadaResponse):
+    """Finca que el usuario puede filtrar, con su titular (``null`` si no tiene)."""
+
+    numero_id_tributaria: Optional[str] = None
+    razon_social: Optional[str] = None
+
+
+class FincasDelAlcanceResponse(BaseModel):
+    items: list[FincaDelAlcanceResponse]
 
 
 class UsuarioDetalleResponse(BaseModel):

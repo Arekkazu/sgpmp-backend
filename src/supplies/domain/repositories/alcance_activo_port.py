@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Puerto de alcance de activos por usuario/rol (RF-81, restricción de Gestor de Granja).
 
 No existe en el sistema (ningún schema) un modelo real de "unidad productiva
@@ -14,10 +17,13 @@ from typing import Optional
 
 class AlcanceActivoPort(ABC):
     @abstractmethod
-    def listar_ids_activos_permitidos(self, id_usuario: int, id_rol: int) -> Optional[list[int]]:
+    def listar_ids_activos_permitidos(
+        self, id_usuario: int, id_rol: int, id_finca: Optional[int] = None
+    ) -> Optional[list[int]]:
         """``None`` si el rol no tiene restricción de alcance (ve todos los activos).
 
         Una lista (posiblemente vacía) con los ``id_activo_biologico`` a los
-        que el usuario tiene acceso, si el rol sí está restringido.
+        que el usuario tiene acceso, si el rol sí está restringido. Con
+        ``id_finca``, solo los de esa finca (vacía si la finca no es del usuario).
         """
         raise NotImplementedError
