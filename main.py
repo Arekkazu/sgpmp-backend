@@ -29,6 +29,7 @@
 # | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: el directorio de logos se crea al arrancar; un logo ausente responde 404 |
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: router de ciclos productivos |
+# | 2026-11-14 | Arekkazu | M08 RF-103: router del dashboard por widgets |
 import asyncio
 import logging
 import os
@@ -118,6 +119,7 @@ from src.supplies.infrastructure.routers.costeo_suministros_router import router
 from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
 from src.financial_valuation.infrastructure.routers.m06_router import router as m06_router
 from src.accounting_integration.infrastructure.routers.m07_router import router as m07_router
+from src.reporting.infrastructure.routers.dashboard_router import router as dashboard_router
 from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria_suministros_router
 from src.identity_access.infrastructure.routers.agrofusion_integration_router import router as agrofusion_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
@@ -1142,6 +1144,7 @@ app.include_router(provision_nic41_router)
 app.include_router(auditoria_suministros_router)
 app.include_router(m06_router)
 app.include_router(m07_router)
+app.include_router(dashboard_router)
 
 @app.get("/", tags=["Health"])
 async def index():
