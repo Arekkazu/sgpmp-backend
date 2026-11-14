@@ -5,6 +5,8 @@
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G25: RF-43 (M02) define cantidad_producida como decimal(12,3), por lo que la ficha (0,0001 y 33,3333 kg) pide cantidades que el evento productivo no admite; 112 y 114 se prueban con 0,001 y 33,333 kg (el 0,0001 se envía y se documenta) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G25: la proporción se guarda con 4 decimales, que es la precisión aprobada del sistema; 112c comprueba ese redondeo y que valor_reduccion use la proporción exacta (ya no se exige la proporción sin redondear) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G25: decisión de QA: la cosecha mínima que M02 acepta (0,001 kg) y M06 no reconoce se mantiene como error de integración M02-M06; 112b y 112c verifican que se reconozca |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G25-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G25 - Valores límite de cantidad cosechada, proporción y precisión del reconocimiento del producto.   RF-85 (CU04).   Casos: TC-M06-112 a TC-M06-114.
 
@@ -25,7 +27,7 @@ se envía antes y se documenta lo que responde RF-43.
   queda en el activo suma el valor anterior (114b). La precisión real de la proporción almacenada se documenta (el RF no la define).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G25/TC-M06-G25.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G25/reporte-TC-M06-G25.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G25/TC-M06-G25.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G25/reporte-TC-M06-G25-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -99,19 +101,21 @@ def test_TC_M06_112b_cantidad_minima_positiva_se_acepta(env, minimo):
     rp = _RESULTADO_COLA.get("min")
     assert filas, (f"la cantidad mínima positiva (0,001 kg sobre 1.000 kg) debía reconocerse y no se creó el producto; resultado de la cola: "
                    f"{(rp.text or '')[:300] if rp else 'n/d'}; auditoría: {env.tipos_auditoria(minimo)}. "
-                   "Causa probable: proporción 0,000001 redondeada a 0,0000 incumple chk_prod_agricola_proporcion_rango (> 0)")
+                   "INC-M06-322 (corregido, #1009): la proporción 0,000001 debe guardarse con 6 decimales y nunca en 0")
     p = filas[-1]
     esperado = trunc2(NETO * dec("0.000001"))
     assert dec(p["valor_reduccion_activo"]) == esperado, f"valor_reduccion esperado {esperado} (18.800.000 x 0,000001): {p}"
     assert dec(p["cantidad_cosechada"]) == dec("0.001"), f"cantidad_cosechada debía quedar en 0,001: {p}"
 
 
-def test_TC_M06_112c_proporcion_del_minimo_con_la_precision_aprobada_de_cuatro_decimales(env, minimo):
+def test_TC_M06_112c_proporcion_del_minimo_con_seis_decimales_y_nunca_cero(env, minimo):
     filas = env.producto_sql(minimo)
     assert filas, f"no se reconoció el producto: {env.tipos_auditoria(minimo)}"
     p = filas[-1]
-    obs(f"proporcion_cosechada guardada para 0,001 de 1.000 kg: {p['proporcion_cosechada']} (exacta 0,000001; el sistema guarda 4 decimales); valor_reduccion {p['valor_reduccion_activo']}")
-    assert dec(p["proporcion_cosechada"]) == q4(dec("0.000001")), f"la proporción debía guardarse con 4 decimales ({q4(dec('0.000001'))}): {p}"
+    obs(f"proporcion_cosechada guardada para 0,001 de 1.000 kg: {p['proporcion_cosechada']} (exacta 0,000001); valor_reduccion {p['valor_reduccion_activo']}")
+    # INC-M06-322 (corregido por Desarrollo, #1009): la proporción se guarda con 6 decimales y nunca queda en 0. Reemplaza la precisión de 4 decimales.
+    assert dec(p["proporcion_cosechada"]) > 0, f"INC-M06-322: la proporción nunca debe quedar en 0: {p}"
+    assert dec(p["proporcion_cosechada"]) == dec("0.000001"), f"INC-M06-322: la proporción debía guardarse con 6 decimales (0,000001): {p}"
     assert dec(p["valor_reduccion_activo"]) == trunc2(NETO * dec("0.000001")), f"valor_reduccion debía calcularse con la proporción exacta: {p}"
 
 
@@ -142,12 +146,14 @@ def test_TC_M06_113_100_01_por_ciento_se_rechaza_indicando_que_supera_lo_disponi
     esc, ida = _activo(env)
     r = env.cosecha(ida, "1000.1")
     if 400 <= r.status < 500:
+        obs(f"1.000,1 kg rechazado al registrar el evento: HTTP {r.status} {(r.text or '')[:300]}")
         assert not env.producto_sql(ida), "no debía reconocerse ningún producto"
         assert MENSAJE_SUPERA.search(r.text or ""), f"el rechazo debía indicar que supera la cantidad disponible del activo y dice: {(r.text or '')[:200]}"
         return
     env.prep(r, (200, 201), "evento productivo de 1.000,1 kg")
     res = env.procesar_eventos()
     filas = env.producto_sql(ida)
+    obs(f"1.000,1 kg aceptado al registrar el evento (HTTP {r.status}); procesamiento de la cola: HTTP {res.status} {(res.text or '')[:300]}; productos reconocidos: {len(filas)}")
     assert not filas, (f"una cosecha de 1.000,1 kg (100,01 % de un activo de 1.000 kg) debía rechazarse y se reconoció: proporción {filas[-1]['proporcion_cosechada']}, "
                        f"valor_reduccion {filas[-1]['valor_reduccion_activo']}, cantidad_cosechada {filas[-1]['cantidad_cosechada']}")
 

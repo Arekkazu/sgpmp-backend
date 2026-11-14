@@ -4,6 +4,9 @@
 # | 2026-11-08 | Daniela Castillo | G30: 135b acepta diferencias menores a 0,01 (precisión 2 vs 4 decimales); 132a no exige id_activo en el historial del activo |
 # | 2026-11-08 | Daniela Castillo | G30: 136 y 138 habilitan cada métrica en el ciclo productivo; 135 con precio de 2 decimales (RF-89); 132a revisa también el historial del activo |
 # | 2026-11-08 | Daniela Castillo | G30 revisado: cada caso abre su run; 132 separa activo y período de tipo y rango (sin filtro: BLOQUEADO); 135 con cantidades de 3 decimales y verificación del activo; 136 con productos distintos el mismo día; 137 con el reconocimiento pendiente, el estado y el registro de los intentos; 138 con un activo y varias métricas |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G30-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 RF-85: 137 con Administrador con todos los permisos (líder y Análisis, 13-nov) y rol Auditor nuevo: se agrega el Auditor (403, 4 intentos registrados) y el Administrador no puede recibir 401/403
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G30 - Historial, inmutabilidad, idempotencia, exactitud, reducción acumulada, autorización y rendimiento del reconocimiento del producto.
 RF-85.   Casos: TC-M06-132 a TC-M06-138.
@@ -21,11 +24,11 @@ el mismo día para un activo (409): cada cosecha usa un activo propio. Costos de
   reducción que queda en el valor neto del activo con el valor_reduccion del reconocimiento.
 - 136: cosechas de 40 %, 40 % y 30 % del mismo activo el mismo día; RF-43 no admite repetir el mismo producto el mismo día, por eso cada cosecha lleva una métrica de producción distinta (kg). Si M02 rechaza la segunda, queda NO VERIFICABLE.
 - 137: con un reconocimiento pendiente (cosecha sin precio del producto), el precio manual (POST /finanzas/precios) solo lo ingresa el Contador: sin token 401, Productor, Veterinario e Ingeniero de campo 403, el estado no cambia y cada intento queda registrado en la auditoría de M06 (igual que G07 036).
-- 137: matriz de roles sobre el ingreso de precio del producto (POST /finanzas/precios).
+- 137: matriz de roles sobre el ingreso de precio del producto (POST /finanzas/precios). V2.0 (13-nov): Productor, Veterinario, Auditor (rol nuevo) e Ingeniero de campo 403; el Administrador tiene todos los permisos (no puede recibir 401/403).
 - 138: tiempo de procesamiento de cada cosecha <= 3000 ms (lote acotado por el presupuesto del sandbox).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G30/TC-M06-G30.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G30/reporte-TC-M06-G30.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G30/TC-M06-G30.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G30/reporte-TC-M06-G30-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -39,7 +42,7 @@ from m06_lib import _lista as lista_de  # noqa: E402
 
 @pytest.fixture(scope="module")
 def env():
-    e = Entorno(("admin", "ingeniero", "productor", "veterinario"))
+    e = Entorno(("admin", "ingeniero", "productor", "veterinario", "auditor"))
     yield e
     e.cerrar()
 
@@ -94,28 +97,75 @@ def test_TC_M06_132a_historial_por_activo_y_por_periodo(env):
     fila = next(x for x in lista if int(x.get("id_reconocimiento_producto_agricola")) == int(p1[-1]["id"]))
     faltan = [k for k in ("id_evento_productivo", "id_activo_biologico", "fecha_cosecha") if fila.get(k) in (None, "")]
     obs(f"Campos del listado del período: {sorted(fila.keys())}")
-    if not any(k in fila for k in ("id_usuario", "usuario", "usuario_nombre")):
-        obs("El listado no trae el usuario: la ficha lo pide entre los campos de trazabilidad; RF-85 Salida 1 no lo incluye (observación).")
+    # INC-M06-325 (corregido por Desarrollo, #1012): el historial de productos agrícolas trae evento y usuario.
+    assert any(k in fila for k in ("id_usuario", "usuario", "usuario_nombre")), (
+        f"INC-M06-325: el listado del período debe traer el usuario que reconoció el producto; campos: {sorted(fila.keys())}")
+    if not any(k in filas_h1[0] for k in ("id_usuario", "usuario", "usuario_nombre")):
+        obs("El historial del propio activo no trae el usuario que reconoció el producto (RF-85 Salida 1 no lo pide; el listado del período sí lo trae): pregunta para Desarrollo.")
     faltan_h = [k for k in ("id_evento_productivo", "fecha_cosecha") if filas_h1[0].get(k) in (None, "")]      # el historial es del activo: no repite su id
     assert not faltan and not faltan_h, (f"las consultas de productos no traen los campos de trazabilidad que pide RF-85 Salida 1: el listado del período no trae {faltan} "
                                          f"y el historial del activo no trae {faltan_h}")
 
 
 def test_TC_M06_132b_filtros_por_tipo_de_producto_y_rango_de_valores(env):
+    """RNF-85-05 y ficha 132; INC-M06-325 (corregido por Desarrollo, #1012): el historial de productos filtra por tipo, rango de valor, evento y usuario."""
     env.nuevo_run()
-    env.presupuesto(30)
+    env.presupuesto(120)
     r = env.call("GET", "/openapi.json", sandbox=False)
-    if r.status != 200 or not isinstance(r.data, dict):
-        no_verificable("no se pudo leer /openapi.json de TEST.")
+    assert r.status == 200 and isinstance(r.data, dict), f"no se pudo leer /openapi.json de TEST ({r.status})"
     op = ((r.data.get("paths") or {}).get("/finanzas/periodos/{id_periodo_contable}/productos") or {}).get("get") or {}
     params = [x.get("name", "") for x in (op.get("parameters") or []) if x.get("in") == "query"]
-    tipo = [x for x in params if any(k in x.lower() for k in ("tipo", "producto"))]
-    rango = [x for x in params if any(k in x.lower() for k in ("min", "max", "valor", "desde", "hasta"))]
-    if tipo and rango:
-        no_verificable(f"el listado declara filtros de tipo {tipo} y de rango {rango}: falta probarlos con datos.")
-    bloqueado("funcionalidad no implementada: el historial de productos (GET /finanzas/periodos/{id}/productos) solo filtra por período; "
-              f"parámetros de consulta declarados: {params or 'ninguno'}. RNF-85-05 y la ficha piden filtros por tipo de producto y por rango de valores "
-              "(en RF-94, GET /finanzas/auditoria, solo se filtra por tipo de evento, activo, período, severidad y fechas).")
+    p_tipo = [x for x in params if "tipo" in x.lower()]
+    p_min = [x for x in params if "min" in x.lower() or ("valor" in x.lower() and "desde" in x.lower())]
+    p_max = [x for x in params if "max" in x.lower() or ("valor" in x.lower() and "hasta" in x.lower())]
+    p_evt = [x for x in params if "evento" in x.lower()]
+    p_usr = [x for x in params if "usuario" in x.lower()]
+    p_act = [x for x in params if "activo" in x.lower()]
+    assert p_tipo and p_min and p_max and p_act, (
+        "INC-M06-325 / RNF-85-05: el listado de productos (GET /finanzas/periodos/{id}/productos) debía declarar filtros por activo, tipo de producto y rango de valor (mínimo y máximo); "
+        f"parámetros declarados: {params or 'ninguno'}")
+    esc = env.escenario_producto("PRODUCCION", "20000.00", "3500.00")
+    ida1, ida2 = env.activo_productivo(esc, "1000"), env.activo_productivo(esc, "1000")
+    assert env.cosechar(ida1, "100").status == 200
+    assert env.cosechar(ida2, "300").status == 200
+    p1, p2 = env.producto_sql(ida1), env.producto_sql(ida2)
+    assert p1 and p2, f"no se reconocieron los dos productos (eventos: {env.tipos_auditoria(ida1)} / {env.tipos_auditoria(ida2)})"
+    periodo = p1[-1]["id_periodo_contable"]
+    id1, id2 = int(p1[-1]["id"]), int(p2[-1]["id"])
+    v1, v2 = dec(p1[-1]["valor_producto"]), dec(p2[-1]["valor_producto"])
+    assert v1 < v2, (v1, v2)
+
+    def listar(**q):
+        rr = env.call("GET", f"/finanzas/periodos/{periodo}/productos", "contador", params=q or None)
+        assert rr.status == 200, f"{q}: {rr}"
+        return {int(x.get("id_reconocimiento_producto_agricola")) for x in lista_de(rr.data, "productos")}
+
+    assert {id1, id2} <= listar(), "sin filtros el listado debe traer los dos productos"
+    assert {id1, id2} <= listar(**{p_tipo[0]: "PRODUCTO_PERIODICO"}), "el filtro por tipo PRODUCTO_PERIODICO debe traer los dos productos"
+    assert not ({id1, id2} & listar(**{p_tipo[0]: "PRODUCTO_DE_CONSUMO"})), "el filtro por tipo PRODUCTO_DE_CONSUMO no debe traer productos periódicos"
+    corte = str((v1 + v2) / 2)
+    assert id2 in listar(**{p_min[0]: corte}) and id1 not in listar(**{p_min[0]: corte}), f"el filtro de valor mínimo {corte} debe traer solo el producto mayor"
+    assert id1 in listar(**{p_max[0]: corte}) and id2 not in listar(**{p_max[0]: corte}), f"el filtro de valor máximo {corte} debe traer solo el producto menor"
+    por_activo = listar(**{p_act[0]: ida1})
+    assert id1 in por_activo and id2 not in por_activo, f"el filtro por activo {ida1} debe traer solo su producto: {por_activo}"
+    # rangos inclusivos (ficha 132): el valor exacto del producto entra tanto como mínimo como máximo
+    assert id1 in listar(**{p_min[0]: str(v1)}) and id2 in listar(**{p_min[0]: str(v2)}), "el valor mínimo debe ser inclusivo"
+    assert id1 in listar(**{p_max[0]: str(v1)}) and id2 in listar(**{p_max[0]: str(v2)}), "el valor máximo debe ser inclusivo"
+    # combinación de filtros (ficha 132): tipo + valor mínimo
+    comb = listar(**{p_tipo[0]: "PRODUCTO_PERIODICO", p_min[0]: corte})
+    assert id2 in comb and id1 not in comb, f"la combinación tipo + valor mínimo {corte} debe traer solo el producto mayor: {comb}"
+    ev1 = p1[-1]["id_evento_productivo"]
+    if p_evt:
+        por_evento = listar(**{p_evt[0]: ev1})
+        assert id1 in por_evento and id2 not in por_evento, f"el filtro por evento {ev1} debe traer solo su producto: {por_evento}"
+    if p_usr:
+        fila = next(x for x in lista_de(env.call("GET", f"/finanzas/periodos/{periodo}/productos", "contador").data, "productos")
+                    if int(x.get("id_reconocimiento_producto_agricola")) == id1)
+        uid = next((fila.get(k) for k in ("id_usuario", "usuario") if fila.get(k) is not None), None)
+        assert uid is not None, f"el listado debe traer el usuario para poder filtrar por él: {sorted(fila)}"
+        assert id1 in listar(**{p_usr[0]: uid}), f"el filtro por usuario {uid} debe traer su producto"
+    obs(f"filtros probados: activo {p_act}, tipo {p_tipo}, mínimo {p_min}, máximo {p_max}, evento {p_evt or 'no declarado'}, usuario {p_usr or 'no declarado'}; "
+        f"parámetros declarados: {params}.")
 
 
 def test_TC_M06_133_el_reconocimiento_del_producto_es_inmutable(env):
@@ -176,7 +226,7 @@ def test_TC_M06_135_transferencia_exacta_a_inventario(env):
 
 def test_TC_M06_135b_la_reduccion_del_activo_coincide_con_el_reconocimiento(env):
     if not _LOTE:
-        pytest.skip("NO VERIFICABLE: depende de los reconocimientos que verifica 135 en esta misma corrida.")
+        no_verificable("depende de los reconocimientos que verifica 135 en esta misma corrida y 135 no dejó ninguno verificado (corra 135 y 135b juntos).")
     malos, maxima = [], dec("0")
     for kg, antes, despues, p, linea in _LOTE:
         if not antes or not despues:
@@ -210,6 +260,11 @@ def test_TC_M06_136_reduccion_acumulada_coherente(env):
     final = dec(env.calculo(ida)["valor_neto"])
     obs(f"Cosechas {respuestas}; reconocimientos: {len(productos)}; reducciones {reducciones} de {inicial}; valor final del activo {final}.")
     assert reducciones <= inicial and final >= 0, f"el valor del activo no debe quedar negativo (reducciones {reducciones}, inicial {inicial}, final {final})"
+    # INC-M06-326 (corregido por Desarrollo, #1013): la reducción del activo de consumo es acumulativa entre cosechas (40 % + 40 % = 80 % del valor inicial).
+    tol = str(inicial * dec("0.000005"))                 # la proporción se guarda con 6 decimales (INC-M06-322): 400/600 = 0,666667
+    assert cerca(reducciones, inicial * dec("0.8"), tol), f"INC-M06-326: las reducciones acumuladas debían sumar el 80 % del valor inicial ({inicial * dec('0.8')}) y suman {reducciones}"
+    assert cerca(final, inicial * dec("0.2"), tol), f"INC-M06-326: el activo debía quedar con el 20 % de su valor inicial ({inicial * dec('0.2')}) y queda {final}"
+    assert dec(env.calculo_bd(ida)["valor_neto"]) == final, "base de datos: el valor vigente del activo debe coincidir con la API"
     assert len(productos) == 2, (f"la tercera cosecha (110 % acumulado, supera la cantidad restante) debía rechazarse y hay {len(productos)} reconocimientos; "
                                  f"cantidades reconocidas: {[f['cantidad_cosechada'] for f in productos]}")
 
@@ -230,7 +285,7 @@ def test_TC_M06_137_ingreso_de_precio_del_producto_solo_el_contador(env):
     sin = env.call("POST", "/finanzas/precios", None, json=cuerpo)
     if sin.status != 401:
         fallos.append(f"sin token debía responder 401: {sin}")
-    for rol in ("productor", "veterinario"):
+    for rol in ("productor", "veterinario", "auditor"):
         r = env.call("POST", "/finanzas/precios", rol, json=cuerpo)
         if r.status != 403:
             fallos.append(f"{rol} no debe ingresar precios (403) y respondió {r}")
@@ -244,13 +299,14 @@ def test_TC_M06_137_ingreso_de_precio_del_producto_solo_el_contador(env):
     registrados = _auditoria_total(env) - antes
     if env.producto_sql(ida) or "RECONOCIMIENTO_PRODUCTO_PENDIENTE" not in env.tipos_auditoria(ida):
         fallos.append("el estado del reconocimiento pendiente cambió tras los intentos no autorizados")
-    if registrados < 3:
-        fallos.append(f"los intentos no autorizados (Productor, Veterinario e Ingeniero de campo) no quedaron registrados en la auditoría de M06: {registrados} evento(s) nuevo(s) de 3 esperados")
+    if registrados < 4:
+        fallos.append(f"los intentos no autorizados (Productor, Veterinario, Auditor e Ingeniero de campo) no quedaron registrados en la auditoría de M06: {registrados} evento(s) nuevo(s) de 4 esperados")
     ok = env.call("POST", "/finanzas/precios", "contador", json=cuerpo)
     if ok.status not in (200, 201):
         fallos.append(f"el Contador sí debe poder ingresarlo: {ok}")
     a = env.call("POST", "/finanzas/precios", "admin", json={**cuerpo, "precio_unitario": "3100.00"})
     obs(f"Administrador registrando el precio del producto: HTTP {a.status}.")
+    assert a.status not in (401, 403), f"el Administrador tiene todos los permisos (13-nov) y no debía recibir {a.status}: {a}"
     assert not fallos, " | ".join(fallos)
 
 

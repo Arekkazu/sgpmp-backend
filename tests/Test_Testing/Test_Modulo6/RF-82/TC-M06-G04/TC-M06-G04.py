@@ -2,6 +2,8 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-82: script del grupo TC-M06-G04 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-82: G04 alineado con la ficha (5xx falla, redondeo sin aviso falla, fecha con precio) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G04-V2.0.html |
+# | 2026-11-12 | Daniela Castillo | M06 RF-82: 019 acepta como «la API no admite fecha explícita» el 400 VAL_ENTRADA por campo no permitido (validación estricta nueva del backend); sigue verificando la fecha del servidor |
 """
 TC-M06-G04 - Valores límite del reconocimiento inicial: costo de adquisición, precisión decimal y fecha del reconocimiento.
 RF-82 (CU01).   Casos: TC-M06-017, TC-M06-018 y TC-M06-019.
@@ -11,11 +13,11 @@ reconocido sale del costo (VALORACION_POR_COSTO). El valor exacto se verifica co
 (la respuesta JSON de FastAPI puede redondear los Decimal grandes a float: si difiere, queda como observación).
 El backend no recibe la fecha del reconocimiento (la calcula el servidor): como la ficha dice «si la API admite fecha explícita»,
 el caso 019 prueba SIN fecha (debe ser la del día del servidor, con SELECT) y envía además «fecha_reconocimiento» de ayer, hoy y
-mañana: si la API la admite, ayer y mañana deben rechazarse y hoy aceptarse; si la ignora, queda documentado que no la admite.
+mañana: si la API la admite, ayer y mañana deben rechazarse y hoy aceptarse; si la ignora o la rechaza como campo no permitido (400 VAL_ENTRADA,\ncomportamiento actual), queda documentado que no la admite.
 Un 5xx en cualquier caso es FALLIDO (no es un rechazo controlado).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G04/TC-M06-G04.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G04/reporte-TC-M06-G04.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G04/TC-M06-G04.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G04/reporte-TC-M06-G04-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -125,6 +127,12 @@ def test_TC_M06_019_fecha_del_reconocimiento_es_la_del_dia(env, esc_precio):
         ida = env.activo(esc, origen="compra", costo="1500000.0000", soporte=f"Factura QA-M06-019-{etiqueta}")
         r = env.confirmar(ida, cuerpo={"fecha_reconocimiento": str(dia)})
         assert r.status < 500, r
+        campos = [f.get("field") for f in ((r.data or {}).get("fields") or [])] if isinstance(r.data, dict) else []
+        if r.status == 400 and r.err == "VAL_ENTRADA" and "fecha_reconocimiento" in campos:
+            # El backend (validación estricta) rechaza el campo en cualquier fecha: la API NO admite fecha explícita y la fecha la pone el
+            # servidor (RF-82 no la lista como entrada). La ficha lo condiciona a «si la API admite fecha explícita»: se documenta.
+            obs(f"fecha_reconocimiento={dia} ({etiqueta}): la API no admite fecha explícita (400 VAL_ENTRADA: campo no permitido); la fecha es la del servidor.")
+            continue
         if etiqueta != "hoy" and 400 <= r.status < 500:
             continue                                                 # ayer/mañana rechazados, como pide la ficha
         assert r.status == 201, f"con fecha explícita {etiqueta} ({dia}) se esperaba {'201 (aceptada)' if etiqueta == 'hoy' else 'rechazo'} y respondió {r}"
