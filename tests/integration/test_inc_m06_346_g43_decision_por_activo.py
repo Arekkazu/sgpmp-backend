@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio (excluir o estimar) |
+# | 2026-11-13 | Arekkazu | INC-M06-91-G43-03 RF-87: el estimado sale en la respuesta con su medición |
 """RF-87 FA-2 y CA-5: el Contador decide por cada activo sin precio si entra estimado con el último precio
 conocido o se excluye al período siguiente. Ninguno pasa al costo (RF-88 v2.0, NIC 41 ¶31)."""
 from __future__ import annotations
@@ -46,5 +47,6 @@ def test_cada_activo_sin_precio_se_estima_o_se_excluye_por_separado(db_session, 
     cierre = m06.cierre().execute(p, uid, autorizar_exclusiones=True, activos_estimados=[estimado])
     assert cierre["estado"] == "CERRADO"
     assert [(a["id_activo_biologico"], a["motivo"]) for a in cierre["activos_excluidos"]] == [(excluido, "PENDIENTE_PRECIO")]
-    # El estimado entró al cierre (sin cambio físico ni de precio no deja medición nueva); sin estimarlo, se excluiría.
+    # El estimado entró al cierre con su medición marcada como estimada (RF-83 v1.2), aunque no varíe.
     assert cierre["activos_procesados"] == 1
+    assert [a["id_activo_biologico"] for a in cierre["activos_estimados"]] == [estimado]

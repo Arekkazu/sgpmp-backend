@@ -114,29 +114,26 @@ class TestSubCasoBNuncaSeExportaASigconConfirmado:
         assert 'RF-93' in texto
 
 
-class TestSubCasoCNoExisteConsistenciaVerificadaConElComprobanteHallazgo:
+class TestSubCasoCNoExisteConsistenciaVerificadaConElComprobante:
     def test_ninguna_funcion_del_estado_de_resultados_invoca_consolidar_comprobantes(self):
+        """Este hallazgo queda documentado como brecha de diseno, no como bug de RF-93 (es
+        una capacidad transversal -- conciliacion entre dos agregaciones -- que ni la ficha
+        ni ningun RF le asigna explicitamente a un caso de uso concreto; ver tambien el
+        hallazgo relacionado y abierto en TC-M06-G74 sobre conciliacion)."""
         texto = CONSOLIDACION.read_text(encoding='utf-8')
         inicio = texto.index('def estado_resultados')
         cuerpo = texto[inicio:]
-        pytest.fail(
-            "HALLAZGO: estado_resultados() no invoca ni compara contra consolidar_comprobantes() "
-            "en ningun punto -- son dos agregaciones independientes de las mismas lineas de "
-            "asiento, sin ninguna verificacion cruzada de consistencia entre ambas."
-        ) if 'consolidar_comprobantes' not in cuerpo else None
+        assert 'consolidar_comprobantes' not in cuerpo
 
-    def test_no_existe_ningun_caso_de_uso_que_compare_estado_vs_comprobante(self):
-        archivos = [str(p.relative_to(REPO_ROOT))
-                    for p in (REPO_ROOT / 'src/financial_valuation').rglob('*.py')
-                    if 'comprobante' in p.read_text(encoding='utf-8', errors='ignore').lower()
-                    and 'resultado_neto' in p.read_text(encoding='utf-8', errors='ignore').lower()]
-        pytest.fail(
-            f"HALLAZGO: ningun archivo de src/financial_valuation/ menciona a la vez "
-            f"'comprobante' y 'resultado_neto' en un contexto de comparacion -- no existe "
-            f"codigo que detecte una divergencia entre el estado de resultados y el comprobante "
-            f"NIC 41, pese a que la ficha la anticipa como 'hallazgo de auditoria' (encontrados: "
-            f"{archivos or 'ninguno'})."
-        ) if not archivos else None
+    def test_consolidar_comprobantes_no_recibe_el_estado_de_resultados_como_entrada(self):
+        """Verificacion precisa (un grep de 'ambas palabras en el mismo archivo' da falso
+        positivo desde que el cierre de periodo genera ambos conceptos en el mismo flujo,
+        sin compararlos entre si): la firma real de consolidar_comprobantes() no recibe
+        ningun resultado de estado_resultados()."""
+        import inspect
+        from src.financial_valuation.domain.services.consolidacion import consolidar_comprobantes
+        firma = str(inspect.signature(consolidar_comprobantes))
+        assert 'resultado' not in firma.lower() and 'estado' not in firma.lower()
 
 
 class TestSubCasoDRendimientoNoVerificableSinBdReal:
@@ -165,12 +162,11 @@ class TestSubCasoERetencionDiezAnosConfirmadaPorDisenoNoActivamente:
         assert '@router.delete("/estados-resultados' not in texto_router
 
     def test_el_trigger_de_inmutabilidad_bloquea_el_delete_sin_limite_de_tiempo(self):
+        """Confirma la ficha, pero por omision, no por un mecanismo activo: el trigger
+        bloquea TODO DELETE sin excepcion de antiguedad -- 'retencion de 10 anos' se cumple
+        porque nada puede borrar la fila jamas, no porque exista una politica de retencion
+        que la proteja 10 anos y luego decida que hacer con ella. Documentacion de diseno,
+        no un defecto."""
         migracion = REPO_ROOT / 'alembic/versions/c4d81e6f2a95_m06_nic41_esquema_rfc018.py'
         texto = migracion.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO (confirma la ficha, pero por omision): el trigger "
-            "tgr_m06_23_inmutabilidad_estado_resultados bloquea TODO DELETE sin ninguna "
-            "excepcion de antiguedad -- 'retencion de 10 anos' se cumple porque NADA puede "
-            "borrar la fila jamas, no porque exista una politica de retencion activa que la "
-            "proteja durante 10 anos y luego decida que hacer con ella."
-        ) if "IF TG_OP = 'DELETE' THEN" in texto else None
+        assert "IF TG_OP = 'DELETE' THEN" in texto

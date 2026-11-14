@@ -22,3 +22,14 @@ export const horaEnMensaje=mensaje=>/\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(St
 export const contiene=(mensaje,dato)=>dato!=null&&String(dato).length>0&&String(mensaje??'').toLocaleLowerCase('es').includes(String(dato).toLocaleLowerCase('es'));
 export const horaBogota=fecha=>new Intl.DateTimeFormat('es-CO',{timeZone:'America/Bogota',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(fecha));
 export const fechaBogota=fecha=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bogota',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(fecha));
+export const fechaUtc=fecha=>new Date(fecha).toISOString().slice(0,10);
+export const horaUtc=fecha=>new Date(fecha).toISOString().slice(0,16).replace('T',' ');
+export function fechaEnZonas(mensaje,fecha){
+  return Boolean(fecha)&&(contiene(mensaje,fechaBogota(fecha))||contiene(mensaje,fechaUtc(fecha)));
+}
+export function horaEnZonas(mensaje,fecha){
+  if(!fecha)return {coincide:false,soloUtc:false};
+  const bogota=contiene(mensaje,`${fechaBogota(fecha)} ${horaBogota(fecha)}`);
+  const utc=contiene(mensaje,horaUtc(fecha));
+  return {coincide:bogota||utc,soloUtc:utc&&!bogota};
+}

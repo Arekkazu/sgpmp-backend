@@ -8,6 +8,10 @@
 # | 2026-11-10 | Arekkazu | INC-M06-345/350 RF-87: EN_CIERRE en espera de autorización, cancelación, matriz y titular |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-02 RF-87: las líneas sin trazabilidad de la prevalidación nombran su activo |
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio (excluir o estimar) |
+# | 2026-11-13 | Leandro | TC-M06-G52 RF-91: excluir del comprobante líneas con auditorías fuente sin verificar. |
+# | 2026-11-13 | Arekkazu | INC-M06-91-G43 RF-87: precio congelado al iniciar, activos estimados en la respuesta; RF-88 FA-2 sin vida útil bloquea |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar los supuestos faltantes del borrador creado al cerrar. |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -16,11 +20,15 @@ encolan para el período siguiente); (2) los 9 pasos, atómicos — escriben con
 declarando ``app.cierre_periodo``; (3) si (2) falla, el período vuelve a ABIERTO y el cierre queda
 FALLIDO en RF-94. Si hay exclusiones por autorizar (FA-2/FA-3), el período se queda EN_CIERRE
 esperando la decisión: la autorización continúa el mismo cierre y la cancelación lo devuelve a ABIERTO. El paso 3 mide contra el último valor registrado del activo, no contra el valor al
-inicio del período (C-3), y el paso 7 no vuelve a registrar los costos de M05 como gasto (C-4)."""
+inicio del período (C-3), y el paso 7 no vuelve a registrar los costos de M05 como gasto (C-4).
+
+Paso 2 (CA-1): el precio de cada especie se captura al iniciar el cierre y se guarda en la ejecución;
+la prevalidación y la reanudación tras la espera usan ese mismo precio, así que un precio registrado
+durante EN_CIERRE solo cuenta para los cierres siguientes."""
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -29,7 +37,12 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.application.services.contabilizador import Contabilizador
 from src.financial_valuation.application.services.medidor import Medidor
-from src.financial_valuation.application.services.reportes import ConstructorEstadoResultados, ConstructorInformeRevelaciones
+from src.financial_valuation.application.services.reportes import (
+    ConciliacionError,
+    ConstructorEstadoResultados,
+    ConstructorInformeRevelaciones,
+    avisar_supuestos_insuficientes,
+)
 from src.financial_valuation.application.use_cases.trazabilidad.verificar_trazabilidad_use_case import VerificadorTrazabilidad
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento, Periodo
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
@@ -40,7 +53,7 @@ from src.financial_valuation.domain.repositories.notificacion_financiera_port im
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.consolidacion import LineaContable, consolidar_comprobantes
-from src.financial_valuation.domain.services.precios import Precio
+from src.financial_valuation.domain.services.precios import Precio, precio_a_dict, precio_desde_dict
 from src.financial_valuation.application.use_cases.valoracion_costo.registrar_deterioro_use_case import (
     evento_valor_libros_cero,
 )
@@ -71,11 +84,17 @@ _VARIACIONES = [(t.value, s.value) for t in (TipoHecho.VARIACION_VR_TB, TipoHech
                 for s in (Sentido.GANANCIA, Sentido.PERDIDA)]
 
 
+def _por_especie(precios: list[dict]) -> dict[int, tuple[Precio, bool]]:
+    """Precio congelado de cada especie y si es solo una estimación (último conocido, no vigente)."""
+    return {p["id_especie"]: (precio_desde_dict(p), bool(p.get("estimacion"))) for p in precios}
+
+
 @dataclass
 class Prevalidacion:
     bloqueos: list[dict]
     activos_sin_precio: list[dict]
     lineas_sin_trazabilidad: list[dict]
+    precios: list[dict] = field(default_factory=list)  # congelados (RF-87 paso 2), no se publican
 
     @property
     def puede_cerrar(self) -> bool:
@@ -147,18 +166,52 @@ class EjecutarCierrePeriodoUseCase:
             bloqueos.append({"codigo": "MATRIZ_CONTABLE_INCOMPLETA", "mensaje": (
                 f"La matriz contable no cubre lo que registra el cierre: {'; '.join(faltantes[:10])}. "
                 "Asígnelas en Configuración contable.")})
+        precios = self._precios_congelados(periodo, reconocidos, dia)
+        congelados = _por_especie(precios)
+        sin_vida_util = []
         for activo in reconocidos:
-            if self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico) is not None:
+            costo = self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico)
+            if costo is not None:
+                if self._vida_util(activo, costo) is None:
+                    sin_vida_util.append(f"{activo.identificador} ({activo.especie})")
                 continue
-            precio, _ = self.medidor.valorador.precio_para(activo, dia, False)
-            if precio is None:
+            precio, solo_estimacion = congelados.get(activo.id_especie, (None, False))
+            if precio is None or solo_estimacion:
                 sin_precio.append({"id_activo_biologico": activo.id_activo_biologico, "identificador": activo.identificador,
                                    "especie": activo.especie})
+        if sin_vida_util:  # RF-88 FA-2: sin vida útil no hay depreciación que registrar
+            bloqueos.append({"codigo": "VIDA_UTIL_NO_CONFIGURADA", "mensaje": (
+                f"No se puede calcular la depreciación de {', '.join(sin_vida_util[:10])}: configure la vida útil "
+                "de su especie en Configuración contable.")})
         sin_trazabilidad = self.verificador.evaluar(self.contabilizador.asientos.del_periodo(periodo.id_periodo_contable))
         nombres = {a.id_activo_biologico: a.identificador for a in reconocidos}  # el panel nombra el activo, no su id
         for linea in sin_trazabilidad:
             linea["identificador"] = nombres.get(linea.get("id_activo_biologico"))
-        return Prevalidacion(bloqueos, sin_precio, sin_trazabilidad)
+        return Prevalidacion(bloqueos, sin_precio, sin_trazabilidad, precios)
+
+    def _precios_congelados(self, periodo: Periodo, reconocidos: list[DatosActivo], dia) -> list[dict]:
+        """RF-87 paso 2 / CA-1: el precio por especie del cierre en curso; sin cierre, el que se congelaría ahora.
+
+        Por especie se guarda el vigente o, si no hay, el último conocido marcado como estimación: este
+        solo lo usan los activos que el Contador decide estimar (FA-2). Un cierre iniciado antes de que
+        se guardaran los precios (``None``) los captura al reanudar, como hacía."""
+        en_curso = self.periodos.ejecucion_en_proceso(periodo.id_periodo_contable)
+        if en_curso and en_curso.get("precios_congelados") is not None:
+            return en_curso["precios_congelados"]
+        capturados: dict[int, dict] = {}
+        for activo in reconocidos:
+            if activo.id_especie not in capturados:
+                precio, _ = self.medidor.valorador.precio_para(activo, dia, True)
+                if precio is not None:
+                    capturados[activo.id_especie] = {**precio_a_dict(precio), "estimacion": not precio.vigente_en(dia)}
+        return list(capturados.values())
+
+    def _vida_util(self, activo: DatosActivo, costo) -> Optional[int]:
+        """La del reconocimiento al costo; si no quedó guardada, la vigente de la especie (RF-88: M09, prospectiva)."""
+        if costo.vida_util_meses:
+            return costo.vida_util_meses
+        parametro = self.contabilizador.config.parametro_especie(activo.id_especie)
+        return parametro.vida_util_meses if parametro else None
 
     def _combinaciones_sin_cuenta(self, reconocidos: list[DatosActivo]) -> list[str]:
         """RF-87 v1.1: la matriz debe cubrir los hechos que el cierre registra (variaciones de los activos a
@@ -208,6 +261,12 @@ class EjecutarCierrePeriodoUseCase:
             raise InfrastructureError(code="CIERRE_PERIODO_FALLIDO", message=(
                 f"El proceso de cierre falló en el paso {paso}. Se revirtieron todos los cambios y el período permanece "
                 "ABIERTO. Corrija el problema y reinicie el cierre.")) from exc
+        informe = resultado.pop("_informe_revelaciones")
+        discrepancia = resultado.pop("_conciliacion")
+        if discrepancia is not None:  # RF-93 FA-2: el estado quedó pendiente; se avisa con el motivo
+            discrepancia.avisar(self.notificador)
+        if informe is not None:
+            avisar_supuestos_insuficientes(self.notificador, id_periodo_contable, informe)
         self.notificador.a_contadores("CIERRE_PERIODO_CONTABLE", (
             f"Período {resultado['periodo']} cerrado: listo para transferir desde Agrofusión."),
             {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
@@ -265,7 +324,8 @@ class EjecutarCierrePeriodoUseCase:
                 if pendiente is None:
                     self.periodos.reanudar_cierre(id_cierre, incluir_sin_precio)
             else:
-                id_cierre = self.periodos.iniciar_cierre(id_periodo, id_usuario, incluir_sin_precio)
+                id_cierre = self.periodos.iniciar_cierre(id_periodo, id_usuario, incluir_sin_precio,
+                                                         prevalidacion.precios)
                 self.periodos.cambiar_estado(id_periodo, EstadoPeriodo.EN_CIERRE.value)
                 self.contabilizador.auditar(EventoAuditoria(
                     tipo_evento="CIERRE_PERIODO_INICIADO", severidad=Severidad.INFO.value, id_usuario=id_usuario,
@@ -333,32 +393,30 @@ class EjecutarCierrePeriodoUseCase:
                estimados: frozenset = frozenset()):
         dia = min(periodo.fecha_fin, hoy_usuario())
         activos = self.activos.listar_reconocidos(periodo.numero_id_tributaria)
-        # Paso 2: precios congelados al inicio del cierre (por especie).
+        # Paso 2: los precios congelados al iniciar el cierre (por especie), no los de ahora (CA-1).
         self._paso = 2
-        # Por especie y por si se admite la estimación: la decisión es por activo (FA-2), el precio por especie.
-        congelados: dict[tuple[int, bool], Optional[Precio]] = {}
-        excluidos = []
+        precios = self._precios_congelados(periodo, activos, dia)
+        congelados = _por_especie(precios)
+        excluidos, activos_estimados = [], []
 
-        def estima(activo) -> bool:
+        def estima(activo) -> bool:  # la decisión es por activo (FA-2), el precio por especie
             return incluir_sin_precio or activo.id_activo_biologico in estimados
 
-        for activo in activos:
-            clave = (activo.id_especie, estima(activo))
-            if clave not in congelados:
-                congelados[clave], _ = self.medidor.valorador.precio_para(activo, dia, clave[1])
         # Pasos 3-5: revaluación masiva, variaciones y líneas (más depreciación de los activos al costo).
         self._paso = 3
         procesados, al_costo_con_precio = 0, []
         for activo in activos:
+            precio, solo_estimacion = congelados.get(activo.id_especie, (None, False))
             costo = self.valoraciones.valoracion_costo_activa(activo.id_activo_biologico)
             if costo is not None:
-                precio_costo = congelados[(activo.id_especie, estima(activo))]
+                precio_costo = None if solo_estimacion else precio
                 self._depreciar(activo, costo, periodo, dia, id_cierre, id_usuario, precio_costo)
                 if precio_costo is not None:
                     al_costo_con_precio.append(activo.identificador)
                 procesados += 1
                 continue
-            precio = congelados[(activo.id_especie, estima(activo))]
+            if solo_estimacion and not estima(activo):
+                precio = None
             if precio is None:
                 excluidos.append({"id_activo_biologico": activo.id_activo_biologico, "identificador": activo.identificador,
                                   "motivo": "PENDIENTE_PRECIO"})
@@ -375,11 +433,16 @@ class EjecutarCierrePeriodoUseCase:
                 excluidos.append({"id_activo_biologico": activo.id_activo_biologico, "identificador": activo.identificador,
                                   "motivo": resultado.motivo, "detalle": resultado.mensaje})
                 continue
+            if solo_estimacion:  # RF-83 v1.2: medido con el último precio conocido
+                activos_estimados.append({
+                    "id_activo_biologico": activo.id_activo_biologico, "identificador": activo.identificador,
+                    "id_medicion": resultado.id_medicion, "id_precio_mercado": precio.id_precio_mercado,
+                    "precio_unitario": str(precio.precio_unitario), "fecha_vigencia": precio.fecha_vigencia.isoformat()})
             procesados += 1
         # Paso 3 (RF-91): trazabilidad; lo incompleto se excluye con autorización y pasa al período siguiente.
         lineas = self.contabilizador.asientos.del_periodo(periodo.id_periodo_contable)
         verificacion = self.verificador.verificar(lineas, id_usuario)
-        pendientes = verificacion["PENDIENTE_TRAZABILIDAD"]
+        pendientes = verificacion["PENDIENTE_TRAZABILIDAD"] + verificacion.get("VERIFICACION_PENDIENTE", [])
         siguiente = self._abrir_siguiente(periodo, id_usuario)
         if pendientes:
             if not autorizar:
@@ -425,28 +488,33 @@ class EjecutarCierrePeriodoUseCase:
         self._paso = 9
         self.periodos.cambiar_estado(periodo.id_periodo_contable, EstadoPeriodo.CERRADO.value)
         hash_cierre = hash_sha256({"periodo": periodo.id_periodo_contable, "comprobantes": codigos, "excluidos": excluidos})
-        reportes = self._reportes(periodo, id_usuario, excluidos)
+        reportes, informe, discrepancia = self._reportes(periodo, id_usuario, excluidos)
         self.periodos.finalizar_cierre(id_cierre, "COMPLETADO", {
             "paso": 9, "procesados": procesados, "pendientes": len(excluidos), "excluidos": excluidos + pendientes,
-            "precios": [{"id_especie": k, "id_precio_mercado": p.id_precio_mercado, "precio_unitario": str(p.precio_unitario),
-                         "fuente": p.fuente, "fecha_vigencia": str(p.fecha_vigencia)} for k, p in congelados.items() if p],
-            "hash": hash_cierre})
+            "precios": precios, "hash": hash_cierre})
         self.contabilizador.auditar(EventoAuditoria(
             tipo_evento="CIERRE_PERIODO_COMPLETADO", severidad=Severidad.INFO.value, id_usuario=id_usuario,
             payload={"comprobantes": codigos, "activos_procesados": procesados, "excluidos": excluidos,
-                     "hash_cierre": hash_cierre, "reportes": reportes},
+                     "activos_estimados": activos_estimados, "hash_cierre": hash_cierre, "reportes": reportes},
             id_periodo_contable=periodo.id_periodo_contable, id_referencia=id_cierre,
         ))
         return ({"id_cierre": id_cierre, "id_periodo_contable": periodo.id_periodo_contable,
                  "periodo": f"{periodo.fecha_inicio:%Y-%m}", "estado": EstadoPeriodo.CERRADO.value,
-                 "activos_procesados": procesados, "activos_excluidos": excluidos, "lineas_excluidas": pendientes,
+                 "activos_procesados": procesados, "activos_excluidos": excluidos, "activos_estimados": activos_estimados,
+                 "lineas_excluidas": pendientes,
                  "comprobantes": codigos, "hash_cierre": hash_cierre, "reportes": reportes,
+                 "_informe_revelaciones": informe, "_conciliacion": discrepancia,
                  "id_periodo_siguiente": siguiente.id_periodo_contable, "activos_al_costo_con_precio": al_costo_con_precio})
 
     def _depreciar(self, activo, costo, periodo, dia, id_cierre, id_usuario, precio_vigente) -> None:
         """RF-88 4.1: depreciación del período como gasto; ¶30 exige pasar a valor razonable si ya hay precio."""
-        valor = valor_por_costo(costo.costos_adquisicion, costo.vida_util_meses or 1,
-                                meses_transcurridos(costo.fecha_adquisicion, dia), costo.deterioro_acumulado)
+        vida_util = self._vida_util(activo, costo)
+        if vida_util is None:  # la prevalidación ya lo bloquea (RF-88 FA-2); nunca se deprecia en un mes
+            raise BusinessRuleError(code="VIDA_UTIL_NO_CONFIGURADA", message=(
+                f"No se puede calcular la depreciación de {activo.identificador}: configure la vida útil de la especie "
+                f"{activo.especie} en Configuración contable."))
+        valor = valor_por_costo(costo.costos_adquisicion, vida_util, meses_transcurridos(costo.fecha_adquisicion, dia),
+                                costo.deterioro_acumulado)
         delta = truncar2(valor.depreciacion_acumulada - costo.depreciacion_acumulada)
         if delta > 0:
             calculado = valor_libros_calculado(costo.costos_adquisicion, valor.depreciacion_acumulada,
@@ -487,13 +555,20 @@ class EjecutarCierrePeriodoUseCase:
         return existente or self.periodos.crear(periodo.numero_id_tributaria, self.contabilizador.config.obtener().tipo_cierre,
                                                 inicio, fin, id_usuario)
 
-    def _reportes(self, periodo: Periodo, id_usuario: int, excluidos: list) -> dict:
-        """Paso 8: si RF-92 o RF-93 fallan, el cierre se completa y quedan PENDIENTE_GENERACION (CA-11)."""
+    def _reportes(self, periodo: Periodo, id_usuario: int,
+                  excluidos: list) -> tuple[dict, dict | None, ConciliacionError | None]:
+        """Paso 8: si RF-92 o RF-93 fallan, el cierre se completa y quedan PENDIENTE_GENERACION (CA-11). Si el estado
+        no cuadra con sus fuentes (RF-93 FA-2), la discrepancia queda en RF-94 con el cierre y se avisa al terminar."""
         estado = {"estado_resultados": "PENDIENTE_GENERACION", "informe_revelaciones": "PENDIENTE_GENERACION"}
+        informe = discrepancia = None
         try:
             with self.db.begin_nested():
                 er = self.estado_resultados.guardar(periodo.id_periodo_contable, {}, id_usuario, excluidos)
             estado["estado_resultados"] = {"id_estado": er["id_estado"], "resultado_neto": str(er["resultado_neto"])}
+        except ConciliacionError as exc:
+            discrepancia = exc
+            estado["motivo_estado_resultados"] = exc.message
+            self.contabilizador.auditar(exc.evento(id_usuario))
         except Exception:
             logger.exception("RF-87 paso 8: no se pudo generar el estado de resultados del período %s.", periodo.id_periodo_contable)
         try:
@@ -501,8 +576,9 @@ class EjecutarCierrePeriodoUseCase:
                 informe = self.revelaciones.guardar(periodo.id_periodo_contable, {}, id_usuario)
             estado["informe_revelaciones"] = {"id_informe": informe["id_informe"], "version": informe["version_informe"]}
         except Exception:
+            informe = None
             logger.exception("RF-87 paso 8: no se pudo generar el informe de revelaciones del período %s.", periodo.id_periodo_contable)
-        return estado
+        return estado, informe, discrepancia
 
     def _fallar(self, id_periodo, id_cierre, paso, exc, id_usuario) -> None:
         try:

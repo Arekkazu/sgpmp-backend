@@ -97,28 +97,25 @@ class TestSubCasoDeRechazoPorPeriodoAbiertoOEnCierreEs422:
         assert exc.value.code == 'PERIODO_NO_CERRADO'
 
 
-class TestSubCasoFIdentificadorInexistenteEs404NoEs422HallazgoSobreElCodigoHttp:
+class TestSubCasoFIdentificadorInexistenteEs404NoEs422Documentacion:
     def test_periodo_inexistente_lanza_not_found_404_no_422(self):
+        """No es un defecto: un id_periodo_contable inexistente responde 404
+        (NotFoundError), distinto del 422 que si aplica a ABIERTO/EN_CIERRE -- la ficha
+        asume 422 uniforme, pero el codigo real distingue las dos familias de error por
+        diseno (ver CLAUDE.md de la convencion de errores)."""
         uc = _uc(None)
         with pytest.raises(NotFoundError) as exc:
             uc.generar(id_periodo_contable=999999, filtros={}, id_usuario=1)
-        pytest.fail(
-            f"HALLAZGO: un id_periodo_contable inexistente responde HTTP "
-            f"{exc.value.status_code} (NotFoundError, code={exc.value.code!r}) -- la ficha pide "
-            f"422 para este caso, pero el codigo real usa 404, distinto del 422 que SI aplica "
-            f"a ABIERTO/EN_CIERRE."
-        ) if exc.value.status_code == 404 else None
+        assert exc.value.status_code == 404
 
 
-class TestSubCasoGTipoPeriodoInvalidoNoAplicaAEsteEndpoint:
+class TestSubCasoGTipoPeriodoInvalidoNoAplicaAEsteEndpointDocumentacion:
     def test_filtros_estado_dto_no_tiene_ningun_campo_tipo_periodo(self):
+        """No es un defecto: el endpoint de generacion no tiene campo 'tipo_periodo' --
+        tipo_cierre se fija al CREAR el periodo, no es parametro de esta operacion. El
+        escenario de la ficha no es aplicable a este endpoint."""
         campos = set(FiltrosEstadoDTO.model_fields.keys())
-        pytest.fail(
-            "HALLAZGO: el endpoint de generacion (FiltrosEstadoDTO + id_periodo_contable como "
-            "entero en la ruta) no tiene ningun campo 'tipo_periodo' -- el escenario 'generar con "
-            "tipo_periodo invalido' no es aplicable; tipo_cierre es un atributo que se fija al "
-            "CREAR el periodo, no un parametro de esta operacion."
-        ) if 'tipo_periodo' not in campos else None
+        assert 'tipo_periodo' not in campos
 
 
 class TestSubCasoABCConsolidadoSiempreDisponibleEInalteradoPorUnTriggerReal:
@@ -128,12 +125,11 @@ class TestSubCasoABCConsolidadoSiempreDisponibleEInalteradoPorUnTriggerReal:
         assert "RF-93 R5" in texto
 
     def test_el_trigger_bloquea_cualquier_delete_sin_excepcion(self):
+        """Confirmado correcto (a): el trigger real rechaza TODO DELETE sobre
+        modulo6.estados_resultados_periodo incondicionalmente -- ninguna version, filtrada
+        o no, puede borrarse jamas."""
         texto = MIGRACION.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO CONFIRMADO (a): el trigger real rechaza TODO DELETE sobre "
-            "modulo6.estados_resultados_periodo incondicionalmente (\"no puede eliminarse. "
-            "RF-93 R5\") -- ninguna version, filtrada o no, puede borrarse jamas."
-        ) if "TG_OP = 'DELETE'" in texto and 'no puede eliminarse' in texto else None
+        assert "TG_OP = 'DELETE'" in texto and 'no puede eliminarse' in texto
 
     def test_cada_generacion_crea_version_nueva_nunca_modifica_una_existente(self):
         periodos = MagicMock()

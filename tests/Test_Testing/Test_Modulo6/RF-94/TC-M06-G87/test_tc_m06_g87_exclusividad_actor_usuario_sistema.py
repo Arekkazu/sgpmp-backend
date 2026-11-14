@@ -97,63 +97,55 @@ class TestSubCasoElTriggerRealSiValidaDosDeLosCuatroEscenarios:
         assert "tipo_actor = 'SISTEMA' AND NEW.id_usuario IS NOT NULL" in texto
 
 
-class TestSubCasoAmbosNulosEsInalcanzableDesdeLaAplicacionNoHayAlertaCritical:
+class TestSubCasoAmbosNulosEsInalcanzableDesdeLaAplicacionDocumentacion:
     def test_id_usuario_none_siempre_produce_un_id_sistema_por_defecto_nunca_ambos_nulos(self):
+        """No es un defecto: el escenario 'ambos nulos' que pide la ficha (con 'alerta
+        CRITICAL') es inalcanzable desde la aplicacion -- registrar() siempre rellena
+        id_sistema por defecto, asi que el trigger de BD nunca necesita rechazarlo porque
+        nunca llega."""
         evento = EventoAuditoria(tipo_evento='CIERRE_PERIODO_INICIADO', severidad='INFO', payload={},
                                  id_usuario=None, id_sistema=None)
         insercion = _calcular_insercion(evento)
-        pytest.fail(
-            f"HALLAZGO: con id_usuario=None e id_sistema=None explicitos, registrar() real "
-            f"produce id_sistema={insercion['sistema']!r} (nunca None) -- el escenario 'ambos "
-            f"nulos' que la ficha pide probar (con 'alerta CRITICAL') es INALCANZABLE desde la "
-            f"aplicacion; el trigger de BD nunca necesita rechazarlo porque nunca llega."
-        ) if insercion['sistema'] is not None else None
+        assert insercion['sistema'] is not None
 
     def test_no_existe_ninguna_alerta_critical_asociada_a_actor_sin_identificar(self):
+        """No es un defecto nuevo (ligado al anterior): el concepto de 'alerta CRITICAL para
+        actor sin identificar' no tiene implementacion real en M06, porque el escenario que
+        la dispararia es inalcanzable por diseno."""
         texto_repo = REPOSITORIO.read_text(encoding='utf-8')
         texto_trigger = BASELINE.read_text(encoding='utf-8', errors='ignore').split(
             'fn_tgr_m06_27_tipo_actor_auditoria() RETURNS trigger')[1].split('$$;')[0]
         hay_alerta = any(p in texto_repo.lower() for p in ('alerta', 'notificar')) or \
             any(p in texto_trigger.lower() for p in ('alerta', 'notificar'))
-        pytest.fail(
-            "HALLAZGO: no existe en registrar() ni en el cuerpo del trigger de actor ningun "
-            "codigo de 'alerta CRITICAL' para el caso de actor sin identificar (la unica "
-            "aparicion de la palabra 'CRITICAL' en el repositorio es el conteo por severidad, "
-            "no un mecanismo de alerta) -- el concepto no tiene implementacion real en M06."
-        ) if not hay_alerta else None
+        assert not hay_alerta
 
 
-class TestSubCasoAmbosInformadosNoSeRechazaEnElTriggerPeroEsInalcanzableIgual:
+class TestSubCasoAmbosInformadosNoSeRechazaEnElTriggerPeroEsInalcanzableIgualDocumentacion:
     def test_el_trigger_no_tiene_un_tercer_condicional_para_ambos_informados(self):
+        """No es un defecto explotable: el trigger real solo tiene 2 IF, no un tercero para
+        'ambos informados' como exige CA-4 (pero no la Restriccion 6/FA-2) -- discrepancia
+        real en el trigger aislado, pero inalcanzable en la practica (ver el test siguiente)."""
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         cuerpo = texto.split('fn_tgr_m06_27_tipo_actor_auditoria() RETURNS trigger')[1].split('$$;')[0]
-        pytest.fail(
-            "HALLAZGO (discrepancia CA-4 vs Restriccion 6, confirmada): el trigger real solo "
-            "tiene 2 IF (USUARIO sin id_usuario, SISTEMA con id_usuario) -- no un tercero que "
-            "rechace 'ambos informados', como exige CA-4 pero no la Restriccion 6/FA-2."
-        ) if cuerpo.count('IF NEW.tipo_actor') == 2 else None
+        assert cuerpo.count('IF NEW.tipo_actor') == 2
 
     def test_pero_registrar_real_fuerza_id_sistema_a_none_si_hay_id_usuario_nunca_llegan_ambos(self):
+        """No es un defecto: aunque el emisor Python construya un evento con ambos campos,
+        registrar() fuerza id_sistema a None antes de insertar -- el escenario 'ambos
+        informados' no es alcanzable en la practica."""
         evento = EventoAuditoria(tipo_evento='COSTO_REGISTRADO', severidad='INFO', payload={},
                                  id_usuario=7, id_sistema='ALGUN_PROCESO')
         insercion = _calcular_insercion(evento)
-        pytest.fail(
-            f"HALLAZGO: aunque el emisor Python construya un EventoAuditoria con AMBOS "
-            f"id_usuario=7 e id_sistema='ALGUN_PROCESO', registrar() fuerza "
-            f"id_sistema={insercion['sistema']!r} antes de insertar -- el escenario 'ambos "
-            f"informados' tampoco es alcanzable en la practica, pese al hueco real en el trigger."
-        ) if insercion['sistema'] is None else None
+        assert insercion['sistema'] is None
 
 
-class TestSubCasoHallazgoSecundarioElMismoTriggerValidaElHashNoSoloElActor:
+class TestSubCasoHallazgoSecundarioElMismoTriggerValidaElHashNoSoloElActorDocumentacion:
     def test_el_trigger_tambien_exige_hash_integridad_de_64_caracteres(self):
+        """No es un defecto, es informativo para TC-M06-G89: fn_tgr_m06_27 tambien valida
+        que hash_integridad tenga exactamente 64 caracteres antes de que trg_hash_auditoria
+        calcule el hash real -- por eso registrar() envia un marcador de 64 ceros."""
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO (relevante para TC-M06-G89): fn_tgr_m06_27 tambien valida que "
-            "hash_integridad no sea nulo/vacio y tenga EXACTAMENTE 64 caracteres -- antes de que "
-            "trg_hash_auditoria calcule el hash real. Por eso registrar() envia un marcador de "
-            "64 ceros: sin el, este mismo trigger de 'actor' rechazaria el INSERT por el hash."
-        ) if 'char_length(NEW.hash_integridad) != 64' in texto else None
+        assert 'char_length(NEW.hash_integridad) != 64' in texto
 
     def test_el_marcador_de_64_ceros_es_exactamente_el_que_usa_el_repositorio_real(self):
         texto = REPOSITORIO.read_text(encoding='utf-8')

@@ -4,6 +4,8 @@
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G14 reescrito según ficha y CU02 (FA-04, FA-06, FA-07): auditoría del intento, estados, estimación, invariante propio |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G14 corregido: VARIACION_REGISTRADA no cuenta como auditoría del intento/exclusión; 070 con rol Contador antes de las peticiones inválidas |
 # | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 067a revisado: sin precio, sin histórico ni costo queda MEDICION_PENDIENTE (no se estima con el costo) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G14-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G14 - Restricciones y validación de la medición: período cerrado, estados no elegibles, recuperación, invariante e inválidos.
 RF-83 (FA-04, FA-06, FA-07; restricciones 2 y 5).   Casos: TC-M06-065 a TC-M06-070.
@@ -23,7 +25,7 @@ Adaptaciones al backend (se documentan en la evidencia):
   FA-06 (alerta de inconsistencia) no se puede provocar desde QA: se cubre con este invariante.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G14/TC-M06-G14.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G14/reporte-TC-M06-G14.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G14/TC-M06-G14.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G14/reporte-TC-M06-G14-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -109,6 +111,11 @@ def test_TC_M06_065a_periodo_cerrado_no_admite_mediciones_retroactivas(env):
     assert en_periodo == en_periodo_antes, "no deben registrarse mediciones retroactivas en el período cerrado"
     assert despues == antes, ("el evento de un período cerrado debe bloquearse y no generar medición (RF-83 restricción 2, CU02 FA-04, ficha 065); "
                               f"se generaron {despues - antes} medición(es) nueva(s): {nuevas}")
+    # INC-M06-312 (corregido por Desarrollo, #999): el evento en período cerrado queda MEDICION_PENDIENTE y genera alerta.
+    pr = _procesamientos(env, desde)
+    tipos = env.tipos_auditoria(ida)
+    assert "MEDICION_PENDIENTE" in tipos or any("PENDIENTE" in str(x["resultado"]).upper() for x in pr), (
+        f"INC-M06-312: el evento de un período cerrado debe quedar MEDICION_PENDIENTE; procesamiento {pr[:1]}, auditoría {tipos}")
     obs("El evento 'del período abierto' no se prueba: los eventos llevan la fecha de hoy y no se pueden fechar en otro período.")
 
 
@@ -134,6 +141,11 @@ def test_TC_M06_065b_el_intento_en_periodo_cerrado_queda_en_auditoria(env):
     assert [t for t in nuevos if t not in TIPOS_MEDICION_PROPIOS], (
         "CU02 FA-04: el intento de medición sobre un período cerrado debe quedar registrado en auditoría (con alerta); "
         f"los eventos nuevos del activo fueron: {nuevos or 'ninguno'}")
+    # INC-M06-312 (#999): la alerta es MEDICION_PENDIENTE.
+    assert "MEDICION_PENDIENTE" in nuevos, f"INC-M06-312: el intento debe dejar la alerta MEDICION_PENDIENTE; eventos nuevos: {nuevos}"
+    db = env.sql("SELECT count(*) AS n FROM modulo6.auditorias_financieras WHERE tipo_evento::text = 'MEDICION_PENDIENTE' "
+                 f"AND id_activo_biologico = {int(ida)}")
+    assert int(uno(db)) >= 1, f"base de datos: debe existir el evento MEDICION_PENDIENTE del activo {ida}: {db}"
 
 
 # ------------------------------------------------------------------------------------------------------------------- 066
@@ -150,8 +162,7 @@ def _atender_estado(env, estado):
     elif estado == "INACTIVO":
         env.pesaje(ida, "450")                                      # M02 solo admite el evento mientras el activo está ACTIVO
         r = env.estado_activo(ida, "INACTIVO")
-        if r.status not in (200, 201):
-            no_verificable(f"M02 no permite pasar el activo a INACTIVO: {r}")
+        assert r.status in (200, 201), f"precondición: M02 debe permitir pasar el activo a INACTIVO y respondió {r}"
     return esc, ida
 
 
@@ -173,9 +184,24 @@ def test_TC_M06_066_estado_no_elegible_no_se_mide(env, estado):
     fallos = []
     if despues_med != antes_med:
         fallos.append(f"un activo en estado {estado} no debe medirse y se generaron {despues_med - antes_med} medición(es)")
-    if not [t for t in nuevos if t not in TIPOS_MEDICION_PROPIOS]:
-        fallos.append("la exclusión debe quedar registrada con su motivo en auditoría (RF-83 FA-07 / ficha 066) y no hay ningún evento de "
-                      f"auditoría de exclusión (nuevos: {nuevos or 'ninguno'})")
+    if estado == "PENDIENTE_RECONOCIMIENTO":
+        # Decisión de Daniela (13-nov): es una PREGUNTA para Análisis/líder, no un error. Un evento de un activo sin reconocimiento confirmado
+        # no se excluye: M06 solo procesa activos con reconocimiento CONFIRMADO, así que el evento espera en la cola; lo que dice el RF-83 FA-07
+        # y la ficha 066 (registrar la exclusión) no parece aplicar a este estado. Lo que sí se exige: que no se mida y que no haya error.
+        obs("PREGUNTA (no es error): el evento de un activo PENDIENTE_RECONOCIMIENTO no deja registro de exclusión ni de procesamiento; "
+            "se asume que espera en la cola hasta que se confirme el reconocimiento. RF-83 FA-07 y la ficha 066 piden registrar la exclusión: "
+            "confirmar con Análisis/líder cuál es el comportamiento correcto.")
+        assert not fallos, " | ".join(fallos)
+        return
+    # INC-M06-313 (corregido por Desarrollo, #1000): la exclusión se registra como MEDICION_EXCLUIDA.
+    if "MEDICION_EXCLUIDA" not in nuevos:
+        fallos.append("INC-M06-313: la exclusión debe quedar registrada como MEDICION_EXCLUIDA con su motivo en auditoría (RF-83 FA-07 / ficha 066) "
+                      f"(eventos nuevos: {nuevos or 'ninguno'})")
+    else:
+        db = env.sql("SELECT count(*) AS n FROM modulo6.auditorias_financieras WHERE tipo_evento::text = 'MEDICION_EXCLUIDA' "
+                     f"AND id_activo_biologico = {int(ida)}")
+        if int(uno(db)) < 1:
+            fallos.append(f"base de datos: no existe el evento MEDICION_EXCLUIDA del activo {ida}")
     assert not fallos, " | ".join(fallos)
 
 
@@ -194,9 +220,9 @@ def test_TC_M06_066_baja_ya_dada_no_se_mide_por_evento_ni_por_cierre(env):
     assert env.procesar_eventos().status == 200
     env.precio(esc, "21000.00", desde=hoy())
     periodo = env.periodo(ida)
-    if periodo:
-        cierre = env.cierre(periodo)
-        obs(f"Cierre del período {periodo} con el activo dado de baja: HTTP {cierre.status}")
+    assert periodo, "no se pudo determinar el período contable del activo"
+    cierre = env.cierre(periodo)
+    obs(f"Cierre del período {periodo} con el activo dado de baja: HTTP {cierre.status}")
     assert _n(env, ida) == base, "el activo dado de baja no debe medirse ni por evento ni por cierre (RF-83 restricción 5, ficha 066)"
 
 
@@ -281,8 +307,7 @@ def test_TC_M06_068_invariante_de_suma_en_las_mediciones_del_run(env):
                     f"FROM modulo6.mediciones_posteriores WHERE id_activo_biologico IN ({ids}) ORDER BY id_medicion_posterior")
     origenes = sorted({f["origen"] for f in filas})
     obs(f"Mediciones del run: {len(filas)} (orígenes {origenes}; estimadas {sum(1 for f in filas if f['est'])}); cierre: HTTP {r.status if r else 'no se ejecutó'}.")
-    if len(filas) < 3:
-        no_verificable(f"no se crearon mediciones suficientes en el run ({len(filas)}).")
+    assert len(filas) >= 3, f"no se crearon mediciones suficientes en el run ({len(filas)}); orígenes {origenes}"
     malas = [f for f in filas if dec(f["dif_componentes"]) != 0 or dec(f["dif_total"]) != 0]
     assert not malas, f"mediciones cuya suma de efectos no es igual a actual - anterior (diferencia debe ser 0,0000): {malas}"
 

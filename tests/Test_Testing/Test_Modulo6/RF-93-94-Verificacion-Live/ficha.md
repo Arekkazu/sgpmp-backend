@@ -40,13 +40,26 @@ Confirmado con el ciclo completo en TEST:
 reproducir el ciclo GENERADO→APROBADO completo con ese id; solo la mitad "ya aprobado". Si se necesita
 repetir el ciclo completo, usar otro `id_estado` todavía en `GENERADO` (verificar primero con el Contador).
 
-## Otros hallazgos reconfirmados en código corriendo (sin cambios)
+## Actualización 2026-11-14 — rol Auditor confirmado en vivo
+
+El usuario proporcionó una cuenta real del rol Auditor (`auditor.rol@gmail.com`, `id_rol=81`), creado por
+el DBA en TEST el 2026-11-13 (issue #1087, INC-M06-361-G93b). Confirmado en vivo:
+- Login funciona; el rol tiene acceso real a `GET /finanzas/auditoria`, `/finanzas/activos` y
+  `/finanzas/lineas` — más permisos de los que la migración `810b1e4eb4f9` por sí sola otorgaría (el DBA
+  configuró el RBAC completo al crear el rol, no solo lo automático de esa migración).
+- **El mismo hueco de alcance por período/titular (INC-M06-012) también afecta al Auditor**: puede
+  consultar auditoría de un período de un titular (NIT) sin ninguna relación con él, igual que
+  Contador/Revisor Fiscal — confirma que el gap es transversal a los 3 roles con acceso, no solo a 2.
+- El Auditor **no** tiene permiso sobre `estado_resultados` (403) — consistente con su alcance (auditoría +
+  reconocimiento + trazabilidad, no Estado de Resultados); no es un hallazgo, es el diseño esperado.
+
+## Otros hallazgos reconfirmados en código corriendo
 
 - **INC-M06-003 (G04, RF-93):** `GET /finanzas/reconciliation-check` y `GET /finanzas/alerts` siguen sin
   existir (404) — no hay mecanismo de conciliación/alerta.
-- **INC-M06-012 (TC23, RF-94):** el catálogo real de roles sigue sin "Auditor"; Productor sigue con `403`;
-  Revisor Fiscal (quien sí tiene el permiso) puede consultar auditoría de un período de UN TITULAR
-  DISTINTO al suyo sin ningún filtro — confirma que sigue sin existir alcance por período/titular propio.
+- **INC-M06-012 (TC23, RF-94) — rol Auditor: CERRADO** (ver arriba); **alcance por período/titular: SIGUE
+  ABIERTO** — Revisor Fiscal, Auditor (y por extensión Contador) pueden consultar auditoría de un período
+  de un titular distinto al suyo sin ningún filtro.
 - **INC-M06-013 (TC24, RF-94):** en `formato=TECNICO`, el campo `modulo` del evento es siempre `"M06"` y
   `origen_registro` siempre `"REPOSITORIO"` — confirma que no existe repositorio centralizado cross-módulo
   ni mecanismo de fallback real. `GET /api/v1/audit/events` sigue sin existir (404).

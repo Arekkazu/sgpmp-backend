@@ -11,19 +11,36 @@ Código bajo prueba:
     src/financial_valuation/infrastructure/routers/m06_router.py (Query "formato", dependencies=[permiso(...)])
     alembic/versions/c4d81e6f2a95_m06_nic41_esquema_rfc018.py (_ROLES, _MATRIZ_PERMISOS['auditoria_financiera'])
 
-HALLAZGO (el parámetro real se llama ``formato``, no ``formato_respuesta``):
-el router define `formato: str = Query("LEGIBLE", pattern="^(LEGIBLE|TECNICO)$")`
--- la ficha asume un parámetro `formato_respuesta` que no existe con ese
-nombre en ningún lugar del código real.
+PARCIALMENTE CORREGIDO -- este archivo documenta varios hallazgos de INC-M06-012
+(TC23); al 2026-11-13 el estado es mixto:
+- "formato" vs "formato_respuesta" -- nunca fue un bug, solo diferencia de nombre
+  con la ficha (reescrito abajo como assert).
+- Rol "Auditor" inexistente -- CERRADO (issue #1087, INC-M06-361-G93b): el DBA lo
+  creó directamente en TEST (`id_rol=81`) el 2026-11-13. Es un cambio de datos, no
+  de código, así que el catálogo `_ROLES` de esta migración sigue igual a
+  propósito (reescrito abajo para no reclamarlo como hallazgo abierto).
+  CONFIRMADO EN VIVO 2026-11-14 (cuenta real `auditor.rol@...`, rol id=81): login
+  funciona y el rol SÍ tiene acceso real a `GET /finanzas/auditoria`,
+  `/finanzas/activos` y `/finanzas/lineas` -- más permisos de los que la
+  migración `810b1e4eb4f9` por sí sola otorgaría (el DBA configuró el RBAC
+  completo al crear el rol). No tiene permiso sobre `estado_resultados` (403),
+  consistente con su alcance (auditoría + reconocimiento + trazabilidad, no
+  Estado de Resultados).
+- Alcance por período/titular (Contador ve TODOS los períodos de TODOS los
+  titulares) -- SIGUE ABIERTO, confirmado explícitamente por el equipo de
+  desarrollo como `#1085` (INC-M06-360-G93), etiqueta `pendiente-analisis`: "cambia
+  el modelo de acceso de M06 (ninguna tabla de M06 filtra hoy por titular)".
+  CONFIRMADO EN VIVO 2026-11-14: el mismo hueco afecta también al Auditor real
+  (ve auditoría del período 219/NIT 900000002 sin ninguna relación con ese
+  titular) -- el gap es transversal a los 3 roles con acceso, no solo a 2.
+- Formato de moneda/hora local en la vista legible, y la rama muerta de
+  "Sincronizado desde respaldo" -- sin evidencia de corrección, siguen abiertos.
 
-HALLAZGO GRAVE (no existe ningún rol llamado "Auditor" en todo el sistema):
-el catálogo real de roles (`_ROLES` en la migración `c4d81e6f2a95`) es
-exactamente `{1: Administrador, 2: Productor, 5: Contador, 8: Revisor
-Fiscal}`. La matriz real de permisos para este recurso,
-`'auditoria_financiera': {5: (2,), 1: (2,), 8: (2,)}`, da acceso de SOLO
-LECTURA (acción 2=R) a los roles 5 (Contador), 1 (Administrador) y 8
-(Revisor Fiscal) -- el tercer rol con acceso real es "Revisor Fiscal", NO
-"Auditor" como asume la ficha. El rol 2 (Productor) está AUSENTE de esta
+Catálogo real de roles (`_ROLES` en la migración `c4d81e6f2a95`, histórico, sigue
+así): `{1: Administrador, 2: Productor, 5: Contador, 8: Revisor Fiscal}`. La matriz
+real de permisos para este recurso, `'auditoria_financiera': {5: (2,), 1: (2,),
+8: (2,)}`, da acceso de SOLO LECTURA (acción 2=R) a los roles 5 (Contador), 1
+(Administrador) y 8 (Revisor Fiscal). El rol 2 (Productor) está AUSENTE de esta
 matriz: no tiene ningún acceso a este recurso, ni siquiera de lectura.
 
 HALLAZGO (no existe ninguna restricción de alcance por período ni por
@@ -107,25 +124,25 @@ def _caso_de_uso(eventos=None):
     return ConsultarAuditoriaFinancieraUseCase(auditoria=auditoria), auditoria
 
 
-class TestSubCasoElParametroRealSeLlamaFormatoNoFormatoRespuestaHallazgo:
+class TestSubCasoElParametroRealSeLlamaFormatoNoFormatoRespuesta:
     def test_el_router_real_usa_query_formato_no_formato_respuesta(self):
+        """No es un defecto, solo una diferencia de nombre con la ficha."""
         texto = ROUTER.read_text(encoding='utf-8')
-        pytest.fail(
-            'HALLAZGO: el router real define formato: str = Query("LEGIBLE", '
-            'pattern="^(LEGIBLE|TECNICO)$") -- no existe ningun parametro llamado '
-            "formato_respuesta como asume la ficha."
-        ) if 'formato: str = Query("LEGIBLE"' in texto and 'formato_respuesta' not in texto else None
+        assert 'formato: str = Query("LEGIBLE"' in texto
+        assert 'formato_respuesta' not in texto
 
 
-class TestSubCasoNoExisteNingunRolLlamadoAuditorHallazgoGrave:
-    def test_el_catalogo_real_de_roles_no_tiene_ningun_auditor(self):
+class TestSubCasoRolAuditorCerradoComoDatoEnTestNoEnElCodigo:
+    def test_el_catalogo_de_la_migracion_sigue_sin_auditor_pero_eso_ya_no_es_el_hallazgo(self):
+        """CERRADO 2026-11-13 (issue #1087, INC-M06-361-G93b): el DBA creo el rol 'Auditor'
+        directamente en TEST (id_rol=81) -- es una tarea de datos, no de codigo, asi que
+        nunca aparecera en el catalogo _ROLES de esta migracion (ese catalogo es historico,
+        del momento en que se escribio c4d81e6f2a95). Esta prueba ya no puede confirmar en
+        vivo que el rol existe (no hay BD aqui); documenta el hecho de codigo (que sigue
+        igual) sin reclamarlo como un hallazgo abierto."""
         texto = MIGRACION.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO GRAVE: el catalogo real de roles (_ROLES) es "
-            "{1: Administrador, 2: Productor, 5: Contador, 8: Revisor Fiscal} -- no existe NINGUN "
-            "rol llamado 'Auditor' en todo el sistema. El tercer rol con acceso de lectura real a "
-            "RF-94 es 'Revisor Fiscal', no 'Auditor' como asume la ficha."
-        ) if "'Revisor Fiscal'" in texto and 'Auditor' not in texto.replace('Revisor Fiscal', '').replace('auditoria', '').replace('Auditoría', '') else None
+        assert "'Revisor Fiscal'" in texto
+        assert "'Auditor'" not in texto  # correcto: el rol vive en datos de TEST, no en esta migracion
 
     def test_la_matriz_real_da_lectura_a_contador_administrador_y_revisor_fiscal(self):
         texto = MIGRACION.read_text(encoding='utf-8', errors='ignore')

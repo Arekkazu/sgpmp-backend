@@ -18,6 +18,10 @@
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: listas del período filtradas por el titular (NIT validado) |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 # | 2026-11-12 | Arekkazu | TC-DIS-256 RF-91: las líneas también las lee quien solo consulta la trazabilidad (auditor externo) |
+# | 2026-11-13 | Arekkazu | INC-M06-90-G97 RF-88: depreciación lineal consultable de un activo al costo |
+# | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
+# | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
+# | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -26,11 +30,11 @@ migración ``c4d81e6f2a95``) y acciones C=1, R=2, U=3, D=4, E=5. El Contador tie
 el Administrador, el Productor y el Revisor Fiscal, el que les da la matriz de esa migración."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.application.use_cases.costos.registrar_costo_use_case import SolicitudCosto
@@ -61,7 +65,7 @@ from src.financial_valuation.infrastructure.dto.m06_dto import (
     ValidarCalculoDTO,
 )
 from src.financial_valuation.infrastructure.factories.m06_factory import M06
-from src.financial_valuation.infrastructure.rbac_auditoria import require_alguno_m06, require_permission_m06
+from src.financial_valuation.infrastructure.rbac_auditoria import denegar_m06, require_alguno_m06, require_permission_m06
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.errors import ConflictError, NotFoundError
@@ -533,6 +537,15 @@ def registrar_deterioro(id_activo_biologico: int, dto: DeterioroDTO, m: M06 = De
                                            dto.justificacion, usuario.id_usuario)
 
 
+@router.get("/activos/{id_activo_biologico}/depreciacion", tags=[TAG_COSTO],
+            dependencies=[Depends(permiso("valoracion_por_costo", R))],
+            summary="Depreciación en línea recta de un activo valorado por costo a una fecha, sin registrarla")
+def consultar_depreciacion(id_activo_biologico: int,
+                           fecha: Optional[date] = Query(None, description="Fecha del cálculo; por omisión, hoy."),
+                           m: M06 = Depends(_m06)) -> dict:
+    return m.consultar_depreciacion().execute(id_activo_biologico, fecha or hoy_usuario())
+
+
 @router.post("/activos/{id_activo_biologico}/valor-razonable", tags=[TAG_COSTO],
              dependencies=[Depends(permiso("valoracion_por_costo", U))],
              summary="Pasar del modelo de costo a valor razonable (NIC 41 ¶30)")
@@ -587,11 +600,22 @@ def verificar_trazabilidad(id_periodo_contable: int, m: M06 = Depends(_m06),
     return m.verificar_trazabilidad().execute(id_periodo_contable, usuario.id_usuario)
 
 
+def _si_existe_negar(request: Request, m: M06, usuario: UsuarioActual, id_periodo: Optional[int], recurso: str,
+                     mensaje: str) -> None:
+    """RFC-027 (RF-91/92 CA-10): quien solo lee (Revisor Fiscal) no ve por RLS lo abierto ni los borradores. Si el
+    registro existe y su período es de su alcance, la respuesta es 403; si no existe o es de otro titular, 404."""
+    if id_periodo is not None and m.periodos.obtener(id_periodo) is not None:
+        denegar_m06(request, m.db, usuario, recurso, R, mensaje)
+
+
 @router.get("/lineas/{id_linea}/cadena", tags=[TAG_TRAZA], dependencies=[Depends(permiso("trazabilidad_contable", R))],
             summary="Cadena navegable de una línea: evidencia, evento, valoración y asiento")
-def cadena(id_linea: int, m: M06 = Depends(_m06)) -> dict:
+def cadena(id_linea: int, request: Request, m: M06 = Depends(_m06),
+           usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     resultado = m.trazabilidad.cadena(id_linea)
     if resultado is None:
+        _si_existe_negar(request, m, usuario, m.trazabilidad.periodo_de_linea(id_linea), "trazabilidad_contable",
+                         "Acceso denegado: su rol solo consulta la trazabilidad de los períodos cerrados.")
         raise NotFoundError(code="LINEA_NO_ENCONTRADA", message="La línea de asiento no existe.")
     return resultado
 
@@ -616,9 +640,11 @@ def acumulado_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO = Depends()
 
 @router.get("/estados-resultados/{id_estado}", tags=[TAG_REP], dependencies=[Depends(permiso("estado_resultados", R))],
             summary="Detalle de un estado de resultados")
-def obtener_estado(id_estado: int, m: M06 = Depends(_m06)) -> dict:
+def obtener_estado(id_estado: int, request: Request, m: M06 = Depends(_m06),
+                   usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     estado = m.reportes.obtener_estado(id_estado)
     if estado is None:
+        _negar_estado_oculto(request, m, usuario, id_estado)
         raise NotFoundError(code="ESTADO_RESULTADOS_NO_ENCONTRADO", message="El estado de resultados no existe.")
     return estado
 
@@ -639,8 +665,18 @@ def aprobar_estado(id_estado: int, m: M06 = Depends(_m06), usuario: UsuarioActua
 
 @router.get("/estados-resultados/{id_estado}/descarga", tags=[TAG_REP],
             dependencies=[Depends(permiso("estado_resultados", R))], summary="Descargar el estado aprobado (pdf o excel)")
-def descargar_estado(id_estado: int, formato: str = Query("pdf", pattern="^(pdf|excel)$"), m: M06 = Depends(_m06)) -> Response:
-    return _descarga(*m.exportar().estado_resultados(id_estado, formato))
+def descargar_estado(id_estado: int, request: Request, formato: str = Query("pdf", pattern="^(pdf|excel)$"),
+                     m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    try:
+        return _descarga(*m.exportar().estado_resultados(id_estado, formato))
+    except NotFoundError:
+        _negar_estado_oculto(request, m, usuario, id_estado)
+        raise
+
+
+def _negar_estado_oculto(request: Request, m: M06, usuario: UsuarioActual, id_estado: int) -> None:
+    _si_existe_negar(request, m, usuario, m.reportes.periodo_de_estado(id_estado), "estado_resultados",
+                     "Acceso denegado: su rol solo consulta los estados de resultados aprobados.")
 
 
 @router.get("/periodos/{id_periodo_contable}/revelaciones", tags=[TAG_REP],
@@ -651,9 +687,11 @@ def listar_informes(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[di
 
 @router.get("/revelaciones/{id_informe}", tags=[TAG_REP], dependencies=[Depends(permiso("revelaciones_nic41", R))],
             summary="Detalle del informe de revelaciones")
-def obtener_informe(id_informe: int, m: M06 = Depends(_m06)) -> dict:
+def obtener_informe(id_informe: int, request: Request, m: M06 = Depends(_m06),
+                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     informe = m.reportes.obtener_informe(id_informe)
     if informe is None:
+        _negar_informe_oculto(request, m, usuario, id_informe)
         raise NotFoundError(code="INFORME_NO_ENCONTRADO", message="El informe no existe.")
     return informe
 
@@ -677,8 +715,19 @@ def resolver_informe(id_informe: int, dto: ResolverInformeDTO, m: M06 = Depends(
 
 @router.get("/revelaciones/{id_informe}/descarga", tags=[TAG_REP], dependencies=[Depends(permiso("revelaciones_nic41", R))],
             summary="Descargar el informe aprobado (pdf o excel)")
-def descargar_informe(id_informe: int, formato: str = Query("pdf", pattern="^(pdf|excel)$"), m: M06 = Depends(_m06)) -> Response:
-    return _descarga(*m.exportar().informe(id_informe, formato))
+def descargar_informe(id_informe: int, request: Request, formato: str = Query("pdf", pattern="^(pdf|excel)$"),
+                      m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    try:
+        return _descarga(*m.exportar().informe(id_informe, formato))
+    except NotFoundError:
+        _negar_informe_oculto(request, m, usuario, id_informe)
+        raise
+
+
+def _negar_informe_oculto(request: Request, m: M06, usuario: UsuarioActual, id_informe: int) -> None:
+    """RFC-027: el informe existe pero la RLS se lo oculta por estado a quien solo lee (no aprobado ni archivado)."""
+    _si_existe_negar(request, m, usuario, m.reportes.periodo_de_informe(id_informe), "revelaciones_nic41",
+                     "Acceso denegado: su rol solo consulta los informes aprobados o archivados.")
 
 
 # --- Auditoría (RF-94) ---------------------------------------------------------------------------------------
@@ -697,3 +746,10 @@ def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
                "id_activo_biologico": id_activo_biologico, "severidad": severidad, "id_usuario": id_usuario,
                "id_referencia": id_referencia, "origen_registro": origen_registro, "desde": desde, "hasta": hasta}
     return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE", orden == "DESC")
+
+
+@router.get("/auditoria/usuarios", tags=["M06 · Auditoría financiera"],
+            dependencies=[Depends(permiso("auditoria_financiera", R))],
+            summary="Usuarios con eventos en la auditoría del período, para el filtro por usuario")
+def usuarios_auditoria(id_periodo_contable: int = Query(..., gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    return m.consultar_auditoria().actores(id_periodo_contable)

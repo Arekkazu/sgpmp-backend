@@ -2,6 +2,8 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-84: script del grupo TC-M06-G19 (pytest + sandbox, rol Contador) |
 # | 2026-11-11 | Daniela Castillo | M06 RF-84: 091 y 093 reescritos: tipo_costo ya no se valida como campo, se cumple por construcción (la naturaleza la deriva RF-90); 092 sin cambios |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G19-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G19 - Tipificación de costos: tipo_costo VENTA y exclusión de MANTENIMIENTO.   RF-84 (CU03 FA-04) y RF-90.   Casos: TC-M06-091 a TC-M06-093.
 
@@ -20,7 +22,7 @@ PENDIENTE_CLASIFICACION (RF-90 FA-3). El cálculo del valor neto (RF-84) no reci
 Todo el grupo comparte un activo reconocido en un solo run; cada caso usa montos distintos para no confundir sus registros.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G19/TC-M06-G19.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G19/reporte-TC-M06-G19.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G19/TC-M06-G19.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G19/reporte-TC-M06-G19-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -104,6 +106,8 @@ def test_TC_M06_092_mantenimiento_no_se_resta_y_queda_como_gasto(env, ida):
     reg = _registro(r)
     assert reg.get("naturaleza_costo") == "MANTENIMIENTO", reg
     assert _neto(env, ida) == dec("9500000.0000"), "el costo de mantenimiento no debe restarse del valor neto"
+    bd = env.comparar_calculo_bd(ida, env.calculo(ida))
+    assert dec(bd["valor_neto"]) == dec("9500000.0000"), f"base de datos: el valor neto guardado no debe cambiar con un costo de mantenimiento: {bd.get('valor_neto')}"
     lista = env.call("GET", "/finanzas/costos", "contador", params={"id_activo_biologico": ida})
     assert lista.status == 200, lista
     registros = lista_de(lista.data, "costos", "registros")

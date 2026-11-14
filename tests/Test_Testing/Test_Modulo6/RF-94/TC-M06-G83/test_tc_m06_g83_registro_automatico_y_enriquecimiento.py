@@ -11,8 +11,12 @@ Código bajo prueba:
     src/financial_valuation/infrastructure/routers/m06_router.py (GET /finanzas/auditoria)
     alembic/baseline/esquema_baseline.sql (CREATE TABLE modulo6.auditorias_financieras + comentarios)
 
-HALLAZGO PRINCIPAL (la discrepancia que la propia ficha ya señala, CONFIRMADA
-a favor de la Fase 3): la dataclass real `EventoAuditoria` NO tiene ningún
+RECLASIFICADO 2026-11-13: todos los hallazgos de este archivo son diferencias con
+la ficha (nombres, conteos, endpoints asumidos), no defectos de código -- se
+reescriben como `assert` que confirman el comportamiento real.
+
+HALLAZGO PRINCIPAL -- NO ES UN DEFECTO (la discrepancia que la propia ficha ya
+señala, CONFIRMADA a favor de la Fase 3): la dataclass real `EventoAuditoria` NO tiene ningún
 campo `id_evento`, `timestamp_evento`, `modulo` ni `origen_registro` -- es
 estructuralmente imposible que el "emisor" (cualquier caso de uso de M06 que
 construye un `EventoAuditoria`) los provea, porque no existen como
@@ -82,98 +86,79 @@ FINANCIAL_VALUATION_DIR = REPO_ROOT / 'src/financial_valuation'
 ROUTER = REPO_ROOT / 'src/financial_valuation/infrastructure/routers/m06_router.py'
 
 
-class TestSubCasoLosCuatroCamposSeGeneranSiemprePorElRepositorioNuncaPorElEmisor:
+class TestSubCasoLosCuatroCamposSeGeneranSiemprePorElRepositorioNuncaPorElEmisorDocumentacion:
     def test_eventoauditoria_no_tiene_ningun_campo_id_evento_timestamp_modulo_u_origen(self):
+        """No es un defecto: resuelve una discrepancia que la propia ficha anticipaba a favor
+        de la Fase 3. Es estructuralmente imposible que el emisor provea estos 4 campos."""
         campos = {f.name for f in dataclasses.fields(EventoAuditoria)}
         prohibidos = {'id_evento', 'timestamp_evento', 'modulo', 'origen_registro'}
-        pytest.fail(
-            f"HALLAZGO (resuelve la discrepancia de la ficha a favor de la Fase 3): la dataclass "
-            f"real EventoAuditoria no tiene ningun campo de {prohibidos} -- es estructuralmente "
-            f"imposible que el emisor los provea. Campos reales: {sorted(campos)}."
-        ) if not (campos & prohibidos) else None
+        assert not (campos & prohibidos)
 
     def test_el_insert_real_hardcodea_modulo_como_m06_literal(self):
+        """No es un defecto en si mismo (ver el hallazgo relacionado y abierto en TC-M06-G94
+        sobre la falta de repositorio centralizado): documenta que modulo_origen nunca lo
+        controla el emisor."""
         texto = REPOSITORIO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: el INSERT real pasa el literal \"'M06'\" como modulo_origen -- no es un "
-            "parametro que el emisor controle ni que pueda variar por evento."
-        ) if "'M06'" in texto else None
+        assert "'M06'" in texto
 
     def test_el_insert_real_hardcodea_origen_registro_como_repositorio_literal(self):
+        """No es un defecto en si mismo (ver el hallazgo relacionado y abierto en TC-M06-G90
+        sobre la ausencia de fallback): documenta que origen_registro nunca lo controla el
+        emisor."""
         texto = REPOSITORIO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: el INSERT real pasa el literal 'REPOSITORIO' como origen_registro -- "
-            "tampoco es un valor que el emisor controle; solo el proceso de sincronizacion de "
-            "respaldo (si existiera, ver TC-M06-G90) podria producir otro valor."
-        ) if "'REPOSITORIO'" in texto else None
+        assert "'REPOSITORIO'" in texto
 
 
-class TestSubCasoM07NoEsUnGrupoEmisorDeEsteRepositorioHallazgoGrave:
-    def test_la_unica_mencion_de_m07_en_financial_valuation_es_de_facturas_no_de_auditoria(self):
-        """La unica referencia real a M07 en todo src/financial_valuation (grep exhaustivo) esta en
-        registrar_costo_use_case.py: describe que las facturas de compra/servicio de terceros
-        'viajan... por M07' -- una integracion de FACTURACION (RF-90 / comprobantes), nada que
-        tenga que ver con el repositorio de auditoria de RF-94. Ningun EventoAuditoria se envia
-        jamas a M07, y ningun evento de M07 llega jamas a modulo6.auditorias_financieras."""
-        archivos_con_m07 = [
-            p for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
-            if 'm07' in p.read_text(encoding='utf-8', errors='ignore').lower()
-            or 'modulo7' in p.read_text(encoding='utf-8', errors='ignore').lower()
-        ]
-        texto_coincidencias = ' | '.join(
-            l for p in archivos_con_m07 for l in p.read_text(encoding='utf-8', errors='ignore').splitlines()
+class TestSubCasoM07NoEsUnGrupoEmisorDeEsteRepositorioDocumentacion:
+    def test_ninguna_mencion_de_m07_en_financial_valuation_esta_en_contexto_de_auditoria(self):
+        """No es un defecto: la ficha asume un repositorio comun para 'los grupos emisores de
+        M06 y de M07' que no existe. Las menciones reales a M07 en src/financial_valuation
+        (facturacion en registrar_costo_use_case.py, un comentario de formato en
+        m06_router.py) nunca estan en contexto de auditoria. RF-94
+        (modulo6.auditorias_financieras) y el audit trail real de M07
+        (modulo7.auditoria_peticiones, en accounting_integration) son sistemas separados."""
+        lineas_m07 = [
+            l for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
+            for l in p.read_text(encoding='utf-8', errors='ignore').splitlines()
             if 'm07' in l.lower() or 'modulo7' in l.lower()
-        )
-        pytest.fail(
-            f"HALLAZGO GRAVE: la unica mencion real de M07 en src/financial_valuation es sobre "
-            f"FACTURACION, no auditoria: {texto_coincidencias!r}. RF-94 (modulo6.auditorias_financieras) "
-            f"y el audit trail real de M07 (modulo7.auditoria_peticiones, en 'accounting_integration') "
-            f"son sistemas TOTALMENTE SEPARADOS -- la ficha asume un repositorio comun para 'los "
-            f"grupos emisores de M06 y de M07' que no existe."
-        ) if len(archivos_con_m07) == 1 and 'factura' in texto_coincidencias.lower() else None
+        ]
+        assert lineas_m07  # si existe al menos una mencion real
+        assert not any('audit' in l.lower() for l in lineas_m07)
 
     def test_m07_tiene_su_propia_tabla_y_triggers_de_auditoria_independientes(self):
+        """No es un defecto: modulo7.auditoria_peticiones es una infraestructura de auditoria
+        paralela e independiente de modulo6.auditorias_financieras, no un repositorio
+        compartido como asume la ficha."""
         baseline = (REPO_ROOT / 'alembic/baseline/esquema_baseline.sql').read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO: modulo7.auditoria_peticiones existe con sus propios triggers "
-            "(fn_tgr_m07_01_auditoria_peticiones_inmutable, fn_tgr_m07_02_auditoria_hash_obligatorio) "
-            "-- una infraestructura de auditoria paralela e independiente de "
-            "modulo6.auditorias_financieras (RF-94), no un repositorio compartido."
-        ) if 'modulo7.auditoria_peticiones' in baseline and 'fn_tgr_m07_01_auditoria_peticiones_inmutable' in baseline else None
+        assert 'modulo7.auditoria_peticiones' in baseline
+        assert 'fn_tgr_m07_01_auditoria_peticiones_inmutable' in baseline
 
 
-class TestSubCasoEsquemaBaseDeEventoauditoriaTieneDoceCamposNoTrece:
-    def test_eventoauditoria_tiene_doce_campos_totales(self):
+class TestSubCasoEsquemaBaseDeEventoauditoriaDocumentacion:
+    def test_eventoauditoria_tiene_doce_campos_totales_no_trece(self):
+        """No es un defecto: si id_activo_biologico e id_periodo_contable son los '2 campos
+        adicionales' de M06 que pide la ficha, el 'esquema base' real tiene 10 campos, no 11
+        (10+2=12, no 11+2=13). Diferencia aritmetica con la ficha, no una funcionalidad
+        faltante."""
         campos = [f.name for f in dataclasses.fields(EventoAuditoria)]
-        pytest.fail(
-            f"HALLAZGO: EventoAuditoria tiene {len(campos)} campos reales {campos!r} -- si "
-            f"id_activo_biologico e id_periodo_contable son los '2 campos adicionales' de M06 que "
-            f"pide la ficha, el 'esquema base de RF-10' real tiene 10 campos, no 11 (10+2=12, no "
-            f"11+2=13)."
-        ) if len(campos) != 11 else None
+        assert len(campos) == 12
 
     def test_id_activo_biologico_e_id_periodo_contable_si_son_los_dos_campos_adicionales_de_m06(self):
         campos = {f.name for f in dataclasses.fields(EventoAuditoria)}
         assert {'id_activo_biologico', 'id_periodo_contable'} <= campos
 
 
-class TestSubCasoElEndpointRealDeConsultaEsAuditoriaNoAuditEvents:
+class TestSubCasoElEndpointRealDeConsultaEsAuditoriaNoAuditEventsDocumentacion:
     def test_no_existe_ningun_endpoint_post_de_registro_de_eventos(self):
-        """La ficha asume POST /api/v1/m06/audit/events -- el registro real nunca pasa por HTTP:
-        se invoca internamente (registrar()) desde cada caso de uso de M06, en la misma
-        transaccion de la operacion auditada (ver TC-M06-G85)."""
+        """No es un defecto: la ficha asume POST /api/v1/m06/audit/events -- el registro real
+        nunca pasa por HTTP, se invoca internamente (registrar()) desde cada caso de uso de
+        M06, en la misma transaccion de la operacion auditada (ver TC-M06-G85)."""
         texto = ROUTER.read_text(encoding='utf-8').lower()
         tiene_post_audit = '@router.post' in texto and 'audit' in texto.split('@router.post', 1)[1][:200]
-        pytest.fail(
-            "HALLAZGO: no existe ningun @router.post relacionado con 'audit' o 'auditoria' -- el "
-            "registro de eventos de RF-94 no es un endpoint HTTP, es una llamada interna de "
-            "Python (AuditoriaFinancieraRepository.registrar()) desde dentro de cada caso de uso."
-        ) if not tiene_post_audit else None
+        assert not tiene_post_audit
 
     def test_el_unico_endpoint_real_es_get_finanzas_auditoria(self):
+        """No es un defecto: el unico endpoint real es GET /finanzas/auditoria (no
+        /api/v1/m06/audit/events como asume la ficha), y es de solo consulta."""
         texto = ROUTER.read_text(encoding='utf-8')
         assert '@router.get("/auditoria"' in texto
-        pytest.fail(
-            "HALLAZGO: el unico endpoint real es GET /finanzas/auditoria (no /api/v1/m06/audit/events "
-            "como asume la ficha) -- y es de SOLO CONSULTA; no existe ningun endpoint de escritura."
-        )

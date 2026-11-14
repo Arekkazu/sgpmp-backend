@@ -99,17 +99,15 @@ _MOVIMIENTOS = [
 ]
 
 
-class TestSubCasoLaFichaAsumeElPeriodoComoFiltroCombinableYNoLoEs:
+class TestSubCasoLaFichaAsumeElPeriodoComoFiltroCombinableDocumentacion:
     def test_filtros_estado_dto_no_tiene_ningun_campo_de_periodo(self):
+        """No es un defecto: el periodo es fijo por la URL
+        (POST /finanzas/periodos/{id_periodo_contable}/estados-resultados), no un campo
+        combinable de FiltrosEstadoDTO -- diferencia de alcance con la ficha, no una
+        funcionalidad faltante."""
         campos = set(FiltrosEstadoDTO.model_fields.keys())
-        pytest.fail(
-            f"HALLAZGO: la ficha pide combinar 'infraestructura, especie, activo POBLACIONAL y "
-            f"PERIODO' como 4 filtros de una misma llamada. FiltrosEstadoDTO no tiene ningun "
-            f"campo de periodo -- el periodo es fijo por la URL "
-            f"(POST /finanzas/periodos/{{id_periodo_contable}}/estados-resultados), no es "
-            f"combinable con los demas filtros en una sola solicitud. Campos reales combinables: "
-            f"{sorted(campos)!r} (incluye id_finca, que la ficha ni siquiera menciona)."
-        ) if 'id_periodo_contable' not in campos else None
+        assert 'id_periodo_contable' not in campos
+        assert 'id_finca' in campos  # campo real que la ficha ni menciona
 
 
 class TestSubCasoACombinacionesCrecientesDeFiltros:

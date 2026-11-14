@@ -11,6 +11,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-83/86: un solo aviso por evento suspendido; el del período cerrado se conserva (#1029 + #1032 + #1036) |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: el ingreso sin costo guarda cuánto subió la base del activo |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -224,7 +225,15 @@ class ProcesarEventosM02UseCase:
                                                    permitir_estimado=True)
         if not resultado.es_valido:
             return "MEDICION_PENDIENTE", resultado.mensaje
-        self.valoraciones.agregar_calculo(resultado.calculo)
+        # TC-M06-G62 (RF-92 ¶50): el ingreso no asienta líneas, pero sube el valor del activo. El aumento queda en
+        # el cálculo para que la conciliación lo muestre como compra u otro ingreso y el rollforward cuadre.
+        anterior = self.valoraciones.ultimo_calculo(activo.id_activo_biologico)
+        calculo = resultado.calculo
+        calculo.json_metodo_costo = {**(calculo.json_metodo_costo or {}), "ingreso_individuos": {
+            "tipo_ingreso": (evento.datos.get("tipo_ingreso") or "").lower(),
+            "incremento": str(calculo.valor_neto - (anterior.valor_neto if anterior else CERO)),
+        }}
+        self.valoraciones.agregar_calculo(calculo)
         mensaje = (f"Ingreso de {evento.datos.get('cantidad_ingresada')} individuos por "
                    f"{evento.datos.get('tipo_ingreso')} al activo {activo.identificador}: se actualizó la base de "
                    "valoración. Registre su costo en Costos (factura de compra) si corresponde.")

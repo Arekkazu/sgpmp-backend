@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G24 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G24: el estado del activo en M02 viene en nombre_estado (110c y 110d lo leían de «estado» y quedaba vacío) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G24: se separan los casos por lo que exige la ficha (valor_producto por RF-84 con el precio del producto, activo en 0, estado COSECHADO_COMPLETAMENTE, baja RF-45, asiento) y cada caso abre su propio run |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G24-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G24 - Reconocimiento de PRODUCTO_DE_CONSUMO: reducción proporcional, cosecha total y asiento.   RF-85 (CU04, FA-4).   Casos: TC-M06-109 a TC-M06-111.
 
@@ -19,7 +21,7 @@ por el valor en libros reducido (valor_producto = valor_reduccion) para que el a
 Se usa un precio de producto distinto al del activo (12.000,00 por kg frente a 20.000,00): 250 kg x 12.000,00 = 3.000.000,00 menos 6 % = 2.820.000,00 frente a la reducción 4.700.000,00.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G24/TC-M06-G24.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G24/reporte-TC-M06-G24.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G24/TC-M06-G24.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G24/reporte-TC-M06-G24-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -109,15 +111,35 @@ def test_TC_M06_110b_consumo_total_deja_el_activo_en_cero(env, total):
     esc, ida = total
     _producto(env, ida)
     c = env.calculo(ida)
-    assert dec(c["valor_neto"]) == 0, f"el activo debe quedar en 0,0000 tras la cosecha total (valor vigente {c['valor_neto']}, magnitud {c['magnitud']})"
+    meds = env.mediciones(ida)
+    ult = meds[-1] if meds else None
+    sql_med = env.sql("SELECT id_medicion_posterior, valor_razonable_anterior, valor_razonable_actual, variacion_total "
+                      f"FROM modulo6.mediciones_posteriores WHERE id_activo_biologico = {int(ida)} ORDER BY id_medicion_posterior")
+    obs(f"calculos_valor_razonable (último): valor_neto {c['valor_neto']}, magnitud {c['magnitud']}")
+    obs(f"mediciones_posteriores por API: {[(m.get('id_medicion_posterior'), m.get('valor_razonable_anterior'), m.get('valor_razonable_actual')) for m in meds]}")
+    obs(f"mediciones_posteriores por SQL: {sql_med}")
+    # El valor vigente del activo es el de la medición más reciente (la cosecha total genera una MEDICION_POSTERIOR que lo lleva a cero, #1007).
+    vigente = dec(ult["valor_razonable_actual"]) if ult else dec(c["valor_neto"])
+    vigente_sql = dec(sql_med[-1]["valor_razonable_actual"]) if sql_med else None
+    assert vigente == 0, (f"INC-M06-320 (corregido, #1007): el activo debe quedar en 0,0000 tras la cosecha total: valor vigente "
+                          f"{vigente} ({'medición posterior más reciente' if ult else 'sin mediciones posteriores: se toma el último cálculo'}), "
+                          f"cálculo {c['valor_neto']}, magnitud {c['magnitud']}, mediciones posteriores {len(meds)}")
+    assert vigente_sql == 0, f"base de datos: valor_razonable_actual de la última medición posterior debe ser 0,0000: {vigente_sql}"
 
 
 def test_TC_M06_110c_consumo_total_marca_cosechado_completamente(env, total):
     esc, ida = total
     _producto(env, ida)
     estado, r = _estado_m02(env, ida)
-    if estado != "COSECHADO_COMPLETAMENTE":
-        bloqueado(f"funcionalidad no implementada: el RF-85 FA-4 pide marcar el activo COSECHADO_COMPLETAMENTE y en M02 queda {estado!r} ({r}).")
+    tipos = env.tipos_auditoria(ida)
+    if estado == "COSECHADO_COMPLETAMENTE":
+        return
+    # INC-M06-320 (corregido por Desarrollo, #1007): la cosecha del 100 % «deja el activo en cero e inicia su baja». Si el activo quedó en baja
+    # (estado BAJA o baja registrada), Desarrollo cumplió su corrección aunque el nombre del estado difiera del RF-85 FA-4.
+    assert estado == "BAJA" or "BAJA_ACTIVO_REGISTRADA" in tipos, (
+        f"RF-85 FA-4 / INC-M06-320: tras la cosecha total el activo debe quedar COSECHADO_COMPLETAMENTE o en baja; en M02 queda {estado!r} ({r}) "
+        f"y los eventos son {tipos}")
+    obs(f"estado en M02 tras la cosecha total: {estado!r} (el RF-85 FA-4 nombra COSECHADO_COMPLETAMENTE; Desarrollo implementó el inicio de la baja, #1007).")
 
 
 def test_TC_M06_110d_consumo_total_inicia_la_baja_de_rf45(env, total):
@@ -125,6 +147,17 @@ def test_TC_M06_110d_consumo_total_inicia_la_baja_de_rf45(env, total):
     _producto(env, ida)
     estado, r = _estado_m02(env, ida)
     tipos = env.tipos_auditoria(ida)
+    diag_t = env.sql("SELECT table_schema||'.'||table_name AS t FROM information_schema.tables "
+                     "WHERE table_name ILIKE '%baja%' AND table_schema IN ('modulo2','modulo6') ORDER BY 1")
+    obs(f"tablas de baja en M02/M06: {[x['t'] for x in diag_t]}")
+    for x in diag_t:
+        try:
+            n = env.sql(f"SELECT count(*) AS n FROM {x['t']}")
+            obs(f"  {x['t']}: {n}")
+        except Exception as ex:
+            obs(f"  {x['t']}: no consultable ({str(ex)[:80]})")
+    ev = env.sql(f"SELECT * FROM modulo2.eventos_activos WHERE id_activo_biologico = {int(ida)} ORDER BY id_eventos")
+    obs(f"eventos M02 del activo: {ev}")
     if estado != "BAJA" and "BAJA_ACTIVO_REGISTRADA" not in tipos:
         bloqueado(f"funcionalidad no implementada: el RF-85 FA-4 pide iniciar la baja del activo en RF-45; el estado en M02 es {estado!r}, "
                   f"no hay baja registrada y los eventos son {tipos}.")

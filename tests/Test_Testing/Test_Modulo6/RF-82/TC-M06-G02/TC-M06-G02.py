@@ -1,6 +1,8 @@
 # | Fecha      | Nombre           | Que se hizo                                                              |
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-82: script del grupo TC-M06-G02 (pytest + sandbox, rol Contador) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G02-V2.0.html |
+# | 2026-11-12 | Daniela Castillo | M06 INC-302: 007 verifica además el hecho propio RECONOCIMIENTO_DONACION y las cuentas del par de donación de la matriz |
 """
 TC-M06-G02 - Reconocimiento inicial SIN precio de mercado: valoración por costo (RF-88) o bloqueo del reconocimiento.
 RF-82 (CU01).   Casos: TC-M06-006 a TC-M06-009.
@@ -11,7 +13,7 @@ intentar confirmar, deja el evento RECONOCIMIENTO_BLOQUEADO_SIN_VALOR (WARNING) 
 de la especie (se carga con la configuración de M09 del escenario).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G02/TC-M06-G02.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G02/reporte-TC-M06-G02.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G02/TC-M06-G02.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-82/TC-M06-G02/reporte-TC-M06-G02-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -72,6 +74,9 @@ def test_TC_M06_007_donacion_sin_precio_valoracion_por_costo(env, esc):
     assert ln["cuenta_credito"] != nac[1], (
         "DONACION: el crédito del asiento debe ser «Ingreso por donación», distinto del «Ingreso por transformación biológica» de NACIMIENTO. "
         f"El backend usó el hecho {ln['tipo_hecho']}/{ln['sentido']} y acreditó la misma cuenta que NACIMIENTO ({ln['cuenta_credito']}).")
+    assert (ln["tipo_hecho"], ln["sentido"]) == ("RECONOCIMIENTO_DONACION", "UNICO"), f"la donación debe usar su propio hecho: {ln}"
+    assert (ln["cuenta_debito"], ln["cuenta_credito"]) == CUENTAS_MATRIZ[("RECONOCIMIENTO_DONACION", "UNICO")], (
+        f"las cuentas debían ser las del par de donación de la matriz (estado {ln.get('estado')}): {ln}")
 
 
 @pytest.mark.parametrize("origen,costo,soporte", [
