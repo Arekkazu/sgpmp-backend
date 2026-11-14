@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43 RF-87/83: precio congelado al iniciar el cierre y estimado marcado aunque no varíe |
+# | 2026-11-13 | Arekkazu | Lote M05/M06 13-11: el cierre de la prueba sigue a la trazabilidad de RF-91 (#1115) |
 """INC-M06-91-G43 contra el esquema real.
 
 G43-05 (RF-87 CA-1): el cierre usa el precio vigente cuando empezó; un precio registrado mientras el
@@ -71,7 +72,7 @@ def test_activo_estimado_queda_marcado_y_alerta_aunque_no_varie(db_session, m06,
     _vencer_precios(db_session, ESPECIE)
     p = periodo.id_periodo_contable
 
-    cierre = m06.cierre().execute(p, uid, activos_estimados=[activo])
+    cierre = m06.cierre().execute(p, uid, activos_estimados=[activo], autorizar_exclusiones=True)
 
     assert cierre["estado"] == "CERRADO" and cierre["activos_excluidos"] == []
     [estimado] = cierre["activos_estimados"]

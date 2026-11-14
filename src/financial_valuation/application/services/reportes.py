@@ -253,9 +253,6 @@ class ConstructorInformeRevelaciones:
                 "Las mediciones del período no tienen el precio de mercado que usaron.")))
         a_costo = [a for a in activos if a["valor_contable_por_costo"] is not None]
         supuestos, insuficientes = self._metodos_y_supuestos(activos, d["supuestos"])
-        if insuficientes:
-            problemas["niif13_93_metodos_y_supuestos"].append((True, (
-                "Faltan datos de la medición de: " + ", ".join(i["identificador"] for i in insuficientes[:10]) + ".")))
         contenido = {
             "parr_41_43_descripcion": [{"especie": k, "cantidad_activos": v["cantidad_activos"],
                                         "valor_cierre": v["valor_cierre"], "clasificacion": sorted(v["clasificaciones"])}

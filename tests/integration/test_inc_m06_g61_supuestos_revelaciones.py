@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: validar cobertura, aviso, versiones y descargas. |
+# | 2026-11-13 | Arekkazu | Lote M05/M06 13-11: el cierre de la prueba sigue a la trazabilidad de RF-91 (#1115) |
 import os
 from datetime import timedelta
 from decimal import Decimal
@@ -81,7 +82,7 @@ def test_generacion_cierre_consulta_aprobacion_y_descargas(
     notificador = NotificadorPrueba(db_session)
     m06.__dict__["notificador"] = notificador
     periodo = m06.periodos.que_contiene(NIT, HOY).id_periodo_contable
-    cierre = m06.cierre().execute(periodo, usuario)
+    cierre = m06.cierre().execute(periodo, usuario, autorizar_exclusiones=True)
     id_automatico = cierre["reportes"]["informe_revelaciones"]["id_informe"]
     [aviso_cierre] = notificador.avisos
     assert aviso_cierre[2]["id_informe"] == id_automatico and aviso_cierre[3] == finca

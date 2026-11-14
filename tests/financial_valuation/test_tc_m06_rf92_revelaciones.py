@@ -3,6 +3,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: la conciliación suma los ingresos de individuos sin costo |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección y aprobación bloqueada |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el PDF del informe aprobado es PDF/A-1b |
+# | 2026-11-13 | Arekkazu | Lote M05/M06 13-11: el activo de prueba trae su finca (supuestos por activo de #1119) |
 """Informe de revelaciones NIC 41 (RF-92), sin base de datos.
 
 - TC-M06-G62 (#1107): el ingreso de individuos a un lote por compra, donación o traslado sube el valor del
@@ -33,7 +34,7 @@ def _activo(id_activo, inicio, cierre, **extra):
     return {"id_activo_biologico": id_activo, "identificador": f"BOV-{id_activo}", "tipo": "POBLACIONAL", "id_especie": 2,
             "especie": "Bovino", "clasificacion": "CONSUMO", "indicador_valoracion": "VALOR_RAZONABLE",
             "origen_financiero": "nacimiento", "costo_adquisicion": None, "fecha_reconocimiento": date(2026, 10, 3),
-            "cantidad_actual": 10, "valor_inicio": inicio, "valor_cierre": cierre, "valor_contable_por_costo": None,
+            "cantidad_actual": 10, "id_finca": 1, "valor_inicio": inicio, "valor_cierre": cierre, "valor_contable_por_costo": None,
             "razon_sin_mercado": None, "vida_util_meses": None, "depreciacion_acumulada": None,
             "deterioro_acumulado": None, "costo_base": None, **extra}
 
@@ -125,7 +126,8 @@ def test_una_seccion_bloqueada_impide_aprobar_el_informe():
     reportes = _Informes({"estado_secciones": [
         {"seccion": "parr_54_56_activos_al_costo", "titulo": "Activos medidos al costo (¶54-56)", "obligatoria": True,
          "estado": "BLOQUEADA", "fuente": "Valoración por costo", "motivo": "El activo BOV-9 no tiene vida útil registrada."}]})
-    caso = GenerarInformeRevelacionesUseCase(db=None, periodos=None, reportes=reportes, constructor=None, auditoria=None)
+    caso = GenerarInformeRevelacionesUseCase(db=None, periodos=None, reportes=reportes, constructor=None, auditoria=None,
+                                             notificador=None)
 
     with pytest.raises(BusinessRuleError) as error:
         caso.resolver(41, True, None, 5)
