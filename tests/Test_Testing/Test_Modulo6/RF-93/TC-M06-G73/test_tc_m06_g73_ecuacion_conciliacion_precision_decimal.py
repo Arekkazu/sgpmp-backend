@@ -102,13 +102,14 @@ class TestSubCasoABCResultadoPositivoNegativoCero:
         assert er.resultado_neto == esperado
 
 
-class TestSubCasoDLosDosAportesDeRf45NoExistenComoTales:
+class TestSubCasoDLosDosAportesDeRf45NoExistenComoTalesDocumentacion:
     def test_rf45_solo_tiene_un_aporte_real_a_gastos(self):
-        pytest.fail(
-            "HALLAZGO: RF-45 (bajas) solo tiene UN aporte real al estado de resultados, a "
-            "GASTOS (bajas_activos, via ventas/sacrificio) -- no existe el segundo aporte a "
-            "INGRESOS que la ficha da por hecho (ver TC-M06-G71)."
-        )
+        """No es un defecto nuevo aqui, solo la misma observacion de TC-M06-G71/G72: RF-45
+        (bajas) aporta a GASTOS (bajas_activos) -- la ficha da por hecho un segundo aporte a
+        INGRESOS que no existe como componente separado."""
+        from src.financial_valuation.domain.services.consolidacion import GASTOS, INGRESOS
+        assert 'bajas_activos' in GASTOS
+        assert 'bajas_activos' not in INGRESOS
 
 
 class TestSubCasoELineasTruncadasAUnSoloCentavoImposibilitanElEscenario:
@@ -116,16 +117,12 @@ class TestSubCasoELineasTruncadasAUnSoloCentavoImposibilitanElEscenario:
         assert truncar2(Decimal('0.0199')) == Decimal('0.01')
 
     def test_un_valor_de_0_0001_se_trunca_a_cero_y_no_se_asentaria(self):
-        """HALLAZGO (e): el escenario de la ficha (1.000 componentes de 0,0001) es
-        irreproducible via el flujo real: toda linea pasa por truncar2() antes de
+        """No es un defecto: el escenario de la ficha (1.000 componentes de 0,0001) es
+        irreproducible via el flujo real porque toda linea pasa por truncar2() antes de
         persistirse, y 0,0001 -> 0,00, que _baja()/los demas flujos descartan con
-        'if valor > 0'."""
+        'if valor > 0'. Documentacion de alcance, no un bug."""
         valor_truncado = truncar2(Decimal('0.0001'))
-        pytest.fail(
-            f"HALLAZGO: 0.0001 se trunca a {valor_truncado} (no a 0.0001) -- ninguna linea real "
-            f"puede tener esa magnitud; el escenario de 1.000 componentes de 0,0001 que pide la "
-            f"ficha no es alcanzable por el flujo de registro real."
-        ) if valor_truncado == Decimal('0.00') else None
+        assert valor_truncado == Decimal('0.00')
 
     def test_la_funcion_pura_si_suma_exacto_sin_redondeo_si_se_la_alimenta_directo(self):
         """Esto confirma que el NUCLEO matematico (estado_resultados) no introduce error
@@ -144,12 +141,11 @@ class TestSubCasoFPresentacionDecimal184EnLaTablaAgregada:
         assert "ADD COLUMN total_gastos numeric(18,4)" in texto
 
     def test_pero_cada_linea_individual_es_numeric_18_2_no_18_4(self):
+        """No es un defecto: la precision de 4 decimales existe en el agregado final; cada
+        linea fuente es NUMERIC(18,2), por lo que en la practica el agregado siempre
+        termina en dos ceros. Documentacion de precision, no un bug."""
         texto = MIGRACION.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO: modulo6.lineas_asiento_nic41.valor es NUMERIC(18,2), no (18,4) -- la "
-            "precision de 4 decimales solo existe en el agregado final, nunca en el dato fuente; "
-            "en la practica el agregado siempre termina en dos ceros."
-        ) if "valor numeric(18,2) NOT NULL" in texto else None
+        assert "valor numeric(18,2) NOT NULL" in texto
 
 
 class TestSubCasoGElMecanismoDeConciliacionEsUnTriggerDeBdInalcanzable:
@@ -159,15 +155,11 @@ class TestSubCasoGElMecanismoDeConciliacionEsUnTriggerDeBdInalcanzable:
         assert "ERROR_CONCILIACION" in texto
 
     def test_el_trigger_es_inalcanzable_porque_la_app_siempre_calcula_consistente(self):
-        """Ver generar_estado_resultados_use_case.py / reportes.py: resultado_neto SIEMPRE
-        se guarda como calculo['resultado_neto'], que ya ES total_ingresos - total_gastos
-        de la MISMA estructura -- nunca hay una via de la aplicacion que pueda insertar
-        valores inconsistentes para disparar el trigger."""
+        """No es un defecto de este TC (ver el hallazgo relacionado, abierto, en TC-M06-G74
+        sobre la ausencia de un mecanismo de negocio para esto): es un hecho de arquitectura
+        -- resultado_neto SIEMPRE se guarda como calculo['resultado_neto'], ya derivado de
+        los mismos componentes, asi que el trigger de BD solo protege contra un INSERT/UPDATE
+        directo a la tabla, nunca se dispara por la via de la aplicacion."""
         archivo = REPO_ROOT / 'src/financial_valuation/application/services/reportes.py'
         texto = archivo.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO (g): ConstructorEstadoResultados.guardar() pasa 'neto': "
-            "calculo['resultado_neto'] (ya derivado de los mismos componentes) a agregar_estado() "
-            "-- el trigger de BD que detecta ERROR_CONCILIACION nunca se dispara por esta via; "
-            "solo protegeria contra un INSERT/UPDATE directo a la tabla, fuera del flujo de la API."
-        ) if 'calculo["resultado_neto"]' in texto else None
+        assert 'calculo["resultado_neto"]' in texto

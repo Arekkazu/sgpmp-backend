@@ -31,25 +31,31 @@ vistas predefinidas."
     puede invocar `POST .../estados-resultados` (crear, acción 1) ni
     `POST .../aprobacion` (actualizar, acción 3).
 
-HALLAZGO NUEVO (matiza "la aprobación habilita... consulta del Productor"):
-el endpoint `GET /finanzas/estados-resultados/{id_estado}` (`obtener_estado`)
-NO condiciona el acceso de lectura al campo `estado` del registro (GENERADO
-vs APROBADO) -- solo exige el permiso RBAC `estado_resultados:R`, que el
-Productor YA tiene sin importar si el estado fue aprobado o no. Es decir:
-el Productor puede CONSULTAR (leer, vía GET) un estado de resultados
-todavía en `GENERADO` (sin aprobar) -- la "aprobación" no es, en el código
-real, lo que habilita la consulta; el permiso RBAC de lectura ya la
-habilita desde que se genera. Solo la DESCARGA (ver TC-M06-G82/exportar)
-exige `estado == "APROBADO"`.
+CORREGIDO EN VIVO 2026-11-12 (INC-M06-006, RLS `4fa0e24ea021`, verificado contra
+TEST en `RF-93-94-Verificacion-Live/`): a nivel de código Python (router/RBAC) sigue
+sin existir un filtro explícito por `estado`, pero el acceso real SÍ queda protegido
+por una segunda capa invisible a este archivo: la política RLS
+`pol_estado_resultados_periodo_select` sobre `modulo6.estados_resultados_periodo`
+(`estado_resultados:R AND (VISION_COMPLETA OR estado = 'APROBADO')`). Verificado en
+vivo con el ciclo completo: un estado `GENERADO` responde 404 para el Productor;
+tras aprobarlo, el mismo Productor obtiene 200 tanto en la consulta como en la
+descarga. El código de abajo sigue siendo cierto tal cual se lee (no hay `if estado`
+en el router), pero YA NO es un hueco de seguridad real -- la RLS lo cierra.
 
-HALLAZGO NUEVO (invierte "el Productor no puede... exportar"): el endpoint
-de descarga (`GET /finanzas/estados-resultados/{id_estado}/descarga`) usa
-`dependencies=[Depends(permiso("estado_resultados", R))]` -- la MISMA
-acción de LECTURA, no una acción separada de "exportar". Como el Productor
-SÍ tiene permiso de lectura sobre `estado_resultados`, SÍ puede descargar
-(exportar) un estado ya aprobado -- contradice la ficha, que asume que
-"exportar" es una capacidad distinta y vedada al Productor. En el código
-real, "exportar" y "consultar" son la MISMA acción RBAC.
+Nota original (matiza "la aprobación habilita... consulta del Productor"): el
+endpoint `GET /finanzas/estados-resultados/{id_estado}` (`obtener_estado`) no
+condiciona el acceso de lectura al campo `estado` del registro en su propio código
+Python -- solo exige el permiso RBAC `estado_resultados:R` (que el Productor ya
+tiene). Eso sigue siendo cierto a nivel de código; lo que cambió es que la RLS, no el
+router, es quien hoy aplica la condición `estado == 'APROBADO'`.
+
+Nota original (sobre "el Productor no puede... exportar"): el endpoint de descarga
+(`GET /finanzas/estados-resultados/{id_estado}/descarga`) usa
+`dependencies=[Depends(permiso("estado_resultados", R))]` -- la MISMA acción de
+LECTURA, no una acción RBAC separada de "exportar". Confirmado en vivo que esto ya
+no contradice la ficha: como ambos (consulta y descarga) dependen de la misma RLS,
+el Productor solo puede leer/exportar un estado ya `APROBADO` -- "exportar" y
+"consultar" comparten acción RBAC, pero la RLS los gatea igual a los dos.
 
 (d) El Productor no puede generar ni filtrar -- CONFIRMADO: filtrar ocurre
     dentro de `POST .../estados-resultados` (acción crear), vedada al
@@ -145,31 +151,29 @@ class TestSubCasoCRbacRealSoloContadorGeneraOAprueba:
         assert 3 not in permisos_productor  # actualizar (aprobar)
 
 
-class TestSubCasoDElAccesoDeLecturaNoDependeDeLaAprobacionHallazgoNuevo:
-    def test_el_endpoint_de_consulta_no_filtra_por_estado_generado_o_aprobado(self):
+class TestSubCasoDElAccesoDeLecturaCorregidoPorRlsNoPorElRouter:
+    def test_el_endpoint_de_consulta_no_filtra_por_estado_en_su_propio_codigo_python(self):
+        """El router en si mismo sigue sin un 'if estado' explicito -- eso es un hecho de
+        codigo, no un hallazgo de seguridad: quien aplica la condicion estado=='APROBADO'
+        hoy es la RLS (pol_estado_resultados_periodo_select), verificada en vivo contra
+        TEST (ver RF-93-94-Verificacion-Live/ficha.md). Confirmado: GENERADO -> 404 para
+        el Productor; APROBADO -> 200."""
         texto = ROUTER_FILE.read_text(encoding='utf-8')
         inicio = texto.index('def obtener_estado')
         cuerpo = texto[inicio:inicio + 400]
-        pytest.fail(
-            "HALLAZGO NUEVO: obtener_estado() no filtra por estado ('GENERADO' vs 'APROBADO') -- "
-            "solo exige el permiso RBAC estado_resultados:R. El Productor puede consultar un "
-            "estado de resultados AUN SIN APROBAR, al contrario de lo que sugiere la ficha "
-            "('la aprobacion habilita... consulta del Productor')."
-        ) if "estado\" ]" not in cuerpo and "estado'] ==" not in cuerpo and 'APROBADO' not in cuerpo else None
+        assert "estado\" ]" not in cuerpo and "estado'] ==" not in cuerpo and 'APROBADO' not in cuerpo
 
 
-class TestSubCasoEDescargaUsaElMismoPermisoDeLecturaHallazgoNuevo:
-    def test_el_endpoint_de_descarga_usa_la_accion_de_leer_no_una_de_exportar(self):
+class TestSubCasoELecturaYDescargaCompartenAccionRbacCorregidoPorRls:
+    def test_el_endpoint_de_descarga_usa_la_misma_accion_de_leer_que_la_consulta(self):
+        """Hecho de codigo (sigue igual): ambos endpoints dependen de la misma accion RBAC
+        estado_resultados:R. Ya NO contradice la ficha: confirmado en vivo que, gracias a
+        la misma RLS, el Productor solo puede leer/descargar un estado ya APROBADO -- antes
+        y despues de aprobar, lectura y descarga se comportan igual entre si."""
         texto = ROUTER_FILE.read_text(encoding='utf-8')
         inicio = texto.index('def descargar_estado')
         decorador = texto[max(0, inicio - 300):inicio]
-        pytest.fail(
-            "HALLAZGO NUEVO (invierte la ficha): el endpoint de descarga usa "
-            "Depends(permiso('estado_resultados', R)) -- la MISMA accion de lectura que ya tiene "
-            "el Productor. 'Exportar' no es una accion RBAC separada: el Productor SI puede "
-            "descargar (exportar) un estado aprobado, al contrario de 'el Productor no puede... "
-            "exportar' que afirma la ficha."
-        ) if 'permiso("estado_resultados", R)' in decorador else None
+        assert 'permiso("estado_resultados", R)' in decorador
 
     def test_la_descarga_si_exige_estado_aprobado_eso_si_coincide_con_la_ficha(self):
         archivo = REPO_ROOT / 'src/financial_valuation/application/use_cases/reportes/exportar_reporte_use_case.py'

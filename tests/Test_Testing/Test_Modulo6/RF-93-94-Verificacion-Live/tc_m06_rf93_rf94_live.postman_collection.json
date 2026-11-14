@@ -12,9 +12,12 @@
     { "key": "productor_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la contraseña real del roster de cuentas TEST - nunca commitear el valor real" },
     { "key": "revisor_correo", "value": "revisor.fiscal.test@pecuaria.co" },
     { "key": "revisor_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la contraseña real del roster de cuentas TEST - nunca commitear el valor real" },
+    { "key": "auditor_correo", "value": "auditor.rol@gmail.com", "description": "Rol Auditor (id_rol=81), creado por el DBA en TEST el 2026-11-13 (issue #1087, INC-M06-361-G93b)" },
+    { "key": "auditor_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la contraseña real - nunca commitear el valor real" },
     { "key": "token_contador", "value": "" },
     { "key": "token_productor", "value": "" },
     { "key": "token_revisor", "value": "" },
+    { "key": "token_auditor", "value": "" },
     { "key": "id_estado_generado", "value": "38", "description": "TC-M06-G11 / INC-M06-006: periodo 219, se deja en GENERADO a propósito" },
     { "key": "id_estado_aprobado", "value": "32", "description": "periodo 253, aprobado el 2026-11-12 para completar el ciclo de G11" },
     { "key": "id_periodo_con_eventos", "value": "7" },
@@ -66,6 +69,20 @@
             "body": { "mode": "raw", "raw": "{\"correo_electronico\":\"{{revisor_correo}}\",\"contrasena\":\"{{revisor_pass}}\"}" },
             "url": "{{base_url}}/sesiones/"
           }
+        },
+        {
+          "name": "Login Auditor",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_auditor', body.token);"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"correo_electronico\":\"{{auditor_correo}}\",\"contrasena\":\"{{auditor_pass}}\"}" },
+            "url": "{{base_url}}/sesiones/"
+          }
         }
       ]
     },
@@ -109,11 +126,22 @@
           }
         },
         {
-          "name": "Productor lee un estado ya APROBADO -> 200 (RLS lo libera)",
+          "name": "Revisor Fiscal lee el mismo estado ya APROBADO -> 200 (RLS lo libera, ciclo completo)",
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('200 OK', () => pm.response.to.have.status(200));",
             "const body = pm.response.json();",
             "pm.test('estado es APROBADO', () => pm.expect(body.estado).to.eql('APROBADO'));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_revisor}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_aprobado}}"
+          }
+        },
+        {
+          "name": "Productor lee el mismo estado ya APROBADO -> 404 (capa adicional: sin fincas propias, no es la RLS de G11)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('404 -- NUEVO desde 2026-11-12/13: el Productor ahora tambien queda acotado a sus propias fincas (usabilidad N-04, migracion 603631775892/810b1e4eb4f9); esta cuenta de prueba no tiene fincas propias, asi que falla ANTES de llegar a la validacion de APROBADO que prueba G11. No es un bug ni una regresion de G11 (ver Revisor Fiscal arriba, que SI demuestra el ciclo RLS puro).', () => pm.response.to.have.status(404));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
@@ -122,13 +150,13 @@
           }
         },
         {
-          "name": "Productor descarga el mismo estado APROBADO -> 200 (exportar = misma accion RBAC que consultar, correcto una vez aprobado)",
+          "name": "Revisor Fiscal descarga el mismo estado APROBADO -> 200 (exportar = misma accion RBAC que consultar, correcto una vez aprobado)",
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('200 OK', () => pm.response.to.have.status(200));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_revisor}}" }],
             "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_aprobado}}/descarga"
           }
         }
@@ -162,8 +190,41 @@
       ]
     },
     {
-      "name": "RF-94 TC23 (INC-M06-012) - Rol Auditor inexistente, sin alcance por periodo",
+      "name": "RF-94 TC23 (INC-M06-012) - Rol Auditor (cerrado) y alcance por periodo (abierto)",
       "item": [
+        {
+          "name": "Auditor -> /finanzas/auditoria -> 200 (rol cerrado 2026-11-13, confirmado en vivo 2026-11-14)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK -- el rol Auditor (id_rol=81) existe y tiene acceso real, mas alla de lo que la migracion 810b1e4eb4f9 por si sola otorga', () => pm.response.to.have.status(200));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_auditor}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_con_eventos}}&tamano=1"
+          }
+        },
+        {
+          "name": "Auditor -> /finanzas/auditoria (periodo de OTRO titular/NIT) -> 200 (mismo hueco de alcance que Contador/Revisor Fiscal)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK -- confirma que el hueco de alcance tambien afecta al Auditor, no solo a 2 de los 3 roles', () => pm.response.to.have.status(200));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_auditor}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_otro_titular}}&tamano=1"
+          }
+        },
+        {
+          "name": "Auditor -> /finanzas/estados-resultados -> 403 (fuera de su alcance, no es un bug)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('403 ACCESO_DENEGADO -- el Auditor no tiene permiso de estado_resultados, consistente con su alcance (auditoria + reconocimiento + trazabilidad)', () => pm.response.to.have.status(403));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_auditor}}" }],
+            "url": "{{base_url}}/finanzas/estados-resultados/{{id_estado_generado}}"
+          }
+        },
         {
           "name": "Productor -> /finanzas/auditoria -> 403 (ausente de la matriz)",
           "event": [{ "listen": "test", "script": { "exec": [

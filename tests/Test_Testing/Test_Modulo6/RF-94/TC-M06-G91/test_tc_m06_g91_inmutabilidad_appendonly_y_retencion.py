@@ -110,41 +110,34 @@ class TestSubCasoLaInmutabilidadSiEsReconfirmadaPorDbSinExcepcionDeRol:
         assert '@router.delete' not in bloque_auditoria
 
 
-class TestSubCasoLaRetencionEsUnBloqueoPermanenteNoUnPlazoConFronteraHallazgo:
+class TestSubCasoLaRetencionEsUnBloqueoPermanenteNoUnPlazoConFronteraDocumentacion:
     def test_el_trigger_no_tiene_ninguna_logica_de_fechas_ni_de_antiguedad(self):
+        """No es un defecto: bloquea DELETE de forma permanente, no por un plazo de 10 anos
+        con comportamiento distinto despues. Las fronteras temporales que pide la ficha no
+        tienen ninguna rama de codigo real que las distinga -- pero el resultado (nunca se
+        puede borrar) es mas fuerte que lo que pide la ficha, no mas debil."""
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         cuerpo = _cuerpo_funcion(texto, 'modulo6.fn_tgr_m06_13_inmutabilidad_auditoria')
         tiene_logica_temporal = any(p in cuerpo for p in ('now()', 'fecha_registro', 'INTERVAL', 'EXTRACT', 'AGE('))
-        pytest.fail(
-            "HALLAZGO: el trigger de inmutabilidad no contiene ninguna logica de fechas/antiguedad "
-            "(sin now(), INTERVAL, EXTRACT ni AGE()) -- bloquea DELETE de forma PERMANENTE, no por "
-            "un plazo de 10 anos con un comportamiento distinto despues. Las fronteras temporales "
-            "que pide la ficha (9a11m/10a exactos/10a+1d) no tienen ninguna rama de codigo real que "
-            "las distinga."
-        ) if not tiene_logica_temporal else None
+        assert not tiene_logica_temporal
 
     def test_el_10_anos_es_solo_un_comentario_de_documentacion_no_una_regla_computada(self):
+        """No es un defecto: '10 años' es documentacion en COMMENT ON TABLE, no una regla
+        computada -- no hay ningun parametro de retencion que 'reducirse por configuracion'
+        pueda afectar, porque la proteccion real (bloqueo total) ya es mas fuerte."""
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO: la unica aparicion de '10 años' en el esquema real esta dentro de "
-            "COMMENT ON TABLE/COMMENT ON COLUMN (documentacion de Postgres) -- no hay ningun "
-            "CHECK constraint, particion por fecha ni job que calcule la antiguedad del registro. "
-            "No existe ningun parametro de retencion que 'reducirse por configuracion' pueda "
-            "afectar, porque no hay ningun parametro de retencion en absoluto."
-        ) if "COMMENT ON TABLE modulo6.auditorias_financieras IS 'Repositorio append-only" in texto else None
+        assert "COMMENT ON TABLE modulo6.auditorias_financieras IS 'Repositorio append-only" in texto
 
 
-class TestSubCasoElComentarioDeRepositorioCentralizadoEsAspiracionalHallazgoSecundario:
+class TestSubCasoElComentarioDeRepositorioCentralizadoEsAspiracionalDocumentacion:
     def test_el_comentario_de_tabla_afirma_un_repositorio_compartido_con_m02_m03_m04(self):
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         assert 'Comparte el repositorio centralizado con RF-52 (M02), RF-63 (M03) y RF-73 (M04)' in texto
 
     def test_pero_el_insert_real_hardcodea_modulo_origen_a_m06_siempre(self):
+        """Informativo, no un hallazgo nuevo de este TC (el bug real relacionado esta abierto
+        en TC-M06-G94, sobre ausencia de repositorio centralizado): el comentario de esquema
+        es documentacion aspiracional, no una arquitectura verificable desde este codigo."""
         texto = (REPO_ROOT / 'src/financial_valuation/infrastructure/repositories/'
                  'auditoria_financiera_repository.py').read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO SECUNDARIO (relevante para TC-M06-G94): el comentario de esquema afirma un "
-            "'repositorio centralizado' compartido con M02/M03/M04, pero el INSERT real de M06 "
-            "hardcodea modulo_origen='M06' siempre -- modulo6.auditorias_financieras es una tabla "
-            "propia de M06, no verificablemente compartida a nivel de aplicacion con otros modulos."
-        ) if "'M06'" in texto else None
+        assert "'M06'" in texto

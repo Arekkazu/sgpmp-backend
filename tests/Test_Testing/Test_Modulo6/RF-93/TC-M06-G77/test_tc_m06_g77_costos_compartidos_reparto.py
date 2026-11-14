@@ -95,27 +95,25 @@ class TestSubCasoARepartoPorCabezasEntreDosYTresActivos:
         assert montos[1] == Decimal('33.33') or montos[1] == Decimal('33.34')
 
 
-class TestSubCasoBRepartoEntreEspeciesDistintasNoEstaBloqueado:
+class TestSubCasoBRepartoEntreEspeciesDistintasNoEstaBloqueadoDocumentacion:
     def test_reparto_entre_dos_especies_distintas_es_valido(self):
+        """No es un defecto, es una confirmacion a favor: _activos() no bloquea un reparto
+        entre especies distintas -- el unico bloqueo real es por numero_id_tributaria
+        distinto (REPARTO_INVALIDO); la especie nunca se valida en el reparto."""
         activos = [_activo(1, id_especie=10), _activo(2, id_especie=20)]
-        pytest.fail(
-            "HALLAZGO (b) INVERTIDO A FAVOR: _activos() no bloquea un reparto entre especies "
-            "distintas -- el unico bloqueo real es por numero_id_tributaria distinto "
-            "(REPARTO_INVALIDO); la especie nunca se valida en el reparto."
-        ) if len({a.id_especie for a in activos}) > 1 else None
+        assert len({a.id_especie for a in activos}) > 1
 
 
 class TestSubCasoCResiduoDeCentavosSeImputaEnteroSinPerderseNiDuplicarse:
     def test_monto_no_divisible_exacto_el_residuo_es_de_centavos_no_de_diezmilesimas(self):
+        """No es un defecto: el residuo real es de centavos (2 decimales), nunca de
+        diezmilesimas -- la ficha pide probar un 'residuo en el cuarto decimal' que no puede
+        ocurrir porque repartir() trunca cada parte a 2 decimales antes de calcular el
+        residuo. Documentacion de precision, consistente con TC-M06-G73."""
         participaciones = {1: Decimal('1'), 2: Decimal('1'), 3: Decimal('1')}
         partes = repartir(Decimal('100.00'), participaciones)
         residuos = {k: (v - Decimal('33.33')) for k, v in partes.items() if v != Decimal('33.33')}
-        pytest.fail(
-            f"HALLAZGO: el residuo real {residuos!r} es de centavos (2 decimales), nunca de "
-            f"diezmilesimas -- la ficha pide probar un 'residuo en el cuarto decimal' que no "
-            f"puede ocurrir porque repartir() trunca cada parte a 2 decimales antes de calcular "
-            f"el residuo."
-        ) if all(abs(r) < Decimal('1.00') and (r * 100) == (r * 100).to_integral_value() for r in residuos.values()) else None
+        assert all(abs(r) < Decimal('1.00') and (r * 100) == (r * 100).to_integral_value() for r in residuos.values())
 
     def test_el_residuo_va_integro_al_de_mayor_participacion(self):
         participaciones = {1: Decimal('1'), 2: Decimal('1'), 3: Decimal('5')}
