@@ -1,3 +1,9 @@
+## [1.4.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.63...v1.4.0-rc.64) (2026-11-14)
+
+### Bug Fixes
+
+* **rf97-mod7:** el ExchangeId del documento AAEF sigue el formato AF-SIGAB-AAAA-MM-NNNNNNN que exige SIGCON ([4353483](https://github.com/Arekkazu/sgpmp-backend/commit/4353483f484213636e1611d4e6a471fb92d08850))
+
 ## [1.4.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.62...v1.4.0-rc.63) (2026-11-14)
 
 ### Features
