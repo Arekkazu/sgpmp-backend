@@ -1,0 +1,25 @@
+{
+  "caso": "TC-M06-G104",
+  "subcaso": "TC-M06-29",
+  "fecha": "2026-11-10",
+  "proposito": "Inspeccion de si un precio historicamente vencido permite completar hoy la ausencia de precio vigente en un activo ya reconocido a valor razonable.",
+  "escrituras": false,
+  "llamadas_http": false,
+  "escenario_original_alterado": false,
+  "conclusion": "NO_LEGITIMO",
+  "contrato_precio": {
+    "alta": "POST /finanzas/precios acepta una vigencia pasada si no es anterior en mas de 365 dias. El vencimiento solo debe ser posterior a la vigencia; no tiene que ser hoy ni futuro.",
+    "estado_al_leer": "GET /finanzas/precios calcula el estado con la fecha de hoy. Si la vigencia ya empezo, el precio es el mas reciente de su fuente y el vencimiento es anterior a hoy, el estado es VENCIDO.",
+    "vigente": "Un precio esta vigente un dia cuando la vigencia es menor o igual a ese dia y el vencimiento es nulo o mayor o igual a ese dia."
+  },
+  "contrato_reconocimiento": {
+    "fecha_usada": "La propuesta valora el activo en su fecha de ingreso. Esa fecha es el dia de fecha_creacion en la zona del usuario, no fecha_inicio_ciclo.",
+    "quien_asigna_la_fecha": "El repositorio guarda fecha_creacion con la hora real del servidor al crear el activo. El cliente no la envia.",
+    "apertura": "Si la fecha de ingreso es anterior al inicio de la operacion contable, la propuesta valora con la fecha de hoy. Tampoco usa un dia pasado.",
+    "condicion_valor_razonable": "El valor razonable exige un precio vigente en esa fecha de valoracion.",
+    "simulacion": "GET /finanzas/activos/{id}/simulacion valora con la fecha de hoy y sin estimacion. Sin precio vigente responde SIN_PRECIO."
+  },
+  "restriccion": "Un activo creado hoy se valora hoy. Un precio vencido hoy no esta vigente hoy. Las dos condiciones no pueden cumplirse el mismo dia sin cambiar el reloj, la base de datos o el precio ya registrado.",
+  "datos_no_creados": true,
+  "consulta_pendiente": "2026-11-11, America/Bogota, sobre el precio 492 y el activo 1644."
+}
