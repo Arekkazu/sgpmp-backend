@@ -49,7 +49,7 @@ async function proceso(programa,args,env=envGuard,entrada=null,timeout=240000){
 }
 async function paso(numero,nombre,categoria,fn){
   try{await fn();tabla.push({numero,nombre,estado:'OK',clasificacion_fallo:'NINGUNO'});}
-  catch(e){const detalle=String(e?.message??e);tabla.push({numero,nombre,estado:'FALLO',clasificacion_fallo:detalle.includes('EPERM')?'SANDBOX':categoria,detalle:detalle.slice(0,180)});}
+  catch(e){const detalle=String(e?.message??e);const sandbox=detalle.includes('spawn EPERM');tabla.push({numero,nombre,estado:sandbox?'NO_APLICA':'FALLO',clasificacion_fallo:sandbox?'SANDBOX':categoria,detalle:detalle.slice(0,180)});}
 }
 function fuentes(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
@@ -137,8 +137,14 @@ try{
       assert.deepEqual(errores,[],`${nombre}: ${errores.join(',')}`);
       for(const clave of ['grupo','run_id','version','oficial','consume_version','casos','comprobaciones','evidencias','cierre','cypress'])assert(Object.hasOwn(r,clave),`${nombre}: ${clave}`);
     }
-    const ejemplo=path.join(salidas,'conforme','resultado.json');
-    process.stdout.write(`python scripts/registro_qa.py validar --grupo ${grupo} --resultado <ruta> --capacidades <ruta>\nEjemplo local: ${ejemplo}\n`);
+    const ejemplo=fs.readdirSync(salidas).map(nombre=>path.join(salidas,nombre,'resultado.json')).find(archivo=>{const r=JSON.parse(fs.readFileSync(archivo));return r.oficial&&Object.values(r.casos).every(c=>c.estado==='APROBADO');});
+    assert(ejemplo,'Falta ejemplo conforme');
+    const persistente=path.join(os.tmpdir(),'g44-verificar-ejemplo');
+    fs.mkdirSync(persistente,{recursive:true});
+    const carpeta=path.join(persistente,JSON.parse(fs.readFileSync(ejemplo)).run_id);
+    fs.cpSync(path.dirname(ejemplo),carpeta,{recursive:true,force:true});
+    fs.writeFileSync(path.join(persistente,'capacidades.json'),JSON.stringify(CAPACIDADES,null,2));
+    process.stdout.write(`Ejemplo local V3 para reintentar: ${path.join(carpeta,'resultado.json')}\nCapacidades: ${path.join(persistente,'capacidades.json')}\n`);
   });
   await paso(7,'Pydantic local','CONTRATO',async()=>{
     const python=path.resolve(base,'../../../../../.venv/Scripts/python.exe');

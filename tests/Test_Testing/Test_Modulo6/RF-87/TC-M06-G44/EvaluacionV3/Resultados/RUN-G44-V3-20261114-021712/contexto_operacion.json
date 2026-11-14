@@ -1,0 +1,22 @@
+{
+  "grupo": "G44",
+  "version": 3,
+  "intento": 7,
+  "run_id": "RUN-G44-V3-20261114-021712",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G44-V3-R2-20261113",
+  "casos": [
+    "TC-M06-028",
+    "TC-M06-029",
+    "TC-M06-030"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-028",
+      "TC-M06-029",
+      "TC-M06-030"
+    ],
+    "motivo": "Reintento técnico de V3 de TC-M06-G44, grupo completo. El intento RUN-G44-V3-20261113-085645 (AUT-G44-V3-20261113, consumida) se detuvo sin escrituras por PERMISOS_NO_COINCIDEN: el Administrador recibió en TEST el permiso cierre_periodo·5 (618, lote del DBA del 2026-11-13). El DBA informó que el requerimiento se actualizará; decisión D2 del responsable QA: el 029 exige 403 solo a Veterinario y Productor y el informe lleva OBS-G44-02 pidiendo actualizar formalmente RF-87 CA-6/FA-4 y la matriz. Ronda 2 de la V3 (ORD-G44-014): D2, permisos con diagnóstico, rollback sin escrituras, contrato tolerante a precios_congelados null o con elementos y cuerpos guardados. Ensayo Windows: verificar.mjs 7 OK y 2 NO_APLICA, red 0; validar OFICIAL con rollback confirmado. SHA-256: g44.mjs 458b3fe40c50a70cd3a45a231c5ef4853d320c5d29fe0640af5201fa32a08aca; lib/infra.mjs fba2ea461679875adbc4ab433597d0de3ec23bb59a99d27443c0652e91543c69; lib/contrato.mjs 13ffa3c455972e05a756861a6430bd088f39b9e198c9bd0ab4289ade2b11874c; contrato 2f502582f09cb4ce0982f641f3f9e48bce116911038c05f91ee6e677cb225a9e."
+  },
+  "version_anterior": null
+}
