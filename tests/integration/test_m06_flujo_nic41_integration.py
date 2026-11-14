@@ -7,7 +7,7 @@
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-87: el notificador de prueba responde ya_notificado (avisos sin duplicados) |
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: verificar el contrato HTTP y los efectos de registrar una cotización. |
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: verificar un pesaje auditado y las exclusiones del cierre. |
-# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82: el deterioro bloquea la reversión y el costo revertido se reconoce de nuevo |
+# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82: el deterioro bloquea la reversión, el costo revertido se reconoce de nuevo y la fecha sale como día |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -18,7 +18,7 @@ from __future__ import annotations
 import random
 import string
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal as D
 
 import pytest
@@ -330,7 +330,11 @@ def test_reversion_al_costo_bloqueada_por_deterioro_y_reconocible_de_nuevo(db_se
     with pytest.raises(AppError) as bloqueo:
         m06.revertir_reconocimiento().execute(deteriorado, motivo, uid)
     assert bloqueo.value.code == "REVERSION_BLOQUEADA" and "deterioro del" in bloqueo.value.message
-    assert m06.valoraciones.reconocimiento_confirmado(deteriorado) is not None
+    reconocimiento = m06.valoraciones.reconocimiento_confirmado(deteriorado)
+    # La fecha contable viaja como día: como instante UTC, en Colombia se veía el día anterior.
+    assert type(reconocimiento.fecha_reconocimiento) is date
+    [fila] = [a for a in m06.valoraciones.activos_valorados(NIT) if a["id_activo_biologico"] == deteriorado]
+    assert fila["fecha_reconocimiento"] == reconocimiento.fecha_reconocimiento
 
     # Sin registros posteriores se revierte, y la valoración por costo inactiva no impide reconocerlo otra vez.
     m06.revertir_reconocimiento().execute(limpio, motivo, uid)

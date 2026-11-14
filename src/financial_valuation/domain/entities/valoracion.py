@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculo de valor razonable, reconocimiento y valoración por costo |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-14 | Arekkazu | QA-M06 RF-82: la fecha del reconocimiento es un día, no un instante |
 """Entidades de valoración NIC 41."""
 from __future__ import annotations
 
@@ -61,7 +62,7 @@ class Reconocimiento:
     clasificacion: str
     indicador_valoracion: str
     valor_razonable_neto_inicial: Decimal
-    fecha_reconocimiento: datetime
+    fecha_reconocimiento: date
     id_periodo_contable: int
     origen_financiero: Optional[str]
     costo_adquisicion: Optional[Decimal]

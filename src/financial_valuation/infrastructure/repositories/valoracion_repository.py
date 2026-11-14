@@ -9,7 +9,7 @@
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
-# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82/88: la reversión cuenta deterioros y registros contables; el costo revertido se reutiliza |
+# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82/88: la reversión cuenta deterioros y registros contables; el costo revertido se reutiliza; la fecha del reconocimiento sale como día |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -37,9 +37,11 @@ _COLUMNAS_CALCULO = """id_calculo_valor_razonable, id_activo_biologico, id_preci
     json_metodo_costo, id_usuario, estado::text AS estado, justificacion, id_parametro_costo_venta, id_evento_magnitud,
     tiene_valor_estimado, fecha_calculo"""
 
+# fecha_reconocimiento es timestamptz pero guarda un día contable (medianoche UTC): con la sesión en UTC, ::date
+# devuelve ese día. Como instante, el navegador en UTC-5 lo mostraba como el día anterior (QA M06, 14-11).
 _COLUMNAS_RECONOCIMIENTO = """id_reconocimiento_inicial, id_activo_biologico, estado::text AS estado,
     clasificacion::text AS clasificacion, indicador_valoracion::text AS indicador_valoracion,
-    valor_razonable_neto_inicial, fecha_reconocimiento, id_periodo_contable, origen_financiero::text AS origen_financiero,
+    valor_razonable_neto_inicial, fecha_reconocimiento::date AS fecha_reconocimiento, id_periodo_contable, origen_financiero::text AS origen_financiero,
     costo_adquisicion, id_precio_mercado, id_calculo_valor_razonable, id_valoracion_por_costo, es_apertura,
     cuenta_debito, cuenta_credito"""
 
@@ -321,7 +323,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
         """Activos reconocidos con su último valor razonable neto o su valor por costo; del titular si se da."""
         return filas(self.db, f"""
         SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, e.nombre AS especie, f.nombre AS finca,
-               est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento,
+               est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento::date AS fecha_reconocimiento,
                ri.indicador_valoracion::text AS indicador_reconocimiento, ri.es_apertura,
                (vc.id_valoracion_por_costo IS NOT NULL) AS valorado_por_costo, vc.valor_contable_por_costo,
                vc.costos_adquisicion AS costo_base, vc.depreciacion_acumulada, vc.deterioro_acumulado, vc.vida_util_meses,
