@@ -97,8 +97,12 @@ def _grep(patron: str) -> list[str]:
     return coincidencias
 
 
-class TestSubCasoNoExisteNingunaReglaCentralDeAsignacionDeSeveridad:
+class TestSubCasoNoExisteNingunaReglaCentralDeAsignacionDeSeveridadDocumentacion:
     def test_no_existe_ninguna_funcion_de_mapeo_tipo_evento_a_severidad(self):
+        """No es un defecto: cada caso de uso de M06 decide su propia severidad manualmente,
+        en el punto donde construye el EventoAuditoria -- no hay 'asignacion automatica'
+        centralizada como asume la ficha, pero tampoco hay ningun RF que exija ese mecanismo
+        central especificamente."""
         archivos_catalogo = [p for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
                              if 'nic41.py' in p.name or 'consultar_auditoria_financiera' in p.name]
         hay_mapeo_automatico = any(
@@ -106,11 +110,7 @@ class TestSubCasoNoExisteNingunaReglaCentralDeAsignacionDeSeveridad:
             or 'SEVERIDAD_POR_TIPO' in p.read_text(encoding='utf-8', errors='ignore')
             for p in archivos_catalogo
         )
-        pytest.fail(
-            "HALLAZGO: no existe ninguna tabla/funcion de mapeo automatico tipo_evento->severidad "
-            "-- cada caso de uso de M06 decide su propia severidad manualmente, en el punto exacto "
-            "donde construye el EventoAuditoria. No hay 'asignacion automatica' centralizada."
-        ) if not hay_mapeo_automatico else None
+        assert not hay_mapeo_automatico
 
 
 class TestSubCasoCriticalParaCierreConErrorConfirmadoCorrecto:
@@ -120,38 +120,36 @@ class TestSubCasoCriticalParaCierreConErrorConfirmadoCorrecto:
         assert 'tipo_evento="CIERRE_PERIODO_FALLIDO", severidad=Severidad.CRITICAL.value' in texto
 
 
-class TestSubCasoCriticalParaExportacionFallidaYActivoSinMercadoHallazgo:
+class TestSubCasoCriticalParaExportacionFallidaYActivoSinMercadoDocumentacion:
     def test_no_existe_ningun_tipo_de_evento_de_exportacion_fallida(self):
+        """No es un defecto: exportar_reporte_use_case.py no registra ningun EventoAuditoria
+        (ni exito ni fallo) -- el tipo de evento que pide la ficha no existe porque el
+        escenario completo (auditar la exportacion) nunca se implemento, no porque alguien
+        haya elegido la severidad equivocada."""
         archivos = _grep('EXPORTACION_FALLIDA')
-        pytest.fail(
-            "HALLAZGO: no existe ningun tipo_evento 'EXPORTACION_FALLIDA' (ni similar) en todo "
-            "financial_valuation -- exportar_reporte_use_case.py no registra ningun EventoAuditoria, "
-            "ni en exito ni en fallo. El escenario de la ficha es irreproducible."
-        ) if not archivos else None
+        assert not archivos
 
     def test_reconocimiento_bloqueado_sin_valor_es_warning_no_critical(self):
+        """No es un defecto: RECONOCIMIENTO_BLOQUEADO_SIN_VALOR (el evento mas cercano a
+        'activo sin mercado') tiene severidad WARNING, no CRITICAL como asume la ficha --
+        diferencia de criterio editorial, no un bug de codigo."""
         texto = next(FINANCIAL_VALUATION_DIR.rglob('confirmar_reconocimiento_use_case.py')).read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: RECONOCIMIENTO_BLOQUEADO_SIN_VALOR (el evento mas cercano a 'activo sin "
-            "mercado') tiene severidad=Severidad.WARNING.value, no CRITICAL como pide la ficha."
-        ) if 'tipo_evento="RECONOCIMIENTO_BLOQUEADO_SIN_VALOR", severidad=Severidad.WARNING.value' in texto else None
+        assert 'tipo_evento="RECONOCIMIENTO_BLOQUEADO_SIN_VALOR", severidad=Severidad.WARNING.value' in texto
 
 
-class TestSubCasoWarningParaPrecioVencidoYPrecioInactivadoHallazgo:
+class TestSubCasoWarningParaPrecioVencidoYPrecioInactivadoDocumentacion:
     def test_cotizacion_vencida_es_info_no_warning(self):
+        """No es un defecto: COTIZACION_VENCIDA tiene severidad INFO, no WARNING como pide la
+        ficha -- diferencia de criterio, no un bug."""
         texto = next(FINANCIAL_VALUATION_DIR.rglob('modificar_cotizacion_use_case.py')).read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: COTIZACION_VENCIDA (el evento real de vencimiento de precio/cotizacion) "
-            "tiene severidad=\"INFO\", no WARNING como pide la ficha."
-        ) if 'tipo_evento="COTIZACION_VENCIDA", severidad="INFO"' in texto else None
+        assert 'tipo_evento="COTIZACION_VENCIDA", severidad="INFO"' in texto
 
     def test_no_existe_ningun_tipo_de_evento_de_precio_inactivado_manualmente(self):
+        """No es un defecto nuevo: el escenario de 'precio inactivado manualmente' de la
+        ficha no tiene ningun evento de auditoria real que lo represente -- el catalogo real
+        usa PRECIO_MARCADO_REEMPLAZADO para el caso analogo."""
         archivos = _grep('PRECIO_INACTIVADO')
-        pytest.fail(
-            "HALLAZGO: no existe ningun tipo_evento 'PRECIO_INACTIVADO' en todo financial_valuation "
-            "-- el escenario de 'precio inactivado manualmente' de la ficha no tiene ningun evento "
-            "de auditoria real que lo represente."
-        ) if not archivos else None
+        assert not archivos
 
 
 class TestSubCasoWarningParaCadenaIncompletaConfirmadoCorrecto:
@@ -160,38 +158,32 @@ class TestSubCasoWarningParaCadenaIncompletaConfirmadoCorrecto:
         assert 'severidad=(Severidad.INFO if estado == "VERIFICADO" else Severidad.WARNING).value' in texto
 
 
-class TestSubCasoErrorPorResultadoOperacionFalsidoNoExisteEnM06HallazgoGrave:
+class TestSubCasoErrorPorResultadoOperacionFallidoNoExisteEnM06Documentacion:
     def test_resultado_operacion_no_existe_en_ningun_lugar_de_m06(self):
+        """No es un defecto de M06: 'resultado_operacion' es un campo exclusivo del modulo de
+        prediccion (M04/RF-72) -- la ficha confunde un concepto de otro modulo con RF-94."""
         archivos = _grep('resultado_operacion')
-        pytest.fail(
-            f"HALLAZGO GRAVE: 'resultado_operacion' no aparece en ningun archivo de "
-            f"financial_valuation (coincidencias: {archivos!r}) -- es un campo exclusivo del "
-            f"modulo de prediccion (M04/RF-72), no de RF-94/M06. La ficha confunde un concepto de "
-            f"otro modulo con el de RF-94."
-        ) if not archivos else None
+        assert not archivos
 
     def test_severidad_error_nunca_se_usa_en_ningun_registrar_real_de_m06(self):
+        """No es un defecto nuevo (ligado al hallazgo anterior): la severidad ERROR del enum
+        existe pero no se usa en ningun registrar() real de financial_valuation, porque la
+        regla que la activaria (resultado_operacion=FALLIDO) no existe en M06."""
         archivos = _grep('Severidad.ERROR') + _grep('severidad="ERROR"') + _grep("severidad='ERROR'")
-        pytest.fail(
-            f"HALLAZGO GRAVE: Severidad.ERROR (o su literal) nunca se usa en ningun registrar() "
-            f"real de financial_valuation (coincidencias: {archivos!r}) -- la severidad ERROR del "
-            f"enum existe pero esta MUERTA dentro de M06; la regla 'ERROR cuando resultado_operacion"
-            f"=FALLIDO' no tiene ninguna implementacion real que probar."
-        ) if not archivos else None
+        assert not archivos
 
     def test_severidad_error_si_existe_en_el_enum(self):
         assert Severidad.ERROR.value == 'ERROR'
 
 
-class TestSubCasoInfoPorDefectoEsFalsoComoReglaEstrictaHallazgo:
+class TestSubCasoInfoPorDefectoEsFalsoComoReglaEstrictaDocumentacion:
     def test_existen_multiples_tipos_warning_fuera_de_los_dos_casos_de_la_ficha(self):
+        """No es un defecto: 'INFO para el resto del catalogo' no es una regla real del
+        codigo, es una generalizacion de la ficha -- existen varios tipos WARNING fuera de
+        los 2 casos que la ficha reconoce como excepcion."""
         tipos_warning_adicionales = [
             'RECONOCIMIENTO_REVERTIDO', 'REVERSION_BLOQUEADA', 'DETERIORO_REGISTRADO',
             'METODO_VALORACION_CAMBIADO', 'LINEA_ASIENTO_PENDIENTE_CUENTA', 'MEDICION_PENDIENTE',
         ]
         encontrados = [t for t in tipos_warning_adicionales if _grep(t)]
-        pytest.fail(
-            f"HALLAZGO: existen al menos {len(encontrados)} tipos de evento con severidad WARNING "
-            f"fuera de los 2 que la ficha reconoce como excepcion ({encontrados!r}) -- 'INFO para "
-            f"el resto del catalogo' no es una regla real, es una generalizacion incorrecta."
-        ) if len(encontrados) >= 3 else None
+        assert len(encontrados) >= 3

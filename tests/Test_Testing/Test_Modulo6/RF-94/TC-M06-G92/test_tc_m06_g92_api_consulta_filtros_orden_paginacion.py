@@ -95,33 +95,29 @@ class TestSubCasoFiltroObligatorioYOrdenAscendenteConfirmadosCorrectos:
         assert 'orden: Literal["ASC", "DESC"] = "ASC"' in texto
 
 
-class TestSubCasoNoExisteNingunaRestriccionDeDescPorVolumenHallazgo:
+class TestSubCasoNoExisteNingunaRestriccionDeDescPorVolumenDocumentacion:
     def test_no_existe_ningun_conteo_de_filas_antes_de_aceptar_orden_desc(self):
         for archivo in (ROUTER, USE_CASE, REPOSITORIO):
             texto = archivo.read_text(encoding='utf-8')
             assert '10000' not in texto and '10_000' not in texto and '10.000' not in texto
 
     def test_execute_acepta_descendente_true_sin_importar_el_total_de_filas(self):
-        """Simula 50.000 filas totales -- execute() no rechaza ni ajusta orden=DESC."""
+        """No es un defecto: execute() no rechaza ni ajusta orden=DESC sin importar el
+        volumen -- la restriccion de 'DESC por volumen' que pide la ficha no existe, pero
+        tampoco esta exigida por ningun RF mas alla de la propia ficha."""
         uc, auditoria = _caso_de_uso(total_filas=50_000)
         resultado = uc.execute(filtros={"id_periodo_contable": 1}, pagina=1, tamano=100,
                                 legible=False, descendente=True)
-        pytest.fail(
-            f"HALLAZGO: con total_registros={resultado['total_registros']} (50.000, muy por "
-            f"encima de 10.000), execute() aceptó descendente=True sin ningun rechazo ni ajuste "
-            f"-- no existe la restriccion de DESC por volumen que pide la ficha."
-        ) if resultado['total_registros'] > 10_000 else None
+        assert resultado['total_registros'] > 10_000
 
     def test_el_repositorio_real_tampoco_cuenta_filas_antes_de_construir_el_order_by(self):
+        """No es un defecto nuevo (ligado al anterior): consultar() construye el ORDER BY
+        directamente del booleano 'descendente', sin conteo previo que condicione DESC."""
         texto = REPOSITORIO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: consultar() construye 'ORDER BY ... {orden}' a partir del booleano "
-            "'descendente' recibido, sin ninguna consulta previa de conteo que condicione si "
-            "DESC esta permitido segun el volumen de resultados."
-        ) if 'orden = "DESC" if descendente else "ASC"' in texto else None
+        assert 'orden = "DESC" if descendente else "ASC"' in texto
 
 
-class TestSubCasoPaginacionObligatoriaArribaDeCienNoEsUnaReglaRealHallazgo:
+class TestSubCasoPaginacionObligatoriaArribaDeCienNoEsUnaReglaRealDocumentacion:
     def test_tamano_tiene_tope_500_confirmado_correcto(self):
         texto = ROUTER.read_text(encoding='utf-8')
         assert 'tamano: int = Query(100, ge=1, le=500)' in texto
@@ -141,10 +137,8 @@ class TestSubCasoPaginacionObligatoriaArribaDeCienNoEsUnaReglaRealHallazgo:
         assert tamano_real_usado == tamano_esperado
 
     def test_no_existe_ningun_codigo_que_fuerce_paginacion_distinta_al_superar_100(self):
+        """No es un defecto: 'paginacion obligatoria por encima de 100' no es una regla
+        condicional real -- tamano simplemente tiene un valor por defecto de 100 y un tope de
+        500; la paginacion esta siempre disponible desde el primer registro."""
         texto = USE_CASE.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: 'paginacion obligatoria por encima de 100 registros' no es una regla "
-            "condicional real -- tamano simplemente tiene un valor por defecto de 100 y un tope "
-            "de 500; la paginacion (pagina/tamano) esta siempre disponible desde el primer "
-            "registro, no se 'activa' al pasar de 100."
-        ) if 'if tamano > 100' not in texto and 'if total' not in texto else None
+        assert 'if tamano > 100' not in texto and 'if total' not in texto

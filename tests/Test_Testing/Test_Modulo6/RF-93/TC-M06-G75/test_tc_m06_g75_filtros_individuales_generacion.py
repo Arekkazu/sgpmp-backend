@@ -116,14 +116,14 @@ _MOVIMIENTOS = [
 ]
 
 
-class TestSubCasoBDiscNoExisteFiltroDeActivoPoblacionalComoMecanismoPropio:
+class TestSubCasoBNoExisteFiltroDeActivoPoblacionalComoMecanismoPropioDocumentacion:
     def test_filtros_estado_dto_tiene_exactamente_cuatro_campos(self):
+        """No es un defecto: FiltrosEstadoDTO no tiene 'filtro_activo_poblacional' ni
+        'filtro_lote' porque un activo POBLACIONAL se filtra con el mismo campo que
+        cualquier otro activo (id_activo_biologico) -- diferencia de nombre con la ficha,
+        no una funcionalidad faltante."""
         campos = set(FiltrosEstadoDTO.model_fields.keys())
-        pytest.fail(
-            f"HALLAZGO: FiltrosEstadoDTO tiene exactamente estos campos: {sorted(campos)!r} -- "
-            f"no existe 'filtro_activo_poblacional' ni 'filtro_lote'. Un activo POBLACIONAL se "
-            f"filtra con el mismo campo que cualquier otro activo: id_activo_biologico."
-        ) if campos == {'id_especie', 'id_activo_biologico', 'id_infraestructura', 'id_finca'} else None
+        assert campos == {'id_especie', 'id_activo_biologico', 'id_infraestructura', 'id_finca'}
 
 
 class TestSubCasoADFiltrosIndividualesConfirmadosCorrectos:

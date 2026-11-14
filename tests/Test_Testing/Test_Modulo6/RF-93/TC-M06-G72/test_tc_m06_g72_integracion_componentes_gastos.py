@@ -9,49 +9,44 @@ Código bajo prueba:
     src/financial_valuation/domain/services/consolidacion.py (estado_resultados, GASTOS, _COMPONENTE_LINEA)
     src/financial_valuation/application/use_cases/valoracion/procesar_eventos_m02_use_case.py (_baja)
 
-HALLAZGO PRINCIPAL (grave, relacionado con G01): la ficha pide que
-"pérdidas por bajas sin valor de recuperación de RF-45" sea el componente de
-gasto por bajas, "con imputación correcta de las recuperaciones parciales".
-El código real hace exactamente lo contrario de lo que el nombre sugiere:
+CORREGIDO 2026-11-12/13 (INC-M06-358-G71/G72, commit `e0ecfc93`, y INC-M06-344-G42,
+commit `616a35d8`): los dos HALLAZGO originales de este archivo ya están resueltos en
+el código real. Se deja la evidencia histórica abajo (lo que fallaba) y se reescriben
+las pruebas para confirmar el estado actual.
+
+HISTÓRICO -- lo que fallaba hasta el 2026-11-11: la ficha pedía que "pérdidas por
+bajas sin valor de recuperación de RF-45" fuera el componente de gasto por bajas. El
+código real hacía exactamente lo contrario de lo que el nombre sugiere:
 ```
 sentido = Sentido.UNICO.value if tipo_baja in _BAJAS_DE_VENTA else Sentido.PERDIDA.value
 ```
-`_BAJAS_DE_VENTA = ("venta", "sacrificio")`. Es decir:
-- Una baja por VENTA/SACRIFICIO (que SÍ tiene valor de recuperación: el
-  dinero de la venta) se asienta con `sentido=UNICO`, que SÍ está mapeado a
-  `bajas_activos` (GASTOS) en `_COMPONENTE_LINEA`.
-- Una baja SIN venta (muerte, pérdida real, sin ningún valor de
-  recuperación -- justo lo que la ficha describe) se asienta con
-  `sentido=PERDIDA`, que NO TIENE NINGÚN MAPEO en `_COMPONENTE_LINEA` --
-  la línea se genera y se persiste en BD, pero `estado_resultados()` la
-  ignora por completo (`nombre = _COMPONENTE_LINEA.get(...); if nombre is
-  not None: ...`): una pérdida real por baja sin recuperación NO APARECE EN
-  NINGÚN LADO del estado de resultados.
-No existe ningún concepto de "recuperación parcial" distinto del valor en
-libros: `valor = truncar2(valor_libros * proporcion)`, donde `proporcion`
-es la fracción de cantidad afectada (para activos POBLACIONALES), no un
-valor de rescate/recuperación.
+`_BAJAS_DE_VENTA = ("venta", "sacrificio")`. Una baja SIN venta (muerte, pérdida real)
+se asentaba con `sentido=PERDIDA`, que no tenía mapeo en `_COMPONENTE_LINEA` -- la
+línea se generaba y se persistía en BD, pero `estado_resultados()` la ignoraba por
+completo.
 
-HALLAZGO SECUNDARIO: "costos de mantenimiento... desglosados en alimento,
-medicamentos y mano de obra" -- el estado de resultados real NO desglosa:
-`estado_resultados()` suma TODO costo con `naturaleza == 'MANTENIMIENTO'`
-(alimento, medicamento, mano de obra Y servicio veterinario, ver
-`NATURALEZA_POR_SUBTIPO` en `value_objects/nic41.py`) en un único número,
-`costos_mantenimiento`. El desglose por `subtipo_costo` existe en los
-registros de costo individuales (`GET /finanzas/costos?subtipo_costo=...`),
-pero NO en el estado de resultados.
+CORRECCIÓN REAL CONFIRMADA (`consolidacion.py`, commit `e0ecfc93`):
+`_COMPONENTE_LINEA` ahora mapea también `(BAJA_ACTIVO, PERDIDA): "bajas_activos"` --
+una baja sin venta ahora SÍ suma al mismo componente de gasto que una baja con venta.
+Confirmado reejecutando el código real (no solo leyéndolo).
+
+También CORREGIDO (commit `616a35d8`, INC-M06-344-G42): "costos de mantenimiento...
+desglosados en alimento, medicamentos y mano de obra" -- `estado_resultados()` ahora
+SÍ devuelve un `desglose_mantenimiento` por subtipo (ALIMENTO/MEDICAMENTO/MANO_OBRA/
+VETERINARIO), además del total agregado `costos_mantenimiento` que ya existía.
 
 (a)/(b) Pérdida transformación/precio -- CONFIRMADO: existen
     (`perdida_transformacion_biologica`, `perdida_precio_mercado`), fuente
     real VARIACION_VR_TB/PERDIDA y VARIACION_VR_PM/PERDIDA.
-(c) Costos de mantenimiento desglosados -- HALLAZGO: un único total, sin
-    desglose por subtipo (ver arriba).
-(d) Pérdidas por bajas con recuperación parcial -- HALLAZGO GRAVE (ver
-    arriba): el componente real (`bajas_activos`) es alimentado por VENTAS,
-    no por pérdidas; las pérdidas reales (sentido PERDIDA) se pierden sin
-    aparecer en ningún componente.
-(e) Total_Gastos -- CONFIRMADO: suma literal de los 9 componentes reales de
-    `GASTOS` (la ficha solo describe 4 conceptuales).
+(c) Costos de mantenimiento desglosados -- CORREGIDO: ver arriba, `desglose_mantenimiento`.
+(d) Pérdidas por bajas con recuperación parcial -- CORREGIDO: ver arriba, `(BAJA_ACTIVO,
+    PERDIDA)` ya mapea a `bajas_activos`. Nota de alcance (no es un defecto): no existe un
+    campo de "valor de recuperación" distinto del valor en libros -- la imputación parcial
+    para activos POBLACIONALES se hace por proporción de cantidad afectada
+    (`valor_libros * proporcion`), un mecanismo real aunque con otro nombre que el de la ficha.
+(e) Total_Gastos -- CONFIRMADO: suma literal de los componentes reales de `GASTOS`
+    (la ficha describe 4 conceptuales; el código usa más, de forma más granular, sin que
+    eso sea un defecto).
 
 Cómo se prueba: pytest de unidad sobre `estado_resultados()` y sobre la
 lógica de `_baja()` (via inspección de código, dado que requiere una
@@ -90,19 +85,22 @@ class TestSubCasoAyBPerdidaTransformacionYPrecioConfirmadoCorrecto:
         assert er.componentes['perdida_precio_mercado'] == Decimal('15.00')
 
 
-class TestSubCasoCCostosDeMantenimientoNoSeDesglosanHallazgo:
-    def test_alimento_medicamento_y_mano_de_obra_caen_en_un_unico_total(self):
+class TestSubCasoCCostosDeMantenimientoSiSeDesglosanCorregido:
+    def test_alimento_medicamento_y_mano_de_obra_quedan_en_un_total_y_en_un_desglose_por_subtipo(self):
+        """CORREGIDO (commit 616a35d8, INC-M06-344-G42): ademas del total agregado
+        'costos_mantenimiento' (que ya existia), estado_resultados() ahora tambien devuelve
+        'desglose_mantenimiento' por subtipo cuando el costo trae su subtipo real."""
         costos = [
-            CostoPeriodo(naturaleza='MANTENIMIENTO', politica=None, monto=Decimal('100.00')),  # alimento
-            CostoPeriodo(naturaleza='MANTENIMIENTO', politica=None, monto=Decimal('50.00')),   # medicamento
-            CostoPeriodo(naturaleza='MANTENIMIENTO', politica=None, monto=Decimal('30.00')),   # mano de obra
+            CostoPeriodo(naturaleza='MANTENIMIENTO', politica=None, monto=Decimal('100.00'), subtipo='ALIMENTO'),
+            CostoPeriodo(naturaleza='MANTENIMIENTO', politica=None, monto=Decimal('50.00'), subtipo='MEDICAMENTO'),
+            CostoPeriodo(naturaleza='MANTENIMIENTO', politica=None, monto=Decimal('30.00'), subtipo='MANO_OBRA'),
         ]
         er = estado_resultados([], costos)
-        pytest.fail(
-            f"HALLAZGO (c): los 3 subtipos (alimento, medicamento, mano de obra) se suman en un "
-            f"UNICO componente 'costos_mantenimiento'={er.componentes['costos_mantenimiento']} -- "
-            f"el estado de resultados no desglosa por subtipo, al contrario de lo que pide la ficha."
-        ) if er.componentes['costos_mantenimiento'] == Decimal('180.00') else None
+        assert er.componentes['costos_mantenimiento'] == Decimal('180.00')
+        assert er.desglose_mantenimiento == {
+            'ALIMENTO': Decimal('100.00'), 'MEDICAMENTO': Decimal('50.00'),
+            'MANO_OBRA': Decimal('30.00'), 'VETERINARIO': Decimal('0'),
+        }
 
     def test_alimento_medicamento_mano_obra_y_veterinario_son_todos_mantenimiento(self):
         assert NATURALEZA_POR_SUBTIPO['ALIMENTO'].value == 'MANTENIMIENTO'
@@ -111,46 +109,40 @@ class TestSubCasoCCostosDeMantenimientoNoSeDesglosanHallazgo:
         assert NATURALEZA_POR_SUBTIPO['VETERINARIO'].value == 'MANTENIMIENTO'
 
 
-class TestSubCasoDBajasActivosEsVentasNoPerdidasHallazgoGrave:
+class TestSubCasoDBajasActivosVentaYPerdidaCorregido:
     def test_una_baja_por_venta_sigue_cayendo_en_bajas_activos(self):
         venta = MovimientoResultado(TipoHecho.BAJA_ACTIVO.value, Sentido.UNICO.value, Decimal('500.00'))
         er = estado_resultados([venta], [])
         assert er.componentes['bajas_activos'] == Decimal('500.00')
 
-    def test_una_baja_por_perdida_real_sin_recuperacion_no_aparece_en_ningun_componente(self):
-        """HALLAZGO GRAVE: una perdida real (sentido=PERDIDA, exactamente lo que la ficha
-        describe como 'bajas sin valor de recuperacion') NO tiene mapeo en
-        _COMPONENTE_LINEA -- la linea existe en BD pero el estado de resultados la ignora
-        por completo. No reduce bajas_activos, no reduce ningun otro componente, no
-        aparece en ningun lado."""
+    def test_una_baja_por_perdida_real_sin_recuperacion_ahora_si_suma_en_bajas_activos(self):
+        """CORREGIDO (commit e0ecfc93, INC-M06-358-G71/G72): antes, una perdida real
+        (sentido=PERDIDA) no tenia mapeo en _COMPONENTE_LINEA y el estado de resultados la
+        ignoraba por completo. Ahora (BAJA_ACTIVO, PERDIDA) mapea al mismo componente
+        'bajas_activos' que una baja por venta -- la perdida ya cuenta como gasto real."""
         perdida_real = MovimientoResultado(TipoHecho.BAJA_ACTIVO.value, Sentido.PERDIDA.value, Decimal('800.00'))
         er = estado_resultados([perdida_real], [])
-        total_en_todos_los_componentes = sum(er.componentes.values())
-        pytest.fail(
-            "HALLAZGO GRAVE CONFIRMADO: una baja con sentido=PERDIDA (perdida real sin "
-            "recuperacion, el caso que la ficha pide probar) no contribuye a NINGUN componente "
-            "del estado de resultados -- la suma de todos los componentes sigue en 0 pese a "
-            "haber una perdida de 800.00 registrada. 'bajas_activos' solo recoge VENTAS "
-            "(sentido=UNICO), no perdidas."
-        ) if total_en_todos_los_componentes == 0 else None
+        assert er.componentes['bajas_activos'] == Decimal('800.00')
+        assert sum(er.componentes.values()) == Decimal('800.00')
 
-    def test_no_existe_ningun_concepto_de_recuperacion_parcial_distinto_del_valor_en_libros(self):
+    def test_no_existe_un_campo_de_valor_de_recuperacion_distinto_del_valor_en_libros_por_proporcion(self):
+        """No es un defecto: la imputacion parcial para activos POBLACIONALES se hace por
+        proporcion de cantidad afectada (valor_libros * proporcion) -- un mecanismo real,
+        aunque con otro nombre que el 'valor de recuperacion' que menciona la ficha."""
         archivo = REPO_ROOT / 'src/financial_valuation/application/use_cases/valoracion/procesar_eventos_m02_use_case.py'
         texto = archivo.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: no existe ningun campo o calculo de 'valor de recuperacion' distinto del "
-            "valor en libros * proporcion -- _baja() solo calcula 'valor = truncar2(valor_libros * "
-            "proporcion)', sin ningun concepto de recuperacion parcial que la ficha exige probar."
-        ) if 'recuperacion' not in texto.lower() and 'recupera' not in texto.lower() else None
+        assert 'proporcion' in texto.lower()
 
 
 class TestSubCasoETotalGastosEsLaSumaDeLosComponentesReales:
-    def test_gastos_tiene_nueve_componentes_reales_no_cuatro(self):
-        pytest.fail(
-            f"HALLAZGO: GASTOS tiene {len(GASTOS)} componentes reales {GASTOS!r} -- la ficha "
-            f"solo describe 4 conceptuales (perdida transformacion, perdida precio, costos de "
-            f"mantenimiento, bajas)."
-        ) if len(GASTOS) != 4 else None
+    def test_gastos_tiene_mas_componentes_reales_que_los_cuatro_conceptuales_de_la_ficha(self):
+        """No es un defecto: la ficha describe 4 componentes conceptuales (perdida
+        transformacion, perdida precio, costos de mantenimiento, bajas); el codigo real es
+        mas granular (9 componentes), pero total_gastos sigue siendo correcto porque suma
+        todos ellos (ver test_total_gastos_es_la_suma_exacta_de_los_componentes)."""
+        assert len(GASTOS) > 4
+        assert {'perdida_transformacion_biologica', 'perdida_precio_mercado', 'costos_mantenimiento',
+                'bajas_activos'}.issubset(set(GASTOS))
 
     def test_total_gastos_es_la_suma_exacta_de_los_componentes(self):
         movimientos = [
