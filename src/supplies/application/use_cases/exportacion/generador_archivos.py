@@ -4,6 +4,7 @@
 # | 2026-11-10 | Arekkazu         | CP088/CP111/TC-DIS-204 RF-77/80/81: PDF sin recorte, celdas con salto de línea, idioma y título; moneda legible |
 # | 2026-11-11 | Arekkazu         | TC-DIS-204 RF-77: PDF etiquetado para lector de pantalla (encabezado, párrafos y tabla con TH/TD) |
 # | 2026-11-12 | Arekkazu | TC-DIS-259/264 RF-92/93: Excel con encabezados en la fila 1 y título y totales en otra hoja |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: PDF/A-1b opcional para los documentos que se conservan |
 """Generación de archivos de exportación de M05 (RF-77 y RF-81).
 
 - CSV en bloques de 1.000 filas (RF-77 "chunking" para > 5.000 registros): el
@@ -88,7 +89,9 @@ def generar_excel(doc: Documento) -> bytes:
     return salida.getvalue()
 
 
-def generar_pdf(doc: Documento, generado: datetime) -> bytes:
+def generar_pdf(doc: Documento, generado: datetime, pdfa: bool = False) -> bytes:
+    """``pdfa``: conformidad PDF/A-1b (fuentes incrustadas, perfil de color y metadatos XMP), para documentos
+    que se conservan a largo plazo, como el informe de revelaciones NIC 41 (RNF-92-02)."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A3, A4, landscape
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -96,6 +99,12 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
     from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     _Parrafo, _Imagen = _etiquetado(Paragraph), _etiquetado(Image)
+    fuente, negrita = "Helvetica", "Helvetica-Bold"
+    if pdfa:
+        from src.shared.pdfa import FUENTE, FUENTE_NEGRITA, registrar_fuentes
+
+        registrar_fuentes()
+        fuente, negrita = FUENTE, FUENTE_NEGRITA
 
     salida = io.BytesIO()
     hoja = landscape(A4 if len(doc.columnas) <= _COLUMNAS_A4 else A3)
@@ -103,13 +112,17 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
     plantilla = SimpleDocTemplate(
         salida, pagesize=hoja, leftMargin=margen, rightMargin=margen, topMargin=margen, bottomMargin=margen,
         title=doc.titulo, author=_AUTOR, creator=_AUTOR, subject=doc.titulo, lang="es-CO",
+        initialFontName=fuente,
     )
     estilos = getSampleStyleSheet()
+    titulo = ParagraphStyle("titulo", parent=estilos["Title"], fontName=negrita)
+    normal = ParagraphStyle("normal", parent=estilos["Normal"], fontName=fuente)
     tamano = 8 if len(doc.columnas) <= 8 else 7
-    celda = ParagraphStyle("celda", parent=estilos["Normal"], fontSize=tamano, leading=tamano + 2, splitLongWords=1)
-    cabecera = ParagraphStyle("cabecera", parent=celda, fontName="Helvetica-Bold", textColor=colors.white)
+    celda = ParagraphStyle("celda", parent=normal, fontSize=tamano, leading=tamano + 2, splitLongWords=1)
+    cabecera = ParagraphStyle("cabecera", parent=celda, fontName=negrita, textColor=colors.white)
     estilo_tabla = TableStyle(
         [
+            ("FONTNAME", (0, 0), (-1, -1), fuente),  # la tabla fija su propia fuente aunque el texto vaya en párrafos
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
@@ -137,10 +150,10 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
         logo = _Imagen(doc.ruta_logo, width=80, height=40, kind="proportional")
         logo._etiqueta = etiquetas.nuevo("Figure", raiz, alt="Logo de la finca")
         elementos.append(logo)
-    elementos.append(_p(doc.titulo, estilos["Title"], "H1"))
-    elementos.append(_p(f"Fecha de generación: {fecha_hora(generado)}", estilos["Normal"], "P"))
+    elementos.append(_p(doc.titulo, titulo, "H1"))
+    elementos.append(_p(f"Fecha de generación: {fecha_hora(generado)}", normal, "P"))
     for linea in doc.encabezado:
-        elementos.append(_p(linea, estilos["Normal"], "P"))
+        elementos.append(_p(linea, normal, "P"))
     elementos.append(Spacer(1, 10))
 
     paginas = [doc.filas[i:i + FILAS_POR_PAGINA_PDF] for i in range(0, len(doc.filas), FILAS_POR_PAGINA_PDF)] or [[]]
@@ -156,7 +169,7 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
     if doc.pie:
         elementos.append(Spacer(1, 10))
         for linea in doc.pie:
-            elementos.append(_p(linea, estilos["Normal"], "P"))
+            elementos.append(_p(linea, normal, "P"))
 
     def _ver_titulo(lienzo, _plantilla) -> None:
         lienzo.setViewerPreference("DisplayDocTitle", "true")  # el lector muestra el título, no el nombre del archivo
@@ -164,6 +177,10 @@ def generar_pdf(doc: Documento, generado: datetime) -> bytes:
     plantilla._doSave = 0  # el árbol de etiquetas se escribe cuando ya existen todas las páginas
     plantilla.build(elementos, onFirstPage=_ver_titulo, onLaterPages=_ver_titulo)
     etiquetas.escribir(plantilla.canv)
+    if pdfa:
+        from src.shared.pdfa import aplicar_pdfa1b
+
+        aplicar_pdfa1b(plantilla.canv)
     plantilla.canv.save()
     return salida.getvalue()
 

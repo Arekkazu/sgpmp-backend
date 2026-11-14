@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Puerto de los reportes del período: estado de resultados (RF-93) e informe de revelaciones (RF-92)."""
 from __future__ import annotations
 
@@ -12,6 +13,10 @@ class ReporteRepository(ABC):
     @abstractmethod
     def movimientos(self, id_periodo_contable: int, filtros: dict) -> list[dict]:
         """Líneas REGISTRADAS del período con activo, especie, finca e infraestructura."""
+
+    @abstractmethod
+    def hechos_sin_asiento(self, id_periodo_contable: int) -> list[dict]:
+        """RF-93 FA-2: variaciones (RF-86) y productos agrícolas (RF-85) del período sin línea de asiento."""
 
     @abstractmethod
     def agregar_estado(self, datos: dict) -> int: ...

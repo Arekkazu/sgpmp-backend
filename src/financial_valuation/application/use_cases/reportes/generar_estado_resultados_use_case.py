@@ -3,29 +3,38 @@
 # | 2026-11-04 | Arekkazu | M06 RF-93: generar y aprobar el estado de resultados del período agropecuario |
 # | 2026-11-10 | Arekkazu | INC-M06-337-G37 RF-86: acumulado del período abierto sin versión |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: el estado generado a pedido resta los activos excluidos del cierre |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 """Casos de uso RF-93. Solo sobre períodos CERRADOS (R1), salvo el acumulado de RF-86 (sin versión).
 Cada generación es una versión nueva; la anterior no cambia (R5). Los filtros (especie, activo, infraestructura, finca) suman al consolidado
 porque cada línea y cada costo pertenecen a un solo activo (CA-2, CA-11)."""
 from __future__ import annotations
 
+import logging
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
-from src.financial_valuation.application.services.reportes import ConstructorEstadoResultados
+from src.financial_valuation.application.services.reportes import ConciliacionError, ConstructorEstadoResultados
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
 from src.shared.errors import BusinessRuleError, NotFoundError
 
+logger = logging.getLogger(__name__)
+
 
 class GenerarEstadoResultadosUseCase:
     def __init__(self, db: Session, periodos: PeriodoRepository, reportes: ReporteRepository,
-                 constructor: ConstructorEstadoResultados, auditoria: AuditoriaFinancieraRepository) -> None:
+                 constructor: ConstructorEstadoResultados, auditoria: AuditoriaFinancieraRepository,
+                 notificador: Optional[NotificacionFinancieraPort] = None) -> None:
         self.db = db
         self.periodos = periodos
         self.reportes = reportes
         self.constructor = constructor
         self.auditoria = auditoria
+        self.notificador = notificador
 
     def _cerrado(self, id_periodo_contable: int):
         periodo = self.periodos.obtener(id_periodo_contable)
@@ -62,10 +71,24 @@ class GenerarEstadoResultadosUseCase:
                 monto_afectado=resultado["resultado_neto"],
             ))
             self.db.commit()
+        except ConciliacionError as exc:  # FA-2: no se genera; la discrepancia queda en RF-94 y se avisa
+            self.db.rollback()
+            self._discrepancia(exc, id_usuario)
+            raise
         except Exception:
             self.db.rollback()
             raise
         return resultado
+
+    def _discrepancia(self, exc: ConciliacionError, id_usuario: int) -> None:
+        try:
+            self.auditoria.registrar(exc.evento(id_usuario))
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            logger.exception("RF-93 FA-2: no se pudo registrar la discrepancia del período %s.", exc.id_periodo_contable)
+        if self.notificador is not None:
+            exc.avisar(self.notificador)
 
     def aprobar(self, id_estado: int, id_usuario: int) -> dict:
         estado = self.reportes.obtener_estado(id_estado)

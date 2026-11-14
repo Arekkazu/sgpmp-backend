@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06 RF-94: orden descendente y conteo por severidad |
+# | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 """Puerto de la auditoría inmutable de M06 (RF-94)."""
 from __future__ import annotations
 
@@ -19,3 +20,7 @@ class AuditoriaFinancieraRepository(ABC):
 
     @abstractmethod
     def conteo_por_severidad(self, filtros: dict) -> dict[str, int]: ...
+
+    @abstractmethod
+    def actores(self, filtros: dict) -> list[dict]:
+        """Usuarios que firmaron eventos con esos filtros: ``id_usuario`` y ``nombre`` (RF-94 Fase 7)."""
