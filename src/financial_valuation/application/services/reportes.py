@@ -6,6 +6,7 @@
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: los activos excluidos del cierre salen de todos los componentes y los montos van con 4 decimales |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: la conciliación suma los ingresos de individuos sin costo y omite los activos dados de baja antes |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección (COMPLETA, ADVERTENCIA o BLOQUEADA) con su fuente y motivo |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: revelar supuestos y detectar datos insuficientes por activo. |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -15,6 +16,7 @@ from decimal import Decimal
 from typing import Iterable, Optional
 
 from src.financial_valuation.domain.repositories.costo_repository import CostoRepository
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
 from src.financial_valuation.domain.services.consolidacion import (
     CostoPeriodo,
@@ -24,6 +26,28 @@ from src.financial_valuation.domain.services.consolidacion import (
 from src.financial_valuation.domain.services.nic41 import CERO, hash_sha256, q4
 
 ETIQUETAS_PERIODO = {"MENSUAL": "M", "TRIMESTRAL": "Q", "ANUAL": "A"}
+_SUPUESTOS_BIOLOGICOS = ("supuestos_crecimiento", "produccion_esperada", "condicion_corporal")
+
+
+def _sin_dato(valor) -> bool:
+    return valor is None or valor in ([], {}) or (isinstance(valor, str) and not valor.strip())
+
+
+def avisar_supuestos_insuficientes(notificador: NotificacionFinancieraPort, id_periodo: int, informe: dict) -> None:
+    por_finca: dict[int, list[dict]] = defaultdict(list)
+    for activo in informe["supuestos_insuficientes"]:
+        por_finca[activo["id_finca"]].append(activo)
+    for id_finca, activos in por_finca.items():
+        nombres = ", ".join(a["identificador"] or "Activo sin identificador" for a in activos[:5])
+        otros = f" y {len(activos) - 5} más" if len(activos) > 5 else ""
+        notificador.a_contadores(
+            "ALERTA_FINANCIERA_NIC41",
+            f"El informe de revelaciones {informe['version_informe']} tiene datos insuficientes en los "
+            f"métodos y supuestos de valoración de {nombres}{otros}. Consulte la sección de métodos y supuestos.",
+            {"motivo": "SUPUESTOS_REVELACIONES_INSUFICIENTES", "id_periodo_contable": id_periodo,
+             "id_informe": informe["id_informe"], "activos": activos},
+            id_finca,
+        )
 
 SECCIONES_INFORME = {
     "parr_41_43_descripcion": "Descripción de los grupos de activos (¶41-43)",
@@ -129,6 +153,34 @@ class ConstructorInformeRevelaciones:
     def __init__(self, reportes: ReporteRepository) -> None:
         self.reportes = reportes
 
+    @staticmethod
+    def _metodos_y_supuestos(activos: list[dict], calculos: list[dict]) -> tuple[list[dict], list[dict]]:
+        por_activo = {c["id_activo_biologico"]: c for c in calculos}
+        filas, insuficientes = [], []
+        for activo in activos:
+            id_activo = activo["id_activo_biologico"]
+            al_costo = activo["valor_contable_por_costo"] is not None
+            calculo = {} if al_costo else dict(por_activo.get(id_activo, {}))
+            detalle = {**(calculo.pop("supuestos_aplicados", None) or {}), **(calculo.get("json_metodo_costo") or {})}
+            supuestos = {campo: detalle.get(campo) for campo in _SUPUESTOS_BIOLOGICOS}
+            fuente = calculo.get("fuente")
+            tasa = detalle.get("tasa_descuento")
+            faltantes = [campo for campo, valor in supuestos.items() if _sin_dato(valor)]
+            if not al_costo and _sin_dato(fuente):
+                faltantes.insert(0, "fuente")
+            if detalle.get("aplica_tasa_descuento") is True and _sin_dato(tasa):
+                faltantes.append("tasa_descuento")
+            identidad = {"id_activo_biologico": id_activo, "identificador": activo["identificador"]}
+            filas.append({
+                **calculo, **identidad, "especie": activo["especie"],
+                "indicador_valoracion": activo["indicador_valoracion"], "fuente": fuente,
+                "tasa_descuento": tasa, **supuestos, "datos_insuficientes": bool(faltantes),
+                "campos_faltantes": faltantes,
+            })
+            if faltantes:
+                insuficientes.append({**identidad, "id_finca": activo["id_finca"], "campos_faltantes": faltantes})
+        return filas, insuficientes
+
     def construir(self, id_periodo_contable: int, manuales: dict) -> dict:
         d = self.reportes.datos_revelaciones(id_periodo_contable)
         periodo = d["periodo"]
@@ -200,6 +252,10 @@ class ConstructorInformeRevelaciones:
             problemas["niif13_93_precios_referencia"].append((True, (
                 "Las mediciones del período no tienen el precio de mercado que usaron.")))
         a_costo = [a for a in activos if a["valor_contable_por_costo"] is not None]
+        supuestos, insuficientes = self._metodos_y_supuestos(activos, d["supuestos"])
+        if insuficientes:
+            problemas["niif13_93_metodos_y_supuestos"].append((True, (
+                "Faltan datos de la medición de: " + ", ".join(i["identificador"] for i in insuficientes[:10]) + ".")))
         contenido = {
             "parr_41_43_descripcion": [{"especie": k, "cantidad_activos": v["cantidad_activos"],
                                         "valor_cierre": v["valor_cierre"], "clasificacion": sorted(v["clasificaciones"])}
@@ -208,7 +264,7 @@ class ConstructorInformeRevelaciones:
                                            "transformacion_biologica": total_tb, "precio_mercado": total_pm,
                                            "total": total_reconocimiento + total_tb + total_pm},
             "parr_51_separacion_precio_transformacion": {"transformacion_biologica": total_tb, "precio_mercado": total_pm},
-            "niif13_93_metodos_y_supuestos": d["supuestos"] or "datos insuficientes",
+            "niif13_93_metodos_y_supuestos": supuestos,
             "niif13_93_precios_referencia": d["precios"],
             "parr_50_conciliacion": rollforward,
             "parr_54_56_activos_al_costo": [{"id_activo_biologico": a["id_activo_biologico"], "identificador": a["identificador"],
@@ -227,12 +283,14 @@ class ConstructorInformeRevelaciones:
             "exclusiones_cierre": (d["cierre"] or {}).get("activos_excluidos") or [],
         }
         contenido["estado_secciones"] = estado_secciones(problemas)
-        return {"contenido": contenido, "supuestos": d["supuestos"], "costo": contenido["parr_54_56_activos_al_costo"],
+        return {"contenido": contenido, "supuestos": supuestos, "supuestos_insuficientes": insuficientes,
+                "costo": contenido["parr_54_56_activos_al_costo"],
                 "riesgos": d["riesgos"], "alertas_consistencia": alertas, "periodo": periodo}
 
     def guardar(self, id_periodo_contable: int, manuales: dict, id_usuario: int,
-                justificacion_inconsistencias: Optional[str] = None) -> dict:
-        informe = self.construir(id_periodo_contable, manuales)
+                justificacion_inconsistencias: Optional[str] = None, *, informe: Optional[dict] = None) -> dict:
+        if informe is None:
+            informe = self.construir(id_periodo_contable, manuales)
         periodo = informe["periodo"]
         numero = self.reportes.siguiente_version_informe(id_periodo_contable)
         etiqueta = ETIQUETAS_PERIODO.get(periodo["tipo_cierre"], "M")
@@ -245,4 +303,4 @@ class ConstructorInformeRevelaciones:
             "costo": informe["costo"], "riesgos": informe["riesgos"], "u": id_usuario, "hash": hash_sha256(contenido),
         })
         return {"id_informe": id_informe, "version_informe": version, "alertas_consistencia": informe["alertas_consistencia"],
-                "estado_secciones": contenido["estado_secciones"]}
+                "estado_secciones": contenido["estado_secciones"], "supuestos_insuficientes": informe["supuestos_insuficientes"]}

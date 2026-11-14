@@ -8,6 +8,7 @@
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: textos de ventas y de bajas sin recuperación en la descarga |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: los títulos de las secciones salen del constructor y el estado por sección no se imprime |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el informe de revelaciones se descarga en PDF/A-1b |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: mostrar los métodos, los supuestos y sus faltantes en las descargas. |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -77,8 +78,15 @@ _CAMPOS_INFORME = {
     "valor_razonable_bruto": "Valor bruto",
     "valor_neto": "Valor neto",
     "metodo_costo": "Costos de venta",
+    "indicador_valoracion": "Modelo de valoración",
     "tiene_valor_estimado": "Estimado",
     "fuente": "Fuente",
+    "tasa_descuento": "Tasa de descuento",
+    "supuestos_crecimiento": "Supuestos de crecimiento",
+    "produccion_esperada": "Producción esperada",
+    "condicion_corporal": "Condición corporal",
+    "datos_insuficientes": "Datos insuficientes",
+    "campos_faltantes": "Datos faltantes",
     "categoria": "Categoría",
     "unidad_medida": "Unidad",
     "fecha_vigencia": "Vigente desde",
@@ -111,6 +119,7 @@ _CATALOGO_INFORME = {
     "DATOS_INSUFICIENTES": "Datos insuficientes para esta sección", "PRODUCCION": "Producción", "CONSUMO": "Consumo",
     "MERCADO_ACTIVO": "Mercado activo", "UPRA": "UPRA", "ESTIMADA": "Estimada", "PARAMETRIZADO": "Parametrizado", "MANUAL": "Manual",
     "PESO_KG": "Por kilo", "POR_CABEZA": "Por cabeza", "PRODUCTO": "Producto",
+    "VALOR_RAZONABLE": "Valor razonable", "VALORACION_POR_COSTO": "Valoración por costo",
 }
 _ESTADO_DOC = {"APROBADO": "Aprobado", "ARCHIVADO": "Archivado", "BORRADOR": "Borrador", "RECHAZADO": "Rechazado", "GENERADO": "Generado"}
 
@@ -132,6 +141,8 @@ def _valor_informe(clave: str, valor) -> str:
     if isinstance(valor, dict):
         return "; ".join(f"{_rotulo(k)}: {_valor_informe(k, v)}" for k, v in valor.items() if k not in _OCULTOS_INFORME)
     if isinstance(valor, list):
+        if clave == "campos_faltantes":
+            return ", ".join(_rotulo(campo) for campo in valor) or "Ninguno"
         return ", ".join(_valor_informe(clave, v) for v in valor) or "Sin datos"
     if isinstance(valor, str) and valor in _CATALOGO_INFORME:
         return _CATALOGO_INFORME[valor]

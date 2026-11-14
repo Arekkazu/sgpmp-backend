@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-92: informe de revelaciones NIC 41 (borrador, aprobación, rechazo) |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: una sección bloqueada impide aprobar el informe |
+# | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar al Contador tras guardar el informe con faltantes. |
 """Casos de uso RF-92. El informe se genera en BORRADOR sobre un período CERRADO; las alertas de
 consistencia no lo bloquean, pero continuar con ellas exige justificación (paso 3, FA-2). Al aprobar
 una versión, la APROBADA anterior pasa a ARCHIVADO (R4)."""
@@ -11,9 +12,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.financial_valuation.application.services.reportes import ConstructorInformeRevelaciones
+from src.financial_valuation.application.services.reportes import ConstructorInformeRevelaciones, avisar_supuestos_insuficientes
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
@@ -21,12 +23,14 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 class GenerarInformeRevelacionesUseCase:
     def __init__(self, db: Session, periodos: PeriodoRepository, reportes: ReporteRepository,
-                 constructor: ConstructorInformeRevelaciones, auditoria: AuditoriaFinancieraRepository) -> None:
+                 constructor: ConstructorInformeRevelaciones, auditoria: AuditoriaFinancieraRepository,
+                 notificador: NotificacionFinancieraPort) -> None:
         self.db = db
         self.periodos = periodos
         self.reportes = reportes
         self.constructor = constructor
         self.auditoria = auditoria
+        self.notificador = notificador
 
     def generar(self, id_periodo_contable: int, manuales: dict, justificacion_inconsistencias: Optional[str],
                 id_usuario: int) -> dict:
@@ -48,7 +52,9 @@ class GenerarInformeRevelacionesUseCase:
                     tipo_evento="ERROR_CONSISTENCIA", severidad="WARNING", id_usuario=id_usuario,
                     payload={"alertas": previa["alertas_consistencia"], "justificacion": justificacion_inconsistencias},
                     id_periodo_contable=id_periodo_contable))
-            resultado = self.constructor.guardar(id_periodo_contable, manuales, id_usuario, justificacion_inconsistencias)
+            resultado = self.constructor.guardar(
+                id_periodo_contable, manuales, id_usuario, justificacion_inconsistencias, informe=previa,
+            )
             self.auditoria.registrar(EventoAuditoria(
                 tipo_evento="INFORME_REVELACIONES_GENERADO", severidad="INFO", id_usuario=id_usuario,
                 payload={"version": resultado["version_informe"]}, id_periodo_contable=id_periodo_contable,
@@ -57,6 +63,8 @@ class GenerarInformeRevelacionesUseCase:
         except Exception:
             self.db.rollback()
             raise
+        avisar_supuestos_insuficientes(self.notificador, id_periodo_contable, resultado)
+        resultado.pop("supuestos_insuficientes")
         return resultado
 
     def resolver(self, id_informe: int, aprobar: bool, razon: Optional[str], id_usuario: int) -> dict:
