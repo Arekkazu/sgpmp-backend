@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: E1/E5/E6 del RF y cálculo sin commit |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-12 | Leandro | INC-M05-357-G02 RF-74: mostrar el identificador, el período y el CA legibles en el aviso crítico. |
 """Caso de uso núcleo: calcular el ICA de un activo para un período (RF-74).
 
 Reutilizado por el cálculo manual (Flujo A), el batch nocturno (Flujo C) y los
@@ -28,7 +29,7 @@ from sqlalchemy.orm import Session
 from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, NotFoundError
 from src.shared.fechas import fecha_usuario, hoy_usuario
 from src.supplies.domain.entities.resultado_ica import ResultadoICA
-from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
+from src.supplies.domain.repositories.activo_consulta_port import ActivoConsulta, ActivoConsultaPort
 from src.supplies.domain.repositories.alerta_ica_port import AlertaICAPort
 from src.supplies.domain.repositories.auditoria_suministro_port import (
     AuditoriaSuministroPort,
@@ -45,6 +46,12 @@ from src.supplies.domain.value_objects.periodo_calculo import PeriodoCalculo
 
 # Tipos de cálculo iniciados por un usuario (alerta con origen BACKEND).
 _TIPOS_MANUALES = {TipoCalculo.MANUAL, TipoCalculo.REINTENTO_MANUAL}
+
+_PERIODO_EN_AVISO = {
+    PeriodoEvaluacion.SEMANAL: "en la semana",
+    PeriodoEvaluacion.MENSUAL: "en el mes",
+    PeriodoEvaluacion.POR_CICLO: "en el ciclo",
+}
 
 
 class CalcularICAUseCase:
@@ -83,7 +90,7 @@ class CalcularICAUseCase:
     ) -> ResultadoICA:
         paso = ["validar_activo"]
         try:
-            guardado = self.calcular_sin_commit(
+            guardado, activo = self._calcular(
                 id_activo_biologico=id_activo_biologico,
                 periodo=periodo,
                 tipo_calculo=tipo_calculo,
@@ -108,18 +115,21 @@ class CalcularICAUseCase:
                 ),
                 original_error=exc,
             ) from exc
-        self._avisar_si_critica(guardado)
+        self._avisar_si_critica(guardado, activo)
         return guardado
 
-    def _avisar_si_critica(self, resultado: ResultadoICA) -> None:
+    def _avisar_si_critica(self, resultado: ResultadoICA, activo: ActivoConsulta) -> None:
         """Paso 8 / CA-3: alerta de urgencia ALTA al Productor y al Veterinario del activo."""
-        if self.notificador is None or not resultado.es_critica:
+        if self.notificador is None or not resultado.es_critica or resultado.ca_calculado is None:
             return
+        tipo_activo = "lote" if activo.es_poblacional else "activo"
+        ca_visible = format(resultado.ca_calculado, "f").replace(".", ",")
+        periodo_visible = _PERIODO_EN_AVISO[resultado.periodo_evaluacion]
         self.notificador.a_responsables_activo(
             resultado.id_activo_biologico,
             "ALERTA_CONVERSION_ALIMENTICIA",
-            f"Urgencia ALTA: la conversión alimenticia del activo {resultado.id_activo_biologico} es CRÍTICA "
-            f"(CA {resultado.ca_calculado}, período {resultado.periodo_evaluacion.value}). Revise dieta, calidad "
+            f"Urgencia ALTA: la conversión alimenticia del {tipo_activo} {activo.nombre_visible} es crítica "
+            f"(CA {ca_visible} {periodo_visible}). Revise dieta, calidad "
             "del alimento y estado sanitario.",
             {"id_activo_biologico": resultado.id_activo_biologico, "ca": str(resultado.ca_calculado)},
         )
@@ -136,6 +146,28 @@ class CalcularICAUseCase:
         fecha_corte: Optional[date] = None,
     ) -> ResultadoICA:
         """``fecha_corte`` reemplaza a hoy como fin del período (CA final al cierre del ciclo, RF-38)."""
+        resultado, _ = self._calcular(
+            id_activo_biologico=id_activo_biologico,
+            periodo=periodo,
+            tipo_calculo=tipo_calculo,
+            id_usuario=id_usuario,
+            intento=intento,
+            paso=paso,
+            fecha_corte=fecha_corte,
+        )
+        return resultado
+
+    def _calcular(
+        self,
+        *,
+        id_activo_biologico: int,
+        periodo: PeriodoEvaluacion,
+        tipo_calculo: TipoCalculo,
+        id_usuario: Optional[int],
+        intento: int,
+        paso: Optional[list[str]],
+        fecha_corte: Optional[date] = None,
+    ) -> tuple[ResultadoICA, ActivoConsulta]:
         paso = paso if paso is not None else ["validar_activo"]
         activo = self.activo_port.obtener(id_activo_biologico)
         if activo is None:
@@ -231,7 +263,7 @@ class CalcularICAUseCase:
                 origen_evento=origen,
                 fecha_evento=datetime.now(timezone.utc),
             )
-        return guardado
+        return guardado, activo
 
     def _auditar_fallo(
         self, id_activo: int, periodo: PeriodoEvaluacion, paso: str, exc: Exception, id_usuario: Optional[int]
