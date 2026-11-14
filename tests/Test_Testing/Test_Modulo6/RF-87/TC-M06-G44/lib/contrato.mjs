@@ -36,13 +36,13 @@ function revisar(dato,forma,prefijo){
 export function instrumentar(dato,forma,lecturas=[],prefijo='respuesta',opciones={estricto:true}){
   revisar(dato,forma,prefijo);
   const envolver=(valor,modelo,ruta)=>{
-    if(Array.isArray(valor))return new Proxy(valor,{get(o,k){if(typeof k==='string'&&/^\d+$/.test(k)){
+    if(Array.isArray(valor)&&Array.isArray(modelo))return new Proxy(valor,{get(o,k){try{if(typeof k==='string'&&/^\d+$/.test(k)){
       const hijo=`${ruta}[${k}]`;lecturas.push(hijo);revisar(o[k],modelo[0]??{},hijo);
       return envolver(o[k],modelo[0]??{},hijo);
-    }return Reflect.get(o,k);}});
+    }return Reflect.get(o,k);}catch(e){opciones.onError?.(e);throw e;}}});
     if(valor===null||typeof valor!=='object'||!modelo||typeof modelo!=='object')return valor;
     for(const clave of Object.keys(valor))if(!Object.hasOwn(modelo,clave))opciones.camposExtra?.add(`${ruta}.${clave}`);
-    return new Proxy(valor,{get(o,k){
+    return new Proxy(valor,{get(o,k){try{
       if(typeof k==='symbol'||k==='toJSON'||k==='inspect'||k==='then')return Reflect.get(o,k);
       if(!Object.hasOwn(modelo,k)){
         if(opciones.estricto)throw Error(`LECTURA_FUERA_CONTRATO_${ruta}.${String(k)}`);
@@ -52,7 +52,7 @@ export function instrumentar(dato,forma,lecturas=[],prefijo='respuesta',opciones
       if(!Object.hasOwn(o,k)&&!(typeof modelo[k]==='string'&&modelo[k].endsWith('?'))&&modelo[k]?._optional!==true)throw Error(`CAMPO_AUSENTE_${ruta}.${String(k)}`);
       revisar(o[k],modelo[k],`${ruta}.${String(k)}`);
       return envolver(o[k],modelo[k],`${ruta}.${String(k)}`);
-    }});
+    }catch(e){opciones.onError?.(e);throw e;}}});
   };
   return envolver(dato,forma,prefijo);
 }

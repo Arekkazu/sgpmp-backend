@@ -48,7 +48,7 @@ export function preflight(c,e,{grupo,api,front,efectos}){
   return{grupo,run_id:c.runId,version:c.version,referencia:c.ref,ok:falta.length===0,barreras:falta,efectos};
 }
 
-export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,validarLecturas,validarError,clean,id,token,inicio}){
+export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,validarLecturas,validarError,clean,id,token,inicio,registrarRespuesta,registrarAbortoContrato}){
   let ocupado=false;
   let cuenta=0;
   let escrituras=0;
@@ -71,12 +71,15 @@ export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,va
       fila.http=respuesta.status;
       fila.eco=respuesta.headers.get('x-test-run-id')===runId;
       const raw=respuesta.status===204?{}:await respuesta.json().catch(()=>null);
+      registrarRespuesta?.({metodo,ruta,http:respuesta.status,cuerpo:raw,solicitud:fila.id});
       if(respuesta.status>=400){
         fila.error=clean(raw?.error_code);
         fila.error_contrato=validarError(raw);
         return{http:respuesta.status,data:raw,hora_utc:fila.hora_utc};
       }
-      const data=metodo==='DELETE'?raw:validarLecturas(raw,metodo,ruta,{estricto:false,camposExtra:new Set()});
+      let data=raw;
+      if(metodo!=='DELETE')try{data=validarLecturas(raw,metodo,ruta,{estricto:false,camposExtra:new Set(),onError:error=>registrarAbortoContrato?.({...fila,metodo,ruta,cuerpo:raw,error})});}
+      catch(error){registrarAbortoContrato?.({...fila,metodo,ruta,cuerpo:raw,error});throw error;}
       return{http:respuesta.status,data,hora_utc:fila.hora_utc};
     }finally{ocupado=false;}
   }
