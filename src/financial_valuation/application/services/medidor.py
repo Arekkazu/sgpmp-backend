@@ -5,6 +5,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-308-G12 RF-83: alerta MEDICION_PENDIENTE al Contador si la medición es estimada |
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
+# | 2026-11-13 | Arekkazu | INC-M06-91-G43-03 RF-83/87: la medición estimada sin variación se registra, marcada y con alerta |
 """Servicio de aplicación: medición posterior de un activo (RF-83) y su registro en resultados
 (RF-86). Lo usan el procesador de eventos de M02 y el cierre del período (RF-87). No hace commit.
 
@@ -18,7 +19,9 @@ C-3 de RF-87 pasos 4-5).
 
 El cálculo y la medición guardan 4 decimales; la variación y su línea, 2 (RF-86 trunca). Un
 componente que trunca a 0,00 no tiene nada que asentar y se omite solo (CA-14), pero la medición
-se registra igual: sin eso el valor vigente no avanza y nunca acumula los cambios pequeños."""
+se registra igual: sin eso el valor vigente no avanza y nunca acumula los cambios pequeños. Una
+medición estimada se registra aunque no varíe: la marca de estimación y su alerta (RF-83 v1.2) no
+dependen del monto."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -120,7 +123,7 @@ class Medidor:
                                           anterior.magnitud if comparable else None, nuevo.magnitud,
                                           hubo_evento_biologico=hubo_evento)
         tb, pm = sentido_por_signo(variacion.transformacion), sentido_por_signo(variacion.precio)
-        if variacion.transformacion == CERO and variacion.precio == CERO:
+        if variacion.transformacion == CERO and variacion.precio == CERO and not nuevo.tiene_valor_estimado:
             self.contabilizador.auditar(EventoAuditoria(
                 tipo_evento="MEDICION_SIN_VARIACION", severidad=Severidad.INFO.value,
                 payload={"valor_neto": str(nuevo.valor_neto), "id_evento": id_evento, "origen": origen},
