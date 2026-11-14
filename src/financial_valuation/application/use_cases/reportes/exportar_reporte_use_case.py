@@ -5,6 +5,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: el estado descargado desglosa el mantenimiento por tipo |
 # | 2026-11-10 | Arekkazu | TC-DIS-246/259/264 RF-87/92/93: descargas con montos, fechas, signo y Ganancia/Pérdida en palabras |
 # | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-93: cada activo excluido con su causa en palabras y el resultado que quedó fuera |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: textos de ventas y de bajas sin recuperación en la descarga |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -40,13 +41,14 @@ ETIQUETAS_COMPONENTES = {
     "perdida_reconocimiento_inicial": "Pérdida en el reconocimiento inicial",
     "costos_mantenimiento": "Costos de mantenimiento",
     "inversiones_llevadas_a_gasto": "Inversiones llevadas a gasto",
-    "bajas_activos": "Bajas de activos (valor en libros)",
+    "bajas_activos": "Valor en libros de activos vendidos",
+    "perdidas_bajas_sin_recuperacion": "Pérdidas por bajas sin recuperación",
     "depreciacion_activos_costo": "Depreciación de activos al costo",
     "deterioro_activos_costo": "Deterioro de activos al costo",
     "perdida_ajustes_periodos_anteriores": "Ajustes de períodos anteriores (pérdida)",
 }
 _GASTOS = {"perdida_transformacion_biologica", "perdida_precio_mercado", "perdida_reconocimiento_inicial", "costos_mantenimiento",
-           "inversiones_llevadas_a_gasto", "bajas_activos", "depreciacion_activos_costo", "deterioro_activos_costo",
+           "inversiones_llevadas_a_gasto", "bajas_activos", "perdidas_bajas_sin_recuperacion", "depreciacion_activos_costo", "deterioro_activos_costo",
            "perdida_ajustes_periodos_anteriores"}
 # Secciones del informe de revelaciones en el orden de la norma (¶40-56 y NIIF 13 ¶93).
 SECCIONES_INFORME = {
