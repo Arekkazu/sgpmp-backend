@@ -120,6 +120,23 @@ def obtener_fincas_del_alcance(db: Session, ids_permitidas: Optional[list[int]])
     return [dict(f) for f in filas]
 
 
+def obtener_infraestructuras_del_alcance(db: Session, id_finca: int, ids_permitidas: Optional[list[int]]) -> list[dict]:
+    """Áreas activas de una finca del usuario (vacío si la finca no es suya), para el mismo filtro.
+
+    Igual que las fincas: el Contador no tiene el permiso de Configuración «infraestructuras».
+    """
+    if ids_permitidas is not None and id_finca not in ids_permitidas:
+        return []
+    filas = db.execute(
+        text(
+            "SELECT id_infraestructura, nombre FROM modulo9.infraestructuras "
+            "WHERE id_finca = :id_finca AND es_activo IS TRUE ORDER BY nombre"
+        ),
+        {"id_finca": id_finca},
+    ).mappings().all()
+    return [dict(f) for f in filas]
+
+
 class ConsultarDetalleUsuarioUseCase:
     """Orquesta la consulta del detalle de un usuario con enmascarado condicional de ID."""
 

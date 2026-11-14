@@ -93,6 +93,15 @@ class FincasDelAlcanceResponse(BaseModel):
     items: list[FincaDelAlcanceResponse]
 
 
+class InfraestructuraDelAlcanceResponse(BaseModel):
+    id_infraestructura: int
+    nombre: str
+
+
+class InfraestructurasDelAlcanceResponse(BaseModel):
+    items: list[InfraestructuraDelAlcanceResponse]
+
+
 class UsuarioDetalleResponse(BaseModel):
     """Detalle completo de un usuario retornado en consulta de perfil o detalle admin.
 

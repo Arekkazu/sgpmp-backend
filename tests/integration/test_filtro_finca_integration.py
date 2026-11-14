@@ -1,6 +1,6 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
-# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25/35/75: fincas del usuario y filtro por finca combinado con su alcance |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25/35/75/77: fincas e infraestructuras del usuario y filtro por finca combinado con su alcance |
 """Filtro por finca de Suministros, Finanzas e Integración contable.
 
 El usuario solo filtra entre sus fincas (el Administrador entre todas) y el filtro se combina con su
@@ -67,12 +67,19 @@ def test_mis_fincas_sin_permiso_de_configuracion_y_global_para_el_administrador(
     propia = _finca(db_session, contador["id_usuario"], "Finca Propia Filtro")
     ajena = _finca(db_session, None, "Finca Ajena Filtro")
 
-    r = client.get("/usuarios/me/fincas", headers=crear_auth_headers(contador))
+    headers = crear_auth_headers(contador)
+    r = client.get("/usuarios/me/fincas", headers=headers)
     assert r.status_code == 200, r.text
     ids = {f["id_finca"] for f in r.json()["items"]}
     assert propia in ids and ajena not in ids
     [fila] = [f for f in r.json()["items"] if f["id_finca"] == propia]
     assert (fila["nombre"], fila["numero_id_tributaria"]) == ("Finca Propia Filtro", "900123456")
+
+    # Áreas de una finca propia sin el permiso «infraestructuras»; de una ajena, ninguna.
+    areas = client.get(f"/usuarios/me/fincas/{propia}/infraestructuras", headers=headers)
+    assert areas.status_code == 200, areas.text
+    assert areas.json()["items"] == [{"id_infraestructura": propia, "nombre": f"Corral {propia}"}]
+    assert client.get(f"/usuarios/me/fincas/{ajena}/infraestructuras", headers=headers).json()["items"] == []
 
     ids_admin = {f["id_finca"] for f in client.get("/usuarios/me/fincas", headers=crear_auth_headers(admin)).json()["items"]}
     assert {propia, ajena} <= ids_admin
