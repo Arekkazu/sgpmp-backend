@@ -1,3 +1,9 @@
+## [1.4.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.62...v1.4.0-rc.63) (2026-11-14)
+
+### Features
+
+* **identity-access:** la cuenta creada por el SSO de AgroFusion nace Administrador y se retira el rol Externo AgroFusion ([9ff4d38](https://github.com/Arekkazu/sgpmp-backend/commit/9ff4d381082f21d0ae8e147ff9c37dbd0c496d6c))
+
 ## [1.4.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.61...v1.4.0-rc.62) (2026-11-14)
 
 ### Features
