@@ -1,3 +1,12 @@
+## [1.4.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.64...v1.4.0-rc.65) (2026-11-14)
+
+### Bug Fixes
+
+* **rf40-mod2:** «hoy» con el reloj del usuario adelantado ya no es fecha futura en eventos ni en el cambio de fase (QA M06 punto 5) ([3cded22](https://github.com/Arekkazu/sgpmp-backend/commit/3cded22476a4f0bacac9d6d4a7e8822a9d5162da))
+* **rf82-mod6:** la fecha del reconocimiento inicial viaja como día y no como instante UTC (QA M06 punto 5) ([92fe557](https://github.com/Arekkazu/sgpmp-backend/commit/92fe55764b82cfb68a485280e8a61f1c4d8b46b6))
+* **rf82-mod6:** la reversión del reconocimiento se bloquea con deterioros o registros contables posteriores y el activo revertido al costo se reconoce de nuevo (QA M06 CU01 H-03) ([bce2329](https://github.com/Arekkazu/sgpmp-backend/commit/bce23298b8468fe53fb26a438db60b006032cac6))
+* **rf92-mod6:** los textos que ve el usuario no citan párrafos de la NIC 41 ([854c624](https://github.com/Arekkazu/sgpmp-backend/commit/854c624565fefcca6919f05bf42b93bb9d72ba59))
+
 ## [1.4.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.63...v1.4.0-rc.64) (2026-11-14)
 
 ### Bug Fixes
