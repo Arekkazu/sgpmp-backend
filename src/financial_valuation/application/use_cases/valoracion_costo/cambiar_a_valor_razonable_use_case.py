@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-88 paso 9: paso del modelo de costo a valor razonable (NIC 41 ¶30, ¶56) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Caso de uso RF-88 paso 9: cuando hay precio confiable, el activo pasa a valor razonable (¶30 lo
 exige). La diferencia entre el valor por costo y el valor razonable neto va a resultados.
 
@@ -55,7 +56,7 @@ class CambiarAValorRazonableUseCase:
                     id_especie=activo.id_especie, id_finca=activo.id_finca, numero_id_tributaria=activo.numero_id_tributaria,
                     tabla_origen="valoraciones_por_costos", id_origen=costo.id_valoracion_por_costo,
                     tipo_evidencia=TipoEvidencia.VARIACION_PRECIO.value,
-                    justificacion="Cambio del modelo de costo a valor razonable (NIC 41 ¶30)", id_usuario=id_usuario,
+                    justificacion="Cambio del modelo de costo a valor razonable", id_usuario=id_usuario,
                 ), id_usuario)
             costo.es_activa = False
             self.valoraciones.actualizar_valoracion_costo(costo)
