@@ -10,6 +10,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
 # | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82/88: la reversión cuenta deterioros y registros contables; el costo revertido se reutiliza; la fecha del reconocimiento sale como día |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-83..86: las filas del período traen el id de la finca para el filtro |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -51,7 +52,7 @@ ES_BASE = "COALESCE((json_metodo_costo->>'es_producto')::boolean, false) = false
 
 
 # Activo, especie, finca y clasificación de cada registro de los listados del período.
-_ACTIVO = f"""{nombre_activo_sql()} AS identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, f.nombre AS finca,
+_ACTIVO = f"""{nombre_activo_sql()} AS identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, i.id_finca, f.nombre AS finca,
     ri.clasificacion::text AS clasificacion"""
 _JOIN_ACTIVO = """JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = x.id_activo_biologico
     JOIN modulo9.especies e ON e.id_especie = a.id_especie

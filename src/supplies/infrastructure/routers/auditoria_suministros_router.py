@@ -5,6 +5,7 @@
 # | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: documentar rechazo 400 por filtros temporales inválidos. |
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: registrar intentos autenticados conservando el rechazo 405. |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
@@ -64,6 +65,7 @@ def listar_auditoria(
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     entidad_afectada: Optional[str] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None, gt=0),
+    id_finca: Optional[int] = Query(default=None, gt=0, description="Solo eventos de activos de esta finca."),
     id_ciclo_productivo: Optional[int] = Query(default=None, gt=0),
     resultado: Optional[str] = Query(default=None, description="EXITOSO | FALLIDO | RECHAZADO"),
     clasificacion_registro: Optional[str] = Query(default=None, description="NIC41 | TECNICO"),
@@ -81,6 +83,7 @@ def listar_auditoria(
         fecha_hasta=fecha_hasta,
         entidad_afectada=entidad_afectada,
         id_activo_biologico=id_activo_biologico,
+        id_finca=id_finca,
         id_ciclo_productivo=id_ciclo_productivo,
         resultado=resultado,
         clasificacion_registro=clasificacion_registro,
@@ -128,6 +131,7 @@ def exportar_auditoria(
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     entidad_afectada: Optional[str] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None, gt=0),
+    id_finca: Optional[int] = Query(default=None, gt=0, description="Solo eventos de activos de esta finca."),
     id_ciclo_productivo: Optional[int] = Query(default=None, gt=0),
     resultado: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
@@ -142,6 +146,7 @@ def exportar_auditoria(
         fecha_hasta=fecha_hasta,
         entidad_afectada=entidad_afectada,
         id_activo_biologico=id_activo_biologico,
+        id_finca=id_finca,
         id_ciclo_productivo=id_ciclo_productivo,
         resultado=resultado,
         clasificacion_registro=clasificacion_registro,

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para las cuentas creadas por AgroFusion |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25: GET /usuarios/me/fincas y sus infraestructuras para los filtros por finca |
 """Router FastAPI para el módulo de usuarios (`/usuarios`).
 
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
@@ -9,7 +10,7 @@ gestión de estado de cuenta y registro de tokens FCM.
 """
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -22,6 +23,8 @@ from src.identity_access.application.use_cases.registro.reenviar_token_use_case 
 from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import (
     ConsultarDetalleUsuarioUseCase,
     enmascarar_identificacion,
+    obtener_fincas_del_alcance,
+    obtener_infraestructuras_del_alcance,
     puede_ver_identificacion_completa,
 )
 from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
@@ -50,11 +53,14 @@ from src.identity_access.infrastructure.repositories.sesion_repository import Sq
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.shared.notificacion_service import NotificacionService
 from src.identity_access.infrastructure.schema.gestion_schema import (
+    FincasDelAlcanceResponse,
+    InfraestructurasDelAlcanceResponse,
     UsuarioDetalleResponse,
     UsuarioListadoPaginadoResponse,
     UsuarioListadoResponse,
 )
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse, MessageResponse
 from src.shared.fechas import FechaHoraUtc
@@ -348,6 +354,45 @@ def consultar_perfil(
     )
     resultado = use_case.execute(usuario_actual)
     return UsuarioDetalleResponse(**resultado)
+
+
+@router.get(
+    "/me/fincas",
+    summary="Fincas que el usuario puede filtrar (RF-25)",
+    response_model=FincasDelAlcanceResponse,
+    responses={401: {"model": ErrorResponse}},
+)
+def listar_mis_fincas(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FincasDelAlcanceResponse:
+    """Fincas activas del alcance del usuario: las asignadas o, para el Administrador, todas.
+
+    **Acceso:** autenticado. Alimenta los filtros por finca de Suministros, Finanzas e
+    Integración contable sin exigir el permiso de Configuración «fincas».
+    """
+    ids = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+    return FincasDelAlcanceResponse(items=obtener_fincas_del_alcance(db, ids))
+
+
+@router.get(
+    "/me/fincas/{id_finca}/infraestructuras",
+    summary="Infraestructuras de una finca del usuario (RF-25)",
+    response_model=InfraestructurasDelAlcanceResponse,
+    responses={401: {"model": ErrorResponse}},
+)
+def listar_infraestructuras_de_mi_finca(
+    id_finca: int = Path(gt=0),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> InfraestructurasDelAlcanceResponse:
+    """Áreas activas de una finca del alcance del usuario; vacío si la finca no es suya.
+
+    **Acceso:** autenticado. Completa el filtro por finca (Reporte de gastos) sin exigir el
+    permiso de Configuración «infraestructuras».
+    """
+    ids = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+    return InfraestructurasDelAlcanceResponse(items=obtener_infraestructuras_del_alcance(db, id_finca, ids))
 
 @router.patch(
     "/me",

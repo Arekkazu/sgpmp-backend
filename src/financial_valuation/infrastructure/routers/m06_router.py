@@ -22,6 +22,7 @@
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 # | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-84/94: costos y bitácora aceptan id_finca |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -421,10 +422,11 @@ TAG_COSTOS = "M06 · Costos"
 def listar_costos(id_activo_biologico: Optional[int] = Query(None, gt=0), id_periodo_contable: Optional[int] = Query(None, gt=0),
                   estado: Optional[EstadoCosto] = None, origen_costo: Optional[OrigenCosto] = None,
                   naturaleza_costo: Optional[NaturalezaCosto] = None, subtipo_costo: Optional[SubtipoCosto] = None,
-                  id_especie: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+                  id_especie: Optional[int] = Query(None, gt=0), id_finca: Optional[int] = Query(None, gt=0),
+                  m: M06 = Depends(_m06)) -> list[dict]:
     return m.costos.listar({"id_activo_biologico": id_activo_biologico, "id_periodo_contable": id_periodo_contable,
                             "estado": estado, "origen_costo": origen_costo, "naturaleza_costo": naturaleza_costo,
-                            "subtipo_costo": subtipo_costo, "id_especie": id_especie})
+                            "subtipo_costo": subtipo_costo, "id_especie": id_especie, "id_finca": id_finca})
 
 
 @router.post("/costos", tags=[TAG_COSTOS], status_code=201, dependencies=[Depends(permiso("costos_activos", C))],
@@ -737,14 +739,16 @@ def _negar_informe_oculto(request: Request, m: M06, usuario: UsuarioActual, id_i
 def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
                         id_periodo_contable: Optional[int] = Query(None, gt=0),
                         id_activo_biologico: Optional[int] = Query(None, gt=0), severidad: Optional[Severidad] = None,
+                        id_finca: Optional[int] = Query(None, gt=0),
                         id_usuario: Optional[int] = Query(None, gt=0), id_referencia: Optional[int] = Query(None, gt=0),
                         origen_registro: Optional[Literal["REPOSITORIO", "FALLBACK"]] = None,
                         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = Query(1, ge=1),
                         tamano: int = Query(100, ge=1, le=500), formato: str = Query("LEGIBLE", pattern="^(LEGIBLE|TECNICO)$"),
                         orden: Literal["ASC", "DESC"] = "ASC", m: M06 = Depends(_m06)) -> dict:
     filtros = {"tipo_evento": tipo_evento, "id_periodo_contable": id_periodo_contable,
-               "id_activo_biologico": id_activo_biologico, "severidad": severidad, "id_usuario": id_usuario,
-               "id_referencia": id_referencia, "origen_registro": origen_registro, "desde": desde, "hasta": hasta}
+               "id_activo_biologico": id_activo_biologico, "id_finca": id_finca, "severidad": severidad,
+               "id_usuario": id_usuario, "id_referencia": id_referencia, "origen_registro": origen_registro,
+               "desde": desde, "hasta": hasta}
     return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE", orden == "DESC")
 
 

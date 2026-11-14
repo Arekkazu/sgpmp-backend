@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102: puerto de la auditoría de integración |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 """Puerto de la auditoría de M07 (RF-102): solo inserta y consulta, nunca modifica."""
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ class FiltrosAuditoria:
     endpoint: Optional[str] = None
     codigo_http: Optional[int] = None
     solo_exitosos: bool = False
+    numero_id_tributaria: Optional[str] = None
 
 
 class AuditoriaIntegracionRepository(ABC):
