@@ -58,6 +58,11 @@
             "precios_congelados": [
               {
                 "id_especie": "integer|especie_estimacion",
+                "estimacion": "boolean?",
+                "categoria": "string?",
+                "unidad_medida": "string?",
+                "fecha_vencimiento": "date|null?",
+                "id_metrica_produccion": "integer|null?",
                 "id_precio_mercado": "integer",
                 "precio_unitario": "decimal",
                 "fuente": "string",
@@ -312,6 +317,7 @@
         "periodo": "string",
         "estado": "string",
         "activos_procesados": "integer",
+        "activos_estimados": ["integer|activo_estimado"],
         "activos_excluidos": [
           {
             "id_activo_biologico": "integer",

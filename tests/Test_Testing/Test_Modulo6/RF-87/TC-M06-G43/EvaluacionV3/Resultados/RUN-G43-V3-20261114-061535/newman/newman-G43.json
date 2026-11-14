@@ -1,0 +1,1399 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "dd1ed85a-87fa-4b42-b2a9-214a5189bec9",
+        "name": "G43 lectura 1",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "554941ba-74a0-4b8a-baf5-0eebbd412d59",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "d864fe58-ccfb-4672-ac7f-3df851547769"
+            }
+          }
+        ]
+      },
+      {
+        "id": "0e48c35d-2da6-4787-9952-f72c63b02aa7",
+        "name": "G43 lectura 2",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "8",
+              "prevalidacion"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "aeb5ee3a-c4f2-42c6-9cae-c86f93093d95",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "79b9c5bb-83a7-4dbe-81eb-7f5a5390698b"
+            }
+          }
+        ]
+      },
+      {
+        "id": "1784dcda-4d6b-4f54-a75c-a7bf87ef6990",
+        "name": "G43 lectura 3",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo_sin_precio}}",
+              "prevalidacion"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "62cd4675-81d0-48e6-aa62-6bc410418031",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "4de1a0d5-b844-4faa-b9df-9043788ea583"
+            }
+          }
+        ]
+      },
+      {
+        "id": "844af284-fbf2-4204-aa1d-c0d1d8bbd149",
+        "name": "G43 lectura 4",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo_siguiente}}",
+              "prevalidacion"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "1a7c74fb-e712-4043-a1a1-a528765d34ed",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "9a5206c3-f5b9-49cb-a07d-76b069ad80aa"
+            }
+          }
+        ]
+      },
+      {
+        "id": "6b0beb6b-3045-4a33-9940-de1d661a980c",
+        "name": "G43 lectura 5",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "8"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "e38d025d-56dc-43cd-9ae8-a0a17240745e",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "3aeea4b6-bd95-41c5-8cd7-e5ab764aea47"
+            }
+          }
+        ]
+      },
+      {
+        "id": "bbf54ced-8ae6-49f2-8d34-9e0a9bad739b",
+        "name": "G43 lectura 6",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "{{periodo_sin_precio}}"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "d795acfc-78a3-4a22-8799-99df8f39e405",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "1903bd7b-ff3e-4636-a099-2b9645b86da3"
+            }
+          }
+        ]
+      },
+      {
+        "id": "083a30ef-888a-4884-b2bf-977378058bc0",
+        "name": "G43 lectura 7",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "{{periodo_siguiente}}"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "209ff5dc-ccc0-4773-8032-bc7edc63ad39",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "0fc38482-815b-46f0-a90b-88736e82b5e6"
+            }
+          }
+        ]
+      },
+      {
+        "id": "a990b5b8-7ca9-4c75-a395-e1374247a859",
+        "name": "G43 lectura 8",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "8",
+              "calculos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "a0fec95c-dc23-45fe-92a4-b246cefb84db",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "23d47fe6-9586-4e11-8a94-46cac994d37d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "a3c76624-c8ae-4727-ab11-3afc136629a7",
+        "name": "G43 lectura 9",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo_sin_precio}}",
+              "comprobantes"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "ed96dab9-9a31-4aaa-a44a-c43f0d8274a0",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "569c3123-561c-4f27-8cab-9694f5688a11"
+            }
+          }
+        ]
+      },
+      {
+        "id": "dd9533f7-54fa-45a2-9033-3da6feebf707",
+        "name": "G43 lectura 10",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo_siguiente}}",
+              "revelaciones"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "0555ce0b-cec9-4491-b4a4-92a0d4b1b6c3",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+              ],
+              "_lastExecutionId": "76851210-daed-4bf8-9370-aa084a6aa6d3"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "e08c37d5-bbd7-48e4-b770-cbe3df18f073",
+      "name": "TC-M06-G43 RF-87",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "f1cdd7e9-9d17-435b-acce-f93b26a6971f",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "contador_token"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G43-V3-20261114-061535",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "266",
+        "key": "periodo_sin_precio"
+      },
+      {
+        "type": "any",
+        "value": "620",
+        "key": "periodo_siguiente"
+      }
+    ]
+  },
+  "globals": {
+    "id": "e7866911-4a43-4ac9-8698-b494ce09bdf0",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 20,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 203.3,
+      "responseMin": 142,
+      "responseMax": 629,
+      "responseSd": 142.7627752602197,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794637014823,
+      "completed": 1794637017700
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 10,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "e147e30e-fbbf-44db-b166-1fff6046aa89",
+          "httpRequestId": "96f36365-3079-4ebb-ad5a-819b97ca1daf"
+        },
+        "item": {
+          "id": "dd1ed85a-87fa-4b42-b2a9-214a5189bec9",
+          "name": "G43 lectura 1",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "554941ba-74a0-4b8a-baf5-0eebbd412d59",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "d864fe58-ccfb-4672-ac7f-3df851547769"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "253aee46-47cf-4fc8-8661-0265d2a5d492",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 629,
+          "responseSize": 11940
+        },
+        "id": "dd1ed85a-87fa-4b42-b2a9-214a5189bec9",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "d0108d73-66d0-4472-bac8-8172ee2446e0",
+          "length": 10,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "9ed79be6-5353-4030-874f-ebbb6e2ad90b"
+        },
+        "item": {
+          "id": "0e48c35d-2da6-4787-9952-f72c63b02aa7",
+          "name": "G43 lectura 2",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "8",
+                "prevalidacion"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "aeb5ee3a-c4f2-42c6-9cae-c86f93093d95",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "79b9c5bb-83a7-4dbe-81eb-7f5a5390698b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "8",
+              "prevalidacion"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "bdc539dc-4b00-4f5b-b950-fcfbb4e408cb",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 198,
+          "responseSize": 118
+        },
+        "id": "0e48c35d-2da6-4787-9952-f72c63b02aa7",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "b1258e51-ba1d-46a2-96a6-90c3996b5267",
+          "length": 10,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "0296517a-6bf3-4523-a4d2-039cfd42bbe2"
+        },
+        "item": {
+          "id": "1784dcda-4d6b-4f54-a75c-a7bf87ef6990",
+          "name": "G43 lectura 3",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo_sin_precio}}",
+                "prevalidacion"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "62cd4675-81d0-48e6-aa62-6bc410418031",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "4de1a0d5-b844-4faa-b9df-9043788ea583"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "266",
+              "prevalidacion"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "5f143522-e1c1-4a25-8850-1b1a1cb5bb1e",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 162,
+          "responseSize": 209
+        },
+        "id": "1784dcda-4d6b-4f54-a75c-a7bf87ef6990",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f4d3e062-b00a-4640-acef-7924070797c5",
+          "length": 10,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "27b86d87-70b9-41bf-96ab-725d386de835"
+        },
+        "item": {
+          "id": "844af284-fbf2-4204-aa1d-c0d1d8bbd149",
+          "name": "G43 lectura 4",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo_siguiente}}",
+                "prevalidacion"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1a7c74fb-e712-4043-a1a1-a528765d34ed",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "9a5206c3-f5b9-49cb-a07d-76b069ad80aa"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "620",
+              "prevalidacion"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "9f0b6431-c13e-444b-807f-bffe09ba76a4",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 164,
+          "responseSize": 209
+        },
+        "id": "844af284-fbf2-4204-aa1d-c0d1d8bbd149",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "ec5d1038-15d9-4836-9641-b03aadd1f155",
+          "length": 10,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "cd6e5143-e8ab-41d5-9ea7-f003ddb3e88d"
+        },
+        "item": {
+          "id": "6b0beb6b-3045-4a33-9940-de1d661a980c",
+          "name": "G43 lectura 5",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "8"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "e38d025d-56dc-43cd-9ae8-a0a17240745e",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "3aeea4b6-bd95-41c5-8cd7-e5ab764aea47"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "8"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "b656efc0-a886-46cd-9971-de697571d77f",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 151,
+          "responseSize": 4995
+        },
+        "id": "6b0beb6b-3045-4a33-9940-de1d661a980c",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9548aa02-6645-47ac-b0d2-7b42f88b89d2",
+          "length": 10,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "eaa3f448-19df-4979-8467-bce199604ab8"
+        },
+        "item": {
+          "id": "bbf54ced-8ae6-49f2-8d34-9e0a9bad739b",
+          "name": "G43 lectura 6",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "{{periodo_sin_precio}}"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d795acfc-78a3-4a22-8799-99df8f39e405",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "1903bd7b-ff3e-4636-a099-2b9645b86da3"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "266"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "9f487e98-54bb-4f9c-80d1-358b3a21f9c2",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 144,
+          "responseSize": 2
+        },
+        "id": "bbf54ced-8ae6-49f2-8d34-9e0a9bad739b",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "ed89bd95-0e05-488c-ae8f-3c033ec46f61",
+          "length": 10,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "498ba0d6-2e9b-43b0-89b0-90bf53cb9588"
+        },
+        "item": {
+          "id": "083a30ef-888a-4884-b2bf-977378058bc0",
+          "name": "G43 lectura 7",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "{{periodo_siguiente}}"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "209ff5dc-ccc0-4773-8032-bc7edc63ad39",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "0fc38482-815b-46f0-a90b-88736e82b5e6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "620"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "97e0cc7f-fa01-4b31-8d06-5e03490c414a",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 142,
+          "responseSize": 2
+        },
+        "id": "083a30ef-888a-4884-b2bf-977378058bc0",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "67cec163-64eb-48d7-91f4-04c1391309be",
+          "length": 10,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "e1b435e3-dc28-4b13-8a1b-2f0adfce31a6"
+        },
+        "item": {
+          "id": "a990b5b8-7ca9-4c75-a395-e1374247a859",
+          "name": "G43 lectura 8",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "8",
+                "calculos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "a0fec95c-dc23-45fe-92a4-b246cefb84db",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "23d47fe6-9586-4e11-8a94-46cac994d37d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "8",
+              "calculos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "c9bf4524-a8bf-48d3-98d5-2eea945bad1f",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 147,
+          "responseSize": 3687
+        },
+        "id": "a990b5b8-7ca9-4c75-a395-e1374247a859",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "15ff89f6-6ada-445f-957e-6f0980b7a285",
+          "length": 10,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "e8d98ac6-bb4a-430a-b53d-fb0cd0c3797e"
+        },
+        "item": {
+          "id": "a3c76624-c8ae-4727-ab11-3afc136629a7",
+          "name": "G43 lectura 9",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo_sin_precio}}",
+                "comprobantes"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "ed96dab9-9a31-4aaa-a44a-c43f0d8274a0",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "569c3123-561c-4f27-8cab-9694f5688a11"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "266",
+              "comprobantes"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "8aee59c8-9949-4cef-a957-85dedf0f4736",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 145,
+          "responseSize": 2
+        },
+        "id": "a3c76624-c8ae-4727-ab11-3afc136629a7",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "2c1b1341-7c27-40a5-86f3-bea703eb8552",
+          "length": 10,
+          "cycles": 1,
+          "position": 9,
+          "iteration": 0,
+          "httpRequestId": "8809948f-f22e-442c-89b5-1ce33745d720"
+        },
+        "item": {
+          "id": "dd9533f7-54fa-45a2-9033-3da6feebf707",
+          "name": "G43 lectura 10",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo_siguiente}}",
+                "revelaciones"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0555ce0b-cec9-4491-b4a4-92a0d4b1b6c3",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('JSON público',()=>pm.expect(pm.response.json()).to.exist);"
+                ],
+                "_lastExecutionId": "76851210-daed-4bf8-9370-aa084a6aa6d3"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "620",
+              "revelaciones"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "610a18e6-0a52-431c-a143-b1bf5ca0d1f4",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 151,
+          "responseSize": 272
+        },
+        "id": "dd9533f7-54fa-45a2-9033-3da6feebf707",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "JSON público",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 21436
+    },
+    "failures": [],
+    "error": null
+  }
+}

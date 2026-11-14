@@ -37,9 +37,9 @@ export function contexto(args,{capacidades,grupo,casos,dir,prueba=false}){
   if(!archivo||path.resolve(archivo)!==path.join(salida,'contexto_operacion.json'))throw Error('CONTEXTO_FUERA_RUN');
   const c=JSON.parse(fs.readFileSync(archivo));
   if(c.grupo!==grupo||c.run_id!==runId||c.version!==version||c.intento!==intento||c.operacion!==operacion.toUpperCase()||c.referencia!==ref||JSON.stringify(c.casos)!==JSON.stringify(casos))throw Error('CONTEXTO_INCOHERENTE');
-  if(version===2){
+  if(version>=2){
     if(!['REEVALUAR','REINTENTAR'].includes(c.operacion)||JSON.stringify(c.alcance_reevaluacion?.casos)!==JSON.stringify(casos)||
-       (c.operacion==='REEVALUAR'&&Number(c.version_anterior)!==1))throw Error('ALCANCE_REEVALUACION_INCOHERENTE');
+       (c.operacion==='REEVALUAR'&&Number(c.version_anterior)!==version-1))throw Error('ALCANCE_REEVALUACION_INCOHERENTE');
   }
   return{dir:salida,runId,version,intento,operacion,ref};
 }
@@ -78,6 +78,7 @@ export function crearSolicitante({api,runId,secret,limite,solicitudes,esquema,va
       if(respuesta.status>=400){
         fila.error=clean(raw?.error_code);
         fila.error_contrato=validarError(raw);
+        if(!sinRun&&['POST','PUT','PATCH'].includes(metodo))fila.cuerpo_saneado=cuerpo&&typeof cuerpo==='object'?Object.fromEntries(Object.entries(cuerpo).filter(([k])=>!/(contrasena|password|token|secret|correo|nit|numero_id_tributaria)/i.test(k)).map(([k,v])=>[k,typeof v==='string'?clean(v):v])):null;
         return{http:respuesta.status,data:raw,hora_utc:fila.hora_utc};
       }
       const data=metodo==='DELETE'?raw:validarLecturas(raw,metodo,ruta,{estricto:false,camposExtra:new Set()});
@@ -124,7 +125,8 @@ export function guardarResultado(c,r,informe){
 }
 
 export function clasificarFallo(resultado){
-  if(!resultado.cierre?.rollback?.verificado)return 'ROLLBACK';
+  const sinEscrituras=resultado.consume_version===false&&resultado.cierre?.run?.cierre_http===200;
+  if(!resultado.cierre?.rollback?.verificado&&!sinEscrituras)return 'ROLLBACK';
   const tecnicos=resultado.problemas_tecnicos??[];
   if(tecnicos.some(x=>/CYPRESS.*(?:Compilation|compile|Webpack)/i.test(x)))return 'HERRAMIENTA_CYPRESS_COMPILACION';
   if(tecnicos.some(x=>/CYPRESS/i.test(x)))return 'HERRAMIENTA_CYPRESS_EJECUCION';
@@ -135,6 +137,7 @@ export function clasificarFallo(resultado){
   if(tecnicos.some(x=>/PERMISO/i.test(x)))return 'PERMISO';
   if(tecnicos.some(x=>/PREFLIGHT|ACTIVO_|PRECIO_BASE|MATRIZ_SIN_PAR/i.test(x)))return 'DATOS_PRECONDICION';
   if(tecnicos.length)return 'CONTRATO';
+  if(sinEscrituras)return 'SIN_ESCRITURAS';
   if(Object.values(resultado.casos??{}).some(x=>x.estado==='RECHAZADO'))return 'PRODUCTO';
   return 'NINGUNO';
 }

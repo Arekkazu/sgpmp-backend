@@ -1,4 +1,14 @@
-# TC-M06-G43 — preparación local de la reevaluación V2 de RF-87
+# TC-M06-G43 — preparación local de la reevaluación V3 de RF-87
+
+## ORD-G43-036: reevaluación V3 tras e73c9c9e
+
+El ejecutor canónico `g43.mjs` acepta `reevaluar --version 3` con `version_anterior=2` y `reintentar --version 3`. La salida autorizada se ubica en `EvaluacionV3/Resultados/RUN-G43-V3-…/`; esta preparación no creó un RUN ni consultó TEST. Se conservan la colección Newman, el spec/config Cypress y las pruebas históricas V1/V2.
+
+El contrato admite `precios_congelados` con `id_especie` entero y `estimacion` booleana, además de la forma antigua y `null`. La respuesta del cierre admite objetos de `activos_estimados` con los identificadores de medición y precio; la petición sigue enviando enteros. Para 024 se guarda el congelado visible en ambas pausas. Para 026, `resultado.json.diagnostico.estimacion_1644` contiene cada vía y sus identificadores. Los oráculos de la fila G43 se mantienen.
+
+Ensayos locales: `node pruebas/g43_v3_local.test.mjs` y `node pruebas/g43_v3_escenarios.test.mjs`; este último usa únicamente loopback y simula respuesta, auditoría, cálculo y recongelado. `node pruebas/verificar.mjs` genera en `%TEMP%/g43-verificar-ejemplo` un ejemplo V3 con `capacidades.json` para `registro_qa.py validar`. En este sandbox, el humo Cypress, el lanzador Newman y Pydantic pueden fallar con `spawn EPERM`; se deben ejecutar en el entorno Windows del responsable QA. El ejemplo es sintético y no acredita TEST.
+
+Se consultaron por lectura la fila G43 de `tests/Test_Testing/Test_Modulo6/Casos_Prueba(Modulo6Agrup).csv`, RF-87 v1.2 en `tests/Test_Testing/Requerimientos/Especificacion-Requerimientos-Modulo6.md`, el RUN V2 `074459`, el diff `e73c9c9e` de `src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py` y los archivos locales `src/financial_valuation/application/services/medidor.py` y `src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py`. No se consultaron otras rutas de producción para esta ronda.
 
 ## ORD-G43-030: corrección local, ronda 10
 
