@@ -1,3 +1,11 @@
+## [1.4.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.65...v1.4.0-rc.66) (2026-11-14)
+
+### Features
+
+* **rf25-mod9:** filtro por finca del usuario en Suministros, Finanzas e Integración contable ([813d91b](https://github.com/Arekkazu/sgpmp-backend/commit/813d91bc30eaaff404559437a4d67d058ea3fada))
+* **rf25-mod9:** infraestructuras de una finca del usuario en /usuarios/me/fincas/{id_finca}/infraestructuras para el filtro por finca ([66424fe](https://github.com/Arekkazu/sgpmp-backend/commit/66424fe85efa3c9b7b3001b81481d9ba316a0db4))
+* **rf82-mod6:** la propuesta de reconocimiento trae el id de la finca para el filtro por finca ([e29aca0](https://github.com/Arekkazu/sgpmp-backend/commit/e29aca052eb8f949a8d4bb0320b55701f546a2cb))
+
 ## [1.4.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.64...v1.4.0-rc.65) (2026-11-14)
 
 ### Bug Fixes
