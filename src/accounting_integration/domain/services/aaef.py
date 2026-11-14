@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
+# | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -235,7 +236,8 @@ def construir_envelope(
     neto = sum((d["Totals"]["TotalPayment"] for d in invoices), CERO)
     return {
         "metadata": {
-            "ExchangeId": f"SGPMP-{titular.nit}-{desde:%Y%m%d}-{hasta:%Y%m%d}-{secrets.randbelow(10 ** 7):07d}",
+            # SIGCON exige ^AF-(?:[A-Z]+-)?\d{4}-\d{2}-\d{4,}$ y AgroFusion reemplaza el último segmento.
+            "ExchangeId": f"AF-SIGAB-{desde:%Y-%m}-{secrets.randbelow(10 ** 7):07d}",
             "GeneratedAt": generado_en.isoformat(),
             "StandardVersion": ESTANDAR_AAEF,
             "RequestedPeriod": {"From": desde.isoformat(), "To": hasta.isoformat()},
