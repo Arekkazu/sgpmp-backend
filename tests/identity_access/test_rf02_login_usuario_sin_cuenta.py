@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02: el token M2M sale del canal de M07 (prueba propia allí) |
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: el caso de uso recibe el repositorio de roles |
 """RF-02: un usuario sin fila en `cuentas` no debe tumbar el login con un 500.
 
 `verificar_estado_cuenta` recibía `None` y fallaba en `cuenta.esta_bloqueada()`.
@@ -52,7 +53,7 @@ def test_sso_con_usuario_sin_cuenta_responde_401() -> None:
     sso = SimpleNamespace(verificar=lambda _t: SimpleNamespace(email=_CORREO))
     use_case = SsoLoginUseCase(
         sso_provider=sso, usuarios_repo=_Usuarios(True), cuentas_repo=_SinCuenta(),
-        sesiones_repo=None, eventos_repo=None, db=None,
+        sesiones_repo=None, eventos_repo=None, roles_repo=None, db=None,
     )
     with pytest.raises(AuthenticationError):
         use_case.execute(SsoLoginDTO(sso_token="t"), ip="127.0.0.1", user_agent="test")

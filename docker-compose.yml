@@ -3,6 +3,7 @@
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: mantener el respaldo de auditoría independiente en volumen persistente. |
 # | 2026-11-06 | Arekkazu | M07 RF-101: SGPMP_ENTORNO; credenciales de AgroFusion pasan al registro de clientes |
 # | 2026-11-07 | Sebastián Sandoval (Implementación) | SSO AgroFusion: montar la clave pública RS256 en /app/secrets |
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: AGROFUSION_ISSUER con valor por defecto (vacía rechazaba todo token) |
 services:
   db:
     # container_name único (no el genérico "db"): Dokploy conecta el backend
@@ -74,7 +75,7 @@ services:
       LOGOS_STORAGE_PATH: ${LOGOS_STORAGE_PATH:-/app/storage/modelos/logos}
       AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH}
       AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE}
-      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER}
+      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
       SGPMP_ENTORNO: ${SGPMP_ENTORNO:-DEV}
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL}
