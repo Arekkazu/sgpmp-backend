@@ -1,3 +1,6 @@
+# | Fecha      | Nombre | Que se hizo |
+# |------------|--------|-------------|
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
 """Caso de uso: Editar umbral ambiental y sus niveles de alerta (Flujo B — RF-17).
 
 Concurrencia optimista mediante ``fecha_actualizacion`` (FA-09 → HTTP 412).
@@ -94,12 +97,18 @@ class EditarUmbralUseCase:
         _validar_rangos(dto.valor_min, dto.valor_max, niveles, variable)
 
         snapshot_anterior = umbral._snapshot()
+        # G88: un PATCH sin el campo conserva la T vigente; null explícito vuelve al 10 % del rango.
+        tolerancia = (
+            dto.tolerancia_semaforo if 'tolerancia_semaforo' in dto.model_fields_set
+            else umbral.tolerancia_semaforo
+        )
         umbral.actualizar(
             valor_min=dto.valor_min,
             valor_max=dto.valor_max,
             niveles=niveles,
             id_usuario=usuario_actual.id_usuario,
             ts_ahora=datetime.now(timezone.utc),
+            tolerancia_semaforo=tolerancia,
         )
 
         try:

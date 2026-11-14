@@ -1,0 +1,81 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G120",
+  "run_id": "RUN-G120-V1-20261026-233328",
+  "version": 1,
+  "barreras": [],
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "BROKER_SERVICE_TOKEN",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "presente": true
+    }
+  ],
+  "decision_qa": {
+    "fecha": "2026-10-26",
+    "informativa": true,
+    "efecto_auditoria_externo": "Aceptado para declaración en SOL: ruta_ingesta_auditada.py puede persistir auditoría ante 422 estructural o fallo de persistencia.",
+    "momento_sincronizacion": "Observación: TC-M03-243 se decide por ambas lecturas en historial con timestamp_captura original; consultar RF-63 como Administrador si tiene permiso (39,2). Su ausencia no cambia el veredicto."
+  },
+  "efectos_declarados": [
+    "login_persistente_fuera_RUN",
+    "lectura_rollback_fuera_RUN",
+    "dashboard_sin_umbral_puede_enviar_correo_y_registrar_auditoria_fuera_RUN",
+    "rechazo_estructural_o_5xx_podria_auditar_fuera_RUN",
+    "worker_postcommit_independiente"
+  ],
+  "presupuesto": {
+    "solicitudes_directas": 72,
+    "solicitudes_newman": 1,
+    "margen_cierre": 2,
+    "duracion_segundos": 600,
+    "inactividad_maxima_segundos": 180,
+    "inactividad_guardia_segundos": 170,
+    "dispositivos": 12,
+    "sensores_por_dispositivo": 3,
+    "unidades_dashboard": 8,
+    "unidades_conocidas": [
+      1,
+      268,
+      337
+    ],
+    "historiales_semilla": 36,
+    "timeout_descubrimiento_ms": 20000,
+    "desglose_maximo": {
+      "openapi": 1,
+      "logins": 2,
+      "listados_semilla": 3,
+      "dispositivos": 12,
+      "dashboards_semilla": 8,
+      "historiales_semilla": 36,
+      "historial_basal": 1,
+      "ingestas": 5,
+      "auditoria": 2,
+      "cierre_y_rollback": 2
+    }
+  },
+  "ok": true
+}

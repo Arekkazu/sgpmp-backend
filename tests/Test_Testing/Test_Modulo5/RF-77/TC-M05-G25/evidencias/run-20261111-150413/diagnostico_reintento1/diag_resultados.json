@@ -1,0 +1,302 @@
+{
+  "base_auditoria": {
+    "run_id": "tc-m05-g25-diag-base-ffe2ec21",
+    "login": {
+      "status": 200,
+      "x_request_id": "68da7f99-b9f5-4ea4-907d-b83c54dbe203"
+    },
+    "total": 65966,
+    "top_id": 72003,
+    "x_request_id": "3a868b61-17a7-4ca8-8662-59f16caf48eb",
+    "teardown": {
+      "run_id": "tc-m05-g25-diag-base-ffe2ec21",
+      "status": 200,
+      "x_request_id": "f25c92dc-a32c-450e-8202-d1525c35a6dc",
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "prod_e07": {
+    "run_id": "tc-m05-g25-diag-prod-e07-64b4be0a",
+    "login": {
+      "status": 200,
+      "x_request_id": "2fd8a712-2243-42b4-8539-24954559df2c"
+    },
+    "id_reporte_prod": 241,
+    "uuid_archivo_prod": "76d9219c-7fb9-43b3-af19-7355d9601df1",
+    "descarga_propia_status": 200,
+    "teardown": {
+      "run_id": "tc-m05-g25-diag-prod-e07-64b4be0a",
+      "status": 200,
+      "x_request_id": "48b031fb-ecc6-4953-9e48-ac1ca878f62a",
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "main": {
+    "run_id": "tc-m05-g25-diag-main-2ceb16d5",
+    "login": {
+      "status": 200,
+      "x_request_id": "2ab64301-33f4-4a55-82fe-1ba80d38fb4f"
+    },
+    "setup": {
+      "id_activo": 1837,
+      "auditoria_total_pre": 65969,
+      "auditoria_top_pre": 72121
+    },
+    "E01": {
+      "status": 200,
+      "x_request_id": "dcf2b8a8-9464-43a8-98dc-fa6af6092862",
+      "id_reporte": 242,
+      "latencia_s": 0.192,
+      "evento": {
+        "id_auditoria_suministro": 72122,
+        "entidad_afectada": "reporte_gastos_acumulados",
+        "tipo_operacion": "INSERT",
+        "id_usuario": 104,
+        "resultado": "EXITOSO",
+        "fecha_evento": "2026-11-11T20:06:22.070804Z",
+        "fecha_emision": "2026-11-11T20:06:23.638235Z",
+        "id_activo_biologico": 1837,
+        "hash_integridad_presente": true,
+        "detalle_causa": "Reporte de gastos generado.",
+        "datos_nuevos": {
+          "accion": "GENERACION",
+          "id_reporte_gasto_acumulado": 242,
+          "parametros": {
+            "fecha_inicio": "2026-08-01",
+            "fecha_fin": "2026-08-31",
+            "tipo_periodo": "MENSUAL",
+            "id_activo_biologico": 1837,
+            "id_infraestructura": null,
+            "id_especie": null,
+            "categorias_incluidas": null
+          },
+          "gasto_total_acumulado": "10000.0000"
+        }
+      }
+    },
+    "E02": {
+      "status": 201,
+      "x_request_id": "edd99b6e-4d62-4be3-a170-e5a368441c52",
+      "id_archivo_csv": "212720c9-121f-4954-87fe-dbd62e448d8e",
+      "latencia_s": 0.297,
+      "evento": {
+        "id_auditoria_suministro": 72123,
+        "entidad_afectada": "archivos_exportacion_suministros",
+        "tipo_operacion": "INSERT",
+        "id_usuario": 104,
+        "resultado": "EXITOSO",
+        "fecha_evento": "2026-11-11T20:06:22.070804Z",
+        "fecha_emision": "2026-11-11T20:06:24.190732Z",
+        "id_activo_biologico": 1837,
+        "hash_integridad_presente": true,
+        "detalle_causa": "Reporte de gastos exportado correctamente.",
+        "datos_nuevos": {
+          "accion": "EXPORTACION",
+          "id_reporte_gasto_acumulado": 242,
+          "id_archivo": "212720c9-121f-4954-87fe-dbd62e448d8e",
+          "formato": "CSV",
+          "total_registros": 1
+        }
+      },
+      "descarga_status": 200,
+      "descarga_delta_auditoria": 0
+    },
+    "E03": {
+      "status": 201,
+      "x_request_id": "f0d0f3c6-5c24-4b28-996a-4fe9337999f0",
+      "id_archivo_pdf": "40d712f0-e24c-4e55-9655-c7f089df53c3",
+      "latencia_s": 0.218,
+      "evento": {
+        "id_auditoria_suministro": 72124,
+        "entidad_afectada": "archivos_exportacion_suministros",
+        "tipo_operacion": "INSERT",
+        "id_usuario": 104,
+        "resultado": "EXITOSO",
+        "fecha_evento": "2026-11-11T20:06:22.070804Z",
+        "fecha_emision": "2026-11-11T20:06:25.320461Z",
+        "id_activo_biologico": 1837,
+        "hash_integridad_presente": true,
+        "detalle_causa": "Reporte de gastos exportado correctamente.",
+        "datos_nuevos": {
+          "accion": "EXPORTACION",
+          "id_reporte_gasto_acumulado": 242,
+          "id_archivo": "40d712f0-e24c-4e55-9655-c7f089df53c3",
+          "formato": "PDF",
+          "total_registros": 1
+        }
+      },
+      "descarga_status": 200,
+      "pdf_bytes": 6172
+    },
+    "E04": {
+      "status": 200,
+      "x_request_id": "669d2c5d-f289-4c72-8592-1518ed9a2fd7",
+      "gasto_regenerado": "20000.0000",
+      "gasto_snapshot_original": "10000.0000",
+      "latencia_s": 0.31,
+      "evento": {
+        "id_auditoria_suministro": 72128,
+        "entidad_afectada": "reporte_gastos_acumulados",
+        "tipo_operacion": "SELECT",
+        "id_usuario": 104,
+        "resultado": "EXITOSO",
+        "fecha_evento": "2026-11-11T20:06:22.070804Z",
+        "fecha_emision": "2026-11-11T20:06:26.687640Z",
+        "id_activo_biologico": 1837,
+        "hash_integridad_presente": true,
+        "detalle_causa": "Reporte de gastos regenerado con los datos actuales.",
+        "datos_nuevos": {
+          "accion": "REGENERACION",
+          "id_reporte_gasto_acumulado": 242,
+          "parametros": {
+            "resumen": {
+              "sin_datos": false,
+              "tendencia": {
+                "nota": "No existen gastos registrados en el período anterior equivalente. No es posible calcular variación porcentual.",
+                "estado": "SIN_BASE_COMPARATIVA",
+                "gasto_periodo_actual": "10000.0000",
+                "variacion_porcentual": null,
+                "gasto_periodo_anterior": "0"
+              },
+              "nota_bajas": null,
+              "desglose_temporal": [
+                {
+                  "monto": "10000.0000",
+                  "etiqueta": "2026-08",
+                  "fecha_fin": "2026-08-10",
+                  "fecha_inicio": "2026-08-10"
+                }
+              ],
+              "desglose_categorias": [
+                {
+                  "subtotal": "10000.0000",
+                  "categoria": "ALIMENTACION",
+                  "porcentaje": "100",
+                  "num_registros": 1
+                }
+              ],
+              "registros_sin_costo": []
+            },
+            "fecha_fin": "2026-08-31",
+            "id_especie": null,
+            "fecha_inicio": "2026-08-01",
+            "tipo_periodo": "MENSUAL",
+            "resumen_promedio": {
+              "gasto_promedio_individuo": null,
+              "causa_no_calculable_promedio": null
+            },
+            "id_infraestructura": null,
+            "id_activo_biologico": 1837,
+            "categorias_incluidas": null
+          },
+          "gasto_total_acumulado": "20000.0000"
+        }
+      }
+    },
+    "E05": {
+      "historial_status": 200,
+      "historial_x_request_id": "d9a9b973-dd2c-4e32-9336-6d62a69b4a87",
+      "detalle_status": 200,
+      "detalle_x_request_id": "9c08ff74-9bbb-4180-8494-d87941534b63",
+      "auditoria_total_pre": 65976,
+      "auditoria_total_post": 65976,
+      "delta_auditoria": 0,
+      "top_id_sin_cambios": true
+    },
+    "E06": {
+      "formato_invalido": {
+        "status": 400,
+        "x_request_id": "e92ef1c2-2a6a-455e-90d6-b83f7588585b",
+        "error_code": "VAL_ENTRADA"
+      },
+      "reporte_inexistente": {
+        "status": 404,
+        "x_request_id": "9e2bbfb3-2c88-4763-b8d1-f325e8966b2a",
+        "error_code": "REPORTE_NO_ENCONTRADO"
+      },
+      "delta_auditoria": 0,
+      "nota_e6a": "E6a (fallo interno del motor PDF -> HTTP 500 ERROR_GENERACION_PDF y evento FALLIDO) no es inyectable por HTTP publico en TEST sin mock/instrumentacion."
+    },
+    "E07": {
+      "factible_dinamico_con_def04": false,
+      "motivo_codigo": "get_current_user valida el JWT contra modulo1.tokens en BD (TOKEN_REVOCADO si falta o fecha_uso IS NOT NULL). Bajo corridas sandbox secuenciales con rollback y DEF-04 (un solo POST /sesiones/ por run_id), los registros creados por Productor (Tokens y archivos_exportacion_suministros) se revierten al cerrar Run 2, por lo que en Run 3 Admin el UUID de Productor no existe (HTTP 404) y no es posible tener ambos usuarios con sesion+archivo en la misma transaccion sandbox sin violar DEF-04 o escribir fuera del sandbox.",
+      "post_rollback_prod_uuid": {
+        "uuid": "76d9219c-7fb9-43b3-af19-7355d9601df1",
+        "status": 404,
+        "x_request_id": "1324b331-b3e8-4ad3-992c-6727a602169c",
+        "error_code": "ARCHIVO_NO_ENCONTRADO"
+      },
+      "archivo_historico_ajeno_en_test": null
+    },
+    "teardown": {
+      "run_id": "tc-m05-g25-diag-main-2ceb16d5",
+      "status": 200,
+      "x_request_id": "fa2e5776-5394-4630-ac42-a7b661b0fddc",
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "final_inocuidad": {
+    "run_id": "tc-m05-g25-diag-final-d6405de3",
+    "login": {
+      "status": 200,
+      "x_request_id": "cf317c7e-bb5f-49b1-86e6-79e1c6b27cce"
+    },
+    "auditoria_total_base": 65966,
+    "auditoria_top_base": 72003,
+    "auditoria_total_final": 65966,
+    "auditoria_top_final": 72003,
+    "x_request_id": "9899812d-ca7a-4a64-8911-8ab91c4257ff",
+    "verificaciones_id_404": [
+      {
+        "recurso": "/activos-biologicos/1837",
+        "status": 404,
+        "x_request_id": "6fa12cbf-4080-4ea8-b39d-f4af3129f241"
+      },
+      {
+        "recurso": "/suministros/reportes-gastos/241",
+        "status": 404,
+        "x_request_id": "f1bff98a-49c4-4970-a13e-0668e11c2a48"
+      },
+      {
+        "recurso": "/suministros/reportes-gastos/242",
+        "status": 404,
+        "x_request_id": "584dbef3-82b4-4d1b-8c76-64c9eb10e91b"
+      },
+      {
+        "recurso": "/suministros/reportes-gastos/exportaciones/76d9219c-7fb9-43b3-af19-7355d9601df1",
+        "status": 404,
+        "x_request_id": "9e655994-e05f-4c5e-a6ab-874c4f1b96df"
+      },
+      {
+        "recurso": "/suministros/reportes-gastos/exportaciones/212720c9-121f-4954-87fe-dbd62e448d8e",
+        "status": 404,
+        "x_request_id": "00c9c698-3750-42f9-bf28-d92dc416abd7"
+      },
+      {
+        "recurso": "/suministros/reportes-gastos/exportaciones/40d712f0-e24c-4e55-9655-c7f089df53c3",
+        "status": 404,
+        "x_request_id": "a53efb37-3acc-41c4-92ae-b8b1efe17ba4"
+      }
+    ],
+    "teardown": {
+      "run_id": "tc-m05-g25-diag-final-d6405de3",
+      "status": 200,
+      "x_request_id": "9e0f009f-e296-4f6a-94d8-12baf6201868",
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "ids_creados": {
+    "activos": [
+      1837
+    ],
+    "reportes": [
+      241,
+      242
+    ],
+    "archivos": [
+      "76d9219c-7fb9-43b3-af19-7355d9601df1",
+      "212720c9-121f-4954-87fe-dbd62e448d8e",
+      "40d712f0-e24c-4e55-9655-c7f089df53c3"
+    ]
+  }
+}

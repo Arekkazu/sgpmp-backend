@@ -1,0 +1,1291 @@
+{
+  "info": {
+    "name": "TC-M03-G68 - Diferenciacion entre fallo ambiental real y problema de calidad/calibracion del dato (E2, FALLO_AMBIENTAL)",
+    "description": "RF-57 E2 / E7 / CA-3. Subcasos: (1) estados FUERA_DE_RANGO y ERROR_CALIBRACION no generan alerta operativa; ausencia de reportes y escalamiento por variable critica; (2) rango absoluto vs rango operativo del sensor; (3) severidad y destinatario de FALLO_AMBIENTAL y su consulta en GET /iot/alertas-tecnicas (no en GET /iot/alertas, DEV-13). LIMITES DEL SCRIPT: la ausencia de reportes (> 2x frecuencia de muestreo) exige un job/scheduler y reloj controlado, no se dispara con un POST; las notificaciones por rol requieren las cuentas de productor/veterinario/ingeniero. PUNTOS POR CONFIRMAR: (a) DB-02 y el umbral FUERA_DE_RANGO; (b) solapamiento con RF-60; (c) FALLO_AMBIENTAL como alerta tecnica. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; serial = serial del dispositivo (va en el cuerpo del evento); broker_service_token = BROKER_SERVICE_TOKEN del ambiente TEST (header Authorization: Bearer de los endpoints /iot/* de dispositivo), ambos se pasan como variable de entorno de Newman (--env-var) y nunca se escriben en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambiente: TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m03-g68.json --env-var sandbox_secret=<SECRETO_SANDBOX> --env-var broker_service_token=<BROKER_SERVICE_TOKEN_TEST> --env-var serial=<SERIAL_DEL_DISPOSITIVO> --env-var device_id=<ID> --env-var sensor_temperatura_ambiental=<ID_SENSOR> --env-var correo_admin=<CORREO> --env-var contrasena_admin=<CLAVE> -r \"cli,htmlextra\" --reporter-htmlextra-export resultados/resultado_TC-M03-G68.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados). Las colecciones que envian eventos de dispositivo crean al inicio un evento edge de referencia (POST /iot/eventos-edge) y usan su id; si ya tiene uno, pase --env-var id_evento_edge=<ID>. NOTA 2026-10-24: se retiraron 6 pasos que usan sensores no disponibles en TEST (pH, NH3, CO2, TDS, frecuencia respiratoria, frecuencia cardiaca, temperatura corporal) o dependen de ellos. Detalle en PENDIENTES_SENSORES_M3.md. AISLAMIENTO (2026-10-24): entre 2.1, 2.2 y 3.1 se resuelve la alerta anterior (pasos 2.1z y 2.2z) porque el backend deduplica por sensor y variable en 30 min (solo alertas ACTIVA/EN_ATENCION) y fusionaba 2.2 y 3.1 con la alerta de 2.1. 2026-10-29 (v2.0): 1.4 pasa de observacion a aserciones (ERROR_CALIBRACION debe dejar una alerta tecnica); 3.2 restaura la variable critica con el sensor 471 (device 310, TEMPERATURA_CORPORAL; sustitucion pendiente de aprobacion de la lider) y 3.5b la verifica con el administrador; se retiran 3.8 y 3.9 (limpieza innecesaria dentro del sandbox, fallaban por consecuencia de BUG-G68-01).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "correo_productor",
+      "value": ""
+    },
+    {
+      "key": "contrasena_productor",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "correo_veterinario",
+      "value": ""
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
+      "key": "correo_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "contrasena_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "1"
+    },
+    {
+      "key": "serial",
+      "value": ""
+    },
+    {
+      "key": "broker_service_token",
+      "value": ""
+    },
+    {
+      "key": "id_evento_edge",
+      "value": "1"
+    },
+    {
+      "key": "ids_alertas",
+      "value": "[]"
+    },
+    {
+      "key": "alerta_g68_fa_nc",
+      "value": ""
+    },
+    {
+      "key": "alerta_g68_fa_crit",
+      "value": ""
+    },
+    {
+      "key": "alerta_aislar",
+      "value": ""
+    },
+    {
+      "key": "device_id_corp",
+      "value": "310"
+    },
+    {
+      "key": "serial_corp",
+      "value": "QA58-DEV-A10-01"
+    },
+    {
+      "key": "sensor_corp",
+      "value": "471"
+    },
+    {
+      "key": "ts_run_inicio",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');",
+              "pm.collectionVariables.set('ts_run_inicio', new Date(Date.now() - 60000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Productor exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_productor', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0C. Login Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_veterinario', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0D. Login Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Ingeniero de Campo exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_ingeniero', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0Z. Preparacion: crear evento edge valido (POST /iot/eventos-edge) para usar su id como id_evento_edge_computing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_service_token}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/eventos-edge",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"clasificacion_rf55\": \"NORMAL\",\n  \"severidad\": \"LEVE\",\n  \"variables_involucradas\": [{\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.0,\n      \"unidad\": \"°C\"\n    }],\n  \"timestamp_captura\": \"{{ts_now}}\",\n  \"timestamp_procesamiento_edge\": \"{{ts_now}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"estado_conectividad\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+              "pm.variables.set('ts_now', _iso(_n));",
+              "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+              "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+              "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+              "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+              "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+              "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+              "pm.variables.set('uniq', String(_n).slice(-9));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "console.log('[TC-M03-G68 0Z] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+              "const _guardar = function (j) {",
+              "  const k = ['id_evento_edge_computing', 'id_evento_edge', 'id_evento', 'id'].find(function (n) { return j && j[n] !== undefined && j[n] !== null; })",
+              "          || Object.keys(j || {}).find(function (n) { return /^id_/.test(n) && typeof j[n] === 'number'; });",
+              "  if (k) { pm.collectionVariables.set('id_evento_edge', String(j[k])); console.log('[TC-M03-G68 0Z] id_evento_edge = ' + j[k] + ' (campo ' + k + ')'); return true; }",
+              "  return false; };",
+              "const _cands = [\"NORMAL\", \"LEVE\", \"ANOMALIA\", \"ALERTA\", \"CRITICO\"];",
+              "const _fin = function () { pm.test('Preparacion: evento edge de referencia creado y id_evento_edge disponible (si falla, revisar el codigo y mensaje del log; o pasar --env-var id_evento_edge=<id existente>)', function () { pm.expect(pm.collectionVariables.get('id_evento_edge')).to.not.eql('1'); }); };",
+              "const _intentar = function (i) {",
+              "  const b = JSON.parse(pm.variables.replaceIn(pm.request.body.raw)); b.clasificacion_rf55 = _cands[i];",
+              "  const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+              "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/iot/eventos-edge', method: 'POST', header: h, body: {mode: 'raw', raw: JSON.stringify(b)}}, function (e, r) {",
+              "    let j = {}; try { j = r.json(); } catch (x) {}",
+              "    console.log('[TC-M03-G68 0Z] reintento clasificacion_rf55=' + _cands[i] + ' -> ' + (r ? r.code : e) + ' ' + (r ? r.text().slice(0, 300) : ''));",
+              "    if (r && r.code === 201) { _guardar(j); _fin(); } else if (r && (r.code === 400 || r.code === 422) && i + 1 < _cands.length) { _intentar(i + 1); } else { _fin(); } });",
+              "};",
+              "if (pm.response.code === 201) { _guardar(J); _fin(); }",
+              "else if (pm.response.code === 400 || pm.response.code === 422) { _intentar(1); }",
+              "else { _fin(); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Estados de calidad del dato (TC-M03-135)",
+      "item": [
+        {
+          "name": "1.1 estado_dato=FUERA_DE_RANGO - no genera alerta operativa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 80.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"FUERA_DE_RANGO\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "pm.test('No se genera alerta operativa (sin id_alerta o solo la alerta tecnica)', function () { pm.expect(J.id_alerta === null || J.id_alerta === undefined || J.tipo_alerta === 'TECNICA').to.be.true; });",
+                  "pm.test('Descarte documentado (motivo_descarte)', function () { pm.expect(J.motivo_descarte).to.exist; });",
+                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 estado_dato=ERROR_CALIBRACION - no genera alerta operativa (E2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"ERROR_CALIBRACION\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "pm.test('No se genera alerta operativa (sin id_alerta o solo la alerta tecnica)', function () { pm.expect(J.id_alerta === null || J.id_alerta === undefined || J.tipo_alerta === 'TECNICA').to.be.true; });",
+                  "pm.test('Descarte documentado (motivo_descarte)', function () { pm.expect(J.motivo_descarte).to.exist; });",
+                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 ERROR_CALIBRACION (1.2) genera alerta tecnica FALLO_AMBIENTAL para el ingeniero/admin (RF-57: regla FALLO_AMBIENTAL \"sensor reporta error_calibracion\"; E2 solo niega la alerta operativa)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas-tecnicas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _ini = new Date(pm.collectionVariables.get('ts_run_inicio')).getTime();",
+                  "const _nuevas = (J.items || []).filter(function (a) { return new Date(a.fecha_generacion).getTime() >= _ini && a.origen_evento !== 'EVALUACION_PERIODICA'; });",
+                  "console.log('[G68-1.4][OBSERVADO] alertas tecnicas nuevas en la corrida (excluye EVALUACION_PERIODICA) = ' + JSON.stringify(_nuevas.map(function (a) { return {id: a.id_alerta, tipo: a.tipo_alerta, var: a.tipo_variable, origen: a.origen_evento, sev: a.severidad}; })));",
+                  "pm.test('El dato ERROR_CALIBRACION de 1.2 genera una alerta tecnica FALLO_AMBIENTAL (visible para el ingeniero/admin)', function () { pm.expect(_nuevas.length, 'alertas tecnicas nuevas').to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Ausencia de reportes > 2x frecuencia de muestreo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere job/scheduler e intervalo de silencio real o reloj controlado; ademas se solapa con RF-60 (DISPOSITIVO_SIN_SENAL)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g68_automatizado.py - no va en Postman porque: requiere job/scheduler e intervalo de silencio real o reloj controlado; ademas se solapa con RF-60 (DISPOSITIVO_SIN_SENAL)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Rango absoluto del sensor vs rango operativo (TC-M03-N05)",
+      "item": [
+        {
+          "name": "2.1 TEMPERATURA_AMBIENTAL 38 C: dentro del rango absoluto y fuera del operativo - alerta ambiental por umbrales, sin FALLO_AMBIENTAL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 38.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_aislar', String(J.id_alerta)); }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('tipo_alerta != FALLO_AMBIENTAL (es una desviacion normal)', function () { pm.expect(J.tipo_alerta).to.not.eql('FALLO_AMBIENTAL'); });",
+                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.1z-a Aislamiento: pasar a EN_ATENCION la alerta creada en 2.1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 2.1z-a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\",\n  \"motivo\": \"QA aislamiento G68\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas",
+                "{{alerta_aislar}}",
+                "estado"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.1z-b Aislamiento: resolver la alerta creada en 2.1 (para que 2.2 no se deduplique con ella)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 2.1z-b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\",\n  \"motivo\": \"QA aislamiento G68\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas",
+                "{{alerta_aislar}}",
+                "estado"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.2 TEMPERATURA_AMBIENTAL 200 C: fuera del rango absoluto - FALLO_AMBIENTAL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 200.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_aislar', String(J.id_alerta)); }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Alerta tecnica FALLO_AMBIENTAL (tipo TECNICA y motivo FALLO_AMBIENTAL)', function () { pm.expect(J.tipo_alerta).to.eql('TECNICA'); pm.expect(String(J.motivo_descarte)).to.include('FALLO_AMBIENTAL'); });",
+                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2z-a Aislamiento: pasar a EN_ATENCION la alerta creada en 2.2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 2.2z-a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "console.log('[G68-2.2z][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\",\n  \"motivo\": \"QA aislamiento G68\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas",
+                "{{alerta_aislar}}",
+                "estado"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.2z-b Aislamiento: resolver la alerta creada en 2.2 (para que 3.1 no se deduplique con ella)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 2.2z-b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "console.log('[G68-2.2z][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\",\n  \"motivo\": \"QA aislamiento G68\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas",
+                "{{alerta_aislar}}",
+                "estado"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Severidad y destinatario de FALLO_AMBIENTAL; consulta en /iot/alertas-tecnicas (TC-M03-N06 / DEV-13)",
+      "item": [
+        {
+          "name": "3.1 FALLO_AMBIENTAL con sensor de TEMPERATURA_AMBIENTAL (no critica) - MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 250.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g68_fa_nc', String(J.id_alerta)); }",
+                  "pm.test('Alerta tecnica FALLO_AMBIENTAL (tipo TECNICA y motivo FALLO_AMBIENTAL)', function () { pm.expect(J.tipo_alerta).to.eql('TECNICA'); pm.expect(String(J.motivo_descarte)).to.include('FALLO_AMBIENTAL'); });",
+                  "pm.test('severidad = MODERADO (variable no critica)', function () { pm.expect(J.severidad).to.eql('MODERADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.1b Observacion: catalogo de variables criticas (RF-17, modulo9.variables_ambientales); la severidad de FALLO_AMBIENTAL depende de es_critica",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.1b] status=' + pm.response.code);",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const it = (J && J.items) || [];",
+                  "const vistas = it.map(function (v) { return v.nombre + ': es_critica=' + v.es_critica; });",
+                  "console.log('[3.1b][OBSERVADO] variables del catalogo = ' + JSON.stringify(vistas));",
+                  "const tc = it.find(function (v) { return /temperatura corporal/i.test(v.nombre); });",
+                  "if (tc) { pm.collectionVariables.set('id_var_temp_corporal', String(tc.id_variable_ambiental)); }",
+                  "pm.test('Temperatura corporal esta en el catalogo de variables', function () { pm.expect(tc, 'Temperatura corporal').to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.1c Precondicion (solo sandbox): el Administrador marca Temperatura corporal como variable critica (RF-17, PATCH es_critica); en TEST ninguna variable viene marcada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales/{{id_var_temp_corporal}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales",
+                "{{id_var_temp_corporal}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"es_critica\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.1c] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200 (el Administrador puede marcar la variable como critica)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('es_critica = true', function () { pm.expect(J.es_critica).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 FALLO_AMBIENTAL con sensor de TEMPERATURA_CORPORAL (variable critica, sensor 471) - CRITICO [con Temperatura corporal marcada como critica en 3.1c]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_corp}},\n  \"sensor_id\": {{sensor_corp}},\n  \"serial\": \"{{serial_corp}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 80.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g68_fa_crit', String(J.id_alerta)); }",
+                  "pm.test('Alerta tecnica FALLO_AMBIENTAL (tipo TECNICA y motivo FALLO_AMBIENTAL)', function () { pm.expect(J.tipo_alerta).to.eql('TECNICA'); pm.expect(String(J.motivo_descarte)).to.include('FALLO_AMBIENTAL'); });",
+                  "pm.test('severidad = CRITICO (variable critica)', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.5 Ingeniero de campo: ve la alerta tecnica",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas-tecnicas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('El ingeniero de campo recibe la alerta tecnica FALLO_AMBIENTAL', function () { const id = Number(pm.collectionVariables.get('alerta_g68_fa_nc')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.5b Administrador: ve la alerta tecnica FALLO_AMBIENTAL CRITICA de 3.2 (el administrador ve todas las fincas)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas-tecnicas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.5b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('La alerta tecnica FALLO_AMBIENTAL CRITICA de 3.2 esta en /iot/alertas-tecnicas', function () { const id = Number(pm.collectionVariables.get('alerta_g68_fa_crit')); pm.expect(id, 'id de 3.2').to.be.above(0); pm.expect((J.items || []).some(function (x) { return x.id_alerta === id; })).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.6 Productor: no ve alertas tecnicas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas-tecnicas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/403', function () { pm.expect([200, 403]).to.include(pm.response.code); });",
+                  "pm.test('El productor no ve la alerta tecnica (403 o lista sin ella)', function () { if (pm.response.code === 403) { return; } const id = Number(pm.collectionVariables.get('alerta_g68_fa_nc')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.7 Veterinario: no ve alertas tecnicas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas-tecnicas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/403', function () { pm.expect([200, 403]).to.include(pm.response.code); });",
+                  "pm.test('El veterinario no ve la alerta tecnica (403 o lista sin ella)', function () { if (pm.response.code === 403) { return; } const id = Number(pm.collectionVariables.get('alerta_g68_fa_nc')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M03-G68] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      }
+    }
+  ]
+}

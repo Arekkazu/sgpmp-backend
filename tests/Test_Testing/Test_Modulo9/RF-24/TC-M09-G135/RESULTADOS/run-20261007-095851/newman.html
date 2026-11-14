@@ -1,0 +1,932 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>TC-M09-G135 Newman</title><style>body{font:15px system-ui;margin:2rem;max-width:90rem}table{border-collapse:collapse}td,th{border:1px solid #aaa;padding:.5rem}pre{white-space:pre-wrap}</style><h1>TC-M09-G135 — Newman y RF-10</h1><p>run-20261007-095851 · APROBADO · 6/6 POST</p><table><tr><th>Caso</th><th>HTTP esperado</th><th>HTTP Newman</th><th>Assertions Newman</th><th>Evento RF-10</th><th>Resultado</th></tr><tr><td>TC-M09-268</td><td>403</td><td>403</td><td>[]</td><td>38827</td><td>APROBADO</td></tr><tr><td>TC-M09-269</td><td>422</td><td>422</td><td>[]</td><td>38829</td><td>APROBADO</td></tr><tr><td>TC-M09-270</td><td>400</td><td>400</td><td>[]</td><td>38831</td><td>APROBADO</td></tr><tr><td>TC-M09-271</td><td>400</td><td>400</td><td>[]</td><td>38833</td><td>APROBADO</td></tr><tr><td>TC-M09-272</td><td>400</td><td>400</td><td>[]</td><td>38835</td><td>APROBADO</td></tr><tr><td>TC-M09-273</td><td>404</td><td>404</td><td>[]</td><td>38837</td><td>APROBADO</td></tr></table><h2>Respuestas y auditoría</h2><h3>TC-M09-268</h3><pre>{
+  &quot;respuesta&quot;: {
+    &quot;error_code&quot;: &quot;ACCESO_DENEGADO&quot;,
+    &quot;message&quot;: &quot;Acceso denegado. Su rol no tiene permisos para realizar esta operación.&quot;,
+    &quot;fields&quot;: [],
+    &quot;timestamp&quot;: &quot;2026-10-07T09:59:07.160672+00:00&quot;
+  },
+  &quot;request_window&quot;: {
+    &quot;t_before&quot;: &quot;2026-10-07T09:59:07.076Z&quot;,
+    &quot;t_after&quot;: &quot;2026-10-07T09:59:07.730Z&quot;
+  },
+  &quot;auditoria&quot;: {
+    &quot;ventana&quot;: {
+      &quot;fecha_desde&quot;: &quot;2026-10-07T09:58:07.076Z&quot;,
+      &quot;fecha_hasta&quot;: &quot;2026-10-07T10:00:07.730Z&quot;
+    },
+    &quot;paginas&quot;: [
+      {
+        &quot;pagina&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;total&quot;: 3,
+        &quot;items&quot;: 3
+      }
+    ],
+    &quot;error&quot;: null,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id_evento&quot;: 38827,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.157250Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 35,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 403 ACCESO_DENEGADO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;Acceso denegado. Su rol no tiene permisos para realizar esta operación.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 403,
+          &quot;codigo_error&quot;: &quot;ACCESO_DENEGADO&quot;,
+          &quot;id_dispositivo_iot&quot;: null,
+          &quot;id_infraestructura&quot;: null
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: true
+      }
+    ],
+    &quot;match&quot;: {
+      &quot;id_evento&quot;: 38827,
+      &quot;tipo_evento&quot;: 29,
+      &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.157250Z&quot;,
+      &quot;resultado&quot;: &quot;fallido&quot;,
+      &quot;modulo&quot;: &quot;MODULO9&quot;,
+      &quot;id_usuario&quot;: 35,
+      &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+      &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 403 ACCESO_DENEGADO)&quot;,
+      &quot;detalle&quot;: {
+        &quot;ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;motivo&quot;: &quot;Acceso denegado. Su rol no tiene permisos para realizar esta operación.&quot;,
+        &quot;id_sensor&quot;: 6,
+        &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+        &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+        &quot;codigo_http&quot;: 403,
+        &quot;codigo_error&quot;: &quot;ACCESO_DENEGADO&quot;,
+        &quot;id_dispositivo_iot&quot;: null,
+        &quot;id_infraestructura&quot;: null
+      },
+      &quot;checks&quot;: {
+        &quot;resultado&quot;: true,
+        &quot;modulo&quot;: true,
+        &quot;usuario&quot;: true,
+        &quot;fecha&quot;: true,
+        &quot;motivo&quot;: true,
+        &quot;ip&quot;: true,
+        &quot;operacion&quot;: true,
+        &quot;codigo_http&quot;: true,
+        &quot;id_sensor&quot;: true,
+        &quot;detalle_ip&quot;: true
+      },
+      &quot;completo&quot;: true
+    }
+  }
+}</pre><h3>TC-M09-269</h3><pre>{
+  &quot;respuesta&quot;: {
+    &quot;error_code&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+    &quot;message&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+    &quot;fields&quot;: [],
+    &quot;timestamp&quot;: &quot;2026-10-07T09:59:07.727816+00:00&quot;
+  },
+  &quot;request_window&quot;: {
+    &quot;t_before&quot;: &quot;2026-10-07T09:59:08.064Z&quot;,
+    &quot;t_after&quot;: &quot;2026-10-07T09:59:08.286Z&quot;
+  },
+  &quot;auditoria&quot;: {
+    &quot;ventana&quot;: {
+      &quot;fecha_desde&quot;: &quot;2026-10-07T09:58:08.064Z&quot;,
+      &quot;fecha_hasta&quot;: &quot;2026-10-07T10:00:08.286Z&quot;
+    },
+    &quot;paginas&quot;: [
+      {
+        &quot;pagina&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;total&quot;: 3,
+        &quot;items&quot;: 3
+      }
+    ],
+    &quot;error&quot;: null,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id_evento&quot;: 38829,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.725140Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 422 DISPOSITIVO_INACTIVO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+          &quot;id_sensor&quot;: 29,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 422,
+          &quot;codigo_error&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+          &quot;id_dispositivo_iot&quot;: 47,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: true
+      }
+    ],
+    &quot;match&quot;: {
+      &quot;id_evento&quot;: 38829,
+      &quot;tipo_evento&quot;: 29,
+      &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.725140Z&quot;,
+      &quot;resultado&quot;: &quot;fallido&quot;,
+      &quot;modulo&quot;: &quot;MODULO9&quot;,
+      &quot;id_usuario&quot;: 4,
+      &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+      &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 422 DISPOSITIVO_INACTIVO)&quot;,
+      &quot;detalle&quot;: {
+        &quot;ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;motivo&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+        &quot;id_sensor&quot;: 29,
+        &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+        &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+        &quot;codigo_http&quot;: 422,
+        &quot;codigo_error&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+        &quot;id_dispositivo_iot&quot;: 47,
+        &quot;id_infraestructura&quot;: 3
+      },
+      &quot;checks&quot;: {
+        &quot;resultado&quot;: true,
+        &quot;modulo&quot;: true,
+        &quot;usuario&quot;: true,
+        &quot;fecha&quot;: true,
+        &quot;motivo&quot;: true,
+        &quot;ip&quot;: true,
+        &quot;operacion&quot;: true,
+        &quot;codigo_http&quot;: true,
+        &quot;id_sensor&quot;: true,
+        &quot;detalle_ip&quot;: true
+      },
+      &quot;completo&quot;: true
+    }
+  }
+}</pre><h3>TC-M09-270</h3><pre>{
+  &quot;respuesta&quot;: {
+    &quot;error_code&quot;: &quot;VALOR_FUERA_DE_RANGO&quot;,
+    &quot;message&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;,
+    &quot;fields&quot;: [
+      {
+        &quot;field&quot;: &quot;valor_referencia&quot;,
+        &quot;message&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;
+      }
+    ],
+    &quot;timestamp&quot;: &quot;2026-10-07T09:59:08.310938+00:00&quot;
+  },
+  &quot;request_window&quot;: {
+    &quot;t_before&quot;: &quot;2026-10-07T09:59:08.630Z&quot;,
+    &quot;t_after&quot;: &quot;2026-10-07T09:59:08.865Z&quot;
+  },
+  &quot;auditoria&quot;: {
+    &quot;ventana&quot;: {
+      &quot;fecha_desde&quot;: &quot;2026-10-07T09:58:08.630Z&quot;,
+      &quot;fecha_hasta&quot;: &quot;2026-10-07T10:00:08.865Z&quot;
+    },
+    &quot;paginas&quot;: [
+      {
+        &quot;pagina&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;total&quot;: 4,
+        &quot;items&quot;: 4
+      }
+    ],
+    &quot;error&quot;: null,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id_evento&quot;: 38831,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.307796Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_FUERA_DE_RANGO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_FUERA_DE_RANGO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: true
+      },
+      {
+        &quot;id_evento&quot;: 38829,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.725140Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 422 DISPOSITIVO_INACTIVO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+          &quot;id_sensor&quot;: 29,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 422,
+          &quot;codigo_error&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+          &quot;id_dispositivo_iot&quot;: 47,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: false,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      }
+    ],
+    &quot;match&quot;: {
+      &quot;id_evento&quot;: 38831,
+      &quot;tipo_evento&quot;: 29,
+      &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.307796Z&quot;,
+      &quot;resultado&quot;: &quot;fallido&quot;,
+      &quot;modulo&quot;: &quot;MODULO9&quot;,
+      &quot;id_usuario&quot;: 4,
+      &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+      &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_FUERA_DE_RANGO)&quot;,
+      &quot;detalle&quot;: {
+        &quot;ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;motivo&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;,
+        &quot;id_sensor&quot;: 6,
+        &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+        &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+        &quot;codigo_http&quot;: 400,
+        &quot;codigo_error&quot;: &quot;VALOR_FUERA_DE_RANGO&quot;,
+        &quot;id_dispositivo_iot&quot;: 3,
+        &quot;id_infraestructura&quot;: 3
+      },
+      &quot;checks&quot;: {
+        &quot;resultado&quot;: true,
+        &quot;modulo&quot;: true,
+        &quot;usuario&quot;: true,
+        &quot;fecha&quot;: true,
+        &quot;motivo&quot;: true,
+        &quot;ip&quot;: true,
+        &quot;operacion&quot;: true,
+        &quot;codigo_http&quot;: true,
+        &quot;id_sensor&quot;: true,
+        &quot;detalle_ip&quot;: true
+      },
+      &quot;completo&quot;: true
+    }
+  }
+}</pre><h3>TC-M09-271</h3><pre>{
+  &quot;respuesta&quot;: {
+    &quot;error_code&quot;: &quot;VALOR_CALIBRACION_INVALIDO&quot;,
+    &quot;message&quot;: &quot;El valor de referencia debe ser un número decimal válido.&quot;,
+    &quot;fields&quot;: [
+      {
+        &quot;field&quot;: &quot;valor_referencia&quot;,
+        &quot;message&quot;: &quot;El valor de referencia debe ser un número decimal válido.&quot;
+      }
+    ],
+    &quot;timestamp&quot;: &quot;2026-10-07T09:59:08.867469+00:00&quot;
+  },
+  &quot;request_window&quot;: {
+    &quot;t_before&quot;: &quot;2026-10-07T09:59:09.213Z&quot;,
+    &quot;t_after&quot;: &quot;2026-10-07T09:59:09.437Z&quot;
+  },
+  &quot;auditoria&quot;: {
+    &quot;ventana&quot;: {
+      &quot;fecha_desde&quot;: &quot;2026-10-07T09:58:09.213Z&quot;,
+      &quot;fecha_hasta&quot;: &quot;2026-10-07T10:00:09.437Z&quot;
+    },
+    &quot;paginas&quot;: [
+      {
+        &quot;pagina&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;total&quot;: 5,
+        &quot;items&quot;: 5
+      }
+    ],
+    &quot;error&quot;: null,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id_evento&quot;: 38833,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.864995Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_CALIBRACION_INVALIDO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El valor de referencia debe ser un número decimal válido.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_CALIBRACION_INVALIDO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: true
+      },
+      {
+        &quot;id_evento&quot;: 38831,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.307796Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_FUERA_DE_RANGO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_FUERA_DE_RANGO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      },
+      {
+        &quot;id_evento&quot;: 38829,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.725140Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 422 DISPOSITIVO_INACTIVO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+          &quot;id_sensor&quot;: 29,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 422,
+          &quot;codigo_error&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+          &quot;id_dispositivo_iot&quot;: 47,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: false,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      }
+    ],
+    &quot;match&quot;: {
+      &quot;id_evento&quot;: 38833,
+      &quot;tipo_evento&quot;: 29,
+      &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.864995Z&quot;,
+      &quot;resultado&quot;: &quot;fallido&quot;,
+      &quot;modulo&quot;: &quot;MODULO9&quot;,
+      &quot;id_usuario&quot;: 4,
+      &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+      &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_CALIBRACION_INVALIDO)&quot;,
+      &quot;detalle&quot;: {
+        &quot;ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;motivo&quot;: &quot;El valor de referencia debe ser un número decimal válido.&quot;,
+        &quot;id_sensor&quot;: 6,
+        &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+        &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+        &quot;codigo_http&quot;: 400,
+        &quot;codigo_error&quot;: &quot;VALOR_CALIBRACION_INVALIDO&quot;,
+        &quot;id_dispositivo_iot&quot;: 3,
+        &quot;id_infraestructura&quot;: 3
+      },
+      &quot;checks&quot;: {
+        &quot;resultado&quot;: true,
+        &quot;modulo&quot;: true,
+        &quot;usuario&quot;: true,
+        &quot;fecha&quot;: true,
+        &quot;motivo&quot;: true,
+        &quot;ip&quot;: true,
+        &quot;operacion&quot;: true,
+        &quot;codigo_http&quot;: true,
+        &quot;id_sensor&quot;: true,
+        &quot;detalle_ip&quot;: true
+      },
+      &quot;completo&quot;: true
+    }
+  }
+}</pre><h3>TC-M09-272</h3><pre>{
+  &quot;respuesta&quot;: {
+    &quot;error_code&quot;: &quot;SENSOR_AREA_INVALIDA&quot;,
+    &quot;message&quot;: &quot;El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.&quot;,
+    &quot;fields&quot;: [
+      {
+        &quot;field&quot;: &quot;id_infraestructura&quot;,
+        &quot;message&quot;: &quot;El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.&quot;
+      }
+    ],
+    &quot;timestamp&quot;: &quot;2026-10-07T09:59:09.495258+00:00&quot;
+  },
+  &quot;request_window&quot;: {
+    &quot;t_before&quot;: &quot;2026-10-07T09:59:09.784Z&quot;,
+    &quot;t_after&quot;: &quot;2026-10-07T09:59:10.058Z&quot;
+  },
+  &quot;auditoria&quot;: {
+    &quot;ventana&quot;: {
+      &quot;fecha_desde&quot;: &quot;2026-10-07T09:58:09.784Z&quot;,
+      &quot;fecha_hasta&quot;: &quot;2026-10-07T10:00:10.058Z&quot;
+    },
+    &quot;paginas&quot;: [
+      {
+        &quot;pagina&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;total&quot;: 6,
+        &quot;items&quot;: 6
+      }
+    ],
+    &quot;error&quot;: null,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id_evento&quot;: 38835,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:09.489847Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 SENSOR_AREA_INVALIDA)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;SENSOR_AREA_INVALIDA&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 1
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: true
+      },
+      {
+        &quot;id_evento&quot;: 38833,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.864995Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_CALIBRACION_INVALIDO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El valor de referencia debe ser un número decimal válido.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_CALIBRACION_INVALIDO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      },
+      {
+        &quot;id_evento&quot;: 38831,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.307796Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_FUERA_DE_RANGO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_FUERA_DE_RANGO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      },
+      {
+        &quot;id_evento&quot;: 38829,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.725140Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 422 DISPOSITIVO_INACTIVO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+          &quot;id_sensor&quot;: 29,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 422,
+          &quot;codigo_error&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+          &quot;id_dispositivo_iot&quot;: 47,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: false,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      }
+    ],
+    &quot;match&quot;: {
+      &quot;id_evento&quot;: 38835,
+      &quot;tipo_evento&quot;: 29,
+      &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:09.489847Z&quot;,
+      &quot;resultado&quot;: &quot;fallido&quot;,
+      &quot;modulo&quot;: &quot;MODULO9&quot;,
+      &quot;id_usuario&quot;: 4,
+      &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+      &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 SENSOR_AREA_INVALIDA)&quot;,
+      &quot;detalle&quot;: {
+        &quot;ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;motivo&quot;: &quot;El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.&quot;,
+        &quot;id_sensor&quot;: 6,
+        &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+        &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+        &quot;codigo_http&quot;: 400,
+        &quot;codigo_error&quot;: &quot;SENSOR_AREA_INVALIDA&quot;,
+        &quot;id_dispositivo_iot&quot;: 3,
+        &quot;id_infraestructura&quot;: 1
+      },
+      &quot;checks&quot;: {
+        &quot;resultado&quot;: true,
+        &quot;modulo&quot;: true,
+        &quot;usuario&quot;: true,
+        &quot;fecha&quot;: true,
+        &quot;motivo&quot;: true,
+        &quot;ip&quot;: true,
+        &quot;operacion&quot;: true,
+        &quot;codigo_http&quot;: true,
+        &quot;id_sensor&quot;: true,
+        &quot;detalle_ip&quot;: true
+      },
+      &quot;completo&quot;: true
+    }
+  }
+}</pre><h3>TC-M09-273</h3><pre>{
+  &quot;respuesta&quot;: {
+    &quot;error_code&quot;: &quot;DISPOSITIVO_NO_ENCONTRADO&quot;,
+    &quot;message&quot;: &quot;No existe un dispositivo IoT con ID 999999.&quot;,
+    &quot;fields&quot;: [],
+    &quot;timestamp&quot;: &quot;2026-10-07T09:59:10.138960+00:00&quot;
+  },
+  &quot;request_window&quot;: {
+    &quot;t_before&quot;: &quot;2026-10-07T09:59:10.409Z&quot;,
+    &quot;t_after&quot;: &quot;2026-10-07T09:59:10.696Z&quot;
+  },
+  &quot;auditoria&quot;: {
+    &quot;ventana&quot;: {
+      &quot;fecha_desde&quot;: &quot;2026-10-07T09:58:10.409Z&quot;,
+      &quot;fecha_hasta&quot;: &quot;2026-10-07T10:00:10.696Z&quot;
+    },
+    &quot;paginas&quot;: [
+      {
+        &quot;pagina&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;total&quot;: 7,
+        &quot;items&quot;: 7
+      }
+    ],
+    &quot;error&quot;: null,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id_evento&quot;: 38837,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:10.136201Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 404 DISPOSITIVO_NO_ENCONTRADO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;No existe un dispositivo IoT con ID 999999.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 404,
+          &quot;codigo_error&quot;: &quot;DISPOSITIVO_NO_ENCONTRADO&quot;,
+          &quot;id_dispositivo_iot&quot;: 999999,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: true,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: true
+      },
+      {
+        &quot;id_evento&quot;: 38835,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:09.489847Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 SENSOR_AREA_INVALIDA)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;SENSOR_AREA_INVALIDA&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 1
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      },
+      {
+        &quot;id_evento&quot;: 38833,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.864995Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_CALIBRACION_INVALIDO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El valor de referencia debe ser un número decimal válido.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_CALIBRACION_INVALIDO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      },
+      {
+        &quot;id_evento&quot;: 38831,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:08.307796Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 400 VALOR_FUERA_DE_RANGO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&quot;,
+          &quot;id_sensor&quot;: 6,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 400,
+          &quot;codigo_error&quot;: &quot;VALOR_FUERA_DE_RANGO&quot;,
+          &quot;id_dispositivo_iot&quot;: 3,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: false,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: true,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      },
+      {
+        &quot;id_evento&quot;: 38829,
+        &quot;tipo_evento&quot;: 29,
+        &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:07.725140Z&quot;,
+        &quot;resultado&quot;: &quot;fallido&quot;,
+        &quot;modulo&quot;: &quot;MODULO9&quot;,
+        &quot;id_usuario&quot;: 4,
+        &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 422 DISPOSITIVO_INACTIVO)&quot;,
+        &quot;detalle&quot;: {
+          &quot;ip&quot;: &quot;200.118.62.237&quot;,
+          &quot;motivo&quot;: &quot;Solo se pueden calibrar sensores de dispositivos activos.&quot;,
+          &quot;id_sensor&quot;: 29,
+          &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+          &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+          &quot;codigo_http&quot;: 422,
+          &quot;codigo_error&quot;: &quot;DISPOSITIVO_INACTIVO&quot;,
+          &quot;id_dispositivo_iot&quot;: 47,
+          &quot;id_infraestructura&quot;: 3
+        },
+        &quot;checks&quot;: {
+          &quot;resultado&quot;: true,
+          &quot;modulo&quot;: true,
+          &quot;usuario&quot;: true,
+          &quot;fecha&quot;: true,
+          &quot;motivo&quot;: true,
+          &quot;ip&quot;: true,
+          &quot;operacion&quot;: true,
+          &quot;codigo_http&quot;: false,
+          &quot;id_sensor&quot;: false,
+          &quot;detalle_ip&quot;: true
+        },
+        &quot;completo&quot;: false
+      }
+    ],
+    &quot;match&quot;: {
+      &quot;id_evento&quot;: 38837,
+      &quot;tipo_evento&quot;: 29,
+      &quot;fecha_evento&quot;: &quot;2026-10-07T09:59:10.136201Z&quot;,
+      &quot;resultado&quot;: &quot;fallido&quot;,
+      &quot;modulo&quot;: &quot;MODULO9&quot;,
+      &quot;id_usuario&quot;: 4,
+      &quot;direccion_ip&quot;: &quot;200.118.62.237&quot;,
+      &quot;descripcion&quot;: &quot;Calibración rechazada (HTTP 404 DISPOSITIVO_NO_ENCONTRADO)&quot;,
+      &quot;detalle&quot;: {
+        &quot;ip&quot;: &quot;200.118.62.237&quot;,
+        &quot;motivo&quot;: &quot;No existe un dispositivo IoT con ID 999999.&quot;,
+        &quot;id_sensor&quot;: 6,
+        &quot;operacion&quot;: &quot;CALIBRACION_SENSOR&quot;,
+        &quot;user_agent&quot;: &quot;PostmanRuntime/7.39.1&quot;,
+        &quot;codigo_http&quot;: 404,
+        &quot;codigo_error&quot;: &quot;DISPOSITIVO_NO_ENCONTRADO&quot;,
+        &quot;id_dispositivo_iot&quot;: 999999,
+        &quot;id_infraestructura&quot;: 3
+      },
+      &quot;checks&quot;: {
+        &quot;resultado&quot;: true,
+        &quot;modulo&quot;: true,
+        &quot;usuario&quot;: true,
+        &quot;fecha&quot;: true,
+        &quot;motivo&quot;: true,
+        &quot;ip&quot;: true,
+        &quot;operacion&quot;: true,
+        &quot;codigo_http&quot;: true,
+        &quot;id_sensor&quot;: true,
+        &quot;detalle_ip&quot;: true
+      },
+      &quot;completo&quot;: true
+    }
+  }
+}</pre></html>

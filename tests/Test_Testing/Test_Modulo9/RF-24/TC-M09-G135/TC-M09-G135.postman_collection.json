@@ -1,0 +1,27 @@
+{
+  "info": {
+    "name": "TC-M09-G135 - rechazos y auditoria RF-10",
+    "description": "El runner invoca una vez este item por caso y verifica RF-10 mediante GET independientes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "{{case_id}} POST calibracion SENSOR rechazada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{{body_json}}", "options": {"raw": {"language": "json"}}},
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibrar"
+      },
+      "event": [
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "pm.test('HTTP de rechazo esperado', function () { pm.response.to.have.status(Number(pm.environment.get('expected_status'))); });",
+          "pm.test('Sin id_calibracion en la respuesta', function () { var d; try { d = pm.response.json(); } catch (e) { d = {}; } pm.expect(d.id_calibracion).to.be.undefined; });"
+        ]}}
+      ]
+    }
+  ]
+}

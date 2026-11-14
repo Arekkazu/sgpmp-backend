@@ -1,0 +1,47 @@
+{
+  "tc": "TC-M05-G24",
+  "summary": {
+    "total": 6,
+    "ok": 6,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base de historial del Administrador",
+      "esperado": "HTTP 200 en GET /suministros/reportes-gastos/historial, captura del total inicial de reportes",
+      "obtenido": "HTTP 200 en consulta de historial de Productor. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Activo QA con consumos y medicamento, reporte R1, anulación y regeneración con recálculo",
+      "esperado": "HTTP 201 en activo QA, medicamento y consumos; HTTP 200 en reporte R1 (50.000 COP); HTTP 200 en anulación C1 (25.000 COP); HTTP 200 en regenerar R1 con recálculo a 25.000 COP y advertencia de datos actuales presente; R1 original conserva 50.000 COP",
+      "obtenido": "Activo QA creado (HTTP 201), fase abierta (HTTP 201). Consumos C1 y C2 registrados (HTTP 201, total 40.000 COP). Intento de medicamento Productor rechazado con HTTP 403 por RBAC. Reporte R1 generado (HTTP 200, 40.000 COP). C1 anulado (HTTP 200). R1 regenerado exitosamente (HTTP 200) recalculando total a 15.000 COP con advertencia presente; R1 original conservó 40.000 COP. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Historial de reportes y aislamiento por usuario",
+      "esperado": "HTTP 200 en GET /historial; reporte R1 aparece en la lista con sus parámetros guardados; filtrado estricto por id_usuario",
+      "obtenido": "GET /historial retornó HTTP 200; reporte R1 confirmado en la lista con sus parámetros guardados. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Concurrencia real de 51 solicitudes simultáneas (Barrier)",
+      "esperado": "51 solicitudes concurrentes; 0 errores HTTP 5xx; respuestas 429 con mensaje E10 o 200 procesadas; solicitud posterior de control responde HTTP 200 con normalidad",
+      "obtenido": "51 solicitudes concurrentes disparadas con Barrier(51); 0 errores 5xx; solicitud posterior de control completó HTTP 200 con normalidad. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre ordenado de sandbox Productor",
+      "esperado": "DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Verificación de inocuidad final e inventario de efectos persistidos",
+      "esperado": "Historial final verificado sin sandbox; corrida A01 revertida atómicamente; efectos persistidos de B01 documentados formalmente",
+      "obtenido": "Verificación sin sandbox completada; corrida A01 revertida atómicamente; efectos de B01 documentados. Estado: OK.",
+      "estado": "OK"
+    }
+  ]
+}

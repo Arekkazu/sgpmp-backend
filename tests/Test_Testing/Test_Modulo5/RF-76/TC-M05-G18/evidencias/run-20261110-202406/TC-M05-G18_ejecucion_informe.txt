@@ -1,0 +1,1574 @@
+================================================================================
+INFORME DE EJECUCION OFICIAL EN STAGING Y DIAGNOSTICO — TC-M05-G18 (RF-76)
+================================================================================
+Fecha/Hora corrida : 2026-11-10T20:24:09-05:00 (run-20261110-202406)
+Caso / RF          : TC-M05-G18 — RF-76 "Integracion con RF-44 y fallas de persistencia"
+IDs cubiertos      : Planos 043, 044, 047 / Originales 011, 012, 042
+Veredicto oficial  : Rechazado (0 OK / 10 FALLA, 0 skipped, 0 errors)
+
+--------------------------------------------------------------------------------
+1. INTEGRIDAD DE ARCHIVOS (SHA-256 INICIO / FIN Y ESTADO DEL REPO)
+--------------------------------------------------------------------------------
+test_tc_m05_g18.py     inicial : 199F1A17D46CABFB0D58898287D5E238533232C5BF4E876DC6BDC8A1D07887DF
+test_tc_m05_g18.py     final   : 199F1A17D46CABFB0D58898287D5E238533232C5BF4E876DC6BDC8A1D07887DF  [INTACTO]
+ejecutar_tc_m05_g18.ps1 inicial: BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+ejecutar_tc_m05_g18.ps1 final  : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0  [INTACTO]
+resultados/                    : ['.gitkeep'] [SIN MODIFICAR]
+Codigo backend (src/)          : Sin modificaciones.
+Git                            : Sin git add / git commit; sin INC creados.
+
+--------------------------------------------------------------------------------
+2. COMANDO EXACTO, CODIGO DE SALIDA Y CARPETA DE CORRIDA
+--------------------------------------------------------------------------------
+Directorio de trabajo : tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18
+Comando ejecutado     : powershell -NoProfile -ExecutionPolicy Bypass -File .\ejecutar_tc_m05_g18.ps1
+Codigo de salida      : 1 (RUNNER_EXIT_CODE=1; pytest: 10 failed, 2 warnings in 105.39s)
+Carpeta de corrida    : tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\run-20261110-202406
+Nota de ejecucion     : Se ejecuto UNA sola corrida oficial. Aunque G18_R_01 fallo por
+  AMBIENTE (ReadTimeout), 9 de los 10 tests fallaron por defectos TEST dentro de
+  test_tc_m05_g18.py (prohibido editarlo en esta etapa), por lo que una segunda corrida
+  seguiria fallando en los mismos 9 tests de S1/S2/S3.
+Nota sandbox TEST     : Variable DATABASE_URL en .env.test: AUSENTE. En G18_R_01,
+  POST /sesiones/ sufrio ReadTimeout antes de autenticar o escribir datos en run1,
+  y el DELETE /test-control/runs/{run_id} del bloque finally tambien sufrio ReadTimeout.
+  El UUID efimero tc-m05-g18-r01-<hex8> no quedo persistido en pytest.log ni trazas;
+  como el login no concreto respuesta ni obtuvo JWT, no se crearon registros en TEST.
+
+--------------------------------------------------------------------------------
+3. RESUMEN DE LOS 10 TESTS (JUNIT XML + TRAZAS)
+--------------------------------------------------------------------------------
+ID        | Subcaso                           | Estado | Duracion (s)
+----------+-----------------------------------+--------+-------------
+G18_S1_01 | S1 (043/011) vencido+manana no rev. | FALLA  | 0.025 s
+G18_S1_02 | S1 (043/011) vence hoy -> ACTIVO  | FALLA  | 0.015 s
+G18_S1_03 | S1 (043/011) notif. Vet + Prod    | FALLA  | 0.017 s
+G18_S2_01 | S2 (044/012) RF-44 HTTP 500 E10   | FALLA  | 0.054 s
+G18_S2_02 | S2 (044/012) RF-44 rollback BD    | FALLA  | 0.089 s
+G18_S2_03 | S2 (044/012) activo sin cambio    | FALLA  | 0.029 s
+G18_S3_01 | S3 (047/042) fallo calc fecha fin | FALLA  | 0.032 s
+G18_S3_02 | S3 (047/042) fallo BD translator  | FALLA  | 0.031 s
+G18_S3_03 | S3 (047/042) auditoria rollback   | FALLA  | 0.031 s
+G18_R_01  | Control real TEST + inocuidad     | FALLA  | 92.213 s
+
+--------------------------------------------------------------------------------
+4. DIAGNOSTICO DETALLADO DE FALLOS (PRODUCTO / TEST / AMBIENTE)
+--------------------------------------------------------------------------------
+Resumen por categoria: 9 TEST (G18_S1_01..03, G18_S2_01..03, G18_S3_01..03),
+                       1 AMBIENTE (G18_R_01), 0 PRODUCTO.
+
+4.1) G18_S1_01, G18_S1_02, G18_S1_03 — Clasificacion: TEST
+  - Asercion / Excepcion exacta (pytest --tb=short, pytest.log:31-33, 43-45, 54-56):
+      tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+          monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+      E   AttributeError: <module 'main' from 'C:\Users\Juansegutt\Integrador\sgpmp-backend\main.py'> has no attribute 'datetime'
+  - Traza exacta en trazas_tc_m05_g18.json (G18_S1_01..03):
+      "obtenido": "AttributeError: <module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'> has no attribute 'datetime'"
+  - Causa raiz [LECTURA DE CODIGO]:
+      * main.py:29-39 no importa `datetime` en el ambito de modulo.
+      * main.py:364 (dentro de `_revertir_retiros_vencidos_diariamente`, main.py:357) realiza un import local:
+        `from datetime import datetime, time as dtime, timedelta`.
+      * Al no existir el atributo `main.datetime`, `monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)`
+        en test_tc_m05_g18.py:496 lanza `AttributeError` antes de iniciar el ciclo de `_correr()`.
+      * Ninguna prueba de S1 alcanzo a invocar `RevertirRetirosVencidosUseCase` ni activo guards `_VIOLACIONES`.
+  - Correccion propuesta (en el test, SIN modificarlo en esta etapa):
+      Importar `import datetime as datetime_mod` en test_tc_m05_g18.py y cambiar la linea 496
+      de `monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)` a
+      `monkeypatch.setattr(datetime_mod, "datetime", _FakeDateTimeMain)`.
+      Como test_tc_m05_g18.py:26 ya enlazo `datetime` localmente al importar el modulo,
+      `_FakeDateTimeMain.now` (linea 443) seguira instanciando el `datetime` real mientras
+      main.py:364 resolvera `from datetime import datetime` hacia `_FakeDateTimeMain`.
+
+4.2) G18_S2_01, G18_S2_02, G18_S2_03, G18_S3_01, G18_S3_02, G18_S3_03 — Clasificacion: TEST
+  - Asercion exacta (pytest --tb=short, pytest.log:65-69, 78-82, 91-95, 104-108, 117-121, 130-134):
+      tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+          assert resp.status_code not in (401, 403), (
+      E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"..."}
+      E   assert 403 not in (401, 403)
+      E    +  where 403 = <Response [403 Forbidden]>.status_code
+  - Traza exacta en trazas_tc_m05_g18.json (G18_S2_01..G18_S3_03):
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",...}"
+  - Causa raiz [LECTURA DE CODIGO]:
+      * test_tc_m05_g18.py:527-532 crea el usuario falso de FastAPI con `id_estado_cuenta=1`.
+      * En src/identity_access/domain/entities/cuenta.py:40-41, `ESTADO_PENDIENTE = 1` y `ESTADO_ACTIVO = 2`.
+      * En src/shared/rbac.py:147-154 (`_exigir_permiso`), el backend valida
+        `if usuario_actual.id_estado_cuenta != Cuenta.ESTADO_ACTIVO:` y lanza
+        `AuthorizationError(code="CUENTA_NO_ACTIVA", ...)` -> HTTP 403 Forbidden.
+      * En consecuencia, las 6 peticiones de S2 y S3 fueron rechazadas en RBAC antes de entrar
+        a `RegistrarMedicamentoUseCase` o `suministros_factory`, sin ejecutar la logica de RF-76
+        ni activar guards `_VIOLACIONES`.
+  - Correccion propuesta (en el test, SIN modificarlo en esta etapa):
+      Importar `Cuenta` desde `src.identity_access.domain.entities.cuenta` en test_tc_m05_g18.py
+      y cambiar `id_estado_cuenta=1` en test_tc_m05_g18.py:531 por `id_estado_cuenta=Cuenta.ESTADO_ACTIVO` (2),
+      ajustando tambien el comentario informativo en la linea 17.
+
+4.3) G18_R_01 — Clasificacion: AMBIENTE
+  - Excepcion exacta (pytest --tb=short, pytest.log:208-210):
+      E   requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+      E   Rollback sandbox: DELETE_ERR=ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+  - Traza exacta en trazas_tc_m05_g18.json (G18_R_01):
+      "obtenido": "ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)"
+  - Causa raiz [HECHO OBSERVADO] y [LECTURA DE CODIGO]:
+      * [HECHO OBSERVADO] La ejecucion de `test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad`
+        tardo 92.213 s (~45 s de espera en POST /sesiones/ + ~45 s en DELETE /test-control/runs/{run_id}).
+      * [LECTURA DE CODIGO] En test_tc_m05_g18.py:1288, `_cuerpo_run1` invoca `_login_sandbox_con_reintento`
+        (test_tc_m05_g18.py:1194, timeout=45). Al vencer el tiempo sin respuesta de `www.api.inmero.co:443`,
+        el `finally` de `_ejecutar_corrida_sandbox` (test_tc_m05_g18.py:1253, timeout=45) intento cerrar `run1`
+        con DELETE y volvio a expirar con `ReadTimeout`.
+      * [HECHO OBSERVADO] En sondeo posterior fuera de la corrida (`GET https://www.api.inmero.co/health` y `/`),
+        el servidor respondio HTTP 404 rapidamente, confirmando que el timeout fue un episodio puntual
+        de latencia/indisponibilidad del entorno TEST durante la corrida.
+
+--------------------------------------------------------------------------------
+5. COHERENCIA DE ARTEFACTOS E INOCUIDAD SANDBOX
+--------------------------------------------------------------------------------
+- JUnit XML (junit_TC-M05-G18.xml)      : 10 testcases, failures=10, errors=0, skipped=0, time=105.328s
+- Trazas (trazas_tc_m05_g18.json)       : 10 entradas, 0 OK, 10 FALLA
+- Resumen JSON (resultado_TC-M05-G18.json): 10 checkpoints, ok=0, falla=10, veredicto=Rechazado
+- HTML (resultado_TC-M05-G18.html)      : 10 tests en data-jsonblob, todos ['Failed']
+- Coherencia total                      : SI (10/10 coinciden exactamente en orden y estado FALLA).
+- Inocuidad G18_R_01                    : No hubo escrituras en TEST porque POST /sesiones/ expiro
+  por ReadTimeout (45 s) antes de emitir JWT o invocar endpoints de fases/medicamentos; no quedo
+  ninguna entidad modificada en modulo2 ni modulo5.
+
+--------------------------------------------------------------------------------
+6. ESCANEO DE SECRETOS
+--------------------------------------------------------------------------------
+- Runner (ejecutar_tc_m05_g18.ps1) : Escaneo de secretos: 0 coincidencias
+- Escaneo independiente (Python sobre TODOS los archivos de evidencias/run-20261110-202406/,
+  incluidos .html, .xml, .log, .json, .py y este .txt usando TEST_ADMIN_PASSWORD,
+  TEST_SANDBOX_SECRET, TEST_ADMIN_EMAIL, ultimos 20 caracteres de secretos y prefijo JWT):
+  0 coincidencias
+
+================================================================================
+7. ANEXOS (CONTENIDO COMPLETO VERBATIM)
+================================================================================
+
+--- ANEXO 1: pytest.log ---
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 10 items
+
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte FAILED [ 10%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte FAILED [ 20%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor FAILED [ 30%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion FAILED [ 40%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido FAILED [ 50%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion FAILED [ 60%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro FAILED [ 70%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback FAILED [ 80%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03_incidente_auditoria_sobrevive_rollback FAILED [ 90%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad FAILED [100%]
+
+================================== FAILURES ===================================
+____ test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte _____
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:789: in test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:773: in _verificar
+    fake_asyncio = _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+E   AttributeError: <module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'> has no attribute 'datetime'
+_______ test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte ________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:838: in test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:822: in _verificar
+    fake_asyncio = _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+E   AttributeError: <module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'> has no attribute 'datetime'
+_________ test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor __________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:881: in test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:867: in _verificar
+    _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+E   AttributeError: <module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'> has no attribute 'datetime'
+__________ test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion __________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:919: in test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:908: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.183663+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+_________ test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido __________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:951: in test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:942: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.362385+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+_____ test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion _____
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:985: in test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:974: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.471018+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+________________ test_g18_s3_01_falla_calculo_fecha_fin_retiro ________________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1035: in test_g18_s3_01_falla_calculo_fecha_fin_retiro
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1018: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.571906+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+_____ test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback ______
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1082: in test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1065: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.682467+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+____________ test_g18_s3_03_incidente_auditoria_sobrevive_rollback ____________
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1164: in test_g18_s3_03_incidente_auditoria_sobrevive_rollback
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1119: in _verificar
+    _verificar_uso_stubs_api(resp_a, store, min_calls=1)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.796097+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+__________ test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad __________
+.venv\Lib\site-packages\urllib3\connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\urllib3\connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\http\client.py:1430: in getresponse
+    response.begin()
+..\..\anaconda3\Lib\http\client.py:331: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\http\client.py:292: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\socket.py:719: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\ssl.py:1304: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\ssl.py:1138: in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+.venv\Lib\site-packages\requests\adapters.py:696: in send
+    resp = conn.urlopen(
+.venv\Lib\site-packages\urllib3\connectionpool.py:842: in urlopen
+    retries = retries.increment(
+.venv\Lib\site-packages\urllib3\util\retry.py:498: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\urllib3\util\util.py:39: in reraise
+    raise value
+.venv\Lib\site-packages\urllib3\connectionpool.py:788: in urlopen
+    response = self._make_request(
+.venv\Lib\site-packages\urllib3\connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+.venv\Lib\site-packages\urllib3\connectionpool.py:367: in _raise_timeout
+    raise ReadTimeoutError(
+E   urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+
+During handling of the above exception, another exception occurred:
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1377: in test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1345: in _verificar
+    conteo_base = _ejecutar_corrida_sandbox(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1262: in _ejecutar_corrida_sandbox
+    _relanzar_con_rollback(cuerpo_exc, del_resumen)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1224: in _relanzar_con_rollback
+    raise cuerpo_exc
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1246: in _ejecutar_corrida_sandbox
+    resultado = cuerpo_fn(session)
+                ^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1288: in _cuerpo_run1
+    _login_sandbox_con_reintento(s1, base_url, email, pwd)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1194: in _login_sandbox_con_reintento
+    resp = session.post(
+.venv\Lib\site-packages\requests\sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\requests\sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\requests\sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\requests\adapters.py:742: in send
+    raise ReadTimeout(e, request=request)
+E   requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+E   Rollback sandbox: DELETE_ERR=ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1267
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1267: PytestUnknownMarkWarning: Unknown pytest.mark.sandbox_real - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.sandbox_real
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\run-20261110-202406\junit_TC-M05-G18.xml -
+- Generated html report: file:///C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-202406/resultado_TC-M05-G18.html -
+=========================== short test summary info ===========================
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03_incidente_auditoria_sobrevive_rollback
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad
+================= 10 failed, 2 warnings in 105.39s (0:01:45) ==================
+
+--- ANEXO 2: trazas_tc_m05_g18.json ---
+[
+  {
+    "test": "G18_S1_01",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.",
+    "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:19.923311-05:00"
+  },
+  {
+    "test": "G18_S1_02",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.",
+    "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:20.973020-05:00"
+  },
+  {
+    "test": "G18_S1_03",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Al revertir retiro vencido, NotificacionMedicamentoEmailAdapter envia correo a Productor Y Veterinario.",
+    "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.065565-05:00"
+  },
+  {
+    "test": "G18_S2_01",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.183663+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.202055-05:00"
+  },
+  {
+    "test": "G18_S2_02",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Rollback ejecutado (>=1), 0 commits y 0 registros de medicamento persistidos.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.362385+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.377714-05:00"
+  },
+  {
+    "test": "G18_S2_03",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.471018+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.484256-05:00"
+  },
+  {
+    "test": "G18_S3_01",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.571906+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.587697-05:00"
+  },
+  {
+    "test": "G18_S3_02",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.682467+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.697846-05:00"
+  },
+  {
+    "test": "G18_S3_03",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Un incidente de auditoria sobrevive al rollback en sesion independiente para S3_01 y S3_02.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.796097+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.811919-05:00"
+  },
+  {
+    "test": "G18_R_01",
+    "caso_plano": "043/044/047",
+    "caso_original": "011/012/042",
+    "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.",
+    "obtenido": "ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:25:54.100691-05:00"
+  }
+]
+
+--- ANEXO 3: resultado_TC-M05-G18.json ---
+{
+  "tc": "TC-M05-G18",
+  "summary": {
+    "total": 10,
+    "ok": 0,
+    "falla": 10,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "G18_S1_01 (plano 043 / orig 011) - test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte",
+      "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.",
+      "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S1_02 (plano 043 / orig 011) - test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte",
+      "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.",
+      "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S1_03 (plano 043 / orig 011) - test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor",
+      "esperado": "Al revertir retiro vencido, NotificacionMedicamentoEmailAdapter envia correo a Productor Y Veterinario.",
+      "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S2_01 (plano 044 / orig 012) - test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion",
+      "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.183663+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S2_02 (plano 044 / orig 012) - test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido",
+      "esperado": "Rollback ejecutado (>=1), 0 commits y 0 registros de medicamento persistidos.",
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.362385+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S2_03 (plano 044 / orig 012) - test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion",
+      "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.",
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.471018+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S3_01 (plano 047 / orig 042) - test_g18_s3_01_falla_calculo_fecha_fin_retiro",
+      "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.571906+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S3_02 (plano 047 / orig 042) - test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback",
+      "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.682467+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_S3_03 (plano 047 / orig 042) - test_g18_s3_03_incidente_auditoria_sobrevive_rollback",
+      "esperado": "Un incidente de auditoria sobrevive al rollback en sesion independiente para S3_01 y S3_02.",
+      "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.796097+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "G18_R_01 (plano 043/044/047 / orig 011/012/042) - test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad",
+      "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.",
+      "obtenido": "ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)",
+      "estado": "FALLA"
+    }
+  ]
+}
+
+--- ANEXO 4: generar_resultado_g18.py ---
+"""Genera resultado_TC-M05-G18.json a partir de junit_TC-M05-G18.xml y trazas_tc_m05_g18.json."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+
+def generar_resultado(run_dir: Path) -> dict:
+    """Construye y valida el resumen oficial JSON a partir del JUnit XML y las trazas."""
+    junit_path = run_dir / "junit_TC-M05-G18.xml"
+    trazas_path = run_dir / "trazas_tc_m05_g18.json"
+    out_path = run_dir / "resultado_TC-M05-G18.json"
+
+    tree = ET.parse(junit_path)
+    root = tree.getroot()
+    testcases = root.findall(".//testcase")
+    trazas = json.loads(trazas_path.read_text(encoding="utf-8"))
+
+    if len(testcases) != len(trazas):
+        raise ValueError(
+            f"Incoherencia entre JUnit ({len(testcases)}) y trazas ({len(trazas)})."
+        )
+
+    checkpoints: list[dict[str, str]] = []
+    ok_count = 0
+    falla_count = 0
+
+    for testcase, traza in zip(testcases, trazas):
+        xml_fallo = testcase.find("failure") is not None or testcase.find("error") is not None
+        xml_estado = "FALLA" if xml_fallo else "OK"
+        traza_estado = traza["estado"]
+        if xml_estado != traza_estado:
+            raise ValueError(
+                f"Estado divergente en {traza['test']}: XML={xml_estado} vs traza={traza_estado}"
+            )
+
+        if traza_estado == "OK":
+            ok_count += 1
+        else:
+            falla_count += 1
+
+        checkpoints.append(
+            {
+                "paso": (
+                    f"{traza['test']} (plano {traza['caso_plano']} / orig {traza['caso_original']}) "
+                    f"- {testcase.attrib['name']}"
+                ),
+                "esperado": traza["esperado"],
+                "obtenido": traza["obtenido"],
+                "estado": traza_estado,
+            }
+        )
+
+    veredicto = "Aprobado" if falla_count == 0 and len(checkpoints) > 0 else "Rechazado"
+    payload = {
+        "tc": "TC-M05-G18",
+        "summary": {
+            "total": len(checkpoints),
+            "ok": ok_count,
+            "falla": falla_count,
+            "veredicto": veredicto,
+        },
+        "checkpoints": checkpoints,
+    }
+    out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return payload
+
+
+if __name__ == "__main__":
+    resultado = generar_resultado(Path(__file__).resolve().parent)
+    print(json.dumps(resultado["summary"], ensure_ascii=False))
+
+--- ANEXO 5: evidencias/fase3-20261110-201535/diff_tc_m05_g18.patch ---
+--- original/test_tc_m05_g18.py
++++ corregido/test_tc_m05_g18.py
+@@ -5,8 +5,8 @@
+   (dos tratamientos vencido + vigente manana, vencimiento limite hoy, y
+   notificacion de fin de retiro a Productor + Veterinario).
+ - S2 (plano 044 / orig 012): falla de RF-44 al transicionar a EN_TRATAMIENTO
+-  (RF-76 E10: HTTP 500 ERROR_ESTADO_EN_TRATAMIENTO, rollback completo, sin
+-  registro, activo sin cambio y sin notificacion).
++  (RF-76 E10: HTTP 500, error_code no vacio, mensaje de reversion, rollback
++  completo, sin registro, activo sin cambio y sin notificacion).
+ - S3 (plano 047 / orig 042): falla en calculo de `fecha_fin_retiro`, falla real
+   de BD pasando por `db_error_translator.raise_from_db_error`, y verificacion
+   estricta de incidente en auditoria sobreviviente al rollback (CU03 FA-13).
+@@ -29,7 +29,7 @@
+ from pathlib import Path
+ import smtplib
+ from types import SimpleNamespace
+-from typing import Any, Iterator, Optional
++from typing import Any, Callable, Iterator, Optional
+ import uuid
+ 
+ from dotenv import dotenv_values
+@@ -40,9 +40,10 @@
+ import sqlalchemy
+ from sqlalchemy.exc import OperationalError
+ 
+-os.environ.setdefault("SECRET_KEY", "test-secret-key-1234567890123456")
+-os.environ.setdefault("DATABASE_URL", "postgresql://stub:stub@localhost:5432/stub_g18")
+-os.environ.setdefault("ENV", "test")
++# Asignacion explicita antes de importar `main` / `database.py` (C2).
++os.environ["SECRET_KEY"] = "test-secret-key-1234567890123456"
++os.environ["DATABASE_URL"] = "postgresql://stub:stub@localhost:5432/stub_g18"
++os.environ["ENV"] = "test"
+ 
+ import main
+ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+@@ -59,11 +60,21 @@
+ )
+ from src.supplies.domain.repositories.ciclo_abierto_port import CicloAbierto
+ from src.supplies.domain.value_objects.estado_registro import EstadoRegistro
++import src.supplies.infrastructure.adapters.activo_m02_adapter as activo_m02_mod
++import src.supplies.infrastructure.adapters.estado_activo_m02_adapter as estado_activo_m02_mod
+ import src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter as notif_email_mod
+ import src.supplies.infrastructure.factories.suministros_factory as suministros_factory
++import src.supplies.infrastructure.repositories.medicamento_repository as med_repo_mod
+ from src.supplies.infrastructure.repositories.medicamento_repository import (
+     SqlAlchemyMedicamentoRepository,
+ )
++
++# Referencias originales capturadas en el import para `dependency_overrides` y guards (C1).
++_GET_DB_ORIGINAL = shared_database.get_db
++_GET_CURRENT_USER_ORIGINAL = get_current_user
++_SESION_SISTEMA_ORIGINAL = shared_database.sesion_sistema
++_SESSION_LOCAL_ORIGINAL = shared_database.SessionLocal
++_CREATE_ENGINE_ORIGINAL = sqlalchemy.create_engine
+ 
+ try:
+     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+@@ -85,10 +96,34 @@
+ PRODUCTOR_CORREO = "productor.g18@finca.example"
+ VET_CORREO = "veterinario.g18@finca.example"
+ 
++_TEXTOS_PROHIBIDOS_RESPUESTA = (
++    "Traceback",
++    "OverflowError",
++    "RuntimeError",
++    "psycopg2",
++    "OperationalError",
++    "INSERT INTO",
++)
++
++# Registro de guards disparados por prueba (C3). Se limpia al entrar y salir del fixture autouse.
++_VIOLACIONES: list[str] = []
++
+ 
+ # ---------------------------------------------------------------------------
+-# Trazas estructuradas en $G18_RUN_DIR
++# Trazas estructuradas en $G18_RUN_DIR (C7: estados "OK" / "FALLA")
+ # ---------------------------------------------------------------------------
++
++def _sanitizar_texto(texto: str) -> str:
++    s = texto
++    for k in ("TEST_ADMIN_PASSWORD", "TEST_SANDBOX_SECRET", "TEST_ADMIN_EMAIL"):
++        v = (os.environ.get(k) or "").strip()
++        if v:
++            s = s.replace(v, "***")
++    jwt_pref = "ey" + "J"
++    if jwt_pref in s:
++        s = s.replace(jwt_pref, "[JWT_OMITIDO]")
++    return s
++
+ 
+ def _registrar_traza(
+     *,
+@@ -100,6 +135,7 @@
+     estado: str,
+ ) -> None:
+     """Agrega una traza estructurada al archivo JSON de la corrida si G18_RUN_DIR esta definido."""
++    assert estado in ("OK", "FALLA"), f"Estado de traza invalido: {estado}"
+     run_dir = (os.getenv("G18_RUN_DIR") or "").strip()
+     if not run_dir:
+         return
+@@ -120,7 +156,7 @@
+             "caso_plano": caso_plano,
+             "caso_original": caso_original,
+             "esperado": esperado,
+-            "obtenido": obtenido,
++            "obtenido": _sanitizar_texto(obtenido),
+             "estado": estado,
+             "timestamp": datetime.now(_ZONA_BOGOTA).isoformat(),
+         }
+@@ -134,19 +170,19 @@
+     caso_plano: str,
+     caso_original: str,
+     esperado: str,
+-    fn,
++    fn: Callable[[], str],
+ ) -> None:
+-    """Ejecuta las aserciones de un checkpoint y registra PASS/FAIL en G18_RUN_DIR."""
++    """Ejecuta un checkpoint completo y registra OK o FALLA ante cualquier Exception."""
+     try:
+         obtenido = fn()
+-    except AssertionError as exc:
++    except Exception as exc:
+         _registrar_traza(
+             test_id=test_id,
+             caso_plano=caso_plano,
+             caso_original=caso_original,
+             esperado=esperado,
+-            obtenido=str(exc) or "Asercion fallida sin detalle",
+-            estado="FAIL",
++            obtenido=f"{type(exc).__name__}: {exc}",
++            estado="FALLA",
+         )
+         raise
+     _registrar_traza(
+@@ -155,8 +191,18 @@
+         caso_original=caso_original,
+         esperado=esperado,
+         obtenido=str(obtenido),
+-        estado="PASS",
+-    )
++        estado="OK",
++    )
++
++
++def _assert_sin_violaciones_guard() -> None:
++    assert _VIOLACIONES == [], f"INFRA: guard activado: {_VIOLACIONES}"
++
++
++def _assert_sin_fugas_en_respuesta(resp: Any) -> None:
++    texto = resp.text or ""
++    presentes = [p for p in _TEXTOS_PROHIBIDOS_RESPUESTA if p in texto]
++    assert not presentes, f"La respuesta expuso detalles internos prohibidos {presentes}: {texto[:300]}"
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -164,12 +210,19 @@
+ # ---------------------------------------------------------------------------
+ 
+ def _prohibido_smtp(*_args: Any, **_kwargs: Any) -> None:
++    _VIOLACIONES.append("smtplib.SMTP")
+     raise AssertionError("smtplib.SMTP/SMTP_SSL esta prohibido en pruebas en proceso de TC-M05-G18.")
+ 
+ 
+-def _fabricar_prohibicion_bd(nombre: str):
++def _prohibido_smtp_ssl(*_args: Any, **_kwargs: Any) -> None:
++    _VIOLACIONES.append("smtplib.SMTP_SSL")
++    raise AssertionError("smtplib.SMTP/SMTP_SSL esta prohibido en pruebas en proceso de TC-M05-G18.")
++
++
++def _fabricar_prohibicion_bd(nombre: str) -> Callable[..., Any]:
+     def _prohibido(*_args: Any, **_kwargs: Any) -> None:
+-        raise AssertionError(f"Fabrica de BD/sesion real prohibida en pruebas en proceso: {nombre}")
++        _VIOLACIONES.append(nombre)
++        raise AssertionError(f"Fabrica/funcion prohibida en pruebas en proceso: {nombre}")
+     return _prohibido
+ 
+ 
+@@ -182,14 +235,16 @@
+ @pytest.fixture(autouse=True)
+ def _proteger_entorno_en_proceso(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+     """Aisla todas las pruebas en proceso de SMTP real, BD real y scheduler de FastAPI."""
++    _VIOLACIONES.clear()
+     main.app.dependency_overrides.clear()
+     if "sandbox_real" in request.keywords:
+         yield
+         main.app.dependency_overrides.clear()
++        _VIOLACIONES.clear()
+         return
+ 
+     monkeypatch.setattr(smtplib, "SMTP", _prohibido_smtp)
+-    monkeypatch.setattr(smtplib, "SMTP_SSL", _prohibido_smtp)
++    monkeypatch.setattr(smtplib, "SMTP_SSL", _prohibido_smtp_ssl)
+     monkeypatch.setattr(sqlalchemy, "create_engine", _fabricar_prohibicion_bd("sqlalchemy.create_engine"))
+     monkeypatch.setattr(shared_database, "SessionLocal", _fabricar_prohibicion_bd("SessionLocal"))
+     monkeypatch.setattr(shared_database, "sesion_sistema", _fabricar_prohibicion_bd("sesion_sistema"))
+@@ -202,6 +257,7 @@
+ 
+     yield
+     main.app.dependency_overrides.clear()
++    _VIOLACIONES.clear()
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -218,6 +274,11 @@
+     marcar_calls: list[dict[str, Any]] = field(default_factory=list)
+     notificaciones_inicio: list[dict[str, Any]] = field(default_factory=list)
+     correos_enviados: list[dict[str, Any]] = field(default_factory=list)
++    listar_en_tratamiento_calls: int = 0
++    obtener_tratamiento_vigente_calls: int = 0
++    activo_obtener_calls: int = 0
++    ciclo_obtener_abierto_calls: int = 0
++    timedelta_calls: int = 0
+     commit_calls: int = 0
+     rollback_calls: int = 0
+     sessions_opened: list["_FakeSession"] = field(default_factory=list)
+@@ -232,17 +293,37 @@
+         return self._row
+ 
+ 
++def _es_objeto_auditoria(obj: Any) -> bool:
++    nombre_cls = type(obj).__name__.lower()
++    tabla = str(getattr(obj, "__tablename__", "") or "").lower()
++    return ("auditoria" in nombre_cls or "incidente" in nombre_cls
++            or "auditoria" in tabla or "incidente" in tabla)
++
++
++def _es_insert_auditoria_sql(sql: str) -> bool:
++    sql_norm = " ".join(sql.upper().split())
++    return "INSERT INTO" in sql_norm and ("AUDITORIA" in sql_norm or "INCIDENTE" in sql_norm)
++
++
+ class _FakeSession:
+     """Sesion de BD doble en memoria con staging transaccional atomico y rollback real."""
+ 
+-    def __init__(self, store: _FakeStore, *, flush_error: Optional[Exception] = None) -> None:
++    def __init__(
++        self,
++        store: _FakeStore,
++        *,
++        flush_error: Optional[Exception] = None,
++        es_sesion_peticion: bool = True,
++    ) -> None:
+         self.store = store
+         self.flush_error = flush_error
++        self.es_sesion_peticion = es_sesion_peticion
+         self.info: dict[str, Any] = {}
+         self.staged_meds: list[Medicamento] = []
+         self.staged_estado: Optional[int] = None
+         self.staged_audits: list[dict[str, Any]] = []
+         self.staged_orm: list[Any] = []
++        self.flush_calls: int = 0
+         self.commits: int = 0
+         self.rollbacks: int = 0
+         self.closed: bool = False
+@@ -250,11 +331,11 @@
+ 
+     def add(self, obj: Any) -> None:
+         self.staged_orm.append(obj)
+-        nombre_cls = type(obj).__name__.lower()
+-        if "auditoria" in nombre_cls or "incidente" in nombre_cls:
+-            self.staged_audits.append({"model": type(obj).__name__, "obj": obj})
++        if _es_objeto_auditoria(obj):
++            self.staged_audits.append({"origen": "add", "model": type(obj).__name__, "obj": obj})
+ 
+     def flush(self) -> None:
++        self.flush_calls += 1
+         if self.flush_error is not None:
+             raise self.flush_error
+ 
+@@ -274,7 +355,9 @@
+             self.store.activo_estado = self.staged_estado
+             self.staged_estado = None
+         if self.staged_audits:
+-            self.store.auditorias_persistidas.extend(self.staged_audits)
++            # Solo cuentan incidentes confirmados en una sesion distinta a la de la peticion (C9).
++            if not self.es_sesion_peticion:
++                self.store.auditorias_persistidas.extend(self.staged_audits)
+             self.staged_audits.clear()
+         self.staged_orm.clear()
+ 
+@@ -291,6 +374,9 @@
+ 
+     def execute(self, stmt: Any, _params: Optional[dict[str, Any]] = None) -> _FakeExecuteResult:
+         sql = str(stmt)
++        if _es_insert_auditoria_sql(sql):
++            self.staged_audits.append({"origen": "execute_insert", "sql": sql[:200]})
++            return _FakeExecuteResult(None)
+         if "modulo2.activos_biologicos" in sql:
+             return _FakeExecuteResult(
+                 SimpleNamespace(nombre="Carlos", apellidos="Productor", correo_electronico=PRODUCTOR_CORREO)
+@@ -349,8 +435,8 @@
+         return getattr(self._real, name)
+ 
+ 
+-class _FakeDateTimeMain:
+-    """Fija datetime.now() a las 02:59 del dia simulado para el scheduler."""
++class _FakeDateTimeMain(datetime):
++    """Hereda de `datetime` y fija `now(tz)` a las 02:59 del dia simulado para S1 (C6)."""
+ 
+     @classmethod
+     def now(cls, tz: Any = None) -> datetime:
+@@ -360,7 +446,6 @@
+ 
+ def _ejecutar_scheduler_s1_con_dobles(store: _FakeStore, monkeypatch: pytest.MonkeyPatch) -> _FakeAsyncioEnMain:
+     """Invoca directamente `main._revertir_retiros_vencidos_diariamente` una sola iteracion."""
+-    sentinel_sesion = shared_database.sesion_sistema
+     fake_asyncio = _FakeAsyncioEnMain()
+     orig_rev_cls = rev_uc_mod.RevertirRetirosVencidosUseCase
+ 
+@@ -369,6 +454,7 @@
+             pass
+ 
+         def listar_en_tratamiento(self) -> list[int]:
++            store.listar_en_tratamiento_calls += 1
+             return [store.activo_id] if store.activo_estado == ESTADO_EN_TRATAMIENTO else []
+ 
+     class _MedicamentoRepoS1:
+@@ -376,6 +462,7 @@
+             pass
+ 
+         def obtener_tratamiento_vigente(self, id_activo: int) -> Optional[Medicamento]:
++            store.obtener_tratamiento_vigente_calls += 1
+             candidatos = [
+                 m for m in store.medicamentos_persistidos
+                 if m.id_activo_biologico == id_activo
+@@ -396,30 +483,26 @@
+             self.db.staged_estado = ESTADO_ACTIVO
+ 
+     class _UseCaseS1ConSesionFalsa(orig_rev_cls):
+-        def __init__(self, session_factory: Any) -> None:
+-            assert session_factory is sentinel_sesion, "El scheduler debe referenciar sesion_sistema sin invocarla."
+-            super().__init__(session_factory=lambda: _FakeSession(store))
++        def __init__(self, _session_factory: Any) -> None:
++            # C5: acepta la factory sin compararla ni invocarla.
++            super().__init__(session_factory=lambda: _FakeSession(store, es_sesion_peticion=False))
+ 
+     def _spy_send_email(*, to: str, subject: str, html_body: str) -> None:
+         store.correos_enviados.append({"to": to, "subject": subject, "html_body": html_body})
+ 
++    # Parcheo exactamente en los modulos donde se buscan los simbolos (C4):
++    # - `main` busca asyncio, datetime e importa RevertirRetirosVencidosUseCase desde `rev_uc_mod`.
+     monkeypatch.setattr(main, "asyncio", fake_asyncio)
+     monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+     monkeypatch.setattr(shared_fechas, "hoy_usuario", lambda: FECHA_SIMULADA_S1)
+     monkeypatch.setattr(rev_uc_mod, "hoy_usuario", lambda: FECHA_SIMULADA_S1)
+     monkeypatch.setattr(rev_uc_mod, "RevertirRetirosVencidosUseCase", _UseCaseS1ConSesionFalsa)
+-    monkeypatch.setattr(
+-        "src.supplies.infrastructure.adapters.activo_m02_adapter.ActivoM02Adapter",
+-        _ActivoAdapterS1,
+-    )
+-    monkeypatch.setattr(
+-        "src.supplies.infrastructure.repositories.medicamento_repository.SqlAlchemyMedicamentoRepository",
+-        _MedicamentoRepoS1,
+-    )
+-    monkeypatch.setattr(
+-        "src.supplies.infrastructure.adapters.estado_activo_m02_adapter.EstadoActivoM02Adapter",
+-        _EstadoAdapterS1,
+-    )
++    # - `rev_uc_mod` importa ActivoM02Adapter, SqlAlchemyMedicamentoRepository, EstadoActivoM02Adapter
++    #   localmente desde sus modulos definidores (`revertir_retiros_vencidos_use_case.py:38,54-57`).
++    monkeypatch.setattr(activo_m02_mod, "ActivoM02Adapter", _ActivoAdapterS1)
++    monkeypatch.setattr(med_repo_mod, "SqlAlchemyMedicamentoRepository", _MedicamentoRepoS1)
++    monkeypatch.setattr(estado_activo_m02_mod, "EstadoActivoM02Adapter", _EstadoAdapterS1)
++    # - `notificacion_medicamento_email_adapter.py:24,100` busca `send_email` en `notif_email_mod`.
+     monkeypatch.setattr(notif_email_mod, "send_email", _spy_send_email)
+ 
+     async def _correr() -> None:
+@@ -439,8 +522,8 @@
+     fallar_rf44: bool = False,
+     usar_repo_real_con_flush_error: Optional[Exception] = None,
+ ) -> tuple[TestClient, _FakeSession]:
+-    """Configura `TestClient(main.app)` con doubles atomicos para S2 y S3."""
+-    fake_db = _FakeSession(store, flush_error=usar_repo_real_con_flush_error)
++    """Configura `TestClient(main.app)` usando llaves originales `Depends(...)` para S2 y S3 (C1)."""
++    fake_db = _FakeSession(store, flush_error=usar_repo_real_con_flush_error, es_sesion_peticion=True)
+     vet = UsuarioActual(
+         id_usuario=VET_USER_ID,
+         id_token=99,
+@@ -457,8 +540,10 @@
+         finally:
+             fake_db.close()
+ 
+-    main.app.dependency_overrides[shared_database.get_db] = _fake_get_db
+-    main.app.dependency_overrides[get_current_user] = lambda: vet
++    # C1: `medicamento_router.py:65-66` y `rbac.py:105-106` guardaron las referencias originales en `Depends(...)`.
++    main.app.dependency_overrides[_GET_DB_ORIGINAL] = _fake_get_db
++    main.app.dependency_overrides[_GET_CURRENT_USER_ORIGINAL] = lambda: vet
++    # `rbac.py:110` busca `tiene_permiso` en el namespace de `src.shared.rbac`.
+     monkeypatch.setattr(
+         shared_rbac,
+         "tiene_permiso",
+@@ -470,6 +555,7 @@
+             pass
+ 
+         def obtener(self, id_activo: int) -> Optional[ActivoConsulta]:
++            store.activo_obtener_calls += 1
+             if id_activo != store.activo_id:
+                 return None
+             nombre_estado = "ACTIVO" if store.activo_estado == ESTADO_ACTIVO else "EN_TRATAMIENTO"
+@@ -487,6 +573,7 @@
+             pass
+ 
+         def obtener_abierto(self, id_activo: int) -> Optional[CicloAbierto]:
++            store.ciclo_obtener_abierto_calls += 1
+             return CicloAbierto(
+                 id_ciclo_productivo=CICLO_ID_PRUEBA,
+                 fecha_inicio=datetime(2026, 10, 22, 0, 0),
+@@ -608,6 +695,7 @@
+ 
+         monkeypatch.setattr(suministros_factory, "SqlAlchemyMedicamentoRepository", _MedicamentoRepoStub)
+ 
++    # `suministros_factory.py:84-96` construye dependencias desde sus propios globals de modulo.
+     monkeypatch.setattr(suministros_factory, "ActivoM02Adapter", _ActivoAdapterStub)
+     monkeypatch.setattr(suministros_factory, "CicloM02Adapter", _CicloAdapterStub)
+     monkeypatch.setattr(suministros_factory, "EventoSanitarioM02Adapter", _EventoAdapterStub)
+@@ -638,6 +726,20 @@
+         "nombre_veterinario": "Dra. Ana Veterinaria",
+         "id_evento_sanitario": None,
+     }
++
++
++def _verificar_uso_stubs_api(resp: Any, store: _FakeStore, *, min_calls: int = 1) -> None:
++    """C3 + C4: primero valida ausencia de guards, luego descarta 401/403 y exige invocacion de stubs."""
++    _assert_sin_violaciones_guard()
++    assert resp.status_code not in (401, 403), (
++        f"Respuesta inesperada de autenticacion/RBAC HTTP {resp.status_code}: {resp.text[:250]}"
++    )
++    assert store.activo_obtener_calls >= min_calls, (
++        f"El stub de activo.obtener no fue invocado >= {min_calls} veces ({store.activo_obtener_calls})."
++    )
++    assert store.ciclo_obtener_abierto_calls >= min_calls, (
++        f"El stub de ciclo.obtener_abierto no fue invocado >= {min_calls} veces ({store.ciclo_obtener_abierto_calls})."
++    )
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -667,14 +769,22 @@
+     )
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         fake_asyncio = _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
++        _assert_sin_violaciones_guard()
++        assert store.listar_en_tratamiento_calls >= 1, "No se invoco listar_en_tratamiento del doble S1."
++        assert store.obtener_tratamiento_vigente_calls >= 1, "No se invoco obtener_tratamiento_vigente del doble S1."
+         assert len(fake_asyncio.sleeps) == 2, f"Se esperaba exactamente 1 ejecucion del loop; sleeps={fake_asyncio.sleeps}"
+         assert store.revert_calls == [], f"No debio invocar RF-44 cuando hay retiro vigente manana: {store.revert_calls}"
+         assert store.activo_estado == ESTADO_EN_TRATAMIENTO, (
+             f"El activo debio seguir EN_TRATAMIENTO ({ESTADO_EN_TRATAMIENTO}), obtuvo {store.activo_estado}"
+         )
+         assert store.correos_enviados == [], f"No debio enviar correos de fin de retiro: {store.correos_enviados}"
+-        return f"activo_estado={store.activo_estado}, revert_calls=0, sleeps={len(fake_asyncio.sleeps)}"
++        return (
++            f"activo_estado={store.activo_estado}, revert_calls=0, "
++            f"listar_calls={store.listar_en_tratamiento_calls}, "
++            f"vigente_calls={store.obtener_tratamiento_vigente_calls}"
++        )
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S1_01",
+@@ -708,7 +818,11 @@
+     )
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         fake_asyncio = _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
++        _assert_sin_violaciones_guard()
++        assert store.listar_en_tratamiento_calls >= 1, "No se invoco listar_en_tratamiento del doble S1."
++        assert store.obtener_tratamiento_vigente_calls >= 1, "No se invoco obtener_tratamiento_vigente del doble S1."
+         assert len(fake_asyncio.sleeps) == 2, f"Se esperaba 1 ciclo del scheduler; sleeps={fake_asyncio.sleeps}"
+         assert len(store.revert_calls) == 1, f"Se esperaba 1 invocacion a RF-44, obtuvo {store.revert_calls}"
+         assert store.revert_calls[0]["id_activo"] == ACTIVO_ID_PRUEBA
+@@ -716,7 +830,10 @@
+             f"El activo debio revertir a ACTIVO ({ESTADO_ACTIVO}), obtuvo {store.activo_estado}"
+         )
+         assert store.commit_calls >= 1 and store.rollback_calls == 0
+-        return f"activo_estado={store.activo_estado}, revert_calls={len(store.revert_calls)}, commits={store.commit_calls}"
++        return (
++            f"activo_estado={store.activo_estado}, revert_calls={len(store.revert_calls)}, "
++            f"commits={store.commit_calls}, listar_calls={store.listar_en_tratamiento_calls}"
++        )
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S1_02",
+@@ -746,7 +863,11 @@
+     )
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
++        _assert_sin_violaciones_guard()
++        assert store.listar_en_tratamiento_calls >= 1, "No se invoco listar_en_tratamiento del doble S1."
++        assert store.obtener_tratamiento_vigente_calls >= 1, "No se invoco obtener_tratamiento_vigente del doble S1."
+         destinatarios = [c["to"] for c in store.correos_enviados]
+         assert PRODUCTOR_CORREO in destinatarios, (
+             f"Falto notificar al Productor ({PRODUCTOR_CORREO}); destinatarios={destinatarios}"
+@@ -773,29 +894,33 @@
+ def test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion(
+     monkeypatch: pytest.MonkeyPatch,
+ ) -> None:
+-    """S2.1 (RF-76 E10): fallo de RF-44 devuelve HTTP 500 ERROR_ESTADO_EN_TRATAMIENTO informando reversion."""
++    """S2.1 (RF-76 E10): fallo de RF-44 devuelve HTTP 500, error_code no vacio e informa reversion."""
+     store = _FakeStore(activo_estado=ESTADO_ACTIVO)
+     client, _ = _configurar_cliente_api_en_proceso(store, monkeypatch, fallar_rf44=True)
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         resp = client.post(
+             "/suministros/medicamentos",
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        _verificar_uso_stubs_api(resp, store)
++        _assert_sin_fugas_en_respuesta(resp)
+         body = resp.json()
+         assert resp.status_code == 500, f"Se esperaba HTTP 500 (E10), obtuvo {resp.status_code}: {body}"
+-        assert body.get("error_code") == "ERROR_ESTADO_EN_TRATAMIENTO", f"error_code inesperado: {body}"
++        error_code = (body.get("error_code") or "").strip()
++        assert error_code, f"La respuesta 500 debe incluir error_code no vacio: {body}"
+         assert "revert" in (body.get("message") or "").lower(), (
+             f"El mensaje debe informar reversion de la operacion: {body}"
+         )
+-        return f"http={resp.status_code}, error_code={body.get('error_code')}"
++        return f"http={resp.status_code}, error_code={error_code}"
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S2_01",
+         caso_plano="044",
+         caso_original="012",
+-        esperado="HTTP 500 con error_code='ERROR_ESTADO_EN_TRATAMIENTO' y mensaje que informa reversion.",
++        esperado="HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+         fn=_verificar,
+     )
+ 
+@@ -808,11 +933,13 @@
+     client, fake_db = _configurar_cliente_api_en_proceso(store, monkeypatch, fallar_rf44=True)
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         resp = client.post(
+             "/suministros/medicamentos",
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        _verificar_uso_stubs_api(resp, store)
+         assert resp.status_code == 500
+         assert fake_db.commits == 0 and store.commit_calls == 0, "No debe ocurrir commit cuando falla RF-44"
+         assert fake_db.rollbacks >= 1 and store.rollback_calls >= 1, "Debe ejecutarse rollback en BD"
+@@ -838,11 +965,13 @@
+     client, _ = _configurar_cliente_api_en_proceso(store, monkeypatch, fallar_rf44=True)
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         resp = client.post(
+             "/suministros/medicamentos",
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        _verificar_uso_stubs_api(resp, store)
+         assert resp.status_code == 500
+         assert len(store.marcar_calls) == 1
+         assert store.activo_estado == ESTADO_ACTIVO, (
+@@ -869,34 +998,45 @@
+ def test_g18_s3_01_falla_calculo_fecha_fin_retiro(
+     monkeypatch: pytest.MonkeyPatch,
+ ) -> None:
+-    """S3.1: error calculando `fecha_fin_retiro` cancela operacion completa con HTTP 500 y sin cambios."""
++    """S3.1: error calculando `fecha_fin_retiro` cancela operacion completa con HTTP 5xx y sin cambios."""
+     store = _FakeStore(activo_estado=ESTADO_ACTIVO)
+     client, fake_db = _configurar_cliente_api_en_proceso(store, monkeypatch, fallar_rf44=False)
+ 
+     def _fallar_timedelta(*_args: Any, **_kwargs: Any) -> Any:
++        store.timedelta_calls += 1
+         raise OverflowError("Falla simulada calculando fecha_fin_retiro (CU03 FA-09)")
+ 
+     monkeypatch.setattr(reg_med_uc_mod, "timedelta", _fallar_timedelta)
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         resp = client.post(
+             "/suministros/medicamentos",
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        _verificar_uso_stubs_api(resp, store)
++        assert store.timedelta_calls >= 1, "No se invoco el doble de timedelta en registrar_medicamento_use_case."
++        _assert_sin_fugas_en_respuesta(resp)
+         body = resp.json()
+-        assert resp.status_code == 500, f"Se esperaba HTTP 500 ante falla en fecha_fin_retiro, obtuvo {resp.status_code}"
+-        assert body.get("error_code"), f"La respuesta debe incluir error_code: {body}"
++        assert 500 <= resp.status_code < 600, (
++            f"Se esperaba HTTP 5xx ante falla en fecha_fin_retiro, obtuvo {resp.status_code}: {body}"
++        )
++        error_code = (body.get("error_code") or "").strip()
++        assert error_code, f"La respuesta debe incluir error_code no vacio: {body}"
+         assert fake_db.commits == 0 and fake_db.rollbacks >= 1
+         assert store.medicamentos_persistidos == [] and store.marcar_calls == []
+         assert store.activo_estado == ESTADO_ACTIVO
+-        return f"http={resp.status_code}, error_code={body.get('error_code')}, rollbacks={fake_db.rollbacks}"
++        return (
++            f"http={resp.status_code}, error_code={error_code}, "
++            f"rollbacks={fake_db.rollbacks}, timedelta_calls={store.timedelta_calls}"
++        )
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S3_01",
+         caso_plano="047",
+         caso_original="042",
+-        esperado="HTTP 500 con error_code, 0 commits, rollback completo, sin registro y activo sin cambio.",
++        esperado="HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
+         fn=_verificar,
+     )
+ 
+@@ -916,26 +1056,34 @@
+     )
+ 
+     def _verificar() -> str:
++        _assert_sin_violaciones_guard()
+         resp = client.post(
+             "/suministros/medicamentos",
+             json=_payload_valido(periodo_retiro_dias=5),
+             headers={"X-Zona-Horaria": "America/Bogota"},
+         )
++        _verificar_uso_stubs_api(resp, store)
++        assert fake_db.flush_calls >= 1, (
++            "flush() de _FakeSession no fue invocado; el repositorio real no ejecuto guardar()."
++        )
++        _assert_sin_fugas_en_respuesta(resp)
+         body = resp.json()
+         assert 500 <= resp.status_code < 600, f"Se esperaba HTTP 5xx por fallo de BD, obtuvo {resp.status_code}: {body}"
+-        assert body.get("error_code") == "BD_NO_DISPONIBLE", (
+-            f"raise_from_db_error debio traducir OperationalError a BD_NO_DISPONIBLE (503), obtuvo {body}"
+-        )
++        error_code = (body.get("error_code") or "").strip()
++        assert error_code, f"La respuesta debe incluir error_code no vacio: {body}"
+         assert fake_db.commits == 0 and fake_db.rollbacks >= 1
+         assert store.medicamentos_persistidos == [] and store.marcar_calls == []
+         assert store.activo_estado == ESTADO_ACTIVO
+-        return f"http={resp.status_code}, error_code={body.get('error_code')}, rollbacks={fake_db.rollbacks}"
++        return (
++            f"http={resp.status_code}, error_code={error_code}, "
++            f"flush_calls={fake_db.flush_calls}, rollbacks={fake_db.rollbacks}"
++        )
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S3_02",
+         caso_plano="047",
+         caso_original="042",
+-        esperado="OperationalError en guardar() traducido por raise_from_db_error a HTTP 503 BD_NO_DISPONIBLE y rollback.",
++        esperado="Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+         fn=_verificar,
+     )
+ 
+@@ -946,52 +1094,72 @@
+     """S3.3 (CU03 FA-13): tras S3_01 y S3_02 debe sobrevivir un incidente en auditoria fuera del rollback."""
+     store = _FakeStore(activo_estado=ESTADO_ACTIVO)
+ 
+-    # Escenario A: falla calculando fecha_fin_retiro
+-    with monkeypatch.context() as mp_a:
+-        client_a, _ = _configurar_cliente_api_en_proceso(store, mp_a, fallar_rf44=False)
+-        mp_a.setattr(
+-            reg_med_uc_mod,
+-            "timedelta",
+-            lambda *_a, **_kw: (_ for _ in ()).throw(OverflowError("Falla simulada fecha_fin_retiro")),
+-        )
+-        resp_a = client_a.post(
+-            "/suministros/medicamentos",
+-            json=_payload_valido(periodo_retiro_dias=5),
+-            headers={"X-Zona-Horaria": "America/Bogota"},
+-        )
+-    audit_post_a = list(store.auditorias_persistidas)
+-
+-    # Escenario B: falla real de BD en guardar()
+-    pg_err = psycopg2.OperationalError("connection to PostgreSQL server lost during flush")
+-    sa_err = OperationalError("INSERT INTO modulo5.registros_medicamentos ...", {}, pg_err)
+-    with monkeypatch.context() as mp_b:
+-        client_b, _ = _configurar_cliente_api_en_proceso(
+-            store,
+-            mp_b,
+-            fallar_rf44=False,
+-            usar_repo_real_con_flush_error=sa_err,
+-        )
+-        resp_b = client_b.post(
+-            "/suministros/medicamentos",
+-            json=_payload_valido(periodo_retiro_dias=5),
+-            headers={"X-Zona-Horaria": "America/Bogota"},
+-        )
+-    audit_post_b = list(store.auditorias_persistidas)
+-
+     def _verificar() -> str:
+-        assert resp_a.status_code == 500
++        _assert_sin_violaciones_guard()
++
++        # Escenario A: falla calculando fecha_fin_retiro (sesion_sistema liberada para registro independiente C9)
++        with monkeypatch.context() as mp_a:
++            mp_a.setattr(
++                shared_database,
++                "sesion_sistema",
++                lambda: _FakeSession(store, es_sesion_peticion=False),
++            )
++            client_a, _ = _configurar_cliente_api_en_proceso(store, mp_a, fallar_rf44=False)
++
++            def _fallar_td(*_a: Any, **_kw: Any) -> Any:
++                store.timedelta_calls += 1
++                raise OverflowError("Falla simulada fecha_fin_retiro")
++
++            mp_a.setattr(reg_med_uc_mod, "timedelta", _fallar_td)
++            resp_a = client_a.post(
++                "/suministros/medicamentos",
++                json=_payload_valido(periodo_retiro_dias=5),
++                headers={"X-Zona-Horaria": "America/Bogota"},
++            )
++        _verificar_uso_stubs_api(resp_a, store, min_calls=1)
++        assert store.timedelta_calls >= 1
++        audit_post_a = list(store.auditorias_persistidas)
++
++        # Escenario B: falla real de BD en guardar() (sesion_sistema liberada para registro independiente C9)
++        pg_err = psycopg2.OperationalError("connection to PostgreSQL server lost during flush")
++        sa_err = OperationalError("INSERT INTO modulo5.registros_medicamentos ...", {}, pg_err)
++        with monkeypatch.context() as mp_b:
++            mp_b.setattr(
++                shared_database,
++                "sesion_sistema",
++                lambda: _FakeSession(store, es_sesion_peticion=False),
++            )
++            client_b, fake_db_b = _configurar_cliente_api_en_proceso(
++                store,
++                mp_b,
++                fallar_rf44=False,
++                usar_repo_real_con_flush_error=sa_err,
++            )
++            resp_b = client_b.post(
++                "/suministros/medicamentos",
++                json=_payload_valido(periodo_retiro_dias=5),
++                headers={"X-Zona-Horaria": "America/Bogota"},
++            )
++        _verificar_uso_stubs_api(resp_b, store, min_calls=2)
++        assert fake_db_b.flush_calls >= 1
++        audit_post_b = list(store.auditorias_persistidas)
++
++        assert 500 <= resp_a.status_code < 600
+         assert 500 <= resp_b.status_code < 600
+-        sesiones_con_commit = [s for s in store.sessions_opened if s.commits > 0]
+-        assert len(audit_post_a) >= 1 and len(sesiones_con_commit) >= 1, (
+-            "Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no persistio incidente de auditoria "
+-            f"sobreviviente al rollback (auditorias_persistidas={len(audit_post_a)}, sesiones_commiteadas={len(sesiones_con_commit)})."
+-        )
+-        assert len(audit_post_b) >= 2 and len(sesiones_con_commit) >= 2, (
+-            "Defecto CU03 FA-13: la falla de persistencia BD no persistio incidente de auditoria "
+-            f"en sesion independiente sobreviviente al rollback (auditorias_persistidas={len(audit_post_b)}, "
+-            f"sesiones_commiteadas={len(sesiones_con_commit)})."
+-        )
+-        return f"auditorias_post_a={len(audit_post_a)}, auditorias_post_b={len(audit_post_b)}"
++        sesiones_indep_commit = [
++            s for s in store.sessions_opened if (not s.es_sesion_peticion) and s.commits > 0
++        ]
++        assert len(audit_post_a) >= 1 and len(sesiones_indep_commit) >= 1, (
++            "Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no confirmo incidente de auditoria "
++            f"en sesion independiente sobreviviente al rollback (incidentes_confirmados={len(audit_post_a)}, "
++            f"sesiones_indep_commiteadas={len(sesiones_indep_commit)})."
++        )
++        assert len(audit_post_b) > len(audit_post_a) and len(sesiones_indep_commit) >= 2, (
++            "Defecto CU03 FA-13: la falla de persistencia BD no confirmo incidente de auditoria "
++            f"en sesion independiente sobreviviente al rollback (incidentes_confirmados={len(audit_post_b)}, "
++            f"sesiones_indep_commiteadas={len(sesiones_indep_commit)})."
++        )
++        return f"incidentes_a={len(audit_post_a)}, incidentes_b={len(audit_post_b)}"
+ 
+     _ejecutar_con_traza(
+         test_id="G18_S3_03",
+@@ -1045,6 +1213,57 @@
+     return body["data"]
+ 
+ 
++def _relanzar_con_rollback(cuerpo_exc: BaseException, del_resumen: str) -> None:
++    """Preserva la excepcion original del cuerpo adjuntando el resultado del DELETE (C10)."""
++    if hasattr(cuerpo_exc, "add_note"):
++        cuerpo_exc.add_note(f"Rollback sandbox: {del_resumen}")
++    if isinstance(cuerpo_exc, AssertionError):
++        raise AssertionError(f"{cuerpo_exc} [rollback: {del_resumen}]") from cuerpo_exc
++    if getattr(cuerpo_exc, "args", None) and isinstance(cuerpo_exc.args[0], str):
++        cuerpo_exc.args = (f"{cuerpo_exc.args[0]} [rollback: {del_resumen}]", *cuerpo_exc.args[1:])
++    raise cuerpo_exc
++
++
++def _ejecutar_corrida_sandbox(
++    *,
++    base_url: str,
++    secret: str,
++    run_id: str,
++    cuerpo_fn: Callable[[requests.Session], Any],
++) -> Any:
++    """Ejecuta una corrida sandbox garantizando DELETE /test-control/runs/{run_id} seguro en finally (C10)."""
++    session = requests.Session()
++    session.headers.update(
++        {
++            "X-Test-Run-Id": run_id,
++            "X-Sandbox-Secret": secret,
++            "X-Zona-Horaria": "America/Bogota",
++        }
++    )
++    cuerpo_exc: Optional[BaseException] = None
++    resultado: Any = None
++    try:
++        resultado = cuerpo_fn(session)
++    except BaseException as exc:
++        cuerpo_exc = exc
++    finally:
++        del_status: Optional[int] = None
++        del_err: Optional[str] = None
++        try:
++            r_del = session.delete(f"{base_url}/test-control/runs/{run_id}", timeout=45)
++            del_status = r_del.status_code
++        except Exception as exc_del:
++            del_err = f"{type(exc_del).__name__}: {exc_del}"
++        finally:
++            session.close()
++
++        del_resumen = f"DELETE={del_status}" if del_err is None else f"DELETE_ERR={del_err}"
++        if cuerpo_exc is not None:
++            _relanzar_con_rollback(cuerpo_exc, del_resumen)
++        assert del_status == 200, f"Rollback corrida {run_id} fallo: {del_resumen}"
++    return resultado
++
++
+ @pytest.mark.sandbox_real
+ def test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad() -> None:
+     """Control real HTTP en TEST: registro hoy y D-6 con periodo_retiro_dias=0 y rollback inocuo."""
+@@ -1064,23 +1283,15 @@
+     def _verificar() -> str:
+         # Corrida 1: registro real con periodo_retiro_dias = 0
+         run1 = f"tc-m05-g18-r01-{uuid.uuid4().hex[:8]}"
+-        s1 = requests.Session()
+-        s1.headers.update(
+-            {
+-                "X-Test-Run-Id": run1,
+-                "X-Sandbox-Secret": secret,
+-                "X-Zona-Horaria": "America/Bogota",
+-            }
+-        )
+-        conteo_base = 0
+-        try:
++
++        def _cuerpo_run1(s1: requests.Session) -> int:
+             _login_sandbox_con_reintento(s1, base_url, email, pwd)
+             rows_base = _query_sandbox(
+                 s1,
+                 base_url,
+                 f"SELECT count(*) AS total FROM modulo5.registros_medicamentos WHERE id_activo_biologico = {activo_id}",
+             )
+-            conteo_base = int(rows_base[0]["total"])
++            conteo_base_r1 = int(rows_base[0]["total"])
+ 
+             r_fases = s1.get(f"{base_url}/activos-biologicos/{activo_id}/fases", timeout=45)
+             assert r_fases.status_code == 200
+@@ -1124,39 +1335,42 @@
+                 timeout=45,
+             )
+             assert r_list.status_code == 200
+-            assert r_list.json().get("total") == conteo_base + 2
++            assert r_list.json().get("total") == conteo_base_r1 + 2
+ 
+             r_act = s1.get(f"{base_url}/activos-biologicos/{activo_id}", timeout=45)
+             assert r_act.status_code == 200
+             assert r_act.json().get("id_estado") == ESTADO_ACTIVO
+-        finally:
+-            r_del1 = s1.delete(f"{base_url}/test-control/runs/{run1}", timeout=45)
+-            s1.close()
+-            assert r_del1.status_code == 200, f"Rollback corrida 1 fallo HTTP {r_del1.status_code}"
++            return conteo_base_r1
++
++        conteo_base = _ejecutar_corrida_sandbox(
++            base_url=base_url,
++            secret=secret,
++            run_id=run1,
++            cuerpo_fn=_cuerpo_run1,
++        )
+ 
+         # Corrida 2 (estrictamente secuencial): verificar inocuidad post-rollback
+         run2 = f"tc-m05-g18-inoc-{uuid.uuid4().hex[:8]}"
+-        s2 = requests.Session()
+-        s2.headers.update(
+-            {
+-                "X-Test-Run-Id": run2,
+-                "X-Sandbox-Secret": secret,
+-                "X-Zona-Horaria": "America/Bogota",
+-            }
+-        )
+-        try:
++
++        def _cuerpo_run2(s2: requests.Session) -> int:
+             _login_sandbox_con_reintento(s2, base_url, email, pwd)
+             rows_fin = _query_sandbox(
+                 s2,
+                 base_url,
+                 f"SELECT count(*) AS total FROM modulo5.registros_medicamentos WHERE id_activo_biologico = {activo_id}",
+             )
+-            conteo_fin = int(rows_fin[0]["total"])
+-            assert conteo_fin == conteo_base, f"Inocuidad rota: base={conteo_base}, post_rollback={conteo_fin}"
+-        finally:
+-            r_del2 = s2.delete(f"{base_url}/test-control/runs/{run2}", timeout=45)
+-            s2.close()
+-            assert r_del2.status_code == 200, f"Rollback corrida 2 fallo HTTP {r_del2.status_code}"
++            conteo_fin_r2 = int(rows_fin[0]["total"])
++            assert conteo_fin_r2 == conteo_base, (
++                f"Inocuidad rota: base={conteo_base}, post_rollback={conteo_fin_r2}"
++            )
++            return conteo_fin_r2
++
++        conteo_fin = _ejecutar_corrida_sandbox(
++            base_url=base_url,
++            secret=secret,
++            run_id=run2,
++            cuerpo_fn=_cuerpo_run2,
++        )
+ 
+         return f"activo={activo_id}, base={conteo_base}, en_sandbox={conteo_base + 2}, post_rollback={conteo_fin}"
+ 
+--- original/ejecutar_tc_m05_g18.ps1
++++ corregido/ejecutar_tc_m05_g18.ps1
+@@ -28,6 +28,7 @@
+     exit 2
+ }
+ 
++$tieneDatabaseUrl = $false
+ if (Test-Path -LiteralPath $envFile) {
+     foreach ($linea in Get-Content -LiteralPath $envFile -Encoding UTF8) {
+         $t = $linea.Trim()
+@@ -41,11 +42,20 @@
+                 ($valor.StartsWith("'") -and $valor.EndsWith("'")))) {
+             $valor = $valor.Substring(1, $valor.Length - 2)
+         }
++        $nombreUpper = $nombre.ToUpperInvariant()
++        if ($nombreUpper -eq 'DATABASE_URL') {
++            $tieneDatabaseUrl = $true
++        }
++        if ($nombreUpper.StartsWith('DATABASE_') -or $nombreUpper.StartsWith('DB_')) {
++            continue
++        }
+         if (-not [string]::IsNullOrEmpty($nombre)) {
+             [Environment]::SetEnvironmentVariable($nombre, $valor, 'Process')
+         }
+     }
+ }
++$estadoDbUrl = if ($tieneDatabaseUrl) { 'PRESENTE' } else { 'AUSENTE' }
++Write-Host "Variable DATABASE_URL en .env.test: $estadoDbUrl"
+ 
+ $marca  = Get-Date -Format 'yyyyMMdd-HHmmss'
+ $runDir = Join-Path $tcDir "evidencias\run-$marca"

@@ -1,0 +1,265 @@
+{
+  "info": {
+    "name": "TC-M02-G23 - Control de acceso y proteccion del historial inmutable (OWASP API1/API5/API3)",
+    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35/RF-37. Agrupa TC-M02-045 (BOLA al actualizar activo de otra finca), TC-M02-046 (funcion restringida por rol) y TC-M02-047 (intento de alterar historial inmutable de fases). Las assertions codifican el comportamiento QUE EXIGE el RF, no lo observado, para que Newman reporte FAIL de forma honesta mientras el gap exista. Detalle completo, incluyendo el bloqueo de precondicion de TC-M02-047, en RESULTADOS/.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "correo_productor_a", "value": "tc015b.qa@sgpmp-test.com" },
+    { "key": "correo_veterinario", "value": "tc020.qa@sgpmp-test.com" },
+    { "key": "contrasena_qa_compartida", "value": "Abcd12#3" },
+    { "key": "token_productor_a", "value": "" },
+    { "key": "token_veterinario", "value": "" },
+    { "key": "id_activo_propio_a", "value": "199" },
+    { "key": "id_activo_ajeno_b", "value": "200" },
+    { "key": "raza_original_ajeno", "value": "Camaron victima finca B" },
+    { "key": "id_especie_fases", "value": "2" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_ciclo_productiva", "value": "2" },
+    { "key": "identificador_activo_fases", "value": "" },
+    { "key": "id_activo_fases", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login admin exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0B. Login Productor A (usuario reactivado de QA, finca propia limitada)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_productor_a}}\",\n  \"contrasena\": \"{{contrasena_qa_compartida}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login Productor A exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_productor_a', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0C. Login Veterinario (rol sin permiso de escritura sobre activos_biologicos)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_qa_compartida}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_veterinario', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "1a. TC-M02-045 - [Control positivo] Productor A actualiza su propio activo",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor_a}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"Camaron propio - control positivo\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[CONTROL POSITIVO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Productor A SI puede editar su propio activo (200)', function () { pm.response.to.have.status(200); });"
+      ] } }]
+    },
+    {
+      "name": "1b. TC-M02-045 - [BOLA] Productor A intenta GET sobre activo de otra finca",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor_a}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[BOLA GET] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-25/GET: no revela el activo de otra finca (404, correctamente aislado)', function () { pm.response.to.have.status(404); });"
+      ] } }]
+    },
+    {
+      "name": "1c. TC-M02-045 - [BOLA CRITICO] Productor A intenta PATCH sobre activo de otra finca",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor_a}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"MODIFICADO por Productor A via BOLA - finca ajena\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[BOLA PATCH] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-35: el sistema DEBE rechazar el BOLA (403 o 404 - mismo criterio de aislamiento ya aplicado al GET en RF-25)', function () {",
+        "  pm.expect([403, 404]).to.include(pm.response.code);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "1d. TC-M02-045 - Verificar (como admin) que el activo ajeno NO cambio",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[VERIFICACION ADMIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Verificacion admin responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('RF-35: la raza del activo ajeno NO debio cambiar', function () {",
+        "  pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_original_ajeno'));",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "1e. Teardown - Restaurar raza original del activo ajeno (idempotencia, por si el BOLA llegara a tener exito)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"{{raza_original_ajeno}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TEARDOWN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Teardown: raza restaurada al valor original', function () { pm.response.to.have.status(200); });"
+      ] } }]
+    },
+    {
+      "name": "2. TC-M02-046 - [Funcion restringida] Veterinario (solo lectura en este recurso) intenta PATCH",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_veterinario}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"Intento de veterinario sin permiso de escritura\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[FUNCION RESTRINGIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-35: rol sin permiso de escritura -> 403 Forbidden', function () { pm.response.to.have.status(403); });",
+        "const body = pm.response.json();",
+        "pm.test('El codigo de error identifica falta de autorizacion', function () {",
+        "  pm.expect(body.error_code).to.eql('ACCESO_DENEGADO');",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "3a. TC-M02-047 - Setup: crear activo propio para pruebas de fases (RF-37)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_fases}},\n  \"fecha_inicio_ciclo\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_activo_fases}}\",\n  \"raza\": \"Trucha QA-G23 fases\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.500\n}"
+        }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('identificador_activo_fases', 'QA-G23F-' + Date.now());",
+          "pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[SETUP ACTIVO FASES] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('Se crea el activo propio para pruebas de fases (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fases', pm.response.json().id_activo_biologico); }"
+        ] } }
+      ]
+    },
+    {
+      "name": "3b. TC-M02-047 - Registrar la primera fase del ciclo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G23: primera fase\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[FASE 1] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: registrar la primera fase funciona (201)', function () { pm.response.to.have.status(201); });",
+        "const body = pm.response.json();",
+        "pm.test('RF-37: la primera fase queda activa y sin fecha_finalizacion', function () {",
+        "  pm.expect(body.es_activa).to.equal(true);",
+        "  pm.expect(body.fecha_finalizacion).to.equal(null);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "3c. TC-M02-047 - Avanzar a la segunda fase (debe cerrar la primera)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G23: segunda fase\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[FASE 2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: avanzar a la segunda fase funciona (201)', function () { pm.response.to.have.status(201); });"
+      ] } }]
+    },
+    {
+      "name": "3d. TC-M02-047 - Verificar que la primera fase quedo cerrada e inmutable (append-only)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[HISTORIAL FASES] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('El historial de fases responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "const primera = body.fases.find((f) => f.paso_actual === 1);",
+        "pm.test('RF-37: la primera fase quedo cerrada (fecha_finalizacion informada, es_activa=false)', function () {",
+        "  pm.expect(primera).to.exist;",
+        "  pm.expect(primera.fecha_finalizacion).to.not.equal(null);",
+        "  pm.expect(primera.es_activa).to.equal(false);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "3e. TC-M02-047 - No existe un endpoint para editar directamente un registro de fase",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases/1",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_finalizacion\": \"2020-01-01T00:00:00Z\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[SIN ENDPOINT DE EDICION] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('No existe ruta para PATCH directo sobre una fase (404/405, confirma append-only estructural)', function () {",
+        "  pm.expect([404, 405]).to.include(pm.response.code);",
+        "});"
+      ] } }]
+    }
+  ]
+}

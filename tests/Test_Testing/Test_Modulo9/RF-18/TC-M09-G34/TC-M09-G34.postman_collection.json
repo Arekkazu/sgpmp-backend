@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "RF-18 - TC-M09-G34 Validacion de frecuencia y heartbeat",
+    "description": "Agrupa TC-M09-71 a 75. Usa el dispositivo IoT id=108 (tipo GENERICO, rango 1-1440) creado en TC-M09-G33. 5 escenarios: (1) frecuencia <=0, (2) heartbeat <=0, (3) valores decimales/formato invalido, (4) heartbeat == frecuencia (debe aceptar), (5) heartbeat < frecuencia (debe rechazar).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token_admin', json.token);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Registrar dispositivo IoT limpio para el Escenario 4 (sin config pendiente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Paso 2: dispositivo limpio registrado (201)', function () { pm.response.to.have.status(201); });",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('id_dispositivo_iot_esc4', json.id_dispositivo_iot);",
+            "console.log('Dispositivo limpio para Escenario 4: id_dispositivo_iot=' + json.id_dispositivo_iot);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"serial\": \"TC-M09-G34-ESC4-{{$timestamp}}\",\n  \"descripcion\": \"Dispositivo limpio para Escenario 4\",\n  \"id_infraestructura\": 1,\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": true\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1a - frecuencia_captura = 0 (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('1a: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('1a (frecuencia=0): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 0,\n  \"intervalo_transmision\": 60\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1b - frecuencia_captura negativa (-5) (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('1b: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('1b (frecuencia=-5): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": -5,\n  \"intervalo_transmision\": 60\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2a - intervalo_transmision (heartbeat) = 0 (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('2a: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('2a (heartbeat=0): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 30,\n  \"intervalo_transmision\": 0\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2b - intervalo_transmision negativo (-10) (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('2b: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('2b (heartbeat=-10): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 30,\n  \"intervalo_transmision\": -10\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3a - frecuencia_captura decimal (15.5) (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('3a: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('3a (frecuencia=15.5): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 15.5,\n  \"intervalo_transmision\": 30\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3b - intervalo_transmision con formato invalido (texto) (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('3b: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('3b (heartbeat=texto): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 30,\n  \"intervalo_transmision\": \"treinta\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 4 - heartbeat == frecuencia (debe aceptar, 202)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('4: aceptado (202)', function () { pm.response.to.have.status(202); });",
+        "const json = pm.response.json();",
+        "pm.test('4: ambos valores almacenados iguales (45)', function () {",
+        "    pm.expect(json.frecuencia_captura).to.eql(45);",
+        "    pm.expect(json.intervalo_transmision).to.eql(45);",
+        "});",
+        "console.log('4 (frecuencia=heartbeat=45): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 45,\n  \"intervalo_transmision\": 45\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo_iot_esc4}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_dispositivo_iot_esc4}}", "configurar"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 5 - heartbeat < frecuencia (debe rechazar)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('5: rechazado (400 o 422)', function () { pm.expect([400,422]).to.include(pm.response.code); });",
+        "console.log('5 (frecuencia=60, heartbeat=30): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 60,\n  \"intervalo_transmision\": 30\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/108/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "108", "configurar"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_dispositivo_iot_esc4", "value": "" }
+  ]
+}

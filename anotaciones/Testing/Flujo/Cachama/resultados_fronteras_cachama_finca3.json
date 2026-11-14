@@ -1,0 +1,915 @@
+{
+ "ejecutado": "2026-11-02T23:43:24",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "umbrales_dev": {
+  "1": {
+   "min": "24.00",
+   "max": "34.00",
+   "niveles": [
+    [
+     "normal",
+     "24.00",
+     "30.00"
+    ],
+    [
+     "precaucion",
+     "30.00",
+     "32.00"
+    ],
+    [
+     "critico",
+     "32.00",
+     "34.00"
+    ]
+   ],
+   "sync": "PENDIENTE"
+  },
+  "9": {
+   "min": "18.00",
+   "max": "40.00",
+   "niveles": [
+    [
+     "normal",
+     "18.00",
+     "32.00"
+    ],
+    [
+     "precaucion",
+     "32.00",
+     "35.00"
+    ],
+    [
+     "critico",
+     "35.00",
+     "40.00"
+    ]
+   ],
+   "sync": "PENDIENTE"
+  },
+  "10": {
+   "min": "40.00",
+   "max": "100.00",
+   "niveles": [
+    [
+     "normal",
+     "40.00",
+     "70.00"
+    ],
+    [
+     "precaucion",
+     "70.00",
+     "80.00"
+    ],
+    [
+     "critico",
+     "80.00",
+     "100.00"
+    ]
+   ],
+   "sync": "PENDIENTE"
+  }
+ },
+ "fixture": {
+  "lotes": {
+   "QA-TEMP-AGUA": 27,
+   "QA-TEMP-AMB": 28,
+   "QA-HR": 29
+  },
+  "infra": 20,
+  "disp": 18,
+  "serial": "QA-CACHAMA-LECT-044218",
+  "sensores": {
+   "QA-TEMP-AGUA": 37,
+   "QA-TEMP-AMB": 38,
+   "QA-HR": 39
+  },
+  "codigo_variable_usado": {
+   "QA-TEMP-AMB": "TEMPERATURA_AMBIENTAL",
+   "QA-HR": "HUMEDAD_RELATIVA"
+  },
+  "alertas": {
+   "QA-TEMP-AGUA": [],
+   "QA-TEMP-AMB": [
+    {
+     "id": 270,
+     "severidad": "CRITICO",
+     "estado": "ACTIVA",
+     "valor": "35.0100"
+    }
+   ],
+   "QA-HR": [
+    {
+     "id": 271,
+     "severidad": "CRITICO",
+     "estado": "ACTIVA",
+     "valor": "80.0100"
+    }
+   ]
+  }
+ },
+ "pasos": [
+  {
+   "id": "U0",
+   "descripcion": "Umbral vigente de la variable 1",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "[[\"normal\", \"24.00\", \"30.00\"], [\"precaucion\", \"30.00\", \"32.00\"], [\"critico\", \"32.00\", \"34.00\"]] sync=PENDIENTE"
+  },
+  {
+   "id": "U0",
+   "descripcion": "Umbral vigente de la variable 9",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "[[\"normal\", \"18.00\", \"32.00\"], [\"precaucion\", \"32.00\", \"35.00\"], [\"critico\", \"35.00\", \"40.00\"]] sync=PENDIENTE"
+  },
+  {
+   "id": "U0",
+   "descripcion": "Umbral vigente de la variable 10",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "[[\"normal\", \"40.00\", \"70.00\"], [\"precaucion\", \"70.00\", \"80.00\"], [\"critico\", \"80.00\", \"100.00\"]] sync=PENDIENTE"
+  },
+  {
+   "id": "F1",
+   "descripcion": "Crear area QA de Cachama",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=20"
+  },
+  {
+   "id": "F3",
+   "descripcion": "Registrar dispositivo QA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=18"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Lote de 1 pez para QA-TEMP-AGUA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=27"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-TEMP-AGUA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=37"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-TEMP-AGUA",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-TEMP-AGUA al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-TEMP-AGUA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 36, \"id_dispositivo_iot\": 18, \"id_sensor\": 37, \"valor_referencia\": 27.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-TEMP-AGUA a su lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 21, \"id_activo_biologico\": 27, \"tipo_activo\": \"LOTE\", \"tipo_asociaci"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Lote de 1 pez para QA-TEMP-AMB",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=28"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-TEMP-AMB",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=38"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-TEMP-AMB",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-TEMP-AMB al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-TEMP-AMB",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 37, \"id_dispositivo_iot\": 18, \"id_sensor\": 38, \"valor_referencia\": 25.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-TEMP-AMB a su lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 22, \"id_activo_biologico\": 28, \"tipo_activo\": \"LOTE\", \"tipo_asociaci"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Lote de 1 pez para QA-HR",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=29"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-HR",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=39"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-HR",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-HR al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-HR",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 38, \"id_dispositivo_iot\": 18, \"id_sensor\": 39, \"valor_referencia\": 60.0, \"gananci"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-HR a su lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 23, \"id_activo_biologico\": 29, \"tipo_activo\": \"LOTE\", \"tipo_asociaci"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar dispositivo",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  }
+ ],
+ "lecturas": [
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 23.99,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "fuera",
+    "resultado": "INFO",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 24.0,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "normal",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 29.99,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "normal",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 30.0,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "frontera:normal/precaucion",
+    "resultado": "INFO",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 30.01,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "precaucion",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 31.99,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "precaucion",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 32.0,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "frontera:precaucion/critico",
+    "resultado": "INFO",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 32.01,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "critico",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 33.99,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "critico",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 34.0,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "critico",
+    "resultado": "FALLA",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AGUA",
+   "id_variable": 1,
+   "tipo_variable": "Temperatura del agua",
+   "valor": 34.01,
+   "http": 404,
+   "error_code": "VARIABLE_NO_ENCONTRADA",
+   "message": "La variable no existe o está inactiva en el catálogo M09.",
+   "verificacion": {
+    "esperado": "fuera",
+    "resultado": "INFO",
+    "observado": "rechazada 404 VARIABLE_NO_ENCONTRADA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 17.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "17.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 18.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "18.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 31.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "31.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 32.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera normal/precaucion",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "32.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 32.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "32.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 34.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "34.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 35.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera precaucion/critico",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "35.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 35.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "35.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 39.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "39.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 40.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "40.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-AMB",
+   "id_variable": 9,
+   "tipo_variable": "TEMPERATURA_AMBIENTAL",
+   "valor": 40.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 2,
+    "valor_ajustado": "40.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 39.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "39.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 40.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "40.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 69.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "69.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 70.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera normal/precaucion",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "70.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 70.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "70.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 79.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "79.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 80.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera precaucion/critico",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "80.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 80.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "80.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 99.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "99.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 100.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 1,
+    "valor_ajustado": "100.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-HR",
+   "id_variable": 10,
+   "tipo_variable": "HUMEDAD_RELATIVA",
+   "valor": 100.01,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "message": "El valor excede los límites físicos del sensor.",
+   "verificacion": {
+    "esperado": "fuera",
+    "resultado": "INFO",
+    "observado": "rechazada 422 ERROR_SENSOR"
+   }
+  }
+ ]
+}

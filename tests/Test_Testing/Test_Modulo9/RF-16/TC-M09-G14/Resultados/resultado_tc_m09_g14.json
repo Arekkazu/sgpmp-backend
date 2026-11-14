@@ -1,0 +1,3127 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m09-g14-metricas-validaciones"
+    },
+    "item": [
+      {
+        "id": "4d2afa18-b421-4934-9df9-411b80a60442",
+        "name": "Paso 1: Autenticación Admin",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "73f9ed3f-e968-4e79-bc06-75791125f6e0",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Paso 1: Autenticación exitosa - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+                "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                "});"
+              ],
+              "_lastExecutionId": "d023e10a-317e-4a1a-af91-25c672606f89"
+            }
+          }
+        ]
+      },
+      {
+        "id": "470634b6-8445-444c-92c4-830a5c0591fb",
+        "name": "Paso 2: TC-M09-32a - Rechazar unidad_medida vacia",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Vacia QA\",\n  \"unidad_medida\": \"\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "78a88382-9c7a-4934-9512-3482a78afb10",
+              "type": "text/javascript",
+              "exec": [
+                "var payload = JSON.parse(pm.request.body.raw);",
+                "pm.expect(payload.unidad_medida.length).to.eql(0);",
+                "console.log('Validando pre-request: unidad_medida es string vacio de longitud 0');"
+              ],
+              "_lastExecutionId": "7b0dff72-cf4b-4615-9db9-fec0d1805264"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "id": "36d8d650-a32a-44a0-89d1-4ba984292b25",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-32a: Rechazar unidad_medida vacia - HTTP 400', function () {",
+                "    pm.response.to.have.status(400);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+                "    pm.expect(fieldMatch).to.be.true;",
+                "});"
+              ],
+              "_lastExecutionId": "cc0f5651-b002-44fb-bdcc-81b1ec6c9648"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e74abef5-cf41-4df9-8a2c-28124cb761f6",
+        "name": "Paso 3: TC-M09-32b - Rechazar unidad_medida ausente",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Ausente QA\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "9a082016-217b-47c4-a05b-172bba6cb0c8",
+              "type": "text/javascript",
+              "exec": [
+                "var payload = JSON.parse(pm.request.body.raw);",
+                "pm.expect(payload.unidad_medida).to.be.undefined;",
+                "console.log('Validando pre-request: unidad_medida es undefined (ausente)');"
+              ],
+              "_lastExecutionId": "58b53ecf-5dc8-482a-882a-672fec544915"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "id": "15273472-9edb-4838-b44a-66fe88a2da83",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-32b: Rechazar unidad_medida ausente - HTTP 400', function () {",
+                "    pm.response.to.have.status(400);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+                "    pm.expect(fieldMatch).to.be.true;",
+                "});"
+              ],
+              "_lastExecutionId": "75e92109-eec0-466c-b2d1-f232fa19ff0d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e3e16bc9-1198-4084-a302-618b045b5fd5",
+        "name": "Paso 4: TC-M09-33 - Rechazar tipo_medicion invalido",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Tipo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"INVALIDO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "910f8bb7-a2d2-4d80-abf7-fc9cc89ac933",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-33: Rechazar tipo_medicion invalido - HTTP 400', function () {",
+                "    pm.response.to.have.status(400);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'tipo_medicion'; });",
+                "    pm.expect(fieldMatch).to.be.true;",
+                "});"
+              ],
+              "_lastExecutionId": "472f02d0-980a-4d34-94d5-ffdd400f31ed"
+            }
+          }
+        ]
+      },
+      {
+        "id": "14b98c7a-ea5d-4fc3-9ebe-fc0ee288b28e",
+        "name": "Paso 5: TC-M09-34 - Rechazar coherencia incoherente (PESO vs litros)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Incoherente QA\",\n  \"unidad_medida\": \"litros\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "d365555d-7504-48b9-aa12-93be40f2f3e3",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-34: Rechazar coherencia incoherente - HTTP 422 BusinessRuleError', function () {",
+                "    pm.response.to.have.status(422);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('UNIDAD_MEDIDA_INCOHERENTE');",
+                "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+                "    pm.expect(fieldMatch).to.be.true;",
+                "});"
+              ],
+              "_lastExecutionId": "168b42e1-b9e4-42d2-a13d-23358843c0f7"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e18dde21-db5a-4564-b100-f9531dae0e00",
+        "name": "Paso 6: TC-M09-35 - Rechazar aplica_a_tipo_activo invalido",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Activo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"GRUPO\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "eda64395-2b75-45b7-a69f-bc8a78302e45",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-35: Rechazar aplica_a_tipo_activo invalido - HTTP 400', function () {",
+                "    pm.response.to.have.status(400);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'aplica_a_tipo_activo'; });",
+                "    pm.expect(fieldMatch).to.be.true;",
+                "});"
+              ],
+              "_lastExecutionId": "3c80661b-cfbf-40de-b90e-7123cdd2397f"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "jwt_token"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m09-g14-metricas-validaciones",
+      "name": "TC-M09-G14 - Validacion de campos de Metrica productiva",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Suite E2E para TC-M09-G14 (sub-casos TC-M09-32 a TC-M09-35): Validaciones de unidad, tipo de medicion, coherencia y tipo de activo en POST /configuracion/metricas.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "2e8846ca-02c4-4553-8c2d-1a2d8823ce3a",
+    "values": []
+  },
+  "globals": {
+    "id": "fe914a3a-e211-4a96-b58b-96b6ee62ea3c",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 526.8333333333334,
+      "responseMin": 114,
+      "responseMax": 2503,
+      "responseSd": 884.1584353999508,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1788592415792,
+      "completed": 1788592419415
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 6,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "0fed1e1e-ae61-4d69-9dea-7035a92d1eca",
+          "httpRequestId": "867d61b9-02b8-48b8-b638-b77e2cd649e5"
+        },
+        "item": {
+          "id": "4d2afa18-b421-4934-9df9-411b80a60442",
+          "name": "Paso 1: Autenticación Admin",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "73f9ed3f-e968-4e79-bc06-75791125f6e0",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Paso 1: Autenticación exitosa - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "d023e10a-317e-4a1a-af91-25c672606f89"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "45aa6c39-3d2b-43e0-aaa4-2446ae3a6159",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "76",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "afbc79f1-6e0d-4ba4-bbae-9f549fad0e9d",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "286"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 07:13:35 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=Wk1bd21-I7TPluxouaJfmL5WDLiQ_7IMeH-KU3oKI8c; HttpOnly; Max-Age=604798; Path=/; SameSite=none; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "56d7ed81-bcab-4c74-97da-65fc535fa805"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              77,
+              120,
+              78,
+              68,
+              89,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              69,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              68,
+              89,
+              121,
+              77,
+              84,
+              73,
+              120,
+              78,
+              83,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              52,
+              78,
+              84,
+              107,
+              121,
+              78,
+              68,
+              69,
+              49,
+              102,
+              81,
+              46,
+              117,
+              107,
+              50,
+              107,
+              114,
+              70,
+              107,
+              119,
+              102,
+              105,
+              49,
+              89,
+              86,
+              115,
+              122,
+              76,
+              50,
+              80,
+              84,
+              73,
+              116,
+              120,
+              114,
+              77,
+              66,
+              88,
+              52,
+              88,
+              115,
+              117,
+              115,
+              86,
+              97,
+              118,
+              74,
+              48,
+              102,
+              56,
+              97,
+              54,
+              82,
+              65,
+              99,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              56,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2503,
+          "responseSize": 286
+        },
+        "id": "4d2afa18-b421-4934-9df9-411b80a60442",
+        "assertions": [
+          {
+            "assertion": "Paso 1: Autenticación exitosa - HTTP 200",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c700c5d7-8f0c-42f6-86f4-b520d711c141",
+          "length": 6,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "d77ea523-f655-41dc-ae37-0410bc124d83"
+        },
+        "item": {
+          "id": "470634b6-8445-444c-92c4-830a5c0591fb",
+          "name": "Paso 2: TC-M09-32a - Rechazar unidad_medida vacia",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Vacia QA\",\n  \"unidad_medida\": \"\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "78a88382-9c7a-4934-9512-3482a78afb10",
+                "type": "text/javascript",
+                "exec": [
+                  "var payload = JSON.parse(pm.request.body.raw);",
+                  "pm.expect(payload.unidad_medida.length).to.eql(0);",
+                  "console.log('Validando pre-request: unidad_medida es string vacio de longitud 0');"
+                ],
+                "_lastExecutionId": "7b0dff72-cf4b-4615-9db9-fec0d1805264"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "36d8d650-a32a-44a0-89d1-4ba984292b25",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-32a: Rechazar unidad_medida vacia - HTTP 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                  "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+                  "    pm.expect(fieldMatch).to.be.true;",
+                  "});"
+                ],
+                "_lastExecutionId": "cc0f5651-b002-44fb-bdcc-81b1ec6c9648"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxNDYiLCJyb2wiOjEsImV4cCI6MTc4ODYyMTIxNSwiaWF0IjoxNzg4NTkyNDE1fQ.uk2krFkwfi1YVszL2PTItxrMBX4XsusVavJ0f8a6RAc"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c67b5121-9875-42c5-a1be-90c83e763162",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "138",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Wk1bd21-I7TPluxouaJfmL5WDLiQ_7IMeH-KU3oKI8c",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Vacia QA\",\n  \"unidad_medida\": \"\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": {
+          "id": "8900688e-df8b-487e-88b3-149f5aebf2c4",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "223"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 07:13:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4c2d648c-d0a0-4441-a386-447d6d48276d"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              95,
+              109,
+              101,
+              100,
+              105,
+              100,
+              97,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              86,
+              97,
+              108,
+              117,
+              101,
+              32,
+              101,
+              114,
+              114,
+              111,
+              114,
+              44,
+              32,
+              76,
+              97,
+              32,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              109,
+              101,
+              100,
+              105,
+              100,
+              97,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              97,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              55,
+              58,
+              49,
+              51,
+              58,
+              51,
+              55,
+              46,
+              50,
+              49,
+              51,
+              54,
+              53,
+              52,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 189,
+          "responseSize": 223
+        },
+        "id": "470634b6-8445-444c-92c4-830a5c0591fb",
+        "assertions": [
+          {
+            "assertion": "TC-M09-32a: Rechazar unidad_medida vacia - HTTP 400",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "315c0c3a-8fb1-4b61-bb21-d010d59603a9",
+          "length": 6,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "d40e4a2f-50f5-44eb-87d4-85df567896f3"
+        },
+        "item": {
+          "id": "e74abef5-cf41-4df9-8a2c-28124cb761f6",
+          "name": "Paso 3: TC-M09-32b - Rechazar unidad_medida ausente",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Ausente QA\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "9a082016-217b-47c4-a05b-172bba6cb0c8",
+                "type": "text/javascript",
+                "exec": [
+                  "var payload = JSON.parse(pm.request.body.raw);",
+                  "pm.expect(payload.unidad_medida).to.be.undefined;",
+                  "console.log('Validando pre-request: unidad_medida es undefined (ausente)');"
+                ],
+                "_lastExecutionId": "58b53ecf-5dc8-482a-882a-672fec544915"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "15273472-9edb-4838-b44a-66fe88a2da83",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-32b: Rechazar unidad_medida ausente - HTTP 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                  "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+                  "    pm.expect(fieldMatch).to.be.true;",
+                  "});"
+                ],
+                "_lastExecutionId": "75e92109-eec0-466c-b2d1-f232fa19ff0d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxNDYiLCJyb2wiOjEsImV4cCI6MTc4ODYyMTIxNSwiaWF0IjoxNzg4NTkyNDE1fQ.uk2krFkwfi1YVszL2PTItxrMBX4XsusVavJ0f8a6RAc"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "69cbf86f-db5d-4ce6-bfe0-c16b2e360467",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "117",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Wk1bd21-I7TPluxouaJfmL5WDLiQ_7IMeH-KU3oKI8c",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Ausente QA\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": {
+          "id": "c11a3aaf-7539-4795-93c6-df85d9689011",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "189"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 07:13:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "58792bc1-8e5f-4a5e-bacc-78fe1b218d4f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              95,
+              109,
+              101,
+              100,
+              105,
+              100,
+              97,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              70,
+              105,
+              101,
+              108,
+              100,
+              32,
+              114,
+              101,
+              113,
+              117,
+              105,
+              114,
+              101,
+              100,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              55,
+              58,
+              49,
+              51,
+              58,
+              51,
+              55,
+              46,
+              52,
+              50,
+              54,
+              57,
+              55,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 117,
+          "responseSize": 189
+        },
+        "id": "e74abef5-cf41-4df9-8a2c-28124cb761f6",
+        "assertions": [
+          {
+            "assertion": "TC-M09-32b: Rechazar unidad_medida ausente - HTTP 400",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "a86bec08-6f67-4c11-8671-5f49a976c989",
+          "length": 6,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "527ac1bb-d183-498c-b4a9-cb118ee60502"
+        },
+        "item": {
+          "id": "e3e16bc9-1198-4084-a302-618b045b5fd5",
+          "name": "Paso 4: TC-M09-33 - Rechazar tipo_medicion invalido",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Tipo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"INVALIDO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "910f8bb7-a2d2-4d80-abf7-fc9cc89ac933",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-33: Rechazar tipo_medicion invalido - HTTP 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                  "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'tipo_medicion'; });",
+                  "    pm.expect(fieldMatch).to.be.true;",
+                  "});"
+                ],
+                "_lastExecutionId": "472f02d0-980a-4d34-94d5-ffdd400f31ed"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxNDYiLCJyb2wiOjEsImV4cCI6MTc4ODYyMTIxNSwiaWF0IjoxNzg4NTkyNDE1fQ.uk2krFkwfi1YVszL2PTItxrMBX4XsusVavJ0f8a6RAc"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "36ca4c25-8ab9-4a63-bb53-3e444009c266",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "152",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Wk1bd21-I7TPluxouaJfmL5WDLiQ_7IMeH-KU3oKI8c",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Tipo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"INVALIDO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": {
+          "id": "b703e64b-bc74-4f86-855a-cc1150cf4b49",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "264"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 07:13:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "3f6b64ae-2c92-4280-aa7d-05e88387dfbf"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              109,
+              101,
+              100,
+              105,
+              99,
+              105,
+              111,
+              110,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              86,
+              97,
+              108,
+              117,
+              101,
+              32,
+              101,
+              114,
+              114,
+              111,
+              114,
+              44,
+              32,
+              69,
+              108,
+              32,
+              116,
+              105,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              109,
+              101,
+              100,
+              105,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              115,
+              101,
+              114,
+              32,
+              117,
+              110,
+              111,
+              32,
+              100,
+              101,
+              58,
+              32,
+              67,
+              79,
+              78,
+              84,
+              69,
+              79,
+              44,
+              32,
+              76,
+              79,
+              78,
+              71,
+              73,
+              84,
+              85,
+              68,
+              44,
+              32,
+              79,
+              84,
+              82,
+              79,
+              44,
+              32,
+              80,
+              69,
+              83,
+              79,
+              44,
+              32,
+              86,
+              79,
+              76,
+              85,
+              77,
+              69,
+              78,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              55,
+              58,
+              49,
+              51,
+              58,
+              51,
+              55,
+              46,
+              54,
+              51,
+              48,
+              57,
+              49,
+              52,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 119,
+          "responseSize": 264
+        },
+        "id": "e3e16bc9-1198-4084-a302-618b045b5fd5",
+        "assertions": [
+          {
+            "assertion": "TC-M09-33: Rechazar tipo_medicion invalido - HTTP 400",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "eb9f9ae2-e6af-41b2-9921-eefa0c36c727",
+          "length": 6,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "2d394050-0012-4c9b-a151-61bc80277964"
+        },
+        "item": {
+          "id": "14b98c7a-ea5d-4fc3-9ebe-fc0ee288b28e",
+          "name": "Paso 5: TC-M09-34 - Rechazar coherencia incoherente (PESO vs litros)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Incoherente QA\",\n  \"unidad_medida\": \"litros\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d365555d-7504-48b9-aa12-93be40f2f3e3",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-34: Rechazar coherencia incoherente - HTTP 422 BusinessRuleError', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('UNIDAD_MEDIDA_INCOHERENTE');",
+                  "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+                  "    pm.expect(fieldMatch).to.be.true;",
+                  "});"
+                ],
+                "_lastExecutionId": "168b42e1-b9e4-42d2-a13d-23358843c0f7"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxNDYiLCJyb2wiOjEsImV4cCI6MTc4ODYyMTIxNSwiaWF0IjoxNzg4NTkyNDE1fQ.uk2krFkwfi1YVszL2PTItxrMBX4XsusVavJ0f8a6RAc"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "32be28d2-bab2-4b14-bc7e-09b4b0bd4490",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "150",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Wk1bd21-I7TPluxouaJfmL5WDLiQ_7IMeH-KU3oKI8c",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Incoherente QA\",\n  \"unidad_medida\": \"litros\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": {
+          "id": "6e7aeac7-197e-4009-a9e5-e7684e074369",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "322"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 07:13:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "6c318410-dd19-43e9-aabf-164e71afb036"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              85,
+              78,
+              73,
+              68,
+              65,
+              68,
+              95,
+              77,
+              69,
+              68,
+              73,
+              68,
+              65,
+              95,
+              73,
+              78,
+              67,
+              79,
+              72,
+              69,
+              82,
+              69,
+              78,
+              84,
+              69,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              32,
+              39,
+              108,
+              105,
+              116,
+              114,
+              111,
+              115,
+              39,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              97,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              101,
+              108,
+              32,
+              116,
+              105,
+              112,
+              111,
+              32,
+              39,
+              80,
+              69,
+              83,
+              79,
+              39,
+              46,
+              32,
+              85,
+              110,
+              105,
+              100,
+              97,
+              100,
+              101,
+              115,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              116,
+              105,
+              100,
+              97,
+              115,
+              58,
+              32,
+              103,
+              44,
+              32,
+              107,
+              103,
+              44,
+              32,
+              108,
+              98,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              95,
+              109,
+              101,
+              100,
+              105,
+              100,
+              97,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              32,
+              39,
+              108,
+              105,
+              116,
+              114,
+              111,
+              115,
+              39,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              97,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              101,
+              108,
+              32,
+              116,
+              105,
+              112,
+              111,
+              32,
+              39,
+              80,
+              69,
+              83,
+              79,
+              39,
+              46,
+              32,
+              85,
+              110,
+              105,
+              100,
+              97,
+              100,
+              101,
+              115,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              116,
+              105,
+              100,
+              97,
+              115,
+              58,
+              32,
+              103,
+              44,
+              32,
+              107,
+              103,
+              44,
+              32,
+              108,
+              98,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              55,
+              58,
+              49,
+              51,
+              58,
+              51,
+              55,
+              46,
+              56,
+              49,
+              56,
+              49,
+              54,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 119,
+          "responseSize": 322
+        },
+        "id": "14b98c7a-ea5d-4fc3-9ebe-fc0ee288b28e",
+        "assertions": [
+          {
+            "assertion": "TC-M09-34: Rechazar coherencia incoherente - HTTP 422 BusinessRuleError",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1fed3607-0925-4868-bd1f-3ef289dfe735",
+          "length": 6,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "1188e592-8b2a-470b-96c2-71e651a82cfc"
+        },
+        "item": {
+          "id": "e18dde21-db5a-4564-b100-f9531dae0e00",
+          "name": "Paso 6: TC-M09-35 - Rechazar aplica_a_tipo_activo invalido",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Activo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"GRUPO\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "eda64395-2b75-45b7-a69f-bc8a78302e45",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-35: Rechazar aplica_a_tipo_activo invalido - HTTP 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+                  "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'aplica_a_tipo_activo'; });",
+                  "    pm.expect(fieldMatch).to.be.true;",
+                  "});"
+                ],
+                "_lastExecutionId": "3c80661b-cfbf-40de-b90e-7123cdd2397f"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxNDYiLCJyb2wiOjEsImV4cCI6MTc4ODYyMTIxNSwiaWF0IjoxNzg4NTkyNDE1fQ.uk2krFkwfi1YVszL2PTItxrMBX4XsusVavJ0f8a6RAc"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "bbd56ad4-7b64-45ff-b0e7-57ae5b13f521",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "150",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Wk1bd21-I7TPluxouaJfmL5WDLiQ_7IMeH-KU3oKI8c",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Activo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"GRUPO\"\n}"
+          }
+        },
+        "response": {
+          "id": "7d9134c9-50b1-4523-8c0c-72a827d26498",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "269"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 07:13:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "51b65e31-0e68-4036-a1b3-c3136b9bbc78"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              97,
+              112,
+              108,
+              105,
+              99,
+              97,
+              95,
+              97,
+              95,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              86,
+              97,
+              108,
+              117,
+              101,
+              32,
+              101,
+              114,
+              114,
+              111,
+              114,
+              44,
+              32,
+              69,
+              108,
+              32,
+              118,
+              97,
+              108,
+              111,
+              114,
+              32,
+              100,
+              101,
+              32,
+              97,
+              112,
+              108,
+              105,
+              99,
+              97,
+              95,
+              97,
+              95,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              115,
+              101,
+              114,
+              32,
+              117,
+              110,
+              111,
+              32,
+              100,
+              101,
+              58,
+              32,
+              65,
+              77,
+              66,
+              79,
+              83,
+              44,
+              32,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              44,
+              32,
+              76,
+              79,
+              84,
+              69,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              55,
+              58,
+              49,
+              51,
+              58,
+              51,
+              56,
+              46,
+              48,
+              49,
+              51,
+              56,
+              57,
+              55,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 114,
+          "responseSize": 269
+        },
+        "id": "e18dde21-db5a-4564-b100-f9531dae0e00",
+        "assertions": [
+          {
+            "assertion": "TC-M09-35: Rechazar aplica_a_tipo_activo invalido - HTTP 400",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1553
+    },
+    "failures": [],
+    "error": null
+  }
+}

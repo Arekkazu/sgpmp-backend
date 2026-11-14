@@ -1,0 +1,660 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g16-rbac-rf16",
+    "name": "TC-M09-G16 - Restricción de permisos RBAC para Productor e Ingeniero sobre RF-16",
+    "description": "Suite E2E para TC-M09-G16 (sub-caso TC-M09-39, OWASP A01). Verifica que usuarios con rol Productor e Ingeniero de Campo no puedan crear ni desactivar etapas, patologías ni métricas productivas por especie en /configuracion/, retornando HTTP 403 ACCESO_DENEGADO en las 12 combinaciones.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Paso 0a: Autenticación Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 0a: Login exitoso Productor - HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+              "    pm.collectionVariables.set('token_productor', jsonData.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 0b: Autenticación Ingeniero de Campo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Pruebas12#\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 0b: Login exitoso Ingeniero de Campo - HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+              "    pm.collectionVariables.set('token_ingeniero', jsonData.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 1 (TC-M09-39-A1): Productor - Intento POST /configuracion/ciclos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Productor QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Productor\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "ciclos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-A1: Productor crear etapa es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 2 (TC-M09-39-A2): Productor - Intento PATCH /configuracion/ciclos/10/desactivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos/10/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "ciclos",
+            "10",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-A2: Productor desactivar etapa es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 3 (TC-M09-39-A3): Productor - Intento POST /configuracion/patologias",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Productor QA\",\n  \"descripcion\": \"Intento no autorizado por Productor\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "patologias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-A3: Productor crear patología es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 4 (TC-M09-39-A4): Productor - Intento PATCH /configuracion/patologias/1/desactivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias/1/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "patologias",
+            "1",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-A4: Productor desactivar patología es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 5 (TC-M09-39-A5): Productor - Intento POST /configuracion/metricas",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Productor QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-A5: Productor crear métrica es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 6 (TC-M09-39-A6): Productor - Intento PATCH /configuracion/metricas/1/desactivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/1/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "1",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-A6: Productor desactivar métrica es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 7 (TC-M09-39-B1): Ingeniero - Intento POST /configuracion/ciclos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Ingeniero QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Ingeniero\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "ciclos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-B1: Ingeniero crear etapa es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 8 (TC-M09-39-B2): Ingeniero - Intento PATCH /configuracion/ciclos/10/desactivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos/10/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "ciclos",
+            "10",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-B2: Ingeniero desactivar etapa es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 9 (TC-M09-39-B3): Ingeniero - Intento POST /configuracion/patologias",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Ingeniero QA\",\n  \"descripcion\": \"Intento no autorizado por Ingeniero\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "patologias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-B3: Ingeniero crear patología es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 10 (TC-M09-39-B4): Ingeniero - Intento PATCH /configuracion/patologias/1/desactivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias/1/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "patologias",
+            "1",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-B4: Ingeniero desactivar patología es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 11 (TC-M09-39-B5): Ingeniero - Intento POST /configuracion/metricas",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Ingeniero QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-B5: Ingeniero crear métrica es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 12 (TC-M09-39-B6): Ingeniero - Intento PATCH /configuracion/metricas/1/desactivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas/1/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas",
+            "1",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-39-B6: Ingeniero desactivar métrica es rechazado - HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

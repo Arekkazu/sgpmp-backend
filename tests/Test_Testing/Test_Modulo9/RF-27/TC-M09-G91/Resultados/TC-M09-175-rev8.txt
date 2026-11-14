@@ -1,0 +1,35 @@
+TC-M09-175 rev8 TEST RF-27
+Fecha UTC: 2026-10-09T23:59:30Z
+Rama: laura @ c5ac9b6f
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1-rev7. Sin commit. Sin push. Sin DML. Sin PATCH. Sin DELETE. Sin restore QA.
+Credenciales via env de proceso (SGPMP_175_PASSWORD, SGPMP_TEST_PASSWORD). No se documentan valores. JWT no incluido.
+
+RESULTADO FUNCIONAL: APROBADO
+Actor oficial autenticado. Global ausente. Sin preferencia individual. Oraculo exacto.
+
+RESTAURACION GLOBAL: PENDIENTE (Alex/Samuel)
+GET global al cierre sigue HTTP 200 cuerpo null. G91 no se declara cerrado.
+
+A. ADMIN
+POST /sesiones/ admin@pecuaria.co HTTP 200
+GET /configuracion/personalizacion/tema/global HTTP 200 cuerpo JSON null
+Precondicion global vigente. Se continuo.
+
+B. ACTOR
+POST /sesiones/ cm09175.qa@sgpmp-test.com HTTP 200 (un intento)
+GET /usuarios/me HTTP 200 id_usuario=120 rol=Productor estado=Activo correo=cm09175.qa@sgpmp-test.com
+
+C. TEMA ACTOR
+GET /configuracion/personalizacion/tema HTTP 200
+{"theme_mode":1,"fuente":"defecto","id_tema_visual":null}
+fuente != personal => sin preferencia individual.
+
+D. ORACULO
+theme_mode: int 1 OK
+fuente: str "defecto" OK
+id_tema_visual: null OK
+
+Cierre GET global admin: HTTP 200 null (sin cambios hechos por QA).
+
+G91: 173/174 APROBADO historico. 175 APROBADO (rev8). Cierre de grupo pendiente de verificar restauracion del singleton global.

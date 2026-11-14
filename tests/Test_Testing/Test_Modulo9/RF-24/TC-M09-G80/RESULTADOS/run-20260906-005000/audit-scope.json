@@ -1,0 +1,52 @@
+{
+  "caso": "TC-M09-151",
+  "grupo": "TC-M09-G80",
+  "runId": "run-20260906-005000",
+  "resultado": "BLOCKED",
+  "oraculo_d09": {
+    "endpoint_consultado": "GET /auditoria/",
+    "filtros_disponibles": ["id_usuario", "tipo_evento", "categoria", "fecha_desde", "fecha_hasta", "pagina", "tamano"],
+    "filtro_por_sensor": false,
+    "filtro_por_calibracion": false,
+    "filtro_por_resultado_calibracion": false,
+    "catalogo_total": 24,
+    "eventos_de_calibracion_o_sensor": [],
+    "resultados_de_calibracion_success_rejected_failed": false
+  },
+  "auditoria_rf24": {
+    "almacen": "modulo9.auditorias_calibraciones",
+    "operaciones_modeladas": ["CREATE", "GET"],
+    "id_calibracion_obligatorio": true,
+    "resultado_modelado": false,
+    "api_d09_para_consulta": false,
+    "implicacion": "No puede representar un rechazo o un fallo que no produzca calibracion."
+  },
+  "fuentes_revisadas": {
+    "success": {
+      "fuente": "TC-M09-141 / G74",
+      "calibracion_id": 9,
+      "sensor_id": 3,
+      "actor_id": 4,
+      "timestamp": "2026-09-06T04:13:05.499000Z",
+      "resultado_funcional": "201 y persistida",
+      "evento_d09_correlacionable": false
+    },
+    "rejected": {
+      "fuente": "TC-M09-144 / G75",
+      "resultado_funcional": "400 VALOR_FUERA_DE_RANGO, sin persistencia",
+      "evento_d09_correlacionable": false
+    },
+    "failed": {
+      "fuente": "TC-M09-150 / G79",
+      "resultado_funcional": "500 AUDITORIA_CALIBRACION_FALLIDA con rollback",
+      "tipo_de_evidencia": "harness controlado, no evento D09 real",
+      "evento_d09_correlacionable": false
+    }
+  },
+  "operaciones_g80": {
+    "post_calibracion": 0,
+    "post_directo_d09": 0,
+    "escrituras_bd": 0
+  },
+  "secretos_persistidos": false
+}

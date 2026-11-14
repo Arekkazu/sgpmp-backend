@@ -1,3 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: el tipo 31 CAMBIO_VARIABLE_CRITICA es MODIFICACION |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: el tipo 32 NOTIFICACION_ALERTA es MODIFICACION |
+# | 2026-10-23 | Arekkazu | M05: los tipos 33-38 son MODIFICACION |
+# | 2026-11-08 | Arekkazu | INC-M06-299-G81: los tipos 39-41 de M06/M07 son MODIFICACION |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18: el tipo 42 FIN_PERIODO_RETIRO es MODIFICACION |
 """Pruebas de regresión para las categorías de auditoría de RF-10."""
 from __future__ import annotations
 
@@ -31,7 +38,12 @@ TIPOS_POR_CATEGORIA = {
     # 29 = CALIBRACION_RECHAZADA (RF-24 v1.1, RFC-006): intento rechazado de
     # modificar la calibración de un sensor de M09.
     # 30 = CALIBRACION_EXITOSA (RF-24/RF-10): cambio de configuración técnica.
-    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29, 30),
+    # 31 = CAMBIO_VARIABLE_CRITICA (RFC-016 B.7): cambio de configuración del catálogo.
+    # 32 = NOTIFICACION_ALERTA (RF-57, DEV-32): notificación de una alerta.
+    # 33-38 = notificaciones internas de M05 (reportes, historial, provisión, ICA).
+    # 39-41 = avisos del módulo financiero y de la integración contable.
+    # 42 = fin del período de retiro de un medicamento (RF-76 paso 13).
+    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29, 30, 31, 32, *range(33, 43)),
     EventoCategoria.CONSULTA: (*range(16, 20), 26),
 }
 
@@ -104,7 +116,7 @@ def test_catalogo_cubre_todos_los_tipos_actuales_sin_duplicados() -> None:
         for tipo in tipos_categoria
     ]
 
-    assert sorted(tipos) == list(range(1, 31))
+    assert sorted(tipos) == list(range(1, 43))
     assert len(tipos) == len(set(tipos))
 
 

@@ -1,0 +1,56 @@
+TC-M02-G12 rev2 RF-33 TEST - INC-M02-45-G12
+Coleccion: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-33\TC-M02-G12\tc_m02_g12_rev2.json
+Fecha UTC: 2026-09-15T01:09:25.5738327Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Login: admin@pecuaria.co (password via env, no impresa)
+Newman --insecure. Exit code: 1
+Requests ejecutados: 5 (014 omitido). Assertions: 13 ejecutadas, 4 fallidas.
+
+============================================================
+COMPARACION PRIMERA vs SEGUNDA EVALUACION
+============================================================
+Primera evaluacion:
+- GET /configuracion/metricas?id_especie=4&solo_activas=true -> HTTP 200
+- Lista: solo metrica "Peso"
+- No existia peso_destete ni rango 20-40
+- TC-M02-013: HTTP 400, error_code=ATRIBUTO_INVALIDO (validado)
+- TC-M02-014: NO EJECUTABLE / BLOQUEADO
+- INC-M02-45-G12: pendiente por configuracion RF-16 ausente
+
+Segunda evaluacion (esta corrida):
+- GET misma URL -> HTTP 500 ERROR_INTERNO
+- Cuerpo: {"error_code":"ERROR_INTERNO","message":"Ocurrio un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.","fields":[],"timestamp":"2026-09-15T01:09:28.864179+00:00"}
+- No hay items. No se puede afirmar ni negar peso_destete.
+- No se puede afirmar minimo=20 ni maximo=40.
+- Este 500 NO es el mismo hallazgo que INC-M02-45-G12 (lista 200 sin peso_destete).
+
+============================================================
+CLASIFICACION
+============================================================
+INC-M02-45-G12 = NO PUDO DETERMINARSE / CONTINUA PENDIENTE
+  No se demuestra correccion. La precondicion GET RF-16 no es consultable en TEST.
+
+TC-M02-013 = EJECUTADO, NO CUMPLE CONTRATO (nuevo comportamiento)
+  POST /activos-biologicos con color_pelaje -> HTTP 500 ERROR_INTERNO
+  No es 400 ATRIBUTO_INVALIDO. No se acepta 500 como PASS.
+  Sin id_activo_biologico en la respuesta de error.
+  No confundir con INC-M02-45-G12.
+
+TC-M02-014 = NO EJECUTABLE / BLOQUEADO
+  No se ejecuto el POST con peso_destete=5.
+  Motivo: Case C no demostrado (peso_destete activo con min 20 y max 40 no visible en GET).
+  No se invento configuracion. No se modifico RF-16 ni la BD.
+
+TC-M02-G12 (global) = BLOQUEADO
+  Motivo principal: no se puede verificar INC-M02-45-G12 ni ejecutar 014.
+  Adicional: GET metricas y POST 013 responden 500 (defecto nuevo, no el INC historico).
+
+============================================================
+PRECHECK ESPECIE / INFRA
+============================================================
+GET /configuracion/especies?solo_activas=true HTTP 200
+- id_especie=4 existe, nombre incluye Cachama, es_activo=true
+
+GET /configuracion/infraestructuras?finca_id=1&solo_activas=true HTTP 200
+- ids 3 Alevinera-01, 1 Estanque-01, 2 Estanque-02
+- 013 uso la primera activa: id_infraestructura=3

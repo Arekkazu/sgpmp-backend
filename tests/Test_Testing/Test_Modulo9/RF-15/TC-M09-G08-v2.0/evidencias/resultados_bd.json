@@ -1,0 +1,62 @@
+{
+  "NW-04": {
+    "paso": "NW-04",
+    "esperado": "Registro de auditoría CREATE persistido en modulo9.auditorias_especies para especie creada",
+    "obtenido": "Registro CREATE encontrado (ID=197, Usuario=104, Fecha=2026-10-07 04:45:42.741715+00:00)",
+    "estado": "OK"
+  },
+  "NW-04a": {
+    "paso": "NW-04a",
+    "esperado": "id_usuario=104, tipo_operacion='CREATE', fecha_gestion >= run_start_time",
+    "obtenido": "Campos conformes: id_usuario=104, tipo_operacion='CREATE', fecha=2026-10-07 04:45:42.741715+00:00",
+    "estado": "OK"
+  },
+  "NW-04b": {
+    "paso": "NW-04b",
+    "esperado": "valores_nuevos.grupo_manejo == 'ESPECIES_MEDIANAS'",
+    "obtenido": "campo grupo_manejo ausente en snapshot de auditoría (defecto raíz INC-M09-01-G01 v2.0)",
+    "estado": "FALLA"
+  },
+  "NW-06": {
+    "paso": "NW-06",
+    "esperado": "valores_anteriores.nombre ≈ 'Cabra Qaa' y valores_nuevos.nombre ≈ 'Cabra Criolla Qaa' (case-insensitive)",
+    "obtenido": "Transición de nombre confirmada (ID=206): 'Cabra Qab' -> 'Cabra Criolla Qab'",
+    "estado": "OK"
+  },
+  "NW-08": {
+    "paso": "NW-08",
+    "esperado": "Auditoría UPDATE persistida en BD tras intento de edición de grupo_manejo",
+    "obtenido": "Evento UPDATE persistido en BD (ID=201, Fecha=2026-10-07 04:47:56.524013+00:00)",
+    "estado": "OK"
+  },
+  "NW-08a": {
+    "paso": "NW-08a",
+    "esperado": "tipo_operacion='UPDATE' y usuario/fecha válidos (id_usuario=104)",
+    "obtenido": "Evento UPDATE válido con id_usuario=104 y fecha=2026-10-07 04:47:56.524013+00:00",
+    "estado": "OK"
+  },
+  "NW-08b": {
+    "paso": "NW-08b",
+    "esperado": "valores_anteriores.grupo_manejo == 'ESPECIES_MEDIANAS' AND valores_nuevos.grupo_manejo == 'ESPECIES_GRANDES'",
+    "obtenido": "campo grupo_manejo ausente en snapshot de auditoría (defecto raíz INC-M09-01-G01 v2.0)",
+    "estado": "FALLA"
+  },
+  "NW-10": {
+    "paso": "NW-10",
+    "esperado": "tipo_operacion='DEACTIVATE', valores_anteriores.es_activo=true, valores_nuevos.es_activo=false",
+    "obtenido": "Auditoría DEACTIVATE confirmada (ID=198): es_activo=true -> es_activo=false",
+    "estado": "OK"
+  },
+  "NW-12": {
+    "paso": "NW-12",
+    "esperado": "tipo_operacion='UPDATE', valores_anteriores.es_activo=false, valores_nuevos.es_activo=true",
+    "obtenido": "Auditoría de reactivación confirmada (ID=205): UPDATE con es_activo=false -> es_activo=true",
+    "estado": "OK"
+  },
+  "NW-15": {
+    "paso": "NW-15",
+    "esperado": "Especie creada con es_activo=false y cero especies residuales activas de prueba",
+    "obtenido": "Integridad BD confirmada: especie ID=103 inactiva (es_activo=False) y 0 residuales activos",
+    "estado": "OK"
+  }
+}

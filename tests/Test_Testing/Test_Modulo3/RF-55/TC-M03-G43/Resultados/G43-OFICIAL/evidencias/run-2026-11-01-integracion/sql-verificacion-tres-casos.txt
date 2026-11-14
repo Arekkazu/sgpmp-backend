@@ -1,0 +1,19 @@
+﻿ current_database 
+------------------
+ sgpmp_g43_test
+(1 row)
+
+                id_evento_edge                 | count 
+-----------------------------------------------+-------
+ edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7 |     1
+ edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2 |     1
+ edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a |     1
+(3 rows)
+
+                id_evento_edge                 |   tipo_evento    | severidad | clasificacion_rf55 | umbral |                                                                                   variables_involucradas                                                                                    
+-----------------------------------------------+------------------+-----------+--------------------+--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a | DATOS_PROCESADOS |           | NORMAL             | 90043  | [{"tipo_variable": "temperatura_ambiente", "valor": "21.0", "unidad": "C", "timestamp_captura": "2026-11-01T08:10:21.564000Z", "sensor": null, "serial": "G43-LAB-001", "sensor_id": null}]
+ edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2 | ALERTA_GENERADA  | CRITICO   | DESVIACION_SIMPLE  | 90043  | [{"tipo_variable": "temperatura_ambiente", "valor": "35.0", "unidad": "C", "timestamp_captura": "2026-11-01T08:11:06.104000Z", "sensor": null, "serial": "G43-LAB-001", "sensor_id": null}]
+ edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7 | ALERTA_GENERADA  | CRITICO   | DESVIACION_SIMPLE  | 90043  | [{"tipo_variable": "temperatura_ambiente", "valor": "10.0", "unidad": "C", "timestamp_captura": "2026-11-01T08:11:34.331000Z", "sensor": null, "serial": "G43-LAB-001", "sensor_id": null}]
+(3 rows)
+

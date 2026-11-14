@@ -1,0 +1,46 @@
+{
+  "tc": "TC-M02-G27",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G27-REEVAL-V3-20260919-092500",
+  "veredicto": "Aprobado",
+  "checkpoints": [
+    {
+      "paso": "0. Autenticación como Administrador (POST /sesiones/)",
+      "esperado": "HTTP 200 OK con token JWT",
+      "obtenido": "HTTP 200 OK - Token JWT obtenido exitosamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "1. TC-M02-057: Registrar evento con inyección de cantidad_inicial (POST /activos-biologicos/130/eventos/crecimiento)",
+      "esperado": "HTTP 400 o 422 rechazando campo extra o 201 ignorándolo",
+      "obtenido": "HTTP 400 Bad Request - VAL_ENTRADA (Rechazo estricto por campo/unidad inválida)",
+      "estado": "OK"
+    },
+    {
+      "paso": "2. TC-M02-057: Verificar inmutabilidad de cantidad_inicial (GET /activos-biologicos/130)",
+      "esperado": "HTTP 200 OK y cantidad_inicial = 5 inalterada (no modificada a 500)",
+      "obtenido": "HTTP 200 OK - cantidad_inicial permanece inmutable en 5",
+      "estado": "OK"
+    },
+    {
+      "paso": "3. Autenticación como Productor (POST /sesiones/)",
+      "esperado": "HTTP 200 OK con token JWT de Productor",
+      "obtenido": "HTTP 200 OK - Token JWT de Productor obtenido exitosamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "4. TC-M02-058: Intentar consultar lote ajeno Finca 2 - BOLA (GET /activos-biologicos/8)",
+      "esperado": "HTTP 403 Forbidden o 404 Not Found sin exponer datos del lote ajeno",
+      "obtenido": "HTTP 404 Not Found - ACTIVO_NO_ENCONTRADO (Acceso bloqueado por alcance de finca RF-25, cero datos expuestos)",
+      "estado": "OK"
+    },
+    {
+      "paso": "5. TC-M02-058: Control positivo consultar lote accesible (GET /activos-biologicos/130)",
+      "esperado": "HTTP 200 OK confirmando existencia y consulta válida de activo",
+      "obtenido": "HTTP 200 OK - Activo biológico consultado exitosamente",
+      "estado": "OK"
+    }
+  ]
+}

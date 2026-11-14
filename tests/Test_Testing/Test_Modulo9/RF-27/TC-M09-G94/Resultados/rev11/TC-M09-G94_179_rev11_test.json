@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-10-10T17:09:55.097Z",
+    "end": "2026-10-10T17:10:05.791Z",
+    "duration": 10694,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "76a6a0c3-78c7-40e6-8f9f-6c1d82aa95a7",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev11_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev11_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "759e42ab-98f8-4628-8f58-d3ff2a485c59",
+          "title": "TC-M09-179 rev11 TEST",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-179 aplica color_ajustado oscuro en --brand-500 con data-theme=dark",
+              "fullTitle": "TC-M09-179 rev11 TEST TC-M09-179 aplica color_ajustado oscuro en --brand-500 con data-theme=dark",
+              "timedOut": null,
+              "duration": 10589,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const contrasena = pass();\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctx');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('loginProd');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/refresh\\/?$/\n}, req => {\n  req.continue(res => {\n    const body = res.body && typeof res.body === 'object' ? res.body : {};\n    refreshLog.push({\n      http: res.statusCode,\n      error_code: body.error_code || body.code || null\n    });\n  });\n}).as('refreshSesion');\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/personalizacion\\/tema\\/?$/\n}, req => {\n  req.continue(res => {\n    const body = res.body && typeof res.body === 'object' ? res.body : {};\n    temaBrowserLog.push({\n      http: res.statusCode,\n      error_code: body.error_code || body.code || null\n    });\n  });\n}).as('getTemaBrowser');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').clear().type(PRODUCTOR);\ncy.get('input[type=\"password\"]').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@loginProd').then(intc => {\n  expect(intc.response.statusCode, 'login productor UI').to.eq(200);\n  tokenProd = intc.response.body.token;\n  lastStep = 'login_prod_ui';\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard').then(() => {\n  lastStep = 'dashboard';\n});\napiProd('GET', '/configuracion/personalizacion/tema').then(tRes => {\n  expect(tRes.status, 'GET tema snapshot').to.eq(200);\n  snapTema = tRes.body.theme_mode;\n  cy.writeFile(`${EVIDENCIA}/G94-rev11-179-snapshot-tema.json`, {\n    theme_mode: tRes.body.theme_mode,\n    fuente: tRes.body.fuente,\n    id_tema_visual: tRes.body.id_tema_visual\n  });\n  expect(tRes.body.fuente, 'fuente tema personal').to.eq('personal');\n  lastStep = 'snapshot_tema';\n});\napiProd('GET', '/configuracion/interfaz/contexto').then(ctx => {\n  expect(ctx.status, 'GET contexto').to.eq(200);\n  expect(ctx.body.id_usuario).to.eq(2);\n  expect(ctx.body.id_finca, 'finca productor').to.eq(FINCA);\n  expect(ctx.body.identidad_visual).to.be.an('object');\n  primaryCrudo = normColor(ctx.body.identidad_visual.primary_color);\n  const oscuro = ctx.body.accesibilidad && ctx.body.accesibilidad.primary_color && ctx.body.accesibilidad.primary_color.oscuro;\n  expect(oscuro, 'bloque accesibilidad oscuro').to.be.an('object');\n  expect(oscuro.cumple_aa, 'precondición oscuro cumple_aa false').to.eq(false);\n  ajustadoOscuro = normColor(oscuro.color_ajustado);\n  ajustadoClaro = normColor(ctx.body.accesibilidad.primary_color.claro.color_ajustado);\n  expect(ajustadoOscuro, 'color_ajustado oscuro').to.match(/^#[0-9A-F]{6}$/);\n  expect(ajustadoOscuro, 'variante distinta del primario crudo').to.not.eq(primaryCrudo);\n  cy.writeFile(`${EVIDENCIA}/G94-rev11-179-contexto-antes.json`, {\n    id_usuario: ctx.body.id_usuario,\n    id_finca: ctx.body.id_finca,\n    identidad_visual: ctx.body.identidad_visual,\n    accesibilidad_primary_oscuro: oscuro,\n    accesibilidad_primary_claro: ctx.body.accesibilidad.primary_color.claro,\n    brand_oscuro_esperado_css: BRAND_OSCURO_ESPERADO,\n    color_ajustado_api: ajustadoOscuro\n  });\n  lastStep = 'contexto';\n});\napiProd('GET', '/configuracion/personalizacion/tema').then(tRes => {\n  if (tRes.body.theme_mode === TEMA_OSCURO) {\n    lastStep = 'tema_sin_patch';\n    cy.writeFile(`${EVIDENCIA}/G94-rev11-179-tema-sin-patch.json`, {\n      theme_mode: tRes.body.theme_mode,\n      nota: 'Ya estaba en oscuro; no se PATCH para no alterar innecesariamente.'\n    });\n    return;\n  }\n  return apiProd('PATCH', '/configuracion/personalizacion/tema', {\n    theme_mode: TEMA_OSCURO\n  }).then(p => {\n    expect(p.status, 'PATCH tema personal = 2').to.eq(200);\n    patchedTema = true;\n    return apiProd('GET', '/configuracion/personalizacion/tema').then(g => {\n      expect(g.body.theme_mode, 'GET tema tras PATCH').to.eq(TEMA_OSCURO);\n      lastStep = 'tema_tras_patch';\n      cy.writeFile(`${EVIDENCIA}/G94-rev11-179-tema-tras-patch.json`, {\n        theme_mode: g.body.theme_mode,\n        fuente: g.body.fuente\n      });\n    });\n  });\n});\ncy.then(() => {\n  if (patchedTema) {\n    lastStep = 'reload_tras_patch';\n    cy.reload();\n  }\n});\ncy.url().should('include', '/dashboard');\nleerEstadoTema().then(temprano => {\n  lastStep = 'diagnostico_temprano';\n  return cy.writeFile(`${EVIDENCIA}/G94-rev11-179-diagnostico-temprano.json`, _objectSpread(_objectSpread({}, temprano), {}, {\n    refresh_log: refreshLog,\n    tema_browser_log: temaBrowserLog,\n    nota: `Snapshot antes de esperar --brand-500 === ${BRAND_OSCURO_ESPERADO} (${BRAND_WAIT_MS} ms). No se fuerza CSS ni DOM.`\n  }));\n});\ncy.document({\n  timeout: BRAND_WAIT_MS\n}).should(doc => {\n  const observado = leerBrand500Computed(doc);\n  const theme = doc.documentElement.getAttribute('data-theme');\n  const url = `${doc.location.origin}${doc.location.pathname}`;\n  expect(observado, `--brand-500 debe ser ${BRAND_OSCURO_ESPERADO} en ${BRAND_WAIT_MS}ms (observado=${observado || '(vacío)'}, data-theme=${theme === null ? 'null' : theme}, url=${url}, timeout=${BRAND_WAIT_MS}ms). Ver diagnostico-temprano.json. No se fuerza CSS.`).to.eq(BRAND_OSCURO_ESPERADO);\n});\ncy.then(() => {\n  lastStep = 'brand_confirmado';\n});\ncy.location('pathname').then(pathname => {\n  return leerTokens().then(css => {\n    return leerSidebarNodos().then(sidebar => {\n      const aplicado = hexRenderizado(css['--brand-500'].inline || css['--brand-500'].computed);\n      const fondo = fondoRenderizado(css);\n      const ratioMarca = aplicado && fondo.hex ? ratioWcagHex(aplicado, fondo.hex) : null;\n      medicion = {\n        pathname,\n        data_theme: css.data_theme,\n        brand500_inline: css['--brand-500'].inline,\n        brand500_computed: css['--brand-500'].computed,\n        brand500_normalizado: aplicado,\n        fondo_normalizado: fondo.hex,\n        fondo_origen: fondo.origen,\n        ratio_brand_vs_fondo: ratioMarca,\n        ratio_api_oscuro_no_usado: true,\n        primary_crudo: primaryCrudo,\n        esperado_ajustado_oscuro: ajustadoOscuro,\n        ajustado_claro: ajustadoClaro,\n        coincide_oscuro: aplicado === ajustadoOscuro,\n        coincide_crudo: aplicado === primaryCrudo,\n        coincide_claro: aplicado === ajustadoClaro,\n        sidebar,\n        axe_violations: null\n      };\n      lastStep = 'css_capturado';\n      const diagnostico = _objectSpread(_objectSpread({}, medicion), {}, {\n        css,\n        ratio_minimo_aa: RATIO_MINIMO_AA,\n        refresh_log: refreshLog,\n        tema_browser_log: temaBrowserLog\n      });\n      return cy.writeFile(`${EVIDENCIA}/G94-rev11-179-diagnostico.json`, diagnostico).then(() => cy.writeFile(`${EVIDENCIA}/G94-rev11-179-ubicacion.json`, {\n        pathname,\n        data_theme: css.data_theme,\n        brand500_normalizado: aplicado,\n        nota: `Persistido tras --brand-500 === ${BRAND_OSCURO_ESPERADO} y antes de aserciones.`\n      })).then(() => cy.writeFile(`${EVIDENCIA}/G94-rev11-179-css-despues.json`, _objectSpread(_objectSpread({}, css), {}, {\n        pathname,\n        primary_crudo: primaryCrudo,\n        esperado_ajustado: ajustadoOscuro,\n        brand500_normalizado: aplicado,\n        fondo_normalizado: fondo.hex,\n        fondo_origen: fondo.origen,\n        ratio_brand_vs_fondo: ratioMarca,\n        ratio_minimo_aa: RATIO_MINIMO_AA,\n        refresh_count: refreshLog.length\n      }))).then(() => cy.writeFile(`${EVIDENCIA}/G94-rev11-179-sidebar-nodos.json`, {\n        nodos: sidebar,\n        ratio_minimo_aa: RATIO_MINIMO_AA\n      })).then(() => {\n        lastStep = 'diagnostico_persistido';\n      });\n    });\n  });\n});\ncy.screenshot('G94-rev11-179-dashboard-dark-variante');\ncy.task('getAxeSource').then(src => {\n  cy.window().then(win => {\n    if (!win.axe) {\n      const script = win.document.createElement('script');\n      script.text = src;\n      win.document.documentElement.appendChild(script);\n    }\n  });\n});\ncy.window().should('have.property', 'axe');\ncy.window().then(win => win.axe.run(win.document, {\n  runOnly: {\n    type: 'rule',\n    values: ['color-contrast']\n  }\n})).then(results => {\n  const viol = (results.violations || []).filter(v => v.id === 'color-contrast');\n  const cc = (results.passes || []).find(p => p.id === 'color-contrast');\n  if (medicion) medicion.axe_violations = viol.length;\n  lastStep = 'axe_persistido';\n  return cy.writeFile(`${EVIDENCIA}/G94-rev11-179-axe.json`, {\n    ejecutado: true,\n    violations: viol.length,\n    violation_ids: viol.map(v => v.id),\n    color_contrast_pass_nodes: cc ? (cc.nodes || []).length : 0,\n    violation_nodes: viol.length ? extraerNodosAxe(viol[0].nodes) : []\n  }).then(() => {\n    axeEjecutado = true;\n  });\n});\ncy.writeFile(`${EVIDENCIA}/G94-rev11-179-refresh.json`, {\n  llamadas: refreshLog,\n  tema_browser: temaBrowserLog\n});\ncy.then(() => {\n  lastStep = 'aserciones';\n  expect(medicion, 'medición CSS persistida').to.be.an('object');\n  expect(medicion.data_theme, 'data-theme=dark').to.eq('dark');\n  expect(medicion.brand500_normalizado, '--brand-500 presente y hex').to.match(/^#[0-9A-F]{6}$/);\n  expect(medicion.fondo_origen, 'fondo CSS renderizado (no constante de API)').to.be.oneOf(['surface-card', 'html_background']);\n  expect(medicion.brand500_normalizado, '--brand-500 = #249453 (criterio de espera)').to.eq(BRAND_OSCURO_ESPERADO);\n  expect(medicion.brand500_normalizado, '--brand-500 = color_ajustado oscuro API').to.eq(medicion.esperado_ajustado_oscuro);\n  expect(medicion.ratio_brand_vs_fondo, 'ratio WCAG --brand-500 vs superficie >= 4.5').to.be.a('number');\n  expect(medicion.ratio_brand_vs_fondo, 'ratio WCAG --brand-500 vs superficie >= 4.5').to.be.at.least(RATIO_MINIMO_AA);\n  expect(axeEjecutado, 'axe se ejecutó').to.eq(true);\n  expect(medicion.axe_violations, 'axe color-contrast violations').to.eq(0);\n  expect(medicion.sidebar, 'cuatro nodos sidebar').to.be.an('array').and.have.length(4);\n  medicion.sidebar.forEach(nodo => {\n    expect(nodo.presente, `sidebar presente ${nodo.selector}`).to.eq(true);\n    expect(nodo.ratio, `sidebar ratio número ${nodo.selector}`).to.be.a('number');\n    expect(nodo.ratio, `sidebar ratio >= 4.5 ${nodo.selector}`).to.be.at.least(RATIO_MINIMO_AA);\n  });\n});",
+              "err": {},
+              "uuid": "6b2c3144-4437-46bb-bff7-b88841365375",
+              "parentUUID": "759e42ab-98f8-4628-8f58-d3ff2a485c59",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "6b2c3144-4437-46bb-bff7-b88841365375"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 10589,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G94_179_rev11_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\Resultados\\rev11",
+        "reportFilename": "TC-M09-G94_179_rev11_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

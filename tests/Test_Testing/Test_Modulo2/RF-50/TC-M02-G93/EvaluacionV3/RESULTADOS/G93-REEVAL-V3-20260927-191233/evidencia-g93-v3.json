@@ -1,0 +1,506 @@
+{
+  "grupo": "TC-M02-G93",
+  "casos": [
+    "TC-M02-155",
+    "TC-M02-156-A",
+    "TC-M02-156-B",
+    "TC-M02-157"
+  ],
+  "rf": "RF-50",
+  "cu": "CU12",
+  "tipo": "REEVALUACION V3",
+  "runId": "G93-REEVAL-V3-20260927-191233",
+  "environment": "TEST",
+  "fecha": "2026-09-28T00:12:41.687Z",
+  "preflight": {
+    "health": 200,
+    "contrato": {
+      "openapi": 200,
+      "endpoint": true,
+      "parametros": [
+        "tipo_dato",
+        "fecha_inicio",
+        "fecha_fin",
+        "pagina",
+        "page_size"
+      ],
+      "respuestas": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "429",
+        "500"
+      ],
+      "declara_400": true,
+      "declara_403": true,
+      "declara_422": true,
+      "tipo_dato_admite": "Sección de datos: eventos | fases | estado | metricas | todos",
+      "put_fincas": true
+    }
+  },
+  "provision": {
+    "rol_m06": {
+      "id_rol": 79,
+      "nombre": "Integración M06"
+    },
+    "recursos": {
+      "general": 29,
+      "usuarios": 1,
+      "scope": {
+        "eventos": 60,
+        "fases": 61,
+        "estado": 62,
+        "metricas": 63
+      },
+      "scope_desplegado": true
+    },
+    "permisos_m06": {
+      "total": 2,
+      "general_read": true,
+      "scopes": {
+        "eventos": false,
+        "fases": false,
+        "estado": false,
+        "metricas": true
+      }
+    },
+    "usuario_m06": {
+      "id_usuario": 113,
+      "correo_electronico": "integracion.m06.test@pecuaria.co",
+      "nombre_rol": "Integración M06",
+      "estado_cuenta": "Activo"
+    },
+    "m06_existe": true,
+    "m06_activo": true
+  },
+  "identidad_tecnica": {
+    "id_usuario": 113,
+    "correo_electronico": "integracion.m06.test@pecuaria.co",
+    "nombre_rol": "Integración M06",
+    "estado_cuenta": "Activo"
+  },
+  "alcance": {
+    "fincas_en_el_perfil": [],
+    "activos_visibles": 29,
+    "control_positivo": {
+      "status": 200,
+      "error_code": null,
+      "id_activo_devuelto": 279,
+      "tiene_metricas": true
+    },
+    "ve_el_activo": true,
+    "fincas_asignadas": [
+      57
+    ]
+  },
+  "fixture": {
+    "id_activo_biologico": 279,
+    "existe": true,
+    "identificador": "QAJE-CREC-OK",
+    "tipo": "INDIVIDUAL",
+    "nombre_estado": "ACTIVO",
+    "fecha_inicio_ciclo": "2026-06-01",
+    "id_infraestructura": 48,
+    "infraestructura": {
+      "id_infraestructura": 48,
+      "id_finca": 57
+    },
+    "id_finca": 57,
+    "total_eventos": 5,
+    "mediciones_peso": [
+      {
+        "id_eventos": 232,
+        "fecha": "2026-09-09",
+        "valor": "250.00",
+        "unidad": "kg"
+      },
+      {
+        "id_eventos": 227,
+        "fecha": "2026-09-09",
+        "valor": "250.00",
+        "unidad": "kg"
+      },
+      {
+        "id_eventos": 228,
+        "fecha": "2026-09-09",
+        "valor": "250.00",
+        "unidad": "kg"
+      },
+      {
+        "id_eventos": 234,
+        "fecha": "2026-09-10",
+        "valor": "250.00",
+        "unidad": "kg"
+      },
+      {
+        "id_eventos": 352,
+        "fecha": "2026-09-19",
+        "valor": "250.00",
+        "unidad": "kg"
+      }
+    ]
+  },
+  "rangos": {
+    "nic41": {
+      "inicio": "2026-06-01",
+      "fin": "2026-09-08"
+    },
+    "pesos_dentro_de_nic41": 0,
+    "observacion_392": {
+      "inicio": "2026-09-09",
+      "fin": "2026-09-18"
+    },
+    "pesos_dentro_de_observacion": 4,
+    "peso_mas_reciente": "2026-09-19",
+    "invertido": {
+      "inicio": "2026-09-18",
+      "fin": "2026-08-29"
+    },
+    "futuro": {
+      "inicio": "2026-09-29",
+      "fin": "2026-09-30"
+    },
+    "hoy_observado": "2026-09-28",
+    "pesos_totales": 5
+  },
+  "gate": {
+    "checklist": [
+      {
+        "condicion": "OpenAPI RF-50 valido",
+        "cumple": true
+      },
+      {
+        "condicion": "contrato declara 400, 403 y 422",
+        "cumple": true
+      },
+      {
+        "condicion": "M06 autentica",
+        "cumple": true
+      },
+      {
+        "condicion": "rol M06 confirmado",
+        "cumple": true
+      },
+      {
+        "condicion": "cuenta M06 activa",
+        "cumple": true
+      },
+      {
+        "condicion": "permiso general READ confirmado",
+        "cumple": true
+      },
+      {
+        "condicion": "scope metricas = SI",
+        "cumple": true
+      },
+      {
+        "condicion": "scope eventos = NO",
+        "cumple": true
+      },
+      {
+        "condicion": "activo existe",
+        "cumple": true
+      },
+      {
+        "condicion": "finca del activo identificada",
+        "cumple": true
+      },
+      {
+        "condicion": "finca asignada a M06 por el endpoint oficial",
+        "cumple": true
+      },
+      {
+        "condicion": "M06 ve el activo",
+        "cumple": true
+      },
+      {
+        "condicion": "control positivo metricas = HTTP 200",
+        "cumple": true
+      },
+      {
+        "condicion": "rango NIC-41 con 0 metricas PESO confirmado",
+        "cumple": true
+      },
+      {
+        "condicion": "fechas invertidas preparadas",
+        "cumple": true
+      },
+      {
+        "condicion": "fechas futuras preparadas",
+        "cumple": true
+      },
+      {
+        "condicion": "rango de la verificacion complementaria preparado",
+        "cumple": true
+      }
+    ],
+    "completo": true
+  },
+  "respuestas_observadas": {
+    "00 - Login M06": {
+      "status": 200,
+      "ms": 658,
+      "error_code": null,
+      "mensaje": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única."
+    },
+    "01 - Actor y rol del consumidor": {
+      "status": 200,
+      "ms": 142,
+      "error_code": null,
+      "mensaje": null
+    },
+    "02 - Control positivo M06 + metricas": {
+      "status": 200,
+      "ms": 158,
+      "error_code": null,
+      "mensaje": null
+    },
+    "03 - TC-M02-155 - tipo_dato sin scope autorizado": {
+      "status": 403,
+      "ms": 138,
+      "error_code": "SCOPE_TIPO_DATO_NO_AUTORIZADO",
+      "mensaje": "Acceso denegado: El módulo solicitante no tiene autorización para consumir datos de tipo eventos."
+    },
+    "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin": {
+      "status": 400,
+      "ms": 136,
+      "error_code": "PARAMETROS_INVALIDOS",
+      "mensaje": "La fecha de inicio (2026-09-18) no puede ser posterior a la fecha de fin (2026-08-29)."
+    },
+    "05 - TC-M02-156-B - rango de fechas futuro": {
+      "status": 400,
+      "ms": 135,
+      "error_code": "PARAMETROS_INVALIDOS",
+      "mensaje": "La fecha de inicio (2026-09-29) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos."
+    },
+    "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango": {
+      "status": 422,
+      "ms": 157,
+      "error_code": "METRICAS_PESO_INSUFICIENTES",
+      "mensaje": "Información incompleta: El activo 279 no registra métricas de peso necesarias para el cálculo de transformación biológica en el rango de fechas solicitado."
+    },
+    "07 - Verificacion complementaria - advertencia de peso fuera del rango": {
+      "status": 200,
+      "ms": 166,
+      "error_code": null,
+      "mensaje": null
+    }
+  },
+  "control_positivo_superado": true,
+  "veredicto": {
+    "TC-M02-155": "APROBADO",
+    "TC-M02-156-A": "APROBADO",
+    "TC-M02-156-B": "APROBADO",
+    "TC-M02-157": "APROBADO",
+    "TC-M02-156": "APROBADO",
+    "TC-M02-G93": "APROBADO"
+  },
+  "seguimiento_issues": {
+    "#390 (scope granular por tipo_dato)": "CORREGIDO Y VERIFICADO EN V3",
+    "#242 (rango de fechas futuro)": "CORREGIDO Y VERIFICADO EN V3",
+    "#391 (identidad M06 y regla 422 NIC-41)": "CORREGIDO Y VERIFICADO EN V3",
+    "#392 (advertencia de peso fuera del rango)": "CORREGIDO Y VERIFICADO EN V3",
+    "#393 (fuga de detalles de validacion)": "CORREGIDO Y VERIFICADO EN V3"
+  },
+  "newman": {
+    "html": "newman-g93-v3.html",
+    "json": "newman-g93-v3.json",
+    "stats": {
+      "total": 33,
+      "pending": 0,
+      "failed": 0
+    },
+    "aserciones": [
+      {
+        "request": "00 - Login M06",
+        "test": "00: la identidad tecnica M06 autentica",
+        "ok": true
+      },
+      {
+        "request": "01 - Actor y rol del consumidor",
+        "test": "01: /usuarios/me 200",
+        "ok": true
+      },
+      {
+        "request": "01 - Actor y rol del consumidor",
+        "test": "01: el consumidor es la identidad tecnica M06",
+        "ok": true
+      },
+      {
+        "request": "01 - Actor y rol del consumidor",
+        "test": "01: el rol es Integracion M06",
+        "ok": true
+      },
+      {
+        "request": "01 - Actor y rol del consumidor",
+        "test": "01: la cuenta esta activa",
+        "ok": true
+      },
+      {
+        "request": "02 - Control positivo M06 + metricas",
+        "test": "02: HTTP 200 — token valido, activo visible, permiso general y scope metricas",
+        "ok": true
+      },
+      {
+        "request": "02 - Control positivo M06 + metricas",
+        "test": "02: responde el activo solicitado",
+        "ok": true
+      },
+      {
+        "request": "02 - Control positivo M06 + metricas",
+        "test": "02: devuelve JSON de exito con la seccion de metricas",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-155 - tipo_dato sin scope autorizado",
+        "test": "TC-M02-155: HTTP 403",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-155 - tipo_dato sin scope autorizado",
+        "test": "TC-M02-155: el rechazo proviene del scope granular por tipo_dato",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-155 - tipo_dato sin scope autorizado",
+        "test": "TC-M02-155: el mensaje identifica el tipo_dato solicitado",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-155 - tipo_dato sin scope autorizado",
+        "test": "TC-M02-155: el mensaje indica falta de autorizacion del modulo solicitante",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-155 - tipo_dato sin scope autorizado",
+        "test": "TC-M02-155: la respuesta no expone datos consolidados del activo",
+        "ok": true
+      },
+      {
+        "request": "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin",
+        "test": "TC-M02-156-A: HTTP 400",
+        "ok": true
+      },
+      {
+        "request": "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin",
+        "test": "TC-M02-156-A: error_code PARAMETROS_INVALIDOS",
+        "ok": true
+      },
+      {
+        "request": "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin",
+        "test": "TC-M02-156-A: el motivo funcional se refiere al orden del rango",
+        "ok": true
+      },
+      {
+        "request": "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin",
+        "test": "TC-M02-156-A: la respuesta no expone datos consolidados del activo",
+        "ok": true
+      },
+      {
+        "request": "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin",
+        "test": "TC-M02-156-A (#393): el error no expone detalles internos de validacion",
+        "ok": true
+      },
+      {
+        "request": "05 - TC-M02-156-B - rango de fechas futuro",
+        "test": "TC-M02-156-B: HTTP 400",
+        "ok": true
+      },
+      {
+        "request": "05 - TC-M02-156-B - rango de fechas futuro",
+        "test": "TC-M02-156-B: error_code PARAMETROS_INVALIDOS",
+        "ok": true
+      },
+      {
+        "request": "05 - TC-M02-156-B - rango de fechas futuro",
+        "test": "TC-M02-156-B: el motivo se refiere a la condicion temporal futura",
+        "ok": true
+      },
+      {
+        "request": "05 - TC-M02-156-B - rango de fechas futuro",
+        "test": "TC-M02-156-B: la respuesta no expone datos consolidados del activo",
+        "ok": true
+      },
+      {
+        "request": "05 - TC-M02-156-B - rango de fechas futuro",
+        "test": "TC-M02-156-B (#393): el error no expone detalles internos de validacion",
+        "ok": true
+      },
+      {
+        "request": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+        "test": "TC-M02-157: HTTP 422",
+        "ok": true
+      },
+      {
+        "request": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+        "test": "TC-M02-157: error_code METRICAS_PESO_INSUFICIENTES",
+        "ok": true
+      },
+      {
+        "request": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+        "test": "TC-M02-157: el mensaje identifica la insuficiencia de PESO en el rango",
+        "ok": true
+      },
+      {
+        "request": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+        "test": "TC-M02-157: no es un 422 generico de validacion de entrada",
+        "ok": true
+      },
+      {
+        "request": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+        "test": "TC-M02-157: la respuesta no expone datos consolidados del activo",
+        "ok": true
+      },
+      {
+        "request": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+        "test": "TC-M02-157 (#393): el error no expone detalles internos de validacion",
+        "ok": true
+      },
+      {
+        "request": "07 - Verificacion complementaria - advertencia de peso fuera del rango",
+        "test": "#392: HTTP 200 — existe al menos un PESO en el rango, no aplica el 422",
+        "ok": true
+      },
+      {
+        "request": "07 - Verificacion complementaria - advertencia de peso fuera del rango",
+        "test": "#392: metricas_actuales sigue visible",
+        "ok": true
+      },
+      {
+        "request": "07 - Verificacion complementaria - advertencia de peso fuera del rango",
+        "test": "#392: la respuesta incluye advertencia_peso_fuera_de_rango",
+        "ok": true
+      },
+      {
+        "request": "07 - Verificacion complementaria - advertencia de peso fuera del rango",
+        "test": "#392: la advertencia aclara que el peso mostrado no pertenece al periodo solicitado",
+        "ok": true
+      }
+    ]
+  },
+  "git": {
+    "frontend": {
+      "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+      "head": "ad2b1e59bb872491bae368ae812993a3ded08d63",
+      "status": "?? testing/test_testing/Modulo9/RF-17/TC-M09-G22/EvaluacionV3/\n?? testing/test_testing/Modulo9/RF-17/TC-M09-G28/EvaluacionV3/\n?? testing/test_testing/Modulo9/RF-17/TC-M09-G31/EvaluacionV3/",
+      "indice": "(vacio)",
+      "head_vs_origin_test": "0\t2"
+    },
+    "backend": {
+      "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+      "head": "91f7738667a934a4eaf3db5519a57d7cf4803b0e",
+      "status": "?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G92/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G93/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G30/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G32/EvaluacionV3/",
+      "indice": "(vacio)",
+      "head_vs_origin_test": "0\t0"
+    }
+  },
+  "seguridad": {
+    "fecha": "2026-09-28T00:14:51.688Z",
+    "archivosEscaneados": 4,
+    "archivosComprometidos": 0,
+    "hallazgos": []
+  }
+}

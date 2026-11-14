@@ -1,0 +1,24 @@
+{
+  "grupo": "G89",
+  "version": 2,
+  "intento": 5,
+  "run_id": "RUN-G89-V2-20261030-212919",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G89-V2-R3-20261030",
+  "casos": [
+    "TC-M03-173",
+    "TC-M03-174"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M03-173",
+      "TC-M03-174"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reintento técnico de la V2 (intento 5). RUN-G89-V2-20261030-211230 (TÉCNICO, rollback CONFIRMADO): las altas de alerta de 37 °C y 31 °C respondieron 422 por la regla compuesta ESTRES_TERMICO (REGLA_COMPUESTA_NO_ACTIVADA: la temperatura ambiental exige THI con humedad). ORD-G89-012: cada alta incluye correlacion_variables HUMEDAD_RELATIVA=40 (dato del evento) → THI 85,20/77,97/81,58 con severidad CRITICO/LEVE/MODERADO; validado localmente contra el DTO y reglas_base_rf57 del backend (pruebas/validar_alertas_rf57.py: DTO=OK, condición=OK); se guarda el cuerpo de toda respuesta no 2xx. Ensayo del responsable QA 14/14 y --comprobar válido. SHA-256 g89.mjs b9cebe3a0b037ed5ecc1cdda6bfc4bc946a323dab73dba85b2f797cc0fcf70ef; colección 3f3d3a7e6aff9416139926f46469666c4c917616938d9c857dbdbcf8a37140ad.",
+    "incumplimientos_previos": "V1 oficial RUN-G89-V1-20261025-045219: 173 APROBADO; 174 RECHAZADO, INC-G89-174-01 (tras RESUELTA de la alerta 299 LEVE y DESCARTADA de la 300 MODERADO, el dashboard devolvió AMARILLO con id_alerta=null; API-174-02 y API-174-04).",
+    "correcciones_informadas": "Desarrollo, issue #705 / PR #732: recálculo del semáforo tras RESUELTA o DESCARTADA con la última lectura válida, los umbrales RF-17, la conectividad y las demás alertas abiertas; best-effort; sin migración.",
+    "resultado_esperado": "173 APROBADO: con CRITICO activa → ROJO con su id_alerta. 174 APROBADO: LEVE activa → AMARILLO y al resolverla → VERDE con id_alerta null; MODERADO activa → AMARILLO y al descartarla → VERDE con id_alerta null; sin nueva ingesta. INC-G89-174-01 CORREGIDA si se cumple."
+  },
+  "version_anterior": 1
+}

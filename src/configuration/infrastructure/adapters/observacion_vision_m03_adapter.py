@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: excluir observaciones de otras areas de la camara. |
 """Observaciones de visión de M03 para la calibración VISION de RF-24 (RF-53/RF-62 v2.0).
 
 Lee ``modulo3.observaciones_vision`` (POST /iot/telemetria/vision), donde M03 ya
@@ -24,16 +27,19 @@ class ObservacionVisionM03Adapter(ObservacionVisionPort):
         ids_dispositivos: list[int],
         inicio: datetime.datetime,
         fin: datetime.datetime,
+        *,
+        id_infraestructura: int | None = None,
     ) -> list[ObservacionVision]:
-        filas = (
+        consulta = (
             self.db.query(ObservacionVisionModel)
             .filter(
                 ObservacionVisionModel.id_dispositivo_iot.in_(ids_dispositivos),
                 ObservacionVisionModel.fecha_observacion.between(inicio, fin),
             )
-            .order_by(ObservacionVisionModel.fecha_observacion)
-            .all()
         )
+        if id_infraestructura is not None:
+            consulta = consulta.filter(ObservacionVisionModel.id_infraestructura == id_infraestructura)
+        filas = consulta.order_by(ObservacionVisionModel.fecha_observacion).all()
         return [
             ObservacionVision(
                 id_dispositivo_iot=f.id_dispositivo_iot,

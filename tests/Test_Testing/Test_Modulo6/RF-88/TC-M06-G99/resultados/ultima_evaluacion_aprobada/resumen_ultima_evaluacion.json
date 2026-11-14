@@ -1,0 +1,82 @@
+{
+  "caso": "TC-M06-G99",
+  "identificador_vigente": "TC-M06-G99",
+  "identificador_historico_del_issue": "TC-M06-G71",
+  "issue": "972",
+  "modulo": 6,
+  "requisitos": ["RF-87", "RF-88", "RF-93"],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fecha": "2026-11-10",
+  "zona": "America/Bogota",
+  "resultado": "APROBADO",
+  "clasificacion": "APROBADO",
+  "aprobados": 2,
+  "fallidos": 0,
+  "bloqueados": 0,
+  "denominador": 2,
+  "porcentaje": 100,
+  "cierre_enviado": true,
+  "segundo_cierre_enviado": true,
+  "periodo_220_consultado": false,
+  "sql": false,
+  "dependencia": {
+    "caso": "TC-M06-G111",
+    "subcaso": "TC-M06-41",
+    "identificador_anterior": "TC-M06-G83",
+    "issue": "987",
+    "resultado": "APROBADO",
+    "id_registro_costo": 1690,
+    "cierre_bloqueado_http": 422,
+    "cierre_bloqueado_codigo": "CIERRE_BLOQUEADO",
+    "periodo_219_tras_el_bloqueo": "ABIERTO"
+  },
+  "datos": {
+    "nit": "900000002",
+    "razon_social": "QA M06 Cierre SAS",
+    "id_finca": 466,
+    "id_periodo": 219,
+    "estado_final_periodo": "CERRADO",
+    "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+    "id_cierre": 43,
+    "id_periodo_siguiente": 260,
+    "activo_costo": 1567,
+    "codigo_costo": "QA-M06C-COSTO-01",
+    "fecha_ingreso": "2026-07-31",
+    "costo": "4500000.0000",
+    "vida_util_meses": 120,
+    "depreciacion_acumulada": "112500.0000",
+    "valor_contable": "4387500.0000",
+    "linea_depreciacion": 2628,
+    "importe_linea": "112500.00",
+    "evento_depreciacion": 9614,
+    "evento_medicion_pendiente": 9615,
+    "activo_valor_razonable": 1568,
+    "depreciacion_en_1568": false
+  },
+  "calculo": {
+    "fecha_inicial": "2026-07-31",
+    "dia_de_cierre": "2026-11-10",
+    "meses": 3,
+    "importe": "112500.00",
+    "regla": "Meses calendario entre 2026-07-31 y 2026-11-10, menos uno porque el dia 10 es anterior al 31 y no es el ultimo dia de noviembre. 4500000 * 3 / 120."
+  },
+  "validaciones": [
+    {
+      "id": "registro_depreciacion",
+      "resultado": "APROBADO",
+      "http_cierre": 200,
+      "linea": "DEPRECIACION_ACTIVO_COSTO",
+      "importe": "112500.00",
+      "evento": "DEPRECIACION_REGISTRADA"
+    },
+    {
+      "id": "prevencion_duplicados",
+      "resultado": "APROBADO",
+      "http_segundo_cierre": 409,
+      "codigo": "PERIODO_CERRADO",
+      "lineas_depreciacion_despues": 1,
+      "eventos_depreciacion_despues": 1
+    }
+  ],
+  "conclusion": "TC-M06-G99 queda APROBADO. El periodo 219 quedo CERRADO. El segundo cierre no duplico la depreciacion."
+}

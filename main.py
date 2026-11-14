@@ -1,10 +1,42 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
+# | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
+# | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura imports perdidos en el merge dev → test (sandbox y X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
+# | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: tarea periodica de reenvio de paquetes de inferencia |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: router de consulta de paquetes de inferencia |
+# | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
+# | 2026-10-28 | Arekkazu | BE-0 RF-55: router del CRUD de reglas de alerta |
+# | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: router de la política de visión |
+# | 2026-10-29 | Arekkazu | PEND-456 RF-66: router del monitor de inferencia |
+# | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: router de la ventana de retroalimentación |
+# | 2026-10-31 | Arekkazu | PR-891 RF-61: tarea diaria que crea las particiones mensuales de telemetrias |
+# | 2026-11-02 | Arekkazu | RFC-021 RF-110: router de la topología sanitaria (aristas entre áreas) |
+# | 2026-11-02 | Arekkazu | RF-66: router de lo que ve la cámara de un área |
+# | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas internas para que el motor IA arme su catálogo solo |
+# | 2026-11-02 | Arekkazu | AJF-07 RF-53: registrar el router de lectura de ingesta |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: vigilante de reentrenamientos sin latido |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-04 | Arekkazu | M06 RF-82..94: router /finanzas y proceso de fondo NIC 41 |
+# | 2026-11-06 | Arekkazu | M07 RF-95..102: routers de integración AAEF y transiciones de contratos |
+# | 2026-11-08 | Arekkazu | INC-M06-333-G89 RF-60: la evaluación de dispositivos corre en un hilo y no congela la API |
+# | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
+# | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: el directorio de logos se crea al arrancar; un logo ausente responde 404 |
+# | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: router de ciclos productivos |
 import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 
 from audit_sdk.context_fastapi import AuditContextMiddleware
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -24,13 +56,18 @@ logger = logging.getLogger(__name__)
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
+from src.configuration.infrastructure.routers.ciclo_productivo_router import router as ciclo_productivo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
+from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
+from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
+from src.configuration.infrastructure.routers.parametros_retroalimentacion_router import router as parametros_retroalimentacion_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
 from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import router as tipo_dispositivo_iot_router
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
+from src.configuration.infrastructure.routers.topologia_sanitaria_router import router as topologia_sanitaria_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.calibracion_vision_router import router as calibracion_vision_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
@@ -50,12 +87,20 @@ from src.telemetry.infrastructure.routers.evento_edge_router import router as ev
 from src.telemetry.infrastructure.routers.alerta_router import router as alerta_router
 from src.telemetry.infrastructure.routers.monitoreo_router import router as monitoreo_router
 from src.telemetry.infrastructure.routers.infraestructura_iot_router import router as infraestructura_iot_router
+from src.telemetry.infrastructure.routers.ingesta_iot_router import router as ingesta_iot_router
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
+from src.telemetry.infrastructure.routers.paquete_inferencia_router import router as paquete_inferencia_router
+from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
+from src.telemetry.infrastructure.routers.regla_alerta_router import router as regla_alerta_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
+from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
+from src.prediction.infrastructure.routers.monitor_prediccion_router import router as monitor_prediccion_router
+from src.prediction.infrastructure.routers.motor_catalogo_router import router as motor_catalogo_router
+from src.prediction.infrastructure.routers.captura_camara_router import router as captura_camara_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
 from src.prediction.infrastructure.routers.retroalimentacion_clinica_router import router as retroalimentacion_clinica_router
@@ -72,6 +117,8 @@ from src.supplies.infrastructure.routers.batch_historial_suministros_router impo
 )
 from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo_suministros_router
 from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
+from src.financial_valuation.infrastructure.routers.m06_router import router as m06_router
+from src.accounting_integration.infrastructure.routers.m07_router import router as m07_router
 from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria_suministros_router
 from src.identity_access.infrastructure.routers.agrofusion_integration_router import router as agrofusion_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
@@ -83,7 +130,9 @@ from src.shared import almacen_logos
 from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
-from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
+from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware, documentar_zona_horaria
+from src.shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
+from src.shared.rollback.presentation.test_control_router import router as test_control_router
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -95,6 +144,7 @@ async def _evaluar_dispositivos_periodicamente() -> None:
     from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
     from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_repository import SqlAlchemyHistoricoTransicionDispositivoRepository
     from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
+    from src.telemetry.infrastructure.adapters.parametros_heartbeat_mlops_adapter import ParametrosHeartbeatMLOpsAdapter
 
     while True:
         await asyncio.sleep(60)
@@ -107,12 +157,132 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 periodo_repo=SqlAlchemyPeriodoInactividadRepository(db),
                 alerta_repo=SqlAlchemyAlertaRepository(db),
                 historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+                parametros_port=ParametrosHeartbeatMLOpsAdapter(db),
             )
-            n = use_case.execute()
+            # En un hilo, como las demás tareas: si la consulta espera un bloqueo de la BD no congela
+            # el event loop (con la llamada directa, toda la API dejaba de responder).
+            n = await asyncio.to_thread(use_case.execute)
             if n > 0:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
             logger.exception('Error en tarea periódica de evaluación de dispositivos.')
+        finally:
+            db.close()
+
+
+async def _vigilar_reentrenamientos_periodicamente() -> None:
+    """AJF-14 BE-5: un reentrenamiento EN_CURSO sin latido por más de 15 min pasa a
+    INTERRUMPIDO (el contenedor del motor se reinició a mitad). Cada 5 min."""
+    from src.shared.database import sesion_sistema
+    from src.prediction.application.use_cases.reentrenamiento.procesar_reentrenamiento_use_case import (
+        ProcesarReentrenamientoUseCase,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
+    from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+        SqlAlchemyProcesoReentrenamientoRepository,
+    )
+
+    while True:
+        await asyncio.sleep(300)
+        db = sesion_sistema()
+        try:
+            use_case = ProcesarReentrenamientoUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+            )
+            n = await asyncio.to_thread(use_case.vigilar)
+            if n > 0:
+                logger.warning('VigilarReentrenamientos: %d procesos sin latido pasaron a INTERRUMPIDO.', n)
+        except Exception:
+            logger.exception('VigilarReentrenamientos: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _programar_reentrenamientos_periodicamente() -> None:
+    """AJF-14 BE-6: cada hora abre procesos PROGRAMADO para versiones más viejas que
+    ``dias_reentrenamiento_programado`` (parámetro MLOps; 0 = apagado, el valor base)."""
+    from src.shared.database import sesion_sistema
+    from src.prediction.application.use_cases.reentrenamiento.programar_reentrenamientos_use_case import (
+        ProgramarReentrenamientosUseCase,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+        SqlAlchemyProcesoReentrenamientoRepository,
+    )
+
+    while True:
+        await asyncio.sleep(3600)
+        db = sesion_sistema()
+        try:
+            use_case = ProgramarReentrenamientosUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                parametros=SqlAlchemyParametrosMLOpsRepository(db),
+                auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('ProgramarReentrenamientos: %d procesos PROGRAMADO abiertos.', n)
+        except Exception:
+            logger.exception('ProgramarReentrenamientos: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _vencer_alertas_sla_periodicamente() -> None:
+    """Tarea periódica RF-57 E10 (DEV-31): alertas ACTIVA con el SLA cumplido → VENCIDA, cada 60 s."""
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.vencer_alertas_sla_use_case import VencerAlertasSlaUseCase
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            use_case = VencerAlertasSlaUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('VencerAlertasSla: %d alertas pasaron a VENCIDA.', n)
+        except Exception:
+            logger.exception('VencerAlertasSla: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _notificar_alertas_periodicamente() -> None:
+    """Tarea periódica RF-57 Fase 8 / E6 / E7 / E8 (DEV-32): notifica las alertas nuevas cada 10 s."""
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.notificar_alertas_use_case import NotificarAlertasUseCase
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+    from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
+    while True:
+        await asyncio.sleep(10)
+        db = sesion_sistema()
+        try:
+            use_case = NotificarAlertasUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+                parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('NotificarAlertas: %d alertas notificadas.', n)
+        except Exception:
+            logger.exception('NotificarAlertas: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -130,6 +300,18 @@ async def _ejecutar_batch_ica_diario() -> None:
     from src.supplies.infrastructure.repositories.configuracion_batch_ica_repository import (
         SqlAlchemyConfiguracionBatchICARepository,
     )
+
+    from src.supplies.infrastructure.factories.eficiencia_factory import build_interrumpir_batch_use_case
+
+    db = sesion_sistema()
+    try:  # una corrida que quedó en vuelo al reiniciar bloquearía todas las noches siguientes
+        huerfanas = build_interrumpir_batch_use_case(db).interrumpir_huerfanas()
+        if huerfanas:
+            logger.warning("Batch ICA: corridas huérfanas interrumpidas al arrancar: %s", huerfanas)
+    except Exception:
+        logger.exception("Batch ICA: no se pudieron interrumpir las corridas huérfanas.")
+    finally:
+        db.close()
 
     while True:
         hora = dtime(2, 0)
@@ -162,6 +344,33 @@ async def _ejecutar_batch_ica_diario() -> None:
             logger.exception("Error en el batch ICA nocturno.")
         finally:
             db.close()
+
+
+async def _asegurar_particiones_telemetrias_diariamente() -> None:
+    """RF-61: crea por adelantado las particiones mensuales de ``modulo3.telemetrias``.
+
+    Corre al iniciar y luego cada 24 h; la función de BD crea el mes actual y los 6
+    siguientes y es idempotente. Si deja de correr más de 6 meses, las lecturas caen
+    en la partición DEFAULT y ese mes ya no se puede particionar sin mover filas.
+    """
+    from sqlalchemy import text
+
+    from src.shared.database import sesion_sistema
+
+    def asegurar() -> None:
+        db = sesion_sistema()
+        try:
+            db.execute(text("SELECT modulo3.fn_asegurar_particiones_telemetrias()"))
+            db.commit()
+        finally:
+            db.close()
+
+    while True:
+        try:
+            await asyncio.to_thread(asegurar)
+        except Exception:
+            logger.exception("Error creando las particiones mensuales de telemetrias.")
+        await asyncio.sleep(24 * 60 * 60)
 
 
 async def _revertir_retiros_vencidos_diariamente() -> None:
@@ -342,6 +551,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
     from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.historial_suministros_factory import (
         build_procesar_cola_historial_suministros_use_case,
+        build_purgar_archivos_vencidos_use_case,
     )
     from src.supplies.infrastructure.repositories.configuracion_batch_historial_repository import (
         SqlAlchemyConfiguracionBatchHistorialRepository,
@@ -369,6 +579,100 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
             logger.exception("Error en el poller de trabajos de historial de suministros.")
         finally:
             db.close()
+
+        # RF-77 (24 h) / RF-81 (72 h): purga de archivos exportados vencidos.
+        db = sesion_sistema()
+        try:
+            purgados = build_purgar_archivos_vencidos_use_case(db).execute()
+            if purgados:
+                logger.info("Purga de exportaciones de M05: %d archivo(s) vencido(s).", purgados)
+        except Exception:
+            logger.exception("Error purgando los archivos exportados vencidos de M05.")
+        finally:
+            db.close()
+
+
+async def _despachar_provisiones_m06_periodicamente() -> None:
+    """RF-79: entrega a M06 los eventos del outbox de provisiones (CA-1: ≤ 5 s)."""
+    from src.shared.database import sesion_sistema
+    from src.supplies.infrastructure.factories.provision_nic41_factory import (
+        build_despachar_provisiones_m06_use_case,
+    )
+
+    while True:
+        await asyncio.sleep(2)
+
+        def despachar() -> int:
+            db = sesion_sistema()
+            try:
+                return build_despachar_provisiones_m06_use_case(db).ejecutar()
+            finally:
+                db.close()
+
+        try:
+            await asyncio.to_thread(despachar)
+        except Exception:
+            logger.exception("Error en el despachador de provisiones hacia M06.")
+
+
+async def _procesar_m06_periodicamente() -> None:
+    """M06: incorpora los costos de M05 (RF-90), mide los eventos de M02 (RF-83/85) y, una vez al día,
+    vence cotizaciones (RF-COT) y avisa los precios próximos a vencer (RF-89 FA-4/FA-5)."""
+    from datetime import date, datetime, timezone
+
+    from src.financial_valuation.infrastructure.factories.m06_factory import M06
+    from src.financial_valuation.application.use_cases.precios.alertar_vencimiento_precios_use_case import (
+        AlertarVencimientoPreciosUseCase,
+    )
+    from src.shared.database import sesion_sistema
+
+    ultimo_diario: date | None = None
+
+    def procesar(diario: bool) -> None:
+        db = sesion_sistema()
+        try:
+            m06 = M06(db)
+            m06.procesar_provisiones().execute(500)
+            m06.procesar_eventos().execute(500)
+            if diario:
+                m06.modificar_cotizacion().vencer()
+                AlertarVencimientoPreciosUseCase(m06.precios, m06.config, m06.notificador).execute()
+        finally:
+            db.close()
+
+    while True:
+        await asyncio.sleep(60)
+        hoy = datetime.now(timezone.utc).date()
+        try:
+            await asyncio.to_thread(procesar, ultimo_diario != hoy)
+            ultimo_diario = hoy
+        except Exception:
+            logger.exception("Error en el proceso de fondo de M06 (NIC 41).")
+
+
+async def _procesar_vigencias_contratos_aaef_periodicamente() -> None:
+    """RF-98 Fases 2 y 6: activa los contratos AAEF que llegan a su vigencia e inactiva los que
+    terminan la gracia. La activación manual existe para no esperar este ciclo."""
+    from datetime import datetime, timezone
+
+    from src.accounting_integration.infrastructure.factoria import M07
+    from src.shared.database import sesion_sistema
+
+    def procesar() -> int:
+        db = sesion_sistema()
+        try:
+            return M07(db).gestionar_contratos().procesar_vigencias(datetime.now(timezone.utc).date())
+        finally:
+            db.close()
+
+    while True:
+        try:
+            n = await asyncio.to_thread(procesar)
+            if n:
+                logger.info("M07: %s transiciones de contratos AAEF aplicadas.", n)
+        except Exception:
+            logger.exception("Error en las vigencias de los contratos AAEF (M07).")
+        await asyncio.sleep(300)
 
 
 async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
@@ -444,6 +748,76 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
             await asyncio.to_thread(procesar_buffer_bitacora, SqlAlchemyBitacoraAuditoriaRepository(db), db)
         except Exception:
             logger.exception("Error vaciando el buffer de la bitácora de M02.")
+        finally:
+            db.close()
+
+
+async def _liberar_ota_programadas_periodicamente() -> None:
+    """RF-70 E1: avisa ota/notify a los despliegues PROGRAMADO pospuestos cuando abre su ventana."""
+    from src.prediction.application.use_cases.ota.liberar_despliegues_programados_use_case import (
+        LiberarDesplieguesProgramadosUseCase,
+    )
+    from src.prediction.infrastructure.adapters.ota_edge_adapters import (
+        AvisoOtaBrokerAdapter,
+        NodoOtaM09Adapter,
+        UrlDescargaHmacAdapter,
+    )
+    from src.prediction.infrastructure.repositories.despliegue_ota_repository import SqlAlchemyDespliegueOtaRepository
+    from src.prediction.infrastructure.repositories.distribucion_ota_repository import (
+        SqlAlchemyDistribucionOtaRepository,
+    )
+    from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+    from src.shared.database import sesion_sistema
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(LiberarDesplieguesProgramadosUseCase(
+                db=db,
+                version_repo=SqlAlchemyVersionModeloRepository(db),
+                distribucion_repo=SqlAlchemyDistribucionOtaRepository(db),
+                despliegue_repo=SqlAlchemyDespliegueOtaRepository(db),
+                nodo_port=NodoOtaM09Adapter(db),
+                aviso_port=AvisoOtaBrokerAdapter(),
+                url_port=UrlDescargaHmacAdapter(),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudieron liberar las distribuciones OTA programadas; se reintentará.")
+        finally:
+            db.close()
+
+
+async def _sincronizar_respaldo_auditoria_m04_periodicamente() -> None:
+    """RF-73 E8: cuando la BD vuelve, lleva a la bitácora de M04 lo que quedó en el
+    respaldo local (audit_fallback_M04_YYYYMMDD.log). Sin respaldo no toca la BD."""
+    from src.prediction.application.use_cases.auditoria.sincronizar_respaldo_auditoria_m04_use_case import (
+        SincronizarRespaldoAuditoriaM04UseCase,
+    )
+    from src.prediction.infrastructure.adapters.aviso_auditoria_m04_email_adapter import AvisoAuditoriaM04EmailAdapter
+    from src.prediction.infrastructure.adapters.respaldo_auditoria_m04_archivo_adapter import (
+        RespaldoAuditoriaM04ArchivoAdapter,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
+        SqlAlchemyEventoAuditoriaM04Repository,
+    )
+    from src.shared.database import sesion_sistema
+
+    respaldo = RespaldoAuditoriaM04ArchivoAdapter()
+    while True:
+        await asyncio.sleep(30)
+        if not respaldo.hay_pendientes():
+            continue
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(SincronizarRespaldoAuditoriaM04UseCase(
+                db=db,
+                repo=SqlAlchemyEventoAuditoriaM04Repository(db, respaldo),
+                respaldo=respaldo,
+                aviso=AvisoAuditoriaM04EmailAdapter(db),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudo sincronizar el respaldo de auditoría de M04; se reintentará.")
         finally:
             db.close()
 
@@ -531,16 +905,33 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.respaldo_auditoria_iot_worker import sincronizar_respaldo_auditoria_iot_periodicamente
+    from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
+    from src.telemetry.infrastructure.workers.reenvio_inferencia_worker import reenviar_paquetes_inferencia_periodicamente
+
     tasks = [
+        asyncio.create_task(procesar_postcommit_periodicamente()),
+        asyncio.create_task(sincronizar_respaldo_auditoria_iot_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
+        asyncio.create_task(_vencer_alertas_sla_periodicamente()),
+        asyncio.create_task(_notificar_alertas_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
+        asyncio.create_task(_asegurar_particiones_telemetrias_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
+        asyncio.create_task(_despachar_provisiones_m06_periodicamente()),
+        asyncio.create_task(_procesar_m06_periodicamente()),
+        asyncio.create_task(_procesar_vigencias_contratos_aaef_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
+        asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
+        asyncio.create_task(_liberar_ota_programadas_periodicamente()),
+        asyncio.create_task(_vigilar_reentrenamientos_periodicamente()),
+        asyncio.create_task(_programar_reentrenamientos_periodicamente()),
+        asyncio.create_task(reenviar_paquetes_inferencia_periodicamente()),
     ]
     yield
     for task in tasks:
@@ -570,6 +961,13 @@ lo que el cliente debe interpretar (y traducir).
 
 **Concurrencia optimista.** Las ediciones piden el `fecha_actualizacion` o la
 `version` leídos; si el registro cambió entretanto responden 412.
+
+**Fechas y zona horaria.** Los instantes se guardan y se devuelven en UTC; se
+envían en ISO 8601 con zona (`2026-10-23T22:00:00-05:00` o `...Z`) y uno sin
+zona se toma como UTC. Los días calendario van como `YYYY-MM-DD`. "Hoy", las
+fechas futuras, los filtros por día y las horas de los mensajes se calculan en
+la zona de la cabecera `X-Zona-Horaria` (ej. `America/Bogota`), que cada
+endpoint documenta; sin ella, en UTC.
 """
 
 # Descripción de los tags de M01, M02 y M09; el orden aquí es el de Swagger.
@@ -581,7 +979,11 @@ TAGS_OPENAPI = [
     {"name": "Auditoría", "description": "M01 · Historial inmutable de eventos con verificación de integridad, archivo histórico y exportación CSV (RF-10)."},
     {"name": "Roles y Permisos", "description": "M01 · CRUD de roles y asignación de permisos recurso + acción (RF-03, RF-04)."},
     {"name": "Notificaciones", "description": "M01 · Bandeja interna de notificaciones del usuario (RF-14)."},
-    {"name": "Integración AgroFusion", "description": "M01 · API servidor a servidor para el Hub de AgroFusion; se autentica con `client_id`/`client_secret`, no con JWT."},
+    {"name": "Integración AgroFusion", "description": "M07 · Canal de identidad de AgroFusion (RF-SSO02): `POST /token` recibe `client_id`/`client_secret` y emite un token de canal; las operaciones de usuario usan ese token como `Bearer`."},
+    {"name": "M07 · Consulta contable AAEF", "description": "M07 · Documento contable AAEF de un productor para AgroFusion (RF-95, RF-97, RF-AE01) y su vista previa para el Contador."},
+    {"name": "M07 · Clientes externos", "description": "M07 · Sistemas externos autorizados, sus credenciales y canales (RF-101)."},
+    {"name": "M07 · Contrato AAEF y anexo de mapeo", "description": "M07 · Versiones del contrato AAEF y anexo de mapeo (RF-98, RF-AE02)."},
+    {"name": "M07 · Auditoría de integración", "description": "M07 · Historial inmutable de la integración con verificación de integridad (RF-102)."},
     {"name": "Activos Biológicos", "description": "M02 · Registro, fases, eventos, historial, fichas, transferencias, sensores, indicadores y bitácora de los activos biológicos (RF-33 a RF-52)."},
     {"name": "Infraestructuras (Sensores IoT)", "description": "M02 · Asociación ambiental de sensores a una infraestructura completa (RF-49 Tipo B)."},
     {"name": "Configuración - Especies", "description": "M09 · Catálogo maestro de especies productivas (RF-15)."},
@@ -612,6 +1014,8 @@ app = FastAPI(
     description=DESCRIPCION_API,
     version="1.0.0",
     openapi_tags=TAGS_OPENAPI,
+    # Cabecera X-Zona-Horaria en cada endpoint de Swagger (ver src/shared/fechas.py).
+    dependencies=[Depends(documentar_zona_horaria)],
 )
 
 # Allowlist explícita, sin depender de que ENV valga literalmente "production"
@@ -622,6 +1026,8 @@ allowed_origins = [
     for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+app.add_middleware(TestSandboxMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -632,10 +1038,12 @@ app.add_middleware(
     allow_headers=["*"],
     # Sin esto el navegador oculta al frontend cualquier cabecera propia: el
     # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan,
-    # ni cuándo reintentar tras un 429 del limitador de tasa (#495).
+    # ni cuándo reintentar tras un 429 del limitador de tasa (#495), ni la versión del
+    # contrato y la huella del documento AAEF en la vista previa de M07.
     expose_headers=[
         "Content-Disposition", "X-Total-Registros", "X-Registros-Exportados",
         "Retry-After", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset",
+        "X-Request-Id", "X-Version-Contrato-AAEF", "X-Content-SHA256",
     ],
 )
 
@@ -654,11 +1062,20 @@ app.add_middleware(SecurityHeadersMiddleware)
 # devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
 # `check_dir=False` porque el directorio solo aparece con el primer logotipo
 # subido; exigirlo al arrancar tumbaría un despliegue limpio.
+# Sin el directorio, StaticFiles responde 500 a cualquier logo; con él, uno que falta da 404.
+try:
+    os.makedirs(almacen_logos.DIRECTORIO_LOGOS, exist_ok=True)
+except OSError:
+    logger.exception("No se pudo crear el directorio de logos %s", almacen_logos.DIRECTORIO_LOGOS)
 app.mount(
     almacen_logos.RUTA_PUBLICA_LOGOS,
     StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
+
+if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() == "true":
+    logger.warning("MODO PRUEBAS (SANDBOX) HABILITADO. No usar en producción.")
+    app.include_router(test_control_router)
 
 register_error_handlers(app)
 
@@ -668,23 +1085,27 @@ app.include_router(contrasena_router)
 app.include_router(auditoria_router)
 app.include_router(roles_router)
 app.include_router(notificaciones_router)
-if os.getenv("AGROFUSION_HUB_CLIENT_ID"):
-    # Integración M2M con AgroFusion (Mecanismo B) — ni siquiera se expone en
-    # un despliegue standalone sin credenciales configuradas.
-    app.include_router(agrofusion_router)
+# Canal M2M de AgroFusion: siempre montado. Sin un cliente externo registrado en M07
+# (RF-101) nadie obtiene token, así que no expone nada (antes dependía de variables de entorno).
+app.include_router(agrofusion_router)
 app.include_router(activo_biologico_router)
 app.include_router(infraestructura_sensor_router)
 app.include_router(especie_router)
 app.include_router(ciclo_router)
+app.include_router(ciclo_productivo_router)
 app.include_router(patologia_router)
 app.include_router(metrica_router)
 app.include_router(umbral_router)
 app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
+app.include_router(parametros_alertas_router)
+app.include_router(politica_vision_router)
+app.include_router(parametros_retroalimentacion_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)
+app.include_router(topologia_sanitaria_router)
 app.include_router(dispositivo_iot_router)
 app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)
@@ -699,12 +1120,20 @@ app.include_router(evento_edge_router)
 app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
+app.include_router(ingesta_iot_router)
+app.include_router(regla_alerta_edge_router)
+app.include_router(regla_alerta_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
+app.include_router(paquete_inferencia_router)
 app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
+app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
+app.include_router(monitor_prediccion_router)
+app.include_router(motor_catalogo_router)
+app.include_router(captura_camara_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)
 app.include_router(retroalimentacion_clinica_router)
@@ -720,6 +1149,8 @@ app.include_router(batch_historial_suministros_router)
 app.include_router(costeo_suministros_router)
 app.include_router(provision_nic41_router)
 app.include_router(auditoria_suministros_router)
+app.include_router(m06_router)
+app.include_router(m07_router)
 
 @app.get("/", tags=["Health"])
 async def index():

@@ -1,0 +1,2234 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m02-g31-ejecucion-limpia"
+    },
+    "item": [
+      {
+        "id": "77ecfe5c-b0a9-4019-ac3e-dc360ecca3a3",
+        "name": "TC-M02-196",
+        "description": {
+          "content": "Subcaso TC-M02-196: Evaluación de densidad de lote ante evento de crecimiento",
+          "type": "text/plain"
+        },
+        "item": [
+          {
+            "id": "97feaba5-6c5d-47f3-a59c-5809f36838b3",
+            "name": "0. Autenticación Admin (TC-M02-196)",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\",\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "4f0141a8-51d1-4463-a288-0409020a8147",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Autenticación Admin completada', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var res = pm.response.json();",
+                    "    pm.expect(res.token).to.be.a('string');",
+                    "    pm.collectionVariables.set('jwt_token', res.token);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "49d1721a-0011-464f-a656-e0ec0bb9ec9c"
+                }
+              }
+            ]
+          },
+          {
+            "id": "b654e2c9-0d57-48fe-995f-2c4e4a2c6a24",
+            "name": "1. Registrar evento de crecimiento sobre lote 296",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "296",
+                  "eventos",
+                  "crecimiento"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"promedio\",\n  \"frecuencia\": \"semanal\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento para evaluacion de densidad TC-M02-196\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "cf2e8073-b4c5-4bdd-b19e-0b7ec5adbd17",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Respuesta de registro de crecimiento capturada', function () {",
+                    "    console.log('HTTP Status TC-M02-196 Crecimiento:', pm.response.code);",
+                    "    console.log('Body TC-M02-196 Crecimiento:', pm.response.text());",
+                    "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "9d696f37-8daa-43a3-a77b-9ddbe71eeaaa"
+                }
+              }
+            ]
+          },
+          {
+            "id": "973ed4c5-13b8-42bf-8302-73353518cb61",
+            "name": "2. Consultar estado y métricas del lote 296",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "296"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "bbb93b88-baf7-48f3-bb68-59634e9027cb",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Consulta de lote 130 completada', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var res = pm.response.json();",
+                    "    console.log('Lote 130 - Densidad actual:', res.detalle_poblacional ? res.detalle_poblacional.densidad : 'N/A');",
+                    "    console.log('Lote 130 - Cantidad actual:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "b96a11bc-50e8-4ec8-93ab-3da11857ed30"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "e6de632e-dee5-4e1e-83a8-59e9d8d49eee",
+        "name": "TC-M02-197",
+        "description": {
+          "content": "Subcaso TC-M02-197: Baja total sobre lotes existentes 344 y 345",
+          "type": "text/plain"
+        },
+        "item": [
+          {
+            "id": "5ec476a8-935f-4f84-9246-0bb18dca1c09",
+            "name": "0. Autenticación Admin (TC-M02-197)",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\",\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "b400efa9-55b8-428e-8824-075616d3c276",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Autenticación Admin completada', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var res = pm.response.json();",
+                    "    pm.expect(res.token).to.be.a('string');",
+                    "    pm.collectionVariables.set('jwt_token', res.token);",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "7b3b5e86-4826-4cbd-a36b-5800bd449ae2",
+            "name": "1. Aplicar baja total sobre lote 344",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "344",
+                  "eventos",
+                  "baja"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_baja_dinamica}}\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote 344\",\n  \"cantidad_afectada\": 10\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "id": "956efc51-ed8e-40ed-b2cc-ea4c9e3d3ec5",
+                  "type": "text/javascript",
+                  "exec": [
+                    "const safeDate = new Date(Date.now() - 60000).toISOString().split('T')[0];",
+                    "pm.collectionVariables.set('fecha_baja_dinamica', safeDate);"
+                  ]
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "id": "38542010-41f4-4e4f-a31c-fdddf7272a93",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Baja exitosa sobre lote 344 (HTTP 201)', function () {",
+                    "    pm.response.to.have.status(201);",
+                    "    var res = pm.response.json();",
+                    "    pm.expect(res).to.be.an('object');",
+                    "    console.log('HTTP Status Lote 344 Baja:', pm.response.code);",
+                    "    console.log('Body Lote 344:', pm.response.text());",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "f8052fb3-2923-41e8-bc17-3680f5a062ab",
+            "name": "2. Consultar lote 344 tras intento de baja",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "344"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "754f4af4-3eb3-47e0-89ad-82a2039e25f6",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Consulta de lote 344 completada (HTTP 200)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var res = pm.response.json();",
+                    "    console.log('Lote 344 Estado actual:', res.nombre_estado, 'ID Estado:', res.id_estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                    "    pm.expect(res.detalle_poblacional.cantidad_actual).to.eql(0);",
+                    "    pm.expect(res.id_estado).to.eql(6);",
+                    "    pm.expect(res.nombre_estado).to.eql('BAJA');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "jwt_token"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "fecha_baja_dinamica"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m02-g31-ejecucion-limpia",
+      "name": "TC-M02-G31 - Valores límite en la gestión de lotes (RF-36)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Suite de pruebas para el caso agrupado TC-M02-G31 correspondiente al RF-36 (Gestión Poblacional). Incluye el folder TC-M02-196 (evaluación de densidad de lote en evento de crecimiento) y el folder TC-M02-197 (evaluación de baja total reutilizando lotes existentes 344 y 345).",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "e6924eea-840f-48f0-a2c8-503575effc0c",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      }
+    ]
+  },
+  "globals": {
+    "id": "f9db13e2-8504-46a9-a2e2-d66bbb27a169",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 549.6666666666666,
+      "responseMin": 136,
+      "responseMax": 1371,
+      "responseSd": 580.7755351443639,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789453528765,
+      "completed": 1789453530696
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "dc4bd2c2-380a-4abb-83cf-5acdc90db9d8",
+          "httpRequestId": "83b88cfd-22c2-460b-b969-97eaa9a29832"
+        },
+        "item": {
+          "id": "97feaba5-6c5d-47f3-a59c-5809f36838b3",
+          "name": "0. Autenticación Admin (TC-M02-196)",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\",\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "4f0141a8-51d1-4463-a288-0409020a8147",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "49d1721a-0011-464f-a656-e0ec0bb9ec9c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "7a913778-4be7-48b3-99e9-d2bc58115f39",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "154",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\",\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "63da4a63-efa3-4308-9535-27485a533630",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "406"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 06:25:28 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=WPT6n-z5jYZwxRU1X58_yZ8NW7mvKf46UUc7LNYwgVU; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "8dc0943a-b025-4356-973d-73034c9425d0"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              77,
+              68,
+              81,
+              105,
+              76,
+              67,
+              74,
+              113,
+              100,
+              71,
+              107,
+              105,
+              79,
+              105,
+              73,
+              120,
+              78,
+              122,
+              99,
+              120,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              74,
+              118,
+              98,
+              67,
+              73,
+              54,
+              77,
+              83,
+              119,
+              105,
+              90,
+              88,
+              104,
+              119,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              53,
+              78,
+              68,
+              103,
+              121,
+              77,
+              122,
+              73,
+              53,
+              76,
+              67,
+              74,
+              112,
+              89,
+              88,
+              81,
+              105,
+              79,
+              106,
+              69,
+              51,
+              79,
+              68,
+              107,
+              48,
+              78,
+              84,
+              77,
+              49,
+              77,
+              106,
+              108,
+              57,
+              46,
+              51,
+              90,
+              95,
+              107,
+              80,
+              69,
+              85,
+              57,
+              118,
+              115,
+              55,
+              106,
+              98,
+              87,
+              66,
+              73,
+              115,
+              78,
+              105,
+              81,
+              90,
+              81,
+              111,
+              119,
+              99,
+              117,
+              110,
+              73,
+              119,
+              53,
+              73,
+              70,
+              118,
+              57,
+              120,
+              104,
+              106,
+              79,
+              77,
+              87,
+              45,
+              84,
+              89,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 1371,
+          "responseSize": 406
+        },
+        "id": "97feaba5-6c5d-47f3-a59c-5809f36838b3",
+        "assertions": [
+          {
+            "assertion": "Autenticación Admin completada",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c1417088-a653-456a-a1fd-24b8e18a1123",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "e6d60896-69f5-4d75-940c-ecf342504f62"
+        },
+        "item": {
+          "id": "b654e2c9-0d57-48fe-995f-2c4e4a2c6a24",
+          "name": "1. Registrar evento de crecimiento sobre lote 296",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "296",
+                "eventos",
+                "crecimiento"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"promedio\",\n  \"frecuencia\": \"semanal\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento para evaluacion de densidad TC-M02-196\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "cf2e8073-b4c5-4bdd-b19e-0b7ec5adbd17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Respuesta de registro de crecimiento capturada', function () {",
+                  "    console.log('HTTP Status TC-M02-196 Crecimiento:', pm.response.code);",
+                  "    console.log('Body TC-M02-196 Crecimiento:', pm.response.text());",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
+                  "});"
+                ],
+                "_lastExecutionId": "9d696f37-8daa-43a3-a77b-9ddbe71eeaaa"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "eventos",
+              "crecimiento"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQiLCJqdGkiOiIxNzcxNiIsInJvbCI6MSwiZXhwIjoxNzg5NDgyMzI5LCJpYXQiOjE3ODk0NTM1Mjl9.3Z_kPEU9vs7jbWBIsNiQZQowcunIw5IFv9xhjOMW-TY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "85b84027-adc8-4258-9e42-d6e4a077a55f",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "276",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WPT6n-z5jYZwxRU1X58_yZ8NW7mvKf46UUc7LNYwgVU",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"promedio\",\n  \"frecuencia\": \"semanal\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento para evaluacion de densidad TC-M02-196\"\n}"
+          }
+        },
+        "response": {
+          "id": "215879f1-153d-411c-bbf6-d2a7f5887cd2",
+          "status": "Internal Server Error",
+          "code": 500,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "202"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 06:25:29 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "904b2d3f-3331-41ba-85a5-f8c016bc53ec"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              82,
+              82,
+              79,
+              82,
+              95,
+              73,
+              78,
+              84,
+              69,
+              82,
+              78,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              79,
+              99,
+              117,
+              114,
+              114,
+              105,
+              195,
+              179,
+              32,
+              117,
+              110,
+              32,
+              101,
+              114,
+              114,
+              111,
+              114,
+              32,
+              105,
+              110,
+              116,
+              101,
+              114,
+              110,
+              111,
+              46,
+              32,
+              73,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              32,
+              100,
+              101,
+              32,
+              110,
+              117,
+              101,
+              118,
+              111,
+              59,
+              32,
+              115,
+              105,
+              32,
+              101,
+              108,
+              32,
+              112,
+              114,
+              111,
+              98,
+              108,
+              101,
+              109,
+              97,
+              32,
+              112,
+              101,
+              114,
+              115,
+              105,
+              115,
+              116,
+              101,
+              44,
+              32,
+              99,
+              111,
+              110,
+              116,
+              97,
+              99,
+              116,
+              97,
+              32,
+              97,
+              108,
+              32,
+              101,
+              113,
+              117,
+              105,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              115,
+              111,
+              112,
+              111,
+              114,
+              116,
+              101,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              54,
+              58,
+              50,
+              53,
+              58,
+              50,
+              57,
+              46,
+              57,
+              56,
+              49,
+              54,
+              50,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 136,
+          "responseSize": 202
+        },
+        "id": "b654e2c9-0d57-48fe-995f-2c4e4a2c6a24",
+        "assertions": [
+          {
+            "assertion": "Respuesta de registro de crecimiento capturada",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0e050b43-bf6f-4f09-bce0-fc7150e1640f",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "ea3d2195-9326-4979-a6c6-9f82dada5440"
+        },
+        "item": {
+          "id": "973ed4c5-13b8-42bf-8302-73353518cb61",
+          "name": "2. Consultar estado y métricas del lote 296",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "296"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bbb93b88-baf7-48f3-bb68-59634e9027cb",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Consulta de lote 130 completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    console.log('Lote 130 - Densidad actual:', res.detalle_poblacional ? res.detalle_poblacional.densidad : 'N/A');",
+                  "    console.log('Lote 130 - Cantidad actual:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "});"
+                ],
+                "_lastExecutionId": "b96a11bc-50e8-4ec8-93ab-3da11857ed30"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQiLCJqdGkiOiIxNzcxNiIsInJvbCI6MSwiZXhwIjoxNzg5NDgyMzI5LCJpYXQiOjE3ODk0NTM1Mjl9.3Z_kPEU9vs7jbWBIsNiQZQowcunIw5IFv9xhjOMW-TY"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "62863a19-5c90-4a08-9d83-bc3307062d48",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WPT6n-z5jYZwxRU1X58_yZ8NW7mvKf46UUc7LNYwgVU",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "6efb8cf4-5945-4a34-bbda-1a5e74d491dc",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "609"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 06:25:29 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "2ff7a513-e831-4875-9951-a91477f5856b"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              57,
+              54,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              52,
+              48,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              80,
+              79,
+              66,
+              76,
+              65,
+              67,
+              73,
+              79,
+              78,
+              65,
+              76,
+              34,
+              44,
+              34,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              100,
+              111,
+              114,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              111,
+              95,
+              99,
+              105,
+              99,
+              108,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              49,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              115,
+              95,
+              112,
+              114,
+              111,
+              99,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              95,
+              102,
+              105,
+              110,
+              97,
+              110,
+              99,
+              105,
+              101,
+              114,
+              111,
+              34,
+              58,
+              34,
+              110,
+              97,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              44,
+              34,
+              99,
+              111,
+              115,
+              116,
+              111,
+              95,
+              97,
+              100,
+              113,
+              117,
+              105,
+              115,
+              105,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              115,
+              111,
+              112,
+              111,
+              114,
+              116,
+              101,
+              95,
+              100,
+              111,
+              99,
+              117,
+              109,
+              101,
+              110,
+              116,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              81,
+              65,
+              74,
+              69,
+              45,
+              84,
+              82,
+              70,
+              45,
+              76,
+              79,
+              84,
+              69,
+              49,
+              48,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              52,
+              56,
+              44,
+              34,
+              97,
+              116,
+              114,
+              105,
+              98,
+              117,
+              116,
+              111,
+              115,
+              95,
+              100,
+              105,
+              110,
+              97,
+              109,
+              105,
+              99,
+              111,
+              115,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              49,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              79,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              34,
+              58,
+              49,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              99,
+              114,
+              101,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              49,
+              84,
+              48,
+              56,
+              58,
+              48,
+              48,
+              58,
+              48,
+              48,
+              90,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              105,
+              110,
+              100,
+              105,
+              118,
+              105,
+              100,
+              117,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              112,
+              111,
+              98,
+              108,
+              97,
+              99,
+              105,
+              111,
+              110,
+              97,
+              108,
+              34,
+              58,
+              123,
+              34,
+              105,
+              100,
+              95,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              34,
+              58,
+              56,
+              53,
+              44,
+              34,
+              99,
+              97,
+              110,
+              116,
+              105,
+              100,
+              97,
+              100,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              108,
+              34,
+              58,
+              49,
+              48,
+              44,
+              34,
+              99,
+              97,
+              110,
+              116,
+              105,
+              100,
+              97,
+              100,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              48,
+              44,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              112,
+              114,
+              111,
+              109,
+              101,
+              100,
+              105,
+              111,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              108,
+              34,
+              58,
+              34,
+              50,
+              53,
+              46,
+              48,
+              48,
+              48,
+              48,
+              34,
+              44,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              112,
+              114,
+              111,
+              109,
+              101,
+              100,
+              105,
+              111,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              98,
+              105,
+              111,
+              109,
+              97,
+              115,
+              97,
+              95,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              100,
+              101,
+              110,
+              115,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 142,
+          "responseSize": 609
+        },
+        "id": "973ed4c5-13b8-42bf-8302-73353518cb61",
+        "assertions": [
+          {
+            "assertion": "Consulta de lote 130 completada",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1217
+    },
+    "failures": [],
+    "error": null
+  }
+}

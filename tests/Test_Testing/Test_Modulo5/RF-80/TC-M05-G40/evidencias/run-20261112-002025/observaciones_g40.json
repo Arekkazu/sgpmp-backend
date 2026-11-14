@@ -1,0 +1,122 @@
+{
+  "total_base": 69323,
+  "ultimo_id_base": 75557,
+  "activos_creados": [
+    1863,
+    1865
+  ],
+  "a01_eventos_commit_rf78": [
+    {
+      "id": 75572,
+      "tipo_operacion": "SUMINISTRO_REGISTRADO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1863,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "7bac0f885e57e4db",
+      "fecha_evento": "2026-11-12T05:20:30.935389Z",
+      "fecha_emision": "2026-11-12T05:20:32.035011Z"
+    },
+    {
+      "id": 75573,
+      "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1863,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "0d5107c68d5c396b",
+      "fecha_evento": "2026-11-12T05:20:30.935389Z",
+      "fecha_emision": "2026-11-12T05:20:32.035011Z"
+    },
+    {
+      "id": 75574,
+      "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "EXITOSO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1863,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "0561822d5fc3cd02",
+      "fecha_evento": "2026-11-12T05:20:30.935389Z",
+      "fecha_emision": "2026-11-12T05:20:32.035011Z"
+    }
+  ],
+  "a02_resultado_ica_conteo": 1,
+  "a02_eventos_app_rf79": [],
+  "a03_evento_rf81": {
+    "id": 75578,
+    "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+    "entidad_afectada": "historial_suministros",
+    "resultado": "EXITOSO",
+    "id_usuario": 104,
+    "id_activo_biologico": 1863,
+    "version_hash_integridad": 2,
+    "hash_prefijo": "c8f7eb88266d52ba",
+    "fecha_evento": "2026-11-12T05:20:30.935389Z",
+    "fecha_emision": "2026-11-12T05:20:35.457025Z"
+  },
+  "a04_latencia_resumen": {
+    "muestras": 20,
+    "min_ms": 128.46,
+    "p50_ms": 138.66,
+    "p95_ms": 306.84,
+    "max_ms": 306.84
+  },
+  "a04_latencias_ms": [
+    128.46,
+    137.81,
+    145.75,
+    224.76,
+    306.84,
+    180.48,
+    136.72,
+    135.07,
+    132.87,
+    138.66,
+    132.12,
+    137.95,
+    139.01,
+    139.58,
+    143.23,
+    145.89,
+    137.18,
+    141.79,
+    138.27,
+    133.59
+  ],
+  "b01_fallos_observados": [
+    {
+      "caso": "B01a",
+      "id": 75579,
+      "tipo_operacion": "REGISTRO_FALLIDO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "RECHAZADO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1865,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "cb93fd2169ef6e15",
+      "fecha_evento": "2026-11-12T05:20:30.935389Z",
+      "fecha_emision": "2026-11-12T05:20:36.753208Z"
+    },
+    {
+      "caso": "B01b",
+      "id": 75580,
+      "tipo_operacion": "REGISTRO_FALLIDO",
+      "entidad_afectada": "registro_suministro",
+      "resultado": "RECHAZADO",
+      "id_usuario": 104,
+      "id_activo_biologico": 1863,
+      "version_hash_integridad": 2,
+      "hash_prefijo": "130dd9becd4e3b9e",
+      "fecha_evento": "2026-11-12T05:20:30.935389Z",
+      "fecha_emision": "2026-11-12T05:20:37.814670Z"
+    },
+    {
+      "caso": "B01c",
+      "observacion": "Sin evento de auditoria emitido en rechazo 422 de RF-81"
+    }
+  ],
+  "c02_analisis": "C02 no ejecutable por API: todos los casos de uso hacen flush de la auditoria y de la operacion en la misma sesion con un unico commit, sin paso fallable por API entre ambos y sin endpoint de inyeccion de fallos en /test-control; el rollback tecnico queda cubierto por C01."
+}

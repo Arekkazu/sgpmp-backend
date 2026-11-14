@@ -1,0 +1,319 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g27-reeval-v3",
+    "name": "TC-M02-G27 - Seguridad en Activos Biológicos: Mass Assignment y BOLA (RF-36 - OWASP API Top 10)",
+    "description": "Suite consolidada de reevaluación V3 para TC-M02-G27 que unifica los subcasos TC-M02-057 (Mass Assignment) y TC-M02-058 (BOLA) con autenticación dinámica y control positivo CASO B.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "Test1234!",
+      "type": "string"
+    },
+    {
+      "key": "productor_email",
+      "value": "m2m.nuevo@ejemplo.com",
+      "type": "string"
+    },
+    {
+      "key": "productor_password",
+      "value": "Test1234!",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token_admin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token_productor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote_finca1",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "id_lote_finca2",
+      "value": "8",
+      "type": "string"
+    },
+    {
+      "key": "cantidad_inicial_esperada",
+      "value": "5",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa como Administrador (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token_admin', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M02-057: Registrar evento con inyección de cantidad_inicial (Mass Assignment)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 55.0,\n  \"unidad_medida\": \"g\",\n  \"nuevo_peso_promedio\": 55.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"2026-09-09T02:00:00Z\",\n  \"cantidad_inicial\": 500\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca1}}/eventos/crecimiento",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca1}}",
+            "eventos",
+            "crecimiento"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Respuesta del evento: Acepta ignorando campo extra (201) o rechaza por validación estricta (400/422)', function () {",
+              "    pm.expect([200, 201, 400, 422]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M02-057: Verificar inmutabilidad de cantidad_inicial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca1}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca1}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK al consultar activo', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Seguridad Mass Assignment: cantidad_inicial NO fue modificada por la inyección', function () {",
+              "    var res = pm.response.json();",
+              "    var cantidadInicial = null;",
+              "    if (res.detalle_poblacional && res.detalle_poblacional.cantidad_inicial !== undefined) {",
+              "        cantidadInicial = res.detalle_poblacional.cantidad_inicial;",
+              "    } else if (res.cantidad_inicial !== undefined) {",
+              "        cantidadInicial = res.cantidad_inicial;",
+              "    }",
+              "    pm.expect(cantidadInicial).to.not.be.null;",
+              "    pm.expect(cantidadInicial).to.eql(parseInt(pm.collectionVariables.get('cantidad_inicial_esperada')));",
+              "    pm.expect(cantidadInicial).to.not.eql(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Iniciar sesión como Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{productor_email}}\",\n  \"password\": \"{{productor_password}}\",\n  \"correo_electronico\": \"{{productor_email}}\",\n  \"contrasena\": \"{{productor_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 3 - Autenticación exitosa como Productor (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token_productor', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M02-058: Intentar consultar lote ajeno Finca 2 (OWASP API1 BOLA)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca2}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca2}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Seguridad BOLA: Rechazar acceso a lote de otra finca (HTTP 403 Forbidden o 404 Not Found)', function () {",
+              "    pm.expect([403, 404]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('No se expone información del lote ajeno', function () {",
+              "    if ([403, 404].includes(pm.response.code)) {",
+              "        var res = pm.response.json();",
+              "        pm.expect(res).to.not.have.property('id_infraestructura');",
+              "        pm.expect(res).to.not.have.property('detalle_poblacional');",
+              "    } else {",
+              "        pm.expect.fail('VULNERABILIDAD BOLA DETECTADA: Se expusieron los datos del lote ajeno con HTTP ' + pm.response.code);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M02-058: Control positivo consultar lote accesible (CASO B - Administrador)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca1}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca1}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Control positivo: Lote accesible retorna HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

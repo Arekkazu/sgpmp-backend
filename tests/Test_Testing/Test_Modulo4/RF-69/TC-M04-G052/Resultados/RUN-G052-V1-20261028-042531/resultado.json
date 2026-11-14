@@ -1,0 +1,933 @@
+{
+  "grupo": "G052",
+  "run_id": "RUN-G052-V1-20261028-042531",
+  "version": 1,
+  "intento": 2,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G052-V1-R2-20261028",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "presupuesto": {
+    "logins_antes_run": 2,
+    "catalogos": 1,
+    "posts": 7,
+    "listados": 1,
+    "gets": 7,
+    "auditorias": 1,
+    "intentos_estado": 12,
+    "gets_verificacion": 12,
+    "delete_run": 1,
+    "total": 44,
+    "total_sin_veterinario": 31,
+    "duracion_segundos": 1200,
+    "timeout_ms": 30000,
+    "timeout_post_ms": 120000,
+    "inactividad_maxima_segundos": 180
+  },
+  "casos": {
+    "TC-M04-129": {
+      "estado": "APROBADO",
+      "motivo": "129: f1=0.91, recall=0.93, HTTP 201, id 82, APROBADO; auditoría VERSION_REGISTRADA + VERSION_APROBADA de SISTEMA"
+    },
+    "TC-M04-130": {
+      "estado": "APROBADO",
+      "motivo": "130: f1=0.72, recall=0.95, HTTP 200, id 83, RECHAZADO"
+    },
+    "TC-M04-131": {
+      "estado": "APROBADO",
+      "motivo": "131: f1=0.95, recall=0.7, HTTP 200, id 84, RECHAZADO"
+    },
+    "TC-M04-132": {
+      "estado": "APROBADO",
+      "motivo": "132-a: f1=0.8, recall=0.85, HTTP 201, id 85, APROBADO; 132-b: f1=0.7999, recall=0.85, HTTP 200, id 86, RECHAZADO; 132-c: f1=0.8, recall=0.8499, HTTP 200, id 87, RECHAZADO; 132-d: f1=0.7999, recall=0.8499, HTTP 200, id 88, RECHAZADO"
+    },
+    "TC-M04-133": {
+      "estado": "APROBADO",
+      "motivo": "130/id 83: f1=0.72<0.80; 131/id 84: recall=0.7<0.85; 132-b/id 86: f1=0.7999<0.80; 132-c/id 87: recall=0.8499<0.85; 132-d/id 88: f1=0.7999<0.80 y recall=0.8499<0.85"
+    },
+    "TC-M04-134": {
+      "estado": "APROBADO",
+      "motivo": "12 intentos; PATCH /notas 400, PUT 405, PATCH 405; 0 cambios de estado en GET posterior"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-129",
+      "fuente": "API",
+      "id": "API-129-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "129: f1=0.91, recall=0.93, HTTP 201, id 82, APROBADO; auditoría VERSION_REGISTRADA + VERSION_APROBADA de SISTEMA",
+      "evidencia": "newman/newman-G052.json"
+    },
+    {
+      "caso": "TC-M04-130",
+      "fuente": "API",
+      "id": "API-130-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "130: f1=0.72, recall=0.95, HTTP 200, id 83, RECHAZADO",
+      "evidencia": "newman/newman-G052.json"
+    },
+    {
+      "caso": "TC-M04-131",
+      "fuente": "API",
+      "id": "API-131-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "131: f1=0.95, recall=0.7, HTTP 200, id 84, RECHAZADO",
+      "evidencia": "newman/newman-G052.json"
+    },
+    {
+      "caso": "TC-M04-132",
+      "fuente": "API",
+      "id": "API-132-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "132-a: f1=0.8, recall=0.85, HTTP 201, id 85, APROBADO; 132-b: f1=0.7999, recall=0.85, HTTP 200, id 86, RECHAZADO; 132-c: f1=0.8, recall=0.8499, HTTP 200, id 87, RECHAZADO; 132-d: f1=0.7999, recall=0.8499, HTTP 200, id 88, RECHAZADO",
+      "evidencia": "newman/newman-G052.json"
+    },
+    {
+      "caso": "TC-M04-133",
+      "fuente": "API",
+      "id": "API-133-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "130/id 83: f1=0.72<0.80; 131/id 84: recall=0.7<0.85; 132-b/id 86: f1=0.7999<0.80; 132-c/id 87: recall=0.8499<0.85; 132-d/id 88: f1=0.7999<0.80 y recall=0.8499<0.85",
+      "evidencia": "newman/newman-G052.json"
+    },
+    {
+      "caso": "TC-M04-134",
+      "fuente": "API",
+      "id": "API-134-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "12 intentos; PATCH /notas 400, PUT 405, PATCH 405; 0 cambios de estado en GET posterior",
+      "evidencia": "newman/newman-G052.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G052.json",
+    "newman/newman-G052.html",
+    "TC-M04-G052_resultado.md",
+    "resultado.json"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?tipo_modelo=MODELO_ESPECIES_GRANDES&limit=100&offset=0",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/84",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/85",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/86",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/87",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/88",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?id_referencia=82&por_pagina=50",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82/notas",
+      "http": 400,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/82",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83/notas",
+      "http": 400,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/83",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82/notas",
+      "http": 400,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/82",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/82",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83/notas",
+      "http": 400,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/83",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83",
+      "http": 405,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/83",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G052-V1-20261028-042531",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": "TC-M04-129",
+      "dato": "129",
+      "f1": 0.91,
+      "recall": 0.93,
+      "proceso": "ab1b8e85-fe81-4583-8060-a399c06b1a0b",
+      "post": {
+        "http": 201,
+        "eco": true,
+        "duracion_ms": 477,
+        "recuperado": false,
+        "id": 82,
+        "estado": "APROBADO",
+        "detalle": null,
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 82,
+        "estado": "APROBADO",
+        "detalle": null
+      }
+    },
+    {
+      "caso": "TC-M04-130",
+      "dato": "130",
+      "f1": 0.72,
+      "recall": 0.95,
+      "proceso": "0afe4fbb-804b-476c-9d09-1953930a4d95",
+      "post": {
+        "http": 200,
+        "eco": true,
+        "duracion_ms": 34126,
+        "recuperado": false,
+        "id": 83,
+        "estado": "RECHAZADO",
+        "detalle": "f1_score_global=0.72 < umbral requerido 0.80",
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 83,
+        "estado": "RECHAZADO",
+        "detalle": "f1_score_global=0.72 < umbral requerido 0.80"
+      }
+    },
+    {
+      "caso": "TC-M04-131",
+      "dato": "131",
+      "f1": 0.95,
+      "recall": 0.7,
+      "proceso": "7a1e747f-73bb-42f0-9225-cb5d7ceb98d0",
+      "post": {
+        "http": 200,
+        "eco": true,
+        "duracion_ms": 32774,
+        "recuperado": false,
+        "id": 84,
+        "estado": "RECHAZADO",
+        "detalle": "recall_clase_riesgo_alto=0.7 < umbral requerido 0.85",
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 84,
+        "estado": "RECHAZADO",
+        "detalle": "recall_clase_riesgo_alto=0.7 < umbral requerido 0.85"
+      }
+    },
+    {
+      "caso": "TC-M04-132",
+      "dato": "132-a",
+      "f1": 0.8,
+      "recall": 0.85,
+      "proceso": "94f6de3e-aca4-4d21-a6b1-9611efb305ce",
+      "post": {
+        "http": 201,
+        "eco": true,
+        "duracion_ms": 205,
+        "recuperado": false,
+        "id": 85,
+        "estado": "APROBADO",
+        "detalle": null,
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 85,
+        "estado": "APROBADO",
+        "detalle": null
+      }
+    },
+    {
+      "caso": "TC-M04-132",
+      "dato": "132-b",
+      "f1": 0.7999,
+      "recall": 0.85,
+      "proceso": "ec9dd4b5-d9a6-4d2c-8551-a74b35cb0980",
+      "post": {
+        "http": 200,
+        "eco": true,
+        "duracion_ms": 33424,
+        "recuperado": false,
+        "id": 86,
+        "estado": "RECHAZADO",
+        "detalle": "f1_score_global=0.7999 < umbral requerido 0.80",
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 86,
+        "estado": "RECHAZADO",
+        "detalle": "f1_score_global=0.7999 < umbral requerido 0.80"
+      }
+    },
+    {
+      "caso": "TC-M04-132",
+      "dato": "132-c",
+      "f1": 0.8,
+      "recall": 0.8499,
+      "proceso": "e0c53aab-4be6-44bd-9480-6016e6fd61ac",
+      "post": {
+        "http": 200,
+        "eco": true,
+        "duracion_ms": 18133,
+        "recuperado": false,
+        "id": 87,
+        "estado": "RECHAZADO",
+        "detalle": "recall_clase_riesgo_alto=0.8499 < umbral requerido 0.85",
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 87,
+        "estado": "RECHAZADO",
+        "detalle": "recall_clase_riesgo_alto=0.8499 < umbral requerido 0.85"
+      }
+    },
+    {
+      "caso": "TC-M04-132",
+      "dato": "132-d",
+      "f1": 0.7999,
+      "recall": 0.8499,
+      "proceso": "43ba1824-8e6c-4fa5-babf-40395fe9975e",
+      "post": {
+        "http": 200,
+        "eco": true,
+        "duracion_ms": 5859,
+        "recuperado": false,
+        "id": 88,
+        "estado": "RECHAZADO",
+        "detalle": "f1_score_global=0.7999 < umbral requerido 0.80; recall_clase_riesgo_alto=0.8499 < umbral requerido 0.85",
+        "error": null
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "id": 88,
+        "estado": "RECHAZADO",
+        "detalle": "f1_score_global=0.7999 < umbral requerido 0.80; recall_clase_riesgo_alto=0.8499 < umbral requerido 0.85"
+      }
+    }
+  ],
+  "listado": {
+    "http": 200,
+    "eco": true,
+    "coincidencias": 0,
+    "total_items": 8
+  },
+  "intentos_estado": [
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82/notas",
+      "inicial": "APROBADO",
+      "opuesto": "RECHAZADO",
+      "respuesta": {
+        "http": 400,
+        "eco": true,
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "APROBADO"
+        }
+      }
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/82",
+      "inicial": "APROBADO",
+      "opuesto": "RECHAZADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "APROBADO"
+        }
+      }
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82",
+      "inicial": "APROBADO",
+      "opuesto": "RECHAZADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "APROBADO"
+        }
+      }
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83/notas",
+      "inicial": "RECHAZADO",
+      "opuesto": "APROBADO",
+      "respuesta": {
+        "http": 400,
+        "eco": true,
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "RECHAZADO"
+        }
+      }
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/83",
+      "inicial": "RECHAZADO",
+      "opuesto": "APROBADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "RECHAZADO"
+        }
+      }
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83",
+      "inicial": "RECHAZADO",
+      "opuesto": "APROBADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "RECHAZADO"
+        }
+      }
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82/notas",
+      "inicial": "APROBADO",
+      "opuesto": "RECHAZADO",
+      "respuesta": {
+        "http": 400,
+        "eco": true,
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "APROBADO"
+        }
+      }
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/82",
+      "inicial": "APROBADO",
+      "opuesto": "RECHAZADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "APROBADO"
+        }
+      }
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/82",
+      "inicial": "APROBADO",
+      "opuesto": "RECHAZADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "APROBADO"
+        }
+      }
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83/notas",
+      "inicial": "RECHAZADO",
+      "opuesto": "APROBADO",
+      "respuesta": {
+        "http": 400,
+        "eco": true,
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "RECHAZADO"
+        }
+      }
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/83",
+      "inicial": "RECHAZADO",
+      "opuesto": "APROBADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "RECHAZADO"
+        }
+      }
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/83",
+      "inicial": "RECHAZADO",
+      "opuesto": "APROBADO",
+      "respuesta": {
+        "http": 405,
+        "eco": true,
+        "error": {
+          "codigo": "",
+          "mensaje": "Method Not Allowed"
+        }
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "estado_version": "RECHAZADO"
+        }
+      }
+    }
+  ],
+  "auditoria": {
+    "http": 200,
+    "eco": true,
+    "eventos": [
+      {
+        "tipo_evento": "HISTORIAL_CONSULTADO",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 104,
+        "id_sistema": null,
+        "id_referencia": "82"
+      },
+      {
+        "tipo_evento": "VERSION_APROBADA",
+        "tipo_actor": "SISTEMA",
+        "id_usuario": null,
+        "id_sistema": "ab1b8e85-fe81-4583-8060-a399c06b1a0b",
+        "id_referencia": "82"
+      },
+      {
+        "tipo_evento": "VERSION_REGISTRADA",
+        "tipo_actor": "SISTEMA",
+        "id_usuario": null,
+        "id_sistema": "ab1b8e85-fe81-4583-8060-a399c06b1a0b",
+        "id_referencia": "82"
+      }
+    ]
+  },
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "observaciones": [
+    "130: POST 34126 ms; RF-69 RNF-01 (líneas 2350-2352) exige validación de métricas ≤ 5 s por versión. La medida incluye correo y no aísla Fases 2-3; solo observación de rendimiento.",
+    "131: POST 32774 ms; RF-69 RNF-01 (líneas 2350-2352) exige validación de métricas ≤ 5 s por versión. La medida incluye correo y no aísla Fases 2-3; solo observación de rendimiento.",
+    "132-b: POST 33424 ms; RF-69 RNF-01 (líneas 2350-2352) exige validación de métricas ≤ 5 s por versión. La medida incluye correo y no aísla Fases 2-3; solo observación de rendimiento.",
+    "132-c: POST 18133 ms; RF-69 RNF-01 (líneas 2350-2352) exige validación de métricas ≤ 5 s por versión. La medida incluye correo y no aísla Fases 2-3; solo observación de rendimiento.",
+    "132-d: POST 5859 ms; RF-69 RNF-01 (líneas 2350-2352) exige validación de métricas ≤ 5 s por versión. La medida incluye correo y no aísla Fases 2-3; solo observación de rendimiento.",
+    "El correo a Veterinario no tiene traza de entrega por API pública; API-130-01 evalúa HTTP, estado y detalle."
+  ],
+  "detalle_133": {
+    "evaluadas": [
+      {
+        "dato": "130",
+        "caso": "TC-M04-130",
+        "version": 83,
+        "umbrales": [
+          "f1"
+        ],
+        "estado": "APROBADO"
+      },
+      {
+        "dato": "131",
+        "caso": "TC-M04-131",
+        "version": 84,
+        "umbrales": [
+          "recall"
+        ],
+        "estado": "APROBADO"
+      },
+      {
+        "dato": "132-b",
+        "caso": "TC-M04-132",
+        "version": 86,
+        "umbrales": [
+          "f1"
+        ],
+        "estado": "APROBADO"
+      },
+      {
+        "dato": "132-c",
+        "caso": "TC-M04-132",
+        "version": 87,
+        "umbrales": [
+          "recall"
+        ],
+        "estado": "APROBADO"
+      },
+      {
+        "dato": "132-d",
+        "caso": "TC-M04-132",
+        "version": 88,
+        "umbrales": [
+          "f1",
+          "recall"
+        ],
+        "estado": "APROBADO"
+      }
+    ],
+    "excluidas": [],
+    "sin_evidencia": []
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Sandbox confirmó cierre, sin consulta posterior de BD"
+    }
+  },
+  "revision_qa": {
+    "fecha": "2026-10-28",
+    "realizada_por": "orquestador QA",
+    "motivo": "reescritura con datos reales; sin cambio de veredictos"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g102",
+    "name": "TC-M09-G102 - Restricción de rol para configuración global del idioma",
+    "description": "Valida que un usuario sin privilegios de Administrador no pueda modificar la configuración global del idioma.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login - Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login del usuario no administrador exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.expect(body.token).to.exist;",
+              "pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-195 - Impedir configuración global del idioma",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locale_code\": \"en-US\",\n  \"is_default\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma/global",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma",
+            "global"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M09-195 - Debe rechazar configuración global para usuario sin privilegios', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "",
+              "console.log('HTTP:', pm.response.code);",
+              "console.log('Respuesta:', body);",
+              "",
+              "pm.test('Debe existir código de error', function () {",
+              "    pm.expect(body.error_code).to.exist;",
+              "});",
+              "",
+              "pm.test('La respuesta debe corresponder a acceso no autorizado', function () {",
+              "    pm.expect(",
+              "        ['ACCESO_DENEGADO', 'PERMISO_DENEGADO', 'FORBIDDEN', 'IDIOMA_NO_AUTORIZADO'].includes(body.error_code) ||",
+              "        body.error_code === 'CONFIGURACION_GLOBAL_NO_AUTORIZADA'",
+              "    ).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

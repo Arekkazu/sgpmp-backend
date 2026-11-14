@@ -27,6 +27,7 @@ ENV/
 .env.*
 !.env.*.example
 !.env.example
+!.env.test.example
 
 # =========================
 # Logs
@@ -258,9 +259,23 @@ backups/
 # ver src/shared/almacen_logos.py). Son datos, no fuente.
 uploads/
 
+node_modules/
+
+
+# Evidencias generadas por Cypress
+cypress/screenshots/
+cypress/videos/
+
+# Evidencias con nombres generados demasiado largos
+**/Resultados/*failed*.png
+# Capturas generadas por Cypress en resultados
+**/Resultados/**/*.png
 # Scratch de trabajo local (análisis de issues, generadores de plantillas de prueba)
 .plantillas/
 
+# Node
+node_modules/
+npm-debug.log*
 # =========================
 # Documentación generada (pdoc): scripts/generar_docs.sh
 # =========================
@@ -268,3 +283,20 @@ uploads/
 /docs/src.html
 /docs/index.html
 /docs/search.js
+
+# Documentos locales de referencia QA
+/tests/Test_Testing/Test_Modulo3/Casos_Prueba(Modulo3 Agrupado).csv
+/tests/Test_Testing/Test_Modulo4/Casos_Prueba(Mod4Agrupfinal).csv
+/tests/Test_Testing/Test_Modulo3/DEV-Reparto_Tareas_Integracion_AIoT.md
+/tests/Test_Testing/Test_Modulo3/Checklist_Pre_Ejecucion_M03.md
+/tests/Test_Testing/Test_Modulo3/Dependencias_Decisiones_QA_Juan_Esteban.md
+/tests/Test_Testing/Test_Modulo3/Inventario_Construccion_Juan_Esteban.md
+/tests/Test_Testing/Requerimientos
+AGENTS.md
+/tests/Test_Testing/Casos_Prueba(Matriz de Trazabilidad) (3).csv
+.env.qa
+.env.qa.example
+/tests/Test_Testing/Test_Modulo4/Actualizacion_Matriz_RF69_RF72
+/tests/Test_Testing/Test_Modulo6/CASOS_DE_USO_actualizado - Modulo 6.csv
+/tests/Test_Testing/Test_Modulo6/Casos_Prueba(Modulo6Agrup).csv
+

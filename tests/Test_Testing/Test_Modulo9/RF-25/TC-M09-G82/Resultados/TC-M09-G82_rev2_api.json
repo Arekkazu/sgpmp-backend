@@ -1,0 +1,40 @@
+{
+    "api_umbrales":  {
+                         "message":  "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+                         "datos_protegidos_devueltos":  "NO",
+                         "http_status":  403,
+                         "error_code":  "ACCESO_DENEGADO",
+                         "assertions":  {
+                                            "detalle":  [
+                                                            "HTTP 403",
+                                                            "error_code ACCESO_DENEGADO",
+                                                            "sin properties items/data"
+                                                        ],
+                                            "pass":  3,
+                                            "fail":  0,
+                                            "total":  3
+                                        },
+                         "authorization":  "Bearer [REDACTED]",
+                         "rol":  "Productor",
+                         "resultado":  "PASS",
+                         "usuario":  "m2m.nuevo@ejemplo.com",
+                         "request":  "GET /configuracion/umbrales"
+                     },
+    "caso":  "TC-M09-G82",
+    "tc_m09_156":  {
+                       "rol":  "Productor",
+                       "datos_protegidos_visibles":  "NO",
+                       "usuario":  "m2m.nuevo@ejemplo.com",
+                       "url":  "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/roles",
+                       "acceso_permitido":  "NO",
+                       "resultado":  "PASS",
+                       "comportamiento":  "Pantalla \u0027Acceso restringido\u0027. Sin tabla de roles. Sin datos de permisos.",
+                       "ruta":  "/roles"
+                   },
+    "revision":  "segunda",
+    "generado":  "2026-09-14T02:53:58Z",
+    "tc_m09_157":  {
+                       "resultado":  "BLOCKED",
+                       "motivo":  "No existe Finca A existente y asignada al usuario de prueba."
+                   }
+}

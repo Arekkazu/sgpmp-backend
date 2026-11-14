@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: representar la coleccion de lineas vigentes por especie. |
 """Schemas de respuesta de la calibración por visión (RF-24 v2.0)."""
 from __future__ import annotations
 
@@ -86,3 +89,9 @@ class LineaBaseVisionResponse(BaseModel):
             linea_base=linea_base.valor,
             fecha_publicacion=linea_base.fecha_publicacion,
         )
+
+
+class ListaLineasBaseVisionResponse(BaseModel):
+    """Lineas vigentes por especie del area; sin atribuir los vectores de RF-56 a individuos."""
+    total: int
+    items: list[LineaBaseVisionResponse]

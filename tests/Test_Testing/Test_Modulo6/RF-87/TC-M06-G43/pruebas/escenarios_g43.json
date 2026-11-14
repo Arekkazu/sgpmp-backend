@@ -1,0 +1,23 @@
+{
+  "integrales": 20,
+  "paneles": {
+    "8": {
+      "panel": "027",
+      "esperado": {"linea": 17, "activos": [944], "identificador": "A-944", "eslabones": ["lecturas_nic41"]},
+      "prevalidacion": {"activos_sin_precio": [], "lineas_sin_trazabilidad": [{"id_linea": 17, "id_activo_biologico": 944, "identificador": "A-944", "faltantes": ["lecturas_nic41"]}]},
+      "html": "<table><caption>1 línea con la cadena de trazabilidad incompleta</caption><thead><tr><th>Asiento</th><th>Activo</th><th>Qué falta</th></tr></thead><tbody><tr><td>Línea 17</td><td>A-944</td><td>Lecturas IoT aptas</td></tr></tbody></table><label><input type=\"checkbox\">Autorizo excluir del comprobante las líneas con trazabilidad incompleta (pasan al período siguiente)</label><button disabled>Cerrar período</button>"
+    },
+    "266": {
+      "panel": "025",
+      "esperado": {"activos": [{"id": 1644, "identificador": "A-1644", "especie": "Bovino"}], "conteo": 1},
+      "prevalidacion": {"activos_sin_precio": [{"id_activo_biologico": 1644, "identificador": "A-1644", "especie": "Bovino"}], "lineas_sin_trazabilidad": []},
+      "html": "<table><caption>Activos sin precio vigente</caption><thead><tr><th>Activo</th><th>Especie</th><th>Motivo</th><th>Decisión</th></tr></thead><tbody><tr><td>A-1644</td><td>Bovino</td><td>Sin precio de mercado vigente para su especie</td><td><label><input type=\"radio\" name=\"sin-precio-1644\">Excluir de este cierre (pasa al período siguiente)</label><label><input type=\"radio\" name=\"sin-precio-1644\">Medir con el último precio conocido, como estimación</label></td></tr></tbody></table><button disabled>Cerrar período</button><button>Cancelar cierre (No)</button>"
+    },
+    "267": {
+      "panel": "026",
+      "esperado": {"activos": [1644], "sinPrecio": [1644]},
+      "prevalidacion": {"activos_sin_precio": [{"id_activo_biologico": 1644, "identificador": "A-1644", "especie": "Bovino"}], "lineas_sin_trazabilidad": []},
+      "html": "<table><caption>Activos sin precio vigente</caption><thead><tr><th>Activo</th><th>Especie</th><th>Motivo</th><th>Decisión</th></tr></thead><tbody><tr><td>A-1644</td><td>Bovino</td><td>Sin precio de mercado vigente para su especie</td><td><label><input type=\"radio\" name=\"sin-precio-1644\">Excluir de este cierre (pasa al período siguiente)</label><label><input type=\"radio\" name=\"sin-precio-1644\">Medir con el último precio conocido, como estimación</label></td></tr></tbody></table><button disabled>Cerrar período</button>"
+    }
+  }
+}

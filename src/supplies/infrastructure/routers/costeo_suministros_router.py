@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: 200 de éxito (CA-14) y estado      |
 """Router FastAPI para el costeo directo de suministros (`/suministros/costeo-directo`).
 
 Expone los flujos de RF-78 (CU-05) para SERVICIO_VETERINARIO/INSEMINACION:
@@ -13,7 +16,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -31,7 +34,7 @@ from src.supplies.infrastructure.factories.costeo_suministros_factory import (
 )
 from src.supplies.infrastructure.schema.acumulado_ciclo_schema import AcumuladoCicloResponse
 from src.supplies.infrastructure.schema.registro_suministro_directo_schema import (
-    RegistroSuministroDirectoResponse,
+    ResultadoRegistroSuministroResponse,
 )
 
 router = APIRouter(prefix="/suministros/costeo-directo", tags=["Suministros - Costeo Directo (RF-78)"])
@@ -41,8 +44,8 @@ _RECURSO = 55  # modulo1.recursos: 'costeo_directo_suministros'
 
 @router.post(
     "",
-    response_model=RegistroSuministroDirectoResponse,
-    status_code=201,
+    response_model=ResultadoRegistroSuministroResponse,
+    status_code=200,
     dependencies=[Depends(require_permission(_RECURSO, 1))],
     responses={
         400: {"model": ErrorResponse},
@@ -52,25 +55,23 @@ _RECURSO = 55  # modulo1.recursos: 'costeo_directo_suministros'
         422: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Registrar un suministro directo SERVICIO_VETERINARIO/INSEMINACION (RF-78)",
+    summary="Registrar un suministro en el ciclo productivo (RF-78)",
 )
 def registrar_suministro_directo(
     dto: RegistrarSuministroDirectoDTO,
-    response: Response,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> RegistroSuministroDirectoResponse:
+) -> ResultadoRegistroSuministroResponse:
+    """200 tanto al registrar como en un reintento ya procesado (RF-78 CA-14/E8)."""
     use_case = build_registrar_suministro_directo_use_case(db)
     resultado = use_case.execute(dto, usuario_actual)
-    if resultado.ya_procesado:
-        response.status_code = 200  # E8 — reintento con id_idempotencia ya procesado
-    return RegistroSuministroDirectoResponse.model_validate(resultado.registro)
+    return ResultadoRegistroSuministroResponse.desde_resultado(resultado)
 
 
 @router.post(
     "/{id_registro_original}/correccion",
-    response_model=RegistroSuministroDirectoResponse,
-    status_code=201,
+    response_model=ResultadoRegistroSuministroResponse,
+    status_code=200,
     dependencies=[Depends(require_permission(_RECURSO, 3))],
     responses={
         400: {"model": ErrorResponse},
@@ -86,15 +87,12 @@ def registrar_suministro_directo(
 def registrar_correccion_suministro(
     id_registro_original: UUID,
     dto: RegistrarCorreccionSuministroDTO,
-    response: Response,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> RegistroSuministroDirectoResponse:
+) -> ResultadoRegistroSuministroResponse:
     use_case = build_registrar_correccion_suministro_use_case(db)
     resultado = use_case.execute(id_registro_original, dto, usuario_actual)
-    if resultado.ya_procesado:
-        response.status_code = 200  # E8 — reintento con id_idempotencia ya procesado
-    return RegistroSuministroDirectoResponse.model_validate(resultado.registro)
+    return ResultadoRegistroSuministroResponse.desde_resultado(resultado)
 
 
 @router.get(

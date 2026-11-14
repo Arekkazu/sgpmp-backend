@@ -40,3 +40,9 @@ class DespliegueOtaModel(Base):
     fecha_fin: Mapped[Optional[datetime]] = mapped_column(DateTime(True))
     motivo_fallo: Mapped[Optional[str]] = mapped_column(String)
     componente: Mapped[Optional[str]] = mapped_column(String(20))
+    # DEV-15 / DB-04: distribución y fase del rollout, vencimiento de la URL firmada
+    # y id del aviso ota/notify del broker (BRK-08).
+    id_distribucion_ota: Mapped[Optional[int]] = mapped_column(Integer)
+    fase_rollout: Mapped[Optional[str]] = mapped_column(String(10))
+    fecha_expiracion_url: Mapped[Optional[datetime]] = mapped_column(DateTime(True))
+    id_mensaje_notify: Mapped[Optional[str]] = mapped_column(String(32))

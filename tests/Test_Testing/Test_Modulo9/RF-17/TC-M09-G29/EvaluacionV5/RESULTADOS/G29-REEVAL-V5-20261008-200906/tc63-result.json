@@ -1,0 +1,430 @@
+{
+  "runId": "G29-REEVAL-V5-20261008-200906",
+  "caso": "TC-M09-63",
+  "version": "V5-reejecucion",
+  "ambiente": "TEST",
+  "inicio": "2026-10-08T20:47:33.778062+00:00",
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "tokenPersistido": false
+  },
+  "baselineA": {
+    "id_umbral_ambiental": 65,
+    "valor_min": "40.00",
+    "valor_max": "95.00"
+  },
+  "configuracionB": {
+    "valor_min": 40,
+    "valor_max": 100,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": 40,
+        "limite_superior": 70
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": 70,
+        "limite_superior": 85
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": 85,
+        "limite_superior": 100
+      }
+    ]
+  },
+  "escriturasOficiales": 1,
+  "precondiciones": {
+    "edge": {
+      "httpCredencial": 200,
+      "brokerOperativo": true,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "SIN_SEÑAL",
+        "fecha_ultimo_contacto": "2026-10-08T20:19:55.802292Z",
+        "id_ultimo_heartbeat": 300,
+        "tiempo_sin_contacto": 354,
+        "causa_primaria": "FALLO_CONECTIVIDAD",
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T20:25:50.174960Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "timestamp": "2026-10-08T20:47:34.570569+00:00"
+    },
+    "destinosRf17": [
+      "SERBY-TAX-FIRMWARE"
+    ],
+    "baseline": {
+      "id_umbral_ambiental": 65,
+      "id_especie": 4,
+      "id_variable_ambiental": 10,
+      "unidad_medida": "%",
+      "valor_min": "40.00",
+      "valor_max": "95.00",
+      "es_activo": true,
+      "fecha_actualizacion": "2026-10-08T20:18:31.855303Z",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "40.00",
+          "limite_superior": "70.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "70.00",
+          "limite_superior": "85.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "85.00",
+          "limite_superior": "95.00"
+        }
+      ],
+      "estado_sincronizacion": "APLICADA",
+      "fecha_ultima_sincronizacion": "2026-10-08T20:18:32.740677Z",
+      "motivo_fallo_sincronizacion": null
+    },
+    "conectadaFalse": false,
+    "brokerOperativo": true,
+    "unicoDestinoEsElGateway": true,
+    "baselineEn40a95Aplicada": true,
+    "conectadaNoEsPrecondicionFormal": true
+  },
+  "fecha_actualizacion_capturada": "2026-10-08T20:18:31.855303Z",
+  "request": {
+    "metodo": "PATCH",
+    "ruta": "/configuracion/umbrales/65",
+    "cuerpo": {
+      "valor_min": 40,
+      "valor_max": 100,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": 40,
+          "limite_superior": 70
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 70,
+          "limite_superior": 85
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 85,
+          "limite_superior": 100
+        }
+      ],
+      "fecha_actualizacion": "2026-10-08T20:18:31.855303Z"
+    },
+    "cabeceras": [
+      "Authorization: <omitido>",
+      "Content-Type: application/json"
+    ],
+    "timestamp": "2026-10-08T20:48:54.272686+00:00"
+  },
+  "response": {
+    "http": 500,
+    "cuerpo": {
+      "error_code": "FALLO_SINCRONIZACION_EDGE",
+      "message": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión.",
+      "fields": [],
+      "timestamp": "2026-10-08T20:48:54.553478+00:00"
+    },
+    "duracionSegundos": 0.449,
+    "recibido": "2026-10-08T20:48:54.724830+00:00"
+  },
+  "post": {
+    "umbral": {
+      "id_umbral_ambiental": 65,
+      "id_especie": 4,
+      "id_variable_ambiental": 10,
+      "unidad_medida": "%",
+      "valor_min": "40.00",
+      "valor_max": "100.00",
+      "es_activo": true,
+      "fecha_actualizacion": "2026-10-08T20:48:54.475814Z",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "40.00",
+          "limite_superior": "70.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "70.00",
+          "limite_superior": "85.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "85.00",
+          "limite_superior": "100.00"
+        }
+      ],
+      "estado_sincronizacion": "PENDIENTE",
+      "fecha_ultima_sincronizacion": "2026-10-08T20:18:32.740677Z",
+      "motivo_fallo_sincronizacion": "SERBY-TAX-FIRMWARE: Dispositivo offline. La configuración quedará pendiente hasta que reconecte."
+    },
+    "auditoria": {
+      "total": 3,
+      "items": [
+        {
+          "id_auditoria_umbral": 61,
+          "id_umbral_ambiental": 65,
+          "id_usuario": 104,
+          "tipo_operacion": "UPDATE",
+          "valores_anteriores": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "85.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "85.00",
+                "limite_superior": "95.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "95.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": "2026-10-08T20:18:31.855303+00:00",
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "85.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "85.00",
+                "limite_superior": "100.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "100.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": "2026-10-08T20:48:54.475814+00:00",
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "fecha_gestion": "2026-10-08T20:48:54.465436Z"
+        },
+        {
+          "id_auditoria_umbral": 60,
+          "id_umbral_ambiental": 65,
+          "id_usuario": 104,
+          "tipo_operacion": "UPDATE",
+          "valores_anteriores": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "80.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "80.00",
+                "limite_superior": "90.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "90.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "85.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "85.00",
+                "limite_superior": "95.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "95.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": "2026-10-08T20:18:31.855303+00:00",
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "fecha_gestion": "2026-10-08T20:18:31.848604Z"
+        },
+        {
+          "id_auditoria_umbral": 59,
+          "id_umbral_ambiental": 65,
+          "id_usuario": 104,
+          "tipo_operacion": "CREATE",
+          "valores_anteriores": null,
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "80.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "80.00",
+                "limite_superior": "90.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "90.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "fecha_gestion": "2026-10-08T20:13:23.536000Z"
+        }
+      ]
+    },
+    "edge": {
+      "httpCredencial": 200,
+      "brokerOperativo": true,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "SIN_SEÑAL",
+        "fecha_ultimo_contacto": "2026-10-08T20:19:55.802292Z",
+        "id_ultimo_heartbeat": 300,
+        "tiempo_sin_contacto": 354,
+        "causa_primaria": "FALLO_CONECTIVIDAD",
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T20:25:50.174960Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "timestamp": "2026-10-08T20:48:56.163499+00:00"
+    },
+    "destinosRf17": [
+      "SERBY-TAX-FIRMWARE"
+    ],
+    "timestamp": "2026-10-08T20:50:13.295519+00:00"
+  },
+  "verificacionFisicaEdge": {
+    "rutaEsperada": "/var/lib/sgpmp-edge/umbrales.json",
+    "accesibleDesdeQa": false,
+    "conservacionDeAVerificada": false,
+    "nota": "No existe evidencia directa de umbrales.json ni endpoint del producto que devuelva la configuracion efectiva en campo. La conservacion de la Configuracion A en el Edge NO se da por verificada. Ademas, con el Edge desconectado el broker no publico, de modo que no hubo nada que pudiera sobrescribir A, pero eso es inferencia del contrato, no observacion directa."
+  },
+  "oraculo": {
+    "http500": true,
+    "errorCodeFalloSincronizacionEdge": true,
+    "bPersistida40a100": true,
+    "estadoPendiente": true,
+    "motivoIndicaGatewayDesconectado": true,
+    "sinAck": true,
+    "noSePerdioLaConfiguracionCentral": true,
+    "respuestaRapidaSinEsperarAck": true,
+    "fechaNoIndicaQueBFueAplicada": true
+  },
+  "causasDeRechazo": {
+    "devolvioNoConfEnLugarDePendiente": false,
+    "esperoAproximadamente30sIntentandoAck": false,
+    "elBrokerLoTratoComoConectadoYPublico": false,
+    "otroEstadoIncompatible": false,
+    "noPersistioB": false
+  },
+  "oraculoConservacionEnEdge": {
+    "A_aplicadaAntesDeDesconectar": true,
+    "B_centralmentePendienteDuranteLaDesconexion": true,
+    "A_sigueSiendoLaConfiguracionEfectivaEnCampo": "NO VERIFICABLE DESDE QA",
+    "B_noSustituyoASilenciosamente": "NO VERIFICABLE DESDE QA"
+  },
+  "verdict": "APROBADO",
+  "motivo": "El flujo de fallo de sincronizacion se comporta como exige RF-17 con el Edge indisponible. La conservacion de A en campo queda sin verificar directamente por falta de acceso al Raspberry.",
+  "restauracion": {
+    "realizada": false,
+    "razon": "Instruccion de Juan: no restaurar todavia."
+  },
+  "fin": "2026-10-08T20:50:13.295630+00:00",
+  "hallazgoSobreLasSenalesDeConectividad": {
+    "observacion": "En el momento del PATCH, /configuracion/dispositivos-iot/138/credencial-mqtt reportaba conectada=true, y sin embargo el broker respondio al comando que el dispositivo estaba OFFLINE.",
+    "implicacion": "Son dos señales distintas con semanticas distintas: \"conectada\" del endpoint de credencial no es el estado de sesion que el broker usa para decidir si publica un comando. Usar \"conectada\" como precondicion de QA habria bloqueado indefinidamente un caso que el producto resuelve correctamente.",
+    "senalesFiablesParaRf17": [
+      "la respuesta del propio broker al comando (origen \"umbral\")",
+      "estado_actual SIN_SENAL / INACTIVO con causa FALLO_CONECTIVIDAD",
+      "fecha_ultimo_contacto congelada (no tiempo_sin_contacto, que es un valor almacenado)"
+    ],
+    "clasificacion": "Observacion de documentacion/semantica, no defecto: el flujo funcional de RF-17 se comporto exactamente como exige el requisito.",
+    "tipo": "Enhancement",
+    "severidad": "Minor",
+    "prioridad": "Low"
+  },
+  "evidenciaDeNoPropagacion": {
+    "fecha_ultima_sincronizacion": "2026-10-08T20:18:32.740677Z (la de TC-62, sin avanzar)",
+    "razonamiento": "El campo quedo en el valor que dejo la Configuracion A. Si B se hubiera aplicado habria avanzado. Es la prueba central de que B nunca llego al Edge.",
+    "fecha_actualizacion": "2026-10-08T20:48:54.475814Z (avanzo: B si se guardo centralmente)"
+  }
+}

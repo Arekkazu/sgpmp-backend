@@ -1,0 +1,23 @@
+{
+  "caso": "TC-M06-G97",
+  "fecha": "2026-11-13",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "consulta": "GET /openapi.json",
+  "http": 200,
+  "paths_con_depreci_en_ruta": 0,
+  "summaries_con_depreci": 0,
+  "rutas_relacionadas_observadas": [
+    "GET /finanzas/activos/{id_activo_biologico}",
+    "GET /finanzas/activos/{id_activo_biologico}/simulacion",
+    "PUT /finanzas/configuracion/especies/{id_especie}",
+    "GET /finanzas/reconocimientos/propuestas/{id_activo_biologico}",
+    "POST /finanzas/periodos/{id_periodo_contable}/cierre"
+  ],
+  "parametro_especie_dto": {
+    "required": ["clasificacion"],
+    "vida_util_meses": "optional integer gt=0 le=1200 or null"
+  },
+  "pr_1036_issue_969": "documentado como no resuelto en anotaciones/lote_qa_2026_11_09.md",
+  "dictamen": "BLOQUEADO",
+  "escrituras_ejecutadas": false
+}

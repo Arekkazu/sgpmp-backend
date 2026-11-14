@@ -1,0 +1,13 @@
+[VERIFICAR-BD] Analizando ID Especie: 103, Run Start Time: 2026-10-07T02:48:56.012953+00:00
+[VERIFICAR-BD] Resultados de auditor�a e integridad en BD:
+  [NW-04] OK: Registro CREATE encontrado (ID=197, Usuario=104, Fecha=2026-10-07 04:45:42.741715+00:00)
+  [NW-04a] OK: Campos conformes: id_usuario=104, tipo_operacion='CREATE', fecha=2026-10-07 04:45:42.741715+00:00
+  [NW-04b] FALLA: campo grupo_manejo ausente en snapshot de auditor�a (defecto ra�z INC-M09-01-G01 v2.0)
+  [NW-06] OK: Transici�n de nombre confirmada (ID=206): 'Cabra Qab' -> 'Cabra Criolla Qab'
+  [NW-08] OK: Evento UPDATE persistido en BD (ID=201, Fecha=2026-10-07 04:47:56.524013+00:00)
+  [NW-08a] OK: Evento UPDATE v�lido con id_usuario=104 y fecha=2026-10-07 04:47:56.524013+00:00
+  [NW-08b] FALLA: campo grupo_manejo ausente en snapshot de auditor�a (defecto ra�z INC-M09-01-G01 v2.0)
+  [NW-10] OK: Auditor�a DEACTIVATE confirmada (ID=198): es_activo=true -> es_activo=false
+  [NW-12] OK: Auditor�a de reactivaci�n confirmada (ID=205): UPDATE con es_activo=false -> es_activo=true
+  [NW-15] OK: Integridad BD confirmada: especie ID=103 inactiva (es_activo=False) y 0 residuales activos
+

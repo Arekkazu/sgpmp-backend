@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60/18: inyecta validacion de heartbeat    |
 """Router FastAPI para parámetros operativos del sistema (`/configuracion/parametros`).
 
 RF-18 — CU04:
@@ -28,6 +31,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 
 router = APIRouter(prefix="/configuracion/parametros", tags=["Configuración - Parámetros Operativos"])
 
@@ -66,6 +70,7 @@ def crear_configuracion(
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaConfigRepository(db),
         iot_port=IotStubAdapter(),
+        parametros_repo=SqlAlchemyParametrosMLOpsRepository(db),
     )
     config = use_case.execute(dto, usuario_actual)
     return _respuesta(db, config)
@@ -127,6 +132,7 @@ def actualizar_configuracion(
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaConfigRepository(db),
         iot_port=IotStubAdapter(),
+        parametros_repo=SqlAlchemyParametrosMLOpsRepository(db),
     )
     config = use_case.execute(id_configuracion_global, dto, usuario_actual)
     return _respuesta(db, config)

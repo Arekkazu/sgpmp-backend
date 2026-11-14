@@ -1,0 +1,307 @@
+{
+  "caso": "TC-M06-G96",
+  "fase": "preparacion_solo_lectura",
+  "generado_en": "2026-11-13T06:18:19.678280+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "peticiones": [
+    {
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "ok": true
+    },
+    {
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "rol": "Contador"
+    },
+    {
+      "ruta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "permisos": {
+        "configuracion_contable": [
+          1,
+          2,
+          3
+        ],
+        "valoracion_activos": [
+          2,
+          5
+        ],
+        "cierre_periodo": [
+          2,
+          5
+        ],
+        "valoracion_por_costo": [
+          1,
+          2,
+          3
+        ],
+        "auditoria_financiera": [
+          2
+        ]
+      }
+    },
+    {
+      "ruta": "/finanzas/activos/2126",
+      "codigo": 200,
+      "activo": {
+        "http": 200,
+        "identificador": "QA-M06-DEP-COSTO-10M",
+        "estado": "ACTIVO",
+        "id_finca": 478,
+        "id_infraestructura": 1253,
+        "numero_id_tributaria_omitido": true,
+        "keys_detalle": [
+          "activo",
+          "calculos",
+          "lineas",
+          "mediciones",
+          "productos",
+          "reconocimientos",
+          "valoracion_costo"
+        ]
+      },
+      "reconocimiento": {
+        "encontrado": true,
+        "id_reconocimiento_inicial": 886,
+        "estado": "CONFIRMADO",
+        "indicador_valoracion": "VALORACION_POR_COSTO",
+        "id_periodo_contable": 411,
+        "valor_inicial": null
+      },
+      "valoracion_costo": {
+        "id_valoracion_por_costo": 66,
+        "costos_adquisicion": "10000000.0000",
+        "depreciacion_acumulada": "0.0000",
+        "deterioro_acumulado": "0.0000",
+        "valor_contable_por_costo": "10000000.0000",
+        "vida_util_meses": 100,
+        "es_activa": true,
+        "razon_sin_mercado": "Ausencia verificada de precio de mercado en el repositorio de precios"
+      }
+    },
+    {
+      "ruta": "/finanzas/periodos?numero_id_tributaria=901999213",
+      "codigo": 200,
+      "total": 1,
+      "p411_encontrado": true
+    },
+    {
+      "ruta": "/finanzas/activos/2126/eventos-sanitarios",
+      "codigo": 200,
+      "total": 0,
+      "error": null
+    },
+    {
+      "ruta": "/finanzas/auditoria?tipo_evento=VALOR_LIBROS_AJUSTADO_A_CERO&id_activo_biologico=2126&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "respuesta": {
+        "http": 200,
+        "total_registros": 0,
+        "error_code": null
+      }
+    },
+    {
+      "ruta": "/openapi.json",
+      "codigo": 200,
+      "paths_rf88_count": 123
+    }
+  ],
+  "escritura": false,
+  "rol": "Contador",
+  "permisos": {
+    "configuracion_contable": [
+      1,
+      2,
+      3
+    ],
+    "valoracion_activos": [
+      2,
+      5
+    ],
+    "cierre_periodo": [
+      2,
+      5
+    ],
+    "valoracion_por_costo": [
+      1,
+      2,
+      3
+    ],
+    "auditoria_financiera": [
+      2
+    ]
+  },
+  "activo_2126": {
+    "http": 200,
+    "identificador": "QA-M06-DEP-COSTO-10M",
+    "estado": "ACTIVO",
+    "id_finca": 478,
+    "id_infraestructura": 1253,
+    "numero_id_tributaria_omitido": true,
+    "keys_detalle": [
+      "activo",
+      "calculos",
+      "lineas",
+      "mediciones",
+      "productos",
+      "reconocimientos",
+      "valoracion_costo"
+    ]
+  },
+  "reconocimiento": {
+    "encontrado": true,
+    "id_reconocimiento_inicial": 886,
+    "estado": "CONFIRMADO",
+    "indicador_valoracion": "VALORACION_POR_COSTO",
+    "id_periodo_contable": 411,
+    "valor_inicial": null
+  },
+  "valoracion_costo": {
+    "id_valoracion_por_costo": 66,
+    "costos_adquisicion": "10000000.0000",
+    "depreciacion_acumulada": "0.0000",
+    "deterioro_acumulado": "0.0000",
+    "valor_contable_por_costo": "10000000.0000",
+    "vida_util_meses": 100,
+    "es_activa": true,
+    "razon_sin_mercado": "Ausencia verificada de precio de mercado en el repositorio de precios"
+  },
+  "campos_costo_en_detalle": {
+    "valoracion_costo": {
+      "id_valoracion_por_costo": 66,
+      "costos_adquisicion": "10000000.0000",
+      "depreciacion_acumulada": "0.0000",
+      "deterioro_acumulado": "0.0000",
+      "valor_contable_por_costo": "10000000.0000",
+      "vida_util_meses": 100,
+      "es_activa": true,
+      "razon_sin_mercado": "Ausencia verificada de precio de mercado en el repositorio de precios"
+    }
+  },
+  "periodo_411": {
+    "nit_consulta": "901999213",
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "razon_social": "[SEED-QA-M06-DEP] Agropecuaria Depreciacion S.A.S."
+  },
+  "eventos_sanitarios": {
+    "http": 200,
+    "total": 0,
+    "muestra": [],
+    "error": null
+  },
+  "alerta_baseline": {
+    "http": 200,
+    "total_registros": 0,
+    "error_code": null
+  },
+  "openapi_paths_rf88": [
+    "/activos-biologicos/auditoria",
+    "/activos-biologicos/auditoria/registros-correctivos",
+    "/activos-biologicos/{id_activo}/cierre",
+    "/auditoria/",
+    "/auditoria/archivado/",
+    "/auditoria/catalogo/tipos-evento",
+    "/auditoria/exportaciones",
+    "/auditoria/exportaciones/{id_cola}",
+    "/auditoria/exportaciones/{id_cola}/descargar",
+    "/auditoria/exportar",
+    "/configuracion/calibraciones-vision",
+    "/configuracion/calibraciones-vision/linea-base",
+    "/configuracion/ciclos",
+    "/configuracion/ciclos-productivos",
+    "/configuracion/ciclos-productivos/{id_ciclo_productivo}",
+    "/configuracion/ciclos/{id_ciclo_biologico}",
+    "/configuracion/ciclos/{id_ciclo_biologico}/densidad",
+    "/configuracion/ciclos/{id_ciclo_biologico}/desactivar",
+    "/configuracion/ciclos/{id_ciclo_biologico}/reactivar",
+    "/configuracion/dispositivos-iot",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configuraciones",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configuraciones/{id_configuracion_remota}/cancelar",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configuraciones/{id_configuracion_remota}/reintentar",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configurar",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/credencial-mqtt",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/desactivar",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/gateway",
+    "/configuracion/dispositivos-iot/{id_dispositivo_iot}/sensores",
+    "/configuracion/especies",
+    "/configuracion/especies/{id_especie}",
+    "/configuracion/especies/{id_especie}/desactivar",
+    "/configuracion/especies/{id_especie}/reactivar",
+    "/configuracion/fincas",
+    "/configuracion/fincas/{id_finca}",
+    "/configuracion/fincas/{id_finca}/desactivar",
+    "/configuracion/fincas/{id_finca}/reactivar",
+    "/configuracion/fincas/{id_finca}/titular",
+    "/configuracion/identidad-visual",
+    "/configuracion/identidad-visual/{id_finca}"
+  ],
+  "openapi_deterioro_post": true,
+  "openapi_tiene_valor_libros_evento": true,
+  "openapi_enum_valor_libros_encontrado": false,
+  "dictamen_preparacion": {
+    "categoria": "PREPARADO_CON_RIESGOS",
+    "escritura_ejecutada": false,
+    "baseline_ok": true,
+    "ejecucion_autorizada": false,
+    "documento_requerimientos": "resultados/preparacion/requerimientos_pendientes_DBA_Desarrollo_G96.md",
+    "confirmacion_968_repositorio": {
+      "commit": "8829599f",
+      "en_origin_test": true,
+      "en_origin_dev": true,
+      "en_laura_local_HEAD": false,
+      "enum_aceptado_en_TEST": true,
+      "alta_alerta_verificada_por_escritura": false,
+      "nota": "Cierre del issue no demuestra funcionamiento; falta confirmacion de imagen desplegada y corrida autorizada"
+    },
+    "bloqueos_para_ejecucion": [
+      "R1 Tres escenarios aislados (activos independientes o reset)",
+      "R2 Procedimiento soportado depreciacion exacta 2M/10M/7M",
+      "R3 Eventos sanitarios para deterioros 1M y 5M",
+      "R4 Confirmacion deploy #968 / 8829599f en TEST",
+      "R5 Contrato payload alerta VALOR_LIBROS_AJUSTADO_A_CERO",
+      "R6 Procedimiento restauracion/aislamiento anti-contaminacion"
+    ]
+  },
+  "alternativa_segura": {
+    "documento": "resultados/preparacion/analisis_alternativa_segura_G96.md",
+    "dictamen_grupo": "PREPARADO_CON_RIESGOS",
+    "alternativa_recomendada": "capa_A_dominio + capa_B_integracion_aislada",
+    "requiere_codigo_con_968": true,
+    "968_en_laura_local": false,
+    "968_en_origin_test": true,
+    "prueba_integracion_existente": "tests/integration/test_inc_m06_281_g68_valor_libros_cero.py (en origin/test)",
+    "ejecutada": false,
+    "afirma_alerta_en_TEST_compartido": false
+  },
+  "ejecucion_A_B": {
+    "dictamen_tecnico": "VALIDACION_A_B_COMPLETADA",
+    "dictamen_grupo_qa": "PREPARADO_CON_RIESGOS",
+    "aprobado_end_to_end": false,
+    "capa_A": "PASS",
+    "capa_B": "PASS",
+    "alerta_comprobada_en_BD_temporal": true,
+    "alerta_en_TEST_compartido": false,
+    "worktree": "sgpmp-backend-g96-ab",
+    "head": "91f79e75bd8f91fe399ab180e77aed1c614b09d3",
+    "incluye_8829599f": true,
+    "entorno_temporal": {
+      "container": "g96-ab-postgres-tmp",
+      "db": "g96_ab_test",
+      "port": 55496,
+      "limpieza": "programada_tras_evidencias"
+    },
+    "TEST_compartido_modificado": false
+  },
+  "estado_final_caso": {
+    "estado": "APROBADO",
+    "fecha": "2026-11-13",
+    "informe": "resultados/INFORME_FINAL_G96.html",
+    "resumen": "resultados/RESUMEN_FINAL_G96.md",
+    "http_test_compartido_obligatorio": false,
+    "test_compartido_modificado": false
+  }
+}

@@ -1,0 +1,173 @@
+{
+    "item":  [
+                 {
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{base_url}}/finanzas/periodos",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{contador_token}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Test-Run-Id",
+                                                        "value":  "{{run_id}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Sandbox-Secret",
+                                                        "value":  "{{sandbox_secret}}"
+                                                    }
+                                                ]
+                                 },
+                     "name":  "/finanzas/periodos",
+                     "event":  [
+                                   {
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\u0027HTTP 200\u0027,()=\u003epm.expect(pm.response.code).to.equal(200));",
+                                                                   "pm.test(\u0027JSON válido\u0027,()=\u003epm.expect(()=\u003epm.response.json()).not.to.throw());"
+                                                               ],
+                                                      "type":  "text/javascript"
+                                                  },
+                                       "listen":  "test"
+                                   }
+                               ]
+                 },
+                 {
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{base_url}}/finanzas/periodos/220/prevalidacion",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{contador_token}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Test-Run-Id",
+                                                        "value":  "{{run_id}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Sandbox-Secret",
+                                                        "value":  "{{sandbox_secret}}"
+                                                    }
+                                                ]
+                                 },
+                     "name":  "/finanzas/periodos/220/prevalidacion",
+                     "event":  [
+                                   {
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\u0027HTTP 200\u0027,()=\u003epm.expect(pm.response.code).to.equal(200));",
+                                                                   "pm.test(\u0027JSON válido\u0027,()=\u003epm.expect(()=\u003epm.response.json()).not.to.throw());"
+                                                               ],
+                                                      "type":  "text/javascript"
+                                                  },
+                                       "listen":  "test"
+                                   }
+                               ]
+                 },
+                 {
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{base_url}}/finanzas/periodos/220/comprobantes",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{contador_token}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Test-Run-Id",
+                                                        "value":  "{{run_id}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Sandbox-Secret",
+                                                        "value":  "{{sandbox_secret}}"
+                                                    }
+                                                ]
+                                 },
+                     "name":  "/finanzas/periodos/220/comprobantes",
+                     "event":  [
+                                   {
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\u0027HTTP 200\u0027,()=\u003epm.expect(pm.response.code).to.equal(200));",
+                                                                   "pm.test(\u0027JSON válido\u0027,()=\u003epm.expect(()=\u003epm.response.json()).not.to.throw());"
+                                                               ],
+                                                      "type":  "text/javascript"
+                                                  },
+                                       "listen":  "test"
+                                   }
+                               ]
+                 },
+                 {
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{base_url}}/finanzas/auditoria?id_periodo_contable=220\u0026formato=TECNICO\u0026tamano=500\u0026pagina=1\u0026orden=DESC",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{contador_token}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Test-Run-Id",
+                                                        "value":  "{{run_id}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Sandbox-Secret",
+                                                        "value":  "{{sandbox_secret}}"
+                                                    }
+                                                ]
+                                 },
+                     "name":  "/finanzas/auditoria?id_periodo_contable=220\u0026formato=TECNICO\u0026tamano=500\u0026pagina=1\u0026orden=DESC",
+                     "event":  [
+                                   {
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\u0027HTTP 200\u0027,()=\u003epm.expect(pm.response.code).to.equal(200));",
+                                                                   "pm.test(\u0027JSON válido\u0027,()=\u003epm.expect(()=\u003epm.response.json()).not.to.throw());"
+                                                               ],
+                                                      "type":  "text/javascript"
+                                                  },
+                                       "listen":  "test"
+                                   }
+                               ]
+                 },
+                 {
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{base_url}}/finanzas/activos/1573",
+                                     "header":  [
+                                                    {
+                                                        "key":  "Authorization",
+                                                        "value":  "Bearer {{contador_token}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Test-Run-Id",
+                                                        "value":  "{{run_id}}"
+                                                    },
+                                                    {
+                                                        "key":  "X-Sandbox-Secret",
+                                                        "value":  "{{sandbox_secret}}"
+                                                    }
+                                                ]
+                                 },
+                     "name":  "/finanzas/activos/1573",
+                     "event":  [
+                                   {
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\u0027HTTP 200\u0027,()=\u003epm.expect(pm.response.code).to.equal(200));",
+                                                                   "pm.test(\u0027JSON válido\u0027,()=\u003epm.expect(()=\u003epm.response.json()).not.to.throw());"
+                                                               ],
+                                                      "type":  "text/javascript"
+                                                  },
+                                       "listen":  "test"
+                                   }
+                               ]
+                 }
+             ],
+    "info":  {
+                 "name":  "TC-M06-G46 RF-87 lecturas finales",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             }
+}

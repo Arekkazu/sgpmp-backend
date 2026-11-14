@@ -1,0 +1,450 @@
+{
+  "version": "ORD-G43-001",
+  "fuente": "Codigo local revisado para G43; sin TEST",
+  "error_respuesta": {
+    "cuerpo": {
+      "error_code": "string",
+      "message": "string",
+      "fields": "array",
+      "timestamp": "string"
+    },
+    "cita": "src/shared/error_handlers.py:40-68"
+  },
+  "rutas": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "dto": "LoginDTO",
+      "cuerpo": {
+        "correo_electronico": "string",
+        "contrasena": "string"
+      },
+      "respuesta": {
+        "token": "string"
+      },
+      "cita": "src/identity_access/infrastructure/dto/usuario_dto.py:26-30; src/identity_access/infrastructure/routers/sesiones_routers.py:91-140,215-235"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "respuesta": {
+        "permisos": [
+          {
+            "nombre_recurso": "string",
+            "id_accion": "integer"
+          }
+        ]
+      },
+      "cita": "src/identity_access/infrastructure/dto/usuario_dto.py:26-30; src/identity_access/infrastructure/routers/sesiones_routers.py:91-140,215-235"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_periodo_contable": "integer",
+          "numero_id_tributaria": "string|null",
+          "fecha_inicio": "date",
+          "fecha_cierre": "datetime|null",
+          "estado": "string",
+          "ultimo_cierre": {
+            "id_cierre": "integer|null",
+            "id_usuario_ejecutor": "integer|null",
+            "fecha_fin": "datetime|null",
+            "_nullable": true,
+            "precios_congelados": [
+              {
+                "id_especie": "integer|especie_estimacion",
+                "id_precio_mercado": "integer",
+                "precio_unitario": "decimal",
+                "fuente": "string",
+                "fecha_vigencia": "date"
+              }
+            ]
+          },
+          "fecha_fin": "date"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:295-299; src/financial_valuation/infrastructure/repositories/periodo_repository.py:115,145; src/financial_valuation/domain/entities/contabilidad.py:16-23; numero_id_tributaria null observado en RUN-G42-V1-20261109-203716 para periodo ajeno; precios_congelados.id_especie: src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:339,431 (clave tuple[int,bool] serializada como [entero,booleano])"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_activo_biologico": "integer",
+          "id_especie": "integer",
+          "id_finca": "integer",
+          "estado": "string",
+          "valorado_por_costo": "boolean",
+          "depreciacion_acumulada": "decimal|null"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:190-193; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:250-269 (LEFT JOIN vc y c: depreciacion_acumulada nullable)"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/{id}",
+      "http": 200,
+      "respuesta": {
+        "activo": {
+          "id_activo_biologico": "integer",
+          "id_especie": "integer",
+          "id_finca": "integer",
+          "numero_id_tributaria": "string",
+          "estado": "string",
+          "id_dispositivo_iot": "integer|null"
+        },
+        "valoracion_costo": {
+          "es_activa": "boolean",
+          "vida_util_meses": "integer|null",
+          "razon_sin_mercado": "string|null",
+          "_nullable": true
+        }
+      },
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:196-203; src/financial_valuation/infrastructure/adapters/activo_financiero_m02_adapter.py:22-62; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:273-299"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "respuesta": {
+        "general": {
+          "pct_umbral_desviacion_precio": "decimal"
+        },
+        "especies": [
+          {
+            "id_especie": "integer",
+            "categoria_precio": "string|null",
+            "vida_util_meses": "integer|null"
+          }
+        ],
+        "matriz": [
+          {
+            "id_asignacion_cuenta_contable": "integer",
+            "tipo_hecho": "string",
+            "sentido": "string",
+            "id_especie": "integer|null",
+            "subtipo_costo": "string|null",
+            "cuenta_debito": "string",
+            "cuenta_credito": "string"
+          }
+        ]
+      },
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:79-84; src/financial_valuation/domain/entities/contabilidad.py:33-39"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/mediciones",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_medicion_posterior": "integer",
+          "id_activo_biologico": "integer",
+          "origen_medicion": "string",
+          "valor_razonable_anterior": "decimal",
+          "valor_razonable_actual": "decimal",
+          "variacion_total": "decimal",
+          "ganancia_perdida_transformacion": "decimal",
+          "ganancia_perdida_precio_mercado": "decimal"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:234-239"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/calculos",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_calculo_valor_razonable": "integer",
+          "id_activo_biologico": "integer",
+          "tiene_valor_estimado": "boolean",
+          "fecha_calculo": "datetime|null",
+          "precio_unitario": "decimal",
+          "magnitud": "decimal",
+          "valor_razonable_bruto": "decimal",
+          "valor_neto": "decimal"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:321-331; src/financial_valuation/infrastructure/routers/m06_router.py:248-252"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_linea_asiento_nic41": "integer",
+          "id_activo_biologico": "integer",
+          "estado": "string",
+          "tipo_hecho": "string",
+          "sentido": "string",
+          "id_especie": "integer|null",
+          "subtipo_costo": "string|null",
+          "valor": "decimal",
+          "tipo_evidencia": "string|null",
+          "cuenta_debito": "string|null",
+          "cuenta_credito": "string|null",
+          "numero_id_tributaria": "string",
+          "id_periodo_contable": "integer",
+          "estado_trazabilidad": "string|null?"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:225-230; src/financial_valuation/infrastructure/repositories/asiento_repository.py:18-21,72-83; src/financial_valuation/domain/entities/contabilidad.py:71-97 (cuenta_debito/cuenta_credito Optional[str])"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/prevalidacion",
+      "http": 200,
+      "respuesta": {
+        "bloqueos": [
+          {
+            "codigo": "string",
+            "mensaje": "string|null?"
+          }
+        ],
+        "activos_sin_precio": [
+          {
+            "id_activo_biologico": "integer",
+            "identificador": "string",
+            "especie": "string"
+          }
+        ],
+        "lineas_sin_trazabilidad": [
+          {
+            "id_linea": "integer",
+            "tipo_hecho": "string",
+            "id_activo_biologico": "integer",
+            "identificador": "string|null?",
+            "faltantes": [
+              "string"
+            ],
+            "nivel_fallo": "integer|null"
+          }
+        ],
+        "puede_cerrar": "boolean",
+        "requiere_autorizacion": "boolean"
+      },
+      "cita": "src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:63-66,93-127; src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:31-42"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "respuesta": {
+        "eventos": [
+          {
+            "tipo_evento": "string",
+            "id_referencia": "integer|null",
+            "id_usuario": "integer|null",
+            "timestamp_evento": "datetime",
+            "payload_evento": {
+              "id_cierre": "integer|null?",
+              "paso": "integer|null?",
+              "error": "string|null?"
+            }
+          }
+        ],
+        "total_registros": "integer"
+      },
+      "cita": "src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:66-76; src/financial_valuation/infrastructure/routers/m06_router.py:498-508; src/financial_valuation/domain/entities/contabilidad.py:110-123 (id_referencia Optional[int], payload dict); src/financial_valuation/application/services/medidor.py:128-134 (id_cierre puede ser None); src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:359-367 (payload paso/error por fallo)"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_precio_mercado": "integer",
+          "id_especie": "integer",
+          "categoria": "string",
+          "id_metrica_produccion": "integer|null",
+          "es_aplicado": "boolean",
+          "precio_unitario": "decimal",
+          "fuente": "string",
+          "fecha_vigencia": "date",
+          "fecha_vencimiento": "date|null",
+          "unidad_medida": "string",
+          "evidencia": "string",
+          "estado": "string"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:137-140; src/financial_valuation/application/use_cases/precios/listar_precios_use_case.py:22-34; src/financial_valuation/domain/services/precios.py:23-36 (Optional fecha_vencimiento e id_metrica_produccion)"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "http": 201,
+      "dto": "PrecioDTO",
+      "cuerpo": {
+        "id_especie": "integer",
+        "categoria": "string",
+        "precio_unitario": "decimal",
+        "fecha_vigencia": "date",
+        "fuente": "string",
+        "evidencia_documental": "string",
+        "confirmar_desviacion": "boolean",
+        "justificacion_estimacion": "string?"
+      },
+      "respuesta": {
+        "id_precio_mercado": "integer"
+      },
+      "cita": "src/financial_valuation/infrastructure/dto/m06_dto.py:64-77; src/financial_valuation/infrastructure/routers/m06_router.py:143-146"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/{id}/cierre",
+      "http": 200,
+      "dto": "CierreDTO",
+      "cuerpo": {
+        "autorizar_exclusiones": "boolean",
+        "incluir_activos_sin_precio": "boolean",
+        "activos_estimados": ["integer"]
+      },
+      "respuesta": {
+        "id_cierre": "integer",
+        "id_periodo_contable": "integer",
+        "periodo": "string",
+        "estado": "string",
+        "activos_procesados": "integer",
+        "activos_excluidos": [
+          {
+            "id_activo_biologico": "integer",
+            "identificador": "string",
+            "motivo": "string",
+            "detalle": "string|null?"
+          }
+        ],
+        "lineas_excluidas": [
+          {
+            "id_linea": "integer",
+            "tipo_hecho": "string",
+            "id_activo_biologico": "integer",
+            "faltantes": [
+              "string"
+            ],
+            "nivel_fallo": "integer|null"
+          }
+        ],
+        "comprobantes": [],
+        "hash_cierre": "string",
+        "id_periodo_siguiente": "integer",
+        "reportes": {
+          "estado_resultados": "object|string",
+          "informe_revelaciones": "object|string"
+        }
+      },
+      "cita": "src/financial_valuation/infrastructure/dto/m06_dto.py:132-134; src/financial_valuation/infrastructure/routers/m06_router.py:312-318; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:298-302"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/{id}/cierre/cancelacion",
+      "http": 200,
+      "respuesta": {"id_periodo_contable": "integer", "id_cierre": "integer", "estado": "string"},
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:462-467; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:318-341"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "respuesta": {"items": [{"id_notificacion": "integer", "mensaje": "string"}], "total": "integer"},
+      "cita": "src/identity_access/infrastructure/routers/notificaciones_routers.py:30-60"
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/{id}",
+      "http": 200,
+      "respuesta": {},
+      "cita": "src/shared/rollback/presentation/test_control_router.py:31-40"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/comprobantes",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_comprobante_nic41": "integer",
+          "codigo": "string",
+          "numero_id_tributaria": "string",
+          "tipo_hecho": "string",
+          "id_especie": "integer",
+          "fecha_comprobante": "date",
+          "lineas": [
+            {
+              "cuenta_debito": "string",
+              "cuenta_credito": "string",
+              "valor": "decimal"
+            }
+          ],
+          "hash_integridad": "string"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:321-325; src/financial_valuation/infrastructure/repositories/periodo_repository.py:116-122"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/revelaciones",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_informe": "integer",
+          "version_informe": "integer"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:449-453; src/financial_valuation/infrastructure/repositories/reporte_repository.py:179-184"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/revelaciones/{id}",
+      "http": 200,
+      "respuesta": {
+        "id_informe": "integer",
+        "contenido": {
+          "parr_54_56_activos_al_costo": [
+            {
+              "id_activo_biologico": "integer",
+              "vida_util_meses": "integer|null",
+              "razon": "string|null"
+            }
+          ]
+        }
+      },
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:455-463; src/financial_valuation/infrastructure/repositories/reporte_repository.py:161-166; src/financial_valuation/application/services/reportes.py:105-126"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/variaciones",
+      "http": 200,
+      "respuesta": [
+        {
+          "id_variacion_valor_razonable": "integer",
+          "tipo_evidencia": "string|null"
+        }
+      ],
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:241-245; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:309-319"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/configuracion/matriz",
+      "http": 201,
+      "dto": "AsignacionCuentaDTO",
+      "cuerpo": {
+        "tipo_hecho": "string",
+        "sentido": "string",
+        "id_especie": "integer|null",
+        "subtipo_costo": "string|null",
+        "cuenta_debito": "string",
+        "cuenta_credito": "string"
+      },
+      "respuesta": {
+        "id_asignacion_cuenta_contable": "integer"
+      },
+      "cita": "src/financial_valuation/infrastructure/routers/m06_router.py:115-122; src/financial_valuation/infrastructure/dto/m06_dto.py:49-59"
+    }
+  ]
+}

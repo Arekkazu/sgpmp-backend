@@ -1,0 +1,141 @@
+{
+  "id": "P3",
+  "entrada": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor": 30.0,
+      "unidad": "C"
+    },
+    {
+      "variable": "humedad_relativa",
+      "valor": 150.0,
+      "unidad": "%"
+    },
+    {
+      "variable": "ph",
+      "valor": 20.0,
+      "unidad": "pH"
+    }
+  ],
+  "validacion": [
+    {
+      "variable": "humedad_relativa",
+      "valor": 150.0,
+      "es_finito": true,
+      "invalida": true,
+      "motivo": "150.0 fuera del rango físico [0, 100]"
+    },
+    {
+      "variable": "ph",
+      "valor": 20.0,
+      "es_finito": true,
+      "invalida": true,
+      "motivo": "20.0 fuera del rango físico [0, 14]"
+    }
+  ],
+  "lecturas_es_finito": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor_repr": "30.0",
+      "es_finito": true
+    },
+    {
+      "variable": "humedad_relativa",
+      "valor_repr": "150.0",
+      "es_finito": true
+    },
+    {
+      "variable": "ph",
+      "valor_repr": "20.0",
+      "es_finito": true
+    }
+  ],
+  "historial": [
+    {
+      "clasificacion": "LECTURA_INVALIDA",
+      "severidad": null,
+      "ruta": "LOCAL",
+      "estado": "LOCAL",
+      "variables": [
+        {
+          "tipo_variable": "humedad_relativa",
+          "valor": 150.0,
+          "unidad": "%"
+        }
+      ],
+      "detalle": {
+        "motivo": "150.0 fuera del rango físico [0, 100]"
+      }
+    },
+    {
+      "clasificacion": "LECTURA_INVALIDA",
+      "severidad": null,
+      "ruta": "LOCAL",
+      "estado": "LOCAL",
+      "variables": [
+        {
+          "tipo_variable": "ph",
+          "valor": 20.0,
+          "unidad": "pH"
+        }
+      ],
+      "detalle": {
+        "motivo": "20.0 fuera del rango físico [0, 14]"
+      }
+    },
+    {
+      "clasificacion": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "ruta": "DIRECTA",
+      "estado": "PENDIENTE",
+      "variables": [
+        {
+          "tipo_variable": "temperatura_ambiente",
+          "valor": 30.0,
+          "unidad": "C"
+        }
+      ],
+      "detalle": {
+        "nivel_umbral": "critico",
+        "id_umbral_ambiental": 7
+      }
+    }
+  ],
+  "eventos": [
+    {
+      "clasificacion_rf55": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "regla_aplicada": "UMBRAL_AMBIENTAL",
+      "variable": null
+    },
+    {
+      "clasificacion_rf55": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "regla_aplicada": "UMBRAL_AMBIENTAL",
+      "variable": null
+    }
+  ],
+  "telemetria": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor_crudo": 30.0
+    },
+    {
+      "variable": "humedad_relativa",
+      "valor_crudo": 150.0
+    },
+    {
+      "variable": "ph",
+      "valor_crudo": 20.0
+    }
+  ],
+  "warnings_rf55": [
+    "Lectura de QA-G45-HARNESS descartada para RF-55 (humedad_relativa): 150.0 fuera del rango físico [0, 100]",
+    "Lectura de QA-G45-HARNESS descartada para RF-55 (ph): 20.0 fuera del rango físico [0, 14]"
+  ],
+  "paths": {
+    "tmp": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P3",
+    "historial": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P3\\historial.db",
+    "buffer": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P3\\buffer.db"
+  }
+}

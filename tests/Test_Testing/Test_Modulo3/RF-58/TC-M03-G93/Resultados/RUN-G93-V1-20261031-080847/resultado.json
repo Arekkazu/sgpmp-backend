@@ -1,0 +1,941 @@
+{
+  "grupo": "G93",
+  "run_id": "RUN-G93-V1-20261031-080847",
+  "version": 1,
+  "oficial": true,
+  "consume_version": true,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G93-V1-R8-20261031",
+  "commit": null,
+  "datos": {
+    "ids_telemetria": [],
+    "id_area_v1": 700,
+    "id_area_v2": 1,
+    "candidatas_v2": [
+      {
+        "id_infraestructura": 1,
+        "momento": "canario_E7",
+        "http": 200,
+        "seguro": true
+      },
+      {
+        "id_infraestructura": 1,
+        "id_finca": 1,
+        "total_sensores": 4,
+        "estados_conectividad": {
+          "INACTIVO": 3,
+          "BUFFER_ACTIVO": 1
+        },
+        "estados_originales": [
+          "INACTIVO",
+          "INACTIVO",
+          "INACTIVO",
+          "BUFFER_ACTIVO"
+        ],
+        "ultimo_dato_recibido": "2026-10-25T23:03:14.722257Z",
+        "dato_desactualizado": {
+          "true": 4
+        },
+        "tiempo_sin_reporte_min": {
+          "0": 3,
+          "NO_INFORMADO": 1
+        },
+        "motivo": "aceptada"
+      },
+      {
+        "id_infraestructura": 1,
+        "id_finca": 1,
+        "total_sensores": 4,
+        "estados_conectividad": {
+          "INACTIVO": 3,
+          "BUFFER_ACTIVO": 1
+        },
+        "estados_originales": [
+          "INACTIVO",
+          "INACTIVO",
+          "INACTIVO",
+          "BUFFER_ACTIVO"
+        ],
+        "ultimo_dato_recibido": "2026-10-25T23:03:14.722257Z",
+        "dato_desactualizado": {
+          "true": 4
+        },
+        "tiempo_sin_reporte_min": {
+          "0": 3,
+          "NO_INFORMADO": 1
+        },
+        "motivo": "aceptada",
+        "momento": "antes_newman",
+        "evento": "candidata_revalidada"
+      }
+    ],
+    "descubrimiento_v2": null,
+    "fincas_productor": [
+      1,
+      80,
+      184,
+      57
+    ]
+  },
+  "casos": {
+    "TC-M03-184": {
+      "id": "TC-M03-184",
+      "estado": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "motivo": "Discrepancia del oráculo comprobada por API/UI pública",
+      "observado": {
+        "V1": {
+          "http": 200,
+          "id": 700,
+          "total_sensores": 0,
+          "estado_general": "GRIS",
+          "mensaje_estado": "Sin datos disponibles",
+          "ultimo_dato_recibido": null
+        },
+        "V2": {
+          "http": 200,
+          "id": 1,
+          "total_sensores": 4,
+          "estado_general": "GRIS",
+          "ultimo_dato_recibido": "2026-10-25T23:03:14.722257Z"
+        },
+        "UI_V1": {
+          "panel_global": "",
+          "vista_filtrada": "",
+          "texto_estado_global": "",
+          "texto_estado_filtrado": "",
+          "gris": false,
+          "fecha_visible": false,
+          "sin_valores_fabricados": true
+        },
+        "UI_V2": {
+          "panel_global": "Sin datos",
+          "vista_filtrada": "Sin datos",
+          "texto_estado_global": "Sin datos",
+          "texto_estado_filtrado": "Sin datos",
+          "gris": true,
+          "fecha_visible": true,
+          "sin_valores_fabricados": true
+        }
+      }
+    }
+  },
+  "variantes": {
+    "V1": "APROBADO",
+    "V2": "APROBADO"
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-184",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "id": "API-184-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "HTTP 200; unidad presente y GRIS",
+      "evidencia": "newman/newman-G93.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "id": "API-184-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Unidad nueva presente, GRIS y sin valores actuales; fecha histórica válida si existe",
+      "evidencia": "newman/newman-G93.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "id": "API-184-03",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Unidad presente, GRIS, sin valores actuales fabricados; fecha histórica comprobada si existe",
+      "evidencia": "newman/newman-G93.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "UI",
+      "herramienta": "Cypress",
+      "id": "UI-184-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "HTTP 200; la unidad desaparece del panel; global {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":1,\"unidad_objetivo_presente\":false,\"gris\":false,\"texto_estado\":\"\",\"mensaje_ausencia\":\"\",\"fecha_historica\":true,\"fecha_visible\":false,\"fecha_observada\":\"\",\"sin_valores_fabricados\":true,\"desde_cache\":false}; filtrada {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":1,\"unidad_objetivo_presente\":false,\"gris\":false,\"texto_estado\":\"\",\"mensaje_ausencia\":\"\",\"fecha_historica\":true,\"fecha_visible\":false,\"fecha_observada\":\"\",\"sin_valores_fabricados\":true,\"desde_cache\":false}",
+      "evidencia": "cypress/UI-184-V1.json"
+    },
+    {
+      "caso": "TC-M03-184",
+      "fuente": "UI",
+      "herramienta": "Cypress",
+      "id": "UI-184-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "HTTP 200; global {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":2,\"unidad_objetivo_presente\":true,\"gris\":true,\"texto_estado\":\"Sin datos\",\"mensaje_ausencia\":\"Sin datos\",\"fecha_historica\":true,\"fecha_visible\":true,\"fecha_observada\":\"25/10/26, 6:03 p. m.Sin datos desde 25/10/26, 6:03 p. m.0en línea3sin señal0con error o fuera de rangoSin datos4 sensores sin datosSensor temperatura estanque-01Temperatura Ambiental · 22/10/26, 7:35 p. m.—Sin datosSensor pH estanque-01pH del agua · 1/06/24, 3:05 a. m.62,1 pHSin datosSensor oxígeno \",\"sin_valores_fabricados\":true,\"desde_cache\":false}; filtrada {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":2,\"unidad_objetivo_presente\":true,\"gris\":true,\"texto_estado\":\"Sin datos\",\"mensaje_ausencia\":\"Sin datos\",\"fecha_historica\":true,\"fecha_visible\":true,\"fecha_observada\":\"25/10/26, 6:03 p. m.Sin datos desde 25/10/26, 6:03 p. m.0en línea3sin señal0con error o fuera de rangoSin datos4 sensores sin datosSensor temperatura estanque-01Temperatura Ambiental · 22/10/26, 7:35 p. m.—Sin datosSensor pH estanque-01pH del agua · 1/06/24, 3:05 a. m.62,1 pHSin datosSensor oxígeno \",\"sin_valores_fabricados\":true,\"desde_cache\":false}",
+      "evidencia": "cypress/UI-184-V2.json"
+    }
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 1048
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 688
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 152
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 141
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/184",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 146
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/184",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 140
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 147
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 201,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 150
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/700",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 138
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas?solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 138
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 298
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 415
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 344
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/1",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 143
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=700&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 345
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos?estado=INACTIVO",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 252
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/6",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 137
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=6&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 242
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G93-V1-20261031-080847",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 141
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 409
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/700",
+      "http": 404,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 135
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=700&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 257
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/1",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 143
+    }
+  ],
+  "newman": [
+    {
+      "archivo": "newman/newman-G93.json",
+      "respuestas": [
+        200,
+        200
+      ],
+      "fallos": []
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 2,
+    "detalle": [
+      {
+        "fase": "V1",
+        "estado": "RECHAZADO",
+        "ejecutadas": 1,
+        "proceso_fallido": false,
+        "motivo": "HTTP 200; la unidad desaparece del panel; global {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":1,\"unidad_objetivo_presente\":false,\"gris\":false,\"texto_estado\":\"\",\"mensaje_ausencia\":\"\",\"fecha_historica\":true,\"fecha_visible\":false,\"fecha_observada\":\"\",\"sin_valores_fabricados\":true,\"desde_cache\":false}; filtrada {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":1,\"unidad_objetivo_presente\":false,\"gris\":false,\"texto_estado\":\"\",\"mensaje_ausencia\":\"\",\"fecha_historica\":true,\"fecha_visible\":false,\"fecha_observada\":\"\",\"sin_valores_fabricados\":true,\"desde_cache\":false}",
+        "criterio": "UNIDAD_DESAPARECE_DEL_PANEL",
+        "rel": "cypress/UI-184-V1.json",
+        "http": 200,
+        "error_red": null,
+        "ui_inicial": {
+          "cargando": false,
+          "error": "",
+          "unidades_visibles": 1,
+          "unidad_objetivo_presente": false,
+          "gris": false,
+          "texto_estado": "",
+          "mensaje_ausencia": "",
+          "fecha_historica": true,
+          "fecha_visible": false,
+          "fecha_observada": "",
+          "sin_valores_fabricados": true,
+          "desde_cache": false
+        },
+        "ui_objetivo": {
+          "cargando": false,
+          "error": "",
+          "unidades_visibles": 1,
+          "unidad_objetivo_presente": false,
+          "gris": false,
+          "texto_estado": "",
+          "mensaje_ausencia": "",
+          "fecha_historica": true,
+          "fecha_visible": false,
+          "fecha_observada": "",
+          "sin_valores_fabricados": true,
+          "desde_cache": false
+        },
+        "peticiones": [
+          {
+            "metodo": "POST",
+            "ruta": "/sesiones/",
+            "alias": "login",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:12.508Z",
+            "fin": "2026-10-31T08:09:12.508Z",
+            "duracion_ms": 0,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": false,
+            "error_red": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/interfaz/contexto",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:12.577Z",
+            "fin": "2026-10-31T08:09:12.813Z",
+            "duracion_ms": 236,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/sesiones/me/permisos",
+            "alias": "permisosSesion",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:12.580Z",
+            "fin": "2026-10-31T08:09:12.961Z",
+            "duracion_ms": 381,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "permisosSesion"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/usuarios/me",
+            "alias": "usuarioSesion",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:12.582Z",
+            "fin": "2026-10-31T08:09:13.109Z",
+            "duracion_ms": 527,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "usuarioSesion"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/idioma",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:13.188Z",
+            "fin": "2026-10-31T08:09:13.328Z",
+            "duracion_ms": 140,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/tema",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:13.336Z",
+            "fin": "2026-10-31T08:09:13.479Z",
+            "duracion_ms": 143,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/notificaciones",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:13.408Z",
+            "fin": "2026-10-31T08:09:13.626Z",
+            "duracion_ms": 218,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/idioma",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:13.804Z",
+            "fin": "2026-10-31T08:09:13.942Z",
+            "duracion_ms": 138,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/tema",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:13.841Z",
+            "fin": "2026-10-31T08:09:14.099Z",
+            "duracion_ms": 258,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/notificaciones",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:13.881Z",
+            "fin": "2026-10-31T08:09:14.256Z",
+            "duracion_ms": 375,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=700",
+            "alias": "dashboardAreas",
+            "filtro_aplicado_por_spec": true,
+            "inicio": "2026-10-31T08:09:14.103Z",
+            "fin": "2026-10-31T08:09:14.603Z",
+            "duracion_ms": 500,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardAreas"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=700",
+            "alias": "dashboardGlobal",
+            "filtro_aplicado_por_spec": true,
+            "inicio": "2026-10-31T08:09:14.106Z",
+            "fin": "2026-10-31T08:09:14.940Z",
+            "duracion_ms": 834,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardGlobal",
+            "espera_disponible": true,
+            "espera_cerrada_antes": false
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=7",
+            "alias": "dashboardFiltrado",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:15.566Z",
+            "fin": "2026-10-31T08:09:15.809Z",
+            "duracion_ms": 243,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardFiltrado"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=700",
+            "alias": "dashboardObjetivo",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:15.569Z",
+            "fin": "2026-10-31T08:09:16.151Z",
+            "duracion_ms": 582,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardObjetivo"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=70",
+            "alias": "dashboardFiltrado",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:15.572Z",
+            "fin": "2026-10-31T08:09:16.426Z",
+            "duracion_ms": 854,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardFiltrado"
+          }
+        ],
+        "incidencias_tecnicas": [
+          "CONTROL_AUTO_ON_AUSENTE"
+        ],
+        "observaciones_documentales": [],
+        "pendiente_al_terminar": false,
+        "proceso": 0,
+        "diagnostico_rel": "cypress/UI-184-V1.diagnostico.json",
+        "log_rel": "cypress/UI-184-V1.diagnostico.log"
+      },
+      {
+        "fase": "V2",
+        "estado": "APROBADO",
+        "ejecutadas": 1,
+        "proceso_fallido": false,
+        "motivo": "HTTP 200; global {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":2,\"unidad_objetivo_presente\":true,\"gris\":true,\"texto_estado\":\"Sin datos\",\"mensaje_ausencia\":\"Sin datos\",\"fecha_historica\":true,\"fecha_visible\":true,\"fecha_observada\":\"25/10/26, 6:03 p. m.Sin datos desde 25/10/26, 6:03 p. m.0en línea3sin señal0con error o fuera de rangoSin datos4 sensores sin datosSensor temperatura estanque-01Temperatura Ambiental · 22/10/26, 7:35 p. m.—Sin datosSensor pH estanque-01pH del agua · 1/06/24, 3:05 a. m.62,1 pHSin datosSensor oxígeno \",\"sin_valores_fabricados\":true,\"desde_cache\":false}; filtrada {\"cargando\":false,\"error\":\"\",\"unidades_visibles\":2,\"unidad_objetivo_presente\":true,\"gris\":true,\"texto_estado\":\"Sin datos\",\"mensaje_ausencia\":\"Sin datos\",\"fecha_historica\":true,\"fecha_visible\":true,\"fecha_observada\":\"25/10/26, 6:03 p. m.Sin datos desde 25/10/26, 6:03 p. m.0en línea3sin señal0con error o fuera de rangoSin datos4 sensores sin datosSensor temperatura estanque-01Temperatura Ambiental · 22/10/26, 7:35 p. m.—Sin datosSensor pH estanque-01pH del agua · 1/06/24, 3:05 a. m.62,1 pHSin datosSensor oxígeno \",\"sin_valores_fabricados\":true,\"desde_cache\":false}",
+        "criterio": "ORACULOS_UI_ACREDITADOS",
+        "rel": "cypress/UI-184-V2.json",
+        "http": 200,
+        "error_red": null,
+        "ui_inicial": {
+          "cargando": false,
+          "error": "",
+          "unidades_visibles": 2,
+          "unidad_objetivo_presente": true,
+          "gris": true,
+          "texto_estado": "Sin datos",
+          "mensaje_ausencia": "Sin datos",
+          "fecha_historica": true,
+          "fecha_visible": true,
+          "fecha_observada": "25/10/26, 6:03 p. m.Sin datos desde 25/10/26, 6:03 p. m.0en línea3sin señal0con error o fuera de rangoSin datos4 sensores sin datosSensor temperatura estanque-01Temperatura Ambiental · 22/10/26, 7:35 p. m.—Sin datosSensor pH estanque-01pH del agua · 1/06/24, 3:05 a. m.62,1 pHSin datosSensor oxígeno ",
+          "sin_valores_fabricados": true,
+          "desde_cache": false
+        },
+        "ui_objetivo": {
+          "cargando": false,
+          "error": "",
+          "unidades_visibles": 2,
+          "unidad_objetivo_presente": true,
+          "gris": true,
+          "texto_estado": "Sin datos",
+          "mensaje_ausencia": "Sin datos",
+          "fecha_historica": true,
+          "fecha_visible": true,
+          "fecha_observada": "25/10/26, 6:03 p. m.Sin datos desde 25/10/26, 6:03 p. m.0en línea3sin señal0con error o fuera de rangoSin datos4 sensores sin datosSensor temperatura estanque-01Temperatura Ambiental · 22/10/26, 7:35 p. m.—Sin datosSensor pH estanque-01pH del agua · 1/06/24, 3:05 a. m.62,1 pHSin datosSensor oxígeno ",
+          "sin_valores_fabricados": true,
+          "desde_cache": false
+        },
+        "peticiones": [
+          {
+            "metodo": "POST",
+            "ruta": "/sesiones/",
+            "alias": "login",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:30.522Z",
+            "fin": "2026-10-31T08:09:30.522Z",
+            "duracion_ms": 0,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": false,
+            "error_red": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/interfaz/contexto",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:30.590Z",
+            "fin": "2026-10-31T08:09:30.742Z",
+            "duracion_ms": 152,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/usuarios/me",
+            "alias": "usuarioSesion",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:30.593Z",
+            "fin": "2026-10-31T08:09:30.891Z",
+            "duracion_ms": 298,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "usuarioSesion"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/sesiones/me/permisos",
+            "alias": "permisosSesion",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:30.594Z",
+            "fin": "2026-10-31T08:09:31.111Z",
+            "duracion_ms": 517,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "permisosSesion"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/idioma",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:30.936Z",
+            "fin": "2026-10-31T08:09:31.256Z",
+            "duracion_ms": 320,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/tema",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:31.039Z",
+            "fin": "2026-10-31T08:09:31.395Z",
+            "duracion_ms": 356,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/notificaciones",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:31.054Z",
+            "fin": "2026-10-31T08:09:31.543Z",
+            "duracion_ms": 489,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/idioma",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:31.777Z",
+            "fin": "2026-10-31T08:09:31.932Z",
+            "duracion_ms": 155,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/configuracion/personalizacion/tema",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:31.792Z",
+            "fin": "2026-10-31T08:09:32.094Z",
+            "duracion_ms": 302,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/notificaciones",
+            "alias": null,
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:31.838Z",
+            "fin": "2026-10-31T08:09:32.255Z",
+            "duracion_ms": 417,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": null
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1",
+            "alias": "dashboardAreas",
+            "filtro_aplicado_por_spec": true,
+            "inicio": "2026-10-31T08:09:32.081Z",
+            "fin": "2026-10-31T08:09:32.553Z",
+            "duracion_ms": 472,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardAreas"
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1",
+            "alias": "dashboardGlobal",
+            "filtro_aplicado_por_spec": true,
+            "inicio": "2026-10-31T08:09:32.084Z",
+            "fin": "2026-10-31T08:09:32.909Z",
+            "duracion_ms": 825,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardGlobal",
+            "espera_disponible": true,
+            "espera_cerrada_antes": false
+          },
+          {
+            "metodo": "GET",
+            "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1",
+            "alias": "dashboardObjetivo",
+            "filtro_aplicado_por_spec": false,
+            "inicio": "2026-10-31T08:09:33.531Z",
+            "fin": "2026-10-31T08:09:33.871Z",
+            "duracion_ms": 340,
+            "http": 200,
+            "eco_run": true,
+            "cabecera_run_enviada": true,
+            "error_red": null,
+            "alias_en_callback": "dashboardObjetivo"
+          }
+        ],
+        "incidencias_tecnicas": [
+          "CONTROL_AUTO_ON_AUSENTE"
+        ],
+        "observaciones_documentales": [
+          "V2, panel global: texto observado «Sin datos»; equivalente a «Sin datos disponibles» por decisión QA de 2026-10-25. Sin incidencia ni efecto en el veredicto.",
+          "V2, vista filtrada: texto observado «Sin datos»; equivalente a «Sin datos disponibles» por decisión QA de 2026-10-25. Sin incidencia ni efecto en el veredicto."
+        ],
+        "pendiente_al_terminar": false,
+        "proceso": 0,
+        "diagnostico_rel": "cypress/UI-184-V2.diagnostico.json",
+        "log_rel": "cypress/UI-184-V2.diagnostico.log"
+      }
+    ]
+  },
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-G93.json",
+    "cypress/UI-184-V1.json",
+    "cypress/UI-184-V1.diagnostico.json",
+    "cypress/UI-184-V1.diagnostico.log",
+    "cypress/UI-184-V2.json",
+    "cypress/UI-184-V2.diagnostico.json",
+    "cypress/UI-184-V2.diagnostico.log",
+    "newman/newman-G93-consolidado.html",
+    "cypress/g93.cy.js/UI-184-V1.png",
+    "cypress/g93.cy.js/UI-184-V2.png"
+  ],
+  "problemas_tecnicos": [],
+  "hallazgos_rendimiento": [],
+  "dependencias": [],
+  "observaciones_documentales": [
+    "V2, panel global: texto observado «Sin datos»; equivalente a «Sin datos disponibles» por decisión QA de 2026-10-25. Sin incidencia ni efecto en el veredicto.",
+    "V2, vista filtrada: texto observado «Sin datos»; equivalente a «Sin datos disponibles» por decisión QA de 2026-10-25. Sin incidencia ni efecto en el veredicto."
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "estado": "CONFIRMADO",
+      "comprobaciones": [
+        {
+          "recurso": "area_v1",
+          "http": 404,
+          "ok": true
+        },
+        {
+          "recurso": "dashboard_area_v1",
+          "http": 200,
+          "ok": true
+        },
+        {
+          "recurso": "semilla_v2_estable",
+          "http": 200,
+          "ok": true
+        }
+      ]
+    },
+    "motivo": "DELETE y relaciones públicas acreditadas"
+  },
+  "rls": {
+    "id": "RLS-G93-01",
+    "id_infraestructura": 6,
+    "http": 200,
+    "estado": "CUMPLE",
+    "motivo": "Unidad ajena ausente del resumen"
+  },
+  "presupuesto": {
+    "abierto": false,
+    "cerrado": true,
+    "cuenta": 23,
+    "remotas_en_run": 17,
+    "ui_en_curso": false,
+    "areas": [
+      700
+    ]
+  },
+  "codigo_salida": 0
+}

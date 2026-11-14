@@ -1,0 +1,49 @@
+{
+  "caso": "TC-M06-G103",
+  "subcaso": "TC-M06-23",
+  "tipo": "prueba_tecnica_aislada",
+  "equivale_a_ejecucion_del_endpoint_en_test": false,
+  "post_real_en_test": false,
+  "http_201": false,
+  "trigger_verificado": false,
+  "dictamen": "APROBADO",
+  "decision_qa": "La evidencia de RegistrarPrecioUseCase.execute con dependencias simuladas satisface el objetivo de TC-M06-23.",
+  "fecha_negocio": "2026-11-10",
+  "comando": "python -m pytest tests/Test_Testing/Test_Modulo6/RF-89/TC-M06-G103/test_tc_m06_23_limite_365_dias.py --noconftest -p no:cacheprovider -v",
+  "resultado": "2 passed in 0.73s",
+  "conexion_test": false,
+  "sql": false,
+  "persistencia_real": false,
+  "notificacion_real": false,
+  "escenarios": [
+    {
+      "prueba": "test_vigencia_de_365_dias_sigue_el_alta_en_memoria",
+      "vigencia": "2025-11-10",
+      "antiguedad_dias": 365,
+      "resultado": "PASSED",
+      "aserciones": [
+        "La distancia entre 2026-11-10 y 2025-11-10 es 365 días.",
+        "execute termina y devuelve estado ACTIVO, fecha 2025-11-10 e id simulado 88023.",
+        "La unidad es cabeza y no hay desviación porque el repositorio no tiene un precio anterior.",
+        "agregar recibe una sola alta, con vigencia 2025-11-10, origen MANUAL y estado ACTIVO.",
+        "La auditoría contiene solo PRECIO_REGISTRADO.",
+        "El commit simulado ocurre una vez y no hay rollback.",
+        "a_contadores recibe ALERTA_FINANCIERA_NIC41 y el id simulado, sin finca."
+      ]
+    },
+    {
+      "prueba": "test_vigencia_de_366_dias_se_rechaza_antes_de_persistir",
+      "vigencia": "2025-11-09",
+      "antiguedad_dias": 366,
+      "resultado": "PASSED",
+      "aserciones": [
+        "La distancia entre 2026-11-10 y 2025-11-09 es 366 días.",
+        "execute lanza ValidationError con código FECHA_VIGENCIA_FUERA_DE_RANGO, campo fecha_vigencia y estado 400.",
+        "No hay consulta de precios ni alta.",
+        "No hay eventos de auditoría.",
+        "No hay commit ni rollback.",
+        "a_contadores no recibe llamadas."
+      ]
+    }
+  ]
+}

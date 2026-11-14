@@ -1,0 +1,611 @@
+{
+  "info": {
+    "name": "TC-M09-G77-v2.0 — RF-24 v2.0 — RBAC de calibración (OWASP API5)",
+    "description": "Seguridad OWASP API5 sobre RF-24 v2.0 (CU05 Flujo D). Comprueba que Productor y Contador, ambos autenticados y con la cuenta ACTIVA, no puedan registrar calibraciones aunque el request sea funcionalmente válido: la única condición negativa es el rol. Cada subescenario exige HTTP 403 con el mensaje exacto del FA, sin crear calibraciones y sin alterar el historial. Si un rol no autorizado llegara a crear una calibración, el RUN se detiene (STOP_ALL) y el registro se conserva como evidencia, nunca se borra. Un permiso RBAC inesperado se registra como observación y no aborta la prueba, porque podría ser el propio defecto bajo examen. El Administrador aparece solo en GET de fixture.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login Ingeniero (discovery)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{ing_email}}\",\n  \"contrasena\": \"{{ing_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Actor de discovery y de lectura del historial. No es un actor negativo del caso.",
+              "pm.test('Login del Ingeniero de discovery es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.environment.set('ing_session', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login Administrador auxiliar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Solo GET de precondición del fixture. No ejecuta ningún POST de calibración.",
+              "pm.test('Login auxiliar de Administrador es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.environment.set('admin_session', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture — dispositivo activo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dispositivo responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('8a. Fixture — el dispositivo existe', () => pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))));",
+              "pm.test('8b. Fixture — el dispositivo esta activo', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture — sensor del dispositivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sensores responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_id')));",
+              "pm.test('8c. Fixture — el sensor pertenece al dispositivo', () => { pm.expect(row).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_id'))); });",
+              "pm.test('8d. Fixture — el sensor esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+              "pm.test('8e. Fixture — categoria esperada', () => pm.expect(row.categoria).to.eql(pm.environment.get('categoria')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture — asociación vigente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Asociaciones responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined) && sid(x) === Number(pm.environment.get('sensor_id')) && x.id_dispositivo_iot === Number(pm.environment.get('device_id')) && x.id_infraestructura === Number(pm.environment.get('area_id')));",
+              "pm.test('8f. Fixture — la asociacion sensor-dispositivo-area esta vigente', () => pm.expect(row).to.exist);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fixture — rango de la categoría",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/rangos-calibracion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rangos responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const row = (pm.response.json().items || []).find(x => x.categoria === pm.environment.get('categoria'));",
+              "pm.test('8g. Fixture — la categoria tiene rango publicado', () => pm.expect(row).to.exist);",
+              "pm.test('8h. Fixture — el valor esta estrictamente dentro del rango', () => { const v = Number(pm.environment.get('valor')); pm.expect(v).to.be.above(Number(row.valor_min)); pm.expect(v).to.be.below(Number(row.valor_max)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "productor Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{productor_email}}\",\n  \"contrasena\": \"{{productor_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5. Productor — login responde 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token de Productor').to.be.a('string').and.not.empty;",
+              "pm.environment.set('productor_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "productor Identidad",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{productor_session}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Productor — perfil responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('1. Productor — la cuenta localizada corresponde al correo del caso', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('productor_email')));",
+              "pm.test('2. Productor — el rol es Productor', () => pm.expect(b.nombre_rol).to.eql('Productor'));",
+              "pm.test('6. Productor — /usuarios/me confirma el rol Productor', () => pm.expect(b.nombre_rol).to.eql('Productor'));",
+              "// Clave del caso: el rechazo debe deberse al ROL, no a una cuenta inactiva.",
+              "pm.test('4. Productor — la cuenta esta ACTIVA antes del POST', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+              "pm.test('3. Productor — el estado original fue capturado antes de probar', () => pm.expect(pm.environment.get('productor_estado_original')).to.be.a('string').and.not.empty);",
+              "pm.environment.set('productor_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "productor Permisos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{productor_session}}"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('7. Productor — permisos capturados (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const ps = pm.response.json().permisos || [];",
+              "const acciones = ps.filter(p => p.id_recurso === 12).map(p => p.id_accion).sort();",
+              "pm.environment.set('productor_acciones_recurso12', JSON.stringify(acciones));",
+              "console.log('Productor — acciones sobre el recurso 12 (calibraciones): ' + JSON.stringify(acciones));",
+              "// Un permiso de creación inesperado NO bloquea la prueba: podría ser justamente el",
+              "// defecto de seguridad que el POST negativo debe revelar. Solo se registra.",
+              "if (acciones.includes(1)) console.log('AVISO: el rol tiene permiso de creacion sobre el recurso 12; se ejecuta el POST para observar el comportamiento real.');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "productor PRE historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('9. Productor — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_productor_total', String(b.total));",
+              "pm.environment.set('pre_productor_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_productor_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "productor POST calibrar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{productor_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibrar",
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_productor}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_productor', iso);",
+              "pm.environment.set('body_sent_productor', pm.environment.get('body_calibracion').replace('__FECHA__', iso));",
+              "pm.test('10. Productor — el body enviado incluye modo_calibracion=SENSOR', () => pm.expect(JSON.parse(pm.environment.get('body_sent_productor')).modo_calibracion).to.eql('SENSOR'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('11. Productor — el POST de calibracion devuelve HTTP 403', () => pm.expect(pm.response.code).to.eql(403));",
+              "const b = pm.response.json();",
+              "const esperado = pm.environment.get('exp_msg_403');",
+              "// El FA de RF-24 v2.0 exige un texto concreto: la comparacion es exacta y no se",
+              "// ajusta despues de ver una respuesta genérica.",
+              "pm.test('12. Productor — message coincide exactamente con el FA del RF', () => pm.expect(b.message).to.eql(esperado));",
+              "if (b.error_code) console.log('error_code obtenido: ' + b.error_code);",
+              "pm.test('13. Productor — la respuesta no devuelve id_calibracion', () => pm.expect(b.id_calibracion).to.be.undefined);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "productor POST historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('14. Productor — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_productor_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_productor_total', String(b.total));",
+              "pm.environment.set('post_productor_ids', JSON.stringify(ids));",
+              "pm.test('15. Productor — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_productor_total'))));",
+              "pm.test('16. Productor — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "const actorId = Number(pm.environment.get('productor_id'));",
+              "const atribuibles = (b.items || []).filter(x => nuevos.includes(x.id_calibracion) && x.id_usuario === actorId);",
+              "pm.test('18. Productor — ninguna calibracion nueva es atribuible al actor', () => pm.expect(atribuibles.map(x => x.id_calibracion)).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_productor_snap') || '[]');",
+              "pm.test('17. Productor — los registros historicos siguen intactos', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ subescenario: 'Productor', idsNuevos: nuevos, atribuiblesAlActor: atribuibles.map(x => x.id_calibracion), nota: atribuibles.length ? 'un rol no autorizado creo una calibracion' : 'IDs nuevos no atribuibles al actor: posible concurrencia de otro tester' }));",
+              "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion. La calibracion inesperada se conserva como evidencia.');",
+              "  postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "contador Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{contador_email}}\",\n  \"contrasena\": \"{{contador_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5. Contador — login responde 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token de Contador').to.be.a('string').and.not.empty;",
+              "pm.environment.set('contador_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "contador Identidad",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_session}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Contador — perfil responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('1. Contador — la cuenta localizada corresponde al correo del caso', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('contador_email')));",
+              "pm.test('2. Contador — el rol es Contador', () => pm.expect(b.nombre_rol).to.eql('Contador'));",
+              "pm.test('6. Contador — /usuarios/me confirma el rol Contador', () => pm.expect(b.nombre_rol).to.eql('Contador'));",
+              "// Clave del caso: el rechazo debe deberse al ROL, no a una cuenta inactiva.",
+              "pm.test('4. Contador — la cuenta esta ACTIVA antes del POST', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+              "pm.test('3. Contador — el estado original fue capturado antes de probar', () => pm.expect(pm.environment.get('contador_estado_original')).to.be.a('string').and.not.empty);",
+              "pm.environment.set('contador_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "contador Permisos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_session}}"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('7. Contador — permisos capturados (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const ps = pm.response.json().permisos || [];",
+              "const acciones = ps.filter(p => p.id_recurso === 12).map(p => p.id_accion).sort();",
+              "pm.environment.set('contador_acciones_recurso12', JSON.stringify(acciones));",
+              "console.log('Contador — acciones sobre el recurso 12 (calibraciones): ' + JSON.stringify(acciones));",
+              "// Un permiso de creación inesperado NO bloquea la prueba: podría ser justamente el",
+              "// defecto de seguridad que el POST negativo debe revelar. Solo se registra.",
+              "if (acciones.includes(1)) console.log('AVISO: el rol tiene permiso de creacion sobre el recurso 12; se ejecuta el POST para observar el comportamiento real.');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "contador PRE historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('9. Contador — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_contador_total', String(b.total));",
+              "pm.environment.set('pre_contador_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_contador_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "contador POST calibrar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{contador_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibrar",
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_contador}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_contador', iso);",
+              "pm.environment.set('body_sent_contador', pm.environment.get('body_calibracion').replace('__FECHA__', iso));",
+              "pm.test('10. Contador — el body enviado incluye modo_calibracion=SENSOR', () => pm.expect(JSON.parse(pm.environment.get('body_sent_contador')).modo_calibracion).to.eql('SENSOR'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('11. Contador — el POST de calibracion devuelve HTTP 403', () => pm.expect(pm.response.code).to.eql(403));",
+              "const b = pm.response.json();",
+              "const esperado = pm.environment.get('exp_msg_403');",
+              "// El FA de RF-24 v2.0 exige un texto concreto: la comparacion es exacta y no se",
+              "// ajusta despues de ver una respuesta genérica.",
+              "pm.test('12. Contador — message coincide exactamente con el FA del RF', () => pm.expect(b.message).to.eql(esperado));",
+              "if (b.error_code) console.log('error_code obtenido: ' + b.error_code);",
+              "pm.test('13. Contador — la respuesta no devuelve id_calibracion', () => pm.expect(b.id_calibracion).to.be.undefined);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "contador POST historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('14. Contador — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_contador_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_contador_total', String(b.total));",
+              "pm.environment.set('post_contador_ids', JSON.stringify(ids));",
+              "pm.test('15. Contador — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_contador_total'))));",
+              "pm.test('16. Contador — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "const actorId = Number(pm.environment.get('contador_id'));",
+              "const atribuibles = (b.items || []).filter(x => nuevos.includes(x.id_calibracion) && x.id_usuario === actorId);",
+              "pm.test('18. Contador — ninguna calibracion nueva es atribuible al actor', () => pm.expect(atribuibles.map(x => x.id_calibracion)).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_contador_snap') || '[]');",
+              "pm.test('17. Contador — los registros historicos siguen intactos', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ subescenario: 'Contador', idsNuevos: nuevos, atribuiblesAlActor: atribuibles.map(x => x.id_calibracion), nota: atribuibles.length ? 'un rol no autorizado creo una calibracion' : 'IDs nuevos no atribuibles al actor: posible concurrencia de otro tester' }));",
+              "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion. La calibracion inesperada se conserva como evidencia.');",
+              "  postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

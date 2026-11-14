@@ -1,0 +1,29 @@
+{
+  "tc": "TC-M04-G088",
+  "summary": {
+    "total": 3,
+    "ok": 3,
+    "falla": 0,
+    "veredicto": "APROBADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_tc_m04_270_payload_64kb_exacto",
+      "esperado": "RF-73: payload 65536 bytes NO debe truncarse",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_tc_m04_271_payload_1_byte_sobre",
+      "esperado": "RF-73: payload 65537 bytes DEBE truncarse y preservar mínimos",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_tc_m04_272_payload_mucho_sobre",
+      "esperado": "RF-73: payload 204800 bytes DEBE truncarse y preservar mínimos",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    }
+  ]
+}

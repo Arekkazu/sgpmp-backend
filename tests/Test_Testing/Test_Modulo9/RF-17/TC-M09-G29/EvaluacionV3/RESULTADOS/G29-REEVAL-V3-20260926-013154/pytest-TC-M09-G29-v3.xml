@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="1" tests="12" time="3.402" timestamp="2026-09-26T01:32:33.675968-05:00" hostname="Juanher01"><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_rama_obligatoria" time="0.270" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_indice_git_intacto" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_codigo_local_equivale_a_origin_dev" time="0.001"><failure message="AssertionError: assert '.../consulta... deletions(-)' == '(sin diferencias)'&#10;  &#10;  - (sin diferencias)&#10;  + .../consultar_datos_consolidados_use_case.py       | 37 +++++++-----&#10;  +  .../gestion/consultar_ficha_integral_use_case.py   | 53 +++++++++++------&#10;  +  .../routers/activo_biologico_router.py             | 69 ++++++++++++++++++++--&#10;  +  .../schema/activo_biologico_schema.py              | 11 ++++&#10;  +  src/shared/rate_limit.py                           | 38 +++++++++---&#10;  +  5 files changed, 162 insertions(+), 46 deletions(-)">def test_codigo_local_equivale_a_origin_dev():
+&gt;       assert EVIDENCIA["git"]["diffSrcHeadVsOriginDev"] == "(sin diferencias)"
+E       AssertionError: assert '.../consulta... deletions(-)' == '(sin diferencias)'
+E         
+E         - (sin diferencias)
+E         + .../consultar_datos_consolidados_use_case.py       | 37 +++++++-----
+E         +  .../gestion/consultar_ficha_integral_use_case.py   | 53 +++++++++++------
+E         +  .../routers/activo_biologico_router.py             | 69 ++++++++++++++++++++--
+E         +  .../schema/activo_biologico_schema.py              | 11 ++++
+E         +  src/shared/rate_limit.py                           | 38 +++++++++---
+E         +  5 files changed, 162 insertions(+), 46 deletions(-)
+
+tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:227: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_dev_accesible_y_rf17_rest_desplegado" time="2.681" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_rf17_invoca_la_propagacion_hacia_el_edge" time="0.229" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_umbral_expone_estado_de_sincronizacion" time="0.000" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_adaptador_edge_es_real_no_stub" time="0.001"><failure message="AssertionError: El flujo RF-17 desplegado inyecta EdgeSincronizacionStubAdapter: ['edge_port=EdgeSincronizacionStubAdapter(),', 'edge_port=EdgeSincronizacionStubAdapter(),']; el stub devuelve ['return ResultadoEnvioMqtt(estado=&quot;PENDIENTE&quot;, mensaje=_MENSAJE_SIN_CONTRATO)']. No existe publicación real hacia MQTT/Nodo Edge.&#10;assert not True">codigo_dev = {'adaptadorInyectado': 'EdgeSincronizacionStubAdapter', 'consumidoresMqttPortEnFlujoDeUmbrales': [], 'consumidoresMqtt...ation/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),'], 'esStub': True, ...}
+
+    def test_oraculo_adaptador_edge_es_real_no_stub(codigo_dev):
+        """TC-62: la propagación debe llegar a un medio real (MQTT/Edge), no a un stub."""
+        EVIDENCIA.setdefault("oraculo", {})["adaptadorReal"] = not codigo_dev["esStub"]
+&gt;       assert not codigo_dev["esStub"], (
+            "El flujo RF-17 desplegado inyecta EdgeSincronizacionStubAdapter: "
+            f"{codigo_dev['inyeccionesEdgePortEnRouterRF17']}; el stub devuelve {codigo_dev['stubDevuelve']}. "
+            "No existe publicación real hacia MQTT/Nodo Edge.")
+E       AssertionError: El flujo RF-17 desplegado inyecta EdgeSincronizacionStubAdapter: ['edge_port=EdgeSincronizacionStubAdapter(),', 'edge_port=EdgeSincronizacionStubAdapter(),']; el stub devuelve ['return ResultadoEnvioMqtt(estado="PENDIENTE", mensaje=_MENSAJE_SIN_CONTRATO)']. No existe publicación real hacia MQTT/Nodo Edge.
+E       assert not True
+
+tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:255: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_existe_publicacion_mqtt_para_umbrales" time="0.000"><failure message="AssertionError: Ningún flujo de umbrales consume MqttPort/MqttHttpAdapter; MQTT sigue siendo exclusivo de RF-23&#10;assert []">codigo_dev = {'adaptadorInyectado': 'EdgeSincronizacionStubAdapter', 'consumidoresMqttPortEnFlujoDeUmbrales': [], 'consumidoresMqtt...ation/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),'], 'esStub': True, ...}
+
+    def test_oraculo_existe_publicacion_mqtt_para_umbrales(codigo_dev):
+        """TC-62: debe existir un publish real del umbral hacia el broker/Edge."""
+        EVIDENCIA.setdefault("oraculo", {})["publishUmbral"] = codigo_dev["consumidoresMqttPortEnFlujoDeUmbrales"]
+&gt;       assert codigo_dev["consumidoresMqttPortEnFlujoDeUmbrales"], (
+            "Ningún flujo de umbrales consume MqttPort/MqttHttpAdapter; MQTT sigue siendo exclusivo de RF-23")
+E       AssertionError: Ningún flujo de umbrales consume MqttPort/MqttHttpAdapter; MQTT sigue siendo exclusivo de RF-23
+E       assert []
+
+tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:264: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_contrato_declara_500_por_fallo_de_sincronizacion" time="0.001"><failure message="AssertionError: Ninguna escritura RF-17 declara 500 en el contrato DEV: {'POST /configuracion/umbrales': ['201', '401', '403', '404', '409', '422'], 'GET /configuracion/umbrales': ['200', '401', '403', '422'], 'PATCH /configuracion/umbrales/{id_umbral_ambiental}': ['200', '401', '403', '404', '412', '422']}&#10;assert {}">contratos = {'DEV': {'base': 'https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp', 'health': 200, 'openapi': ... '401', '403', '404', '412', '422'], 'POST /configuracion/umbrales': ['201', '401', '403', '404', '409', '422']}, ...}}
+
+    def test_oraculo_contrato_declara_500_por_fallo_de_sincronizacion(contratos):
+        """TC-63: RF-17 exige HTTP 500 con la configuración central guardada."""
+        ops = contratos["DEV"]["operacionesRF17"]
+        con_500 = {k: v for k, v in ops.items() if k.split()[0] in ("POST", "PATCH") and "500" in v}
+        EVIDENCIA.setdefault("oraculo", {})["operacionesCon500"] = con_500
+&gt;       assert con_500, f"Ninguna escritura RF-17 declara 500 en el contrato DEV: {ops}"
+E       AssertionError: Ninguna escritura RF-17 declara 500 en el contrato DEV: {'POST /configuracion/umbrales': ['201', '401', '403', '404', '409', '422'], 'GET /configuracion/umbrales': ['200', '401', '403', '422'], 'PATCH /configuracion/umbrales/{id_umbral_ambiental}': ['200', '401', '403', '404', '412', '422']}
+E       assert {}
+
+tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:273: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_edge_observable_para_umbrales" time="0.001"><failure message="AssertionError: Sin ruta para consultar la configuración efectiva del Edge para umbrales. Rutas edge en DEV: ['/iot/eventos-edge']&#10;assert []">contratos = {'DEV': {'base': 'https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp', 'health': 200, 'openapi': ... '401', '403', '404', '412', '422'], 'POST /configuracion/umbrales': ['201', '401', '403', '404', '409', '422']}, ...}}
+
+    def test_oraculo_edge_observable_para_umbrales(contratos):
+        """TC-62/63: debe existir una vía para observar la configuración efectiva del Edge."""
+        rutas = [r for r in contratos["DEV"]["rutasSincronizacionEdgeMqtt"] if "umbral" in r.lower() or "sincron" in r.lower()]
+        EVIDENCIA.setdefault("oraculo", {})["edgeObservable"] = {
+            "rutasUmbralEdge": rutas, "rutasEdgeDeclaradas": contratos["DEV"]["rutasSincronizacionEdgeMqtt"]}
+&gt;       assert rutas, (f"Sin ruta para consultar la configuración efectiva del Edge para umbrales. "
+                       f"Rutas edge en DEV: {contratos['DEV']['rutasSincronizacionEdgeMqtt']}")
+E       AssertionError: Sin ruta para consultar la configuración efectiva del Edge para umbrales. Rutas edge en DEV: ['/iot/eventos-edge']
+E       assert []
+
+tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:281: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_oraculo_dev_runtime_expone_estado_sincronizacion" time="0.000"><skipped type="pytest.skip" message="DEV_ADMIN_PASSWORD no disponible">C:\Users\yoloh\OneDrive\Escritorio\pruebas\sgpmp-backend\tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:285: DEV_ADMIN_PASSWORD no disponible</skipped></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-17.TC-M09-G29.EvaluacionV3.test_tc_m09_g29_v3" name="test_resultado_tc62_y_tc63" time="0.007"><failure message="AssertionError: Escenario A: integración Edge sustituida por stub; TC-62 y TC-63 no pueden aprobarse&#10;assert not True">contratos = {'DEV': {'base': 'https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp', 'health': 200, 'openapi': ... '401', '403', '404', '412', '422'], 'POST /configuracion/umbrales': ['201', '401', '403', '404', '409', '422']}, ...}}
+codigo_dev = {'adaptadorInyectado': 'EdgeSincronizacionStubAdapter', 'consumidoresMqttPortEnFlujoDeUmbrales': [], 'consumidoresMqtt...ation/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),'], 'esStub': True, ...}
+
+    def test_resultado_tc62_y_tc63(contratos, codigo_dev):
+        """Consolida el resultado de los dos originales; no introduce criterios nuevos."""
+        stub = codigo_dev["esStub"]
+        tc62 = {
+            "caso": "TC-M09-62", "ambiente": "DEV", "escrituras": 0,
+            "backendIntentaPropagar": codigo_dev["rf17InvocaPuertoEdge"],
+            "publicacionRealMqtt": bool(codigo_dev["consumidoresMqttPortEnFlujoDeUmbrales"]),
+            "adaptadorInyectado": codigo_dev["adaptadorInyectado"],
+            "edgeRecibe": "no verificable — el flujo desplegado no contacta ningún Edge",
+            "edgeAplica": "no verificable — sin propagación real",
+            "ack": "inexistente — el contrato de ACK está pendiente de definición con IoT",
+            "estadoSincronizacionRegistrado": True,
+            "configuracionEfectivaEdgeConsultable": False,
+            "resultado": "RECHAZADO" if stub else "PENDIENTE DE EJECUCION",
+            "motivo": "El backend registra un estado de sincronización pero no propaga: el adaptador inyectado "
+                      "es un stub que siempre degrada a PENDIENTE. No hay publish, ni topic, ni ACK, ni Edge destino.",
+        }
+        tc63 = {
+            "caso": "TC-M09-63", "ambiente": "DEV", "escrituras": 0,
+            "edgeOfflineControlado": "no aplica — no existe Edge en el flujo desplegado",
+            "configuracionCentralConservada": "no ejecutado (sin escrituras); el código la conserva antes de propagar",
+            "httpEsperadoRF17": 500,
+            "httpDeclaradoEnContratoDev": False,
+            "estadoPendiente": "implementado en código y expuesto en el contrato DEV",
+            "edgeConservaConfiguracionAnterior": "no verificable — el Edge nunca recibe configuración",
+            "advertenciaAlUsuario": "existe motivo_fallo_sincronizacion en el contrato",
+            "resultado": "RECHAZADO" if stub else "PENDIENTE DE EJECUCION",
+            "motivo": "El flujo alterno de fallo de sincronización no puede demostrarse: no hay integración real "
+                      "que pueda fallar. La parte central (estado PENDIENTE) existe, pero la verificación del "
+                      "comportamiento del Edge real es imposible con el stub.",
+        }
+        _guardar("tc62-result.json", tc62)
+        _guardar("tc63-result.json", tc63)
+        EVIDENCIA["resultados"] = {"TC-M09-62": tc62["resultado"], "TC-M09-63": tc63["resultado"]}
+        _guardar("preflight-v3.json", {k: EVIDENCIA[k] for k in ("git", "clienteMqtt", "codigoOriginDev", "contratos")})
+        _guardar("plan-v3.json", {
+            "runId": RUN_ID, "ambienteDecisorio": "DEV", "base": DEV,
+            "escriturasPlanificadas": 0,
+            "motivoSinEscrituras": "Escenario A (stub): ejecutar POST/PATCH solo demostraría persistencia central y un "
+                                   "estado PENDIENTE simulado; no probaría propagación ni comportamiento del Edge real. "
+                                   "Ademas DEV_ADMIN_PASSWORD no esta disponible en el proceso.",
+            "raspberry": {"requeridoPorElFlujoDesplegado": False, "limitante": False,
+                          "justificacion": "El backend desplegado no intenta comunicarse con el hardware: el puerto "
+                                           "EdgeSincronizacionPort esta cubierto por EdgeSincronizacionStubAdapter."},
+            "mqtt": {"flujoReal": False, "broker": "no utilizado por RF-17", "topic": "inexistente para umbrales",
+                     "cliente": EVIDENCIA["clienteMqtt"]},
+        })
+&gt;       assert not stub, "Escenario A: integración Edge sustituida por stub; TC-62 y TC-63 no pueden aprobarse"
+E       AssertionError: Escenario A: integración Edge sustituida por stub; TC-62 y TC-63 no pueden aprobarse
+E       assert not True
+
+tests\Test_Testing\Test_Modulo9\RF-17\TC-M09-G29\EvaluacionV3\test_tc_m09_g29_v3.py:341: AssertionError</failure></testcase></testsuite></testsuites>

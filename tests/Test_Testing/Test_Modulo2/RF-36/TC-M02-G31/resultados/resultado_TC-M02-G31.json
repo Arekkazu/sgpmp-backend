@@ -1,0 +1,22 @@
+{
+  "tc": "TC-M02-G31",
+  "ronda": "V1",
+  "reintento": 0,
+  "fecha": "2026-09-11",
+  "run_id": "G31-20260911-000000",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-196: Densidad igual al máximo permitido en crecimiento",
+      "esperado": "HTTP 201 Created sin error de densidad",
+      "obtenido": "HTTP 500 ERROR_INTERNO en POST /activos-biologicos/130/eventos/crecimiento",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-M02-197: Baja total dejando cantidad_actual en cero",
+      "esperado": "HTTP 201 Created con cantidad_actual=0 y transición a estado BAJA",
+      "obtenido": "HTTP 500 ERROR_INTERNO por fallo de enum en trigger trg_fn_baja_cantidad_valida",
+      "estado": "FALLA"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "herramienta": "Newman",
+  "version": "6.2.2",
+  "caso": "TC-M04-205",
+  "metodo": "POST",
+  "ruta": "/prediccion/retroalimentacion",
+  "http": 201,
+  "eco": true,
+  "duracion_ms": 156,
+  "solicitudes": 1,
+  "aserciones": [
+    {
+      "nombre": "Código explícito por subcaso",
+      "aprobada": false,
+      "error": "expected [ 422 ] to include 201"
+    },
+    {
+      "nombre": "Eco de X-Test-Run-Id",
+      "aprobada": true,
+      "error": null
+    }
+  ],
+  "respuesta": {
+    "id_retroalimentacion": "3461bc57-7c0d-4dac-8e1e-b2316cd21870",
+    "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+    "estado_retroalimentacion": "CORRECTO",
+    "diagnosticos_reales": [
+      8
+    ],
+    "error_code": null,
+    "field": null,
+    "mensaje": "",
+    "detalle_campo": ""
+  },
+  "fallos": [
+    {
+      "tipo": "AssertionError",
+      "mensaje": "expected [ 422 ] to include 201"
+    }
+  ],
+  "error": null
+}

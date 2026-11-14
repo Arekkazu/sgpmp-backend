@@ -1,0 +1,51 @@
+{
+  "origen": "Datos sintéticos locales para navegación UI; no son evidencia de TEST",
+  "area_id": 9001,
+  "especie_id": 9002,
+  "variable_nombre": "Temperatura local",
+  "sensor_nombre": "Sensor local NH3",
+  "dashboard": {
+    "total": 1,
+    "pagina": 1,
+    "por_pagina": 50,
+    "conteo_semaforo": { "VERDE": 0, "AMARILLO": 0, "ROJO": 0, "GRIS": 1 },
+    "resumen_unidades": [{
+      "id_infraestructura": 9001, "nombre_infraestructura": "Área local G88",
+      "id_finca": 9003, "nombre_finca": "Finca local G88", "total_sensores": 1,
+      "sensores_online": 1, "sensores_sin_senal": 0, "sensores_con_error": 0,
+      "estado_general": "GRIS", "alertas_activas_count": 0, "ultimo_dato_recibido": "2026-10-30T12:00:00Z"
+    }],
+    "sensores": [{
+      "id_sensor": 9004, "id_dispositivo_iot": 9005, "nombre_sensor": "Sensor local NH3",
+      "tipo_variable": "NH3", "categoria_variable": "AMBIENTAL", "ultimo_valor": 5,
+      "ultima_unidad": "ppm", "ultimo_timestamp_captura": "2026-10-30T12:00:00Z",
+      "estado_semaforo": "GRIS", "estado_calidad": "LECTURA_VALIDA",
+      "estado_desviacion": "SIN_UMBRAL", "estado_conectividad": "CONECTADO",
+      "tiempo_sin_reporte_min": 0, "dato_desactualizado": false,
+      "id_alerta": null, "severidad_alerta": null, "tendencia": null,
+      "id_infraestructura": 9001, "nombre_infraestructura": "Área local G88",
+      "id_finca": 9003, "nombre_finca": "Finca local G88",
+      "nivel_bateria_pct": null, "calidad_senal_rssi": null, "calidad_senal_snr": null,
+      "sin_umbral": true, "indicador_anomalia": false, "es_valor_operativo": true,
+      "etiqueta_estado": "Sin umbral configurado"
+    }]
+  },
+  "especies": { "total": 1, "items": [{
+    "id_especie": 9002, "nombre": "Especie local G88", "descripcion": null,
+    "es_activo": true, "fecha_creacion": "2026-10-30T12:00:00Z", "fecha_actualizacion": null
+  }] },
+  "variables": { "total": 1, "items": [{
+    "id_variable_ambiental": 9006, "nombre": "Temperatura local", "unidad": "°C",
+    "valor_fisico_min": 0, "valor_fisico_max": 45, "es_critica": false
+  }] },
+  "umbrales": { "total": 1, "items": [{
+    "id_umbral_ambiental": 9007, "id_especie": 9002, "id_variable_ambiental": 9006,
+    "unidad_medida": "°C", "valor_min": 20, "valor_max": 30, "es_activo": true,
+    "fecha_actualizacion": "2026-10-30T12:00:00Z",
+    "niveles": [
+      { "nivel": "critico", "limite_inferior": 20, "limite_superior": 22 },
+      { "nivel": "precaucion", "limite_inferior": 22, "limite_superior": 24 },
+      { "nivel": "normal", "limite_inferior": 24, "limite_superior": 30 }
+    ]
+  }] }
+}

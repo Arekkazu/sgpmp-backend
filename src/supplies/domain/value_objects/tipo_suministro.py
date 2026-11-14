@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | INC-M05-340-G27 RF-78 CA-13: unidad de medida de cada tipo directo |
 """Tipos de suministro acumulables por RF-78.
 
 Mapea el ``CHECK`` de ``modulo5.registro_suministro.tipo_suministro``. ALIMENTO
@@ -18,3 +21,17 @@ class TipoSuministro(str, Enum):
 
 
 DIRECTOS = frozenset({TipoSuministro.SERVICIO_VETERINARIO, TipoSuministro.INSEMINACION})
+
+ETIQUETA_TIPO = {
+    TipoSuministro.ALIMENTO.value: "alimento",
+    TipoSuministro.MEDICAMENTO.value: "medicamento",
+    TipoSuministro.SERVICIO_VETERINARIO.value: "servicio veterinario",
+    TipoSuministro.INSEMINACION.value: "inseminación",
+}
+
+# Restricción 11: unidad única por tipo, sin conversiones. Configuración (M09) no tiene catálogo de
+# unidades por tipo de suministro, así que vive aquí junto al CHECK que fija los tipos.
+UNIDAD_POR_TIPO = {
+    TipoSuministro.SERVICIO_VETERINARIO.value: "servicio",
+    TipoSuministro.INSEMINACION.value: "servicio",
+}

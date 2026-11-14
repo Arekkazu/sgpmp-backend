@@ -1,0 +1,68 @@
+{
+  "info": {
+    "name": "TC-M03-G127 RF-59 auditoría de historial",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API-G127-HISTORIAL",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_prod}}" },
+          { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+          { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+          { "key": "X-Zona-Horaria", "value": "UTC" }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{sensor_id}}&pagina=1&por_pagina=37&orden=DESC"
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "const base=pm.environment.get('base_url')||'';",
+          "if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(base==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(base)))){pm.execution.skipRequest();throw Error('BLOQUEO_G127');}"
+        ] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "let b=null;try{b=pm.response.json()}catch{}",
+          "const ok=pm.response.code===200&&pm.response.headers.get('X-Test-Run-Id')===pm.environment.get('run_id')&&Array.isArray(b?.items)&&b.items.length>0;",
+          "pm.environment.set('consulta_ok',ok?'SI':'NO');"
+        ] } }
+      ]
+    },
+    {
+      "name": "API-G127-AUDITORIA",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+          { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+          { "key": "X-Zona-Horaria", "value": "UTC" }
+        ],
+        "url": "{{base_url}}/iot/auditoria?tipo_evento=HISTORIAL_CONSULTADO&id_usuario={{id_usuario}}&rf_origen=RF59&fecha_desde={{fecha_desde}}&fecha_hasta={{fecha_hasta}}&pagina=1&por_pagina=200"
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "if(pm.environment.get('consulta_ok')!=='SI')pm.execution.skipRequest();"
+        ] } }
+      ]
+    },
+    {
+      "name": "API-G127-EXPORTACION",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_prod}}" },
+          { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+          { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+          { "key": "X-Zona-Horaria", "value": "UTC" }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/historial/exportar?formato=PDF&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{sensor_id}}"
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "if(pm.environment.get('consulta_ok')!=='SI')pm.execution.skipRequest();"
+        ] } }
+      ]
+    }
+  ]
+}

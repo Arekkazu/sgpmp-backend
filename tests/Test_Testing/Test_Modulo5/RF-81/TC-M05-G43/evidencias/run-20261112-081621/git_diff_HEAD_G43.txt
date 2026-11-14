@@ -1,0 +1,1876 @@
+﻿diff --git a/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1 b/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1
+index afc63fd5..9e5949f0 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1
++++ b/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1
+@@ -1,169 +1,186 @@
+-# | Fecha      | Nombre                   | Que se hizo                                                           |
+-# |------------|--------------------------|-----------------------------------------------------------------------|
+-# | 2026-11-07 | Juan Sebastian Gutierrez | Runner PowerShell TC-M05-G43 (RF-81, control de acceso y auditoria)   |
++<#
++Runner oficial de TC-M05-G43 (RF-81 / RF-80).
++Uso:
++  powershell -ExecutionPolicy Bypass -File "tests\Test_Testing\Test_Modulo5\RF-81\TC-M05-G43\ejecutar_tc_m05_g43.ps1" -Reintento 1
++
++HISTORIAL DE CAMBIOS:
++| Fecha      | Autor                    | Cambio |
++|------------|--------------------------|--------|
++| 2026-11-07 | Equipo QA                | Version inicial del runner oficial. |
++| 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: soporte -Reintento, proteccion de resultados/, ASCII sin BOM y escaneo completo de secretos. |
++| 12/11/2026 | Juan Sebastian Gutierrez | Correccion de la raiz del repo (5 niveles) |
++#>
++
+ param(
+     [int]$Reintento = 0
+ )
+ 
+-$ErrorActionPreference = 'Stop'
+-
+-# Rutas relativas
+-$tcDir       = $PSScriptRoot
+-$repo        = (Resolve-Path -LiteralPath (Join-Path $tcDir '..\..\..\..\..')).Path
+-$prueba      = Join-Path $tcDir 'test_tc_m05_g43.py'
+-$envFile     = Join-Path $repo '.env.test'
+-$rf76Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-76'
+-$rf77Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-77'
+-$rf80Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-80'
+-
+-$g38Script   = Join-Path $rf80Dir 'TC-M05-G38\test_tc_m05_g38.py'
+-$g37Script   = Join-Path $rf80Dir 'TC-M05-G37\test_tc_m05_g37.py'
+-$g25Script   = Join-Path $rf77Dir 'TC-M05-G25\test_tc_m05_g25.py'
+-$g24Script   = Join-Path $rf77Dir 'TC-M05-G24\test_tc_m05_g24.py'
+-$g21Script   = Join-Path $rf77Dir 'TC-M05-G21\test_tc_m05_g21.py'
+-$g19Script   = Join-Path $rf76Dir 'TC-M05-G19\test_tc_m05_g19.py'
+-$g17Script   = Join-Path $rf76Dir 'TC-M05-G17\test_tc_m05_g17.py'
+-$g16Script   = Join-Path $rf76Dir 'TC-M05-G16\test_tc_m05_g16.py'
+-$g15Script   = Join-Path $rf76Dir 'TC-M05-G15\test_tc_m05_g15.py'
+-$g14Script   = Join-Path $rf76Dir 'TC-M05-G14\test_tc_m05_g14.py'
+-
+-Write-Host "=== TC-M05-G43 (RF-81): Control de Acceso y Auditoria ===" -ForegroundColor Cyan
+-
+-# 1. Cargar .env.test
+-if (-not (Test-Path -LiteralPath $envFile)) {
+-    Write-Error "PRECONDICION_FALLIDA: no existe $envFile"
++$ErrorActionPreference = "Stop"
++
++$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
++$RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..\..\..\..\..")).Path
++$EnvPath = Join-Path $RepoRoot ".env.test"
++
++if (-not (Test-Path $EnvPath)) {
++    Write-Error "No existe .env.test en $EnvPath"
+     exit 2
+ }
+-Get-Content -LiteralPath $envFile | ForEach-Object {
+-    $linea = $_.Trim()
+-    if ($linea -and -not $linea.StartsWith('#') -and $linea.Contains('=')) {
+-        $idx = $linea.IndexOf('=')
+-        $k = $linea.Substring(0, $idx).Trim()
+-        $v = $linea.Substring($idx + 1).Trim().Trim('"').Trim("'")
+-        [Environment]::SetEnvironmentVariable($k, $v, 'Process')
++
++$EnvMap = @{}
++foreach ($line in (Get-Content -Path $EnvPath -Encoding UTF8)) {
++    $trim = $line.Trim()
++    if (-not $trim -or $trim.StartsWith("#")) { continue }
++    $idx = $trim.IndexOf("=")
++    if ($idx -lt 1) { continue }
++    $k = $trim.Substring(0, $idx).Trim()
++    $v = $trim.Substring($idx + 1).Trim().Trim('"').Trim("'")
++    $EnvMap[$k] = $v
++}
++
++function Get-HashesSnapshot {
++    param([string]$DirPath)
++    $snap = @{}
++    if (Test-Path $DirPath) {
++        Get-ChildItem -Path $DirPath -File -Recurse | Sort-Object FullName | ForEach-Object {
++            $snap[$_.FullName] = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash
++        }
+     }
++    return $snap
+ }
+ 
+-# 2. Hashes iniciales de suites previas
+-$shaG43Script = (Get-FileHash -LiteralPath $prueba -Algorithm SHA256).Hash
+-$shaG43Runner = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash
+-$shaG38 = (Get-FileHash -LiteralPath $g38Script -Algorithm SHA256).Hash
+-$shaG37 = (Get-FileHash -LiteralPath $g37Script -Algorithm SHA256).Hash
+-$shaG25 = (Get-FileHash -LiteralPath $g25Script -Algorithm SHA256).Hash
+-$shaG24 = (Get-FileHash -LiteralPath $g24Script -Algorithm SHA256).Hash
+-$shaG21 = (Get-FileHash -LiteralPath $g21Script -Algorithm SHA256).Hash
+-$shaG19 = (Get-FileHash -LiteralPath $g19Script -Algorithm SHA256).Hash
+-$shaG17 = (Get-FileHash -LiteralPath $g17Script -Algorithm SHA256).Hash
+-$shaG16 = (Get-FileHash -LiteralPath $g16Script -Algorithm SHA256).Hash
+-$shaG15 = (Get-FileHash -LiteralPath $g15Script -Algorithm SHA256).Hash
+-$shaG14 = (Get-FileHash -LiteralPath $g14Script -Algorithm SHA256).Hash
+-
+-Write-Host "Integridad inicial verificada. G43 Script: $shaG43Script" -ForegroundColor Gray
+-
+-# 3. Directorio de staging
+-$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+-$staging   = Join-Path $tcDir "evidencias\run-$timestamp"
+-New-Item -ItemType Directory -Path $staging -Force | Out-Null
+-$env:TEST_EVIDENCE_DIR = $staging
+-
+-$sufijo = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
+-$reporteHtml = Join-Path $staging "resultado_TC-M05-G43$sufijo.html"
+-$reporteXml  = Join-Path $staging "resultado_TC-M05-G43$sufijo.xml"
+-$consoleLog  = Join-Path $staging "console_execution.log"
+-
+-# 4. Ejecutar pytest
+-$pyExe = Join-Path $repo '.venv\Scripts\python.exe'
+-if (-not (Test-Path -LiteralPath $pyExe)) { $pyExe = 'python' }
+-
+-Write-Host "Ejecutando Pytest contra TEST_BASE_URL=$($env:TEST_BASE_URL)..." -ForegroundColor Yellow
+-$pytestArgs = @(
+-    '-m', 'pytest',
+-    '-p', 'no:randomly',
+-    '--tb=short',
+-    "--html=$reporteHtml",
+-    '--self-contained-html',
+-    "--junitxml=$reporteXml",
+-    $prueba
++$ResultadosDir = Join-Path $ScriptDir "resultados"
++$EvidenciasRoot = Join-Path $ScriptDir "evidencias"
++$SnapResultadosAntes = Get-HashesSnapshot -DirPath $ResultadosDir
++$SnapEvidenciasAntes = Get-HashesSnapshot -DirPath $EvidenciasRoot
++
++$Stamp = Get-Date -Format "yyyyMMdd-HHmmss"
++$EvDir = Join-Path $EvidenciasRoot "run-$Stamp"
++New-Item -ItemType Directory -Path $EvDir -Force | Out-Null
++
++$Suf = if ($Reintento -gt 0) { "_reintento$Reintento" } else { "" }
++$JunitXml = Join-Path $EvDir "pytest_TC-M05-G43$Suf.xml"
++$PytestLog = Join-Path $EvDir "pytest_TC-M05-G43$Suf.log"
++
++$env:TEST_EVIDENCE_DIR = $EvDir
++$env:PYTHONIOENCODING = "utf-8"
++
++$PythonExe = "python"
++$VenvPy = Join-Path $RepoRoot ".venv\Scripts\python.exe"
++if (Test-Path $VenvPy) {
++    $PythonExe = $VenvPy
++}
++
++$TestFile = Join-Path $ScriptDir "test_tc_m05_g43.py"
++$PytestArgs = @(
++    "-m", "pytest",
++    $TestFile,
++    "-v",
++    "--tb=short",
++    "--junitxml=$JunitXml"
+ )
+ 
+-& $pyExe $pytestArgs 2>&1 | Tee-Object -FilePath $consoleLog
+-$codigo = $LASTEXITCODE
+-
+-# 5. Generar artefactos derivados
+-Write-Host "Generando artefactos derivados..." -ForegroundColor Yellow
+-$genScript = Join-Path $tcDir 'generar_artefactos_run_g43.py'
+-& $pyExe $genScript `
+-    --staging $staging `
+-    --sha-g43-script $shaG43Script `
+-    --sha-g43-runner $shaG43Runner `
+-    --sha-g38-script $shaG38 `
+-    --sha-g37-script $shaG37 `
+-    --sha-g25-script $shaG25 `
+-    --sha-g24-script $shaG24 `
+-    --sha-g21-script $shaG21 `
+-    --sha-g19-script $shaG19 `
+-    --sha-g17-script $shaG17 `
+-    --sha-g16-script $shaG16 `
+-    --sha-g15-script $shaG15 `
+-    --sha-g14-script $shaG14
+-
+-# 6. Escaneo de secretos en staging
+-Write-Host "Escaneando secretos en staging..." -ForegroundColor Yellow
+-$patronesSecretos = @()
+-if ($env:TEST_ADMIN_PASSWORD)   { $patronesSecretos += [regex]::Escape($env:TEST_ADMIN_PASSWORD) }
+-if ($env:TEST_SANDBOX_SECRET)   { $patronesSecretos += [regex]::Escape($env:TEST_SANDBOX_SECRET) }
+-if ($env:TEST_ADMIN_PASSWORD -and $env:TEST_ADMIN_PASSWORD.Length -gt 20) {
+-    $patronesSecretos += [regex]::Escape($env:TEST_ADMIN_PASSWORD.Substring($env:TEST_ADMIN_PASSWORD.Length - 20))
++Write-Host "[TC-M05-G43] Staging: $EvDir"
++Write-Host "[TC-M05-G43] Ejecutando pytest (--tb=short)..."
++
++$PrevPref = $ErrorActionPreference
++$ErrorActionPreference = "Continue"
++& $PythonExe @PytestArgs 2>&1 | Tee-Object -FilePath $PytestLog | Out-Null
++$PytestExit = $LASTEXITCODE
++$ErrorActionPreference = $PrevPref
++
++Write-Host "[TC-M05-G43] pytest exit code: $PytestExit"
++
++$GenScript = Join-Path $ScriptDir "generar_artefactos_run_g43.py"
++$GenArgs = @(
++    $GenScript,
++    "--evidence-dir", $EvDir,
++    "--junit", $JunitXml,
++    "--reintento", "$Reintento"
++)
++& $PythonExe @GenArgs
++$GenExit = $LASTEXITCODE
++if ($GenExit -ne 0) {
++    Write-Error "Fallo generar_artefactos_run_g43.py (exit $GenExit)"
++    exit $GenExit
+ }
+-if ($env:TEST_SANDBOX_SECRET -and $env:TEST_SANDBOX_SECRET.Length -gt 20) {
+-    $patronesSecretos += [regex]::Escape($env:TEST_SANDBOX_SECRET.Substring($env:TEST_SANDBOX_SECRET.Length - 20))
++
++# Verificar que resultados/ y corridas previas no fueron modificadas
++$SnapResultadosDespues = Get-HashesSnapshot -DirPath $ResultadosDir
++if ($SnapResultadosAntes.Count -ne $SnapResultadosDespues.Count) {
++    Write-Error "Violacion de integridad: cambio cantidad de archivos en resultados/"
++    exit 3
+ }
+-$patronesSecretos += 'eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}'
+-if ($env:TEST_ADMIN_EMAIL) { $patronesSecretos += [regex]::Escape($env:TEST_ADMIN_EMAIL) }
+-
+-$hallazgos = 0
+-Get-ChildItem -LiteralPath $staging -File | ForEach-Object {
+-    $archivoActual = $_.FullName
+-    $contenido = Get-Content -LiteralPath $archivoActual -Raw -Encoding UTF8
+-    foreach ($pat in $patronesSecretos) {
+-        if ($pat -and ($contenido -match $pat)) {
+-            Write-Host "ALERTA SECRETO en $archivoActual (patron: $pat)" -ForegroundColor Red
+-            $hallazgos++
+-        }
++foreach ($k in $SnapResultadosAntes.Keys) {
++    if ($SnapResultadosDespues[$k] -ne $SnapResultadosAntes[$k]) {
++        Write-Error "Violacion de integridad: modificado archivo en resultados/: $k"
++        exit 3
+     }
+ }
+-Write-Host "Escaneo de secretos finalizado: $hallazgos hallazgos." -ForegroundColor $(if ($hallazgos -eq 0) { 'Green' } else { 'Red' })
+-
+-# 7. Validar integridad de suites previas post-corrida
+-$shaPostG38 = (Get-FileHash -LiteralPath $g38Script -Algorithm SHA256).Hash
+-$shaPostG37 = (Get-FileHash -LiteralPath $g37Script -Algorithm SHA256).Hash
+-$shaPostG25 = (Get-FileHash -LiteralPath $g25Script -Algorithm SHA256).Hash
+-$shaPostG24 = (Get-FileHash -LiteralPath $g24Script -Algorithm SHA256).Hash
+-$shaPostG21 = (Get-FileHash -LiteralPath $g21Script -Algorithm SHA256).Hash
+-$shaPostG19 = (Get-FileHash -LiteralPath $g19Script -Algorithm SHA256).Hash
+-$shaPostG17 = (Get-FileHash -LiteralPath $g17Script -Algorithm SHA256).Hash
+-$shaPostG16 = (Get-FileHash -LiteralPath $g16Script -Algorithm SHA256).Hash
+-$shaPostG15 = (Get-FileHash -LiteralPath $g15Script -Algorithm SHA256).Hash
+-$shaPostG14 = (Get-FileHash -LiteralPath $g14Script -Algorithm SHA256).Hash
+-
+-if ($shaPostG38 -ne $shaG38 -or $shaPostG37 -ne $shaG37 -or $shaPostG25 -ne $shaG25 -or $shaPostG24 -ne $shaG24 -or $shaPostG21 -ne $shaG21 -or $shaPostG19 -ne $shaG19 -or $shaPostG17 -ne $shaG17 -or $shaPostG16 -ne $shaG16 -or $shaPostG15 -ne $shaG15 -or $shaPostG14 -ne $shaG14) {
+-    Write-Error "CORRUPCION: hashes de suites previas modificados durante TC-M05-G43!"
+-    exit 3
++foreach ($k in $SnapEvidenciasAntes.Keys) {
++    $hNow = (Get-FileHash -Path $k -Algorithm SHA256).Hash
++    if ($hNow -ne $SnapEvidenciasAntes[$k]) {
++        Write-Error "Violacion de integridad: modificado artefacto de corrida previa: $k"
++        exit 3
++    }
+ }
+ 
+-# 8. Promocion a resultados/ (si escaneo limpio y archivos existen)
+-$htmlFinal = Join-Path $staging "resultado_TC-M05-G43$sufijo.html"
+-$jsonFinal = Join-Path $staging "resultado_TC-M05-G43$sufijo.json"
+-
+-if ($hallazgos -eq 0 -and (Test-Path -LiteralPath $htmlFinal) -and (Test-Path -LiteralPath $jsonFinal)) {
+-    Write-Host "Promoviendo reporte oficial a resultados/..." -ForegroundColor Green
+-    Copy-Item -LiteralPath $htmlFinal -Destination (Join-Path $tcDir "resultados\resultado_TC-M05-G43.html") -Force
+-    Copy-Item -LiteralPath $jsonFinal -Destination (Join-Path $tcDir "resultados\resultado_TC-M05-G43.json") -Force
+-    Write-Host "Promocion oficial completada en resultados/." -ForegroundColor Green
+-    Get-ChildItem -LiteralPath (Join-Path $tcDir 'resultados') | Select-Object Name, Length, @{Name="SHA256";Expression={(Get-FileHash $_.FullName -Algorithm SHA256).Hash}} | Format-Table -AutoSize
+-} else {
+-    Write-Host "No se promueve a resultados/ (secretos=$hallazgos)." -ForegroundColor Yellow
++# Escaneo de secretos sobre todos los artefactos del staging (solo reporte)
++$SecretVars = @(
++    "TEST_ADMIN_PASSWORD",
++    "TEST_FIELD_ENGINEER_PASSWORD",
++    "TEST_PRODUCER_PASSWORD",
++    "TEST_VET_PASSWORD",
++    "TEST_SANDBOX_SECRET"
++)
++$EmailVars = @(
++    "TEST_ADMIN_EMAIL",
++    "TEST_FIELD_ENGINEER_EMAIL",
++    "TEST_PRODUCER_EMAIL",
++    "TEST_VET_EMAIL"
++)
++
++$Patterns = @()
++foreach ($sv in $SecretVars) {
++    $val = $EnvMap[$sv]
++    if ([string]::IsNullOrEmpty($val)) {
++        Write-Host "[SCAN] Variable vacia omitida: $sv"
++        continue
++    }
++    $Patterns += @{ Name = $sv; Value = $val }
++    $tail = if ($val.Length -gt 20) { $val.Substring($val.Length - 20) } else { $val }
++    $Patterns += @{ Name = "${sv}_TAIL20"; Value = $tail }
++}
++foreach ($ev in $EmailVars) {
++    $val = $EnvMap[$ev]
++    if ([string]::IsNullOrEmpty($val)) {
++        Write-Host "[SCAN] Variable vacia omitida: $ev"
++        continue
++    }
++    $Patterns += @{ Name = $ev; Value = $val }
++}
++$JwtPrefix = "ey" + "J"
++$Patterns += @{ Name = "JWT_PREFIX"; Value = $JwtPrefix }
++
++$Findings = @()
++$StagingFiles = Get-ChildItem -Path $EvDir -File -Recurse
++foreach ($f in $StagingFiles) {
++    $content = Get-Content -Path $f.FullName -Raw -Encoding UTF8
++    if ([string]::IsNullOrEmpty($content)) { continue }
++    foreach ($p in $Patterns) {
++        if ($content.Contains($p.Value)) {
++            $Findings += "$($f.Name)::$($p.Name)"
++        }
++    }
+ }
+ 
+-exit $codigo
++if ($Findings.Count -gt 0) {
++    Write-Host "[SCAN] HALLAZGOS DE SECRETOS EN STAGING:"
++    foreach ($hit in $Findings) {
++        Write-Host "  - $hit"
++    }
++    exit 4
++}
+ 
++Write-Host "[SCAN] 0 hallazgos en $($StagingFiles.Count) archivos de staging."
++Write-Host "[TC-M05-G43] Finalizado. Staging: $EvDir"
++exit $PytestExit
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/generar_artefactos_run_g43.py b/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/generar_artefactos_run_g43.py
+index 1f150a03..ea3cd14e 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/generar_artefactos_run_g43.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/generar_artefactos_run_g43.py
+@@ -1,432 +1,318 @@
+-# | Fecha      | Nombre                   | Que se hizo                                                           |
+-# |------------|--------------------------|-----------------------------------------------------------------------|
+-# | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G43 (JSON, repro, MD, TXT)  |
+-"""Generador de artefactos de corrida para TC-M05-G43.
+-Lee JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
+-- resultado_TC-M05-G43.json
+-- repro
+-- TC-M05-G43_resultado.md
+-- INFORME_FASE234_TC-M05-G43.txt
+-- Inyecta data-jsonblob en resultado_TC-M05-G43.html
++#!/usr/bin/env python3
+ """
++Generador de artefactos oficiales (JSON + HTML) para TC-M05-G43.
++
++HISTORIAL DE CAMBIOS:
++| Fecha      | Autor                    | Cambio |
++|------------|--------------------------|--------|
++| 2026-11-07 | Equipo QA                | Version inicial de generacion de artefactos JSON y HTML. |
++| 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: soporte --reintento, metricas reales desde trazas_http.jsonl/contexto_g43.json y PENDIENTE_DIAGNOSTICO. |
++"""
++
+ from __future__ import annotations
+ 
+ import argparse
+-import hashlib
++import html
+ import json
+-import os
+-import re
++import sys
+ import xml.etree.ElementTree as ET
+-from datetime import datetime, timedelta, timezone
++from datetime import datetime, timezone
+ from pathlib import Path
+ 
+-ZONA_USUARIO = timezone(timedelta(hours=-5))
+ 
++def _cargar_trazas(path: Path) -> list[dict]:
++    if not path.exists():
++        return []
++    out: list[dict] = []
++    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
++        line = line.strip()
++        if not line:
++            continue
++        try:
++            out.append(json.loads(line))
++        except Exception:
++            pass
++    return out
+ 
+-def leer_archivo(p: Path) -> str:
++
++def _cargar_contexto(path: Path) -> dict:
++    if not path.exists():
++        return {}
+     try:
+-        return p.read_text(encoding="utf-8")
+-    except Exception as e:
+-        return f"[Error leyendo {p.name}: {e}]"
+-
+-
+-def calcular_sha256(p: Path) -> str:
+-    if not p.exists():
+-        return "NO_EXISTE"
+-    return hashlib.sha256(p.read_bytes()).hexdigest()
+-
+-
+-TEST_METADATA = {
+-    "test_00_setup_linea_base_y_activo_c": {
+-        "paso": "T00 Setup de activo C y línea base (Admin)",
+-        "esperado": "Activo C creado con fase y 3 registros de suministros (HTTP 201)",
+-        "fuente": "Testing Harness / Setup de línea base",
+-    },
+-    "test_b01_consulta_con_resultados_auditoria": {
+-        "paso": "B01 Auditoría de consulta con resultados (105 / 040)",
+-        "esperado": "CONSULTA_HISTORIAL_EJECUTADA registrado con id_usuario, id_activo, resultado EXITOSO, filtros aplicados y total registros retornados en <= 2 s (CA-8 / RNF-05)",
+-        "fuente": "RF-81 Fase 7 / CA-8 / RNF-05 / TC-M05-105 (040)",
+-    },
+-    "test_b02_consulta_sin_resultados_auditoria": {
+-        "paso": "B02 Auditoría de consulta sin resultados (105 / 040, CU04 FA-01)",
+-        "esperado": "CONSULTA_HISTORIAL_EJECUTADA registrado con filtros aplicados y total registros retornados (0) en la bitácora",
+-        "fuente": "Caso CU04 FA-01 / CA-8 / TC-M05-105 (040)",
+-    },
+-    "test_b03_exportacion_sincrona_auditoria": {
+-        "paso": "B03 Auditoría de exportación síncrona PDF y Excel (105 / 040)",
+-        "esperado": "EXPORTACION_HISTORIAL_GENERADA registrado con filtros aplicados y total registros exportados en <= 2 s",
+-        "fuente": "RF-81 Fase 7 / CA-8 / RNF-05 / TC-M05-105 (040)",
+-    },
+-    "test_b04_solo_lectura_restr_4": {
+-        "paso": "B04 Naturaleza de solo lectura e inmutabilidad (102 / 037)",
+-        "esperado": "POST, PUT, PATCH, DELETE sobre /suministros/historial rechazados con 405 Method Not Allowed; historial inalterado",
+-        "fuente": "RF-81 Restr. 4 / TC-M05-102 (037)",
+-    },
+-    "test_a01_gestor_granja_consulta_su_unidad": {
+-        "paso": "A01 Gestor de Granja consulta activo de su unidad (102 / 037)",
+-        "esperado": "HTTP 200 con items y resumen para activo 1042 en finca 464 asignada; PUT/DELETE rechazados (405)",
+-        "fuente": "RF-81 Restr. 1 / CA-3 / TC-M05-102 (037)",
+-    },
+-    "test_a02_gestor_granja_rechazo_sin_unidad": {
+-        "paso": "A02 Rechazo a usuario sin la unidad del activo (102 / 037)",
+-        "esperado": "HTTP 403 con mensaje de E2 ('No tiene permisos para consultar el historial del activo [id]. Verifique su rol y unidades productivas asignadas.') y sin fuga de datos",
+-        "fuente": "RF-81 Restr. 1 / E2 / CA-3 / TC-M05-102 (037)",
+-    },
+-    "test_a03_auditoria_intento_rechazado": {
+-        "paso": "A03 Auditoría de consulta rechazada (102 / 037, CU04 FA-04)",
+-        "esperado": "Registro de al menos 1 evento de auditoría en la bitácora con resultado RECHAZADO tras el intento denegado",
+-        "fuente": "Caso CU04 FA-04 / TC-M05-102 (037)",
+-    },
+-    "test_98_cierre_corridas": {
+-        "paso": "T98 Cierre estricto de todas las corridas sandbox",
+-        "esperado": "Todas las corridas (Admin, Gestor, Productor) cerradas con HTTP 200 ('Rollback exitoso')",
+-        "fuente": "Testing Harness / Sandbox Protocol",
+-    },
+-    "test_99_inocuidad_final": {
+-        "paso": "T99 Inocuidad final fuera de sandbox",
+-        "esperado": "Verificación fuera de sandbox: activo C responde HTTP 404 (0 efectos persistidos)",
+-        "fuente": "Testing Harness / Verificación de Inocuidad",
+-    },
+-}
+-
+-
+-def procesar_corrida(staging: Path, sha_hashes: dict[str, str]):
+-    junit_path = staging / "resultado_TC-M05-G43.xml"
+-    trazas_path = staging / "trazas_http.jsonl"
+-    repro_path = staging / "repro"
+-    json_path = staging / "resultado_TC-M05-G43.json"
+-    html_path = staging / "resultado_TC-M05-G43.html"
+-
+-    narrativo_path = staging / "TC-M05-G43_resultado.md"
+-    informe_path = staging / "INFORME_FASE234_TC-M05-G43.txt"
+-
+-    # Repro
+-    repro_cmd = "powershell -ExecutionPolicy Bypass -File .\\ejecutar_tc_m05_g43.ps1"
+-    repro_path.write_text(repro_cmd + "\n", encoding="utf-8")
+-
+-    # Parsear JUnit XML
+-    tree = ET.parse(junit_path)
+-    root = tree.getroot()
++        return json.loads(path.read_text(encoding="utf-8"))
++    except Exception:
++        return {}
++
+ 
+-    casos_xml = {}
+-    for tc in root.iter("testcase"):
+-        nombre = tc.attrib.get("name", "")
+-        nombre_base = nombre.split("[")[0]
+-        fallo = tc.find("failure")
++def _cargar_junit(xml_path: Path) -> dict[str, dict]:
++    if not xml_path.exists():
++        return {}
++    tree = ET.parse(xml_path)
++    root = tree.getroot()
++    casos: dict[str, dict] = {}
++    for tc in root.findall(".//testcase"):
++        name = tc.attrib.get("name", "")
++        time_s = float(tc.attrib.get("time", "0") or 0)
++        failure = tc.find("failure")
+         error = tc.find("error")
+         skipped = tc.find("skipped")
+-        if fallo is not None:
++        if failure is not None:
+             estado = "FALLA"
+-            msg = fallo.attrib.get("message") or (fallo.text or "").strip().splitlines()[0]
++            msg = (failure.attrib.get("message", "") or failure.text or "").strip()
+         elif error is not None:
+             estado = "FALLA"
+-            msg = error.attrib.get("message") or (error.text or "").strip().splitlines()[0]
++            msg = (error.attrib.get("message", "") or error.text or "").strip()
+         elif skipped is not None:
+-            estado = "OMITIDO"
+-            msg = skipped.attrib.get("message", "Test omitido")
++            estado = "FALLA"
++            msg = f"SKIPPED: {(skipped.attrib.get('message', '') or '').strip()}"
+         else:
+             estado = "OK"
+-            msg = "Completado exitosamente sin excepciones."
+-        casos_xml[nombre_base] = {"estado": estado, "detalle": msg}
+-
+-    base_url_env = os.environ.get("TEST_BASE_URL", "https://www.api.inmero.co/api-sgpmp-test")
+-    trazas_raw = trazas_path.read_text(encoding="utf-8") if trazas_path.exists() else ""
+-
+-    # Extraer run_ids
+-    run_ids = set()
+-    if trazas_raw:
+-        for m in re.finditer(r"tc-m05-g43-[a-zA-Z0-9_-]+", trazas_raw):
+-            run_ids.add(m.group(0))
+-    run_ids_str = ", ".join(sorted(run_ids)) if run_ids else "N/A"
+-
+-    # Construir Checkpoints normativos
+-    checkpoints = []
+-    total_ok = 0
+-    total_falla = 0
+-
+-    for test_key, meta in TEST_METADATA.items():
+-        xml_info = casos_xml.get(test_key, {"estado": "FALLA", "detalle": "No ejecutado o no encontrado en XML"})
+-        estado_chk = "OK" if xml_info["estado"] == "OK" else "FALLA"
+-        if estado_chk == "OK":
+-            total_ok += 1
+-        else:
+-            total_falla += 1
+-
+-        if test_key == "test_00_setup_linea_base_y_activo_c":
+-            obtenido = f"Activo C creado (HTTP 201), fase abierta, 3 registros de suministros cargados. Estado: {xml_info['estado']}."
+-        elif test_key == "test_b01_consulta_con_resultados_auditoria":
+-            obtenido = f"CONSULTA_HISTORIAL_EJECUTADA registrado con id_usuario, id_activo y EXITOSO en <= 2 s. Estado: {xml_info['estado']}."
+-        elif test_key == "test_b02_consulta_sin_resultados_auditoria":
+-            obtenido = f"Consulta sin resultados auditada en la bitacora de M05. Estado: {xml_info['estado']}."
+-        elif test_key == "test_b03_exportacion_sincrona_auditoria":
+-            obtenido = f"EXPORTACION_HISTORIAL_GENERADA auditado para PDF y Excel en <= 2 s. Estado: {xml_info['estado']}."
+-        elif test_key == "test_b04_solo_lectura_restr_4":
+-            obtenido = f"POST/PUT/PATCH/DELETE rechazados con 405 Method Not Allowed; datos inalterados. Estado: {xml_info['estado']}."
+-        elif test_key == "test_a01_gestor_granja_consulta_su_unidad":
+-            obtenido = f"Gestor de Granja consulta activo 1042 en su finca 464 con HTTP 200; solo lectura verificada. Estado: {xml_info['estado']}."
+-        elif test_key == "test_a02_gestor_granja_rechazo_sin_unidad":
+-            if estado_chk == "OK":
+-                obtenido = "HTTP 403 recibido con mensaje E2 y sin fuga de datos."
+-            else:
+-                obtenido = (
+-                    "AssertionError: Defecto de producto: el backend respondio HTTP 404 (ACTIVO_NO_ENCONTRADO) en lugar de HTTP 403 (E2/CA-3) "
+-                    "al consultar activo 957 fuera de su unidad asignada, debido a que RLS en modulo2.activos_biologicos oculta el registro antes de AlcanceActivoPort."
+-                )
+-        elif test_key == "test_a03_auditoria_intento_rechazado":
+-            if estado_chk == "OK":
+-                obtenido = "1 evento de auditoria RECHAZADO registrado en la bitacora."
++            msg = ""
++        casos[name] = {
++            "name": name,
++            "time_s": round(time_s, 3),
++            "estado": estado,
++            "mensaje": msg,
++        }
++    return casos
++
++
++def _trazas_por_paso(trazas: list[dict]) -> dict[str, list[dict]]:
++    res: dict[str, list[dict]] = {}
++    for t in trazas:
++        paso = t.get("paso") or ""
++        if paso:
++            res.setdefault(paso, []).append(t)
++    return res
++
++
++def _ultimo_status(por_paso: dict[str, list[dict]], paso: str) -> int | None:
++    arr = por_paso.get(paso) or []
++    return arr[-1].get("status_code") if arr else None
++
++
++def _resumen_obtenido(paso_id: str, junit_item: dict, por_paso: dict[str, list[dict]], ctx: dict) -> str:
++    msg = junit_item.get("mensaje", "")
++    if junit_item.get("estado") == "FALLA" and msg:
++        return f"PENDIENTE_DIAGNOSTICO | {msg.splitlines()[0][:240]}"
++
++    if paso_id == "T00":
++        return (
++            f"T00 OK (auditoria_inicial_total={ctx.get('auditoria_inicial_total')}, "
++            f"ultimo_id={ctx.get('auditoria_inicial_ultimo_id')}); "
++            f"activo_c={ctx.get('id_activo_c')}, ciclo_c={ctx.get('id_ciclo_c')}, "
++            f"id_usuario_ref={ctx.get('id_usuario_ref')}"
++        )
++    if paso_id == "B01":
++        st_c = _ultimo_status(por_paso, "B01_consulta_filtrada")
++        st_a = _ultimo_status(por_paso, "B01_audit_despues")
++        return f"GET /suministros/historial HTTP {st_c}; GET /suministros/auditoria HTTP {st_a} con CONSULTA_HISTORIAL_EJECUTADA y datos_nuevos completos"
++    if paso_id == "B02":
++        st_c = _ultimo_status(por_paso, "B02_consulta_vacia")
++        st_a = _ultimo_status(por_paso, "B02_audit_despues")
++        return f"GET /suministros/historial (vacia) HTTP {st_c}; GET /suministros/auditoria HTTP {st_a} con CONSULTA_HISTORIAL_EJECUTADA y total_registros_retornados=0"
++    if paso_id == "B03":
++        st_p = _ultimo_status(por_paso, "B03_export_pdf")
++        st_e = _ultimo_status(por_paso, "B03_export_excel")
++        st_a = _ultimo_status(por_paso, "B03_audit_despues")
++        return f"Export PDF HTTP {st_p}, EXCEL HTTP {st_e}; GET /suministros/auditoria HTTP {st_a} con EXPORTACION_HISTORIAL_GENERADA PDF y EXCEL"
++    if paso_id == "B04":
++        st_put = _ultimo_status(por_paso, "B04_put")
++        st_del = _ultimo_status(por_paso, "B04_delete")
++        return f"PUT HTTP {st_put}, DELETE HTTP {st_del} rechazados sin modificar bitacora"
++    if paso_id == "A01":
++        st = _ultimo_status(por_paso, "A01_gestor_su_finca")
++        return f"Gestor de Granja consulta activo 1042 -> HTTP {st}"
++    if paso_id == "A02":
++        st = _ultimo_status(por_paso, "A02_gestor_finca_ajena")
++        return f"Gestor de Granja consulta activo 957 -> HTTP {st}"
++    if paso_id == "A03":
++        st = _ultimo_status(por_paso, "A03_intento_rechazado")
++        return f"Intento rechazado HTTP {st}; eventos verificados via GET /suministros/auditoria"
++    if paso_id == "A04":
++        st = _ultimo_status(por_paso, "A04_productor_su_finca")
++        return f"Productor consulta activo 957 -> HTTP {st} (observacion fuera de spec RF-81)"
++    if paso_id == "T98":
++        cerradas = ctx.get("corridas_cerradas") or {}
++        resumen = ", ".join(f"{k}:{v.get('status_code')}" for k, v in cerradas.items())
++        return f"Corridas cerradas con DELETE 200 Rollback exitoso ({resumen})"
++    if paso_id == "T99":
++        st_aud = _ultimo_status(por_paso, "T99_audit_inocuidad")
++        st_act = _ultimo_status(por_paso, "T99_activo_c_404")
++        st_his = _ultimo_status(por_paso, "T99_historial_c_404")
++        return f"T99 sandbox: auditoria HTTP {st_aud} (total={ctx.get('auditoria_inicial_total')}), activo_c HTTP {st_act}, historial HTTP {st_his}"
++    return "Ejecutado"
++
++
++def construir_json(
++    ev_dir: Path,
++    junit_path: Path,
++    trazas_path: Path,
++    reintento: int,
++) -> dict:
++    casos = _cargar_junit(junit_path)
++    trazas = _cargar_trazas(trazas_path)
++    por_paso = _trazas_por_paso(trazas)
++    ctx = _cargar_contexto(ev_dir / "contexto_g43.json")
++
++    definicion = [
++        ("T00", "test_00_setup_linea_base_y_activo_c", "Linea base de auditoria en T00, usuario autenticado y creacion de activo C + suministro en sandbox", False),
++        ("B01", "test_b01_consulta_con_resultados_auditoria", "CONSULTA_HISTORIAL_EJECUTADA en GET /suministros/auditoria con filtros_aplicados, pagina, registros_por_pagina, total_registros_retornados y total_registros_filtrados", False),
++        ("B02", "test_b02_consulta_sin_resultados_auditoria", "Consulta vacia genera CONSULTA_HISTORIAL_EJECUTADA con total_registros_retornados=0 y total_registros_filtrados=0", False),
++        ("B03", "test_b03_exportacion_sincrona_auditoria", "Exportaciones PDF y EXCEL generan EXPORTACION_HISTORIAL_GENERADA con filtros_aplicados, formato y total_registros_retornados", False),
++        ("B04", "test_b04_solo_lectura_restr_4", "Restr. 4: PUT y DELETE sobre /suministros/auditoria rechazados con 405", False),
++        ("A01", "test_a01_gestor_granja_consulta_su_unidad", "CA-2: Gestor de Granja consulta activo 1042 de su unidad -> HTTP 200", False),
++        ("A02", "test_a02_gestor_granja_rechazo_sin_unidad", "CA-3 / E2: Gestor de Granja consulta activo 957 ajeno -> HTTP 403", False),
++        ("A03", "test_a03_auditoria_intento_rechazado", "CU04 FA-04 / RF-80: Intento rechazado registra evento con resultado != EXITOSO en /suministros/auditoria", False),
++        ("A04", "test_a04_observacion_productor_consulta_su_unidad", "Observacion: Productor consulta activo 957 de su unidad -> HTTP 200", True),
++        ("T98", "test_98_cierre_corridas", "Todas las corridas previas cerradas con DELETE /test-control/runs/{run_id} -> 200 Rollback exitoso", False),
++        ("T99", "test_99_inocuidad_final", "Inocuidad en sandbox: total y max id de auditoria restaurados a T00; activo C y su historial retornan 404", False),
++    ]
++
++    checkpoints: list[dict] = []
++    ok_cnt = 0
++    falla_cnt = 0
++    total_eval = 0
++
++    for paso_id, fn_name, esperado, es_obs in definicion:
++        item = casos.get(fn_name, {"estado": "FALLA", "mensaje": f"Test {fn_name} no encontrado en junitxml", "time_s": 0.0})
++        estado = "OBS" if (es_obs and item["estado"] == "OK") else item["estado"]
++        if not es_obs:
++            total_eval += 1
++            if estado == "OK":
++                ok_cnt += 1
+             else:
+-                obtenido = (
+-                    "AssertionError: Defecto de producto: No se registro evento de auditoria en modulo5.auditorias_suministros para la consulta rechazada. "
+-                    "El componente RBAC (src/shared/rbac.py) lanza AuthorizationError sin persistir en la bitacora (misma causa raiz que RF-80/G38)."
+-                )
+-        elif test_key == "test_a04_productor_consulta_su_unidad":
+-            obtenido = f"Productor consulta activo 957 en su finca 1 con HTTP 200. Estado: {xml_info['estado']}."
+-        elif test_key == "test_98_cierre_corridas":
+-            obtenido = f"Todas las corridas cerraron exitosamente con HTTP 200 ('Rollback exitoso'). Estado: {xml_info['estado']}."
+-        elif test_key == "test_99_inocuidad_final":
+-            obtenido = f"Verificación sin sandbox completada; activo C responde HTTP 404 (0 efectos persistidos). Estado: {xml_info['estado']}."
+-        else:
+-            obtenido = f"Resultado: {xml_info['detalle']}"
+-
+-        checkpoints.append({
+-            "paso": meta["paso"],
+-            "esperado": meta["esperado"],
+-            "obtenido": obtenido,
+-            "estado": estado_chk,
+-        })
+-
+-    veredicto_global = "Aprobado" if total_falla == 0 and total_ok > 0 else "Rechazado"
+-
+-    # Generar resultado_TC-M05-G43.json
+-    res_json_data = {
++                falla_cnt += 1
++
++        cp = {
++            "paso": paso_id,
++            "test_fn": fn_name,
++            "esperado": esperado,
++            "obtenido": _resumen_obtenido(paso_id, item, por_paso, ctx),
++            "estado": estado,
++            "tiempo_s": item.get("time_s", 0.0),
++        }
++        if estado == "FALLA":
++            cp["diagnostico"] = "PENDIENTE_DIAGNOSTICO"
++        checkpoints.append(cp)
++
++    veredicto = "APROBADO" if falla_cnt == 0 and total_eval == 10 else "RECHAZADO"
++    repro_cmd = (
++        f"powershell -ExecutionPolicy Bypass -File "
++        f"\"tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1\""
++        + (f" -Reintento {reintento}" if reintento > 0 else "")
++    )
++
++    return {
+         "tc": "TC-M05-G43",
++        "titulo": "RF-81 / RF-80 - Auditoria de consultas y exportaciones de historial de suministros",
++        "reintento": reintento,
++        "fecha_utc": datetime.now(timezone.utc).isoformat(),
++        "staging": str(ev_dir).replace("\\", "/"),
++        "repro": repro_cmd,
+         "summary": {
+-            "total": len(checkpoints),
+-            "ok": total_ok,
+-            "falla": total_falla,
+-            "veredicto": veredicto_global,
++            "total": total_eval,
++            "ok": ok_cnt,
++            "falla": falla_cnt,
++            "veredicto": veredicto,
+         },
+         "checkpoints": checkpoints,
++        "observaciones": ctx.get("observaciones") or [],
++        "runs_orden": ctx.get("runs_orden") or [],
++        "corridas_cerradas": ctx.get("corridas_cerradas") or {},
++        "total_trazas_http": len(trazas),
+     }
+-    json_path.write_text(json.dumps(res_json_data, indent=2, ensure_ascii=False), encoding="utf-8")
+ 
+-    # Inyectar data-jsonblob en el reporte HTML
+-    if html_path.exists():
+-        try:
+-            html_txt = html_path.read_text(encoding="utf-8")
+-            blob_script = f'<script id="data-jsonblob" type="application/json">{json.dumps(res_json_data, ensure_ascii=False)}</script>'
+-            if 'id="data-jsonblob"' not in html_txt:
+-                if "</body>" in html_txt:
+-                    html_txt = html_txt.replace("</body>", f"{blob_script}</body>")
+-                else:
+-                    html_txt += blob_script
+-                html_path.write_text(html_txt, encoding="utf-8")
+-        except Exception as e:
+-            print(f"Aviso inyectando data-jsonblob en HTML: {e}")
+-
+-    # Generar TC-M05-G43_resultado.md
+-    md_content = f"""# Reporte de Prueba: TC-M05-G43 (RF-81)
+-## Control de Acceso por Rol y Unidad, y Auditoría de Consultas, Exportaciones y Rechazos
+-### Casos TC-M05-102 y TC-M05-105 (Agrupados 037 y 040)
+-
+-> **Tipo de corrida:** Evaluación Oficial (primera evaluación oficial de RF-81).
+-
+-- **ID Caso:** TC-M05-G43 (Plano: 102, 105 | Agrupado: 037, 040)
+-- **Ambiente:** `{base_url_env}`
+-- **Veredicto Global:** **{veredicto_global.upper()}** ({total_ok}/{len(checkpoints)} OK, {total_falla} Fallas)
+-- **Fecha:** {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)
+-- **Run IDs Sandbox:** `{run_ids_str}`
+-
+-## Resumen de Checkpoints
+-| # | Paso | Esperado | Obtenido | Estado |
+-|---|------|----------|----------|--------|
+-"""
+-    for idx, chk in enumerate(checkpoints, 1):
+-        md_content += f"| {idx} | {chk['paso']} | {chk['esperado']} | {chk['obtenido']} | **{chk['estado']}** |\n"
+-
+-    md_content += f"""
+-## Cobertura No Ejecutada y Observaciones
+-1. **Roles Contador y Revisor Fiscal (Restr. 2 / TC-M05-102 / 037):**
+-   - **Hecho Observado:** El archivo `.env.test` solo provee variables para `TEST_ADMIN_*`, `TEST_FIELD_ENGINEER_*`, `TEST_PRODUCER_*` y `TEST_VET_*`. No existen variables `TEST_ACCOUNTANT_*` ni `TEST_FISCAL_REVIEWER_*` en `.env.test`.
+-   - **Mapeo de Roles en BD:** `SELECT id_rol, nombre_rol FROM modulo1.roles` confirma: Rol 1: Administrador, Rol 2: Productor, Rol 3: Veterinario, Rol 4: Ingeniero de Campo, Rol 5: Contador, Rol 7: Gestor de Granja, Rol 8: Revisor Fiscal.
+-2. **Checkpoint A04 (Productor consulta activo 957):**
+-   - **Observación:** El rol Productor está fuera del alcance de la especificación funcional de RF-81 (reservado a Administrador, Gestor de Granja, Ingeniero de Campo, Contador y Revisor Fiscal). Se verificó con éxito como observación de interoperabilidad sin computar como checkpoint normativo restrictivo.
+-3. **Eliminación y purga de archivos asíncronos a las 72 h (RNF-06):**
+-   - **Razón:** Requiere esperar 72 horas reales o manipular el reloj del sistema, lo cual está prohibido por las reglas de QA.
+-
+-## Diagnóstico de Defectos de Producto
+-### 1. Defecto en B01, B02 y B03 (Contenido Incompleto en Bitácora de Auditoría — CA-8 / Fase 7)
+-- **Hecho Observado:** Las filas generadas en `modulo5.auditorias_suministros` para `CONSULTA_HISTORIAL_EJECUTADA` y `EXPORTACION_HISTORIAL_GENERADA` tienen `datos_nuevos = null` y carecen de columnas para `filtros` y `total_registros_retornados` (o exportados).
+-- **Ruta de Código (Inferida y Verificada):**
+-  - `src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:191`:
+-    `_auditar_consulta()` instancia `EventoAuditoriaSuministro` pasando únicamente `entidad_afectada`, `tipo_operacion`, `id_usuario`, `resultado`, `id_activo_biologico`, `id_ciclo_productivo`, omitiendo `datos_nuevos` y `total_registros_retornados`.
+-  - `src/supplies/application/use_cases/historial_suministros/exportar_historial_sincrono_use_case.py:194`:
+-    `_auditar_exportacion()` repite la misma omisión.
+-- **Clasificación:** Defecto de producto (omisión de campos requeridos por CA-8).
+-- **Posible Solución:** Enriquecer `EventoAuditoriaSuministro` con `datos_nuevos={{"filtros": filtros.to_dict(), "total_registros_retornados": resultado.total_registros_filtrados}}`.
+-
+-### 2. Defecto en A02 (HTTP 404 en lugar de HTTP 403 para Activo Fuera de Unidad Asignada)
+-- **Hecho Observado:** `GET /suministros/historial?id_activo_biologico=957` ejecutado por Gestor de Granja (`id_usuario=30`, fincas 81 y 464) respondió HTTP 404 (`error_code: ACTIVO_NO_ENCONTRADO`, mensaje: `"El activo biológico 957 no existe."`). En contraste, el Productor consulta el activo 957 con HTTP 200, demostrando que el activo 957 sí existe en la base de datos.
+-- **Ruta de Código:**
+-  1. `src/supplies/infrastructure/routers/historial_suministros_router.py:123`
+-  2. `src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:144` (`_validar()`):
+-     Invoca `activo = self.activo_port.obtener(filtros.id_activo_biologico)`.
+-  3. `src/supplies/infrastructure/adapters/activo_m02_adapter.py:37`:
+-     Invoca `self._repo.obtener_por_id(id_activo)`.
+-  4. **[INFERENCIA]:** En PostgreSQL, `modulo2.activos_biologicos` tiene RLS activo (`pol_activos_biologicos_select`). La sesión del Gestor no tiene visibilidad sobre fincas ajenas, por lo que la consulta retorna `None` antes de que el use case llegue a evaluar `AlcanceActivoPort` (línea 152), levantando `NotFoundError` (404) en vez de `AuthorizationError` (403 con mensaje de E2).
+-- **Clasificación:** Defecto de arquitectura / diseño (fuga de RLS intermódulo sobre el control de acceso de la API).
+-
+-### 3. Defecto en A03 (Auditoría de Consultas Denegadas/Rechazadas no Persistida)
+-- **Hecho Observado:** Tras el rechazo de la consulta no autorizada en A02, la consulta SQL `SELECT count(*) FROM modulo5.auditorias_suministros WHERE entidad_afectada = 'historial_suministros' AND resultado IN ('RECHAZADO', 'FALLIDO')` arrojó 0 registros en la sandbox del Gestor.
+-- **Ruta de Código (Inferencia):** Al levantarse `NotFoundError` (o `AuthorizationError`), el flujo sale por excepción en FastAPI sin invocar `_auditar_consulta()` ni registrar en `modulo5.auditorias_suministros`.
+-- **Causa Raíz Compartida:** Es la misma causa raíz identificada en RF-80 (G38): las excepciones y denegaciones de acceso no son interceptadas para emitir eventos a la bitácora de auditoría de M05.
+-- **Clasificación:** Defecto de producto (omisión según CU04 FA-04).
++
++def construir_html(payload: dict) -> str:
++    summary = payload["summary"]
++    json_blob = json.dumps(payload, ensure_ascii=False)
++    json_blob_attr = html.escape(json_blob, quote=True)
++
++    filas = []
++    for cp in payload["checkpoints"]:
++        badge_cls = "ok" if cp["estado"] == "OK" else ("obs" if cp["estado"] == "OBS" else "fail")
++        filas.append(
++            "<tr>"
++            f"<td><strong>{html.escape(cp['paso'])}</strong></td>"
++            f"<td><span class='badge {badge_cls}'>{html.escape(cp['estado'])}</span></td>"
++            f"<td>{html.escape(cp['esperado'])}</td>"
++            f"<td>{html.escape(cp['obtenido'])}</td>"
++            f"<td>{cp['tiempo_s']}s</td>"
++            "</tr>"
++        )
++
++    obs_html = "".join(
++        f"<li><strong>{html.escape(str(o.get('codigo', '')))}</strong>: {html.escape(str(o.get('detalle', '')))}</li>"
++        for o in payload.get("observaciones", [])
++    )
++
++    return f"""<!DOCTYPE html>
++<html lang="es">
++<head>
++  <meta charset="utf-8" />
++  <title>{html.escape(payload['tc'])} - Reporte Ejecucion</title>
++  <style>
++    body {{ font-family: system-ui, -apple-system, sans-serif; margin: 24px; color: #1f2937; }}
++    .meta {{ background: #f3f4f6; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }}
++    table {{ width: 100%; border-collapse: collapse; margin-top: 12px; }}
++    th, td {{ border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 13px; }}
++    th {{ background: #f9fafb; }}
++    .badge {{ padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 12px; }}
++    .ok {{ background: #dcfce7; color: #166534; }}
++    .fail {{ background: #fee2e2; color: #991b1b; }}
++    .obs {{ background: #fef3c7; color: #92400e; }}
++  </style>
++</head>
++<body>
++  <div id="json-root" data-jsonblob="{json_blob_attr}"></div>
++  <h1>{html.escape(payload['tc'])} - {html.escape(payload['titulo'])}</h1>
++  <div class="meta">
++    <div><strong>Veredicto:</strong> {html.escape(summary['veredicto'])} ({summary['ok']}/{summary['total']} OK, {summary['falla']} FALLA)</div>
++    <div><strong>Reintento:</strong> {payload['reintento']} | <strong>Fecha UTC:</strong> {html.escape(payload['fecha_utc'])}</div>
++    <div><strong>Repro:</strong> <code>{html.escape(payload['repro'])}</code></div>
++  </div>
++  <table>
++    <thead>
++      <tr><th>Paso</th><th>Estado</th><th>Esperado</th><th>Obtenido</th><th>Tiempo</th></tr>
++    </thead>
++    <tbody>
++      {''.join(filas)}
++    </tbody>
++  </table>
++  <h2>Observaciones</h2>
++  <ul>{obs_html or '<li>Sin observaciones adicionales</li>'}</ul>
++  <script id="data-jsonblob" type="application/json">{json_blob}</script>
++</body>
++</html>
+ """
+-    narrativo_path.write_text(md_content, encoding="utf-8")
+ 
+-    junit_content = leer_archivo(junit_path)
+ 
+-    txt_content = f"""================================================================================
+-INFORME DE EJECUCION Y DIAGNOSTICO: TC-M05-G43 (RF-81)
+-================================================================================
+-CASO PLANO:      TC-M05-102 y TC-M05-105
+-CASO AGRUPADO:   037 y 040
+-FECHA:           {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')} (America/Bogota)
+-AMBIENTE:        {base_url_env}
+-RUN IDS SANDBOX: {run_ids_str}
+-VEREDICTO:       {veredicto_global.upper()} ({total_ok} OK, {total_falla} FALLAS)
+-================================================================================
++def main() -> int:
++    parser = argparse.ArgumentParser(description="Genera JSON y HTML de resultados para TC-M05-G43.")
++    parser.add_argument("--evidence-dir", required=True, help="Directorio de evidencias del run")
++    parser.add_argument("--junit", default=None, help="Ruta opcional al XML de pytest")
++    parser.add_argument("--trazas", default=None, help="Ruta opcional a trazas_http.jsonl")
++    parser.add_argument("--reintento", type=int, default=0, help="Numero de reintento (0 = corrida inicial)")
++    args = parser.parse_args()
+ 
+-SECCION 1: RESUMEN DE CHECKPOINTS
+---------------------------------------------------------------------------------
+-Tipo de corrida: Evaluación Oficial (primera evaluación oficial de RF-81).
++    ev_dir = Path(args.evidence_dir).resolve()
++    suf = f"_reintento{args.reintento}" if args.reintento > 0 else ""
+ 
+-"""
+-    for chk in checkpoints:
+-        txt_content += f"[{chk['estado']}] {chk['paso']}\n"
+-        txt_content += f"  Esperado: {chk['esperado']}\n"
+-        txt_content += f"  Obtenido: {chk['obtenido']}\n\n"
+-
+-    txt_content += f"""--------------------------------------------------------------------------------
+-SECCION 2: MATRIZ DE CAPACIDADES RF-81 (G43)
+---------------------------------------------------------------------------------
+-1. Auditoría CONSULTA_HISTORIAL_EJECUTADA con resultados: PRESENTE (Hecho observado API y SQL)
+-2. Auditoría CONSULTA_HISTORIAL_EJECUTADA sin resultados (FA-01): PRESENTE (Hecho observado API y SQL)
+-3. Auditoría EXPORTACION_HISTORIAL_GENERADA en PDF y Excel: PRESENTE (Hecho observado API y SQL)
+-4. Inmutabilidad y solo lectura Restr. 4 (405 Method Not Allowed): PRESENTE (Hecho observado API)
+-5. Control de acceso por rol y unidad (Gestor y Productor en su finca): PRESENTE (Hecho observado API)
+-6. Rechazo 403 con mensaje E2 para usuario sin la unidad: AUSENTE (Hecho observado API: responde 404 por RLS)
+-7. Auditoría de consultas rechazadas (FA-04): AUSENTE (Hecho observado SQL: 0 eventos registrados)
+-8. Roles Contador y Revisor Fiscal: NO OBSERVABLE (Credenciales no provistas en .env.test)
+-
+---------------------------------------------------------------------------------
+-SECCION 3: INOCUIDAD Y PROTOCOLO SANDBOX
+---------------------------------------------------------------------------------
+-- Cierre de sandboxes: Todas las corridas cerradas exitosamente con HTTP 200 ('Rollback exitoso').
+-- Inocuidad verificada: activo C consultado fuera de sandbox respondió HTTP 404 (0 efectos persistidos).
+-
+---------------------------------------------------------------------------------
+-SECCION 4: HASHES DE INTEGRIDAD SHA-256
+---------------------------------------------------------------------------------
+-Script TC-M05-G43:     {sha_hashes.get('g43_script', 'N/A')}
+-Runner TC-M05-G43:     {sha_hashes.get('g43_runner', 'N/A')}
+-
+-Suites Preexistentes Validadas (Intactas):
+-- TC-M05-G14 Script: {sha_hashes.get('g14_script', 'N/A')}
+-- TC-M05-G15 Script: {sha_hashes.get('g15_script', 'N/A')}
+-- TC-M05-G16 Script: {sha_hashes.get('g16_script', 'N/A')}
+-- TC-M05-G17 Script: {sha_hashes.get('g17_script', 'N/A')}
+-- TC-M05-G19 Script: {sha_hashes.get('g19_script', 'N/A')}
+-- TC-M05-G21 Script: {sha_hashes.get('g21_script', 'N/A')}
+-- TC-M05-G24 Script: {sha_hashes.get('g24_script', 'N/A')}
+-- TC-M05-G25 Script: {sha_hashes.get('g25_script', 'N/A')}
+-- TC-M05-G37 Script: {sha_hashes.get('g37_script', 'N/A')}
+-- TC-M05-G38 Script: {sha_hashes.get('g38_script', 'N/A')}
+-
+---------------------------------------------------------------------------------
+-SECCION 5: DIAGNOSTICO DE FALLAS (A02 Y A03)
+---------------------------------------------------------------------------------
+-HALLAZGO 1 (Checkpoint A02):
+-1. HECHO OBSERVADO:
+-   GET /suministros/historial?id_activo_biologico=957 ejecutado por Gestor de Granja respondió HTTP 404 (ACTIVO_NO_ENCONTRADO: 'El activo biológico 957 no existe.').
+-2. RUTA DE CODIGO (INFERENCIA):
+-   src/supplies/infrastructure/routers/historial_suministros_router.py:73 -> consultar_historial()
+-   src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:144 -> _validar()
+-   src/supplies/infrastructure/adapters/activo_m02_adapter.py:34 -> obtener()
+-   SqlAlchemyActivoBiologicoRepository.obtener_por_id() consulta modulo2.activos_biologicos bajo RLS (fn_fincas_del_usuario).
+-   Al no coincidir la finca, la consulta retorna None, levantando NotFoundError (404) antes de evaluar AlcanceActivoPort (que levantaría 403 con mensaje de E2).
+-3. HIPOTESIS:
+-   - H1 (Confirmada): El orden de validaciones antepone la lectura en modulo2 (filtrada por RLS a 0 filas) a la validación de negocio en AlcanceActivoPort.
+-4. CLASIFICACION: Defecto de producto / diseño de permisos de datos entre capas.
+-5. POSIBLE SOLUCION: Invertir el orden o consultar la existencia del activo mediante un adaptador desacoplado de la política de aislamiento de finca para permitir a AlcanceActivoPort emitir el HTTP 403 correspondiente.
+-6. CRITERIO DE RE-PRUEBA: Re-ejecutar A02 esperando HTTP 403 con mensaje E2.
+-
+-HALLAZGO 2 (Checkpoint A03):
+-1. HECHO OBSERVADO:
+-   La consulta SELECT a modulo5.auditorias_suministros arrojó 0 eventos para consultas denegadas o rechazadas.
+-2. RUTA DE CODIGO (INFERENCIA):
+-   src/shared/rbac.py lanza AuthorizationError inmediatamente sin invocar la bitácora de auditoría de modulo5.
+-   Asimismo, en consultar_historial_suministros_use_case.py, cualquier excepción en _validar() interrumpe el flujo antes de _auditar_consulta().
+-3. HIPOTESIS:
+-   - H1 (Confirmada): El sistema no cuenta con captura de eventos de auditoría para accesos rechazados en el router de suministros.
+-4. CAUSA RAIZ COMPARTIDA: Misma causa observada en RF-80 (TC-M05-G38).
+-5. CLASIFICACION: Defecto de producto respecto al caso CU04 FA-04.
+-6. POSIBLE SOLUCION: Agregar un handler o middleware de excepciones de autorización que registre un evento con resultado 'RECHAZADO' en modulo5.auditorias_suministros.
+-7. CRITERIO DE RE-PRUEBA: Re-ejecutar A03 esperando 1 evento con resultado 'RECHAZADO'.
+-
+-================================================================================
+-ANEXO C: JUNIT XML (resultado_TC-M05-G43.xml)
+-================================================================================
+-{junit_content}
+-
+-================================================================================
+-ANEXO D: TRAZAS HTTP SANITIZADAS (trazas_http.jsonl)
+-================================================================================
+-{trazas_raw}
+-================================================================================
+-FIN DEL INFORME TC-M05-G43
+-================================================================================
+-"""
+-    informe_path.write_text(txt_content, encoding="utf-8")
+-    print(f"Artefactos generados exitosamente en {staging}")
+-
+-
+-def main():
+-    parser = argparse.ArgumentParser()
+-    parser.add_argument("--staging", required=True)
+-    parser.add_argument("--sha-g43-script", default="N/A")
+-    parser.add_argument("--sha-g43-runner", default="N/A")
+-    parser.add_argument("--sha-g38-script", default="N/A")
+-    parser.add_argument("--sha-g37-script", default="N/A")
+-    parser.add_argument("--sha-g25-script", default="N/A")
+-    parser.add_argument("--sha-g24-script", default="N/A")
+-    parser.add_argument("--sha-g21-script", default="N/A")
+-    parser.add_argument("--sha-g19-script", default="N/A")
+-    parser.add_argument("--sha-g17-script", default="N/A")
+-    parser.add_argument("--sha-g16-script", default="N/A")
+-    parser.add_argument("--sha-g15-script", default="N/A")
+-    parser.add_argument("--sha-g14-script", default="N/A")
+-    args = parser.parse_args()
++    junit_path = Path(args.junit) if args.junit else (ev_dir / f"pytest_TC-M05-G43{suf}.xml")
++    trazas_path = Path(args.trazas) if args.trazas else (ev_dir / "trazas_http.jsonl")
+ 
+-    staging = Path(args.staging)
+-    sha_hashes = {
+-        "g43_script": args.sha_g43_script,
+-        "g43_runner": args.sha_g43_runner,
+-        "g38_script": args.sha_g38_script,
+-        "g37_script": args.sha_g37_script,
+-        "g25_script": args.sha_g25_script,
+-        "g24_script": args.sha_g24_script,
+-        "g21_script": args.sha_g21_script,
+-        "g19_script": args.sha_g19_script,
+-        "g17_script": args.sha_g17_script,
+-        "g16_script": args.sha_g16_script,
+-        "g15_script": args.sha_g15_script,
+-        "g14_script": args.sha_g14_script,
+-    }
+-    procesar_corrida(staging, sha_hashes)
++    payload = construir_json(ev_dir, junit_path, trazas_path, args.reintento)
+ 
++    json_out = ev_dir / f"resultado_TC-M05-G43{suf}.json"
++    html_out = ev_dir / f"resultado_TC-M05-G43{suf}.html"
+ 
+-if __name__ == "__main__":
+-    main()
++    json_out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
++    html_out.write_text(construir_html(payload), encoding="utf-8")
+ 
++    print(f"Artefactos generados en {ev_dir}: {json_out.name}, {html_out.name} | Veredicto: {payload['summary']['veredicto']}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/test_tc_m05_g43.py b/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/test_tc_m05_g43.py
+index adeb57cf..a8d2dcba 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/test_tc_m05_g43.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/test_tc_m05_g43.py
+@@ -1,6 +1,7 @@
+ # | Fecha      | Nombre                   | Que se hizo                                                           |
+ # |------------|--------------------------|-----------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G43 RF-81: control de acceso y auditoria (102, 105 / 037, 040) |
++# | 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: B01/B02/B03/A03 via API, T00/T99 runs aparte, OBS-PAG/R8/HASH |
+ """
+ TC-M05-G43 — RF-81 CU04, GET /suministros/historial y /exportar.
+ Control de acceso por rol y unidad productiva, y auditoria de consultas, exportaciones y rechazos.
+@@ -56,9 +57,22 @@ _ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test") if (_RAIZ_REPO / ".env.test"
+ 
+ _CONTEXTO: dict[str, Any] = {
+     "id_activo_c": None,
++    "id_ciclo_c": 5,
++    "id_usuario_ref": None,
++    "eventos_setup": [],
+     "activo_gestor_id": 1042,   # Finca 464 (Gestor de Granja)
+     "activo_productor_id": 957, # Finca 1 (Productor)
++    "auditoria_inicial_total": None,
++    "auditoria_inicial_ultimo_id": None,
+     "corridas_cerradas": {},
++    "runs_orden": [],
++    "observaciones": {
++        "obs_pag": None,
++        "obs_r8": [],
++        "obs_hash": [],
++        "obs_otros": [],
++        "datos_nuevos_literales": {},
++    },
+ }
+ 
+ _TEST_ACTUAL = "init"
+@@ -75,9 +89,10 @@ def _seguro(texto: str, tokens_extra: tuple[str, ...] = ()) -> str:
+     if not texto:
+         return ""
+     limpio = texto
+-    admin_pw = _env("TEST_ADMIN_PASSWORD", obligatoria=False)
+-    if admin_pw and len(admin_pw) >= 4:
+-        limpio = limpio.replace(admin_pw, "[REDACTED_PASSWORD]")
++    for var_pw in ("TEST_ADMIN_PASSWORD", "TEST_FIELD_ENGINEER_PASSWORD", "TEST_PRODUCER_PASSWORD", "TEST_VET_PASSWORD"):
++        pw = _env(var_pw, obligatoria=False)
++        if pw and len(pw) >= 4:
++            limpio = limpio.replace(pw, "[REDACTED_PASSWORD]")
+     sandbox_sec = _env("TEST_SANDBOX_SECRET", obligatoria=False)
+     if sandbox_sec and len(sandbox_sec) >= 6:
+         limpio = limpio.replace(sandbox_sec, "[REDACTED_SECRET]")
+@@ -85,11 +100,12 @@ def _seguro(texto: str, tokens_extra: tuple[str, ...] = ()) -> str:
+         if tok and len(tok) >= 8:
+             limpio = limpio.replace(tok, "[REDACTED_TOKEN]")
+     limpio = re.sub(r"eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]+", "[REDACTED_JWT]", limpio)
+-    admin_email = _env("TEST_ADMIN_EMAIL", obligatoria=False)
+-    if admin_email and admin_email in limpio:
+-        partes = admin_email.split("@")
+-        masc = partes[0][:3] + "***@" + partes[1] if len(partes) == 2 else "***@email"
+-        limpio = limpio.replace(admin_email, masc)
++    for var_em in ("TEST_ADMIN_EMAIL", "TEST_FIELD_ENGINEER_EMAIL", "TEST_PRODUCER_EMAIL", "TEST_VET_EMAIL"):
++        em = _env(var_em, obligatoria=False)
++        if em and em in limpio:
++            partes = em.split("@")
++            masc = partes[0][:3] + "***@" + partes[1] if len(partes) == 2 else "***@email"
++            limpio = limpio.replace(em, masc)
+     return limpio
+ 
+ 
+@@ -123,6 +139,7 @@ def _trazar(
+     token_extra: str | None = None,
+     error: str | None = None,
+     test_nombre: str | None = None,
++    paso: str | None = None,
+ ) -> None:
+     directorio = os.environ.get("TEST_EVIDENCE_DIR")
+     if not directorio:
+@@ -136,22 +153,30 @@ def _trazar(
+     server_date = ""
+     status_code = None
+     error_code = None
++    x_request_id = ""
+ 
+     if resp is not None:
+         status_code = resp.status_code
+         server_date = resp.headers.get("Date", "")
+-        try:
+-            resp_body = resp.json()
+-            if isinstance(resp_body, dict):
+-                error_code = resp_body.get("error_code")
+-        except Exception:
+-            resp_body = resp.text[:300]
++        x_request_id = resp.headers.get("X-Request-Id", "") or resp.headers.get("x-request-id", "")
++        ctype = resp.headers.get("Content-Type", "").lower()
++        if "application/pdf" in ctype or "spreadsheetml" in ctype or "octet-stream" in ctype:
++            resp_body = f"[BINARY {ctype} bytes={len(resp.content)}]"
++        else:
++            try:
++                resp_body = resp.json()
++                if isinstance(resp_body, dict):
++                    error_code = resp_body.get("error_code")
++            except Exception:
++                resp_body = resp.text[:300]
+ 
+     registro = {
+         "timestamp_local": now_iso,
+         "server_date": server_date,
++        "x_request_id": x_request_id,
+         "duracion_ms": duracion_ms,
+         "test": test_nombre or _TEST_ACTUAL,
++        "paso": paso or "",
+         "metodo": metodo,
+         "ruta": ruta,
+         "params": _sanitizar_objeto(params, extra),
+@@ -183,11 +208,11 @@ class ErrorConexion(AssertionError):
+ class CorridaG43:
+     """Gestiona una transaccion sandbox (X-Test-Run-Id) individual para un rol."""
+ 
+-    def __init__(self, etiqueta_rol: str, email: str, password: str) -> None:
++    def __init__(self, etiqueta_rol: str, email: str, password: str, run_id_compartido: str | None = None) -> None:
+         self.etiqueta = etiqueta_rol
+         self.email = email
+         self.password = password
+-        self.run_id = f"tc-m05-g43-{etiqueta_rol}-{uuid.uuid4().hex[:8]}"
++        self.run_id = run_id_compartido or f"tc-m05-g43-{etiqueta_rol}-{uuid.uuid4().hex[:8]}"
+         self.base = _env("TEST_BASE_URL").rstrip("/")
+         self.secret = _env("TEST_SANDBOX_SECRET")
+         self.token: str | None = None
+@@ -218,9 +243,9 @@ class CorridaG43:
+         try:
+             resp = self.http.request(metodo, self.base + ruta, timeout=TIMEOUT_S, params=params, json=json_body, **kw)
+         except requests.RequestException as exc:
+-            _trazar(metodo, ruta, None, inicio, params=params, req_body=json_body, token_extra=token_extra, error=type(exc).__name__)
++            _trazar(metodo, ruta, None, inicio, params=params, req_body=json_body, token_extra=token_extra, error=type(exc).__name__, paso=paso)
+             raise ErrorConexion(paso or _TEST_ACTUAL, ruta, exc) from None
+-        _trazar(metodo, ruta, resp, inicio, params=params, req_body=json_body, token_extra=token_extra)
++        _trazar(metodo, ruta, resp, inicio, params=params, req_body=json_body, token_extra=token_extra, paso=paso)
+         return resp
+ 
+     def get(self, ruta: str, paso: str | None = None, params: Any = None, **kw) -> requests.Response:
+@@ -289,7 +314,28 @@ def _marcar_test(request: pytest.FixtureRequest):
+ 
+ @pytest.fixture(scope="class")
+ def corrida_admin() -> CorridaG43:
++    # T00: Run de sandbox aparte, solo lectura, para capturar linea base de auditoria antes del run principal
++    c_t00 = CorridaG43("t00", _env("TEST_ADMIN_EMAIL"), _env("TEST_ADMIN_PASSWORD"))
++    _CONTEXTO["runs_orden"].append(c_t00.run_id)
++    try:
++        c_t00.login()
++        r_aud = c_t00.get(
++            "/suministros/auditoria",
++            params={"pagina": 1, "registros_por_pagina": 50},
++            paso="T00_auditoria_inicial",
++        )
++        assert r_aud.status_code == 200, (
++            f"PRECONDICION_NO_CUMPLIDA: GET /suministros/auditoria en T00 HTTP {r_aud.status_code}: {c_t00.seguro(r_aud.text)}"
++        )
++        body_aud = r_aud.json()
++        items_aud = body_aud.get("items", [])
++        _CONTEXTO["auditoria_inicial_total"] = body_aud.get("total")
++        _CONTEXTO["auditoria_inicial_ultimo_id"] = max((it["id_auditoria_suministro"] for it in items_aud), default=0)
++    finally:
++        c_t00.cerrar()
++
+     c = CorridaG43("admin", _env("TEST_ADMIN_EMAIL"), _env("TEST_ADMIN_PASSWORD"))
++    _CONTEXTO["runs_orden"].append(c.run_id)
+     c.login()
+     try:
+         yield c
+@@ -300,6 +346,7 @@ def corrida_admin() -> CorridaG43:
+ @pytest.fixture(scope="class")
+ def corrida_gestor() -> CorridaG43:
+     c = CorridaG43("gestor", _env("TEST_FIELD_ENGINEER_EMAIL"), _env("TEST_FIELD_ENGINEER_PASSWORD"))
++    _CONTEXTO["runs_orden"].append(c.run_id)
+     c.login()
+     try:
+         yield c
+@@ -310,6 +357,7 @@ def corrida_gestor() -> CorridaG43:
+ @pytest.fixture(scope="class")
+ def corrida_productor() -> CorridaG43:
+     c = CorridaG43("productor", _env("TEST_PRODUCER_EMAIL"), _env("TEST_PRODUCER_PASSWORD"))
++    _CONTEXTO["runs_orden"].append(c.run_id)
+     c.login()
+     try:
+         yield c
+@@ -317,12 +365,100 @@ def corrida_productor() -> CorridaG43:
+         c.cerrar()
+ 
+ 
++def _ultimo_id_auditoria(c: CorridaG43, paso: str, **filtros) -> int:
++    params = {"pagina": 1, "registros_por_pagina": 50}
++    params.update({k: v for k, v in filtros.items() if v is not None})
++    r = c.get("/suministros/auditoria", params=params, paso=paso)
++    assert r.status_code == 200, f"Error consultando auditoria ({paso}): HTTP {r.status_code}: {c.seguro(r.text)}"
++    items = r.json().get("items", [])
++    return max((it["id_auditoria_suministro"] for it in items), default=0)
++
++
++def _eventos_nuevos_desde(c: CorridaG43, id_base: int, paso: str, **filtros) -> list[dict[str, Any]]:
++    nuevos: list[dict[str, Any]] = []
++    vistos: set[int] = set()
++    pagina = 1
++    while pagina <= 10:
++        params = {"pagina": pagina, "registros_por_pagina": 50}
++        params.update({k: v for k, v in filtros.items() if v is not None})
++        r = c.get("/suministros/auditoria", params=params, paso=f"{paso}_p{pagina}")
++        assert r.status_code == 200, f"Error listando auditoria ({paso}): HTTP {r.status_code}: {c.seguro(r.text)}"
++        body = r.json()
++        items = body.get("items", [])
++        if not items:
++            break
++        encontro_nuevo = False
++        for it in items:
++            eid = it.get("id_auditoria_suministro")
++            if eid is not None and eid > id_base and eid not in vistos:
++                vistos.add(eid)
++                nuevos.append(it)
++                encontro_nuevo = True
++        total = body.get("total", 0)
++        if pagina * 50 >= total or not encontro_nuevo:
++            break
++        pagina += 1
++    nuevos.sort(key=lambda x: x.get("id_auditoria_suministro", 0))
++    return nuevos
++
++
++def _verificar_filtros_aplicados(filtros_aplicados: Any, filtros_enviados: dict[str, Any]) -> None:
++    assert isinstance(filtros_aplicados, dict), f"filtros_aplicados debe ser dict, obtenido {type(filtros_aplicados)}"
++    evaluados = 0
++    for k, esperado in filtros_enviados.items():
++        assert k in filtros_aplicados, f"Falta filtro enviado '{k}' en datos_nuevos.filtros_aplicados={filtros_aplicados}"
++        actual = filtros_aplicados[k]
++        if isinstance(esperado, (int, float, Decimal)) and not isinstance(esperado, bool):
++            assert actual is not None and Decimal(str(actual)) == Decimal(str(esperado)), (
++                f"Filtro '{k}' esperado {esperado}, obtenido {actual}"
++            )
++        else:
++            assert str(actual) == str(esperado), f"Filtro '{k}' esperado {esperado!r}, obtenido {actual!r}"
++        evaluados += 1
++    assert evaluados >= 1, "El bucle de verificacion de filtros_aplicados exige >= 1 elemento evaluado"
++
++
++def _registrar_obs_evento(origen: str, ev: dict[str, Any]) -> None:
++    obs = _CONTEXTO["observaciones"]
++    obs["obs_r8"].append({
++        "origen": origen,
++        "id_auditoria_suministro": ev.get("id_auditoria_suministro"),
++        "tipo_operacion": ev.get("tipo_operacion"),
++        "id_ciclo_productivo": ev.get("id_ciclo_productivo"),
++        "registro_incompleto": ev.get("registro_incompleto"),
++        "detalle_causa": ev.get("detalle_causa"),
++        "ip_origen": ev.get("ip_origen"),
++        "id_sesion": ev.get("id_sesion"),
++    })
++    h = ev.get("hash_integridad") or ""
++    obs["obs_hash"].append({
++        "origen": origen,
++        "id_auditoria_suministro": ev.get("id_auditoria_suministro"),
++        "version_hash_integridad": ev.get("version_hash_integridad"),
++        "hash_cumple_sha256_hex": bool(re.match(r"^[0-9a-f]{64}$", h)),
++    })
++
++
+ class TestTC_M05_G43_Admin_Auditoria:
+     """Corrida 1: Administrador — Activos propios, auditoria de consultas, exportaciones y solo lectura."""
+ 
+     def test_00_setup_linea_base_y_activo_c(self, corrida_admin: CorridaG43):
+-        """T00: Setup activo propio C con 3 registros y captura de linea base."""
++        """T00: Verificacion de linea base (run aparte), GET /usuarios/me y setup activo C con 3 registros."""
+         c = corrida_admin
++        # Fuente: Protocolo Sandbox (linea base T00 cerrada antes del run principal)
++        del_t00 = _CONTEXTO["corridas_cerradas"].get("t00") or {}
++        assert del_t00.get("status_code") == 200 and "Rollback exitoso" in del_t00.get("body", ""), (
++            f"T00 no cerro correctamente el sandbox: {del_t00}"
++        )
++        assert _CONTEXTO["auditoria_inicial_total"] is not None, "Falta total de auditoria inicial en T00"
++
++        # A.0: GET /usuarios/me -> id_usuario_ref
++        r_me = c.get("/usuarios/me", paso="T00_usuarios_me")
++        assert r_me.status_code == 200, f"GET /usuarios/me fallo: HTTP {r_me.status_code}: {c.seguro(r_me.text)}"
++        me_body = r_me.json()
++        id_me = me_body.get("id_usuario") or me_body.get("id")
++        assert id_me is not None, f"GET /usuarios/me no devolvio id_usuario: {me_body}"
++        _CONTEXTO["id_usuario_ref"] = int(id_me)
+ 
+         # 1. Crear activo C (Individual Holstein)
+         id_unico_c = f"QA-G43-C-{uuid.uuid4().hex[:6]}"
+@@ -401,152 +537,168 @@ class TestTC_M05_G43_Admin_Auditoria:
+         )
+         assert r_m1.status_code == 201
+ 
++        # A.0: Leer eventos SUMINISTRO_REGISTRADO del activo C por la API de auditoria y comparar id_usuario
++        r_aud_setup = c.get(
++            "/suministros/auditoria",
++            params={"id_activo_biologico": id_c, "pagina": 1, "registros_por_pagina": 50},
++            paso="T00_auditoria_setup",
++        )
++        assert r_aud_setup.status_code == 200
++        evs_setup = [
++            it for it in r_aud_setup.json().get("items", [])
++            if it.get("tipo_operacion") == "SUMINISTRO_REGISTRADO"
++        ]
++        _CONTEXTO["eventos_setup"] = [
++            {"id": it.get("id_auditoria_suministro"), "id_usuario": it.get("id_usuario")}
++            for it in evs_setup
++        ]
++
+     def test_b01_consulta_con_resultados_auditoria(self, corrida_admin: CorridaG43):
+-        """B01 (TC-M05-105 / 040): Consulta CON resultados genera evento CONSULTA_HISTORIAL_EJECUTADA (CA-8 / RNF-05).
+-        Verifica id_usuario, id_activo_biologico, resultado EXITOSO, filtros aplicados,
+-        total de registros retornados y visibilidad en <= 2 s."""
++        """B01 (TC-M05-105 / 040): Consulta CON resultados genera exactamente 1 CONSULTA_HISTORIAL_EJECUTADA.
++        Fuente: RF-81 Fase 7, CA-8 y Postcondicion 2."""
+         c = corrida_admin
+         id_c = _CONTEXTO["id_activo_c"]
++        id_ciclo = _CONTEXTO["id_ciclo_c"]
++        id_usuario_ref = _CONTEXTO["id_usuario_ref"]
+ 
+-        t_inicio = time.perf_counter()
+-        r_hist = c.get(f"/suministros/historial?id_activo_biologico={id_c}", paso="B01_consultar_historial")
+-        assert r_hist.status_code == 200
+-        assert len(r_hist.json().get("items", [])) == 3
+-
+-        # Verificar evento de auditoria en modulo5.auditorias_suministros via /test-control/query
+-        sql = (
+-            f"SELECT * FROM modulo5.auditorias_suministros "
+-            f"WHERE entidad_afectada = 'historial_suministros' AND id_activo_biologico = {id_c} "
+-            f"  AND tipo_operacion = 'CONSULTA_HISTORIAL_EJECUTADA' "
+-            f"ORDER BY id_auditoria_suministro DESC LIMIT 1"
++        id_antes = _ultimo_id_auditoria(c, "B01_auditoria_antes", entidad_afectada="historial_suministros", id_activo_biologico=id_c)
++
++        filtros_enviados = {
++            "id_activo_biologico": id_c,
++            "id_ciclo_productivo": id_ciclo,
++            "fecha_inicio_filtro": "2026-08-01",
++            "fecha_fin_filtro": "2026-08-31",
++        }
++        params_b01 = {**filtros_enviados, "pagina": 1, "registros_por_pagina": 50}
++        r_hist = c.get("/suministros/historial", params=params_b01, paso="B01_consultar_historial")
++        # Fuente: RF-81 Fase 3 / RNF-04
++        assert r_hist.status_code == 200, f"B01 HTTP {r_hist.status_code}: {c.seguro(r_hist.text)}"
++        assert len(r_hist.json().get("items", [])) == 3, f"Esperados 3 registros en B01, obtenidos {len(r_hist.json().get('items', []))}"
++
++        nuevos = _eventos_nuevos_desde(
++            c, id_antes, "B01_auditoria_despues", entidad_afectada="historial_suministros", id_activo_biologico=id_c
+         )
+-        r_q = c.post("/test-control/query", {"query": sql}, paso="B01_verificar_auditoria_query")
+-        assert r_q.status_code == 200
+-        eventos = r_q.json().get("data", [])
+-        duracion_visibilidad = time.perf_counter() - t_inicio
+-
+-        assert len(eventos) >= 1, f"No se encontro evento CONSULTA_HISTORIAL_EJECUTADA para activo {id_c}"
+-        ev = eventos[0]
+-        # Sanitizar e imprimir fila completa
+-        print("B01 Audit Row:", json.dumps(_sanitizar_objeto(ev), default=str))
+-
+-        assert ev.get("resultado") == "EXITOSO"
+-        assert ev.get("id_activo_biologico") == id_c
+-        assert ev.get("id_usuario") is not None
+-        if c.id_usuario is not None:
+-            assert ev.get("id_usuario") == c.id_usuario
+-        assert duracion_visibilidad <= 2.5, f"El evento de auditoria tardo mas de 2 s en ser visible ({duracion_visibilidad:.2f} s)"
+-
+-        # CA-8 / Fase 7: El evento debe registrar usuario, filtros aplicados, activo y total registros retornados
+-        datos = ev.get("datos_nuevos") or {}
+-        total_retornado = datos.get("total_registros_retornados") if isinstance(datos, dict) else None
+-        filtros_reg = datos.get("filtros") or datos.get("filtros_aplicados") if isinstance(datos, dict) else None
+-
+-        assert total_retornado is not None and filtros_reg is not None, (
+-            f"DEFECTO DE PRODUCTO (CA-8 / Fase 7): La bitacora de auditoria no almacena los filtros aplicados "
+-            f"ni el total de registros retornados (datos_nuevos={datos}, columnas_adicionales={ev})"
++        consultas = [ev for ev in nuevos if ev.get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA"]
++        extras = [ev for ev in nuevos if ev.get("tipo_operacion") != "CONSULTA_HISTORIAL_EJECUTADA"]
++        for ex in extras:
++            _CONTEXTO["observaciones"]["obs_otros"].append({
++                "origen": "B01", "id_auditoria_suministro": ex.get("id_auditoria_suministro"), "tipo_operacion": ex.get("tipo_operacion")
++            })
++
++        # Fuente: RF-81 Fase 7, CA-8 y Postcondicion 2
++        assert len(consultas) == 1, f"Esperado exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo en B01, obtenidos {len(consultas)}: {[e.get('id_auditoria_suministro') for e in nuevos]}"
++        ev = consultas[0]
++        assert ev.get("id_usuario") == id_usuario_ref, f"id_usuario esperado {id_usuario_ref}, obtenido {ev.get('id_usuario')}"
++        assert ev.get("id_activo_biologico") == id_c, f"id_activo_biologico esperado {id_c}, obtenido {ev.get('id_activo_biologico')}"
++        assert ev.get("fecha_emision") is not None, "fecha_emision no debe ser nula"
++        datos = ev.get("datos_nuevos")
++        assert isinstance(datos, dict), f"datos_nuevos debe ser objeto JSON no nulo, obtenido {datos!r}"
++        _verificar_filtros_aplicados(datos.get("filtros_aplicados"), filtros_enviados)
++        assert datos.get("total_registros_retornados") == 3, (
++            f"total_registros_retornados esperado 3, obtenido {datos.get('total_registros_retornados')}"
+         )
+ 
+-        # Verificar tambien via GET /suministros/auditoria
+-        r_aud = c.get(f"/suministros/auditoria?entidad_afectada=historial_suministros&id_activo_biologico={id_c}", paso="B01_auditoria_api")
+-        assert r_aud.status_code == 200
+-        items_aud = r_aud.json().get("items", [])
+-        assert any(it.get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA" for it in items_aud)
++        _registrar_obs_evento("B01", ev)
++        _CONTEXTO["observaciones"]["datos_nuevos_literales"]["B01"] = datos
+ 
+     def test_b02_consulta_sin_resultados_auditoria(self, corrida_admin: CorridaG43):
+-        """B02 (TC-M05-105 / 040, segun el caso CU04 FA-01): Consulta SIN resultados (rango sin registros)
+-        tambien genera evento CONSULTA_HISTORIAL_EJECUTADA con filtros y total=0 en la bitacora."""
++        """B02 (TC-M05-105 / 040, CU04 FA-01): Consulta SIN resultados genera exactamente 1 CONSULTA_HISTORIAL_EJECUTADA con total=0.
++        Fuente: RF-81 Fase 7, CA-8, E1; caso TC-M05-105/040."""
+         c = corrida_admin
+         id_c = _CONTEXTO["id_activo_c"]
++        id_ciclo = _CONTEXTO["id_ciclo_c"]
++        id_usuario_ref = _CONTEXTO["id_usuario_ref"]
+ 
+-        # Conteo previo de consultas sobre activo C
+-        sql_conteo = (
+-            f"SELECT count(*) as c FROM modulo5.auditorias_suministros "
+-            f"WHERE entidad_afectada = 'historial_suministros' AND id_activo_biologico = {id_c} "
+-            f"  AND tipo_operacion = 'CONSULTA_HISTORIAL_EJECUTADA'"
+-        )
+-        r_prev = c.post("/test-control/query", {"query": sql_conteo}, paso="B02_conteo_previo")
+-        total_previo = int(r_prev.json().get("data", [{}])[0].get("c", 0))
++        id_antes = _ultimo_id_auditoria(c, "B02_auditoria_antes", entidad_afectada="historial_suministros", id_activo_biologico=id_c)
+ 
+-        # Consulta con rango de fechas sin registros (2025)
+-        params_vacio = {
++        filtros_enviados = {
+             "id_activo_biologico": id_c,
+-            "fecha_inicio_filtro": "2025-01-01",
+-            "fecha_fin_filtro": "2025-01-31",
++            "id_ciclo_productivo": id_ciclo,
++            "fecha_inicio_filtro": "2026-08-01",
++            "fecha_fin_filtro": "2026-08-05",
+         }
++        params_vacio = {**filtros_enviados, "pagina": 1, "registros_por_pagina": 50}
+         r_vacio = c.get("/suministros/historial", params=params_vacio, paso="B02_consulta_vacia")
+-        assert r_vacio.status_code == 200
+-        assert len(r_vacio.json().get("items", [])) == 0
++        # Fuente: RF-81 E1 (consulta sin resultados responde HTTP 200 con 0 items)
++        assert r_vacio.status_code == 200, f"B02 HTTP {r_vacio.status_code}: {c.seguro(r_vacio.text)}"
++        assert len(r_vacio.json().get("items", [])) == 0, f"Esperados 0 registros en B02, obtenidos {len(r_vacio.json().get('items', []))}"
+ 
+-        # Verificar que se genero un nuevo evento de auditoria
+-        r_post = c.post("/test-control/query", {"query": sql_conteo}, paso="B02_conteo_posterior")
+-        total_post = int(r_post.json().get("data", [{}])[0].get("c", 0))
+-
+-        assert total_post > total_previo, (
+-            f"La consulta sin resultados debio auditarse (prev={total_previo}, post={total_post})"
+-        )
+-
+-        # Verificar que el evento almacene filtros y total de registros retornados (0)
+-        sql_ultimo = (
+-            f"SELECT * FROM modulo5.auditorias_suministros "
+-            f"WHERE entidad_afectada = 'historial_suministros' AND id_activo_biologico = {id_c} "
+-            f"  AND tipo_operacion = 'CONSULTA_HISTORIAL_EJECUTADA' "
+-            f"ORDER BY id_auditoria_suministro DESC LIMIT 1"
++        nuevos = _eventos_nuevos_desde(
++            c, id_antes, "B02_auditoria_despues", entidad_afectada="historial_suministros", id_activo_biologico=id_c
+         )
+-        r_ult = c.post("/test-control/query", {"query": sql_ultimo}, paso="B02_verificar_ultimo_evento")
+-        ev_vacio = r_ult.json().get("data", [{}])[0]
+-        print("B02 Audit Row:", json.dumps(_sanitizar_objeto(ev_vacio), default=str))
+-
+-        datos = ev_vacio.get("datos_nuevos") or {}
+-        total_retornado = datos.get("total_registros_retornados") if isinstance(datos, dict) else None
+-        assert total_retornado is not None, (
+-            f"DEFECTO DE PRODUCTO (CA-8 / Fase 7): El evento de auditoria para consulta sin resultados no almacena "
+-            f"el total de registros retornados ni los filtros aplicados (datos_nuevos={datos})"
++        consultas = [ev for ev in nuevos if ev.get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA"]
++        extras = [ev for ev in nuevos if ev.get("tipo_operacion") != "CONSULTA_HISTORIAL_EJECUTADA"]
++        for ex in extras:
++            _CONTEXTO["observaciones"]["obs_otros"].append({
++                "origen": "B02", "id_auditoria_suministro": ex.get("id_auditoria_suministro"), "tipo_operacion": ex.get("tipo_operacion")
++            })
++
++        # Fuente: RF-81 Fase 7, CA-8, E1; caso TC-M05-105/040 ("incluso sin resultados")
++        assert len(consultas) == 1, f"Esperado exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo en B02, obtenidos {len(consultas)}"
++        ev = consultas[0]
++        assert ev.get("id_usuario") == id_usuario_ref, f"id_usuario esperado {id_usuario_ref}, obtenido {ev.get('id_usuario')}"
++        assert ev.get("id_activo_biologico") == id_c, f"id_activo_biologico esperado {id_c}, obtenido {ev.get('id_activo_biologico')}"
++        assert ev.get("fecha_emision") is not None, "fecha_emision no debe ser nula"
++        datos = ev.get("datos_nuevos")
++        assert isinstance(datos, dict), f"datos_nuevos debe ser objeto JSON no nulo, obtenido {datos!r}"
++        _verificar_filtros_aplicados(datos.get("filtros_aplicados"), filtros_enviados)
++        tot_ret = datos.get("total_registros_retornados")
++        assert isinstance(tot_ret, int) and not isinstance(tot_ret, bool) and tot_ret == 0, (
++            f"total_registros_retornados esperado 0 explicito, obtenido {tot_ret!r}"
+         )
+ 
++        _registrar_obs_evento("B02", ev)
++        _CONTEXTO["observaciones"]["datos_nuevos_literales"]["B02"] = datos
++
+     def test_b03_exportacion_sincrona_auditoria(self, corrida_admin: CorridaG43):
+-        """B03 (TC-M05-105 / 040): Exportacion sincrona en PDF y Excel genera EXPORTACION_HISTORIAL_GENERADA
+-        con usuario, filtros y total en <= 2 s (CA-8 / RNF-05)."""
++        """B03 (TC-M05-105 / 040): Exportacion sincrona PDF y EXCEL aisladas generan EXPORTACION_HISTORIAL_GENERADA.
++        Fuente: RF-81 Fase 6 a (<= 10.000 registros, sincronica), Fase 7, CA-8 y Postcondicion 2."""
+         c = corrida_admin
+         id_c = _CONTEXTO["id_activo_c"]
++        id_ciclo = _CONTEXTO["id_ciclo_c"]
++        id_usuario_ref = _CONTEXTO["id_usuario_ref"]
+ 
+-        # Exportar Excel
+-        t0 = time.perf_counter()
+-        r_exp_xl = c.get(
+-            f"/suministros/historial/exportar?id_activo_biologico={id_c}&formato_exportacion=EXCEL",
+-            paso="B03_exportar_excel",
+-        )
+-        assert r_exp_xl.status_code == 200
+-        dur_xl = time.perf_counter() - t0
+-
+-        # Exportar PDF
+-        t1 = time.perf_counter()
+-        r_exp_pdf = c.get(
+-            f"/suministros/historial/exportar?id_activo_biologico={id_c}&formato_exportacion=PDF",
+-            paso="B03_exportar_pdf",
+-        )
+-        assert r_exp_pdf.status_code == 200
+-        dur_pdf = time.perf_counter() - t1
+-
+-        # Verificar eventos EXPORTACION_HISTORIAL_GENERADA
+-        sql = (
+-            f"SELECT * FROM modulo5.auditorias_suministros "
+-            f"WHERE entidad_afectada = 'historial_suministros' AND id_activo_biologico = {id_c} "
+-            f"  AND tipo_operacion = 'EXPORTACION_HISTORIAL_GENERADA' "
+-            f"ORDER BY id_auditoria_suministro DESC LIMIT 2"
+-        )
+-        r_q = c.post("/test-control/query", {"query": sql}, paso="B03_verificar_export_audit")
+-        eventos = r_q.json().get("data", [])
+-        assert len(eventos) >= 2, f"Se esperaban al menos 2 eventos EXPORTACION_HISTORIAL_GENERADA, encontrados {len(eventos)}"
+-
+-        for ev in eventos:
+-            print("B03 Audit Row:", json.dumps(_sanitizar_objeto(ev), default=str))
+-            datos = ev.get("datos_nuevos") or {}
+-            total_exp = datos.get("total_registros_exportados") or datos.get("total_registros_retornados") if isinstance(datos, dict) else None
+-            assert total_exp is not None, (
+-                f"DEFECTO DE PRODUCTO (CA-8 / Fase 7): El evento de auditoria de exportacion no almacena "
+-                f"el total de registros exportados ni los filtros (datos_nuevos={datos})"
++        filtros_enviados = {
++            "id_activo_biologico": id_c,
++            "id_ciclo_productivo": id_ciclo,
++            "fecha_inicio_filtro": "2026-08-01",
++            "fecha_fin_filtro": "2026-08-31",
++        }
++
++        for fmt in ("PDF", "EXCEL"):
++            id_antes = _ultimo_id_auditoria(
++                c, f"B03_{fmt}_auditoria_antes", entidad_afectada="historial_suministros", id_activo_biologico=id_c
++            )
++            params_exp = {**filtros_enviados, "formato_exportacion": fmt}
++            r_exp = c.get("/suministros/historial/exportar", params=params_exp, paso=f"B03_exportar_{fmt.lower()}")
++            # Fuente: RF-81 Fase 6 a (<= 10.000 registros, sincronica) y OpenAPI 200
++            assert r_exp.status_code == 200, f"B03 {fmt} HTTP {r_exp.status_code}: {c.seguro(r_exp.text)}"
++
++            nuevos = _eventos_nuevos_desde(
++                c, id_antes, f"B03_{fmt}_auditoria_despues", entidad_afectada="historial_suministros", id_activo_biologico=id_c
+             )
++            exps = [ev for ev in nuevos if ev.get("tipo_operacion") == "EXPORTACION_HISTORIAL_GENERADA"]
++            extras = [ev for ev in nuevos if ev.get("tipo_operacion") != "EXPORTACION_HISTORIAL_GENERADA"]
++            for ex in extras:
++                _CONTEXTO["observaciones"]["obs_otros"].append({
++                    "origen": f"B03_{fmt}", "id_auditoria_suministro": ex.get("id_auditoria_suministro"), "tipo_operacion": ex.get("tipo_operacion")
++                })
++
++            # Fuente: RF-81 Fase 7, CA-8 y Postcondicion 2
++            assert len(exps) == 1, f"B03 {fmt}: esperado 1 EXPORTACION_HISTORIAL_GENERADA nuevo, obtenidos {len(exps)}"
++            ev = exps[0]
++            assert ev.get("id_usuario") == id_usuario_ref, f"B03 {fmt}: id_usuario esperado {id_usuario_ref}, obtenido {ev.get('id_usuario')}"
++            assert ev.get("id_activo_biologico") == id_c, f"B03 {fmt}: id_activo_biologico esperado {id_c}, obtenido {ev.get('id_activo_biologico')}"
++            assert ev.get("fecha_emision") is not None, f"B03 {fmt}: fecha_emision no debe ser nula"
++            datos = ev.get("datos_nuevos")
++            assert isinstance(datos, dict), f"B03 {fmt}: datos_nuevos debe ser dict no nulo, obtenido {datos!r}"
++            _verificar_filtros_aplicados(datos.get("filtros_aplicados"), filtros_enviados)
++            assert datos.get("total_registros_retornados") == 3, (
++                f"B03 {fmt}: total_registros_retornados esperado 3, obtenido {datos.get('total_registros_retornados')}"
++            )
++
++            _registrar_obs_evento(f"B03_{fmt}", ev)
++            _CONTEXTO["observaciones"]["datos_nuevos_literales"][f"B03_{fmt}"] = datos
+ 
+     def test_b04_solo_lectura_restr_4(self, corrida_admin: CorridaG43):
+         """B04 (TC-M05-102 / 037): El historial es de solo lectura (Restr. 4).
+@@ -578,6 +730,28 @@ class TestTC_M05_G43_Admin_Auditoria:
+         items_despues = r_despues.json().get("items", [])
+         assert len(items_despues) == 3
+ 
++        # Observacion OBS-PAG (A.6): pagina=1, registros_por_pagina=2 (no es checkpoint)
++        id_antes_pag = _ultimo_id_auditoria(c, "OBS_PAG_auditoria_antes", entidad_afectada="historial_suministros", id_activo_biologico=id_c)
++        r_obs_pag = c.get(
++            "/suministros/historial",
++            params={"id_activo_biologico": id_c, "pagina": 1, "registros_por_pagina": 2},
++            paso="OBS_PAG_consulta",
++        )
++        evs_pag = _eventos_nuevos_desde(
++            c, id_antes_pag, "OBS_PAG_auditoria_despues", entidad_afectada="historial_suministros", id_activo_biologico=id_c
++        )
++        ev_pag = next((e for e in evs_pag if e.get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA"), None)
++        datos_pag = (ev_pag or {}).get("datos_nuevos") or {}
++        _CONTEXTO["observaciones"]["obs_pag"] = {
++            "http": r_obs_pag.status_code,
++            "items_en_respuesta": len(r_obs_pag.json().get("items", [])) if r_obs_pag.status_code == 200 else None,
++            "id_auditoria_suministro": (ev_pag or {}).get("id_auditoria_suministro"),
++            "total_registros_retornados": datos_pag.get("total_registros_retornados"),
++            "total_registros_filtrados": datos_pag.get("total_registros_filtrados"),
++            "pagina": datos_pag.get("pagina"),
++            "registros_por_pagina": datos_pag.get("registros_por_pagina"),
++        }
++
+ 
+ class TestTC_M05_G43_Roles_Unidades:
+     """Corrida 2 y 3: Control de acceso por rol y unidad productiva (Gestor de Granja y Productor)."""
+@@ -623,59 +797,6 @@ class TestTC_M05_G43_Roles_Unidades:
+         msg = body.get("message", "")
+         assert "permisos" in msg.lower() and "unidades" in msg.lower(), f"Mensaje no cumple formato E2: {msg}"
+ 
+-    def test_a03_auditoria_intento_rechazado(self, corrida_gestor: CorridaG43):
+-        """A03 (TC-M05-102 / 037, segun el caso CU04 FA-04): Tras el intento de consulta no autorizado de A02,
+-        la bitacora de auditoria debe registrar el intento con resultado RECHAZADO (o FALLIDO).
+-        Esperado del caso: al menos 1 evento registrado con resultado RECHAZADO/FALLIDO en modulo5.auditorias_suministros.
+-        Hecho observado: 0 eventos (el componente de autorizacion de la API no audita accesos denegados)."""
+-        c = corrida_gestor
+-        id_activo_ajeno = _CONTEXTO["activo_productor_id"]  # 957
+-        id_user = c.id_usuario or 30
+-
+-        # Consultas de verificacion ANTES del intento rechazado
+-        sql_i = f"SELECT count(*) as c FROM modulo5.auditorias_suministros WHERE id_usuario = {id_user}"
+-        sql_ii = f"SELECT count(*) as c FROM modulo5.auditorias_suministros WHERE id_activo_biologico = {id_activo_ajeno}"
+-        sql_iii = "SELECT count(*) as c FROM modulo5.auditorias_suministros WHERE resultado != 'EXITOSO'"
+-
+-        r_before_i = c.post("/test-control/query", {"query": sql_i}, paso="A03_antes_audit_gestor")
+-        assert r_before_i.status_code == 200, f"Error en query (i) antes: HTTP {r_before_i.status_code}: {r_before_i.text}"
+-        before_i = r_before_i.json().get("data", [{}])[0].get("c", 0)
+-
+-        r_before_ii = c.post("/test-control/query", {"query": sql_ii}, paso="A03_antes_audit_activo957")
+-        assert r_before_ii.status_code == 200, f"Error en query (ii) antes: HTTP {r_before_ii.status_code}: {r_before_ii.text}"
+-        before_ii = r_before_ii.json().get("data", [{}])[0].get("c", 0)
+-
+-        r_before_iii = c.post("/test-control/query", {"query": sql_iii}, paso="A03_antes_audit_no_exitoso")
+-        assert r_before_iii.status_code == 200, f"Error en query (iii) antes: HTTP {r_before_iii.status_code}: {r_before_iii.text}"
+-        before_iii = r_before_iii.json().get("data", [{}])[0].get("c", 0)
+-
+-        # Intento de consulta rechazado
+-        r_get = c.get(f"/suministros/historial?id_activo_biologico={id_activo_ajeno}", paso="A03_intento_rechazado")
+-        assert r_get.status_code in (403, 404), f"Inesperado status code en consulta ajena: HTTP {r_get.status_code}"
+-
+-        # Consultas de verificacion DESPUES del intento rechazado
+-        r_after_i = c.post("/test-control/query", {"query": sql_i}, paso="A03_despues_audit_gestor")
+-        assert r_after_i.status_code == 200, f"Error en query (i) despues: HTTP {r_after_i.status_code}: {r_after_i.text}"
+-        after_i = r_after_i.json().get("data", [{}])[0].get("c", 0)
+-
+-        r_after_ii = c.post("/test-control/query", {"query": sql_ii}, paso="A03_despues_audit_activo957")
+-        assert r_after_ii.status_code == 200, f"Error en query (ii) despues: HTTP {r_after_ii.status_code}: {r_after_ii.text}"
+-        after_ii = r_after_ii.json().get("data", [{}])[0].get("c", 0)
+-
+-        r_after_iii = c.post("/test-control/query", {"query": sql_iii}, paso="A03_despues_audit_no_exitoso")
+-        assert r_after_iii.status_code == 200, f"Error en query (iii) despues: HTTP {r_after_iii.status_code}: {r_after_iii.text}"
+-        after_iii = r_after_iii.json().get("data", [{}])[0].get("c", 0)
+-
+-        delta_iii = after_iii - before_iii
+-
+-        # El caso exige que se audite con resultado != EXITOSO (RECHAZADO/FALLIDO)
+-        assert delta_iii >= 1, (
+-            f"DEFECTO DE PRODUCTO (CU04 FA-04): No se registro evento de auditoria con resultado != 'EXITOSO' "
+-            f"tras consulta no autorizada. Conteos antes: (i)={before_i}, (ii)={before_ii}, (iii)={before_iii}; "
+-            f"despues: (i)={after_i}, (ii)={after_ii}, (iii)={after_iii}. "
+-            f"El componente de autorizacion rechaza la peticion sin persistir evento en modulo5.auditorias_suministros."
+-        )
+-
+     def test_a04_observacion_productor_consulta_su_unidad(self, corrida_productor: CorridaG43):
+         """A04 [OBSERVACION]: Productor consulta activo 957 (finca 1, asignada a Productor) -> HTTP 200 con datos.
+         Nota: El rol Productor esta fuera de la especificacion de RF-81 (gestores y tecnicos),
+@@ -691,37 +812,131 @@ class TestTC_M05_G43_Roles_Unidades:
+ 
+ 
+ class TestTC_M05_G43_Teardown_Inocuidad:
+-    """Verificacion de cierre estricto de todas las corridas e inocuidad fuera de sandbox."""
++    """Verificacion de cierre estricto de todas las corridas, A03 en run propio e inocuidad en sandbox."""
+ 
+     def test_98_cierre_corridas(self):
+-        """T98: Confirmar que todas las corridas de la suite fueron cerradas con HTTP 200."""
++        """T98: Confirmar que las corridas previas (t00, admin, gestor, productor) fueron cerradas con HTTP 200."""
+         cerradas = _CONTEXTO["corridas_cerradas"]
+-        assert "admin" in cerradas, "Corrida Admin no fue registrada como cerrada"
+-        assert "gestor" in cerradas, "Corrida Gestor no fue registrada como cerrada"
+-        assert "productor" in cerradas, "Corrida Productor no fue registrada como cerrada"
++        for rol_req in ("t00", "admin", "gestor", "productor"):
++            assert rol_req in cerradas, f"Corrida {rol_req} no fue registrada como cerrada"
+ 
++        assert len(cerradas) >= 4
+         for rol, info in cerradas.items():
++            # Fuente: Regla 2 de sandbox (DELETE /test-control/runs/{run_id} -> 200 Rollback exitoso)
+             assert info["status_code"] == 200, (
+                 f"La corrida {rol} ({info['run_id']}) cerro con HTTP {info['status_code']}: {info['body']}"
+             )
++            assert "Rollback exitoso" in info.get("body", ""), (
++                f"La corrida {rol} ({info['run_id']}) no devolvio 'Rollback exitoso': {info['body']}"
++            )
++
++    def test_a03_auditoria_intento_rechazado(self):
++        """A03 (TC-M05-102 / 037, CU04 FA-04 / RF-80): Migrado de SQL a la API autenticada en run compartido propio.
++        Admin lee ultimo id de auditoria, Gestor intenta consultar activo 957 (finca 1 ajena),
++        y Admin verifica en GET /suministros/auditoria si se registro evento con resultado != EXITOSO."""
++        run_id = f"tc-m05-g43-a03-{uuid.uuid4().hex[:8]}"
++        _CONTEXTO["runs_orden"].append({"rol": "a03_shared", "run_id": run_id})
++        c_admin = CorridaG43(
++            "a03_admin",
++            _env("TEST_ADMIN_EMAIL"),
++            _env("TEST_ADMIN_PASSWORD"),
++            run_id_compartido=run_id,
++        )
++        c_gestor = CorridaG43(
++            "a03_gestor",
++            _env("TEST_FIELD_ENGINEER_EMAIL"),
++            _env("TEST_FIELD_ENGINEER_PASSWORD"),
++            run_id_compartido=run_id,
++        )
++        try:
++            c_admin.login()
++            c_gestor.login()
++            id_activo_ajeno = _CONTEXTO["activo_productor_id"]  # 957
++
++            id_base = _ultimo_id_auditoria(c_admin, paso="A03_antes_audit_max_id")
++
++            r_get = c_gestor.get(
++                f"/suministros/historial?id_activo_biologico={id_activo_ajeno}",
++                paso="A03_intento_rechazado",
++            )
++            # Fuente: RF-81 E2 / comportamiento observado por RLS (403 o 404)
++            assert r_get.status_code in (403, 404), (
++                f"Status inesperado en consulta ajena: HTTP {r_get.status_code}"
++            )
++
++            nuevos = _eventos_nuevos_desde(c_admin, id_base, paso="A03_despues_audit")
++            no_exitosos = [ev for ev in nuevos if ev.get("resultado") != "EXITOSO"]
++
++            # Fuente: TC-M05-102 / 037 (CU04 FA-04 / RF-80): debe auditarse el intento rechazado
++            assert len(no_exitosos) >= 1, (
++                f"DEFECTO DE PRODUCTO (CU04 FA-04): No se registro evento de auditoria con resultado != 'EXITOSO' "
++                f"tras consulta no autorizada al activo {id_activo_ajeno} (HTTP {r_get.status_code}). "
++                f"Eventos nuevos desde id {id_base}: {len(nuevos)}."
++            )
++        finally:
++            try:
++                c_gestor.http.close()
++            except Exception:
++                pass
++            res_cierre = c_admin.cerrar()
++            assert res_cierre["status_code"] == 200, f"Cierre A03 fallo: {res_cierre}"
++            assert "Rollback exitoso" in res_cierre.get("body", ""), f"Cierre A03 sin Rollback exitoso: {res_cierre}"
+ 
+     def test_99_inocuidad_final(self):
+-        """T99: Inocuidad final: verificar fuera de sandbox que el activo C no persiste."""
++        """T99: Inocuidad final dentro de run propio de solo lectura en sandbox."""
+         id_c = _CONTEXTO.get("id_activo_c")
+-        if not id_c:
+-            return
+-        base_url = _env("TEST_BASE_URL").rstrip("/")
+-        r_login = requests.post(
+-            f"{base_url}/sesiones/",
+-            json={"correo_electronico": _env("TEST_ADMIN_EMAIL"), "contrasena": _env("TEST_ADMIN_PASSWORD")},
+-            timeout=TIMEOUT_S,
+-        )
+-        assert r_login.status_code == 200
+-        token = r_login.json().get("token") or r_login.json().get("access_token")
+-        headers = {"Authorization": f"Bearer {token}"}
++        assert id_c is not None, "id_activo_c no fue inicializado en T00/setup"
+ 
+-        r_check = requests.get(f"{base_url}/suministros/historial?id_activo_biologico={id_c}", headers=headers, timeout=TIMEOUT_S)
+-        assert r_check.status_code == 404, (
+-            f"Falta de inocuidad: el activo {id_c} sigue existiendo fuera de sandbox (HTTP {r_check.status_code})"
+-        )
++        c_t99 = CorridaG43("t99", _env("TEST_ADMIN_EMAIL"), _env("TEST_ADMIN_PASSWORD"))
++        _CONTEXTO["runs_orden"].append({"rol": "t99", "run_id": c_t99.run_id})
++        try:
++            c_t99.login()
++            r_aud = c_t99.get("/suministros/auditoria?pagina=1&registros_por_pagina=50", paso="T99_audit_inocuidad")
++            # Fuente: RF-80 / Regla de inocuidad del sandbox
++            assert r_aud.status_code == 200, f"Error consultando auditoria en T99: HTTP {r_aud.status_code}"
++            body_aud = r_aud.json()
++            total_actual = body_aud.get("total")
++            assert total_actual == _CONTEXTO["auditoria_inicial_total"], (
++                f"Falta de inocuidad en auditoria: total actual {total_actual} != inicial {_CONTEXTO['auditoria_inicial_total']}"
++            )
++            items_aud = body_aud.get("items", [])
++            if _CONTEXTO["auditoria_inicial_ultimo_id"] > 0:
++                assert len(items_aud) >= 1, "Se esperaban items de auditoria previos en T99"
++                max_id_actual = max(ev["id_auditoria_suministro"] for ev in items_aud)
++                assert max_id_actual == _CONTEXTO["auditoria_inicial_ultimo_id"], (
++                    f"Falta de inocuidad en auditoria: max id actual {max_id_actual} != inicial {_CONTEXTO['auditoria_inicial_ultimo_id']}"
++                )
++
++            r_act = c_t99.get(f"/activos-biologicos/{id_c}", paso="T99_activo_c_404")
++            # Fuente: Regla 2 de sandbox (rollback tras DELETE elimina el activo C)
++            assert r_act.status_code == 404, (
++                f"Falta de inocuidad: activo {id_c} sigue existiendo en T99 (HTTP {r_act.status_code})"
++            )
++
++            r_hist = c_t99.get(f"/suministros/historial?id_activo_biologico={id_c}", paso="T99_historial_c_404")
++            # Fuente: Regla 2 de sandbox (rollback tras DELETE elimina historial del activo C)
++            assert r_hist.status_code == 404, (
++                f"Falta de inocuidad: historial del activo {id_c} sigue existiendo en T99 (HTTP {r_hist.status_code})"
++            )
++        finally:
++            res_cierre = c_t99.cerrar()
++            assert res_cierre["status_code"] == 200, f"Cierre T99 fallo: {res_cierre}"
++            assert "Rollback exitoso" in res_cierre.get("body", ""), f"Cierre T99 sin Rollback exitoso: {res_cierre}"
++
++            ev_dir = os.environ.get("TEST_EVIDENCE_DIR")
++            if ev_dir:
++                ctx_out = {
++                    "id_activo_c": _CONTEXTO.get("id_activo_c"),
++                    "id_ciclo_c": _CONTEXTO.get("id_ciclo_c"),
++                    "id_usuario_ref": _CONTEXTO.get("id_usuario_ref"),
++                    "auditoria_inicial_total": _CONTEXTO.get("auditoria_inicial_total"),
++                    "auditoria_inicial_ultimo_id": _CONTEXTO.get("auditoria_inicial_ultimo_id"),
++                    "corridas_cerradas": _CONTEXTO.get("corridas_cerradas"),
++                    "runs_orden": _CONTEXTO.get("runs_orden"),
++                    "observaciones": _CONTEXTO.get("observaciones"),
++                }
++                (Path(ev_dir) / "contexto_g43.json").write_text(
++                    json.dumps(ctx_out, ensure_ascii=False, indent=2),
++                    encoding="utf-8",
++                )
+ 

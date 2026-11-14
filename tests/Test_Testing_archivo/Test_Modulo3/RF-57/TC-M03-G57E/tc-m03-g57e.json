@@ -1,0 +1,671 @@
+{
+  "info": {
+    "name": "TC-M03-G57E - Indicadores del sistema de alertas y senales a modulos dependientes (Salida 3 y 5, Postcondicion 8 y 10)",
+    "description": "RF-57 Salida 3 y 5. Los indicadores (alertas_activas_total, alertas_criticas_activas, alertas_por_tipo, alertas_vencidas_sin_atencion, tiempo_promedio_resolucion, tasa_falsos_positivos) NO tienen un endpoint confirmado en el Swagger revisado: el script calcula cada indicador esperado desde el listado real (GET /iot/alertas) y lo registra; cuando se confirme el endpoint de indicadores se agrega la comparacion. PUNTO POR CONFIRMAR: si /iot/alertas-tecnicas cuenta en estos indicadores. NO AUTOMATIZABLE aqui: senal a M08 (metricas) y M02 (estado sanitario del activo), por consulta en esos modulos. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "1"
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "id_evento_edge",
+      "value": "1"
+    },
+    {
+      "key": "ids_alertas",
+      "value": "[]"
+    },
+    {
+      "key": "ruta_indicadores",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Indicadores expuestos vs listado real (TC-M03-N56)",
+      "item": [
+        {
+          "name": "1.1 Alerta CRITICO ACTIVA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 37.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57e_1', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Alerta MODERADO ACTIVA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57e_2', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Alerta LEVE a descartar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_ph_agua}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 8.6,\n  \"unidad\": \"pH\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57e_3', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
+                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Descartar la alerta LEVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{a57e_3}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"Falso positivo QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Indicadores esperados calculados desde el listado real",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 1.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const it = J.items || [];",
+                  "const ind = {alertas_activas_total: it.filter(function (a) { return a.estado_alerta === 'ACTIVA'; }).length, alertas_criticas_activas: it.filter(function (a) { return a.estado_alerta === 'ACTIVA' && a.severidad === 'CRITICO'; }).length,",
+                  "  alertas_por_tipo: it.reduce(function (m, a) { m[a.tipo_alerta] = (m[a.tipo_alerta] || 0) + 1; return m; }, {}), alertas_vencidas_sin_atencion: it.filter(function (a) { return a.estado_alerta === 'VENCIDA'; }).length,",
+                  "  tasa_falsos_positivos: it.length ? it.filter(function (a) { return a.estado_alerta === 'DESCARTADA'; }).length / it.length : 0};",
+                  "pm.collectionVariables.set('g57e_ind', JSON.stringify(ind));",
+                  "pm.test('El listado contiene las alertas creadas y sus contadores son consistentes', function () { pm.expect(ind.alertas_activas_total).to.be.at.least(2); pm.expect(ind.alertas_criticas_activas).to.be.at.least(1); });",
+                  "console.log('[G57E-1.5][OBSERVADO] indicadores esperados (desde listado) = ' + JSON.stringify(ind));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6 Comparar los indicadores expuestos por el sistema contra los calculados del listado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de indicadores por confirmar (variable ruta_indicadores); alertas tecnicas dentro o fuera de los indicadores: por confirmar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de indicadores por confirmar (variable ruta_indicadores); alertas tecnicas dentro o fuera de los indicadores: por confirmar\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Los contadores se actualizan al crear, cambiar de estado, vencer y descartar (TC-M03-N57)",
+      "item": [
+        {
+          "name": "2.1 Atender la alerta MODERADO (EN_ATENCION)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{a57e_2}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Tras atender: la MODERADO deja de contar como ACTIVA; la CRITICO sigue activa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const it = J.items || [];",
+                  "const ind = {alertas_activas_total: it.filter(function (a) { return a.estado_alerta === 'ACTIVA'; }).length, alertas_criticas_activas: it.filter(function (a) { return a.estado_alerta === 'ACTIVA' && a.severidad === 'CRITICO'; }).length,",
+                  "  alertas_por_tipo: it.reduce(function (m, a) { m[a.tipo_alerta] = (m[a.tipo_alerta] || 0) + 1; return m; }, {}), alertas_vencidas_sin_atencion: it.filter(function (a) { return a.estado_alerta === 'VENCIDA'; }).length,",
+                  "  tasa_falsos_positivos: it.length ? it.filter(function (a) { return a.estado_alerta === 'DESCARTADA'; }).length / it.length : 0};",
+                  "pm.test('Solo cambia el contador que corresponde', function () { const a = it.find(function (x) { return String(x.id_alerta) === pm.collectionVariables.get('a57e_2'); }); pm.expect(a.estado_alerta).to.eql('EN_ATENCION'); const c = it.find(function (x) { return String(x.id_alerta) === pm.collectionVariables.get('a57e_1'); }); pm.expect(c.estado_alerta).to.eql('ACTIVA'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Resolver la alerta MODERADO",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{a57e_2}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57E 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Dejar vencer una alerta y verificar alertas_vencidas_sin_atencion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere esperar el SLA o reducirlo por configuracion"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere esperar el SLA o reducirlo por configuracion\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Senal a modulos dependientes (TC-M03-N58)",
+      "item": [
+        {
+          "name": "3.1 La alerta queda disponible para M08 (metricas) y M02 (estado sanitario del activo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere consultar el historial del activo en M02 y la fuente de datos de M08"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere consultar el historial del activo en M02 y la fuente de datos de M08\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
+              "  console.log('[TC-M03-G57E] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
+              "  pm.collectionVariables.set('ids_alertas', '[]');",
+              "})();",
+              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "alertas"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

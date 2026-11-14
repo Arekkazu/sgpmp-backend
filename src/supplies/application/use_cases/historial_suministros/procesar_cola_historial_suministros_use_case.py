@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: archivo 72 h y aviso al usuario    |
+# | 2026-11-08 | Arekkazu         | INC-M05-259-G07: un error 500/503 se reintenta; INC-M05-265-G32 textos sin códigos |
 """Worker del motor async de historial de suministros (RF-81).
 
 Análogo a ``ProcesarColaReportesGastosUseCase`` (RF-77) y, en última
@@ -15,28 +19,31 @@ import logging
 import time
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Callable
+from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AppError
+from src.shared.errors import AppError, es_fallo_tecnico
 from src.supplies.application.use_cases.historial_suministros.consultar_historial_suministros_use_case import (
     ConsultarHistorialSuministrosUseCase,
 )
 from src.supplies.application.use_cases.historial_suministros.exportar_historial_sincrono_use_case import (
     ExportarHistorialSincronoUseCase,
 )
+from src.supplies.domain.entities.archivo_exportacion import ArchivoExportacion
 from src.supplies.domain.entities.historial_suministro import FiltrosHistorialSuministro
 from src.supplies.domain.entities.trabajo_historial_suministro import (
     EjecucionHistorialSuministro,
     FalloHistorialSuministro,
 )
+from src.supplies.domain.repositories.archivo_exportacion_repository import ArchivoExportacionRepository
 from src.supplies.domain.repositories.configuracion_batch_historial_repository import (
     ConfiguracionBatchHistorialRepository,
 )
 from src.supplies.domain.repositories.fallo_historial_suministro_repository import (
     FalloHistorialSuministroRepository,
 )
+from src.supplies.domain.repositories.notificacion_suministros_port import NotificacionSuministrosPort
 from src.supplies.domain.repositories.trabajo_historial_suministro_repository import (
     TrabajoHistorialSuministroRepository,
 )
@@ -89,6 +96,8 @@ class ProcesarColaHistorialSuministrosUseCase:
         construir_fallo_repo: Callable[[Session], FalloHistorialSuministroRepository],
         construir_consultar: Callable[[Session], ConsultarHistorialSuministrosUseCase],
         construir_exportar: Callable[[Session], ExportarHistorialSincronoUseCase],
+        construir_archivo_repo: Optional[Callable[[Session], ArchivoExportacionRepository]] = None,
+        construir_notificador: Optional[Callable[[Session], NotificacionSuministrosPort]] = None,
     ) -> None:
         self.trabajo_repo = trabajo_repo
         self.config_repo = config_repo
@@ -97,6 +106,8 @@ class ProcesarColaHistorialSuministrosUseCase:
         self.construir_fallo_repo = construir_fallo_repo
         self.construir_consultar = construir_consultar
         self.construir_exportar = construir_exportar
+        self.construir_archivo_repo = construir_archivo_repo
+        self.construir_notificador = construir_notificador
 
     async def ejecutar(self) -> int:
         config = self.config_repo.obtener()
@@ -152,16 +163,24 @@ class ProcesarColaHistorialSuministrosUseCase:
                         total_registros=resultado.resumen.total_registros_filtrados,
                         resultado_json=_resumen_a_json(resultado.resumen),
                     )
-                else:  # EXPORTACION
-                    exportar = self.construir_exportar(db)
-                    contenido_csv, nombre_archivo, total = exportar.exportar_forzado(
-                        filtros, id_usuario=trabajo.id_usuario_solicitante, id_rol=id_rol
+                else:  # EXPORTACION (RF-81 E3): archivo PDF/EXCEL disponible 72 h
+                    formato = trabajo.parametros.get("formato_exportacion") or "EXCEL"
+                    archivo = self.construir_exportar(db).exportar_forzado(
+                        filtros, formato, id_usuario=trabajo.id_usuario_solicitante, id_rol=id_rol
+                    )
+                    self.construir_archivo_repo(db).guardar(
+                        ArchivoExportacion.nuevo(
+                            origen="RF81", formato=formato, nombre_archivo=archivo.nombre_archivo,
+                            contenido=archivo.contenido, total_registros=archivo.total_registros,
+                            id_usuario=trabajo.id_usuario_solicitante, ahora=datetime.now(timezone.utc),
+                            id_referencia=id_cola,
+                        )
                     )
                     ejecucion.completar_exportacion(
                         hora_fin=datetime.now(timezone.utc),
-                        total_registros=total,
-                        contenido_csv=contenido_csv,
-                        nombre_archivo=nombre_archivo,
+                        total_registros=archivo.total_registros,
+                        contenido_csv=None,
+                        nombre_archivo=archivo.nombre_archivo,
                     )
 
                 trabajo_repo.guardar_ejecucion(ejecucion)
@@ -169,22 +188,41 @@ class ProcesarColaHistorialSuministrosUseCase:
                     id_cola, EstadoTrabajoAsync.COMPLETADO, fecha_procesado=datetime.now(timezone.utc)
                 )
                 db.commit()
+                self._notificar(trabajo, id_cola)
                 return
-            except AppError as exc:
-                # Regla de negocio/dato inválido (p.ej. activo inexistente): no se reintenta.
+            except Exception as exc:
                 db.rollback()
-                self._marcar_fallido_definitivo(id_cola, str(exc.message), intento)
-                return
-            except Exception as exc:  # fallo técnico → reintento con backoff
-                db.rollback()
+                causa = exc.message if isinstance(exc, AppError) else str(exc)
+                if not es_fallo_tecnico(exc):
+                    # Regla de negocio/dato inválido (p.ej. activo inexistente): no se reintenta.
+                    self._marcar_fallido_definitivo(id_cola, causa, intento)
+                    return
                 logger.warning("Trabajo de historial %s: fallo técnico intento %s: %s", id_cola, intento, exc)
                 if intento < config.max_reintentos:
                     time.sleep(self._backoff_segundos(config, intento))
                     continue
-                self._marcar_fallido_definitivo(id_cola, str(exc), intento)
+                self._marcar_fallido_definitivo(id_cola, causa, intento)
                 return
             finally:
                 db.close()
+
+    def _notificar(self, trabajo, id_cola: int) -> None:
+        if self.construir_notificador is None:
+            return
+        if trabajo.tipo_trabajo == TipoTrabajoHistorial.EXPORTACION.value:
+            mensaje = (
+                f"La exportación n.º {id_cola} del historial de suministros está lista. "
+                "Podrá descargarla durante 72 horas."
+            )
+        else:
+            mensaje = f"El resultado de la consulta de historial de suministros (id={id_cola}) está disponible."
+        db = self.session_factory()
+        try:
+            self.construir_notificador(db).a_usuarios(
+                [trabajo.id_usuario_solicitante], "HISTORIAL_SUMINISTROS_LISTO", mensaje, {"id_cola": id_cola}
+            )
+        finally:
+            db.close()
 
     @staticmethod
     def _backoff_segundos(config, intento: int) -> float:

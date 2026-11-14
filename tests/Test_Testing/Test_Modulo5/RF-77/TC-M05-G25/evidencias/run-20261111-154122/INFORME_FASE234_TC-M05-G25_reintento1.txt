@@ -1,0 +1,56 @@
+================================================================================
+INFORME DE EJECUCION FASE 2, 3 Y 4 — TC-M05-G25
+RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
+================================================================================
+
+1. RESUMEN EJECUTIVO
+--------------------
+- Caso de Prueba: TC-M05-G25
+- Requerimiento: RF-77 (CU04)
+- Subcasos Evaluados: TC-M05-024 (roles y permisos / IDOR), TC-M05-025 (auditoria)
+- Ambiente: TEST (desde TEST_BASE_URL)
+- Fecha y Hora de Ejecución: 2026-11-11 15:41:44
+- Trazas HTTP registradas: 59 (errores_conexion=0)
+- Total de Checkpoints: 23
+- Checkpoints Aprobados: 23
+- Checkpoints Fallidos: 0
+- Veredicto Global: APROBADO
+
+2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
+-----------------------------------------
+Test / Paso                                   | Esperado (Fuente)                             | Estado   | Clasificación        
+----------------------------------------------+-----------------------------------------------+----------+----------------------
+A01 Generación de reporte sincrónico por Prod | HTTP 200, respuesta con id_reporte_gasto_acum | OK       | CONFORME             
+A02 Exportación de reporte a formato CSV por  | HTTP 201, generación de archivo CSV con vigen | OK       | CONFORME             
+A03 Exportación de reporte a formato PDF por  | HTTP 201, generación de archivo PDF con prefi | OK       | CONFORME             
+A04 Descarga de exportación propia por Produc | HTTP 200, Content-Type text/csv, Content-Disp | OK       | CONFORME             
+A05 Restricción de acceso a auditoría de M05  | HTTP 403 ACCESO_DENEGADO (Recurso 57 restring | OK       | CONFORME             
+A98 Cierre ordenado de sandbox Productor y ro | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME             
+B01 Restricción de generación de reporte para | HTTP 403 ACCESO_DENEGADO (Solo Productor y Ad | OK       | CONFORME             
+B02 Restricción de exportación de reporte par | HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF S | OK       | CONFORME             
+B03 Restricción de descarga de exportación re | HTTP 403 ACCESO_DENEGADO sin contenido CSV al | OK       | CONFORME             
+B04 Restricción de acceso a auditoría para Ve | HTTP 403 ACCESO_DENEGADO (Fuente: RF-80 / RBA | OK       | CONFORME             
+B98 Cierre ordenado de sandbox Veterinario y  | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME             
+C01 Generación y exportación de reporte por A | HTTP 200 en generación y HTTP 201 en exportac | OK       | CONFORME             
+C02 Registro en bitácora de auditoría de M05  | Exactamente 1 evento GENERACION y 1 evento EX | OK       | CONFORME             
+C03 Registro en bitácora de auditoría de M05  | Exactamente 1 evento GENERACION y 1 evento EX | OK       | CONFORME             
+C98 Cierre ordenado de sandbox Administrador  | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME             
+D01 Rechazo de solicitudes no autenticadas    | HTTP 401 sin Authorization (con cabeceras san | OK       | CONFORME             
+D02 Prevención de IDOR en descarga de exporta | HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARC | OK       | CONFORME             
+D03 Validación de tipos y resistencia ante ID | HTTP 404 en inexistentes, HTTP 400/422 en tip | OK       | CONFORME             
+D04 Aislamiento estricto de historial por usu | GET /historial devuelve los reportes propios  | OK       | CONFORME             
+D05a Prevención de IDOR al consultar reporte  | HTTP 403 o 404 sin datos del reporte ajeno ni | OK       | CONFORME             
+D05b Prevención de IDOR al regenerar reporte  | HTTP 403 o 404 sin datos del reporte ajeno ni | OK       | CONFORME             
+D05c Prevención de IDOR al exportar reporte d | HTTP 403 o 404 sin creación de archivo ni eve | OK       | CONFORME             
+D98 Cierre ordenado de sandbox IDOR/Aislamien | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME             
+
+3. RUN IDS Y CICLO DE VIDA SANDBOX
+----------------------------------
+- Modalidad Productor: Ejecutada bajo Sandbox Transaccional (Rollback atómico en A98).
+- Modalidad Veterinario: Ejecutada bajo Sandbox Transaccional (Rollback atómico en B98).
+- Modalidad Administrador: Ejecutada bajo Sandbox Transaccional (Rollback atómico en C98).
+- Modalidad IDOR / Tipos / Aislamiento: Ejecutada bajo Sandbox Transaccional (Rollback atómico en D98).
+
+4. DIAGNOSTICO DERIVADO DE RESULTADOS REALES
+--------------------------------------------
+- Sin fallos registrados (23/23 OK). Clasificación: CONFORME.

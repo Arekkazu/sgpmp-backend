@@ -1,0 +1,18 @@
+{
+  "grupo": "G32",
+  "version": 1,
+  "intento": 7,
+  "run_id": "RUN-G32-V1-20261108-061927",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G32-V1-R7-20261108",
+  "casos": [
+    "TC-M06-001",
+    "TC-M06-002",
+    "TC-M06-003",
+    "TC-M06-004"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico V1 (intento 7) de G32. Intento 6 (054841): tipos, montos TB/PM, VR, período 8 y VERIFICACION_PENDIENTE coincidentes con RF-83 en los 4 casos; NO_CONCLUYENTE porque el origen (id_evento / id_precio_mercado) no es visible: GET variaciones no lo incluye y GET cadena no trae eslabones sin la verificación RF-91, que dio 500 en el intento 5 (RF-86 Salida, Esp. M06:1414). En 002, PM legítimo por el cálculo previo con el precio 17. ORD-G32-013: 1 POST de verificación RF-91 por período después de evaluar; 5xx → RECHAZADO del origen con 1 incidencia para Desarrollo; rebase de precio en 002. Ensayo Windows 8/8 y 28/28. Precondición vigente: Contador QA con fincas [184, 463]. SHA-256 g32.mjs e0e7adbd9e7767353ff2e6b934c668a0136278c02a40b03c4e8b38ac7f4f862b; lib/g32_core.mjs 6da395fda7460434680b8992f812a8fab733eb15125e076b4f9acb0733b40e80; colección f4e5b79546d56a7acec0eb525a9c0602d6d87c6140e7d511949dfb1b10d8b692."
+  },
+  "version_anterior": null
+}

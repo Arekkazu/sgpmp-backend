@@ -1,0 +1,194 @@
+{
+  "grupo": "TC-M09-G24",
+  "rf": "RF-17",
+  "tipo": "REEVALUACION V2",
+  "entorno": "TEST",
+  "rama": "qa/juan-esteban-re-evaluacion-M02",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G24-REEVAL-V2-20260913-012209",
+  "fecha": "2026-09-13T06:25:11.644Z",
+  "caso": "TC-M09-52",
+  "intento": 1,
+  "resultado": "PASS",
+  "ambiente": "TEST",
+  "actor": {
+    "correo_electronico": "administador.dev@gmail.com",
+    "id_usuario": 104,
+    "nombre_rol": "Administrador",
+    "estado_cuenta": "Activo",
+    "permisosRecurso20": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "preflight": [
+    {
+      "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 404,
+      "nota": "URL suministrada"
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/umbrales",
+      "respuestasDeclaradas": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ]
+    }
+  ],
+  "especie": {
+    "id": 3,
+    "nombre": "Camarón Blanco",
+    "es_activo": true
+  },
+  "variable": {
+    "id": 3,
+    "nombre": "Oxígeno disuelto",
+    "unidad": "mg/L",
+    "fisicoMin": "0",
+    "fisicoMax": "20"
+  },
+  "limitesFisicos": {
+    "min": "0",
+    "max": "20"
+  },
+  "rangoGeneral": {
+    "valor_min": "5.00",
+    "valor_max": "14.00"
+  },
+  "niveles": [
+    {
+      "nivel": "normal",
+      "limite_inferior": "5.00",
+      "limite_superior": "8.00"
+    },
+    {
+      "nivel": "precaucion",
+      "limite_inferior": "8.00",
+      "limite_superior": "11.00"
+    },
+    {
+      "nivel": "critico",
+      "limite_inferior": "11.00",
+      "limite_superior": "17.00"
+    }
+  ],
+  "analisisPayload": {
+    "minMenorQueMax": true,
+    "tresNiveles": true,
+    "nombresContrato": true,
+    "cadaNivelInfMenorSup": true,
+    "fueraDelGeneral": [
+      "critico"
+    ],
+    "solapamientos": [],
+    "huecos": []
+  },
+  "precondiciones": {
+    "especieActiva": true,
+    "variablePublicada": true,
+    "combinacionLibreAntes": true,
+    "umbralesPreviosEspecie": [
+      7,
+      41,
+      9,
+      8
+    ]
+  },
+  "endpoint": "POST /configuracion/umbrales",
+  "payloadEnviado": {
+    "id_especie": 3,
+    "id_variable_ambiental": 3,
+    "valor_min": "5.00",
+    "valor_max": "14.00",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "5.00",
+        "limite_superior": "8.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "8.00",
+        "limite_superior": "11.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "11.00",
+        "limite_superior": "17.00"
+      }
+    ]
+  },
+  "cuerpoEnviado": "{\"id_especie\":3,\"id_variable_ambiental\":3,\"valor_min\":5.00,\"valor_max\":14.00,\"niveles\":[{\"nivel\":\"normal\",\"limite_inferior\":5.00,\"limite_superior\":8.00},{\"nivel\":\"precaucion\",\"limite_inferior\":8.00,\"limite_superior\":11.00},{\"nivel\":\"critico\",\"limite_inferior\":11.00,\"limite_superior\":17.00}]}",
+  "oraculo": {
+    "status": 400,
+    "error_code": "NIVEL_FUERA_DE_RANGO",
+    "persiste": false
+  },
+  "status": 400,
+  "errorCode": "NIVEL_FUERA_DE_RANGO",
+  "respuesta": {
+    "error_code": "NIVEL_FUERA_DE_RANGO",
+    "message": "El nivel 'critico' (11.0–17.0) cae fuera del rango general [5.0, 14.0].",
+    "fields": [],
+    "timestamp": "2026-09-13T06:25:10.695841+00:00"
+  },
+  "idCreado": null,
+  "getPosterior": {
+    "endpoint": "GET /configuracion/umbrales?id_especie=3",
+    "status": 200,
+    "total": 4,
+    "ids": [
+      7,
+      41,
+      9,
+      8
+    ]
+  },
+  "persistencia": {
+    "registrosDeLaCombinacion": 0,
+    "previosConservados": true,
+    "detalle": []
+  },
+  "STOP_COMBINACION": false,
+  "eventos": [
+    {
+      "metodo": "POST",
+      "status": 400,
+      "respuesta": {
+        "error_code": "NIVEL_FUERA_DE_RANGO",
+        "message": "El nivel 'critico' (11.0–17.0) cae fuera del rango general [5.0, 14.0].",
+        "fields": [],
+        "timestamp": "2026-09-13T06:25:10.695841+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "metodo": "GET",
+      "status": 200,
+      "transportError": false
+    }
+  ],
+  "assertions": {
+    "total": 8,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-52-v2.html"
+}

@@ -1,0 +1,20 @@
+TC-M01-071 / RF-10 — reevaluación rev3 TEST (completa)
+Fecha: 2026-09-25
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Front: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+Actor TEST: admin@pecuaria.co (id=1, Administrador). No se usó admin.dev@gmail.com (DEV; 401 en TEST).
+
+Newman oficial (rev3b): 5 requests, 30 assertions, 0 failed.
+Página 1 HTTP 206 total=14153 items=50 first=14323 last=14274 ancla=2026-09-25T08:22:50.956604Z
+Página 2 HTTP 206 total=14153 items=50 first=14273 last=14224 misma ancla P1∩P2=[]
+Página 3 HTTP 206 total=14153 items=50 first=14223 last=14174 misma ancla P1∩P3=[] P2∩P3=[]
+tamano=51 HTTP 400 VAL_ENTRADA field tamano <= 50 (OpenAPI lista 422; TEST mapea validación a 400).
+
+Corrida Newman previa (rev3_newman / 422vs400): paginación ya PASS; 1 fail por esperar 422. Corregido a 400 con evidencia del body.
+
+Cypress: 1 passing (rev3b, scrollIntoView en controles bajo la tabla). UI tamano=20. Navegación 1→2→3→2→1. Anterior deshabilitado en página 1. Siguiente habilitado (no última; 709 páginas).
+OBSERVACIÓN UI: no reenvía fecha_hasta. En tabla, último de página 1 (14312) = primero de página 2. No se clasificó como FAIL de Newman.
+
+laura NO contiene fad57c32. TEST sí (OpenAPI + ancla en respuesta). Sin merge.
+Histórico TC-M01-71.html no se modificó.
+Passwords/JWT redactados en reportes Newman.

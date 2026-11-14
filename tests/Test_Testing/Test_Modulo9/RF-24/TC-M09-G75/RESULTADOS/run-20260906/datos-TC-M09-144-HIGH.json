@@ -1,0 +1,91 @@
+{
+  "grupo": "TC-M09-G75",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T04:23:29.934Z",
+  "preflight": [
+    {
+      "url": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/sensores/{id_sensor}/calibrar",
+      "respuestasDeclaradas": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ]
+    }
+  ],
+  "loginStatus": 200,
+  "actor": {
+    "descubrimientoConOtroActor": false
+  },
+  "plan": {
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "area": {
+      "id_infraestructura": 3,
+      "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+      "fecha_finalizacion": null
+    },
+    "rangoTecnico": {
+      "categoria": "TEMPERATURA",
+      "min": "0.0000",
+      "max": "45.0000",
+      "fuente": "GET /configuracion/sensores/rangos-calibracion"
+    },
+    "valores": {
+      "minExacto": "0.0000",
+      "maxExacto": "45.0000",
+      "bajoInvalido": "-0.0001",
+      "altoInvalido": "45.0001",
+      "paso": "0.0001"
+    },
+    "historial": {
+      "total": 0,
+      "ids": []
+    }
+  },
+  "historialPrevio": {
+    "total": 2,
+    "ids": [
+      11,
+      10
+    ]
+  },
+  "ultimaValida": {
+    "id_calibracion": 11,
+    "valor_referencia": "45.0000",
+    "id_sensor": 6,
+    "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+    "caso": "TC-M09-143"
+  },
+  "cuerpoEnviado": "{\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":45.0001,\"fecha_calibracion\":\"2026-09-06T04:23:29.927Z\",\"observaciones\":\"QA TC-M09-144 G75 run-20260906\"}"
+}

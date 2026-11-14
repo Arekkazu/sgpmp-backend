@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M03-G179 - Clasificación NIC41 vs TECNICO Auditoría IoT (RF-63)" tests="12" time="4.638">
+  <testsuite name="00-Setup-Autenticacion / 00-Login-ADMIN" id="6dd35045-9172-4d7d-86d0-465cdba064a7" timestamp="2026-10-29T00:45:47.893Z" tests="1" failures="0" errors="0" time="0.819">
+    <testcase name="Status 200 - Login exitoso de ADMIN" time="0.819" classname="00SetupAutenticacion00LoginAdmin"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-342-Filtro-Clasificacion / 08-TC-M03-342-Filtro-NIC41-Retencion-5" id="612fbee8-a7c7-45d6-8af9-bec80080620c" timestamp="2026-10-29T00:45:47.893Z" tests="3" failures="0" errors="0" time="0.805">
+    <testcase name="Status 200 - Filtro clasificacion_registro=NIC41 exitoso" time="0.805" classname="03TcM03342FiltroClasificacion08TcM03342FiltroNic41Retencion5"/>
+    <testcase name="Todos los eventos clasificados NIC41 tienen retencion_aplicable=5" time="0.805" classname="03TcM03342FiltroClasificacion08TcM03342FiltroNic41Retencion5"/>
+    <testcase name="RF-63 Restricción 4.4: componente_origen no expuesto" time="0.805" classname="03TcM03342FiltroClasificacion08TcM03342FiltroNic41Retencion5"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-342-Filtro-Clasificacion / 09-TC-M03-342-Filtro-TECNICO-Retencion-1" id="a885a67b-ba64-400b-8995-d1bc8eb6d2bb" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.490">
+    <testcase name="Status 200 - Filtro clasificacion_registro=TECNICO exitoso" time="0.490" classname="03TcM03342FiltroClasificacion09TcM03342FiltroTecnicoRetencion1"/>
+    <testcase name="Todos los eventos clasificados TECNICO tienen retencion_aplicable=1" time="0.490" classname="03TcM03342FiltroClasificacion09TcM03342FiltroTecnicoRetencion1"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-342-Filtro-Clasificacion / 10-TC-M03-342-Registro-Incompleto-E8" id="042c0bb9-a69e-433e-81a4-97adfbab049f" timestamp="2026-10-29T00:45:47.893Z" tests="3" failures="0" errors="0" time="0.628">
+    <testcase name="Status 200 - Eventos incompletos obtenidos" time="0.628" classname="03TcM03342FiltroClasificacion10TcM03342RegistroIncompletoE8"/>
+    <testcase name="TC-M03-342: existe al menos 1 evento incompleto NIC41/5 (E8 post-fix)" time="0.628" classname="03TcM03342FiltroClasificacion10TcM03342RegistroIncompletoE8"/>
+    <testcase name="TC-M03-342: históricos pre-fix conservan TECNICO/1 (inmutabilidad)" time="0.628" classname="03TcM03342FiltroClasificacion10TcM03342RegistroIncompletoE8"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 11-TC-M03-344-Verificar-RF62-EVALUACION_CALIDAD_COMPLETADA" id="56cc813c-1337-4d37-9d5c-372ff26382b9" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.600">
+    <testcase name="Status 200 - Eventos EVALUACION_CALIDAD_COMPLETADA obtenidos" time="0.600" classname="04TcM03344PositivosNic4111TcM03344VerificarRf62EvaluacionCalidadCompletada"/>
+    <testcase name="RF-62 (EVALUACION_CALIDAD_COMPLETADA) clasifica como NIC41 con retención 5 años" time="0.600" classname="04TcM03344PositivosNic4111TcM03344VerificarRf62EvaluacionCalidadCompletada"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 12-TC-M03-344-Verificar-RF62-REEVALUACION_CALIDAD_SOLICITADA" id="21896303-8c5c-4d4d-bf20-60f851645c24" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.131">
+    <testcase name="Status 200 - Eventos REEVALUACION_CALIDAD_SOLICITADA obtenidos" time="0.131" classname="04TcM03344PositivosNic4112TcM03344VerificarRf62ReevaluacionCalidadSolicitada"/>
+    <testcase name="RF-62 (REEVALUACION_CALIDAD_SOLICITADA) clasifica como NIC41 con retención 5 años" time="0.131" classname="04TcM03344PositivosNic4112TcM03344VerificarRf62ReevaluacionCalidadSolicitada"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO" id="de6b4d9c-0b40-4508-b913-38e4cc6f9ad9" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.223">
+    <testcase name="Status 200 - Eventos PAQUETE_INFERENCIA_GENERADO obtenidos" time="0.223" classname="04TcM03344PositivosNic4113TcM03344Rf56PaqueteInferenciaGenerado"/>
+    <testcase name="TC-M03-344: PAQUETE_INFERENCIA_GENERADO (RF-56) → NIC41/5" time="0.223" classname="04TcM03344PositivosNic4113TcM03344Rf56PaqueteInferenciaGenerado"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 14-TC-M03-344-RF61-VINCULACION_AUTOMATICA" id="ac5a9cb9-e623-43e2-b28f-d40828222b5f" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.132">
+    <testcase name="Status 200 - Eventos VINCULACION_AUTOMATICA obtenidos" time="0.132" classname="04TcM03344PositivosNic4114TcM03344Rf61VinculacionAutomatica"/>
+    <testcase name="TC-M03-344: VINCULACION_AUTOMATICA (RF-61) → NIC41/5" time="0.132" classname="04TcM03344PositivosNic4114TcM03344Rf61VinculacionAutomatica"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 14b-TC-M03-345-RF55-DESVIACION_DETECTADA" id="284f1b18-6e20-4b21-a19a-e0b52ea2dea4" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.120">
+    <testcase name="Status 200 - Eventos DESVIACION_DETECTADA obtenidos" time="0.120" classname="05TcM03345NegativosTecnico14BTcM03345Rf55DesviacionDetectada"/>
+    <testcase name="TC-M03-345: DESVIACION_DETECTADA (RF-55) → TECNICO/1" time="0.120" classname="05TcM03345NegativosTecnico14BTcM03345Rf55DesviacionDetectada"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 15-TC-M03-345-Verificar-RF60-TRANSICION_MANTENIMIENTO_MANUAL" id="ad6e0338-4850-46d6-8c34-4210c951ec26" timestamp="2026-10-29T00:45:47.893Z" tests="2" failures="0" errors="0" time="0.130">
+    <testcase name="Status 200 - Eventos TRANSICION_MANTENIMIENTO_MANUAL obtenidos" time="0.130" classname="05TcM03345NegativosTecnico15TcM03345VerificarRf60TransicionMantenimientoManual"/>
+    <testcase name="RF-60 (TRANSICION_MANTENIMIENTO_MANUAL) clasifica como TECNICO con retención 1 año" time="0.130" classname="05TcM03345NegativosTecnico15TcM03345VerificarRf60TransicionMantenimientoManual"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 16-TC-M03-345-Eventos-Broker-Worker-Bloqueados" id="3c7d054b-6cdf-425f-be06-a573c679b0cd" timestamp="2026-10-29T00:45:47.893Z" tests="1" failures="0" errors="0" time="0.454">
+    <testcase name="Verificación de que eventos técnicos en sandbox cumplen retención de 1 año" time="0.454" classname="05TcM03345NegativosTecnico16TcM03345EventosBrokerWorkerBloqueados"/>
+  </testsuite>
+  <testsuite name="99-Teardown-Rollback / 99-Teardown-Rollback-Sandbox" id="de25f6fd-c6d8-48f5-9bc7-8f220d3531ac" timestamp="2026-10-29T00:45:47.893Z" tests="1" failures="0" errors="0" time="0.106">
+    <testcase name="Status 200 - Rollback exitoso" time="0.106" classname="99TeardownRollback99TeardownRollbackSandbox"/>
+  </testsuite>
+</testsuites>

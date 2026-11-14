@@ -1,0 +1,53 @@
+TC-M09-G91 / RF-27 — reevaluación rev2 DEV
+Fecha: 2026-09-14
+Colección: tests/Test_Testing/Test_Modulo9/RF-27/TC-M09-G91/tc_m09_g91_dev.json
+Ambiente: DEV
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com (un POST /sesiones/, sin refresh)
+Newman: 17 requests, 28 aserciones, 0 FAIL
+
+Histórico NO ejecutado ni modificado: tc_m09_g91.json / TC-M09-G91-Newman.html
+
+---
+PRECHECK (antes de PATCH)
+GET resuelto: theme_mode=1, fuente=global, id_tema_visual=1
+GET global: id_tema_visual=1, theme_mode=1, es_global=true, id_usuario=1
+DELETE personal: HTTP 405 Method Not Allowed
+DELETE global: HTTP 405 Method Not Allowed
+
+---
+TC-M09-173 APROBADO
+PATCH global theme_mode=1 HTTP 200 es_global=true
+PATCH personal theme_mode=2 HTTP 200 es_global=false id_tema_visual=8 id_usuario=50
+GET global: theme_mode=1
+GET RESUELTO: theme_mode=2, fuente=personal, id_tema_visual=8
+
+---
+TC-M09-174 BLOQUEADO
+PATCH global theme_mode=2 HTTP 200 (preparación)
+GET RESUELTO: theme_mode=2, fuente=personal, id_tema_visual=8
+No se finge fuente=global. La preferencia personal creada en 173 (y no eliminable) impide la precondición “sin preferencia individual”. DELETE personal = 405.
+
+---
+TC-M09-175 BLOQUEADO
+GET global: theme_mode=2, es_global=true (fila sigue existiendo)
+GET resuelto no se usó como prueba de default.
+Precondición “sin configuración global” no construible: DELETE global = 405.
+
+---
+RESTAURACIÓN
+PATCH personal theme_mode=1 (valor numérico del snapshot resuelto) HTTP 200
+PATCH global theme_mode=1 HTTP 200
+GET global: theme_mode=1 es_global=true — coincide con snapshot global
+GET resuelto: theme_mode=1, fuente=personal, id_tema_visual=8
+Snapshot original era fuente=global (sin fila personal). No hay DELETE: queda preferencia personal id=8 con theme_mode=1. Ausencia original de personal NO restaurable por API.
+Global sí restaurado a theme_mode=1.
+
+---
+Clasificación
+173: APROBADO
+174: BLOQUEADO
+175: BLOQUEADO
+G91 global: BLOQUEADO (matriz 174/175 no ejecutable por API; 173 sí demostró jerarquía personal > global)
+
+Sanitización rev2: sin JWT ni password.

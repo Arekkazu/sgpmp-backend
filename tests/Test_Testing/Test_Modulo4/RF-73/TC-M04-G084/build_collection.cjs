@@ -1,0 +1,236 @@
+/**
+ * build_collection.cjs - TC-M04-G084: Reentrenamiento y Detección de Degradación (RF-73)
+ * Módulo 4: Predicción e IA
+ * 
+ * Subcasos:
+ * - TC-M04-259 (REENTRENAMIENTO_INICIADO): [BLOQUEADO] - No existe endpoint REST para trigger manual de reentrenamiento.
+ * - TC-M04-260 (REENTRENAMIENTO_COMPLETADO): [BLOQUEADO] - Proceso de reentrenamiento batch corre fuera del backend REST.
+ * - TC-M04-261 (DEGRADACION_DETECTADA): [BLOQUEADO] - No existe endpoint para inducir degradación de métricas (f1=0.78).
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const collection = {
+  info: {
+    name: "TC-M04-G084: Reentrenamiento y deteccion de degradacion (RF-73)",
+    _postman_id: "a0484001-0000-4000-8000-000000000084",
+    description: "Suite de verificación de auditoría para reentrenamiento de modelos y degradación (RF-73 / RF-71) bajo Sandbox Transaccional SGPMP.",
+    schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  event: [
+    {
+      listen: "prerequest",
+      script: {
+        type: "text/javascript",
+        exec: [
+          "if (!pm.collectionVariables.get(\"run_id\")) {",
+          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
+        ]
+      }
+    }
+  ],
+  variable: [
+    { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test", type: "string" },
+    { key: "run_id", value: "", type: "string" },
+    { key: "sandbox_secret", value: "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff", type: "string" },
+    { key: "admin_password", value: "", type: "string" },
+    { key: "token", value: "", type: "string" },
+    { key: "correlacion_id_g084", value: "e0484001-0000-4000-8000-000000000084", type: "string" }
+  ],
+  item: [
+    {
+      name: "01-Login-ADMIN",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.collectionVariables.set('token', data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "POST",
+        header: [
+          { key: "Content-Type", value: "application/json" }
+        ],
+        body: {
+          mode: "raw",
+          raw: JSON.stringify({
+            correo_electronico: "administador.dev@gmail.com",
+            contrasena: "{{admin_password}}"
+          })
+        },
+        url: {
+          raw: "{{baseUrl}}/sesiones/",
+          host: ["{{baseUrl}}"],
+          path: ["sesiones", ""]
+        }
+      }
+    },
+    {
+      name: "02-Preflight-Auditoria-M04",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "pm.test(\"NW-02: Preflight exitoso sobre GET /prediccion/auditoria (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('items');",
+              "    pm.expect(Array.isArray(data.items)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=10",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "pagina", value: "1" },
+            { key: "por_pagina", value: "10" }
+          ]
+        }
+      }
+    },
+    {
+      name: "03-TC-M04-259-Reentrenamiento-Iniciado-Diagnostico",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "console.log('[BLOQUEADO] TC-M04-259 (REENTRENAMIENTO_INICIADO): El endpoint productor de disparo manual de reentrenamiento (RF-71) no existe en la API REST de FastAPI. La orquestación corre en worker externo.');"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?tipo_evento=REENTRENAMIENTO_INICIADO",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "tipo_evento", value: "REENTRENAMIENTO_INICIADO" }
+          ]
+        }
+      }
+    },
+    {
+      name: "04-TC-M04-260-Reentrenamiento-Completado-Diagnostico",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "console.log('[BLOQUEADO] TC-M04-260 (REENTRENAMIENTO_COMPLETADO): El pipeline batch de reentrenamiento no expone endpoints REST para simular completación con métricas.');"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?tipo_evento=REENTRENAMIENTO_COMPLETADO",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "tipo_evento", value: "REENTRENAMIENTO_COMPLETADO" }
+          ]
+        }
+      }
+    },
+    {
+      name: "05-TC-M04-261-Degradacion-Detectada-Diagnostico",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "console.log('[BLOQUEADO] TC-M04-261 (DEGRADACION_DETECTADA): No existe endpoint REST para enviar métricas degradadas (f1=0.78 < 0.80) y forzar la emisión del evento de degradación.');"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?tipo_evento=DEGRADACION_DETECTADA",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "tipo_evento", value: "DEGRADACION_DETECTADA" }
+          ]
+        }
+      }
+    },
+    {
+      name: "06-Teardown-Sandbox-Rollback",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var statusMsg = data.status || data.mensaje || \"\";",
+              "    pm.expect(statusMsg).to.include(\"Rollback exitoso\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "DELETE",
+        header: [
+          { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/test-control/runs/{{run_id}}",
+          host: ["{{baseUrl}}"],
+          path: ["test-control", "runs", "{{run_id}}"]
+        }
+      }
+    }
+  ]
+};
+
+const targetDir = path.resolve(__dirname);
+const targetFile = path.join(targetDir, 'test_tc_m04_g084.json');
+fs.writeFileSync(targetFile, JSON.stringify(collection, null, 2), 'utf8');
+console.log(`Colección TC-M04-G084 generada exitosamente en ${targetFile}`);

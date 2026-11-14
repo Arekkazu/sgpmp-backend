@@ -1,12 +1,19 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas, archivo y aviso  |
+# | 2026-11-08 | Leandro | INC-M05-277-G20 RF-77: representar el promedio no calculable y conservar el contrato numérico. |
+# | 2026-11-11 | Arekkazu | USAB-M05 T-01 RF-77: el historial de reportes nombra el activo, no su id |
 """Schemas de respuesta de RF-77 — Reporte de Gastos Acumulados."""
 from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
+from src.supplies.domain.entities.archivo_exportacion import ArchivoExportacion
 from src.supplies.domain.entities.reporte_gasto import ReporteGasto
 from src.supplies.domain.entities.trabajo_reporte_gasto import EjecucionReporteGasto, TrabajoReporteGasto
 
@@ -49,14 +56,28 @@ class ReporteGastoResponse(BaseModel):
     fecha_fin: datetime.date
     tipo_periodo: str
     gasto_total_acumulado: Decimal
-    gasto_promedio_individuo: Optional[Decimal]
+    gasto_promedio_individuo: Decimal | Literal["NO_CALCULABLE"] | None
     causa_no_calculable_promedio: Optional[str]
     sin_datos: bool
+    estado: str = "GENERADO"
+    mensaje: Optional[str] = None
+    nota_bajas: Optional[str] = None
+    advertencia: Optional[str] = None
+    archivo: Optional["ArchivoExportacionResponse"] = None
     desglose_categorias: list[DesgloseCategoriaResponse]
     desglose_temporal: list[DesglosePeriodoResponse]
     registros_sin_costo: list[RegistroSinCostoResponse]
     tendencia: Optional[TendenciaGastoResponse]
     fecha_generacion: Optional[datetime.datetime]
+    nombre_activo: Optional[str] = None
+
+    @model_validator(mode="after")
+    def representar_promedio_no_calculable(self) -> "ReporteGastoResponse":
+        # Una causa explícita distingue lo no calculable de un promedio no aplicable.
+        # El dominio conserva Decimal/None para evitar mezclar códigos y cálculos.
+        if self.gasto_promedio_individuo is None and self.causa_no_calculable_promedio:
+            self.gasto_promedio_individuo = "NO_CALCULABLE"
+        return self
 
     @classmethod
     def desde_entidad(cls, r: ReporteGasto) -> "ReporteGastoResponse":
@@ -72,6 +93,9 @@ class ReporteGastoResponse(BaseModel):
             gasto_promedio_individuo=r.gasto_promedio_individuo,
             causa_no_calculable_promedio=r.causa_no_calculable_promedio,
             sin_datos=r.sin_datos,
+            estado=r.estado,
+            mensaje=r.mensaje,
+            nota_bajas=r.nota_bajas,
             desglose_categorias=[
                 DesgloseCategoriaResponse(
                     categoria=d.categoria, subtotal=d.subtotal, num_registros=d.num_registros, porcentaje=d.porcentaje
@@ -123,11 +147,7 @@ class ReporteGastoResponse(BaseModel):
             fecha_fin=snapshot.fecha_fin,
             tipo_periodo=snapshot.tipo_periodo,
             gasto_total_acumulado=Decimal(resultado_json["gasto_total_acumulado"]),
-            gasto_promedio_individuo=(
-                Decimal(resultado_json["gasto_promedio_individuo"])
-                if resultado_json.get("gasto_promedio_individuo") is not None
-                else None
-            ),
+            gasto_promedio_individuo=resultado_json.get("gasto_promedio_individuo"),
             causa_no_calculable_promedio=resultado_json.get("causa_no_calculable_promedio"),
             sin_datos=resultado_json.get("sin_datos", False),
             desglose_categorias=[
@@ -185,6 +205,35 @@ class HistorialReportesResponse(BaseModel):
     items: list[ReporteGastoResponse]
 
 
+class ArchivoExportacionResponse(BaseModel):
+    """Archivo exportado disponible para descarga (RF-77 24 h, RF-81 72 h)."""
+
+    id_archivo: UUID
+    formato: str
+    nombre_archivo: str
+    total_registros: int
+    tamano_bytes: int
+    fecha_generacion: datetime.datetime
+    fecha_expiracion: datetime.datetime
+    url_descarga: str
+
+    @classmethod
+    def desde_entidad(cls, a: ArchivoExportacion, prefijo_descarga: str) -> "ArchivoExportacionResponse":
+        return cls(
+            id_archivo=a.id_archivo,
+            formato=a.formato,
+            nombre_archivo=a.nombre_archivo,
+            total_registros=a.total_registros,
+            tamano_bytes=a.tamano_bytes,
+            fecha_generacion=a.fecha_generacion,
+            fecha_expiracion=a.fecha_expiracion,
+            url_descarga=f"{prefijo_descarga}/{a.id_archivo}",
+        )
+
+
+ReporteGastoResponse.model_rebuild()
+
+
 class TrabajoReporteResponse(BaseModel):
     """Respuesta HTTP 202 al encolar un reporte async."""
 
@@ -207,6 +256,9 @@ class EstadoTrabajoReporteResponse(BaseModel):
     fecha_procesado: Optional[datetime.datetime]
     intento: Optional[int]
     reporte: Optional[ReporteGastoResponse] = None
+    id_archivo_exportacion: Optional[str] = None
+    error_exportacion: Optional[dict] = None
+    parametros: Optional[dict] = None
 
     @classmethod
     def desde_entidades(
@@ -229,4 +281,7 @@ class EstadoTrabajoReporteResponse(BaseModel):
             fecha_procesado=trabajo.fecha_procesado,
             intento=ejecucion.intento if ejecucion else None,
             reporte=reporte_response,
+            id_archivo_exportacion=(ejecucion.resultado_json or {}).get("id_archivo_exportacion") if ejecucion else None,
+            error_exportacion=(ejecucion.resultado_json or {}).get("error_exportacion") if ejecucion else None,
+            parametros={k: v for k, v in (trabajo.parametros or {}).items() if k != "ids_permitidos"},
         )

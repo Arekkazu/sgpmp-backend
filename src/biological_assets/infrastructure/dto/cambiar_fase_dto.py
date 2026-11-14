@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/fases`` (RF-37)."""
 
 from __future__ import annotations
@@ -8,6 +11,7 @@ from typing import Optional
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class CambiarFaseDTO(BaseDTO):
@@ -20,7 +24,7 @@ class CambiarFaseDTO(BaseDTO):
     """
     id_ciclo_productiva: int
     motivo_cambio: Optional[str] = None
-    fecha_inicio: Optional[datetime] = None
+    fecha_inicio: Optional[FechaHoraUtc] = None
     # RF-37 (tarea Taiga fase_destino/confirmacion_no_estandar): fase
     # específica del ciclo a la que se quiere transicionar
     # (id_ciclos_productivo_biologico). Si se omite, se asume la siguiente

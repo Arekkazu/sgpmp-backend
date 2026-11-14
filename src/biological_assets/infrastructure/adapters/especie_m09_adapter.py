@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """Adapter de ``EspecieConsultaPort`` que lee el catálogo de especies de M09."""
 
 from __future__ import annotations
@@ -24,4 +27,5 @@ class EspecieM09Adapter(EspecieConsultaPort):
             id_especie=orm.id_especie,
             nombre=orm.nombre,
             es_activo=orm.es_activo,
+            esperanza_vida_dias=orm.esperanza_vida_dias,
         )

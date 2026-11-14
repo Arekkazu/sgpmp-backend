@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>TC-M09-G82 segunda revisión</title>
+<style>body{font-family:sans-serif;margin:2rem;color:#222} .pass{color:#0a7} .fail{color:#c00} .blocked{color:#c60} code{background:#f4f4f4;padding:0 .25rem}</style>
+</head><body>
+<h1>TC-M09-G82 — Segunda revisión</h1>
+<p>Usuario: m2m.nuevo@ejemplo.com · Rol: Productor · JWT: [REDACTED]</p>
+<h2>TC-M09-156 — <span class="pass">PASS</span></h2>
+<p>URL: <code>https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/roles</code></p>
+<p>Comportamiento: Acceso restringido. Sin listado de roles/permisos.</p>
+<p>Evidencia visual: TC-M09-G82_rev2_156_roles.png</p>
+<h2>API GET /configuracion/umbrales — <span class="pass">PASS</span></h2>
+<p>HTTP 403 · error_code ACCESO_DENEGADO · sin items/data</p>
+<p>Authorization: Bearer [REDACTED]</p>
+<p>Assertions: 3 total, 3 PASS, 0 FAIL</p>
+<h2>TC-M09-157 — <span class="blocked">BLOCKED</span></h2>
+<p>No existe Finca A existente y asignada al usuario de prueba.</p>
+<h2>Auditoría</h2>
+<p>NO COMPROBABLE — el rechazo GET de finca/módulo no registra evento de auditoría de finca en la implementación actual.</p>
+</body></html>

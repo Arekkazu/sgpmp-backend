@@ -1,0 +1,104 @@
+{
+  "grupo": "TC-M09-G76",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rol": "Ingeniero de campo",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T04:53:53.091Z",
+  "caso": "TC-M09-146",
+  "intento": 1,
+  "resultado": "PASS",
+  "metodo": "POST",
+  "endpoint": "/configuracion/sensores/29/calibrar",
+  "dispositivo": {
+    "id": 47,
+    "serial": "BUGCHECK-REASIGN-001",
+    "es_activo": false,
+    "id_infraestructura": 3
+  },
+  "estadoDispositivo": "inactivo",
+  "sensor": {
+    "id": 29,
+    "nombre": "SensorBugcheck",
+    "categoria": "PH",
+    "es_activo": true,
+    "id_dispositivo_iot": 47
+  },
+  "areaCorrecta": {
+    "id_infraestructura": 3,
+    "punto_instalacion": "origen",
+    "fecha_finalizacion": null
+  },
+  "areaEnviada": {
+    "id_infraestructura": 3,
+    "esLaCorrecta": true,
+    "existe": true
+  },
+  "areasHistoricasDelSensor": [
+    3
+  ],
+  "rangoTecnico": {
+    "categoria": "PH",
+    "min": "0.0000",
+    "max": "14.0000",
+    "fuente": "GET /configuracion/sensores/rangos-calibracion"
+  },
+  "valorEnviado": "7.0000",
+  "invalidezIntencional": "el dispositivo 47 existe pero es_activo=false",
+  "cuerpoEnviado": "{\"id_dispositivo_iot\":47,\"id_infraestructura\":3,\"valor_referencia\":7.0000,\"fecha_calibracion\":\"2026-09-06T04:53:47.498Z\",\"observaciones\":\"QA TC-M09-146 G76 run-20260906\"}",
+  "status": 422,
+  "errorCode": "DISPOSITIVO_INACTIVO",
+  "respuesta": {
+    "error_code": "DISPOSITIVO_INACTIVO",
+    "message": "Solo se pueden calibrar sensores de dispositivos activos.",
+    "fields": [],
+    "timestamp": "2026-09-06T04:53:51.917589+00:00"
+  },
+  "eventos": [
+    {
+      "caso": "TC-M09-146",
+      "metodo": "POST",
+      "status": 422,
+      "cuerpo": "{\"id_dispositivo_iot\":47,\"id_infraestructura\":3,\"valor_referencia\":7.0000,\"fecha_calibracion\":\"2026-09-06T04:53:47.498Z\",\"observaciones\":\"QA TC-M09-146 G76 run-20260906\"}",
+      "respuesta": {
+        "error_code": "DISPOSITIVO_INACTIVO",
+        "message": "Solo se pueden calibrar sensores de dispositivos activos.",
+        "fields": [],
+        "timestamp": "2026-09-06T04:53:51.917589+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-146",
+      "metodo": "GET",
+      "status": 200,
+      "transportError": false
+    }
+  ],
+  "historyBefore": {
+    "total": 0,
+    "items": []
+  },
+  "historyAfter": {
+    "total": 0,
+    "items": []
+  },
+  "persistencia": {
+    "registrosNuevos": [],
+    "historicosAlterados": [],
+    "idCreado": null
+  },
+  "STOP_ALL": false,
+  "assertions": {
+    "total": 13,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-146-intento1.html"
+}

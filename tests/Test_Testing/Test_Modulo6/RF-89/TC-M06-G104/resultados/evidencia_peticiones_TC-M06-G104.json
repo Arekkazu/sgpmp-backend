@@ -1,0 +1,183 @@
+{
+  "caso": "TC-M06-G104",
+  "generado_en": "2026-11-08T08:06:27.847291+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 935,
+      "en": "2026-11-08T08:06:28.782830+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios",
+      "codigo": 200,
+      "duracion_ms": 617,
+      "en": "2026-11-08T08:06:29.400246+00:00",
+      "respuesta": {
+        "total": 11,
+        "por_estado": {
+          "ACTIVO": 4,
+          "SUPERADO": 2,
+          "VENCIDO": 5
+        },
+        "por_especie": {
+          "39": {
+            "total": 4,
+            "aplicados": 1,
+            "estados": {
+              "ACTIVO": 2,
+              "SUPERADO": 2
+            }
+          },
+          "421": {
+            "total": 1,
+            "aplicados": 1,
+            "estados": {
+              "ACTIVO": 1
+            }
+          },
+          "1": {
+            "total": 4,
+            "aplicados": 1,
+            "estados": {
+              "ACTIVO": 1,
+              "VENCIDO": 3
+            }
+          },
+          "3": {
+            "total": 1,
+            "aplicados": 0,
+            "estados": {
+              "VENCIDO": 1
+            }
+          },
+          "2": {
+            "total": 1,
+            "aplicados": 0,
+            "estados": {
+              "VENCIDO": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REGISTRADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 611,
+      "en": "2026-11-08T08:06:30.011579+00:00",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_REFERENCIA_VENCIDO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 584,
+      "en": "2026-11-08T08:06:30.595441+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=PRECIO_MARCADO_REEMPLAZADO&formato=TECNICO&tamano=1",
+      "codigo": 200,
+      "duracion_ms": 380,
+      "en": "2026-11-08T08:06:30.975790+00:00",
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/notificaciones?pagina=1&tamano=50",
+      "codigo": 200,
+      "duracion_ms": 366,
+      "en": "2026-11-08T08:06:31.341664+00:00",
+      "respuesta": {
+        "total": 36,
+        "avisos_precio_en_muestra": 0
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 665,
+      "en": "2026-11-08T08:06:32.006537+00:00",
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/activos-biologicos?id_especie=3&pagina=1&page_size=1",
+      "codigo": 200,
+      "duracion_ms": 438,
+      "en": "2026-11-08T08:06:32.444716+00:00",
+      "respuesta": {
+        "total": 97,
+        "activo": 811
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/811/simulacion",
+      "codigo": 200,
+      "duracion_ms": 401,
+      "en": "2026-11-08T08:06:33.239347+00:00",
+      "respuesta": {
+        "id_especie": 3,
+        "activo": 811,
+        "http": 200,
+        "motivo": "SIN_PRECIO",
+        "es_valido": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/activos-biologicos?id_especie=2&pagina=1&page_size=1",
+      "codigo": 200,
+      "duracion_ms": 410,
+      "en": "2026-11-08T08:06:33.649882+00:00",
+      "respuesta": {
+        "total": 49,
+        "activo": 705
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/705/simulacion",
+      "codigo": 200,
+      "duracion_ms": 385,
+      "en": "2026-11-08T08:06:34.459402+00:00",
+      "respuesta": {
+        "id_especie": 2,
+        "activo": 705,
+        "http": 200,
+        "motivo": "SIN_PRECIO",
+        "es_valido": false
+      }
+    }
+  ]
+}

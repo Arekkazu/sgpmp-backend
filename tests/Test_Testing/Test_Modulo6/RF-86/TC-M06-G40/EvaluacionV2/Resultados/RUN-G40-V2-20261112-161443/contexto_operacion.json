@@ -1,0 +1,15 @@
+{
+  "grupo": "G40",
+  "version": 2,
+  "intento": 4,
+  "run_id": "RUN-G40-V2-20261112-161443",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G40-V2-R2-20261112",
+  "casos": [
+    "TC-M06-018"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico de V2 (intento 2 de V2) de TC-M06-G40, caso 018. El intento anterior (RUN-G40-V2-20261112-154819, AUT-G40-V2-20261112 consumida) quedó TECNICO por ERROR_QA en el oráculo (d): exigía que el conteo global de líneas pendientes volviera al valor base (1), y el POST de la matriz resolvió además una línea pendiente preexistente de otro período abierto (resolver_pendientes, comportamiento correcto); la línea del RUN quedó REGISTRADA. En ese intento a, b y c se cumplieron (aviso 12796 por API y UI). DELETE 200 y rollback verificado. ORD-G40-014 corrige (d) (línea del RUN REGISTRADA con las cuentas de la asignación creada, lineas_resueltas ≥ 1 y conteo final ≤ conteo pendiente − 1) y ORD-G40-015 (ronda 3 aprobada) elige el sentido antes de escribir: como el aviso de GANANCIA/Bovino ya se emitió en el 241, se usará PERDIDA. SHA-256: g40.mjs c5ab90be7bcaa8a2afd57c3ca0ba5ccebe40ed52b3856ea0fa8d0c2f285c5bbd; lib/g40_core.mjs 8c1285348bb6d5bd3fbd65da8e1f8d946b665ab0f79da5ba8828cfa218984a98; lib/aviso_g40.cjs aa0fcf668b8669f10b75fcbe29db5d009d9b92b5b324cbb329b25d1aeae833ff; spec cf994f352ee6a38154192b5cc3d279ecbfcdece5fce91dac6d015f2a97d79c6e. Verificación del responsable QA: 55 pruebas (35/35 al repetir decisiones), ensayo 5/5, humo Cypress real 4/4 y ejemplo A4 REINTENTAR AUTO → PERDIDA, oficial."
+  },
+  "version_anterior": null
+}

@@ -1,0 +1,74 @@
+{
+  "caso": "TC-M06-G103",
+  "rf": "RF-89",
+  "incidencia": "INC-M06-291-G75",
+  "issue": 978,
+  "tipo": "ultima_evaluacion_consolidada",
+  "generado_en": "2026-11-10T21:42:55-05:00",
+  "cierre_en": "2026-11-10T21:54:38-05:00",
+  "dictamen_general": "APROBADO",
+  "caso_completo_aprobado": true,
+  "base_del_porcentaje": "3 subcasos",
+  "aprobados": 3,
+  "rechazados": 0,
+  "bloqueados": 0,
+  "fallidos": 0,
+  "porcentaje_aprobacion": 100,
+  "criterio_de_tc_m06_23": {
+    "objetivo": "Verificar que el sistema acepta una fecha de vigencia con exactamente 365 días de antigüedad y rechaza una fecha que supera ese límite.",
+    "decision_qa": "La prueba automatizada de RegistrarPrecioUseCase.execute con dependencias simuladas es suficiente para satisfacer el objetivo.",
+    "post_real_en_test": false,
+    "http_201": false,
+    "trigger_verificado": false,
+    "dictamen": "APROBADO"
+  },
+  "validacion_tecnica_aislada": {
+    "archivo": "test_tc_m06_23_limite_365_dias.py",
+    "comando": "python -m pytest tests/Test_Testing/Test_Modulo6/RF-89/TC-M06-G103/test_tc_m06_23_limite_365_dias.py --noconftest -p no:cacheprovider -v",
+    "fecha_negocio": "2026-11-10",
+    "vigencia_365": "2025-11-10",
+    "vigencia_366": "2025-11-09",
+    "pruebas": 2,
+    "passed": 2,
+    "failed": 0,
+    "duracion": "0.73s",
+    "resultado": "2 passed in 0.73s",
+    "conexion_test": false,
+    "sql": false,
+    "persistencia_real": false,
+    "notificacion_real": false,
+    "evidencia": "evidencia_tc_m06_23_prueba_aislada.json"
+  },
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-22",
+      "objetivo": "Rechazar vigencia de 366 días antes de hoy.",
+      "estado": "APROBADO",
+      "tipo_evidencia": "HTTP del endpoint desplegado en TEST, primera evaluación del 8 de noviembre de 2026.",
+      "reejecutado": false,
+      "http": 400,
+      "codigo_negocio": "FECHA_VIGENCIA_FUERA_DE_RANGO",
+      "fuente": "../primera_evaluacion/evidencia_peticiones_TC-M06-G103.json"
+    },
+    {
+      "subcaso": "TC-M06-23",
+      "objetivo": "Aceptar una vigencia de exactamente 365 días y rechazar una de 366.",
+      "estado": "APROBADO",
+      "tipo_evidencia": "Validación automatizada de RegistrarPrecioUseCase.execute con dependencias simuladas. Decisión de QA del 10 de noviembre de 2026.",
+      "post_real_en_test": false,
+      "http_201": false,
+      "pruebas_aisladas": "2 passed in 0.73s",
+      "fuente": "evidencia_tc_m06_23_prueba_aislada.json"
+    },
+    {
+      "subcaso": "TC-M06-24",
+      "objetivo": "Rechazar vencimiento anterior a la vigencia.",
+      "estado": "APROBADO",
+      "tipo_evidencia": "HTTP del endpoint desplegado en TEST, primera evaluación del 8 de noviembre de 2026.",
+      "reejecutado": false,
+      "http": 400,
+      "codigo_negocio": "FECHA_VENCIMIENTO_INVALIDA",
+      "fuente": "../primera_evaluacion/evidencia_peticiones_TC-M06-G103.json"
+    }
+  ]
+}

@@ -1,0 +1,4255 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m02-g76-frontera-historial"
+    },
+    "item": [
+      {
+        "id": "c992b21a-3110-4c47-9c04-9bc0430bd160",
+        "name": "TC-M02-210",
+        "description": {
+          "content": "Subcaso TC-M02-210: Consultar historial con filtro sin resultados (E-04)",
+          "type": "text/plain"
+        },
+        "item": [
+          {
+            "id": "f3fdd066-39c8-4080-b387-1e4d029a277a",
+            "name": "00 - Autenticación Admin",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "faa79c71-5bb4-4110-a67a-ac979f64d9f4",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-210] Autenticación exitosa (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var data = pm.response.json();",
+                    "    pm.expect(data).to.have.property('token');",
+                    "    pm.collectionVariables.set('jwt_token', data.token);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "32bb1e98-ce4b-4eec-a67a-f7472cce1c4d"
+                }
+              }
+            ]
+          },
+          {
+            "id": "d6723275-f991-49c2-9294-aa7b2d4d2f8f",
+            "name": "TC-M02-210 - Consultar historial con filtro sin resultados (E-04)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "{{id_activo}}",
+                  "historial"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [
+                  {
+                    "key": "categoria_evento",
+                    "value": "BAJA"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "216af66e-cb44-4d9a-9105-ed584289c32b",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-210] Estado HTTP 200 OK', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-210] total_registros es 0', function () {",
+                    "    pm.expect(pm.response.json().total_registros).to.eql(0);",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-210] registros es array vacío', function () {",
+                    "    pm.expect(pm.response.json().registros).to.be.an('array').that.is.empty;",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-210] Mensaje informativo presente', function () {",
+                    "    const json = pm.response.json();",
+                    "    const mensaje = json.mensaje || json.message || json.detail || '';",
+                    "    pm.expect(mensaje.toLowerCase()).to.include('no se encontraron eventos');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "d4318504-fe34-4952-b491-97e5f8942fdf"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "13627b5c-60f0-4755-82ea-466bdb7ae84f",
+        "name": "TC-M02-212",
+        "description": {
+          "content": "Subcaso TC-M02-212: Rechazar operación de escritura sobre el endpoint de historial (POST, PATCH, DELETE)",
+          "type": "text/plain"
+        },
+        "item": [
+          {
+            "id": "ad921a9c-8ad9-4b4a-9c5b-bbc3684eec6d",
+            "name": "00 - Autenticación Admin",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "94f9bb4c-381b-4e55-848d-17dd01134b8b",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-212] Autenticación exitosa (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var data = pm.response.json();",
+                    "    pm.expect(data).to.have.property('token');",
+                    "    pm.collectionVariables.set('jwt_token', data.token);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "cd693402-e0cc-43e5-8dd6-493e2522999d"
+                }
+              }
+            ]
+          },
+          {
+            "id": "6a3315e5-b27f-42c5-b2c3-c379693897e1",
+            "name": "01 - GET Inicial Historial Línea Base",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "{{id_activo}}",
+                  "historial"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "3a00a7b7-9cc2-4b6b-aa23-f28bfcc16945",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-212] GET inicial exitoso (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "    var json = pm.response.json();",
+                    "    pm.expect(json).to.have.property('total_registros');",
+                    "    pm.collectionVariables.set('total_registros_pre_escritura', json.total_registros);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "cd0667f1-6ccc-4949-82c5-bcddadb09e61"
+                }
+              }
+            ]
+          },
+          {
+            "id": "61f42eaf-499a-47f9-abfb-710901c5a372",
+            "name": "TC-M02-212.1 - Rechazo de método de escritura POST",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "{{id_activo}}",
+                  "historial"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"evento\": \"falso\",\n  \"categoria\": \"TEST\",\n  \"descripcion\": \"Intento de escritura no autorizada\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "d7c4a2c9-6ceb-4b24-9ff9-1750334b3ce4",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-212.1] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                    "    pm.response.to.have.status(405);",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-212.1] Encabezado Allow debe incluir GET', function () {",
+                    "    var allowHeader = pm.response.headers.get('Allow');",
+                    "    pm.expect(allowHeader).to.not.be.null;",
+                    "    pm.expect(allowHeader).to.include('GET');",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-212.1] Cuerpo indica Method Not Allowed', function () {",
+                    "    var json = pm.response.json();",
+                    "    pm.expect(json.detail).to.eql('Method Not Allowed');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "9d5e2088-a2ce-4ba7-a22e-97aa3a6d00d3"
+                }
+              }
+            ]
+          },
+          {
+            "id": "5f02b25d-95b7-4f33-bdb7-f4c48e7f423a",
+            "name": "TC-M02-212.2 - Rechazo de método de escritura PATCH",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "{{id_activo}}",
+                  "historial"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "PATCH",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"descripcion\": \"Intento de modificacion no permitida\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "69cb3e0e-0fa0-47bb-9194-f1762eb7b057",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-212.2] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                    "    pm.response.to.have.status(405);",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-212.2] Encabezado Allow debe incluir GET', function () {",
+                    "    var allowHeader = pm.response.headers.get('Allow');",
+                    "    pm.expect(allowHeader).to.not.be.null;",
+                    "    pm.expect(allowHeader).to.include('GET');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "3597a868-9a4b-4b5f-b228-4937e342e551"
+                }
+              }
+            ]
+          },
+          {
+            "id": "218e55c8-18cc-4778-afb2-5a81040f1e37",
+            "name": "TC-M02-212.3 - Rechazo de método de escritura DELETE",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "{{id_activo}}",
+                  "historial"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "DELETE"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "60bcf802-e5e4-457d-ba32-ad9a1191276d",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[TC-M02-212.3] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                    "    pm.response.to.have.status(405);",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-212.3] Encabezado Allow debe incluir GET', function () {",
+                    "    var allowHeader = pm.response.headers.get('Allow');",
+                    "    pm.expect(allowHeader).to.not.be.null;",
+                    "    pm.expect(allowHeader).to.include('GET');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "df0c2b59-6195-47c0-9420-67b6dfceeb6d"
+                }
+              }
+            ]
+          },
+          {
+            "id": "2d68a3d1-c68f-43d8-8a52-5858a523eddd",
+            "name": "TC-M02-212.4 - Verificación de inmutabilidad del historial tras intentos de escritura",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "{{id_activo}}",
+                  "historial"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwt_token}}"
+                },
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "85991acb-81cf-4be8-95e2-fe8025702e1a",
+                  "type": "text/javascript",
+                  "exec": [
+                    "// NOTA DE CONCURRENCIA: Este test requiere ejecución aislada sin escrituras concurrentes sobre el activo de prueba.",
+                    "pm.test('[TC-M02-212.4] Estado HTTP 200 OK', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test('[TC-M02-212.4] Historial inalterado tras intentos de escritura', function () {",
+                    "    var totalActual = pm.response.json().total_registros;",
+                    "    var totalPrevio = parseInt(pm.collectionVariables.get('total_registros_pre_escritura'), 10);",
+                    "    pm.expect(totalActual).to.eql(totalPrevio);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "3276c407-b5b2-4934-8f7a-39d1463e1a1b"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "jwt_token"
+      },
+      {
+        "type": "string",
+        "value": "130",
+        "key": "id_activo"
+      },
+      {
+        "type": "string",
+        "value": "0",
+        "key": "total_registros_pre_escritura"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m02-g76-frontera-historial",
+      "name": "TC-M02-G76 - Consulta de historial de activos: filtro sin resultados, límite de paginación y rechazo de escritura (RF-46)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Caso agrupado TC-M02-G76 (RF-46): Validación de escenarios de frontera en GET /activos-biologicos/{id_activo}/historial. Contiene TC-M02-210 (filtro sin resultados) y TC-M02-212 (rechazo de escritura HTTP 405 e inmutabilidad).",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "1f18130e-4518-4091-950e-d908acbc3b8b",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "296",
+        "key": "id_activo"
+      }
+    ]
+  },
+  "globals": {
+    "id": "490b6e02-63b9-459d-b1a4-9dc78fdf5d54",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 16,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 258,
+      "responseMin": 110,
+      "responseMax": 738,
+      "responseSd": 202.85524395489506,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789503022434,
+      "completed": 1789503025171
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 8,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "6f3a7118-0023-41b7-8a82-5fe9596d9e7c",
+          "httpRequestId": "8dd16ed8-3a9e-4f58-bbd1-c4d1fd248cad"
+        },
+        "item": {
+          "id": "f3fdd066-39c8-4080-b387-1e4d029a277a",
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "faa79c71-5bb4-4110-a67a-ac979f64d9f4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-210] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "32bb1e98-ce4b-4eec-a67a-f7472cce1c4d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d39312f6-8340-4880-b490-fd4f7b862941",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "76",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "e3af13e4-b873-4089-9780-15d575bc48fe",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:21 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=xBfNLW96-puoWGPPbxX0hw_s1JvvyYlbJALSY_SCKLs; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "6673e9bf-0891-4721-b249-600865af540f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              99,
+              52,
+              77,
+              106,
+              65,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              69,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              84,
+              85,
+              122,
+              77,
+              84,
+              103,
+              121,
+              77,
+              105,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              53,
+              78,
+              84,
+              65,
+              122,
+              77,
+              68,
+              73,
+              121,
+              102,
+              81,
+              46,
+              77,
+              79,
+              52,
+              50,
+              117,
+              52,
+              113,
+              68,
+              73,
+              86,
+              110,
+              107,
+              67,
+              83,
+              48,
+              67,
+              71,
+              112,
+              122,
+              79,
+              73,
+              56,
+              86,
+              54,
+              71,
+              89,
+              82,
+              69,
+              113,
+              50,
+              115,
+              119,
+              114,
+              80,
+              119,
+              118,
+              87,
+              55,
+              99,
+              49,
+              97,
+              103,
+              73,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 738,
+          "responseSize": 404
+        },
+        "id": "f3fdd066-39c8-4080-b387-1e4d029a277a",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-210] Autenticación exitosa (200 OK)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "21cf7a8a-9d7a-4fc3-8fb7-7cccf6c714a8",
+          "length": 8,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "1b7edd7f-1eda-4079-8606-2251aaee0488"
+        },
+        "item": {
+          "id": "d6723275-f991-49c2-9294-aa7b2d4d2f8f",
+          "name": "TC-M02-210 - Consultar historial con filtro sin resultados (E-04)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "categoria_evento",
+                  "value": "BAJA"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "216af66e-cb44-4d9a-9105-ed584289c32b",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-210] Estado HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-210] total_registros es 0', function () {",
+                  "    pm.expect(pm.response.json().total_registros).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-210] registros es array vacío', function () {",
+                  "    pm.expect(pm.response.json().registros).to.be.an('array').that.is.empty;",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-210] Mensaje informativo presente', function () {",
+                  "    const json = pm.response.json();",
+                  "    const mensaje = json.mensaje || json.message || json.detail || '';",
+                  "    pm.expect(mensaje.toLowerCase()).to.include('no se encontraron eventos');",
+                  "});"
+                ],
+                "_lastExecutionId": "d4318504-fe34-4952-b491-97e5f8942fdf"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "historial"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "categoria_evento",
+                "value": "BAJA"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTc4MjAiLCJyb2wiOjEsImV4cCI6MTc4OTUzMTgyMiwiaWF0IjoxNzg5NTAzMDIyfQ.MO42u4qDIVnkCS0CGpzOI8V6GYREq2swrPwvW7c1agI"
+            },
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "4e614dd0-474e-4494-9b6b-75e2e0276b68",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=xBfNLW96-puoWGPPbxX0hw_s1JvvyYlbJALSY_SCKLs",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "66e58c1a-ddd5-43c3-bb01-6d2d06ce14bd",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "276"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "8fbcfdd1-4b4f-4355-8239-01e524cc44c6"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              57,
+              54,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              95,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              109,
+              101,
+              110,
+              115,
+              97,
+              106,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              115,
+              101,
+              32,
+              101,
+              110,
+              99,
+              111,
+              110,
+              116,
+              114,
+              97,
+              114,
+              111,
+              110,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              101,
+              108,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              32,
+              50,
+              57,
+              54,
+              32,
+              99,
+              111,
+              110,
+              32,
+              108,
+              111,
+              115,
+              32,
+              102,
+              105,
+              108,
+              116,
+              114,
+              111,
+              115,
+              32,
+              97,
+              112,
+              108,
+              105,
+              99,
+              97,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              117,
+              101,
+              100,
+              101,
+              32,
+              97,
+              109,
+              112,
+              108,
+              105,
+              97,
+              114,
+              32,
+              101,
+              108,
+              32,
+              114,
+              97,
+              110,
+              103,
+              111,
+              32,
+              100,
+              101,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              115,
+              32,
+              111,
+              32,
+              99,
+              97,
+              109,
+              98,
+              105,
+              97,
+              114,
+              32,
+              108,
+              97,
+              32,
+              99,
+              97,
+              116,
+              101,
+              103,
+              111,
+              114,
+              195,
+              173,
+              97,
+              32,
+              100,
+              101,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              46,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 136,
+          "responseSize": 276
+        },
+        "id": "d6723275-f991-49c2-9294-aa7b2d4d2f8f",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-210] Estado HTTP 200 OK",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-210] total_registros es 0",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-210] registros es array vacío",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-210] Mensaje informativo presente",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "e2baf701-9855-4590-880c-998f76f8c70d",
+          "length": 8,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "14523ebd-533d-4b02-a99d-a620a6b25729"
+        },
+        "item": {
+          "id": "ad921a9c-8ad9-4b4a-9c5b-bbc3684eec6d",
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "94f9bb4c-381b-4e55-848d-17dd01134b8b",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-212] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "cd693402-e0cc-43e5-8dd6-493e2522999d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "53377d34-a42b-4308-b734-e63edbd1abed",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "76",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=xBfNLW96-puoWGPPbxX0hw_s1JvvyYlbJALSY_SCKLs",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "71dc1fb0-7cb7-4dca-9fd4-c08bda513da0",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=N_2siT1qwzzkH-JiGAy32fsfXiYViJ_45DFubQpQ3RM; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "07f67818-79f9-4e05-b5a8-2e4ee35eb51b"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              99,
+              52,
+              77,
+              106,
+              73,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              69,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              84,
+              85,
+              122,
+              77,
+              84,
+              103,
+              121,
+              77,
+              121,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              53,
+              78,
+              84,
+              65,
+              122,
+              77,
+              68,
+              73,
+              122,
+              102,
+              81,
+              46,
+              103,
+              53,
+              73,
+              106,
+              87,
+              80,
+              73,
+              89,
+              49,
+              73,
+              95,
+              50,
+              118,
+              121,
+              48,
+              76,
+              120,
+              65,
+              114,
+              81,
+              90,
+              55,
+              100,
+              56,
+              104,
+              105,
+              113,
+              117,
+              84,
+              116,
+              78,
+              65,
+              115,
+              118,
+              102,
+              67,
+              110,
+              54,
+              122,
+              98,
+              82,
+              122,
+              52,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 402,
+          "responseSize": 404
+        },
+        "id": "ad921a9c-8ad9-4b4a-9c5b-bbc3684eec6d",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-212] Autenticación exitosa (200 OK)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "90756ffc-46fe-4858-8f8c-8c885fa5ed7c",
+          "length": 8,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "50a38202-e5ff-4461-a5d6-a4ddc5656892"
+        },
+        "item": {
+          "id": "6a3315e5-b27f-42c5-b2c3-c379693897e1",
+          "name": "01 - GET Inicial Historial Línea Base",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3a00a7b7-9cc2-4b6b-aa23-f28bfcc16945",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-212] GET inicial exitoso (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('total_registros');",
+                  "    pm.collectionVariables.set('total_registros_pre_escritura', json.total_registros);",
+                  "});"
+                ],
+                "_lastExecutionId": "cd0667f1-6ccc-4949-82c5-bcddadb09e61"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "historial"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTc4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTUzMTgyMywiaWF0IjoxNzg5NTAzMDIzfQ.g5IjWPIY1I_2vy0LxArQZ7d8hiquTtNAsvfCn6zbRz4"
+            },
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0ecc4731-da25-41cb-ae0d-36b65255b10a",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=N_2siT1qwzzkH-JiGAy32fsfXiYViJ_45DFubQpQ3RM",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "5cd8c6fd-6b69-4083-9a61-e6f8132d53bb",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "436"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "04c225db-f59a-4593-93d0-52927e6d7b13"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              57,
+              54,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              95,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              99,
+              97,
+              116,
+              101,
+              103,
+              111,
+              114,
+              105,
+              97,
+              34,
+              58,
+              34,
+              70,
+              65,
+              83,
+              69,
+              95,
+              80,
+              82,
+              79,
+              68,
+              85,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              49,
+              84,
+              48,
+              56,
+              58,
+              48,
+              48,
+              58,
+              48,
+              48,
+              90,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              100,
+              117,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              100,
+              105,
+              97,
+              115,
+              61,
+              51,
+              54,
+              53,
+              48,
+              44,
+              32,
+              101,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              61,
+              116,
+              114,
+              117,
+              101,
+              44,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              102,
+              105,
+              110,
+              97,
+              108,
+              105,
+              122,
+              97,
+              99,
+              105,
+              111,
+              110,
+              61,
+              78,
+              85,
+              76,
+              76,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              102,
+              105,
+              99,
+              111,
+              34,
+              58,
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              49,
+              34,
+              58,
+              34,
+              67,
+              105,
+              99,
+              108,
+              111,
+              32,
+              81,
+              65,
+              32,
+              74,
+              69,
+              32,
+              66,
+              111,
+              118,
+              105,
+              110,
+              111,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              50,
+              34,
+              58,
+              34,
+              65,
+              99,
+              116,
+              105,
+              118,
+              97,
+              34,
+              125,
+              44,
+              34,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              95,
+              114,
+              101,
+              115,
+              112,
+              111,
+              110,
+              115,
+              97,
+              98,
+              108,
+              101,
+              34,
+              58,
+              34,
+              67,
+              97,
+              114,
+              108,
+              111,
+              115,
+              32,
+              82,
+              111,
+              100,
+              114,
+              195,
+              173,
+              103,
+              117,
+              101,
+              122,
+              32,
+              80,
+              195,
+              169,
+              114,
+              101,
+              122,
+              34,
+              44,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              95,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              34,
+              58,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              50,
+              34,
+              125,
+              93,
+              44,
+              34,
+              109,
+              101,
+              110,
+              115,
+              97,
+              106,
+              101,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 134,
+          "responseSize": 436
+        },
+        "id": "6a3315e5-b27f-42c5-b2c3-c379693897e1",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-212] GET inicial exitoso (200 OK)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cdac50fd-3c3e-40fe-9ad8-c10e9bf14dbb",
+          "length": 8,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "ea7598af-d934-46bf-880c-46e293386f2d"
+        },
+        "item": {
+          "id": "61f42eaf-499a-47f9-abfb-710901c5a372",
+          "name": "TC-M02-212.1 - Rechazo de método de escritura POST",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evento\": \"falso\",\n  \"categoria\": \"TEST\",\n  \"descripcion\": \"Intento de escritura no autorizada\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d7c4a2c9-6ceb-4b24-9ff9-1750334b3ce4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-212.1] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.1] Encabezado Allow debe incluir GET', function () {",
+                  "    var allowHeader = pm.response.headers.get('Allow');",
+                  "    pm.expect(allowHeader).to.not.be.null;",
+                  "    pm.expect(allowHeader).to.include('GET');",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.1] Cuerpo indica Method Not Allowed', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.detail).to.eql('Method Not Allowed');",
+                  "});"
+                ],
+                "_lastExecutionId": "9d5e2088-a2ce-4ba7-a22e-97aa3a6d00d3"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "historial"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTc4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTUzMTgyMywiaWF0IjoxNzg5NTAzMDIzfQ.g5IjWPIY1I_2vy0LxArQZ7d8hiquTtNAsvfCn6zbRz4"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "b5a38a95-5a7b-4c29-9b2b-8b3c4aed3058",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "101",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=N_2siT1qwzzkH-JiGAy32fsfXiYViJ_45DFubQpQ3RM",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"evento\": \"falso\",\n  \"categoria\": \"TEST\",\n  \"descripcion\": \"Intento de escritura no autorizada\"\n}"
+          }
+        },
+        "response": {
+          "id": "fd7b486f-2730-4894-8408-b5dfa2b39abd",
+          "status": "Method Not Allowed",
+          "code": 405,
+          "header": [
+            {
+              "key": "Allow",
+              "value": "GET"
+            },
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "31"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "d7b0f3fb-a391-44a4-b561-6f23812fe7ab"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              77,
+              101,
+              116,
+              104,
+              111,
+              100,
+              32,
+              78,
+              111,
+              116,
+              32,
+              65,
+              108,
+              108,
+              111,
+              119,
+              101,
+              100,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 110,
+          "responseSize": 31
+        },
+        "id": "61f42eaf-499a-47f9-abfb-710901c5a372",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-212.1] Estado HTTP debe ser 405 Method Not Allowed",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-212.1] Encabezado Allow debe incluir GET",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-212.1] Cuerpo indica Method Not Allowed",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "80252b0e-65aa-4c20-914a-4f36d8c7f342",
+          "length": 8,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "22091c32-57af-4478-8cc4-4d133bb4b139"
+        },
+        "item": {
+          "id": "5f02b25d-95b7-4f33-bdb7-f4c48e7f423a",
+          "name": "TC-M02-212.2 - Rechazo de método de escritura PATCH",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Intento de modificacion no permitida\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "69cb3e0e-0fa0-47bb-9194-f1762eb7b057",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-212.2] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.2] Encabezado Allow debe incluir GET', function () {",
+                  "    var allowHeader = pm.response.headers.get('Allow');",
+                  "    pm.expect(allowHeader).to.not.be.null;",
+                  "    pm.expect(allowHeader).to.include('GET');",
+                  "});"
+                ],
+                "_lastExecutionId": "3597a868-9a4b-4b5f-b228-4937e342e551"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "historial"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTc4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTUzMTgyMywiaWF0IjoxNzg5NTAzMDIzfQ.g5IjWPIY1I_2vy0LxArQZ7d8hiquTtNAsvfCn6zbRz4"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "7cd526bf-e65c-449d-a725-6d214b6a5b81",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "59",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=N_2siT1qwzzkH-JiGAy32fsfXiYViJ_45DFubQpQ3RM",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"descripcion\": \"Intento de modificacion no permitida\"\n}"
+          }
+        },
+        "response": {
+          "id": "f31e1d7b-8c88-4d6c-ba1f-876676611175",
+          "status": "Method Not Allowed",
+          "code": 405,
+          "header": [
+            {
+              "key": "Allow",
+              "value": "GET"
+            },
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "31"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:23 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "d0ffcbb7-ccd3-48e8-8df5-f73f027f68bd"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              77,
+              101,
+              116,
+              104,
+              111,
+              100,
+              32,
+              78,
+              111,
+              116,
+              32,
+              65,
+              108,
+              108,
+              111,
+              119,
+              101,
+              100,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 112,
+          "responseSize": 31
+        },
+        "id": "5f02b25d-95b7-4f33-bdb7-f4c48e7f423a",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-212.2] Estado HTTP debe ser 405 Method Not Allowed",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-212.2] Encabezado Allow debe incluir GET",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1f554ae0-40b0-42e8-ad22-bc8f943d8e24",
+          "length": 8,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "77dedfde-472e-403e-b6e7-29cf4a6d221d"
+        },
+        "item": {
+          "id": "218e55c8-18cc-4778-afb2-5a81040f1e37",
+          "name": "TC-M02-212.3 - Rechazo de método de escritura DELETE",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "60bcf802-e5e4-457d-ba32-ad9a1191276d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M02-212.3] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.3] Encabezado Allow debe incluir GET', function () {",
+                  "    var allowHeader = pm.response.headers.get('Allow');",
+                  "    pm.expect(allowHeader).to.not.be.null;",
+                  "    pm.expect(allowHeader).to.include('GET');",
+                  "});"
+                ],
+                "_lastExecutionId": "df0c2b59-6195-47c0-9420-67b6dfceeb6d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "historial"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTc4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTUzMTgyMywiaWF0IjoxNzg5NTAzMDIzfQ.g5IjWPIY1I_2vy0LxArQZ7d8hiquTtNAsvfCn6zbRz4"
+            },
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "76ed07f5-c3e1-4051-a3a6-93075e6a74e2",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=N_2siT1qwzzkH-JiGAy32fsfXiYViJ_45DFubQpQ3RM",
+              "system": true
+            }
+          ],
+          "method": "DELETE"
+        },
+        "response": {
+          "id": "78f52ce8-311b-4746-bcde-9d7ba9356289",
+          "status": "Method Not Allowed",
+          "code": 405,
+          "header": [
+            {
+              "key": "Allow",
+              "value": "GET"
+            },
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "31"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:23 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b89c1200-b101-4577-940d-e9703f6954e4"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              77,
+              101,
+              116,
+              104,
+              111,
+              100,
+              32,
+              78,
+              111,
+              116,
+              32,
+              65,
+              108,
+              108,
+              111,
+              119,
+              101,
+              100,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 193,
+          "responseSize": 31
+        },
+        "id": "218e55c8-18cc-4778-afb2-5a81040f1e37",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-212.3] Estado HTTP debe ser 405 Method Not Allowed",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-212.3] Encabezado Allow debe incluir GET",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "27b49e60-5c33-404e-9bf5-50a19b745716",
+          "length": 8,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "5d6ec127-944f-4cd5-852c-d5122bd6ddf1"
+        },
+        "item": {
+          "id": "2d68a3d1-c68f-43d8-8a52-5858a523eddd",
+          "name": "TC-M02-212.4 - Verificación de inmutabilidad del historial tras intentos de escritura",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "85991acb-81cf-4be8-95e2-fe8025702e1a",
+                "type": "text/javascript",
+                "exec": [
+                  "// NOTA DE CONCURRENCIA: Este test requiere ejecución aislada sin escrituras concurrentes sobre el activo de prueba.",
+                  "pm.test('[TC-M02-212.4] Estado HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.4] Historial inalterado tras intentos de escritura', function () {",
+                  "    var totalActual = pm.response.json().total_registros;",
+                  "    var totalPrevio = parseInt(pm.collectionVariables.get('total_registros_pre_escritura'), 10);",
+                  "    pm.expect(totalActual).to.eql(totalPrevio);",
+                  "});"
+                ],
+                "_lastExecutionId": "3276c407-b5b2-4934-8f7a-39d1463e1a1b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "296",
+              "historial"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTc4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTUzMTgyMywiaWF0IjoxNzg5NTAzMDIzfQ.g5IjWPIY1I_2vy0LxArQZ7d8hiquTtNAsvfCn6zbRz4"
+            },
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "a70dcd81-72bc-48a5-93a2-88276a174887",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=N_2siT1qwzzkH-JiGAy32fsfXiYViJ_45DFubQpQ3RM",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "c10d1c03-fbe3-40b7-a97b-701d39c91b42",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "436"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 20:10:23 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "ed3f1f67-e3d6-434f-bbf5-d1be2833b354"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              57,
+              54,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              95,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              99,
+              97,
+              116,
+              101,
+              103,
+              111,
+              114,
+              105,
+              97,
+              34,
+              58,
+              34,
+              70,
+              65,
+              83,
+              69,
+              95,
+              80,
+              82,
+              79,
+              68,
+              85,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              49,
+              84,
+              48,
+              56,
+              58,
+              48,
+              48,
+              58,
+              48,
+              48,
+              90,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              100,
+              117,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              100,
+              105,
+              97,
+              115,
+              61,
+              51,
+              54,
+              53,
+              48,
+              44,
+              32,
+              101,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              61,
+              116,
+              114,
+              117,
+              101,
+              44,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              102,
+              105,
+              110,
+              97,
+              108,
+              105,
+              122,
+              97,
+              99,
+              105,
+              111,
+              110,
+              61,
+              78,
+              85,
+              76,
+              76,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              102,
+              105,
+              99,
+              111,
+              34,
+              58,
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              49,
+              34,
+              58,
+              34,
+              67,
+              105,
+              99,
+              108,
+              111,
+              32,
+              81,
+              65,
+              32,
+              74,
+              69,
+              32,
+              66,
+              111,
+              118,
+              105,
+              110,
+              111,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              50,
+              34,
+              58,
+              34,
+              65,
+              99,
+              116,
+              105,
+              118,
+              97,
+              34,
+              125,
+              44,
+              34,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              95,
+              114,
+              101,
+              115,
+              112,
+              111,
+              110,
+              115,
+              97,
+              98,
+              108,
+              101,
+              34,
+              58,
+              34,
+              67,
+              97,
+              114,
+              108,
+              111,
+              115,
+              32,
+              82,
+              111,
+              100,
+              114,
+              195,
+              173,
+              103,
+              117,
+              101,
+              122,
+              32,
+              80,
+              195,
+              169,
+              114,
+              101,
+              122,
+              34,
+              44,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              95,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              34,
+              58,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              50,
+              34,
+              125,
+              93,
+              44,
+              34,
+              109,
+              101,
+              110,
+              115,
+              97,
+              106,
+              101,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 239,
+          "responseSize": 436
+        },
+        "id": "2d68a3d1-c68f-43d8-8a52-5858a523eddd",
+        "assertions": [
+          {
+            "assertion": "[TC-M02-212.4] Estado HTTP 200 OK",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M02-212.4] Historial inalterado tras intentos de escritura",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 2049
+    },
+    "failures": [],
+    "error": null
+  }
+}

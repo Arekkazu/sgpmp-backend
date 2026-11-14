@@ -1,0 +1,89 @@
+{
+  "grupo": "TC-M09-G76",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rol": "Ingeniero de campo",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T04:53:47.511Z",
+  "preflight": [
+    {
+      "url": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/sensores/{id_sensor}/calibrar",
+      "respuestasDeclaradas": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ]
+    }
+  ],
+  "loginStatus": 200,
+  "permisosRecurso12": [
+    1,
+    2,
+    3
+  ],
+  "plan": {
+    "dispositivo": {
+      "id": 47,
+      "serial": "BUGCHECK-REASIGN-001",
+      "es_activo": false,
+      "id_infraestructura": 3
+    },
+    "sensor": {
+      "id": 29,
+      "nombre": "SensorBugcheck",
+      "categoria": "PH",
+      "es_activo": true,
+      "id_dispositivo_iot": 47
+    },
+    "areaCorrecta": {
+      "id_infraestructura": 3,
+      "punto_instalacion": "origen",
+      "fecha_finalizacion": null
+    },
+    "areasHistoricasDelSensor": [
+      3
+    ],
+    "rangoTecnico": {
+      "categoria": "PH",
+      "min": "0.0000",
+      "max": "14.0000",
+      "fuente": "GET /configuracion/sensores/rangos-calibracion"
+    },
+    "valor": "7.0000",
+    "historialPrevio": {
+      "total": 0,
+      "items": []
+    },
+    "caso": "TC-M09-146",
+    "areaEnviada": {
+      "id_infraestructura": 3,
+      "esLaCorrecta": true,
+      "existe": true
+    },
+    "invalidezIntencional": "el dispositivo 47 existe pero es_activo=false"
+  },
+  "historyBefore": {
+    "total": 0,
+    "items": []
+  },
+  "cuerpoEnviado": "{\"id_dispositivo_iot\":47,\"id_infraestructura\":3,\"valor_referencia\":7.0000,\"fecha_calibracion\":\"2026-09-06T04:53:47.498Z\",\"observaciones\":\"QA TC-M09-146 G76 run-20260906\"}"
+}

@@ -1,0 +1,203 @@
+{
+  "tc": "TC-M03-G167",
+  "summary": {
+    "total": 32,
+    "ok": 23,
+    "falla": 9,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "00.01-Login-Admin :: Login 200",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.02-Verificar-Dispositivo-346 :: Preflight: Dispositivo 346 existe y activo",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.03-Verificar-Sensor-536 :: Preflight: Sensor 536 existe y activo",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.04-Verificar-Precondiciones-Fixture :: Preflight: Fixture SQL válido y libre de contaminación",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1A.01-Ingestar-Serie-22 :: 1A: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1A.02-Ingestar-Lectura-Evaluada :: 1A: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1A.03-Evaluar-Calidad :: 1A (5.00% borde estricto — sin flag): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 75 to equal 100",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1B.01-Ingestar-Serie-22 :: 1B: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1B.02-Ingestar-Lectura-Evaluada :: 1B: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1B.03-Evaluar-Calidad :: 1B (7.00% <10%): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 75 to equal 90",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "1C.01-Ingestar-Serie-22 :: 1C: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1C.02-Ingestar-Lectura-Evaluada :: 1C: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "1C.03-Evaluar-Calidad :: 1C (9.99% frontera <10%): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 75 to equal 90",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2A.01-Ingestar-Serie-22 :: 2A: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "2A.02-Ingestar-Lectura-Evaluada :: 2A: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "2A.03-Evaluar-Calidad :: 2A (10.00% frontera 10–20%): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 10.9091 to be close to 10 +/- 0.01",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "2B.01-Ingestar-Serie-22 :: 2B: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "2B.02-Ingestar-Lectura-Evaluada :: 2B: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "2B.03-Evaluar-Calidad :: 2B (15.00% tramo 10–20%): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 10.4348 to be close to 15 +/- 0.01",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.01-Ingestar-Serie-22 :: 3A: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3A.02-Ingestar-Lectura-Evaluada :: 3A: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3A.03-Evaluar-Calidad :: 3A (20.01% frontera >20%): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 60",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.04-Verificar-Alerta-RF57 :: 3A: [RF-57] Alerta técnica consultada",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3A.05-Verificar-Bitacora-RF63 :: 3A: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 'POSTCOMMIT_RF53_AUDITORIA_COMPLETADO' to equal 'EVALUACION_CALIDAD_COMPLETADA'",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3A.06-Verificar-Transicion-SUPERADA-D7 :: 3A: D7 - exactamente 1 VIGENTE",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3B.01-Ingestar-Serie-22 :: 3B: batch 200 (total=22, aceptados=22, rechazados=0)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3B.02-Ingestar-Lectura-Evaluada :: 3B: lectura evaluada ingerida 201",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3B.03-Evaluar-Calidad :: 3B (25.00% tramo >20%): evaluar 201 + oráculo exacto",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected +0 to equal 60",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.04-Verificar-Alerta-RF57 :: 3B: [RF-57] Alerta técnica consultada",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "3B.05-Verificar-Bitacora-RF63 :: 3B: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected 'RF62' to equal 'RF-62'",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3B.06-Verificar-Transicion-SUPERADA-D7 :: 3B: D7 - exactamente 1 VIGENTE",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "99.01-Rollback-Sandbox :: Rollback 200",
+      "esperado": "Aserción cumplida",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

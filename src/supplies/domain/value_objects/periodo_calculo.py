@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 """Value object que resuelve la ventana de fechas de un período ICA (RF-74).
 
 Traduce un ``PeriodoEvaluacion`` a un par ``(fecha_inicio, fecha_fin)`` concreto:
@@ -48,7 +51,7 @@ class PeriodoCalculo:
                 raise BusinessRuleError(
                     code="CICLO_SIN_FECHA_INICIO",
                     message=(
-                        "No es posible calcular el ICA POR_CICLO: el activo no tiene una "
+                        "No es posible calcular el ICA por ciclo: el activo no tiene una "
                         "fecha de inicio de ciclo productivo."
                     ),
                     field="periodo_evaluacion",

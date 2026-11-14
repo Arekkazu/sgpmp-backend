@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Reporte Consolidado TC-M03-G165 (reintento1)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 24px; color: #1f2937; }
+    h1 { margin-bottom: 4px; }
+    .summary { display: flex; gap: 16px; margin: 16px 0; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #f9fafb; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; }
+    th { background: #f3f4f6; }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <h1>TC-M03-G165 — Disparo de evaluación puntual y cálculo/clasificación del índice de calidad</h1>
+  <p><strong>RF:</strong> RF-62 | <strong>Ambiente:</strong> TEST | <strong>Fecha:</strong> 2026-10-30 | <strong>Corrida:</strong> reintento1</p>
+  <div class="summary">
+    <div><strong>Veredicto:</strong> <span style="color:#b91c1c;font-weight:700">RECHAZADO</span></div>
+    <div><strong>Total:</strong> 52</div>
+    <div><strong>OK:</strong> 51</div>
+    <div><strong>FALLA:</strong> 1</div>
+    <div><strong>Tiempo tests:</strong> 99.71s</div>
+    <div><strong>XMLs fusionados:</strong> 3</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Clase</th>
+        <th>Checkpoint (Paso)</th>
+        <th>Estado</th>
+        <th>Tiempo</th>
+        <th>Resultado Obtenido</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background:#f0fdf4">
+        <td>1</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_http_status_201</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>23.981s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>2</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_estado_evaluacion_normativo_d7_2</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>3</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_estado_evaluacion_vigente_activo</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>4</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_estado_evaluacion_en_catalogo_activo</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>5</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_invariante_una_sola_vigente</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.827s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#fef2f2">
+        <td>6</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_transicion_superada</code></td>
+        <td><strong style="color:#b91c1c">FALLA</strong></td>
+        <td>0.806s</td>
+        <td>AssertionError: Segunda evaluacion: 500 {&quot;error_code&quot;:&quot;ERROR_INTERNO&quot;,&quot;message&quot;:&quot;Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-10-30T05:50:22.709207+00:00&quot;</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>7</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_fecha_creacion_reciente</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.014s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>8</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_consistencia_get_calidad_por_sensor</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>2.762s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>9</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_consistencia_get_calidad_por_telemetria</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.939s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>10</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_actualizacion_flags_telemetria_calidad_vigente</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.715s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>11</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc303_auditoria_rf63_delta_y_campos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.520s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>12</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_s_base_flags_exactos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>13</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc319_flags_todos_inactivos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>14</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc319_indice_calidad_100</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>15</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc319_clasificacion_apto</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.011s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>16</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_tc319_aptitud_ia_y_nic41_true</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>17</td>
+        <td><code>TestEscenarioBase</code></td>
+        <td><code>TestEscenarioBase::test_teardown_rollback</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.513s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>18</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_s_318a_flags_exactos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>26.389s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>19</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_flag_outlier_estadistico</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>20</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_flag_posible_drift</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>21</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_flag_gap_temporal</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>22</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_trazabilidad_estadistica_presente</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>23</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_indice_calidad_60</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>24</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_clasificacion_apto_con_reserva</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>25</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_tc318a_aptitud_ia_true_nic41_false</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>26</td>
+        <td><code>TestEscenario318a</code></td>
+        <td><code>TestEscenario318a::test_teardown_rollback</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.917s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>27</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_s_318b_flags_exactos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>5.200s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>28</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_flag_congelado_moderado</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>29</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_flag_posible_drift_15</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>30</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_flag_outlier_inactivo</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>31</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_flag_gap_inactivo</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>32</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_indice_calidad_40</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>33</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_clasificacion_apto_con_reserva</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>34</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_tc318b_aptitud_ia_true_nic41_false</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>35</td>
+        <td><code>TestEscenario318b</code></td>
+        <td><code>TestEscenario318b::test_teardown_rollback</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.485s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>36</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_tc318c_no_error_5xx_con_sigma_cero</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>22.478s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>37</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_s_318c_flags_exactos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>38</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_tc318c_flag_congelado_critico</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>39</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_tc318c_flag_outlier_estadistico</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>40</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_tc318c_indice_satura_en_cero</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.004s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>41</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_tc318c_clasificacion_no_apto</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>42</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_tc318c_aptitud_ambas_false</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>43</td>
+        <td><code>TestEscenario318c</code></td>
+        <td><code>TestEscenario318c::test_teardown_rollback</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.486s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>44</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_s_320_flags_exactos</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>4.379s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>45</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_flag_congelado_moderado</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>46</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_flag_outlier_estadistico</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>47</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_flag_gap_temporal</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>48</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_indice_calidad_35</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.003s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>49</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_clasificacion_no_apto</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.002s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>50</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_aptitud_ambas_false</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>0.009s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>51</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_tc320_exclusion_m04_m06_condicionada</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.532s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+<tr style="background:#f0fdf4">
+        <td>52</td>
+        <td><code>TestEscenario320</code></td>
+        <td><code>TestEscenario320::test_teardown_rollback</code></td>
+        <td><strong style="color:#15803d">OK</strong></td>
+        <td>1.642s</td>
+        <td>Aserción cumplida</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,0 +1,98 @@
+{
+  "caso": "TC-M06-006",
+  "id": "G34-UI-006-01",
+  "estado": "RECHAZADO",
+  "motivo": "A Medido; B Medido",
+  "periodo": "8",
+  "activo_a": "943",
+  "activo_b": "945",
+  "fila_a": "Medido",
+  "fila_b": "Medido",
+  "texto_fila_a": "QA-M06-BOV-01 | Medido | [RESTO_DE_FILA_OMITIDO]",
+  "texto_fila_b": "QA-M06-BOV-03 | Medido | [RESTO_DE_FILA_OMITIDO]",
+  "mediciones_http": 200,
+  "captura": true,
+  "solicitudes": 11,
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/__g34_sonda__",
+      "http": 200,
+      "eco": true,
+      "local": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": true,
+      "local": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "eco": true,
+      "local": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "eco": true,
+      "local": false
+    }
+  ],
+  "login_sonda": true,
+  "login_resuelto_localmente": true,
+  "host_bloqueado": null
+}

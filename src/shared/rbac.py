@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-28 | Arekkazu | BE-0 RF-55: require_permission_sobre ubica el recurso por nombre |
+# | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87 FA-4: el 403 puede nombrar el rol del usuario |
+# | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: permiso «alguno de» por nombre de recurso |
 """Control de acceso basado en roles (RBAC) para endpoints FastAPI.
 
 Provee la dependencia ``require_permission`` que verifica en tiempo de
@@ -13,6 +18,7 @@ from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.models.permisos_model import Permisos
 from src.identity_access.infrastructure.models.recursos_model import Recursos
+from src.identity_access.infrastructure.models.roles_model import Roles
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 
@@ -102,33 +108,85 @@ def require_permission(
         db: Session = Depends(get_db),
         usuario_actual: UsuarioActual = Depends(get_current_user),
     ) -> None:
-        # RF-04: "Los permisos asociados a un rol solo serán efectivos para
-        # usuarios que se encuentren en estado activo dentro del sistema."
-        # El estado ya viene resuelto en ``UsuarioActual``, así que no hay
-        # consulta extra. El gate va aquí y no en ``get_current_user`` porque
-        # una cuenta PENDIENTE_DATOS (alta por SSO) sí debe poder autenticarse
-        # para completar su perfil por `/usuarios/me`, que no pasa por RBAC.
-        if usuario_actual.id_estado_cuenta != Cuenta.ESTADO_ACTIVO:
-            raise AuthorizationError(
-                code="CUENTA_NO_ACTIVA",
-                message=(
-                    "Acceso denegado. Su cuenta no se encuentra activa, por lo "
-                    "que los permisos de su rol no son efectivos."
-                ),
-            )
-
-        if not tiene_permiso(
-            db,
-            usuario_actual.id_rol,
-            id_recurso,
-            id_accion,
-        ):
-            raise AuthorizationError(
-                code="ACCESO_DENEGADO",
-                message=(
-                    mensaje_denegado
-                    or "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
-                ),
-            )
+        _exigir_permiso(
+            usuario_actual,
+            lambda: tiene_permiso(db, usuario_actual.id_rol, id_recurso, id_accion),
+            mensaje_denegado,
+        )
 
     return dependency
+
+
+def require_permission_sobre(nombre_recurso: str, id_accion: int, *, mensaje_denegado: Optional[str] = None) -> Callable:
+    """Como ``require_permission``, pero ubica el recurso por ``nombre_recurso``.
+
+    Para recursos sembrados por migraciones recientes, cuyo ``id_recurso`` sale
+    de la secuencia y no coincide entre bases (ver ``tiene_permiso_sobre``).
+    ``mensaje_denegado`` admite ``{rol}``, que se reemplaza por el nombre del rol
+    del usuario (RF-87 FA-4).
+    """
+    def dependency(
+        db: Session = Depends(get_db),
+        usuario_actual: UsuarioActual = Depends(get_current_user),
+    ) -> None:
+        _exigir_permiso(
+            usuario_actual,
+            lambda: tiene_permiso_sobre(db, usuario_actual.id_rol, nombre_recurso, id_accion),
+            mensaje_denegado,
+            db,
+        )
+
+    return dependency
+
+
+def require_alguno_sobre(pares: list[tuple[str, int]], *, mensaje_denegado: Optional[str] = None) -> Callable:
+    """Pasa si el rol tiene al menos uno de los permisos ``(nombre_recurso, id_accion)``.
+
+    Para lecturas de contexto que comparten varias pantallas (p. ej. los períodos contables,
+    que necesitan tanto quien cierra como quien solo consulta el estado de resultados).
+    """
+    def dependency(
+        db: Session = Depends(get_db),
+        usuario_actual: UsuarioActual = Depends(get_current_user),
+    ) -> None:
+        _exigir_permiso(
+            usuario_actual,
+            lambda: any(tiene_permiso_sobre(db, usuario_actual.id_rol, r, a) for r, a in pares),
+            mensaje_denegado,
+            db,
+        )
+
+    return dependency
+
+
+def _exigir_permiso(
+    usuario_actual: UsuarioActual,
+    tiene: Callable[[], bool],
+    mensaje_denegado: Optional[str],
+    db: Optional[Session] = None,
+) -> None:
+    # RF-04: "Los permisos asociados a un rol solo serán efectivos para
+    # usuarios que se encuentren en estado activo dentro del sistema."
+    # El estado ya viene resuelto en ``UsuarioActual``, así que no hay
+    # consulta extra. El gate va aquí y no en ``get_current_user`` porque
+    # una cuenta PENDIENTE_DATOS (alta por SSO) sí debe poder autenticarse
+    # para completar su perfil por `/usuarios/me`, que no pasa por RBAC.
+    if usuario_actual.id_estado_cuenta != Cuenta.ESTADO_ACTIVO:
+        raise AuthorizationError(
+            code="CUENTA_NO_ACTIVA",
+            message=(
+                "Acceso denegado. Su cuenta no se encuentra activa, por lo "
+                "que los permisos de su rol no son efectivos."
+            ),
+        )
+    if not tiene():
+        if mensaje_denegado and "{rol}" in mensaje_denegado and db is not None:
+            rol = db.query(Roles.nombre_rol).filter(Roles.id_rol == usuario_actual.id_rol).scalar()
+            mensaje_denegado = mensaje_denegado.replace("{rol}", rol or "sin rol asignado")
+        raise AuthorizationError(
+            code="ACCESO_DENEGADO",
+            message=(
+                mensaje_denegado
+                or "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+            ),
+        )

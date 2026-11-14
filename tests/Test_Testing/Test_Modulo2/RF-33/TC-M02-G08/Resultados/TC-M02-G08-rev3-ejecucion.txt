@@ -1,0 +1,89 @@
+
+TC-M02-G08 rev3 RF-33 TEST
+Coleccion: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-33\TC-M02-G08\tc_m02_g08_rev3.json
+Fecha UTC: 2026-09-26T02:29:46.5325813Z
+Un login. Password via env. Usuario: productor@pecuaria.co
+Endpoint: POST /activos-biologicos  (Swagger TEST /docs, OpenAPI RegistrarActivoBiologicoDTO)
+
+Newman: 9 requests, 35 assertions, 1 fallida (TC-M02-005 HTTP 201 vs 422).
+HTML: Resultados/TC-M02-G08-rev3-Newman.html
+JSON: Resultados/TC-M02-G08-rev3.json
+Newman exit code: 1 (NO se interpreta como veredicto automatico).
+
+PRECONDICIONES VERIFICADAS (antes y durante la corrida):
+- Login Productor HTTP 200, token presente, un intento.
+- Finca: id_finca=1 Finca Acuicola El Remanso, activa.
+- Especie: id_especie=4 Cachama Blanca, es_activo=true (existe en TEST).
+- Infraestructura: id_infraestructura=3, finca 1, es_activo=true, superficie=500.00.
+- Identificador individual generado unico: QAG08IND + Date.now() = QAG08IND1790389791824.
+- Variables sustituidas: especie_id=4, infraestructura_id=3 (no IDs inventados).
+- origen_financiero en minusculas compra/nacimiento (contrato DTO/OpenAPI).
+- Permiso POST: Productor creo el individual (recurso 29 accion 1). GET metricas M09 con Productor HTTP 403 (recurso 19).
+
+DESFASE CONTRATO:
+- Caso historico y rev2/rev3 usan los mismos nombres de campo que OpenAPI TEST actual.
+- GET historial expone categoria=CREACION, no tipo_evento ni version. Las assertions de rev2/rev3 ya usan categoria.
+- En codigo local (rama laura) RegistrarActivoBiologicoUseCase NO lanza DENSIDAD_MAXIMA_NO_CONFIGURADA; TEST desplegado SI lo hace en POST poblacional.
+- OpenAPI POST declara 201/400/401/403/409/422/429; no documenta el codigo DENSIDAD_MAXIMA_NO_CONFIGURADA.
+
+TC-M02-004 INDIVIDUAL: APROBADO
+Request (sin secretos):
+POST /activos-biologicos
+tipo_activo=INDIVIDUAL id_especie=4 fecha_inicio_ciclo=2026-09-08
+origen_financiero=compra costo_adquisicion=2500000 soporte_documental=factura_TC-M02-004-rev3.pdf
+id_infraestructura=3 identificador=QAG08IND1790389791824 raza=Cachama sexo=Macho
+fecha_nacimiento=2025-01-15T00:00:00Z peso_inicial=420 cantidad_inicial=null
+HTTP 201. id_activo_biologico=480 tipo=INDIVIDUAL estado ACTIVO (id_estado=1)
+costo_adquisicion=2500000.0000 persistido. detalle_poblacional=null.
+GET /activos-biologicos/480 HTTP 200, mismos datos, estado ACTIVO.
+GET /activos-biologicos/480/historial HTTP 200 total_registros=1 categoria=CREACION
+descripcion contiene "inicial"; snapshot detalle_especifico.id_activo_biologico=480.
+INC-M02-44-G08 sobre individual: el snapshot CREACION SI se genera y SI es consultable.
+Restauracion oficial: PATCH /activos-biologicos/480/estado HTTP 200 ACTIVO->INACTIVO.
+Tras restore GET 480 nombre_estado=INACTIVO id_estado=2; historial total=2 (ESTADO + CREACION). No DELETE.
+
+TC-M02-005 POBLACIONAL: BLOQUEADO (happy path no construible en TEST)
+Request (sin secretos):
+POST /activos-biologicos
+tipo_activo=POBLACIONAL id_especie=4 fecha_inicio_ciclo=2026-09-08
+origen_financiero=nacimiento costo_adquisicion=null soporte_documental=null
+id_infraestructura=3 identificador=null cantidad_inicial=25 peso_promedio_inicial=2.5
+HTTP 422 (NO 500).
+error_code=DENSIDAD_MAXIMA_NO_CONFIGURADA
+message=La especie no tiene configurada una densidad máxima en M09.
+field=id_especie
+No ID creado. GET activo/historial poblacional no ejecutados (skip). Restaurar poblacional no aplica.
+
+El body 005 es valido segun OpenAPI y DTO local (campos, enums, FA-02/FA-08 nacimiento).
+No es request mal formado. No es identificador unico. Especie e infra existen y estan activas.
+Productor tiene permiso de alta (demostrado por 004).
+Admin GET /configuracion/metricas: ninguna especie activa de TEST tiene metrica de densidad maxima.
+Cachama Blanca id=4 solo tiene metrica Peso (PESO, valor_max=null). Resto de especies activas: 0 metricas o solo Peso vivo QA JE.
+No se sustituyo especie en silencio. No se creo metrica M09. No se reejecuto POST 005 con otro ID.
+
+Clasificacion 005: BLOQUEADO por precondicion M09 (densidad maxima) que el backend TEST ahora exige.
+No se clasifica RECHAZADO por el 422 solo: es regla de negocio controlada, no ERROR_INTERNO.
+No es ERROR DE PRUEBA: la coleccion sustituye variables y el request no esta mal construido frente a OpenAPI.
+No es el defecto historico HTTP 500.
+
+TC-M02-G08 GENERAL: NO APROBADO (004 APROBADO + 005 BLOQUEADO).
+No se atribuye el 500 historico como vigente.
+
+INC-M02-44-G08:
+- En 004 queda COMPROBADO como cubierto: POST 201 + GET historial categoria CREACION con snapshot.
+- En 005 NO se pudo comprobar porque el alta no llega a 201.
+- El GET no expone tipo_evento ni version; persisten en BD segun codigo local (version=1, tipo_evento=CREACION).
+
+Comparacion vs rev2 2026-09-14:
+- rev2: ambos POST HTTP 500 ERROR_INTERNO, sin ID.
+- rev3: 004 HTTP 201 + historial CREACION; 005 HTTP 422 DENSIDAD_MAXIMA_NO_CONFIGURADA.
+El 500 de registro ya no se reproduce.
+
+Limitaciones:
+- Sin logs de servidor TEST; el 422 trae codigo de negocio suficiente.
+- Codigo DENSIDAD_MAXIMA_NO_CONFIGURADA no existe en src de rama laura; TEST desplegado diverge.
+- Productor no puede consultar metricas (403); el inventario de metricas se hizo con admin@pecuaria.co (solo lectura).
+- No se modifico producto, assertions, ni evidencias historicas.
+- Se redactaron cookies refresh_token de HTML/JSON.
+
+Clasificacion no automatica por Newman fail.

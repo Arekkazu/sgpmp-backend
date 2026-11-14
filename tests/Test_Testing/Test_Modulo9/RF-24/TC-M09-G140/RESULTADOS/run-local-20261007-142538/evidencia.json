@@ -1,0 +1,92 @@
+{
+  "grupo": "TC-M09-G140",
+  "caso": "TC-M09-286",
+  "requisito": "RF-24 v2.0",
+  "ambiente": "LOCAL_AISLADO",
+  "prueba_local": true,
+  "run_id": "run-local-20261007-142538",
+  "fecha": "2026-10-07T14:26:58.826451+00:00",
+  "artefacto_evaluado": {
+    "repositorio": "sgpmp-backend",
+    "carpetas": [
+      "src",
+      "alembic"
+    ]
+  },
+  "compuerta_previa": {
+    "piezas_requeridas": {
+      "operacion_vision": false,
+      "modo_calibracion": false,
+      "persistencia_baseline_vision": false,
+      "algoritmo_refinamiento": false,
+      "configuracion_max_iter": false,
+      "configuracion_epsilon": false,
+      "fuente_vector_vision": false,
+      "percentiles_p5_p95": false
+    },
+    "archivos_por_pieza": {
+      "operacion_vision": [],
+      "modo_calibracion": [],
+      "persistencia_baseline_vision": [],
+      "algoritmo_refinamiento": [],
+      "configuracion_max_iter": [],
+      "configuracion_epsilon": [],
+      "fuente_vector_vision": [],
+      "percentiles_p5_p95": []
+    },
+    "cumplidas": 0,
+    "total": 8
+  },
+  "falsos_positivos_descartados": {
+    "coincidencias": {
+      "CAMARA_VISION_y_atributos_de_camara": [
+        "alembic/versions/cf12e716a4ec_rfc006_rfc009_rfc011_taxonomia_camara_auditoria.py",
+        "src/configuration/application/use_cases/dispositivos_iot/registrar_dispositivo_iot_use_case.py"
+      ],
+      "linea_base_de_integridad_rf10": [
+        "alembic/versions/b5d81f27ac93_rf10_campos_completos_indices_baseline.py"
+      ]
+    },
+    "nota": "CAMARA_VISION es el tipo de dispositivo cámara y ATRIBUTOS_VISION sus atributos (resolución, fps, área de cobertura): no acreditan una operación de calibración VISION. 'Línea base de integridad' es de RF-10. Contarlos como presencia daría un falso positivo de ejecutabilidad."
+  },
+  "baseline_existente_no_vision": {
+    "archivos": [
+      "alembic/versions/8d80fb56a30b_rls_modulo1.py",
+      "alembic/versions/a1c3f6e0b2d4_rf15_eliminar_trigger_auditoria_especies_huerfano.py",
+      "alembic/versions/b5d81f27ac93_rf10_campos_completos_indices_baseline.py",
+      "alembic/versions/c8e4a5b13d72_rf10_sembrar_linea_base_integridad.py",
+      "alembic/versions/f7fe43537842_baseline_esquema_existente_antes_de_.py",
+      "src/identity_access/infrastructure/models/__init__.py",
+      "src/identity_access/infrastructure/models/integridad_baseline_model.py",
+      "src/identity_access/infrastructure/repositories/evento_repository.py"
+    ],
+    "nota": "Los 'baseline' de la rama son el baseline de integridad de RF-10 (modulo1.integridad_baseline) y el dump de esquema. No son la línea base VISION del Flujo F."
+  },
+  "laboratorio": {
+    "levantado": false,
+    "motivo": "No se crea un laboratorio local para una función inexistente: el paquete lo prohíbe expresamente y no se construyen mocks para simular VISION.",
+    "compose_no_creado": true
+  },
+  "config": {
+    "epsilon": null,
+    "max_iter_original": null,
+    "max_iter_durante": null,
+    "max_iter_restaurado": null
+  },
+  "baseline_previa": null,
+  "dataset_no_convergente": null,
+  "oracle": null,
+  "response": null,
+  "auditoria": null,
+  "baseline_post": null,
+  "presupuesto": {
+    "postVisionPlanificadosLocal": 2,
+    "postVisionEjecutados": 0
+  },
+  "resultado": "BLOQUEADO / NO VERIFICABLE",
+  "motivo": "El artefacto de la rama no contiene la implementación VISION: faltan operacion_vision, modo_calibracion, persistencia_baseline_vision, algoritmo_refinamiento, configuracion_max_iter, configuracion_epsilon, fuente_vector_vision, percentiles_p5_p95. Sin operación VISION, persistencia de línea base, algoritmo de refinamiento ni configuración de ε/máximo de iteraciones, el laboratorio no puede probar nada.",
+  "seguridad": {
+    "limpio": true,
+    "criterio": "La compuerta solo lee archivos del repositorio."
+  }
+}

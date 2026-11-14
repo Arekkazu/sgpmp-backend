@@ -1,0 +1,152 @@
+{
+  "grupo": "G127",
+  "run_id": "RUN-G127-V1-20261027-005735",
+  "version": 1,
+  "operacion": "evaluar",
+  "autorizacion": "AUT-G127-V1-20261027",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M03-256": {
+      "estado": "APROBADO",
+      "motivo": "Evento cfca1f87-0c58-4bd4-8fcf-65f117ec7f4b contiene los datos exigidos por CA-16"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-256",
+      "fuente": "API",
+      "id": "API-256-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Evento cfca1f87-0c58-4bd4-8fcf-65f117ec7f4b contiene los datos exigidos por CA-16",
+      "evidencia": "newman/newman-G127.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G127.json",
+    "newman/newman-G127.html",
+    "resultado.json",
+    "TC-M03-G127_resultado.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-20&fecha_fin=2026-10-27&sensor_id=6&pagina=1&por_pagina=20&orden=DESC",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/auditoria?tipo_evento=EXPORTACION_FALLIDA&id_usuario=35&rf_origen=RF59&fecha_desde=2026-10-27T00%3A57%3A30.090Z&fecha_hasta=2026-10-27T00%3A59%3A40.090Z&pagina=1&por_pagina=200",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G127-V1-20261027-005735",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "semilla": {
+    "inicio": "2026-10-20",
+    "fin": "2026-10-27",
+    "sensorId": 6
+  },
+  "diagnostico_seleccion": [
+    {
+      "sensor_id": 6,
+      "inicio": "2026-10-20",
+      "fin": "2026-10-27",
+      "total": 3,
+      "muestra_sensor": true,
+      "http": 200,
+      "eco": true
+    }
+  ],
+  "respuestas": {
+    "historial": {
+      "http": 200,
+      "eco": true,
+      "total": 3,
+      "registros_devueltos": 3
+    }
+  },
+  "auditoria": {
+    "busquedas": 1,
+    "filtro": {
+      "tipo_evento": "HISTORIAL_CONSULTADO",
+      "rf_origen": "RF59",
+      "id_usuario": 35,
+      "fecha_desde": "2026-10-27T00:57:30.090Z",
+      "fecha_hasta": "2026-10-27T00:59:40.090Z"
+    },
+    "total_ultimo": 2,
+    "estado": "APROBADO",
+    "motivo": "Evento cfca1f87-0c58-4bd4-8fcf-65f117ec7f4b contiene los datos exigidos por CA-16",
+    "valores": {
+      "id_evento": "cfca1f87-0c58-4bd4-8fcf-65f117ec7f4b",
+      "id_usuario": 35,
+      "id_rol": 2,
+      "sensor_id": 6,
+      "fecha_inicio": "2026-10-20",
+      "fecha_fin": "2026-10-27",
+      "por_pagina": 37,
+      "registros_devueltos": 3,
+      "timestamp": "2026-10-27T00:57:43.108627Z",
+      "exportado": false
+    },
+    "faltantes": []
+  },
+  "exportacion": {
+    "estado": "NO_APLICA",
+    "http": 503,
+    "eco": true,
+    "error": {
+      "codigo": "M08_NO_DISPONIBLE",
+      "mensaje": "El módulo de exportación (M08) no está disponible en este entorno. Reintente más tarde."
+    },
+    "formato_solicitado": "PDF",
+    "eventos_fallida": 0
+  },
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Sin escrituras de negocio del escenario; DELETE 200. Auditoría RF-63 y sesiones pueden persistir"
+    }
+  }
+}

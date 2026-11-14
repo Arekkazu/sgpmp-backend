@@ -1,0 +1,32 @@
+{
+  "tc": "TC-M02-G85",
+  "ronda": "V1",
+  "reintento": 0,
+  "fecha": "2026-09-10",
+  "run_id": "G85-20260910-000000",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-146: Rechazar asociación a activo en BAJA",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: ACTIVO_EN_BAJA",
+      "obtenido": "HTTP 422 Unprocessable Entity, error_code: ACTIVO_EN_BAJA sobre activo 10",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-146.html"
+    },
+    {
+      "paso": "TC-M02-147: Rechazar asociación entre fincas distintas",
+      "esperado": "HTTP 409 Conflict, error_code: INFRAESTRUCTURA_INCOMPATIBLE",
+      "obtenido": "HTTP 409 Conflict, error_code: INFRAESTRUCTURA_INCOMPATIBLE entre activo 108 (Finca 1) y sensor 8 (Finca 2)",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-147.html"
+    },
+    {
+      "paso": "TC-M02-148: Rechazar incompatibilidad de especie sensor-activo",
+      "esperado": "HTTP 400 Bad Request según catálogo I3P-1 / Incompatibilidad biológica",
+      "obtenido": "Subcaso bloqueado por dependencia externa no implementada: catálogo I3P-1 no aplica a especies, sensores sin atributo de especie en M09 y backend sin validación de especie",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-148.html",
+      "nota_qa": "V1 categorizada como Bloqueado / Rechazado: regla de validación de especie inexistente en backend y modelo de datos."
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "grupo": "TC-M09-G136",
+  "caso": "TC-M09-274",
+  "run_id": "run-20261010-010830",
+  "evaluacion": "SEGUNDA EVALUACION",
+  "herramienta": "Pytest. Newman: NO APLICA.",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven únicamente en EvaluacionV2/automation/; no se copian scripts dentro de RESULTADOS.",
+  "automation_dentro_de_RESULTADOS": "NO",
+  "artefactos": [
+    {
+      "archivo": "test_g136_v2.py",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/automation/test_g136_v2.py",
+      "funcion": "Test Pytest único de la reevaluación: guard del laboratorio, verificación de la tabla RF-10 contra el código actual, roles y privilegios, seed local idempotente, control sin fault, fault injection por REVOKE, las dos variantes, correlación de alertas, restauración en finally y consolidación de evidencia.",
+      "sha256": "adef8adb879077b76c22f7f0beee72187532327efc8e149dbf6393463cac4aa8",
+      "bytes": 55105,
+      "estado": "PRESENTE"
+    },
+    {
+      "archivo": "docker-compose.g136-v2.yml",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/automation/docker-compose.g136-v2.yml",
+      "funcion": "Laboratorio local aislado: PostgreSQL real con volumen exclusivo y backend del proyecto construido desde el código reevaluado, ambos publicados solo en localhost.",
+      "sha256": "a7a6deea4d61543544f0a0af59849ba33c391d380adb2f34f31870de02ea14d6",
+      "bytes": 4047,
+      "estado": "PRESENTE"
+    },
+    {
+      "archivo": "test_tc_m09_274.py",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/test_tc_m09_274.py",
+      "funcion": "Test de la primera evaluación. Reutilizado como base de esta reevaluación; se conserva intacto y no se ejecuta en este RUN.",
+      "sha256": "4819b80af997ef909ef3b6082ce6dba398ec71a426b262694ad3f8586ad988fd",
+      "bytes": 34076,
+      "estado": "PRESENTE"
+    },
+    {
+      "archivo": "docker-compose.g136.yml",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/docker-compose.g136.yml",
+      "funcion": "Compose de la primera evaluación. Reutilizado como base; se conserva intacto y no se ejecuta en este RUN.",
+      "sha256": "176a6b40e7a89c19c73203779eb8c7eb41f70c68f91df862d0de02cf8e151559",
+      "bytes": 3620,
+      "estado": "PRESENTE"
+    },
+    {
+      "archivo": "registrar_calibracion_use_case.py",
+      "ruta": "src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py",
+      "funcion": "Código del producto que audita el rechazo de calibración en modo best-effort. Se lee en solo lectura para verificar la tabla de RF-10 y la presencia del mecanismo.",
+      "sha256": "ada26cfd8dbd1d1b1382f3db4df17b6343f7247a7907e2867a2a82e032da1d14",
+      "bytes": 14663,
+      "estado": "PRESENTE"
+    }
+  ]
+}

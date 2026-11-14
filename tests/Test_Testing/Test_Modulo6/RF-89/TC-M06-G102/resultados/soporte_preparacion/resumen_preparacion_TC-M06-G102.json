@@ -1,0 +1,38 @@
+{
+  "caso": "TC-M06-G102",
+  "identificador_vigente": "TC-M06-G102",
+  "identificador_historico": "G74",
+  "rf": "RF-89",
+  "issues": ["976", "977"],
+  "fecha": "2026-11-10",
+  "zona": "America/Bogota",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "clasificacion": "BLOQUEADO",
+  "post_precios_ejecutado": false,
+  "sql": false,
+  "subcasos": [
+    {
+      "subcaso": "TC-M06-16",
+      "estado": "BLOQUEADO",
+      "causa": "TC-M06-32 y TC-M06-33, del caso TC-M06-G108, siguen sin ejecutarse. El precio de 5000000 reemplazaría la referencia MERCADO_ACTIVO de 4000000."
+    },
+    {
+      "subcaso": "TC-M06-17",
+      "estado": "BLOQUEADO",
+      "causa": "La lectura permite prepararlo sin el subcaso 16. Falta la autorización de escritura."
+    },
+    {
+      "subcaso": "TC-M06-18",
+      "estado": "BLOQUEADO",
+      "causa": "El diseño ya incluye la justificación de al menos 50 caracteres. Falta la autorización de escritura."
+    }
+  ],
+  "especie_424": {
+    "nombre": "Ovino Qa Precios",
+    "es_activo": true,
+    "categoria_precio": "POR_CABEZA",
+    "precios": 2,
+    "reconocidos": 0,
+    "umbral_desviacion": "50.00"
+  }
+}

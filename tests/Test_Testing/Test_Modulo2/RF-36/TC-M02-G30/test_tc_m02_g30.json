@@ -1,0 +1,232 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g30-rechazo-operaciones-lote",
+    "name": "TC-M02-G30 - Rechazo de operaciones sobre lote inexistente o activo no lote (RF-36)",
+    "description": "Prueba de aceptación agrupada para RF-36 (Módulo 2 - Gestión Poblacional): Subcasos TC-M02-194 y TC-M02-195.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_activo_inexistente",
+      "value": "99999",
+      "type": "string"
+    },
+    {
+      "key": "id_activo_individual",
+      "value": "5",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-194",
+      "description": "Subcaso TC-M02-194: Rechazar operación sobre lote inexistente",
+      "item": [
+        {
+          "name": "0. Iniciar sesión como Administrador (TC-M02-194)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Consultar activo biológico inexistente ID 99999 (TC-M02-194)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo_inexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_inexistente}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-194 - Código HTTP es 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-194 - Código de error de negocio ACTIVO_NO_ENCONTRADO', function () {",
+                  "    var res = pm.response.json();",
+                  "    var code = res.error_code || res.code;",
+                  "    pm.expect(code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-194 - Mensaje describe que el activo biológico no existe', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.message).to.be.a('string');",
+                  "    pm.expect(res.message.toLowerCase()).to.include('no existe');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-195",
+      "description": "Subcaso TC-M02-195: Rechazar operación poblacional sobre activo que no es tipo lote",
+      "item": [
+        {
+          "name": "0. Iniciar sesión como Administrador (TC-M02-195)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Registrar evento de crecimiento poblacional sobre activo INDIVIDUAL (TC-M02-195)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 350.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"nuevo_peso_promedio\": 350.5,\n  \"cantidad_medida\": 15,\n  \"descripcion\": \"TC-M02-195 Intento de registro poblacional sobre activo individual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo_individual}}/eventos/crecimiento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_individual}}",
+                "eventos",
+                "crecimiento"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-195 - Código HTTP es 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-195 - Código de error rechaza operación sobre activo individual', function () {",
+                  "    var res = pm.response.json();",
+                  "    var code = res.error_code || res.code;",
+                  "    pm.expect(['AGREGACION_NO_PERMITIDA', 'TIPO_ACTIVO_INVALIDO', 'VAL_ENTRADA']).to.include(code);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-195 - Mensaje explica restricción sobre activos individuales', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.message).to.be.a('string');",
+                  "    pm.expect(res.message.toLowerCase()).to.match(/tipo_agregacion|lote|individual/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

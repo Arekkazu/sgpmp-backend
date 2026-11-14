@@ -1,0 +1,293 @@
+{
+  "grupo": "TC-M09-G130",
+  "casos": [
+    "TC-M09-256",
+    "TC-M09-257"
+  ],
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "run_id": "run-20261007-085922",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/",
+  "mensaje_comun_esperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "(vacio)",
+    "diff_cached_stat": "(vacio)",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi": {
+    "fuente": "https://api.inmero.co/back-sigab-test/openapi.json",
+    "endpoints": {
+      "POST /configuracion/sensores/{id_sensor}/calibrar": {
+        "presente": true,
+        "codigosDeclarados": [
+          "201",
+          "400",
+          "401",
+          "403",
+          "404",
+          "422",
+          "500"
+        ]
+      },
+      "GET /configuracion/sensores/{id_sensor}/calibraciones": {
+        "presente": true,
+        "codigosDeclarados": [
+          "200",
+          "401",
+          "403",
+          "422"
+        ]
+      },
+      "GET /configuracion/dispositivos-iot/{id_dispositivo_iot}": {
+        "presente": true,
+        "codigosDeclarados": [
+          "200",
+          "401",
+          "403",
+          "404",
+          "422"
+        ]
+      }
+    },
+    "nota": "Los códigos declarados se registran como contexto; el oráculo del RF no se ajusta a OpenAPI."
+  },
+  "ids_inexistentes": {
+    "candidatos": [
+      999999,
+      999998,
+      888888
+    ],
+    "dispositivo_inexistente": 999999,
+    "sensor_inexistente": 999999,
+    "verificacion_dispositivo": [
+      {
+        "id": 999999,
+        "http": 404,
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO"
+      }
+    ],
+    "verificacion_sensor": [
+      {
+        "id": 999999,
+        "http": 200,
+        "total": 0,
+        "items": 0
+      }
+    ],
+    "criterio": "La inexistencia del dispositivo se acredita con el Administrador, que ve todos los dispositivos: el 404 del Ingeniero no distinguiría inexistencia de falta de alcance. El sensor se acredita por historial total 0 sin calibraciones."
+  },
+  "actor": {
+    "correo": "ingeniero@pecuaria.co",
+    "id_usuario": 4,
+    "rol": "Ingeniero de Campo",
+    "estado_cuenta": "Activo",
+    "credencial": "[REDACTED]",
+    "nota": "Los dos POST del caso los ejecuta el Ingeniero de Campo."
+  },
+  "actor_auxiliar": {
+    "correo": "administador.dev@gmail.com",
+    "credencial": "[REDACTED]",
+    "intentos": [
+      {
+        "correo": "admin.dev@gmail.com",
+        "resultado": "no autentica (HTTP 423 CUENTA_BLOQUEADA)"
+      },
+      {
+        "correo": "administador.dev@gmail.com",
+        "resultado": "autentica"
+      }
+    ],
+    "uso": "GET de precondición: fixture fuera del alcance del Ingeniero y acreditación de la inexistencia del dispositivo. No ejecuta POST."
+  },
+  "fixture": {
+    "origen": "fixture oficial del caso, validado por GET en este RUN",
+    "sensor_real": 6,
+    "dispositivo_real": 3,
+    "id_infraestructura": 3,
+    "categoria": "TEMPERATURA",
+    "valor_referencia": "22.5000"
+  },
+  "TC-M09-256": {
+    "escenario": "dispositivo inexistente en el body, sensor real en la ruta",
+    "id_dispositivo_inexistente": 999999,
+    "sensor_de_ruta": 6,
+    "pre": {
+      "total": 6,
+      "ids": [
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ]
+    },
+    "request": {
+      "endpoint": "/configuracion/sensores/6/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 999999,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-256",
+        "fecha_calibracion": "2026-10-07T08:59:29.503Z"
+      }
+    },
+    "response": {
+      "http": 404,
+      "cuerpo": {
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+        "message": "No existe un dispositivo IoT con ID 999999.",
+        "fields": [],
+        "timestamp": "2026-10-07T08:59:29.125652+00:00"
+      }
+    },
+    "post": {
+      "total": 6,
+      "ids": [
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ]
+    },
+    "ids_nuevos": [],
+    "mensaje_esperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "mensaje_obtenido": "No existe un dispositivo IoT con ID 999999.",
+    "diferencia_de_mensaje": {
+      "esperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+      "obtenido": "No existe un dispositivo IoT con ID 999999.",
+      "nota": "comparación exacta; un mensaje específico por entidad no es PASS aunque el HTTP sea 404"
+    },
+    "oraculo": {
+      "id_dispositivo_confirmado_inexistente": true,
+      "actor_ingeniero": true,
+      "sensor_de_ruta_valido": true,
+      "http_404": true,
+      "mensaje_exacto": false,
+      "sin_id_calibracion": true,
+      "mismos_ids": true,
+      "mismo_total": true
+    },
+    "resultado": "RECHAZADO",
+    "motivo": "El endpoint devolvió HTTP 404 y no persistió nada, pero el mensaje no coincide con el definido por RF-24 v2.0."
+  },
+  "TC-M09-257": {
+    "escenario": "sensor inexistente en la ruta, dispositivo real en el body",
+    "id_sensor_inexistente": 999999,
+    "dispositivo_del_body": 3,
+    "pre": {
+      "total": 0,
+      "items": []
+    },
+    "request": {
+      "endpoint": "/configuracion/sensores/999999/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-257",
+        "fecha_calibracion": "2026-10-07T08:59:29.893Z"
+      }
+    },
+    "response": {
+      "http": 404,
+      "cuerpo": {
+        "error_code": "SENSOR_NO_ENCONTRADO",
+        "message": "No existe un sensor con ID 999999.",
+        "fields": [],
+        "timestamp": "2026-10-07T08:59:29.515831+00:00"
+      }
+    },
+    "post": {
+      "total": 0,
+      "items": []
+    },
+    "mensaje_esperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "mensaje_obtenido": "No existe un sensor con ID 999999.",
+    "diferencia_de_mensaje": {
+      "esperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+      "obtenido": "No existe un sensor con ID 999999.",
+      "nota": "comparación exacta; un mensaje específico por entidad no es PASS aunque el HTTP sea 404"
+    },
+    "oraculo": {
+      "id_sensor_confirmado_inexistente": true,
+      "actor_ingeniero": true,
+      "dispositivo_del_body_valido": true,
+      "http_404": true,
+      "mensaje_exacto": false,
+      "sin_id_calibracion": true,
+      "historial_inexistente_total_cero": true
+    },
+    "resultado": "RECHAZADO",
+    "motivo": "El endpoint devolvió HTTP 404 y no persistió nada, pero el mensaje no coincide con el definido por RF-24 v2.0."
+  },
+  "resultado_general": "RECHAZADO",
+  "motivo_general": "El oráculo se alcanzó y el producto incumple: los rechazos ocurren con el código y sin persistencia, pero el mensaje no es el que define RF-24 v2.0.",
+  "stop_all": "NO",
+  "stop_all_motivo": null,
+  "presupuesto": {
+    "postPlanificados": 2,
+    "postEjecutados": 2
+  },
+  "incidencia": {
+    "requerida": "SÍ",
+    "grupo_responsable": "Desarrollo",
+    "grupo_de_prueba": "TC-M09-G130",
+    "casos_afectados": "ambos (TC-M09-256 y TC-M09-257)",
+    "resultado": "RECHAZADO",
+    "motivo": "Ambos escenarios devuelven HTTP 404 correctamente y sin persistencia, pero con mensajes específicos por entidad en lugar del mensaje común de referencia que define RF-24 v2.0.",
+    "esperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "obtenido": {
+      "TC-M09-256": "No existe un dispositivo IoT con ID 999999.",
+      "TC-M09-257": "No existe un sensor con ID 999999."
+    },
+    "causa_raiz": "La validación de existencia de hardware emite el mensaje propio de cada entidad y no el mensaje común del flujo alterno de RF-24 v2.0. No es un fallo de validación: el código HTTP y la ausencia de persistencia son correctos.",
+    "type": "bug",
+    "severity": "Normal",
+    "priority": "Normal",
+    "consolidada": "Una sola incidencia: ambas manifestaciones comparten la misma causa raíz.",
+    "evidencia": "evidencia.json / newman.html"
+  },
+  "newman": {
+    "assertions": 37,
+    "failures": 2,
+    "detalleFailures": [
+      {
+        "item": "256 POST calibrar",
+        "assertion": "5. TC-M09-256 — message coincide exactamente con el mensaje comun del RF",
+        "error": "expected 'No existe un dispositivo IoT con ID 9…' to deeply equal 'Error de referencia: El sensor o disp…'"
+      },
+      {
+        "item": "257 POST calibrar",
+        "assertion": "5. TC-M09-257 — message coincide exactamente con el mensaje comun del RF",
+        "error": "expected 'No existe un sensor con ID 999999.' to deeply equal 'Error de referencia: El sensor o disp…'"
+      }
+    ]
+  },
+  "seguridad": {
+    "hallazgos": [],
+    "limpio": true,
+    "criterio": "Se buscan valores de secreto, no vocabulario. El reporte Newman se genera con omitHeaders y sin environment, y se sanitiza después."
+  }
+}

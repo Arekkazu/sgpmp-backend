@@ -1,0 +1,32 @@
+TC-M02-G02 / TC-M02-003 - RF-00 - TEST
+Fecha UTC: 2026-09-14T23:27:01.225633+00:00
+Clasificacion funcional: APROBADO
+HTTP: {"login_productor": 200, "login_admin": 200, "get_productor_pre": 200, "post_productor": 403, "get_productor_post": 200}
+
+Pasos:
+- Login productor (productor@pecuaria.co) HTTP 200 (un intento).
+- Login admin (admin@pecuaria.co) HTTP 200 (un intento).
+- GET /configuracion/especies (productor_pre) HTTP 200.
+- Nombre de prueba elegido: Especie Seguridad Laura
+- POST /configuracion/especies (Productor) HTTP 403.
+- GET /configuracion/especies (productor_post) HTTP 200.
+- Auditoria de intento no verificable por API publica.
+
+Aserciones:
+- [PASS] login_productor: HTTP 200 con token (redactado).
+- [PASS] get_productor_precheck: Productor tiene lectura del catalogo.
+- [PASS] nombre_ausente_pre: 'Especie Seguridad Laura' no existe en precheck (productor).
+- [PASS] post_403: HTTP 403 (esperado 403).
+- [PASS] error_code_acceso_denegado: error_code=ACCESO_DENEGADO
+- [PASS] mensaje_autorizacion: Acceso denegado. Su rol no tiene permisos para realizar esta operación.
+- [PASS] no_creacion: coincidencias postcheck=0
+
+Auditoria: La auditoria del intento no pudo verificarse mediante API publica disponible.
+Residuo: ninguno: el POST no creo la especie
+
+Limitaciones:
+- POST /configuracion/especies exige RBAC recurso 8 accion C=1; el 403 sale de require_permission ANTES del caso de uso de registro.
+- No hay GET publico de intentos de autorizacion fallidos sobre especies.
+- Disponibilidad M02/M03/M04 no aplica a este escenario de denegacion.
+
+Password/JWT: no incluidos ([REDACTED]).

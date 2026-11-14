@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-51 (INC-M02-99-G97): el rango solicitado debe estar dentro del ciclo de
 vida real del activo (nacimiento/inicio de ciclo como cota inferior, fecha de
 baja o cierre como cota superior); si no, se rechaza con 400 antes de calcular.
@@ -64,7 +67,7 @@ def _activo_individual(*, nacimiento: date, inicio_ciclo: date | None = None, id
         id_activo_biologico=279,
         fecha_inicio_ciclo=inicio_ciclo,
         detalle_individual=DetalleIndividual(
-            raza='raza', sexo='M', fecha_nacimiento=datetime(nacimiento.year, nacimiento.month, nacimiento.day, tzinfo=timezone.utc)
+            raza='raza', sexo='M', fecha_nacimiento=nacimiento
         ),
     )
 

@@ -1,0 +1,1038 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "5216a701-6152-4109-8afc-ee6d573c5ed6",
+        "name": "[TC-M03-185][ASSERT][API-185-01] Dashboard global sin fincas",
+        "request": {
+          "url": {
+            "path": [
+              "iot",
+              "monitoreo",
+              "dashboard"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "4784e29b-4597-46fd-8bea-6c0a24e15813",
+              "type": "text/javascript",
+              "exec": [
+                "const j=pm.response.code===200?pm.response.json():{};",
+                "pm.test('[TC-M03-185][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                "pm.test('[TC-M03-185][ASSERT][API-185-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(j.total).to.eql(0);pm.expect(j.resumen_unidades).to.deep.eql([]);pm.expect(j.sensores).to.deep.eql([])});"
+              ],
+              "_lastExecutionId": "4fbe4e6e-fcfa-46ff-8ff3-5a2e08893aa7"
+            }
+          }
+        ]
+      },
+      {
+        "id": "7080045a-5a05-4154-9ea4-a689ba9bfb0a",
+        "name": "[TC-M03-185][ASSERT][API-185-02] Área antes asignada",
+        "request": {
+          "url": {
+            "path": [
+              "iot",
+              "monitoreo",
+              "dashboard",
+              "{{id_area_previa}}"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "3d5b8f54-0a0f-4d1d-b665-71e643ca6507",
+              "type": "text/javascript",
+              "exec": [
+                "if(!pm.environment.get('id_area_previa')) pm.execution.skipRequest();"
+              ],
+              "_lastExecutionId": "da5a008d-7ae2-4ab4-b8bb-a0f4b15717bf"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "id": "1b842595-1090-4510-9d8e-50ac5215f966",
+              "type": "text/javascript",
+              "exec": [
+                "const j=pm.response.code===200?pm.response.json():{};",
+                "pm.test('[TC-M03-185][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                "pm.test('[TC-M03-185][ASSERT][API-185-02]',()=>{pm.expect(pm.response.code).to.be.below(500);if(pm.response.code===200){pm.expect(j.total).to.eql(0);pm.expect(j.resumen_unidades).to.deep.eql([]);pm.expect(j.sensores).to.deep.eql([])}else pm.expect([403,404]).to.include(pm.response.code)});"
+              ],
+              "_lastExecutionId": "e31dbe0b-cc3a-4b06-b91a-e73410bceaa6"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "id": "c8afb33f-9052-496a-9957-31d9973f3e2c",
+          "type": "text/javascript",
+          "exec": [
+            "if(pm.environment.get('qa_autorizado')!=='SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+            "pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('token_productor')});",
+            "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+            "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+          ],
+          "_lastExecutionId": "9370fe3d-6300-45ec-9409-290bcf6825f3"
+        }
+      }
+    ],
+    "variable": [],
+    "info": {
+      "_postman_id": "5c757202-cda4-4ec3-9efe-606663e1961e",
+      "name": "G94 RF-58 TC-M03-185",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "a3648eca-9e9f-45f2-a6c3-1b70326dc297",
+    "values": [
+      {
+        "type": "any",
+        "value": "SI",
+        "key": "qa_autorizado"
+      },
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "token_productor"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G94-V1-20261031-090629",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "3",
+        "key": "id_area_previa"
+      }
+    ]
+  },
+  "globals": {
+    "id": "bda230f9-72c9-49ec-83de-7f49efabd0ba",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 325.5,
+      "responseMin": 154,
+      "responseMax": 497,
+      "responseSd": 171.5,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1793437597597,
+      "completed": 1793437598403
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 2,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "c3437d9d-13fb-4d3c-b825-d84df641bfd3",
+          "httpRequestId": "70615852-d766-4006-90b6-9703a73e30cc"
+        },
+        "item": {
+          "id": "5216a701-6152-4109-8afc-ee6d573c5ed6",
+          "name": "[TC-M03-185][ASSERT][API-185-01] Dashboard global sin fincas",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "4784e29b-4597-46fd-8bea-6c0a24e15813",
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.code===200?pm.response.json():{};",
+                  "pm.test('[TC-M03-185][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                  "pm.test('[TC-M03-185][ASSERT][API-185-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(j.total).to.eql(0);pm.expect(j.resumen_unidades).to.deep.eql([]);pm.expect(j.sensores).to.deep.eql([])});"
+                ],
+                "_lastExecutionId": "4fbe4e6e-fcfa-46ff-8ff3-5a2e08893aa7"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "iot",
+              "monitoreo",
+              "dashboard"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "RUN-G94-V1-20261031-090629"
+            },
+            {
+              "key": "X-Sandbox-Secret",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "f52c688a-3397-49e4-87d3-0951829852ae",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "25f06251-9b09-48f7-8a6e-ebdf99cf2a84",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "178"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 31 Oct 2026 09:06:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "9110efb7-146d-4d6f-8824-0f3f4dab901f"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "RUN-G94-V1-20261031-090629"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              53,
+              48,
+              44,
+              34,
+              114,
+              101,
+              115,
+              117,
+              109,
+              101,
+              110,
+              95,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              99,
+              111,
+              110,
+              116,
+              101,
+              111,
+              95,
+              115,
+              101,
+              109,
+              97,
+              102,
+              111,
+              114,
+              111,
+              34,
+              58,
+              123,
+              125,
+              44,
+              34,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              95,
+              118,
+              101,
+              110,
+              99,
+              105,
+              100,
+              97,
+              115,
+              95,
+              115,
+              105,
+              110,
+              95,
+              97,
+              116,
+              101,
+              110,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              110,
+              101,
+              108,
+              95,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              115,
+              34,
+              58,
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              48,
+              44,
+              34,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 497,
+          "responseSize": 178
+        },
+        "id": "5216a701-6152-4109-8afc-ee6d573c5ed6",
+        "assertions": [
+          {
+            "assertion": "[TC-M03-185][PRE][PRE-RUN-ECO]",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M03-185][ASSERT][API-185-01]",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "46e30dbb-7190-4d2e-9aeb-45862575e5bd",
+          "length": 2,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "a38c9e71-cf8e-41f9-b167-5d600c34741b"
+        },
+        "item": {
+          "id": "7080045a-5a05-4154-9ea4-a689ba9bfb0a",
+          "name": "[TC-M03-185][ASSERT][API-185-02] Área antes asignada",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard",
+                "{{id_area_previa}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "3d5b8f54-0a0f-4d1d-b665-71e643ca6507",
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('id_area_previa')) pm.execution.skipRequest();"
+                ],
+                "_lastExecutionId": "da5a008d-7ae2-4ab4-b8bb-a0f4b15717bf"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "1b842595-1090-4510-9d8e-50ac5215f966",
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.code===200?pm.response.json():{};",
+                  "pm.test('[TC-M03-185][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                  "pm.test('[TC-M03-185][ASSERT][API-185-02]',()=>{pm.expect(pm.response.code).to.be.below(500);if(pm.response.code===200){pm.expect(j.total).to.eql(0);pm.expect(j.resumen_unidades).to.deep.eql([]);pm.expect(j.sensores).to.deep.eql([])}else pm.expect([403,404]).to.include(pm.response.code)});"
+                ],
+                "_lastExecutionId": "e31dbe0b-cc3a-4b06-b91a-e73410bceaa6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "iot",
+              "monitoreo",
+              "dashboard",
+              "3"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "RUN-G94-V1-20261031-090629"
+            },
+            {
+              "key": "X-Sandbox-Secret",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "4fc6952e-ff93-4f41-a8b8-fa176e9c9a4c",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "2af2ccdc-a49d-47ac-a5a7-5cf1d825f170",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "178"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 31 Oct 2026 09:06:38 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "5292bbaf-cd88-48d4-a171-4a0a15889e81"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "RUN-G94-V1-20261031-090629"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              53,
+              48,
+              44,
+              34,
+              114,
+              101,
+              115,
+              117,
+              109,
+              101,
+              110,
+              95,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              99,
+              111,
+              110,
+              116,
+              101,
+              111,
+              95,
+              115,
+              101,
+              109,
+              97,
+              102,
+              111,
+              114,
+              111,
+              34,
+              58,
+              123,
+              125,
+              44,
+              34,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              95,
+              118,
+              101,
+              110,
+              99,
+              105,
+              100,
+              97,
+              115,
+              95,
+              115,
+              105,
+              110,
+              95,
+              97,
+              116,
+              101,
+              110,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              110,
+              101,
+              108,
+              95,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              115,
+              34,
+              58,
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              48,
+              44,
+              34,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 154,
+          "responseSize": 178
+        },
+        "id": "7080045a-5a05-4154-9ea4-a689ba9bfb0a",
+        "assertions": [
+          {
+            "assertion": "[TC-M03-185][PRE][PRE-RUN-ECO]",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M03-185][ASSERT][API-185-02]",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 356
+    },
+    "failures": [],
+    "error": null
+  }
+}

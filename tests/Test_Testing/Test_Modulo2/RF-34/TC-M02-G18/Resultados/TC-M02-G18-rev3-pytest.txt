@@ -1,0 +1,35 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.7', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 6 items
+
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_025_sin_activa PASSED [ 16%]
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_023_historial FAILED [ 33%]
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_022_activa PASSED [ 50%]
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_024_inexistente PASSED [ 66%]
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_026_solo_lectura PASSED [ 83%]
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_zz_global PASSED [100%]
+
+================================== FAILURES ===================================
+__________________________ test_tc_m02_023_historial __________________________
+tests\Test_Testing\Test_Modulo2\RF-34\TC-M02-G18\test_tc_m02_g18_rev3.py:498: in test_tc_m02_023_historial
+    pytest.fail(out["explicacion"])
+E   Failed: HTTP 200, 3 registros (cerradas=2, vigentes=1), orden real=DESC. El caso exige fecha_inicio ASC.
+============================== warnings summary ===============================
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_025_sin_activa
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_023_historial
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_022_activa
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_024_inexistente
+tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_026_solo_lectura
+  C:\Users\ll529\AppData\Local\Programs\Python\Python313\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- Generated html report: file:///C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/Resultados/TC-M02-G18-rev3-pytest.html -
+=========================== short test summary info ===========================
+FAILED tests/Test_Testing/Test_Modulo2/RF-34/TC-M02-G18/test_tc_m02_g18_rev3.py::test_tc_m02_023_historial
+=================== 1 failed, 5 passed, 5 warnings in 7.94s ===================

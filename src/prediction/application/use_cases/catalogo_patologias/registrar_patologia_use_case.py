@@ -1,9 +1,16 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M04-142-G004/139-G001 RF-64: variables repetidas no cuentan y versión del catálogo |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: solo las 11 variables del RF-64 |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
 from __future__ import annotations
 
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.prediction.application.use_cases.catalogo_patologias.auditoria_rechazo import auditar_rechazo
 from src.prediction.domain.entities.patologia_m04 import PatologiaM04
 from src.prediction.domain.entities.patologia_variable import PatologiaVariable
 from src.prediction.domain.repositories.especie_port import EspeciePort
@@ -12,7 +19,7 @@ from src.prediction.domain.repositories.historial_catalogo_repository import His
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.infrastructure.dto.registrar_patologia_dto import RegistrarPatologiaDTO
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
 
 
 class RegistrarPatologiaUseCase:
@@ -34,6 +41,17 @@ class RegistrarPatologiaUseCase:
         self._especie_port = especie_port
 
     def execute(self, dto: RegistrarPatologiaDTO, id_usuario: int) -> PatologiaM04:
+        try:
+            return self._ejecutar(dto, id_usuario)
+        except AppError as error:
+            # Sin id todavía: la referencia es el nombre que se intentó registrar.
+            auditar_rechazo(self._db, self._auditoria_repo, tipo_evento="CATALOGO_PATOLOGIA_AGREGADA",
+                            id_usuario=id_usuario, referencia=dto.nombre_patologia,
+                            payload={"id_patologia": None, "nombre": dto.nombre_patologia,
+                                     "especie_aplicable": dto.especie_aplicable}, error=error)
+            raise
+
+    def _ejecutar(self, dto: RegistrarPatologiaDTO, id_usuario: int) -> PatologiaM04:
         # FA-01: especie válida
         if not self._especie_port.especie_activa(dto.especie_aplicable):
             raise NotFoundError(
@@ -41,8 +59,9 @@ class RegistrarPatologiaUseCase:
                 message=f"La especie '{dto.especie_aplicable}' no existe o no está activa.",
             )
 
-        # FA-02: mínimo 2, máximo 6 variables + descripción clínica ≥50 chars
-        if not (2 <= len(dto.variables_sensoricas_asociadas) <= 6):
+        # FA-02: mínimo 2, máximo 6 variables distintas (repetir un id no cuenta) + descripción ≥50
+        ids_solicitados = list(dict.fromkeys(dto.variables_sensoricas_asociadas))  # deduplica preservando orden
+        if not (2 <= len(ids_solicitados) <= 6):
             raise BusinessRuleError(
                 code="CANTIDAD_VARIABLES_INVALIDA",
                 message="La patología debe tener entre 2 y 6 variables sensóricas asociadas.",
@@ -55,13 +74,13 @@ class RegistrarPatologiaUseCase:
             )
 
         # FA-03: todas las variables existen en I3P-1
-        ids_solicitados = list(dict.fromkeys(dto.variables_sensoricas_asociadas))  # deduplica preservando orden
-        ids_validos = self._variable_port.obtener_ids_activos(ids_solicitados)
+        # M4-02: activas en I3P-1 y entre las 11 del RF-64.
+        ids_validos = self._variable_port.obtener_ids_para_patologia(ids_solicitados)
         ids_invalidos = [i for i in ids_solicitados if i not in ids_validos]
         if ids_invalidos:
             raise BusinessRuleError(
                 code="VARIABLE_NO_EN_I3P1",
-                message=f"Las siguientes variables no están en el catálogo I3P-1: {ids_invalidos}.",
+                message=f"Las variables {ids_invalidos} no están entre las que admite una patología (RF-64).",
                 field="variables_sensoricas_asociadas",
             )
 
@@ -82,7 +101,9 @@ class RegistrarPatologiaUseCase:
             )
 
         variables = [PatologiaVariable(id_variable_ambiental=i) for i in ids_solicitados]
+        version = self._repo.siguiente_version_catalogo()
         entidad = PatologiaM04.crear(
+            version_catalogo=version,
             nombre=dto.nombre_patologia,
             especie_aplicable=dto.especie_aplicable,
             descripcion_clinica=dto.descripcion_clinica.strip(),
@@ -111,7 +132,8 @@ class RegistrarPatologiaUseCase:
             id_referencia=str(entidad.id_patologia),
             entidad_referencia="patologia",
             resultado_operacion="EXITOSO",
-            payload_evento=entidad._snapshot(),
+            # CU09 H-01: sin id_patologia en la raíz el evento quedaba como AUDITORIA_EVENTO_INVALIDO.
+            payload_evento={"id_patologia": entidad.id_patologia, **entidad._snapshot()},
         )
         try:
             self._db.commit()

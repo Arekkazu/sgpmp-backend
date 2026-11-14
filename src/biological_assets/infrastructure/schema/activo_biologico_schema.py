@@ -1,3 +1,10 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
+# | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -6,7 +13,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Optional
 
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator, BaseModel, ConfigDict
 
 # #213: la columna `densidad` es NUMERIC sin escala; la división en BD llega con
 # 20 decimales ("0.01000000000000000000") o en notación científica ("0E-20").
@@ -53,7 +60,7 @@ class DetalleIndividualResponse(BaseModel):
     id_detalle: Optional[int]
     raza: str
     sexo: str
-    fecha_nacimiento: datetime
+    fecha_nacimiento: Optional[date]  # RFC-014: opcional; día calendario
     peso_inicial: Optional[Decimal]
     fecha_creacion: Optional[datetime]
 
@@ -143,6 +150,10 @@ class ActivoBiologicoResponse(BaseModel):
     # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
     nombre_especie: Optional[str] = None
     nombre_infraestructura: Optional[str] = None
+    # RFC-014 (DEV-20): solo en el registro; informativa, el activo se registra igual (201).
+    advertencia_edad: Optional[str] = None
+    # #393: solo lo llena el listado, para lotes (POBLACIONAL); la ficha del lote trae el detalle completo.
+    estado_densidad: Optional["EstadoDensidadLoteResponse"] = None
 
     model_config = {'from_attributes': True}
 
@@ -167,6 +178,10 @@ class AsociacionInfraestructuraResponse(BaseModel):
     tipo_infraestructura: str
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
+    # RFC-012 (RF-34 1.2): derivada = capacidad_efectiva del área (floor(MIN densidad ×
+    # superficie)), no configurable. Solo en la asociación vigente; null si alguna
+    # especie del área no tiene densidad.
+    capacidad_maxima: Optional[int] = None
 
     model_config = {'from_attributes': True}
 
@@ -419,6 +434,24 @@ class FichaIntegralResponse(BaseModel):
     accesos_directos: list[AccesoDirectoResponse] = []
 
 
+class EstadoDensidadLoteResponse(BaseModel):
+    """Densidad del lote frente a su máximo (#394). ``estado``: OK, AVISO, EXCEDE o SIN_CONFIGURAR;
+    ``fuente``: ETAPA o ESPECIE, la más estricta."""
+    model_config = ConfigDict(from_attributes=True)
+
+    estado: str
+    densidad_maxima: Optional[Decimal] = None
+    fuente: Optional[str] = None
+    nombre_etapa: Optional[str] = None
+    porcentaje_del_maximo: Optional[Decimal] = None
+    aviso_preventivo_pct: int = 90
+    superficie: Optional[Decimal] = None
+    capacidad_maxima: Optional[int] = None
+    cupo_disponible: Optional[int] = None
+    biomasa_maxima: Optional[Decimal] = None
+    biomasa_por_m2: Optional[Decimal] = None
+
+
 class FichaLoteResponse(BaseModel):
     """Ficha de gestión de un lote con densidad, densidad máxima e historial (RF-36)."""
     id_activo_biologico: int
@@ -436,6 +469,7 @@ class FichaLoteResponse(BaseModel):
     densidad_maxima: Optional[Decimal] = None
     historial: list[RegistroHistorialResponse] = []
     total_registros_historial: int = 0
+    estado_densidad: Optional[EstadoDensidadLoteResponse] = None
 
 
 class TransferenciaResponse(BaseModel):
@@ -454,6 +488,7 @@ class InfraestructuraDisponibleResponse(BaseModel):
     id_infraestructura: int
     nombre: str
     tipo: str
+    # RFC-012: derivada = capacidad_efectiva del destino (floor(MIN densidad × superficie)).
     capacidad_maxima: Optional[int] = None
     ocupacion_actual: Optional[int] = None
     id_especie: Optional[int] = None
@@ -480,6 +515,9 @@ class AsociacionSensorActivoResponse(BaseModel):
     estado_asociacion: str
     motivo: Optional[str]
     advertencia: Optional[str] = None
+    # Para mostrar el sensor por nombre y no por id; None si no se pudo leer.
+    nombre_sensor: Optional[str] = None
+    serial_dispositivo: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
@@ -575,3 +613,8 @@ class RegistroCorrectivoAuditoriaResponse(BaseModel):
     id_activo_biologico: Optional[int]
     motivo: str
     timestamp_evento: datetime
+
+
+# #393: ActivoBiologicoResponse referencia EstadoDensidadLoteResponse, definido más abajo.
+ActivoBiologicoResponse.model_rebuild()
+ActivosPaginadosResponse.model_rebuild()

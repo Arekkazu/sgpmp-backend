@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<title>TC-M03-G164 - Calidad Telemetria RF-62</title>
+<style>body{font-family:sans-serif;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px;text-align:left;font-size:13px}th{background:#333;color:#fff}.ok{background:#d4edda}.falla{background:#f8d7da}.summary{padding:12px;background:#f4f4f4;margin-bottom:15px;border-radius:4px}</style>
+</head><body><div style="background:#002b5c;color:#fff;padding:12px;margin-bottom:15px;border-radius:4px;font-weight:bold;">CORRIDA DEFINITIVA - 2026-10-22 - run_id: test-run-3d455a54-74d5-4485-bbbd-066f7f9e9eac - TC-307 completo validado fuera de sandbox</div>
+<h1>TC-M03-G164 - Calidad Telemetria RF-62</h1>
+<div class="summary">
+<p><strong>Total Assertions: 41</strong></p>
+<p><strong>Total Failed Tests: 8</strong></p>
+<p>Veredicto: <strong>RECHAZADO</strong></p>
+<p>TC-307 completo validado fuera de sandbox (ver evidencias/run_20261022_1912/).</p>
+</div>
+<table><thead><tr><th>#</th><th>Paso</th><th>Esperado</th><th>Obtenido</th><th>Estado</th></tr></thead><tbody>
+<tr class="ok"><td>1</td><td>NW-00-Setup-Login-Admin :: [TC-M03-300] Setup Login Administrador exitoso (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>2</td><td>NW-01-PreflightA-Inventario :: [TC-M03-300] Preflight A: Descarga de dataset y construccion de oraculo (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>3</td><td>NW-01-PreflightA-Inventario :: [TC-M03-300] Preflight A: Descarga de dataset y construccion de oraculo (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>4</td><td>NW-01-PreflightA-DB-Query-Count :: [TC-M03-300] Preflight A: Oraculo SQL via /test-control/query (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>5</td><td>NW-03-PreflightB-Recalcular-Gating :: [TC-M03-300] Preflight B: Recalcular precondiciones de gating (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>6</td><td>NW-03-PreflightB-Recalcular-Gating :: [TC-M03-300] Preflight B: Recalcular precondiciones de gating (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>7</td><td>NW-TC-M03-301-Listar-Sin-Filtros :: [TC-M03-301] Estructura paginada y defaults (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>8</td><td>NW-TC-M03-301-Listar-Sin-Filtros :: [TC-M03-301] Todos los campos de CalidadEvaluacion presentes en cada item</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>9</td><td>NW-TC-M03-301-Listar-Sin-Filtros :: [TC-M03-301] Orden cronolÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³gico descendente por timestamp_evaluacion</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>10</td><td>NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302] Consulta por id_telemetria (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>11</td><td>NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302][RNF-07/CA-15] Existencia de claves de metadatos requeridos</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>12</td><td>NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302][RNF-07/CA-15] Valores no nulos y estructura de parametros aplicados</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>13</td><td>NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302] Coherencia estricta de aptitud e indice</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>14</td><td>NW-TC-M03-304-Filtrar-Sensor-Candidato :: [TC-M03-304] Aislamiento: 100% de items pertenecen al sensor y total coincide con oraculo</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>15</td><td>NW-TC-M03-304-Aislamiento-Segundo-Sensor :: [TC-M03-304] Aislamiento cruzado respecto a segundo sensor</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>16</td><td>NW-TC-M03-304-Paginacion-Combinada-Pag1 :: [TC-M03-304] Paginacion reducida Pagina 1 (por_pagina=3)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>17</td><td>NW-TC-M03-304-Paginacion-Combinada-Pag2 :: [TC-M03-304] Paginacion reducida Pagina 2 y total consistente</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>18</td><td>NW-TC-M03-305-Enum-INDETERMINADA :: [TC-M03-305] Filtrar por clasificacion=INDETERMINADA (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>19</td><td>NW-TC-M03-305-Enum-APTO :: [TC-M03-305] Filtrar por clasificacion=APTO (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>20</td><td>NW-TC-M03-305-Enum-APTO_CON_RESERVA :: [TC-M03-305] Filtrar por clasificacion=APTO_CON_RESERVA (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>21</td><td>NW-TC-M03-305-Enum-NO_APTO :: [TC-M03-305] Filtrar por clasificacion=NO_APTO (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>22</td><td>NW-TC-M03-305-Invalido-Rechazo :: [TC-M03-305] Rechazo de valor de enum invalido (espera 422)</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>23</td><td>NW-TC-M03-306-Rango-Fechas-Valido :: [TC-M03-306] Filtrado por rango temporal valido (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>24</td><td>NW-TC-M03-306-Frontera-Exacta :: [TC-M03-306] Frontera exacta fecha_desde == fecha_hasta (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>25</td><td>NW-TC-M03-306-Rango-Temporal-UTC :: [TC-M03-306] Equivalencia de rango temporal UTC (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>26</td><td>NW-TC-M03-306-Fechas-Invertidas-Rechazo :: [TC-M03-306] Rechazo de fecha_desde &gt; fecha_hasta (espera 422)</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="falla"><td>27</td><td>NW-TC-M03-307-ACTIVA-Invalido :: [TC-M03-307] Rechazo de estado_evaluacion=ACTIVA invalido (espera 422)</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>28</td><td>NW-TC-M03-308-Limite-Maximo-200 :: [TC-M03-308] Limite maximo por_pagina=200 (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>29</td><td>NW-TC-M03-308-Exceso-PorPagina-201 :: [TC-M03-308] Rechazo de por_pagina=201 (espera 4xx sin items)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>30</td><td>NW-TC-M03-308-Exceso-PorPagina-201 :: [TC-M03-308] Exceso status coincide con status_validacion_esperado (422)</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>31</td><td>NW-TC-M03-308-Pagina-Cero-Rechazo :: [TC-M03-308] Rechazo de pagina=0 (espera 4xx sin items)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>32</td><td>NW-TC-M03-308-Pagina-Cero-Rechazo :: [TC-M03-308] Pagina cero status coincide con status_validacion_esperado (422)</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>33</td><td>NW-TC-M03-308-PorPagina-Cero-Rechazo :: [TC-M03-308] Rechazo de por_pagina=0 (espera 4xx sin items)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>34</td><td>NW-TC-M03-308-PorPagina-Cero-Rechazo :: [TC-M03-308] por_pagina=0 status coincide con status_validacion_esperado (422)</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>35</td><td>NW-TC-M03-308-Pagina-Mayor-Ultima :: [TC-M03-308] Pagina mayor a la ultima retorna items vacios y total intacto (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>36</td><td>NW-TC-M03-308-Frontera-PorPagina-1 :: [TC-M03-308] Frontera minima valida por_pagina=1 (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>37</td><td>NW-99-Teardown-Cierre-Sandbox :: [TEARDOWN] Cierre transaccional del sandbox (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>38</td><td>NW-TC-M03-307-FueraSandbox :: [TC-M03-307] Filtrar estado_evaluacion=SUPERADA (200)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="ok"><td>39</td><td>NW-TC-M03-307-FueraSandbox :: [TC-M03-307] Todos los items con estado SUPERADA</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+<tr class="falla"><td>40</td><td>NW-TC-M03-307-FueraSandbox :: [TC-M03-307] motivo_reevaluacion no vacio en cada SUPERADA</td><td>PASSED</td><td>FAILED</td><td>FALLA</td></tr>
+<tr class="ok"><td>41</td><td>NW-98-Cobertura :: [COBERTURA] Subcasos con precondicion cumplida: 7/7 (TC-307 validado fuera de sandbox)</td><td>PASSED</td><td>PASSED</td><td>OK</td></tr>
+</tbody></table></body></html>

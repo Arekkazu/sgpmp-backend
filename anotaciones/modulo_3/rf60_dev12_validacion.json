@@ -1,0 +1,699 @@
+{
+  "tarea": "DEV-12 / #3524",
+  "fecha": "2026-10-19",
+  "rama": "fix/dev12-heartbeat-extendido",
+  "base_revision": "07db21e0",
+  "base_rama": "fix/dev05-ingesta-bplus-postcommit",
+  "dependencia_db03": {
+    "commit": "80238afc",
+    "revision": "65541db23c71",
+    "rama": "origin/feature/aiot-db03-columnas-heartbeat-vision",
+    "presente_en_origin_dev": false,
+    "columnas_ausentes_en_dev": [
+      "json_sensores_operativos",
+      "temperatura_dispositivo"
+    ],
+    "no_se_creo_otra_migracion": true
+  },
+  "inspeccion_sgpmp_dev": {
+    "identidad": [
+      "sgpmp_dev",
+      "on"
+    ],
+    "revisiones": "Sin permiso SELECT; se verifica el esquema efectivo.",
+    "columnas": [
+      [
+        "modulo3",
+        "heartbeats",
+        "id_heartbeat",
+        "integer",
+        "NO",
+        "nextval('modulo3.hearbeats_id_heartbeat_seq'::regclass)"
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "id_dispositivo_iot",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "tipo_mensaje",
+        "USER-DEFINED",
+        "NO",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "nivel_bateria_pct",
+        "numeric",
+        "YES",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "calidad_senal_rssi",
+        "numeric",
+        "YES",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "calidad_senal_snr",
+        "numeric",
+        "YES",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "estado_local_buffer",
+        "\"char\"",
+        "YES",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "datos_pendientes_buffer",
+        "integer",
+        "NO",
+        "0"
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "version_firmware",
+        "character varying",
+        "YES",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "coordenadas",
+        "jsonb",
+        "YES",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "fecha_registro",
+        "timestamp with time zone",
+        "NO",
+        null
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "fecha_recepcion",
+        "timestamp with time zone",
+        "NO",
+        "now()"
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "reloj_sincronizado",
+        "boolean",
+        "NO",
+        "false"
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "id_configuracion_global",
+        "integer",
+        "NO",
+        "nextval('modulo9.configuraciones_globales_id_configuracion_global_seq'::regclass)"
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "frecuencia_muestreo",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "heartbeat",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "fecha_actualizacion",
+        "timestamp with time zone",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "id_usuario",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "es_activo",
+        "boolean",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "id_configuracion_remota",
+        "integer",
+        "NO",
+        "nextval('modulo9.configuraciones_remotas_id_configuracion_remota_seq'::regclass)"
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "frecuencia_captura",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "intervalo_transmision",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "id_dispositivo_iot",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "estado",
+        "character varying",
+        "NO",
+        "'PENDIENTE'::character varying"
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "id_usuario",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "fecha_creacion",
+        "timestamp with time zone",
+        "YES",
+        "now()"
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "fecha_aplicacion",
+        "timestamp with time zone",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "fps",
+        "integer",
+        "YES",
+        null
+      ]
+    ],
+    "formatos_firmware_observados": [
+      [
+        "0.1.0"
+      ],
+      [
+        "v1.9.5"
+      ],
+      [
+        "v2.1.0"
+      ],
+      [
+        "v2.0.1"
+      ],
+      [
+        "pi-test"
+      ],
+      [
+        "demo-1.0"
+      ],
+      [
+        "1.2.3"
+      ]
+    ],
+    "parametros_relacionados_mlops": [],
+    "escrituras": false
+  },
+  "entorno_integracion": {
+    "motor": "PostgreSQL 18.4 local aislado",
+    "baseline": "3a9d5e7c1b24",
+    "db03": "upgrade exacto de 65541db23c71 aplicado con Operations.context, sin cambiar registro Alembic del baseline",
+    "http": "FastAPI router real y repositorios reales",
+    "mqtt": "INSERT SQL equivalente, sin broker real",
+    "politica_temperatura_firmware": "dobles del puerto, no configuracion persistida M09 real"
+  },
+  "grupos": {
+    "telemetria": {
+      "aprobadas": 90,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "xfail": 0,
+      "total": 90,
+      "resultados_no_aprobados": []
+    },
+    "integracion": {
+      "aprobadas": 46,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 1,
+      "xfail": 2,
+      "total": 49,
+      "resultados_no_aprobados": [
+        {
+          "prueba": "tests.integration.test_dev05_ingesta_bplus_postcommit::test_contrato_db02_sin_calibracion_deja_valor_ajustado_null",
+          "estado": "xfail",
+          "motivo": "DB-02 pendiente: la función actual no deja valor_ajustado NULL sin calibración"
+        },
+        {
+          "prueba": "tests.integration.test_dev05_ingesta_bplus_postcommit::test_contrato_db02_rechazo_sql_conserva_bitacora",
+          "estado": "xfail",
+          "motivo": "DB-02 pendiente: la función actual no registra sus rechazos en bitacora_ingest"
+        },
+        {
+          "prueba": "tests.integration.test_dev05_ingesta_bplus_postcommit::test_serie_20_lecturas_evalua_rf62_cuando_dev02_esta_integrado",
+          "estado": "omitidas",
+          "motivo": "Requiere DEV-02 integrado; esta rama no duplica su corrección."
+        }
+      ]
+    },
+    "configuracion": {
+      "aprobadas": 555,
+      "fallidas": 1,
+      "errores": 0,
+      "omitidas": 0,
+      "xfail": 0,
+      "total": 556,
+      "resultados_no_aprobados": [
+        {
+          "prueba": "tests.configuration.test_rf26_identidad_visual_accesibilidad::test_la_aplicacion_sirve_el_directorio_de_logotipos",
+          "estado": "fallidas",
+          "motivo": "ModuleNotFoundError: fcntl, dependencia preexistente M02 al importar main"
+        }
+      ]
+    },
+    "prediccion": {
+      "aprobadas": 23,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "xfail": 0,
+      "total": 23,
+      "resultados_no_aprobados": []
+    },
+    "shared": {
+      "aprobadas": 73,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "xfail": 0,
+      "total": 73,
+      "resultados_no_aprobados": []
+    }
+  },
+  "total_distinto": {
+    "aprobadas": 787,
+    "fallidas": 1,
+    "errores": 0,
+    "omitidas": 1,
+    "xfail": 2,
+    "total": 791
+  },
+  "nuevas_pruebas": [
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos0]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos3]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos4]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_opcionales_validos[campos6]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor0]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[fallido]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor3]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor4]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor6]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor7]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor8]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor9]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor10]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_incompatibles_se_rechazan[valor11]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[45.5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[valor2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[valor3]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[nan]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[inf]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[1000]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_invalida_o_no_representable_en_db03[valor7]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_ausencia_o_sensores_operativos_no_generan_fallo[None]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_ausencia_o_sensores_operativos_no_generan_fallo[sensores1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_ausencia_o_sensores_operativos_no_generan_fallo[sensores2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_sensores_fallidos_se_consolidan_identifican_y_conservan_origen",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_alerta_equivalente_activa_evade_duplicado",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_usa_umbrales_inyectados_sin_inventar_configuracion_real[valor0-False-None]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_usa_umbrales_inyectados_sin_inventar_configuracion_real[valor1-False-None]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_usa_umbrales_inyectados_sin_inventar_configuracion_real[valor2-True-MODERADO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_usa_umbrales_inyectados_sin_inventar_configuracion_real[valor3-True-MODERADO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_temperatura_usa_umbrales_inyectados_sin_inventar_configuracion_real[valor4-True-CRITICO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_cambio_politica_temperatura_afecta_mismo_consumidor",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_firmware_respeta_comparacion_del_puerto_sin_ordenar_textos[False]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_firmware_respeta_comparacion_del_puerto_sin_ordenar_textos[True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_dependencia_ausente_falla_visible_sin_alerta_ficticia[temperatura-cambios0-UMBRAL_SOBRECALENTAMIENTO_NO_DISPONIBLE]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_dependencia_ausente_falla_visible_sin_alerta_ficticia[firmware-cambios1-POLITICA_FIRMWARE_NO_DISPONIBLE]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_campos_ausentes_no_exigen_politica",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev12_heartbeat_extendido::test_error_de_commit_no_confirma_heartbeat",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_compatible_y_sin_falsos_fallos[None]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_compatible_y_sin_falsos_fallos[sensores1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_compatible_y_sin_falsos_fallos[sensores2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_sin_campos_nuevos_conserva_contrato_y_estado",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_invalido_no_persiste[campos0]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_invalido_no_persiste[campos1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_invalido_no_persiste[campos2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_invalido_no_persiste[campos3]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_identidad_invalida_conserva_rechazo_http",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_y_sql_comparten_evaluacion_postcommit_y_trazabilidad",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_reintentos_y_otro_heartbeat_no_duplican_pero_otro_sensor_no_se_suprime",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_fallo_configuracion_no_bloquea_sensor_ni_pierde_heartbeat",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_http_ambos_campos_se_persisten_sin_politica",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_recuperacion_tras_configuracion_y_cambio_sin_recrear_worker",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_firmware_con_politica_inyectada_conserva_datos_y_no_duplica",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_fallo_al_guardar_alerta_revierte_etapa_y_permite_reintento",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_json_invalido_del_broker_queda_pendiente_sin_alerta_ficticia",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev12_heartbeat_extendido::test_heartbeat_sin_commit_no_es_visible_para_otro_procesador",
+      "estado": "aprobadas"
+    }
+  ],
+  "nota_conteo": "44 unitarias enfocadas incluidas en las 90 de telemetria; no sumarlas de nuevo. 18 integraciones nuevas incluidas en las 46 aprobadas del grupo integrado.",
+  "archivos_no_recolectables_fcntl": [
+    "tests/configuration/test_inc_m09_75_g142_disparo_automatico_vision.py",
+    "tests/telemetry/test_inc_m09_77_g137_observaciones_vision.py"
+  ],
+  "controles": {
+    "compileall": "aprobado",
+    "bandit": "sin hallazgos en archivos de produccion DEV-12, cache offline",
+    "git_diff_check": "aprobado",
+    "semgrep": "no ejecutado"
+  },
+  "pendientes": [
+    "Integrar y aplicar DB-03 existente",
+    "Integrar DEV-05 en dev",
+    "Fuente persistente M09 de temperatura y minimo firmware",
+    "Convencion/comparador FW-06 autorizado",
+    "Broker BRK-07 y firmware reales no verificados",
+    "Correspondencia sensor D11 con RF-58/RF-59 no formalizada"
+  ],
+  "no_ejecutadas_por_dependencia": [
+    "Lectura real del umbral termico y minimo firmware desde M09",
+    "Comparacion real de versiones inferiores/iguales/superiores y multisegmento FW-06",
+    "Integracion MQTT real con BRK-07 y FW-06"
+  ],
+  "push": false,
+  "migraciones_compartidas": false
+}

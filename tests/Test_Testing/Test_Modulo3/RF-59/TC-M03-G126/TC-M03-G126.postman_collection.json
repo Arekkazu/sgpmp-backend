@@ -1,0 +1,472 @@
+{
+  "info": {
+    "name": "TC-M03-G126 — Inmutabilidad de las consultas del historial (RF-59)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "TC-M03-255. Solo consultas GET del historial entre los dos snapshots de BD (sin exportación). Solo se ejecuta desde ejecutar_tc_m03_g126.mjs con autorización vigente, dentro del sandbox del RUN."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Barrera: la colección solo se ejecuta desde ejecutar_tc_m03_g126.mjs con autorización vigente.",
+          "const autorizado = pm.environment.get(\"autorizado_run\") === \"SI\" && !!pm.environment.get(\"run_id\") && /^https:\\/\\//.test(pm.environment.get(\"base_url\") || \"\");",
+          "if (!autorizado) { if (pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest(); throw Error(\"BLOQUEO_G126\"); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"[PRE] respuesta dentro del sandbox del RUN\", () => pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[TC-M03-255] historial por unidad productiva, recorrido de páginas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const items = cuerpo && Array.isArray(cuerpo.items) ? cuerpo.items : [];",
+              "const controlados = JSON.parse(pm.environment.get(\"ids_sensores\") || \"[]\");",
+              "const pagina = Number(pm.environment.get(\"pagina\") || \"1\");",
+              "pm.test(`[TC-M03-255][PRE] consulta de historial ejecutada (HTTP 200): unidad productiva, página ${pagina}`, () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test(`[TC-M03-255][INFO] unidad productiva, página ${pagina}: total ${cuerpo && cuerpo.total}, ${items.filter(i => controlados.includes(Number(i.id_sensor))).length} lecturas del conjunto en la página`, () => {});",
+              "const totalPaginas = cuerpo && Number(cuerpo.paginas_totales) > 0 ? Number(cuerpo.paginas_totales) : 1;",
+              "if (pm.response.code === 200 && pagina < totalPaginas && pagina < 10) {",
+              "  pm.environment.set(\"pagina\", String(pagina + 1));",
+              "  if (pm.execution && typeof pm.execution.setNextRequest === \"function\") pm.execution.setNextRequest(pm.info.requestName);",
+              "  else postman.setNextRequest(pm.info.requestName);",
+              "} else {",
+              "  pm.test(`[TC-M03-255][PRE] se recorrieron varias páginas del historial (${pagina} de ${totalPaginas})`, () => pm.expect(pagina >= 2, \"páginas recorridas\").to.eql(true));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&id_infraestructura={{id_area}}&por_pagina=5&pagina={{pagina}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            },
+            {
+              "key": "por_pagina",
+              "value": "5"
+            },
+            {
+              "key": "pagina",
+              "value": "{{pagina}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-255] historial por sensor, segunda página",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const items = cuerpo && Array.isArray(cuerpo.items) ? cuerpo.items : [];",
+              "const controlados = JSON.parse(pm.environment.get(\"ids_sensores\") || \"[]\");",
+              "pm.test(\"[TC-M03-255][PRE] consulta de historial ejecutada (HTTP 200): sensor, página 2\", () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test(`[TC-M03-255][INFO] sensor, página 2: total ${cuerpo && cuerpo.total}, ${items.filter(i => controlados.includes(Number(i.id_sensor))).length} lecturas del conjunto en la página`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&por_pagina=2&pagina=2",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "por_pagina",
+              "value": "2"
+            },
+            {
+              "key": "pagina",
+              "value": "2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-255] historial por variable",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const items = cuerpo && Array.isArray(cuerpo.items) ? cuerpo.items : [];",
+              "const controlados = JSON.parse(pm.environment.get(\"ids_sensores\") || \"[]\");",
+              "pm.test(\"[TC-M03-255][PRE] consulta de historial ejecutada (HTTP 200): variable TEMPERATURA_AMBIENTAL\", () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test(`[TC-M03-255][INFO] variable TEMPERATURA_AMBIENTAL: total ${cuerpo && cuerpo.total}, ${items.filter(i => controlados.includes(Number(i.id_sensor))).length} lecturas del conjunto en la página`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&tipo_variable=TEMPERATURA_AMBIENTAL&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "tipo_variable",
+              "value": "TEMPERATURA_AMBIENTAL"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-255] historial por estado del dato",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const items = cuerpo && Array.isArray(cuerpo.items) ? cuerpo.items : [];",
+              "const controlados = JSON.parse(pm.environment.get(\"ids_sensores\") || \"[]\");",
+              "pm.test(\"[TC-M03-255][PRE] consulta de historial ejecutada (HTTP 200): estado LECTURA_VALIDA\", () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test(`[TC-M03-255][INFO] estado LECTURA_VALIDA: total ${cuerpo && cuerpo.total}, ${items.filter(i => controlados.includes(Number(i.id_sensor))).length} lecturas del conjunto en la página`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&estado_dato=LECTURA_VALIDA&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "estado_dato",
+              "value": "LECTURA_VALIDA"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-255] historial por origen, orden ascendente y con alertas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const items = cuerpo && Array.isArray(cuerpo.items) ? cuerpo.items : [];",
+              "const controlados = JSON.parse(pm.environment.get(\"ids_sensores\") || \"[]\");",
+              "pm.test(\"[TC-M03-255][PRE] consulta de historial ejecutada (HTTP 200): origen TIEMPO_REAL, ASC, con alertas\", () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test(`[TC-M03-255][INFO] origen TIEMPO_REAL, ASC, con alertas: total ${cuerpo && cuerpo.total}, ${items.filter(i => controlados.includes(Number(i.id_sensor))).length} lecturas del conjunto en la página`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&origen_dato=TIEMPO_REAL&orden=ASC&incluir_alertas=true&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "origen_dato",
+              "value": "TIEMPO_REAL"
+            },
+            {
+              "key": "orden",
+              "value": "ASC"
+            },
+            {
+              "key": "incluir_alertas",
+              "value": "true"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-255] historial por unidad y sensor, orden descendente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const items = cuerpo && Array.isArray(cuerpo.items) ? cuerpo.items : [];",
+              "const controlados = JSON.parse(pm.environment.get(\"ids_sensores\") || \"[]\");",
+              "pm.test(\"[TC-M03-255][PRE] consulta de historial ejecutada (HTTP 200): unidad y sensor, DESC\", () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test(`[TC-M03-255][INFO] unidad y sensor, DESC: total ${cuerpo && cuerpo.total}, ${items.filter(i => controlados.includes(Number(i.id_sensor))).length} lecturas del conjunto en la página`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&id_infraestructura={{id_area}}&sensor_id={{id_sensor}}&orden=DESC&por_pagina=3",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "orden",
+              "value": "DESC"
+            },
+            {
+              "key": "por_pagina",
+              "value": "3"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+================================================================================
+CIERRE DE EVIDENCIA A02 - TC-M05-G39 (REINTENTO 1)
+================================================================================
+Alcance: solo lectura de codigo local y evidencias de ejecuciones previas.
+Staging analizado: tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/evidencias/run-20261111-232824/
+
+--------------------------------------------------------------------------------
+1) Mapeo timestamp_emision -> columna (fecha_emision) y emisores en src/supplies y alembic/
+--------------------------------------------------------------------------------
+A. Definiciones de fecha_emision en modelos, esquemas, entidades, puertos, repositorios y router:
+- alembic/baseline/esquema_baseline.sql:25606
+    `fecha_emision timestamp with time zone,` (dentro de `CREATE TABLE modulo5.auditorias_suministros`, L25595-25619).
+    En `alembic/baseline/esquema_baseline.sql` NO existe ningun `COMMENT ON COLUMN modulo5.auditorias_suministros...` ni mencion a `timestamp_emision`.
+- alembic/versions/*.py:
+    Ninguna migracion define ni comenta `fecha_emision` ni menciona `timestamp_emision` para `modulo5.auditorias_suministros`.
+    (Las unicas migraciones sobre `modulo5.auditorias_suministros` o su enum son `bf404c6f1018_m05_flujo_completo_suministros.py` L94-99/461-463, `f7463281b461_rls_modulo_05.py` L142/307 y `d96480a11e01_rf80_identidad_integridad_auditoria_m05.py` L21-83.)
+- src/supplies/infrastructure/models/auditoria_suministro_model.py:63
+    `fecha_emision: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))`
+    (El docstring de clase en L4-16 no menciona `fecha_emision` ni `timestamp_emision`.)
+- src/supplies/infrastructure/schema/auditoria_suministro_schema.py:32
+    `fecha_emision: Optional[datetime] = None` (en `EventoAuditoriaSuministroResponse`; sin `Field(description=...)`).
+- src/supplies/domain/entities/evento_auditoria_suministro.py:32
+    `fecha_emision: Optional[datetime]` (en `EventoAuditoriaSuministroConsulta`; sin comentario por campo).
+- src/supplies/domain/repositories/auditoria_suministro_port.py:43
+    `fecha_emision: Optional[datetime] = None` (en dataclass `EventoAuditoriaSuministro`; el docstring L7-15 no menciona `fecha_emision` ni `RNF-08`).
+- src/supplies/domain/repositories/auditoria_suministro_read_port.py:3,41
+    L3 (historial): `# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |`
+    L41: `ordenar_por: str = "fecha_evento"  # RNF-08: fecha_evento (registro) o fecha_emision (emisión en M05)`
+- src/supplies/infrastructure/repositories/auditoria_suministro_read_repository.py:10,40
+    L10 (docstring): `... orden descendente por ``fecha_evento`` o ``fecha_emision`` (RNF-08).`
+    L40 (`_a_entidad`): `fecha_emision=orm.fecha_emision,`
+- src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:14,56
+    L14 (docstring): `` ``fecha_emision`` es el ``timestamp_emision`` de M05 (RNF-08). ``
+    L56 (`SqlAlchemyAuditoriaSuministroRepository.registrar`): `fecha_emision=evento.fecha_emision or datetime.now(timezone.utc),`
+- src/supplies/infrastructure/routers/auditoria_suministros_router.py:4,69-70
+    L4 (historial): `# | 2026-11-08 | Arekkazu | RFC-025 RF-80 v2.0 RNF-08: orden por fecha del evento o de emisión |`
+    L69-70: `ordenar_por: Literal["fecha_evento", "fecha_emision"] = Query(default="fecha_evento", description="Orden descendente por fecha de registro o de emisión (RNF-08)")`
+- src/supplies/application/use_cases/auditoria/exportar_auditoria_suministros_use_case.py:70,96,136
+    Define la columna de exportacion CSV/PDF/Excel `"fecha_emision"` con etiqueta `"Fecha de emisión"` (sin citar `timestamp_emision` ni `RNF-08`).
+
+B. Emisores de auditoria en la aplicacion (`EventoAuditoriaSuministro(...)` en `src/supplies`) y triggers SQL:
+- Emisores que pasan `fecha_emision` explicitamente:
+  1) `src/supplies/application/use_cases/costeo_suministros/movimiento_ledger.py:93-104` -> `fecha_emision=ahora,` (L103).
+  2) `src/supplies/application/use_cases/eficiencia/calcular_ica_use_case.py:244-252` (solo en `_auditar_fallo`) -> `fecha_emision=datetime.now(timezone.utc),` (L251).
+- Emisores que omiten `fecha_emision` en `EventoAuditoriaSuministro(...)` (toma default `None` en `auditoria_suministro_port.py:43` y al persistir recibe `datetime.now(timezone.utc)` en `auditoria_suministro_repository.py:56`):
+  3) `src/supplies/application/use_cases/auditoria/registrar_intento_modificacion_auditoria_use_case.py:27-32`
+  4) `src/supplies/application/use_cases/costeo_suministros/registrar_correccion_suministro_use_case.py:229-239`
+  5) `src/supplies/application/use_cases/costeo_suministros/registrar_suministro_directo_use_case.py:357-368` (rechazos) y `386-396` (`_registrar_fallo`)
+  6) `src/supplies/application/use_cases/exportacion/purgar_archivos_vencidos_use_case.py:44-53`
+  7) `src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:201-209`
+  8) `src/supplies/application/use_cases/historial_suministros/exportar_historial_sincrono_use_case.py:228-236`
+  9) `src/supplies/application/use_cases/provision_nic41/consolidar_ciclo_use_case.py:145-158`
+  10) `src/supplies/application/use_cases/provision_nic41/despachar_provisiones_m06_use_case.py:122-137`
+  11) `src/supplies/application/use_cases/reporte_gastos/consultar_reporte_gastos_use_case.py:64-77`
+  12) `src/supplies/application/use_cases/reporte_gastos/exportar_reporte_gastos_use_case.py:164-178` y `282-289`
+  13) `src/supplies/application/use_cases/reporte_gastos/generar_reporte_gastos_use_case.py:323-336`
+- Triggers DML de BD que insertan directo en `modulo5.auditorias_suministros` (omiten `fecha_emision` en su `INSERT`, quedando `NULL` al no haber `DEFAULT` ni trigger que la rellene):
+  - `alembic/baseline/esquema_baseline.sql:11210-11249` (`modulo5.fn_trg_auditoria_consumo_alimento()`, usado por `trg_auditoria_consumo_alimento` en L42885)
+  - `alembic/baseline/esquema_baseline.sql:11258-11284` (`modulo5.fn_trg_auditoria_costos_productivos()`, usado por `trg_auditoria_costos_productivos` en L42892)
+  - `alembic/baseline/esquema_baseline.sql:11293-11332` (`modulo5.fn_trg_auditoria_medicamento()`, usado por `trg_auditoria_medicamento` en L42899)
+  - `alembic/baseline/esquema_baseline.sql:11341-11374` (`modulo5.fn_trg_auditoria_resultado_ica()`, usado por `trg_auditoria_resultado_ica` en L42906)
+
+C. Respuesta literal sobre el vinculo con `timestamp_emision` / `RNF-08`:
+- SI. Literalmente existe vinculo explicito en:
+  1) `src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:14`:
+     `` ``fecha_emision`` es el ``timestamp_emision`` de M05 (RNF-08). ``
+- Ademas, otras fuentes vinculan `fecha_emision` con `RNF-08` (sin usar la cadena literal `timestamp_emision`):
+  2) `src/supplies/domain/repositories/auditoria_suministro_read_port.py:41`:
+     `ordenar_por: str = "fecha_evento"  # RNF-08: fecha_evento (registro) o fecha_emision (emisión en M05)`
+  3) `src/supplies/infrastructure/routers/auditoria_suministros_router.py:69-70`:
+     `description="Orden descendente por fecha de registro o de emisión (RNF-08)"`
+  4) `src/supplies/infrastructure/repositories/auditoria_suministro_read_repository.py:10`:
+     `... orden descendente por ``fecha_evento`` o ``fecha_emision`` (RNF-08).`
+
+--------------------------------------------------------------------------------
+2) DEFAULT, NOT NULL y CHECK sobre fecha_emision, tipo_operacion, resultado y alcance de fn_sellar_auditoria_m05
+--------------------------------------------------------------------------------
+A. En `alembic/baseline/esquema_baseline.sql`:
+- `fecha_emision` (L25606): `fecha_emision timestamp with time zone,`
+  -> NO tiene `NOT NULL`, NO tiene `DEFAULT`, NO tiene `CHECK`.
+- `tipo_operacion` (L25598): `tipo_operacion modulo5.enum_auditoria_suministro_tipo_operacion NOT NULL,`
+  -> Tiene `NOT NULL` y tipo ENUM `modulo5.enum_auditoria_suministro_tipo_operacion` (L1166-1181, ampliado con 4 valores en `alembic/versions/bf404c6f1018_m05_flujo_completo_suministros.py:94-99,461-463`); NO tiene `DEFAULT` ni `CHECK`.
+- `resultado` (L25605): `resultado modulo5.enum_auditoria_suministro_resultado NOT NULL,`
+  -> Tiene `NOT NULL` y tipo ENUM `modulo5.enum_auditoria_suministro_resultado` (`'EXITOSO'`, `'FALLIDO'`, `'RECHAZADO'`, L1153-1157); NO tiene `DEFAULT` ni `CHECK`.
+
+B. En `alembic/versions/*.py` (incluyendo `d96480a11e01_rf80_identidad_integridad_auditoria_m05.py`):
+- `alembic/versions/d96480a11e01_rf80_identidad_integridad_auditoria_m05.py:21-31` SOLO agrega:
+  - columnas `id_evento_m05 uuid NOT NULL DEFAULT gen_random_uuid()` y `version_hash_integridad integer NOT NULL DEFAULT 1` (luego `SET DEFAULT 2`, L26),
+  - `CONSTRAINT uq_auditorias_suministros_id_evento_m05 UNIQUE(id_evento_m05)` (L27),
+  - `CONSTRAINT ck_auditorias_suministros_version_hash CHECK(version_hash_integridad IN (1,2))` (L28),
+  - `CONSTRAINT ck_auditorias_suministros_incompleto_causa CHECK(registro_incompleto IS NOT TRUE OR NULLIF(btrim(detalle_causa),'') IS NOT NULL) NOT VALID;` (L29-30).
+  -> Ninguna migracion agrega `DEFAULT`, `NOT NULL` ni `CHECK` sobre `fecha_emision`, `tipo_operacion` o `resultado`.
+
+C. Comportamiento de `modulo5.fn_sellar_auditoria_m05()` (`alembic/versions/d96480a11e01_rf80_identidad_integridad_auditoria_m05.py:41-50`):
+  41: `CREATE FUNCTION modulo5.fn_sellar_auditoria_m05() RETURNS trigger LANGUAGE plpgsql AS $$`
+  42: `BEGIN`
+  43: `  NEW.version_hash_integridad := 2;`
+  44: `  NEW.hash_integridad := modulo5.fn_hash_evento_auditoria_m05(to_jsonb(NEW),2);`
+  45: `  RETURN NEW;`
+  46: `END;`
+  47: `$$;`
+  49-50: `CREATE TRIGGER trg_audit_hash BEFORE INSERT ON modulo5.auditorias_suministros FOR EACH ROW EXECUTE FUNCTION modulo5.fn_sellar_auditoria_m05();`
+  -> Respuesta literal: NO valida ni completa ningun otro campo ademas de fijar `version_hash_integridad := 2` y calcular `hash_integridad`.
+
+--------------------------------------------------------------------------------
+3) Cadena de llamadas que escribe en modulo5.resultado_ica durante POST /activos-biologicos/{id}/cierre
+--------------------------------------------------------------------------------
+Cadena exacta observada (y el trigger AFTER INSERT OR UPDATE resultante en `modulo5.auditorias_suministros`):
+1. Endpoint HTTP:
+   `src/biological_assets/infrastructure/routers/activo_biologico_router.py:1436-1474`
+   - Decorador `@router.post('/{id_activo}/cierre', ...)` (router `/activos-biologicos`, ver L11 y L1436-1437) -> `cerrar_ciclo(...)` (L1451).
+   - Instancia `CerrarCicloUseCase(..., suministros=CierreCicloSuministrosM05Adapter(db))` (L1465-1473) e invoca `use_case.execute(id_activo, dto, usuario_actual)` (L1474).
+2. Caso de uso de cierre M02:
+   `src/biological_assets/application/use_cases/gestion/cerrar_ciclo_use_case.py:143-144`
+   - Antes de cerrar la fase/estado llama `self.suministros.antes_de_cerrar(id_activo, usuario.id_usuario, dto.fecha_cierre)` (L144).
+3. Adaptador M02 -> M05:
+   `src/biological_assets/infrastructure/adapters/cierre_ciclo_suministros_m05_adapter.py:27-38`
+   - `CierreCicloSuministrosM05Adapter.__init__` construye `ProcesarCierreCicloSuministrosUseCase(..., calcular_ica=build_calcular_ica_use_case(db), ...)` (L29-35).
+   - `antes_de_cerrar(...)` delega a `self._servicio.antes_de_cerrar(id_activo, id_usuario, fecha_cierre)` (L37-38).
+4. Caso de uso puente en M05:
+   `src/supplies/application/use_cases/cierre_ciclo/procesar_cierre_ciclo_use_case.py:58-77`
+   - `antes_de_cerrar(...)`: tras verificar retiros de medicamentos (L59-68), si `activo is not None and activo.esta_activo` (L69-70), llama:
+     `self.calcular_ica.calcular_sin_commit(id_activo_biologico=id_activo, periodo=PeriodoEvaluacion.POR_CICLO, tipo_calculo=TipoCalculo.MANUAL, id_usuario=id_usuario, fecha_corte=fecha_cierre)` (L71-77).
+5. Caso de uso de calculo ICA:
+   `src/supplies/application/use_cases/eficiencia/calcular_ica_use_case.py:130-220`
+   - `CalcularICAUseCase.calcular_sin_commit(...)` (L130) calcula y construye `resultado = ResultadoICA.desde_calculo(...)` (L207-217) y ejecuta `guardado = self.resultado_repo.guardar(resultado)` (L220).
+6. Repositorio SQLAlchemy de `modulo5.resultado_ica`:
+   `src/supplies/infrastructure/repositories/resultado_ica_repository.py:98-135`
+   - `SqlAlchemyResultadoICARepository.guardar(...)`:
+     - si `resultado.es_vigente`, ejecuta `UPDATE modulo5.resultado_ica SET es_vigente=False ...` + `self.db.flush()` (L100-111);
+     - construye `orm = ResultadoIcaModel(...)` (`__tablename__ = 'resultado_ica'`, `__table_args__ = {'schema': 'modulo5'}`, `resultado_ica_model.py:21-23`) y ejecuta `self.db.add(orm)` + `self.db.flush()` (L113-132).
+7. Disparo en BD (auditoria derivada por trigger):
+   - El `UPDATE`/`INSERT` flusheado sobre `modulo5.resultado_ica` dispara `trg_auditoria_resultado_ica` (`alembic/baseline/esquema_baseline.sql:42906`), que ejecuta `modulo5.fn_trg_auditoria_resultado_ica()` (`alembic/baseline/esquema_baseline.sql:11341-11374`).
+   - Dicha funcion inserta en `modulo5.auditorias_suministros` con `entidad_afectada = 'resultado_ica'`, `tipo_operacion = 'INSERT'` o `'UPDATE'`, `id_activo_biologico`, y sin columna `fecha_emision` ni `id_ciclo_productivo` (ambos `NULL`). (`CerrarCicloUseCase.execute` hace `self.db.commit()` al final en `cerrar_ciclo_use_case.py:164`.)
+
+--------------------------------------------------------------------------------
+4) Reproduccion previa en TC-M05-G37 (run-20261111-204540) y barrido de evidencias G37/G38
+--------------------------------------------------------------------------------
+A. Eventos en `tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/evidencias/run-20261111-204540/trazas_http.jsonl`:
+- `entidad_afectada = "costos_productivos"`: **NO_EN_TRAZAS** (0 apariciones).
+- `entidad_afectada = "resultado_ica"`: **32** eventos distintos (125 apariciones totales contando listados paginados). En los 32 eventos, `fecha_emision` es `null` y `id_ciclo_productivo` es `null`.
+  Destaca el evento `72201` (activo `1850`), generado en esa misma corrida justo por `POST /activos-biologicos/1850/cierre -> 200` (traza L36, `x_request_id=2ddb102b-44c7-477d-a9e8-7f58d42f19f1`, test `test_a01c_rf79_exito_cierre`) y observado en la consulta inmediata siguiente (traza L37).
+
+| id_auditoria_suministro | entidad_afectada | tipo_operacion | fecha_emision | id_ciclo_productivo | id_activo_biologico | Primera observacion en traza (test, x_request_id) |
+|---|---|---|---|---|---|---|
+| 71577 | resultado_ica | INSERT | null | null | 160 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71578 | resultado_ica | UPDATE | null | null | 161 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71579 | resultado_ica | INSERT | null | null | 161 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71580 | resultado_ica | UPDATE | null | null | 159 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71581 | resultado_ica | INSERT | null | null | 159 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71582 | resultado_ica | UPDATE | null | null | 160 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71583 | resultado_ica | INSERT | null | null | 160 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71584 | resultado_ica | UPDATE | null | null | 161 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71585 | resultado_ica | UPDATE | null | null | 159 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71586 | resultado_ica | INSERT | null | null | 161 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71587 | resultado_ica | INSERT | null | null | 159 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71588 | resultado_ica | UPDATE | null | null | 162 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71589 | resultado_ica | INSERT | null | null | 162 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71590 | resultado_ica | UPDATE | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71591 | resultado_ica | INSERT | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71592 | resultado_ica | UPDATE | null | null | 162 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71593 | resultado_ica | UPDATE | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71594 | resultado_ica | INSERT | null | null | 162 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71595 | resultado_ica | INSERT | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71610 | resultado_ica | UPDATE | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71611 | resultado_ica | INSERT | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71612 | resultado_ica | UPDATE | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71613 | resultado_ica | INSERT | null | null | 163 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71616 | resultado_ica | UPDATE | null | null | 159 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71617 | resultado_ica | INSERT | null | null | 159 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71622 | resultado_ica | UPDATE | null | null | 1021 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71623 | resultado_ica | INSERT | null | null | 1021 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71624 | resultado_ica | UPDATE | null | null | 1035 | L53 (test_a04_restriccion_8_campos_minimos, req=4669b689-149c-4e89-add3-d259e73a9ff4) |
+| 71625 | resultado_ica | INSERT | null | null | 1035 | L9 (test_a01a_rf78_exito_y_persistencia, req=f2bbe625-2876-420b-b3ad-4412642ca922) |
+| 71999 | resultado_ica | UPDATE | null | null | 1627 | L9 (test_a01a_rf78_exito_y_persistencia, req=f2bbe625-2876-420b-b3ad-4412642ca922) |
+| 72000 | resultado_ica | INSERT | null | null | 1627 | L9 (test_a01a_rf78_exito_y_persistencia, req=f2bbe625-2876-420b-b3ad-4412642ca922) |
+| 72201 | resultado_ica | INSERT | null | null | 1850 | L37 (test_a01c_rf79_exito_cierre, req=b8f453be-7c9b-4771-98e7-c32dedb5fa14) |
+
+B. Repeticion de busqueda de `costos_productivos` en TODAS las evidencias de TC-M05-G37 y TC-M05-G38 (trazas JSONL y demas archivos bajo `evidencias/`):
+- TC-M05-G37:
+  - `evidencias/run-20261107-183021/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 1 evento distinto).
+  - `evidencias/run-20261107-183057/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 1 evento distinto).
+  - `evidencias/run-20261111-204540/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 32 eventos distintos).
+  - Demas archivos bajo `TC-M05-G37/evidencias/` (`fase1_20261111-203000/`, `run-20261107-182837/`, informes, observaciones): 0 apariciones de `costos_productivos`.
+- TC-M05-G38:
+  - `evidencias/run-20261107-183432/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 0).
+  - `evidencias/run-20261107-183515/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 0).
+  - `evidencias/run-20261107-183547/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 0).
+  - `evidencias/run-20261111-212529/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 1 evento distinto).
+  - `evidencias/run-20261111-213418/trazas_http.jsonl`: `costos_productivos` = **NO_EN_TRAZAS** (0 hits; `resultado_ica` = 1 evento distinto).
+  - Demas archivos bajo `TC-M05-G38/evidencias/`: 0 apariciones de `costos_productivos`.

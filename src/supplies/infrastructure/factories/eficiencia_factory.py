@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74 E5: auditoría del fallo manual      |
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: conectar el notificador de M01 con la interrupción manual. |
 """Fábricas de wiring del CU-02 (RF-74).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -23,7 +27,13 @@ from src.supplies.infrastructure.adapters.activo_m02_adapter import ActivoM02Ada
 from src.supplies.infrastructure.adapters.activos_batch_m02_adapter import ActivosBatchM02Adapter
 from src.supplies.infrastructure.adapters.alerta_ica_m03_adapter import AlertaICAM03Adapter
 from src.supplies.infrastructure.adapters.ciclo_m02_adapter import CicloM02Adapter
+from src.supplies.infrastructure.adapters.notificacion_suministros_m01_adapter import (
+    NotificacionSuministrosM01Adapter,
+)
 from src.supplies.infrastructure.adapters.pesaje_m02_adapter import PesajeM02Adapter
+from src.supplies.infrastructure.repositories.auditoria_suministro_repository import (
+    SqlAlchemyAuditoriaSuministroRepository,
+)
 from src.supplies.infrastructure.repositories.cola_calculo_ica_repository import (
     SqlAlchemyColaCalculoICARepository,
 )
@@ -54,6 +64,8 @@ def build_calcular_ica_use_case(db: Session) -> CalcularICAUseCase:
         activo_port=ActivoM02Adapter(db),
         ciclo_port=CicloM02Adapter(db),
         alerta_port=AlertaICAM03Adapter(db),
+        auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
+        notificador=NotificacionSuministrosM01Adapter(db),
     )
 
 
@@ -69,12 +81,15 @@ def build_ejecutar_batch_use_case(db: Session) -> EjecutarBatchICAUseCase:
         session_factory=sesion_sistema,
         construir_calculo=build_calcular_ica_use_case,
         construir_fallo_repo=SqlAlchemyFalloCalculoICARepository,
+        notificador=NotificacionSuministrosM01Adapter(db),
     )
 
 
 def build_interrumpir_batch_use_case(db: Session) -> InterrumpirBatchICAUseCase:
     return InterrumpirBatchICAUseCase(
-        db=db, ejecucion_repo=SqlAlchemyEjecucionBatchICARepository(db)
+        db=db,
+        ejecucion_repo=SqlAlchemyEjecucionBatchICARepository(db),
+        notificador=NotificacionSuministrosM01Adapter(db),
     )
 
 

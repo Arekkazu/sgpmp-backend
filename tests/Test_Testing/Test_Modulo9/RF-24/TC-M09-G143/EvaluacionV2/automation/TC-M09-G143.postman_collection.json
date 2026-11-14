@@ -1,0 +1,1776 @@
+{
+  "info": {
+    "name": "TC-M09-G143 — RF-24 v2.0 · disparo automatico sin observaciones y rechazo sin camara",
+    "description": "SEGUNDA EVALUACION de TC-M09-G143, parte de TEST: TC-M09-290 y TC-M09-291.\n\nLa coleccion es dueña de sus dos sesiones (Administrador e Ingeniero) y el runner no inyecta tokens.\n\nTC-M09-290: A1 con camara nueva y CERO observaciones VISION; el alta de un lote POBLACIONAL debe disparar el calculo automatico. No se ejecuta ningun POST manual a calibraciones-vision para A1.\n\nTC-M09-291: A2 sin ninguna camara; el Ingeniero dispara el calculo manualmente y debe recibir 422 VISION_NO_DISPONIBLE con el mensaje contractual, y el rechazo debe quedar en la auditoria RF-10 con resultado FALLIDO, modulo MODULO9, su usuario y la IP de origen.\n\nLas assertions de veredicto quedan rojas si el producto no cumple: son la evidencia del caso y no se relajan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "SETUP 01 · Login Administrador (la coleccion es dueña de las sesiones)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{admin_correo}}\", \"contrasena\": \"{{admin_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · el Administrador autentica (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.expect(b.token, 'token').to.be.a('string');",
+              "pm.environment.set('admin_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 02 · Login Ingeniero (actor funcional de TC-M09-291)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{ing_correo}}\", \"contrasena\": \"{{ing_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · el Ingeniero autentica (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.expect(b.token, 'token').to.be.a('string');",
+              "pm.environment.set('ing_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 03 · Identificar al Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/me/permisos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/me/permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('SETUP · sesion del Ingeniero valida (200)', () => pm.expect(pm.response.code).to.eql(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 04 · Fincas del Administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/fincas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · fincas del Administrador (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('fincas_admin', JSON.stringify((b.items || []).filter(f => f.es_activo).map(f => f.id_finca)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 05 · Finca compartida por los dos actores",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/fincas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · fincas del Ingeniero (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ing = (b.items || []).filter(f => f.es_activo).map(f => f.id_finca);",
+              "const adm = JSON.parse(pm.environment.get('fincas_admin') || '[]');",
+              "const comp = ing.filter(f => adm.indexOf(f) >= 0);",
+              "pm.environment.set('fincas_compartidas', JSON.stringify(comp));",
+              "pm.expect(comp.length, 'fincas compartidas').to.be.above(0);",
+              "pm.environment.set('finca_id', String(comp.indexOf(163) >= 0 ? 163 : comp[0]));",
+              "// El Administrador crea las areas (el Ingeniero solo tiene Leer sobre",
+              "// infraestructuras) y el Ingeniero debe poder verlas para calibrar."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 06 · Tipo de area del catalogo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-area",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/tipos-area"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · tipos de area (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const act = (b.items || []).filter(t => t.es_activo);",
+              "pm.expect(act.length).to.be.above(0);",
+              "const g = act.find(t => String(t.nombre).toLowerCase().indexOf('galp') === 0);",
+              "pm.environment.set('tipo_area', (g || act[0]).nombre);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 07 · Especie AVES apta para el alta de lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · especies (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const aptas = (b.items || []).filter(e => e.es_activo",
+              "  && String(e.tipo_modelo) === 'MODELO_AVES'",
+              "  && e.densidad_maxima_por_especie && Number(e.densidad_maxima_por_especie) > 0);",
+              "aptas.sort((x, y) => x.id_especie - y.id_especie);",
+              "pm.test('SETUP · hay especie AVES con densidad maxima configurada',",
+              "  () => pm.expect(aptas.length).to.be.above(0));",
+              "pm.environment.set('especie_id', String(aptas[0].id_especie));",
+              "pm.environment.set('especie_nombre', String(aptas[0].nombre));",
+              "pm.environment.set('especie_densidad', String(aptas[0].densidad_maxima_por_especie));",
+              "pm.environment.set('especies_aptas', JSON.stringify(aptas.map(e => e.id_especie)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 08 · Metricas obligatorias de la especie",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/metricas?id_especie={{especie_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/metricas?id_especie={{especie_id}}&solo_activas=true"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "const oblig = (b.items || []).filter(m => m.es_obligatorio",
+              "  && ['LOTE', 'AMBOS'].indexOf(String(m.aplica_a_tipo_activo)) >= 0);",
+              "pm.environment.set('metricas_obligatorias', JSON.stringify(oblig.map(m => m.nombre)));",
+              "pm.test('SETUP · la especie no exige atributos dinamicos para LOTE',",
+              "  () => pm.expect(oblig.length).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 09 · Tipos de evento RF-10 del catalogo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/catalogo/tipos-evento",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/catalogo/tipos-evento"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · catalogo de tipos de evento (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const lista = Array.isArray(b) ? b : (b.items || []);",
+              "const buscar = (n) => (lista.find(t => String(t.nombre).toUpperCase() === n) || {}).id_tipo_evento;",
+              "const r = buscar('CALIBRACION_RECHAZADA');",
+              "pm.test('SETUP · el catalogo expone CALIBRACION_RECHAZADA',",
+              "  () => pm.expect(r, 'id de CALIBRACION_RECHAZADA').to.be.a('number'));",
+              "pm.environment.set('tipo_rechazada', String(r));",
+              "pm.environment.set('tipo_exitosa', String(buscar('CALIBRACION_EXITOSA') || ''));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 10 · Crear A1 (TC-M09-290: con camara, sin observaciones)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre_infraestructura\": \"QA-G143-A1-{{sufijo}}\", \"tipo_area\": \"{{tipo_area}}\", \"superficie\": 120.0, \"finca_id\": \"{{finca_id_num}}\", \"descripcion_infraestructura\": \"Area A1 de TC-M09-G143 ({{run_id}})\", \"especie_id\": \"{{especie_id_num}}\", \"tipo_modelo_asignado\": \"MODELO_AVES\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('finca_id_num', Number(pm.environment.get('finca_id')));",
+              "pm.environment.set('especie_id_num', Number(pm.environment.get('especie_id')));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · A1 creada (201)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.environment.set('a1_id', String(b.id_infraestructura));",
+              "pm.test('SETUP · A1 activa', () => pm.expect(b.es_activo).to.eql(true));",
+              "pm.test('SETUP · A1 con la especie resuelta', () => pm.expect(String(b.especie_id)).to.eql(pm.environment.get('especie_id')));",
+              "pm.test('SETUP · A1 con tipo_modelo_asignado MODELO_AVES', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 11 · Crear camara C1 en A1 (nueva y exclusiva, SIN observaciones)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G143-CAM-{{sufijo}}\", \"descripcion\": \"QA TC-M09-G143 camara VISION de A1 ({{run_id}})\", \"id_infraestructura\": \"{{a1_id_num}}\", \"id_tipo_dispositivo\": 5, \"es_activo\": true, \"resolucion\": \"1920x1080\", \"fps\": 30, \"area_cobertura_m2\": \"50.00\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('a1_id_num', Number(pm.environment.get('a1_id')));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · C1 creada (201)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.environment.set('c1_id', String(b.id_dispositivo_iot));",
+              "pm.test('SETUP · C1 es CAMARA y esta activa', () => { pm.expect(b.categoria).to.eql('CAMARA'); pm.expect(b.es_activo).to.eql(true); });",
+              "pm.test('SETUP · C1 asociada a A1', () => pm.expect(String(b.id_infraestructura)).to.eql(pm.environment.get('a1_id')));",
+              "// C1 es nueva: por construccion no puede tener observaciones historicas, y el",
+              "// RUN no ejecuta ningun POST /iot/telemetria/vision para ella (0 por diseño)."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 12 · Crear A2 (TC-M09-291: sin ninguna camara)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre_infraestructura\": \"QA-G143-A2-{{sufijo}}\", \"tipo_area\": \"{{tipo_area}}\", \"superficie\": 120.0, \"finca_id\": \"{{finca_id_num}}\", \"descripcion_infraestructura\": \"Area A2 de TC-M09-G143 ({{run_id}})\", \"especie_id\": \"{{especie_id_num}}\", \"tipo_modelo_asignado\": \"MODELO_AVES\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('finca_id_num', Number(pm.environment.get('finca_id')));",
+              "pm.environment.set('especie_id_num', Number(pm.environment.get('especie_id')));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · A2 creada (201)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.environment.set('a2_id', String(b.id_infraestructura));",
+              "pm.test('SETUP · A2 activa', () => pm.expect(b.es_activo).to.eql(true));",
+              "pm.test('SETUP · A2 con la especie resuelta', () => pm.expect(String(b.especie_id)).to.eql(pm.environment.get('especie_id')));",
+              "pm.test('SETUP · A2 con tipo_modelo_asignado MODELO_AVES', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 13 · A2 no tiene ninguna camara asociada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/dispositivos-iot"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · dispositivos consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const a1 = pm.environment.get('a1_id'); const a2 = pm.environment.get('a2_id');",
+              "const deA1 = (b.items || []).filter(d => String(d.id_infraestructura) === a1);",
+              "const deA2 = (b.items || []).filter(d => String(d.id_infraestructura) === a2);",
+              "pm.environment.set('dispositivos_a1', JSON.stringify(deA1.map(d => d.id_dispositivo_iot)));",
+              "pm.environment.set('dispositivos_a2', JSON.stringify(deA2.map(d => d.id_dispositivo_iot)));",
+              "pm.test('SETUP · A1 tiene exactamente la camara C1', () => pm.expect(deA1.length).to.eql(1));",
+              "pm.test('SETUP · A2 tiene 0 camaras', () => pm.expect(deA2.length, 'dispositivos de A2').to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 14 · El Ingeniero ve A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/infraestructuras/{{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · el Ingeniero ve A1 (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test('SETUP · A1 activa para el Ingeniero', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 14 · El Ingeniero ve A2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{a2_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/infraestructuras/{{a2_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · el Ingeniero ve A2 (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test('SETUP · A2 activa para el Ingeniero', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 290 · Historial VISION de A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRE 290 · historial accesible (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ids = (b.items || []).map(i => i.id_calibracion_vision);",
+              "pm.environment.set('hist_pre_290', JSON.stringify(ids));",
+              "pm.test('PRE 290 · A1 arranca con total 0', () => pm.expect(b.total).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 290 · Linea base de A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_pre_290_http', String(pm.response.code));",
+              "pm.test('PRE 290 · A1 sin linea base (404)', () => pm.expect(pm.response.code).to.eql(404));",
+              "pm.environment.set('t_pre_290', new Date().toISOString());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 290 · Auditoria RF-10 previa del area",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde}}&pagina=1&tamano=50"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('auditoria_desde', new Date(Date.now() - 3600000).toISOString().slice(0, 19));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRE 290 · auditoria consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));",
+              "const ids = (b.items || b.eventos || []).map(e => e.id_evento || e.id);",
+              "pm.environment.set('auditoria_pre_ids', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Alta de lote POBLACIONAL en M02 (evento funcional)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{cuerpo_alta}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date().toISOString().slice(0, 10);",
+              "pm.environment.set('cuerpo_alta', JSON.stringify({",
+              "  tipo_activo: 'POBLACIONAL',",
+              "  id_especie: Number(pm.environment.get('especie_id')),",
+              "  fecha_inicio_ciclo: hoy,",
+              "  origen_financiero: 'nacimiento',",
+              "  detalles_procedencia: 'Lote QA de TC-M09-290',",
+              "  id_infraestructura: Number(pm.environment.get('a1_id')),",
+              "  cantidad_inicial: 10,",
+              "  peso_promedio_inicial: '0.50'",
+              "}));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.environment.set('t_alta_290', new Date().toISOString());",
+              "pm.environment.set('alta_http', String(pm.response.code));",
+              "pm.test('TC-290 · el alta del lote responde 2xx', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "if ([200, 201].indexOf(pm.response.code) >= 0) {",
+              "  pm.environment.set('id_lote_290', String(b.id_activo_biologico || b.id_activo || ''));",
+              "  pm.test('TC-290 · el lote es POBLACIONAL', () => pm.expect(String(b.tipo_activo || b.tipo)).to.eql('POBLACIONAL'));",
+              "  pm.test('TC-290 · el lote queda en A1', () => pm.expect(String(b.id_infraestructura)).to.eql(pm.environment.get('a1_id')));",
+              "} else { pm.environment.set('id_lote_290', ''); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Observacion 1 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-290 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_290', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Observacion 1 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_290_http', String(pm.response.code));",
+              "pm.test('TC-290 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Observacion 2 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-290 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_290', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Observacion 2 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_290_http', String(pm.response.code));",
+              "pm.test('TC-290 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Observacion 3 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-290 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_290', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Observacion 3 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_290_http', String(pm.response.code));",
+              "pm.test('TC-290 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · VEREDICTO · el alta debe disparar un calculo VISION automatico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "const pre = JSON.parse(pm.environment.get('hist_pre_290') || '[]');",
+              "const items = Array.isArray(b.items) ? b.items : [];",
+              "const nuevas = items.filter(i => pre.indexOf(i.id_calibracion_vision) < 0);",
+              "pm.environment.set('nuevas_290', JSON.stringify(nuevas.map(i => i.id_calibracion_vision)));",
+              "// Oraculo del caso: sin ningun POST manual, el alta de M02 debe provocar el calculo.",
+              "// Con 0 observaciones el calculo NO debe publicar linea base, pero el INTENTO tiene",
+              "// que existir, quedar como FALLIDA en etapa FILTRADO y quedar auditado.",
+              "pm.test('TC-290 · el alta del lote disparo un calculo VISION automatico',",
+              "  () => pm.expect(nuevas.length, 'calibraciones nuevas tras el alta').to.be.above(0));",
+              "// Un evento debe producir UNA calibracion, no varias.",
+              "if (nuevas.length) {",
+              "  pm.test('TC-290 · el alta produjo exactamente una calibracion',",
+              "    () => pm.expect(nuevas.length, 'calibraciones nuevas').to.eql(1));",
+              "}",
+              "const auto = nuevas.filter(i => i.origen_disparo === 'AUTOMATICO' && i.id_usuario === null);",
+              "pm.test('TC-290 · el intento es AUTOMATICO y sin usuario',",
+              "  () => pm.expect(auto.length, 'calibraciones AUTOMATICO sin usuario').to.be.above(0));",
+              "pm.environment.set('auto_290_id', auto.length ? String(auto[0].id_calibracion_vision) : 'NINGUNA');",
+              "if (auto.length) {",
+              "  const c = auto[0];",
+              "  pm.environment.set('auto_290', JSON.stringify({",
+              "    id_calibracion_vision: c.id_calibracion_vision, area_id: c.area_id,",
+              "    especie_id: c.especie_id, origen_disparo: c.origen_disparo, id_usuario: c.id_usuario,",
+              "    estado: c.estado, etapa_fallo: c.etapa_fallo, motivo: c.motivo,",
+              "    linea_base: c.linea_base, n_observaciones: c.n_observaciones,",
+              "    n_observaciones_validas: c.n_observaciones_validas,",
+              "    ventana_observacion: c.ventana_observacion, fecha_calibracion: c.fecha_calibracion,",
+              "    observaciones: c.observaciones",
+              "  }));",
+              "  // §17: con cero observaciones el calculo se ejecuta y falla en el FILTRADO por",
+              "  // datos insuficientes; no es VISION_NO_DISPONIBLE, que seria un rechazo previo.",
+              "  pm.test('TC-290 · el intento automatico quedo FALLIDA',",
+              "    () => pm.expect(c.estado).to.eql('FALLIDA'));",
+              "  pm.test('TC-290 · la etapa de fallo es FILTRADO',",
+              "    () => pm.expect(c.etapa_fallo).to.eql('FILTRADO'));",
+              "  pm.test('TC-290 · el intento no publica linea base',",
+              "    () => pm.expect(c.linea_base, 'linea_base de la calibracion FALLIDA').to.eql(null));",
+              "  pm.test('TC-290 · el motivo declara la insuficiencia de observaciones',",
+              "    () => pm.expect(String(c.motivo || ''), 'motivo').to.match(/m[ií]nimo|insuficien/i));",
+              "  pm.test('TC-290 · el intento es del area A1',",
+              "    () => pm.expect(String(c.area_id)).to.eql(pm.environment.get('a1_id')));",
+              "  pm.test('TC-290 · el intento lleva la especie de A1',",
+              "    () => pm.expect(String(c.especie_id)).to.eql(pm.environment.get('especie_id')));",
+              "  pm.test('TC-290 · el calculo conto cero observaciones validas',",
+              "    () => pm.expect(Number(c.n_observaciones_validas || 0)).to.eql(0));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-290 · Auditoria RF-10 del intento automatico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde_290}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde_290}}&pagina=1&tamano=50"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('auditoria_desde_290', new Date(Date.parse(pm.environment.get('t_pre_290')) - 60000).toISOString().slice(0, 19));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-290 · auditoria consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));",
+              "const a1 = pm.environment.get('a1_id');",
+              "const autoId = pm.environment.get('auto_290_id');",
+              "const lista = Array.isArray(b.items) ? b.items : (Array.isArray(b.eventos) ? b.eventos : []);",
+              "const leerDetalle = (e) => {",
+              "  let d = e.detalle || {};",
+              "  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { d = {}; } }",
+              "  return d;",
+              "};",
+              "const vision = lista.filter(e => {",
+              "  const d = leerDetalle(e);",
+              "  return d.operacion === 'CALIBRACION_VISION' && String(d.id_infraestructura) === a1;",
+              "});",
+              "pm.environment.set('auditoria_290', JSON.stringify(vision.map(e => e.id_evento || e.id)));",
+              "pm.test('TC-290 · existe auditoria RF-10 del intento automatico del area',",
+              "  () => pm.expect(vision.length, 'eventos VISION del area A1').to.be.above(0));",
+              "// §18: el evento tiene que ser EL del intento automatico, correlacionado por la",
+              "// calibracion, no cualquier evento del area.",
+              "const delIntento = (autoId && autoId !== 'NINGUNA')",
+              "  ? vision.filter(e => String(leerDetalle(e).id_calibracion_vision) === autoId)",
+              "  : [];",
+              "if (autoId && autoId !== 'NINGUNA') {",
+              "  pm.test('TC-290 · el evento esta correlacionado con la calibracion automatica',",
+              "    () => pm.expect(delIntento.length, `eventos de la calibracion ${autoId}`).to.eql(1));",
+              "}",
+              "if (delIntento.length) {",
+              "  const e = delIntento[0];",
+              "  const d = leerDetalle(e);",
+              "  pm.environment.set('auditoria_290_id', String(e.id_evento || e.id));",
+              "  pm.environment.set('auditoria_290_detalle', JSON.stringify({",
+              "    id_evento: e.id_evento || e.id, tipo_evento: e.tipo_evento, resultado: e.resultado,",
+              "    modulo: e.modulo, id_usuario: e.id_usuario, nombre_usuario: e.nombre_usuario,",
+              "    direccion_ip: e.direccion_ip ? 'PRESENTE' : 'AUSENTE',",
+              "    fecha_evento: e.fecha_evento || e.fecha, integridad_ok: e.integridad_ok,",
+              "    detalle: { operacion: d.operacion, origen_disparo: d.origen_disparo,",
+              "               id_infraestructura: d.id_infraestructura, id_especie: d.id_especie,",
+              "               codigo_http: d.codigo_http, codigo_error: d.codigo_error,",
+              "               motivo: d.motivo, id_calibracion_vision: d.id_calibracion_vision,",
+              "               estado: d.estado, etapa_fallo: d.etapa_fallo,",
+              "               motivo_etapa: d.motivo_etapa }",
+              "  }));",
+              "  pm.test('TC-290 · el evento es del tipo CALIBRACION_RECHAZADA del catalogo',",
+              "    () => pm.expect(String(e.tipo_evento)).to.eql(pm.environment.get('tipo_rechazada')));",
+              "  pm.test('TC-290 · resultado FALLIDO',",
+              "    () => pm.expect(String(e.resultado).toUpperCase()).to.eql('FALLIDO'));",
+              "  pm.test('TC-290 · modulo MODULO9',",
+              "    () => pm.expect(String(e.modulo).toUpperCase()).to.eql('MODULO9'));",
+              "  pm.test('TC-290 · detalle.origen_disparo AUTOMATICO',",
+              "    () => pm.expect(d.origen_disparo).to.eql('AUTOMATICO'));",
+              "  pm.test('TC-290 · detalle.codigo_error LINEA_BASE_NO_CALCULADA',",
+              "    () => pm.expect(d.codigo_error).to.eql('LINEA_BASE_NO_CALCULADA'));",
+              "  pm.test('TC-290 · detalle.codigo_http 422',",
+              "    () => pm.expect(Number(d.codigo_http)).to.eql(422));",
+              "  pm.test('TC-290 · detalle.id_especie es la de A1',",
+              "    () => pm.expect(String(d.id_especie)).to.eql(pm.environment.get('especie_id')));",
+              "  pm.test('TC-290 · detalle.estado FALLIDA',",
+              "    () => pm.expect(d.estado).to.eql('FALLIDA'));",
+              "  pm.test('TC-290 · detalle.etapa_fallo FILTRADO',",
+              "    () => pm.expect(d.etapa_fallo).to.eql('FILTRADO'));",
+              "  pm.test('TC-290 · detalle.motivo_etapa no esta vacio',",
+              "    () => pm.expect(String(d.motivo_etapa || ''), 'motivo_etapa').to.not.be.empty);",
+              "  // §6.5 y §18: el disparo es del Sistema, asi que el evento lo firma el usuario de",
+              "  // servicio. La calibracion es la que lleva id_usuario nulo, no el evento.",
+              "  pm.test('TC-290 · el evento automatico lo firma un usuario de servicio (no nulo)',",
+              "    () => pm.expect(e.id_usuario, 'id_usuario del evento').to.not.eql(null));",
+              "  pm.environment.set('auditoria_290_usuario', String(e.id_usuario));",
+              "  pm.environment.set('auditoria_290_usuario_nombre', String(e.nombre_usuario || ''));",
+              "} else {",
+              "  pm.environment.set('auditoria_290_id', 'NINGUNA');",
+              "  pm.environment.set('auditoria_290_detalle', 'NINGUNA');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 291 · Historial VISION de A2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a2_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a2_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRE 291 · historial de A2 accesible (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_pre_291', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));",
+              "pm.test('PRE 291 · A2 arranca con total 0', () => pm.expect(b.total).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 291 · Linea base de A2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_pre_291_http', String(pm.response.code));",
+              "pm.test('PRE 291 · A2 sin linea base (404)', () => pm.expect(pm.response.code).to.eql(404));",
+              "pm.environment.set('t_before_291', new Date().toISOString());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-291 · POST VISION sobre A2, que no tiene camara (evento funcional)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{cuerpo_291}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Ventana cerrada y en el pasado; da igual su contenido: A2 no tiene camara,",
+              "// asi que el rechazo ocurre en precondiciones.",
+              "const fin = new Date(Date.now() - 2 * 60 * 60 * 1000);",
+              "const ini = new Date(fin.getTime() - 4 * 60 * 60 * 1000);",
+              "const z = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');",
+              "pm.environment.set('w291_inicio', z(ini));",
+              "pm.environment.set('w291_fin', z(fin));",
+              "pm.environment.set('cuerpo_291', JSON.stringify({",
+              "  modo_calibracion: 'VISION',",
+              "  area_id: Number(pm.environment.get('a2_id')),",
+              "  ventana_observacion: { inicio: z(ini), fin: z(fin) },",
+              "  observaciones: 'QA TC-M09-291 area sin camara',",
+              "  fecha_calibracion: new Date().toISOString()",
+              "}));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.environment.set('t_after_291', new Date().toISOString());",
+              "pm.environment.set('http_291', String(pm.response.code));",
+              "pm.environment.set('error_291', String(b.error_code || ''));",
+              "pm.environment.set('mensaje_291', String(b.message || ''));",
+              "const esperado = 'Calibración por visión no disponible: El área ' + pm.environment.get('a2_id')",
+              "  + ' no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado.'",
+              "  + ' Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).';",
+              "pm.environment.set('mensaje_291_esperado', esperado);",
+              "pm.test('TC-291 · el rechazo responde 422', () => pm.expect(pm.response.code).to.eql(422));",
+              "pm.test('TC-291 · error_code VISION_NO_DISPONIBLE', () => pm.expect(b.error_code).to.eql('VISION_NO_DISPONIBLE'));",
+              "pm.test('TC-291 · el mensaje es el contractual, literal', () => pm.expect(b.message).to.eql(esperado));",
+              "const campos = (b.fields || []).map(f => f.field);",
+              "pm.environment.set('fields_291', JSON.stringify(campos));",
+              "pm.test('TC-291 · el field señalado es area_id', () => pm.expect(campos).to.include('area_id'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-291 · A2 sigue sin linea base",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_post_291_http', String(pm.response.code));",
+              "pm.test('TC-291 · A2 no publico ninguna linea base (404)', () => pm.expect(pm.response.code).to.eql(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-291 · Historial VISION de A2 tras el rechazo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a2_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a2_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-291 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_post_291', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));",
+              "pm.environment.set('hist_post_291_total', String(b.total));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-291 · AUDITORIA RF-10 del rechazo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde_291}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde_291}}&pagina=1&tamano=50"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('auditoria_desde_291', new Date(Date.parse(pm.environment.get('t_before_291')) - 60000).toISOString().slice(0, 19));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-291 · auditoria consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));",
+              "const a2 = pm.environment.get('a2_id');",
+              "const desde = Date.parse(pm.environment.get('t_before_291')) - 60000;",
+              "const hasta = Date.parse(pm.environment.get('t_after_291')) + 60000;",
+              "const cand = (b.items || b.eventos || []).filter(e => {",
+              "  let d = e.detalle || {}; if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { d = {}; } }",
+              "  const t = Date.parse(e.fecha_evento || e.fecha);",
+              "  return d.operacion === 'CALIBRACION_VISION' && String(d.id_infraestructura) === a2",
+              "    && t >= desde && t <= hasta;",
+              "});",
+              "pm.environment.set('auditoria_291_n', String(cand.length));",
+              "pm.test('TC-291 · existe exactamente un evento correlacionable con el POST',",
+              "  () => pm.expect(cand.length, 'eventos VISION de A2 en la ventana').to.eql(1));",
+              "if (cand.length) {",
+              "  const e = cand[0];",
+              "  let d = e.detalle || {}; if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { d = {}; } }",
+              "  pm.environment.set('auditoria_291_id', String(e.id_evento || e.id));",
+              "  pm.environment.set('auditoria_291', JSON.stringify({",
+              "    id_evento: e.id_evento || e.id, tipo_evento: e.tipo_evento, resultado: e.resultado,",
+              "    modulo: e.modulo, id_usuario: e.id_usuario, nombre_usuario: e.nombre_usuario,",
+              "    direccion_ip: e.direccion_ip ? 'PRESENTE' : null, user_agent: e.user_agent ? 'PRESENTE' : null,",
+              "    fecha_evento: e.fecha_evento || e.fecha, categoria: e.categoria, estado: e.estado,",
+              "    integridad_ok: e.integridad_ok, descripcion: e.descripcion,",
+              "    detalle: { operacion: d.operacion, id_infraestructura: d.id_infraestructura,",
+              "               id_especie: d.id_especie, codigo_http: d.codigo_http,",
+              "               codigo_error: d.codigo_error, motivo: d.motivo, ip: d.ip ? 'PRESENTE' : null }",
+              "  }));",
+              "  pm.test('TC-291 · resultado FALLIDO', () => pm.expect(String(e.resultado).toUpperCase()).to.eql('FALLIDO'));",
+              "  pm.test('TC-291 · modulo MODULO9', () => pm.expect(String(e.modulo).toUpperCase()).to.eql('MODULO9'));",
+              "  pm.test('TC-291 · detalle.operacion CALIBRACION_VISION', () => pm.expect(d.operacion).to.eql('CALIBRACION_VISION'));",
+              "  pm.test('TC-291 · detalle.id_infraestructura es A2', () => pm.expect(String(d.id_infraestructura)).to.eql(a2));",
+              "  pm.test('TC-291 · detalle.id_especie es la de A2', () => pm.expect(String(d.id_especie)).to.eql(pm.environment.get('especie_id')));",
+              "  pm.test('TC-291 · detalle.codigo_http 422', () => pm.expect(Number(d.codigo_http)).to.eql(422));",
+              "  pm.test('TC-291 · detalle.codigo_error VISION_NO_DISPONIBLE', () => pm.expect(d.codigo_error).to.eql('VISION_NO_DISPONIBLE'));",
+              "  pm.test('TC-291 · detalle.motivo es el mensaje del rechazo', () => pm.expect(d.motivo).to.eql(pm.environment.get('mensaje_291_esperado')));",
+              "  pm.test('TC-291 · la IP de origen esta presente', () => pm.expect(e.direccion_ip, 'direccion_ip').to.be.a('string').and.not.empty);",
+              "  pm.test('TC-291 · la fecha cae dentro de la ventana', () => {",
+              "    const t = Date.parse(e.fecha_evento || e.fecha);",
+              "    pm.expect(t).to.be.at.least(desde); pm.expect(t).to.be.at.most(hasta);",
+              "  });",
+              "} else { pm.environment.set('auditoria_291', 'NINGUNA'); pm.environment.set('auditoria_291_id', 'NINGUNA'); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-291 · El evento quedo a nombre del Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde_291}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde_291}}&pagina=1&tamano=50"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "const a2 = pm.environment.get('a2_id');",
+              "const id = pm.environment.get('auditoria_291_id');",
+              "const e = (b.items || b.eventos || []).find(x => String(x.id_evento || x.id) === id);",
+              "pm.test('TC-291 · el evento del rechazo es recuperable por el Administrador',",
+              "  () => pm.expect(Boolean(e), 'evento ' + id).to.eql(true));",
+              "if (e) {",
+              "  pm.environment.set('auditoria_291_usuario', String(e.id_usuario));",
+              "  pm.environment.set('auditoria_291_nombre', String(e.nombre_usuario || ''));",
+              "  pm.test('TC-291 · el usuario del evento no es nulo', () => pm.expect(e.id_usuario).to.not.eql(null));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "RESTAURACION · Desactivar la camara C1",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{c1_id}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/dispositivos-iot/{{c1_id}}/desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('RESTAURACION · C1 desactivada (2xx)', () => pm.expect([200, 204]).to.include(pm.response.code));",
+              "pm.environment.set('restauracion_c1_http', String(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

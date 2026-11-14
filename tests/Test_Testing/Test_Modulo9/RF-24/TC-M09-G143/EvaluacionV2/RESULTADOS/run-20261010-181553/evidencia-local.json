@@ -1,0 +1,494 @@
+{
+  "run_id": "run-20261010-181553",
+  "grupo": "TC-M09-G143",
+  "caso": "TC-M09-292",
+  "ambiente": "LOCAL AISLADO",
+  "herramienta": "Pytest en proceso + TestClient sobre la app real + PostgreSQL local real",
+  "tabla_auditoria_objetivo": "modulo1.eventos",
+  "generado": "2026-10-11T06:39:50.780751+00:00",
+  "presupuesto": {
+    "post_calibracion_setup": 1,
+    "post_calibracion_objetivo": 1,
+    "post_vision": 2,
+    "revoke": 1,
+    "grant": 1,
+    "reintentos": 0
+  },
+  "limitaciones": [],
+  "LOCAL_GUARD": {
+    "host": "db",
+    "port": 5432,
+    "database": "sgpmp_g143_lab",
+    "current_user_owner": "postgres",
+    "current_database": "sgpmp_g143_lab",
+    "version": "PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "DSN_app_sanitizada": "postgresql://sgpmp_app_g143:[REDACTED]@db:5432/sgpmp_g143_lab",
+    "DSN_owner_sanitizada": "postgresql://postgres:[REDACTED]@db:5432/sgpmp_g143_lab",
+    "marcas_prohibidas": [],
+    "variables_de_entorno_con_marcas": [],
+    "veredicto": "PASS"
+  },
+  "fuente_del_backend_local": {
+    "LOCAL_SOURCE_SHA": "4f09cb6953843cbab06319000c14d1b30feb8a56",
+    "origen": "snapshot de solo lectura de origin/test (git archive) montado en /app; el working tree de la rama QA no se usa como fuente ni se modifica",
+    "archivo_importado": "/app/src/configuration/application/use_cases/sensores/calibrar_vision_use_case.py",
+    "PR_553_area_separada_de_su_validacion": "SÍ",
+    "PR_554_execute_automatico": "SÍ",
+    "PR_550_none_as_null": "SÍ",
+    "tipo_json_linea_base": "JSONB",
+    "veredicto": "PASS"
+  },
+  "roles": {
+    "owner": "postgres (migraciones, GRANT/REVOKE y consultas de control)",
+    "application_role": "sgpmp_app_g143",
+    "atributos_del_rol_de_aplicacion": {
+      "rolname": "sgpmp_app_g143",
+      "rolsuper": false,
+      "rolbypassrls": true,
+      "rolcanlogin": true,
+      "rolcreatedb": false,
+      "rolcreaterole": false
+    },
+    "nota_bypassrls": "El rol de aplicación lleva BYPASSRLS a propósito: el laboratorio mide privilegios de tabla, no RLS, y BYPASSRLS no afecta a los privilegios (un REVOKE INSERT sigue siendo efectivo). No es superusuario y no es dueño de la tabla, que es lo que exige el §36."
+  },
+  "alembic": {
+    "fuente": "migraciones reales del proyecto, aplicadas como owner",
+    "upgrade_head": [
+      "INFO  [alembic.runtime.migration] Running upgrade bd9cea80dea6 -> d28c1a5a66d2, F5 para el modulo2",
+      "INFO  [alembic.runtime.migration] Running upgrade d28c1a5a66d2 -> 4e7b2a9c1d05, F5: permitir a sgpmp_owner ejecutar los helpers de RLS",
+      "INFO  [alembic.runtime.migration] Running upgrade 4e7b2a9c1d05 -> 7b3d9e2f4a61, RF-23 v1.1: fps en la configuracion remota de camaras",
+      "INFO  [alembic.runtime.migration] Running upgrade 7b3d9e2f4a61 -> 5c2e8a1f7d39, RF-24 v2.0: restaurar la politica RLS de UPDATE de lineas_base_vision"
+    ],
+    "alembic_current": [
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN",
+      "/app/alembic/versions/8c44765be172_f4_cierre_brechas_rls_fincas_.py:197: SyntaxWarning: invalid escape sequence '\\s'",
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN RAISE EXCEPTION 'INVALID_FORMAT...', NEW.nombre USING ERRCODE = 'P0118'; END IF;"
+    ],
+    "alembic_heads": [
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN",
+      "/app/alembic/versions/8c44765be172_f4_cierre_brechas_rls_fincas_.py:197: SyntaxWarning: invalid escape sequence '\\s'",
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN RAISE EXCEPTION 'INVALID_FORMAT...', NEW.nombre USING ERRCODE = 'P0118'; END IF;"
+    ],
+    "version_num_en_bd": "5c2e8a1f7d39",
+    "tablas_presentes": [
+      "modulo1.eventos",
+      "modulo3.observaciones_vision",
+      "modulo9.calibraciones_vision",
+      "modulo9.lineas_base_vision"
+    ]
+  },
+  "privilegios": {
+    "esquemas_con_grant": [
+      "modulo1",
+      "modulo2",
+      "modulo3",
+      "modulo4",
+      "modulo5",
+      "modulo6",
+      "modulo7",
+      "modulo8",
+      "modulo9",
+      "public"
+    ],
+    "owner_de_la_tabla_de_auditoria": "postgres",
+    "app_es_owner_de_la_tabla": false,
+    "INSERT_PRE": true
+  },
+  "fixture": {
+    "origen": "sintético, sembrado por SQL en la base local y exclusiva",
+    "finca_id": 1,
+    "area_id": 1,
+    "area_activa": true,
+    "especie_id": 12,
+    "tipo_modelo_asignado": "MODELO_AVES",
+    "paradigma": "POBLACIONAL",
+    "camara_id": 1,
+    "camara_categoria": "CAMARA",
+    "camara_activa": true,
+    "fps_nominal": 30,
+    "camara_serial": "[SERIAL REDACTED]",
+    "usuario_ingeniero": 4,
+    "correo": "ingeniero.g143.lab@laboratorio-g143.co",
+    "permisos_sensores_crear": 1,
+    "login": "PASS"
+  },
+  "N": {
+    "valor": 30,
+    "fuente": "ParametrosLineaBase.min_observaciones"
+  },
+  "control_positivo": {
+    "ventana": {
+      "inicio": "2026-07-01T00:00:00Z",
+      "fin": "2026-07-01T06:00:00Z"
+    },
+    "lote": {
+      "http": 201,
+      "total": 30,
+      "aceptadas": 30,
+      "duplicadas": 0,
+      "aptas": 30,
+      "indices_distintos": [
+        100
+      ],
+      "vectores": {
+        "densidad_actividad": 10.0,
+        "tasa_movimiento": 5.0
+      }
+    },
+    "request": {
+      "modo_calibracion": "VISION",
+      "area_id": 1,
+      "ventana_observacion": {
+        "inicio": "2026-07-01T00:00:00Z",
+        "fin": "2026-07-01T06:00:00Z"
+      },
+      "observaciones": "QA TC-M09-292 control positivo L1",
+      "fecha_calibracion": "2026-10-11T06:40:34.196473+00:00"
+    },
+    "http": 201,
+    "response": {
+      "id_calibracion_vision": 1,
+      "modo_calibracion": "VISION",
+      "area_id": 1,
+      "especie_id": 12,
+      "origen_disparo": "MANUAL",
+      "id_usuario": 4,
+      "ventana_observacion": {
+        "fin": "2026-07-01T06:00:00Z",
+        "inicio": "2026-07-01T00:00:00Z"
+      },
+      "fecha_calibracion": "2026-10-11T06:40:34.196473Z",
+      "estado": "EXITOSA",
+      "etapa_fallo": null,
+      "motivo": null,
+      "linea_base": {
+        "valores": {
+          "tasa_movimiento": 5.01,
+          "densidad_actividad": 10.01
+        },
+        "componentes_no_calibrables": []
+      },
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "iteraciones": 1,
+      "observaciones": "QA TC-M09-292 control positivo L1"
+    },
+    "auditoria_exitosa": [
+      {
+        "id_evento": 2,
+        "tipo_evento": 30,
+        "resultado": "exitoso",
+        "modulo": "MODULO9",
+        "detalle": {
+          "ip": "testclient",
+          "estado": "EXITOSA",
+          "motivo": null,
+          "operacion": "CALIBRACION_VISION",
+          "id_especie": 12,
+          "linea_base": {
+            "valores": {
+              "tasa_movimiento": 5.01,
+              "densidad_actividad": 10.01
+            },
+            "componentes_no_calibrables": []
+          },
+          "user_agent": "testclient",
+          "etapa_fallo": null,
+          "iteraciones": 1,
+          "origen_disparo": "MANUAL",
+          "n_observaciones": 30,
+          "id_infraestructura": 1,
+          "ventana_observacion": {
+            "fin": "2026-07-01T06:00:00Z",
+            "inicio": "2026-07-01T00:00:00Z"
+          },
+          "id_calibracion_vision": 1,
+          "n_observaciones_validas": 30
+        }
+      }
+    ]
+  },
+  "L1": {
+    "L1_CALIBRACION_ID": 1,
+    "L1_VALORES": {
+      "tasa_movimiento": 5.01,
+      "densidad_actividad": 10.01
+    },
+    "L1_AREA": 1,
+    "L1_ESPECIE": 12,
+    "L1_FECHA": "2026-10-11T06:40:34.196473Z",
+    "linea_base_por_api": {
+      "http": 200,
+      "id_calibracion_vision": 1
+    },
+    "linea_base_por_bd": [
+      {
+        "id_calibracion_vision": 1,
+        "json_valor": {
+          "valores": {
+            "tasa_movimiento": 5.01,
+            "densidad_actividad": 10.01
+          },
+          "componentes_no_calibrables": []
+        },
+        "fecha_publicacion": "2026-10-11 06:40:34.196473+00:00"
+      }
+    ],
+    "iteraciones": 1
+  },
+  "W2": {
+    "ventana": {
+      "inicio": "2026-07-10T00:00:00Z",
+      "fin": "2026-07-10T06:00:00Z"
+    },
+    "lote": {
+      "http": 201,
+      "total": 30,
+      "aceptadas": 30,
+      "duplicadas": 0,
+      "aptas": 30,
+      "indices_distintos": [
+        100
+      ],
+      "vectores": {
+        "densidad_actividad": 25.0,
+        "tasa_movimiento": 9.0
+      }
+    },
+    "disjunta_de_W1": true,
+    "nota": "los vectores de W2 son distintos de los de W1 a propósito: si L2 se publicara, sería distinguible de L1"
+  },
+  "snapshot_PRE": {
+    "linea_base_api": {
+      "http": 200,
+      "id_calibracion_vision": 1
+    },
+    "historial_api": {
+      "http": 200,
+      "ids": [
+        1
+      ]
+    },
+    "bd": {
+      "calibraciones": [
+        {
+          "id_calibracion_vision": 1,
+          "estado": "EXITOSA"
+        }
+      ],
+      "linea_base": [
+        {
+          "id_linea_base_vision": 1,
+          "id_calibracion_vision": 1,
+          "json_valor": {
+            "valores": {
+              "tasa_movimiento": 5.01,
+              "densidad_actividad": 10.01
+            },
+            "componentes_no_calibrables": []
+          }
+        }
+      ],
+      "eventos_vision": [
+        {
+          "n": 1
+        }
+      ]
+    }
+  },
+  "fault_injection": {
+    "sentencia_revoke": "REVOKE INSERT ON TABLE modulo1.eventos FROM sgpmp_app_g143",
+    "ejecutada_por": "el owner, nunca el backend",
+    "INSERT_PRE": true,
+    "INSERT_DURANTE": false,
+    "backend_conectado_como": "sgpmp_app_g143",
+    "INSERT_POST": true,
+    "sentencia_grant": "GRANT INSERT ON TABLE modulo1.eventos TO sgpmp_app_g143"
+  },
+  "post_objetivo": {
+    "request": {
+      "modo_calibracion": "VISION",
+      "area_id": 1,
+      "ventana_observacion": {
+        "inicio": "2026-07-10T00:00:00Z",
+        "fin": "2026-07-10T06:00:00Z"
+      },
+      "observaciones": "QA TC-M09-292 fallo de auditoria",
+      "fecha_calibracion": "2026-10-11T06:40:34.447159+00:00"
+    },
+    "http": 500,
+    "response": {
+      "error_code": "AUDITORIA_CALIBRACION_FALLIDA",
+      "message": "Error de integridad: No se pudo garantizar la trazabilidad de la calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo.",
+      "fields": [],
+      "timestamp": "2026-10-11T06:40:34.476072+00:00"
+    }
+  },
+  "respuesta_objetivo": {
+    "http_obtenido": 500,
+    "error_code_obtenido": "AUDITORIA_CALIBRACION_FALLIDA",
+    "mensaje_obtenido": "Error de integridad: No se pudo garantizar la trazabilidad de la calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo.",
+    "referencia_de_la_implementacion": {
+      "http": 500,
+      "error_code": "AUDITORIA_CALIBRACION_FALLIDA",
+      "mensaje": "Error de integridad: No se pudo garantizar la trazabilidad de la calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
+    },
+    "informa_fallo_de_trazabilidad": "SÍ",
+    "criterio": "la matriz no fija el código exacto; el criterio es que informe que no pudo garantizarse la trazabilidad y que la publicación no fue aplicada"
+  },
+  "rollback": {
+    "linea_base_api": {
+      "http": 200,
+      "id_calibracion_vision": 1,
+      "valores": {
+        "tasa_movimiento": 5.01,
+        "densidad_actividad": 10.01
+      }
+    },
+    "historial_api": {
+      "PRE": [
+        1
+      ],
+      "POST": [
+        1
+      ]
+    },
+    "bd_PRE": {
+      "calibraciones": [
+        {
+          "id_calibracion_vision": 1,
+          "estado": "EXITOSA"
+        }
+      ],
+      "linea_base": [
+        {
+          "id_linea_base_vision": 1,
+          "id_calibracion_vision": 1,
+          "json_valor": {
+            "valores": {
+              "tasa_movimiento": 5.01,
+              "densidad_actividad": 10.01
+            },
+            "componentes_no_calibrables": []
+          }
+        }
+      ],
+      "eventos_vision": [
+        {
+          "n": 1
+        }
+      ]
+    },
+    "bd_POST": {
+      "calibraciones": [
+        {
+          "id_calibracion_vision": 1,
+          "estado": "EXITOSA"
+        }
+      ],
+      "linea_base": [
+        {
+          "id_linea_base_vision": 1,
+          "id_calibracion_vision": 1,
+          "json_valor": {
+            "valores": {
+              "tasa_movimiento": 5.01,
+              "densidad_actividad": 10.01
+            },
+            "componentes_no_calibrables": []
+          }
+        }
+      ],
+      "eventos_vision": [
+        {
+          "n": 1
+        }
+      ]
+    },
+    "BASELINE_POST_ID": 1,
+    "L1_ID": 1,
+    "L1_sigue_vigente": "SÍ",
+    "L2_publicada": "NO",
+    "calibracion_W2_persistida": "NO",
+    "eventos_vision_PRE": 1,
+    "eventos_vision_POST": 1
+  },
+  "cuadro_tc292": [
+    {
+      "criterio": "LOCAL aislado",
+      "esperado": "PASS",
+      "obtenido": "PASS"
+    },
+    {
+      "criterio": "APP superuser",
+      "esperado": false,
+      "obtenido": false
+    },
+    {
+      "criterio": "APP owner de la tabla de auditoría",
+      "esperado": false,
+      "obtenido": false
+    },
+    {
+      "criterio": "Tabla de auditoría",
+      "esperado": "modulo1.eventos",
+      "obtenido": "modulo1.eventos"
+    },
+    {
+      "criterio": "Control positivo L1",
+      "esperado": "PASS",
+      "obtenido": "PASS — calibración 1 EXITOSA y vigente"
+    },
+    {
+      "criterio": "INSERT PRE",
+      "esperado": true,
+      "obtenido": true
+    },
+    {
+      "criterio": "INSERT DURANTE",
+      "esperado": false,
+      "obtenido": false
+    },
+    {
+      "criterio": "POST W2 informa fallo de trazabilidad",
+      "esperado": "SÍ",
+      "obtenido": "SÍ"
+    },
+    {
+      "criterio": "INSERT POST",
+      "esperado": true,
+      "obtenido": true
+    },
+    {
+      "criterio": "L2 publicada",
+      "esperado": "NO",
+      "obtenido": "NO"
+    },
+    {
+      "criterio": "L1 sigue vigente",
+      "esperado": "SÍ",
+      "obtenido": "SÍ"
+    },
+    {
+      "criterio": "Calibración W2 persistida",
+      "esperado": "NO",
+      "obtenido": "NO"
+    },
+    {
+      "criterio": "Rollback en BD",
+      "esperado": "PASS",
+      "obtenido": "PASS"
+    }
+  ],
+  "resultado": {
+    "TC-M09-292": "APROBADO",
+    "incidencia_requerida": "NO"
+  },
+  "seguridad": {
+    "credenciales_persistidas": "NO",
+    "serial_access_key_persistido": "NO — redactado por patrón",
+    "dsn_con_password": "NO — solo la versión sanitizada",
+    "sql_dml_en_test": 0,
+    "ddl_dml_en_el_laboratorio": "siembra del fixture, creación del rol y REVOKE/GRANT, autorizados en base local y exclusiva"
+  }
+}

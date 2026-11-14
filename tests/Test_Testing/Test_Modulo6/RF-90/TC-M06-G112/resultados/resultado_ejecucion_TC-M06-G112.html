@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G112</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}
+pre{white-space:pre-wrap}</style></head><body>
+<h1>Módulo 6 — RF-90 / RF-109 / RF-93 — TC-M06-G112</h1>
+<p>Generado: 2026-11-08T15:23:02.160330+00:00. Inversión válida: no registrada.</p>
+<table><tr><th>Porcentaje</th><td>0 %</td></tr>
+<tr><th>Aprobados / rechazados / bloqueados</th><td>0 / 0 / 2</td></tr></table>
+<h2>Subcasos</h2><table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-39</td><td>BLOQUEADO</td><td>Registrar la inversión con justificación válida y confirmación sumaría el monto al costo del activo compartido 951. Sin confirmación la dejaría como gasto y crearía el asiento en el período compartido. No hay un activo aislado. El período que contiene hoy está cerrado y el abierto siguiente empieza en diciembre.</td></tr><tr><td>TC-M06-40</td><td>BLOQUEADO</td><td>Registrar la inversión con justificación válida y confirmación sumaría el monto al costo del activo compartido 951. Sin confirmación la dejaría como gasto y crearía el asiento en el período compartido. No hay un activo aislado. El período que contiene hoy está cerrado y el abierto siguiente empieza en diciembre.</td></tr></table>
+<h2>Contrato</h2><pre>La inversión directa es el subtipo INVERSION_DIRECTA y su naturaleza es INVERSION. No hay una política global CAPITALIZAR o GASTO. La política sale de la solicitud: confirmar_capitalizacion en true capitaliza solo si el activo tiene valoración por costo activa; en un activo a valor razonable responde CAPITALIZACION_NO_PERMITIDA. Sin esa confirmación, la política es GASTO. Capitalizar suma el monto a costos_adquisicion y valor_contable_por_costo. No modifica el valor razonable. El asiento, cuando el origen es mano de obra propia, usa el hecho MANO_OBRA_PROPIA y el sentido CAPITALIZACION o UNICO. Una compra a proveedor no genera línea: viaja como factura. La justificación de una inversión debe tener al menos 10 caracteres y se exige antes de consultar el período. El monto debe ser mayor que cero en el DTO. RF-109 es la matriz de cuentas en la configuración contable. RF-93, al armar el estado de resultados, trata como gasto la inversión con política GASTO y excluye la capitalizada. El estado de resultados se genera sobre períodos cerrados.</pre>
+<h2>Complementos rechazados</h2><pre>[
+  {
+    &quot;nombre&quot;: &quot;monto_cero&quot;,
+    &quot;http&quot;: 400,
+    &quot;code&quot;: &quot;VAL_ENTRADA&quot;
+  },
+  {
+    &quot;nombre&quot;: &quot;monto_negativo&quot;,
+    &quot;http&quot;: 400,
+    &quot;code&quot;: &quot;VAL_ENTRADA&quot;
+  },
+  {
+    &quot;nombre&quot;: &quot;sin_justificacion&quot;,
+    &quot;http&quot;: 422,
+    &quot;code&quot;: &quot;JUSTIFICACION_OBLIGATORIA&quot;
+  },
+  {
+    &quot;nombre&quot;: &quot;justificacion_vacia&quot;,
+    &quot;http&quot;: 422,
+    &quot;code&quot;: &quot;JUSTIFICACION_OBLIGATORIA&quot;
+  },
+  {
+    &quot;nombre&quot;: &quot;justificacion_corta&quot;,
+    &quot;http&quot;: 422,
+    &quot;code&quot;: &quot;JUSTIFICACION_OBLIGATORIA&quot;
+  }
+]</pre>
+<h2>Activo 951</h2><pre>{
+  &quot;antes&quot;: {
+    &quot;id_activo_biologico&quot;: 951,
+    &quot;especie&quot;: &quot;Equino&quot;,
+    &quot;estado&quot;: &quot;ACTIVO&quot;,
+    &quot;indicador_reconocimiento&quot;: &quot;VALORACION_POR_COSTO&quot;,
+    &quot;valorado_por_costo&quot;: true,
+    &quot;costo_base&quot;: &quot;4500000.0000&quot;,
+    &quot;valor_contable_por_costo&quot;: &quot;4200000.0000&quot;,
+    &quot;depreciacion_acumulada&quot;: &quot;0.0000&quot;,
+    &quot;deterioro_acumulado&quot;: &quot;300000.0000&quot;,
+    &quot;valor_razonable_neto&quot;: null,
+    &quot;fecha_calculo&quot;: null
+  },
+  &quot;despues&quot;: {
+    &quot;costos_adquisicion&quot;: &quot;4500000.0000&quot;,
+    &quot;valor_contable_por_costo&quot;: &quot;4200000.0000&quot;,
+    &quot;depreciacion_acumulada&quot;: &quot;0.0000&quot;,
+    &quot;deterioro_acumulado&quot;: &quot;300000.0000&quot;
+  }
+}</pre>
+<h2>Hallazgos</h2><ul><li>BLOQUEO DE PRUEBA: no hay un activo ni un período aislados para registrar una inversión. Capitalizar cambia el costo del activo 951 y el gasto crea un asiento en el período compartido.</li></ul>
+</body></html>

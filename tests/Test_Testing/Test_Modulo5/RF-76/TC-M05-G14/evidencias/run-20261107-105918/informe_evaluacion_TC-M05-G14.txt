@@ -1,0 +1,165 @@
+INFORME - FASE 4 - EVALUACION OFICIAL TC-M05-G14 (RF-76, POST /suministros/medicamentos)
+Corrida: run-20261107-105918 (sin -Reintento, -ActivoId 853) | Fecha: 2026-11-07 | Evaluador: Sebastian
+Ambiente: TEST (TEST_BASE_URL de .env.test) | Sandbox en todas las corridas, un login por run_id
+
+=====================================================================================
+1. HASHES (INICIO / FIN)
+=====================================================================================
+test_tc_m05_g14.py       inicio a693e2df2229eb52501079e9bc9365b39e084c52c2c87699067db2f8079b680d | fin identico
+ejecutar_tc_m05_g14.ps1  inicio 01eea075baec9150e3683f18bcf84161c14dcf1e8497d3732e0e83045829d536 | fin identico
+Ninguno de los dos se modifico.
+
+=====================================================================================
+2. RESULTADO: 30 tests -> 29 passed / 1 failed / 0 error / 0 skipped (runner: SEGURIDAD OK, exit 1)
+=====================================================================================
+Subcaso (a) - rechazo (esperado: HTTP 400 y el campo en fields[]; conteo sin cambio)
+  A01 sin id_activo_biologico      400 VAL_ENTRADA [id_activo_biologico]          OK
+  A02 sin nombre_medicamento       400 VAL_ENTRADA [nombre_medicamento]           OK
+  A03 sin fecha_aplicacion         400 VAL_ENTRADA [fecha_aplicacion]             OK
+  A04 sin hora_aplicacion          400 VAL_ENTRADA [hora_aplicacion]              OK
+  A05 sin via_administracion       400 VAL_ENTRADA [via_administracion]           OK
+  A06 sin dosis_aplicada           400 VAL_ENTRADA [dosis_aplicada]               OK
+  A07 sin unidad_dosis             400 VAL_ENTRADA [unidad_dosis]                 OK
+  A08 sin motivo_aplicacion        400 VAL_ENTRADA [motivo_aplicacion]            OK
+  A09 sin costo_unitario           400 VAL_ENTRADA [costo_unitario]               OK
+  A10 sin nombre_veterinario       400 VAL_ENTRADA [nombre_veterinario]           OK
+  A11 via ORAL2                    400 VIA_ADMINISTRACION_INVALIDA [via_admin.]   OK  (esperado ese error_code)
+  A12 nombre_veterinario null      400 VAL_ENTRADA [nombre_veterinario]           OK
+  A13 unidad_dosis vacia           400 VAL_ENTRADA [unidad_dosis]                 OK
+  A14 hora 25:99                   400 VAL_ENTRADA [hora_aplicacion]              OK
+  A15 fecha 15-09-2026             400 VAL_ENTRADA [fecha_aplicacion]             OK
+  A16 nombre de 51 caracteres      400 VAL_ENTRADA [nombre_medicamento]           OK
+  A17 activo sigue ACTIVO          200, id_estado=1 (RF-44 no invocado)           OK
+Subcaso (b) - valores limite
+  Id   Variacion                 Esperado                                       Obtenido                                  Estado
+  B01  dosis 0                   400, mensaje 'mayor a cero' (E4)               400 VAL_ENTRADA, mensaje ok, fields=[null]   OK
+  B02  dosis -1                  400, mensaje 'mayor a cero' (E4)               400 VAL_ENTRADA, mensaje ok, fields=[null]   OK
+  B03  dosis 0.0001              201, conteo +1, cantidad = 0.0001 (10,4)       500 ERROR_INTERNO, sin cantidad devuelta     FALLA
+  B04  motivo 'Preventiv' (9)    400 (E6)                                       400 VAL_ENTRADA [motivo_aplicacion]          OK
+  B05  motivo 'Preventiva' (10)  201 VALIDADO, sin fecha_fin_retiro, +1         201 VALIDADO, conteo +1, estado 1            OK
+  B06  fecha hoy                 201 VALIDADO, sin fecha_fin_retiro, +1         201 VALIDADO, conteo +1, estado 1            OK
+  B07  fecha hoy+1               400 FECHA_FUTURA (E2)                          400 FECHA_FUTURA [fecha_aplicacion]          OK
+  B08  fecha inicio_ciclo - 1    400 FECHA_ANTERIOR_A_CICLO (E3)                400 FECHA_ANTERIOR_A_CICLO [fecha_aplicacion] OK
+  B09  fecha = inicio_ciclo      201 VALIDADO, sin fecha_fin_retiro, +1         201 VALIDADO, conteo +1, estado 1            OK
+Preparacion: POST /activos-biologicos/853/fases -> 201 (corrida principal y corrida B03).
+No hubo PRECONDICION_NO_CUMPLIDA, ORDEN_INVALIDO, errores de login ni timeouts.
+
+B03 en detalle: HTTP 500, error_code ERROR_INTERNO. La respuesta no trae medicamento, asi que no hay 'cantidad'
+para comparar como Decimal. Clasificacion: PRECISION (inferencia fuerte). En TEST, consultado en solo lectura
+despues de la corrida:
+  - registros_medicamentos.cantidad sigue en numeric(10,3), frente a decimal(10,4) en la especificacion;
+    0.0001 se redondea a 0.000.
+  - fn_trg_calcular_costo_total_medicamento sigue lanzando P0001 cuando cantidad <= 0.
+  - P0001 de modulo5 no esta mapeado (db_error_translator.py:36), asi que termina en InfrastructureError (:438) -> 500.
+  - B05/B06/B09, con dosis 10 y el mismo payload, dan 201: la unica diferencia es la dosis.
+Es un fallo NUEVO y genuino (antes lo tapaba el 500 general, que ya esta corregido).
+
+=====================================================================================
+3. INOCUIDAD Y TEARDOWN
+=====================================================================================
+Conteo de medicamentos del activo 853: base 0 -> final 0 (IGUALES).
+Hubo 3 escrituras reales con 201 (B05, B06 y B09) y 2 aperturas de fase dentro del sandbox; el rollback las revirtio.
+Teardown: las 4 corridas (inocuidad inicial, principal, B03, inocuidad final) -> 200 "Rollback exitoso".
+Consulta posterior de solo lectura (esquema de B03): teardown 200 "Rollback exitoso".
+
+=====================================================================================
+4. PROMOCION (regla b: SEGURIDAD OK, sin fallos de precondicion, el 500 general corregido, fallo genuino en B03)
+=====================================================================================
+- Archivado: el JSON anterior de resultados/ se copio a evidencias/run-20261107-095931/resultado_TC-M05-G14.json
+  (SHA-256 f6a3e9ab7cd3732a3a016b195bc2bf6ff6824ba021bf294c0dae5c13e7094fe6 en origen y copia).
+  El HTML anterior ya estaba en ese staging
+  (723427ad1b2044cf4d04523a80c48a8aa55f91fa7fed1f626f74652954405c6a, identico al que habia en resultados/).
+- HTML nuevo -> resultados/resultado_TC-M05-G14.html
+  (SHA-256 1176b0b51c2461b05b6d2df1777a573b94601981d51d57e5ad1463d05129c894 en origen y destino).
+- JSON nuevo -> resultados/resultado_TC-M05-G14.json (SHA-256 cbc1fd7f957044afe92f83c194568ec5c51c32779094f2e68d2139696c215d38),
+  generado por evidencias/run-20261107-105918/generar_resultado_json.py a partir del JUnit y la traza de ESTA corrida.
+  summary: total 30, ok 29, falla 1, veredicto RECHAZADO, defectos: solo B03 (sin textos de la corrida anterior).
+  Validaciones: parsea, sin BOM, 30 checkpoints, estados solo OK/FALLA, 4 claves en cada uno.
+  data-jsonblob del HTML nuevo: 30 / 29 / 1 / 0 / 0 -> COINCIDE con el JSON.
+- Narrativo nuevo: evidencias/run-20261107-105918/TC-M05-G14_resultado.md.
+  Al narrativo anterior se le agrego solo la nota de una linea al inicio
+  ("Corrida previa a la correccion del 500; sustituida por la evaluacion 20261107-105918").
+
+=====================================================================================
+5. LISTADO FINAL
+=====================================================================================
+resultados/: .gitkeep, resultado_TC-M05-G14.html, resultado_TC-M05-G14.json
+evidencias/: .gitkeep, diagnostico_R3/, run-20261107-093850/, run-20261107-095931/, run-20261107-105918/
+  run-20261107-105918/: TC-M05-G14_resultado.md, console_execution.log, generar_resultado_json.py,
+                        informe_evaluacion_TC-M05-G14.txt, resultado_TC-M05-G14.html, resultado_TC-M05-G14.xml,
+                        trazas_http.jsonl
+  run-20261107-095931/: TC-M05-G14_resultado.md, console_execution.log, generar_resultado_json.py, repro/,
+                        resultado_TC-M05-G14.html, resultado_TC-M05-G14.json, resultado_TC-M05-G14.xml, trazas_http.jsonl
+Sin git add ni commit (indice vacio).
+
+=====================================================================================
+6. ESCANEO DE SECRETOS (password admin, TEST_SANDBOX_SECRET completo, sus ultimos 20 caracteres y el prefijo de JWT)
+=====================================================================================
+Resultado por archivo nuevo o modificado: se anexa al final (seccion 6b), calculado despues de escribir este informe.
+
+=====================================================================================
+7. ANEXO: SALIDA RESUMIDA DEL RUNNER
+=====================================================================================
+OK TEST_BASE_URL
+OK TEST_ADMIN_EMAIL
+OK TEST_ADMIN_PASSWORD
+OK TEST_SANDBOX_SECRET
+ActivoId: 853
+test_00_inocuidad_linea_base PASSED [  3%]
+test_01_preparacion PASSED [  6%]
+test_a_rechazo_campos[A01-id_activo_biologico-omitido] PASSED [ 10%]
+test_a_rechazo_campos[A02-nombre_medicamento-omitido] PASSED [ 13%]
+test_a_rechazo_campos[A03-fecha_aplicacion-omitido] PASSED [ 16%]
+test_a_rechazo_campos[A04-hora_aplicacion-omitido] PASSED [ 20%]
+test_a_rechazo_campos[A05-via_administracion-omitido] PASSED [ 23%]
+test_a_rechazo_campos[A06-dosis_aplicada-omitido] PASSED [ 26%]
+test_a_rechazo_campos[A07-unidad_dosis-omitido] PASSED [ 30%]
+test_a_rechazo_campos[A08-motivo_aplicacion-omitido] PASSED [ 33%]
+test_a_rechazo_campos[A09-costo_unitario-omitido] PASSED [ 36%]
+test_a_rechazo_campos[A10-nombre_veterinario-omitido] PASSED [ 40%]
+test_a_rechazo_campos[A11-via_administracion-invalido] PASSED [ 43%]
+test_a_rechazo_campos[A12-nombre_veterinario-invalido] PASSED [ 46%]
+test_a_rechazo_campos[A13-unidad_dosis-invalido] PASSED [ 50%]
+test_a_rechazo_campos[A14-hora_aplicacion-invalido] PASSED [ 53%]
+test_a_rechazo_campos[A15-fecha_aplicacion-invalido] PASSED [ 56%]
+test_a_rechazo_campos[A16-nombre_medicamento-invalido] PASSED [ 60%]
+test_a17_estado_activo_tras_grupo_a PASSED [ 63%]
+test_b_valores_limite[B01-dosis_0] PASSED [ 66%]
+test_b_valores_limite[B02-dosis_negativa] PASSED [ 70%]
+test_b_valores_limite[B04-motivo_9_caracteres] PASSED [ 73%]
+test_b_valores_limite[B05-motivo_10_caracteres] PASSED [ 76%]
+test_b_valores_limite[B06-fecha_hoy] PASSED [ 80%]
+test_b_valores_limite[B07-fecha_manana] PASSED [ 83%]
+test_b_valores_limite[B08-fecha_inicio_ciclo_menos_1] PASSED [ 86%]
+test_b_valores_limite[B09-fecha_inicio_ciclo] PASSED [ 90%]
+test_zz_cierre_corrida_principal PASSED [ 93%]
+test_zz_b03_dosis_minima[B03-dosis_0.0001] FAILED [ 96%]
+test_zz_inocuidad_final PASSED [100%]
+E   AssertionError: [dosis_aplicada=0.0001] esperado HTTP 201; recibido 500, error_code=ERROR_INTERNO: {"error_code":"ERROR_INTERNO","message":"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.","fields":[],"ti
+E   assert 500 == 201
+E    +  where 500 = <Response [500]>.status_code
+FAILED tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_zz_b03_dosis_minima[B03-dosis_0.0001]
+================== 1 failed, 29 passed, 1 warning in 21.06s ===================
+
+Staging de la corrida: <TC>\evidencias\run-20261107-105918
+Tests ejecutados: 30
+Exit code de pytest: 1
+SEGURIDAD OK
+Nada se copio a resultados\: revisar el staging y promover el reporte manualmente.
+RUNNER_EXIT=1
+DURACION_S=26
+
+=====================================================================================
+6b. RESULTADO DEL ESCANEO DE SECRETOS
+=====================================================================================
+evidencias/run-20261107-105918/console_execution.log                   limpio
+evidencias/run-20261107-105918/resultado_TC-M05-G14.html               limpio
+evidencias/run-20261107-105918/resultado_TC-M05-G14.xml                limpio
+evidencias/run-20261107-105918/trazas_http.jsonl                       limpio
+evidencias/run-20261107-105918/generar_resultado_json.py               limpio
+evidencias/run-20261107-105918/TC-M05-G14_resultado.md                 limpio
+resultados/resultado_TC-M05-G14.html                                   limpio
+resultados/resultado_TC-M05-G14.json                                   limpio
+evidencias/run-20261107-095931/resultado_TC-M05-G14.json               limpio
+evidencias/run-20261107-095931/TC-M05-G14_resultado.md                 limpio
+evidencias/run-20261107-105918/informe_evaluacion_TC-M05-G14.txt       limpio (verificado tras escribirlo)

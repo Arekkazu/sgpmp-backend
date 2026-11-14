@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de cada flujo alterno      |
 """Entidad de dominio :class:`ResultadoICA` (RF-74 / CU-02).
 
 Representa el resultado del cálculo del ICA de un activo en un período. Es pura
@@ -44,6 +47,10 @@ class ResultadoICA:
     id_usuario: Optional[int] = None
     id_resultado_ica: Optional[int] = None
     fecha_calculo: Optional[datetime] = None
+    # Solo del cálculo en curso (no se persisten): alimentan el mensaje de E4/E6.
+    peso_inicial_kg: Optional[Decimal] = None
+    peso_final_kg: Optional[Decimal] = None
+    pesaje_descartado: Optional[tuple[date, Decimal]] = None
 
     @classmethod
     def desde_calculo(
@@ -55,6 +62,9 @@ class ResultadoICA:
         tipo_calculo: TipoCalculo,
         intento: int = 1,
         id_usuario: Optional[int] = None,
+        peso_inicial_kg: Optional[Decimal] = None,
+        peso_final_kg: Optional[Decimal] = None,
+        pesaje_descartado: Optional[tuple[date, Decimal]] = None,
     ) -> "ResultadoICA":
         return cls(
             id_activo_biologico=id_activo_biologico,
@@ -71,7 +81,40 @@ class ResultadoICA:
             causa_no_calculo=calculo.causa_no_calculo,
             intento=intento,
             id_usuario=id_usuario,
+            peso_inicial_kg=peso_inicial_kg,
+            peso_final_kg=peso_final_kg,
+            pesaje_descartado=pesaje_descartado,
         )
+
+    @property
+    def mensaje(self) -> Optional[str]:
+        """Causa legible de un CA_NO_CALCULABLE (RF-74 E2, E3, E4, E6); ``None`` si se calculó."""
+        causa = self.causa_no_calculo
+        if causa is None:
+            return None
+        if causa == CausaNoCalculo.SIN_REGISTROS_CONSUMO:
+            return (
+                "Sin registros de consumo de alimento validados en el período "
+                f"{self.fecha_inicio_periodo.isoformat()} – {self.fecha_fin_periodo.isoformat()}."
+            )
+        if causa in (CausaNoCalculo.SIN_PESO_INICIAL, CausaNoCalculo.SIN_PESO_FINAL):
+            return "No existen registros de pesaje inicial y final en el período evaluado."
+        if causa == CausaNoCalculo.PESO_SIN_VARIACION_POSITIVA:
+            pesos = (
+                f" ({self.peso_inicial_kg} kg → {self.peso_final_kg} kg)"
+                if self.peso_inicial_kg is not None and self.peso_final_kg is not None
+                else ""
+            )
+            return f"La ganancia de peso en el período es cero o negativa{pesos}. El CA no es calculable."
+        if causa == CausaNoCalculo.PESO_INVALIDO and self.pesaje_descartado is not None:
+            fecha, valor = self.pesaje_descartado
+            return (
+                f"El registro de pesaje del {fecha.isoformat()} contiene un valor fuera del rango válido para "
+                f"la especie ({valor} kg). Se descartó del cálculo."
+            )
+        if causa == CausaNoCalculo.PESO_INVALIDO:
+            return "Los registros de pesaje del período tienen valores fuera del rango válido para la especie."
+        return "Existen registros con valores corruptos o fuera de rango; el CA no es calculable."
 
     @property
     def es_critica(self) -> bool:

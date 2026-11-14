@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: el área expone sus especies y la capacidad derivada a M02 (RFC-012) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
 """Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
 
 from __future__ import annotations
@@ -5,9 +10,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
+from dataclasses import field
 from typing import Optional
 
 from src.biological_assets.domain.entities.activo_biologico import SensorEnInfraestructura
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 
 
 @dataclass
@@ -21,8 +28,25 @@ class InfraestructuraConsulta:
     es_activo: bool
     superficie: Optional[Decimal] = None
     id_finca: Optional[int] = None
+    # RFC-012: derivada = capacidad_efectiva (floor(MIN densidad × superficie));
+    # None si el área no tiene especies o alguna no tiene densidad.
     capacidad_maxima: Optional[int] = None
-    id_especie: Optional[int] = None
+    # RFC-012: especies presentes, con grupo y densidad para validar la capacidad
+    # (``capacidad_area.validar_capacidad``) y la compatibilidad por grupo.
+    especies: list[EspecieDelArea] = field(default_factory=list)
+
+    @property
+    def id_especies(self) -> list[int]:
+        return [e.id_especie for e in self.especies]
+
+
+@dataclass(frozen=True)
+class LimiteEtapa:
+    """Límites de la etapa en que está el lote (RF-16 por etapa, RF-36). Sin ``densidad_maxima``, no limita."""
+    nombre_etapa: str
+    densidad_maxima: Optional[Decimal]  # animales por m²
+    biomasa_maxima: Optional[Decimal]  # kg por m²
+    aviso_preventivo_pct: int
 
 
 class InfraestructuraConsultaPort(ABC):
@@ -51,6 +75,19 @@ class InfraestructuraConsultaPort(ABC):
         """Retorna la cantidad total de individuos activos en la infraestructura."""
 
     @abstractmethod
+    def obtener_especie(self, id_especie: int) -> Optional[EspecieDelArea]:
+        """RFC-012: grupo de manejo y densidad de una especie activa (None si no existe o está inactiva)."""
+
+    @abstractmethod
+    def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
+        """RFC-012: asocia la especie al área (tabla puente de DB-06), dentro de la transacción en curso."""
+
+    @abstractmethod
+    def bloquear_capacidad(self, id_infraestructura: int) -> None:
+        """Serializa hasta el fin de la transacción las entradas de individuos al área,
+        para que dos altas simultáneas no pasen ambas el chequeo de capacidad."""
+
+    @abstractmethod
     def listar_sensores_activos(self, id_infraestructura: int) -> list[SensorEnInfraestructura]:
         """Retorna los sensores con asociación de área activa en la infraestructura (enriquecimiento RF-22)."""
 
@@ -62,3 +99,7 @@ class InfraestructuraConsultaPort(ABC):
         compatible por defecto (sin restricción todavía definida para ese tipo).
         Si hay al menos una regla, solo son compatibles las especies listadas.
         """
+
+    def limite_etapa_del_activo(self, id_activo_biologico: int) -> Optional[LimiteEtapa]:
+        """Límites de la etapa de la fase activa del activo (RF-37), o ``None`` si no tiene fase."""
+        return None

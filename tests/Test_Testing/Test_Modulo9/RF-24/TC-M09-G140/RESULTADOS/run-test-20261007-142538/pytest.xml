@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.811" timestamp="2026-10-07T09:25:39.375209-05:00" hostname="Juanher01"><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G140.test_tc_m09_g140_test" name="test_compuerta_de_ejecutabilidad_vision" time="1.519"><failure message="AssertionError: TC-M09-284 y TC-M09-285 quedan BLOQUEADOS / NO VERIFICABLES.&#10;  TEST no publica ninguna operación VISION: 'VISION' no aparece como palabra en todo el contrato (las coincidencias son 'provisión'/'revisión'), el DTO del registro de calibración no declara modo_calibracion, y no existe entidad ni ruta de vector de comportamiento VISION, ni configuración de ε, máximo de iteraciones, p5/p95 ni persistencia de línea base.&#10;  Puntos de ejecutabilidad cumplidos: 0/10&#10;assert False">openapi = {'components': {'schemas': {'AccesibilidadResponse': {'properties': {'minimo_aa': {'title': 'Minimo Aa', 'type': 'numb...: {...}, 'description': 'Unauthorized'}, '403': {'content': {...}, 'description': 'Forbidden'}, ...}, ...}}, ...}, ...}
+
+    def test_compuerta_de_ejecutabilidad_vision(openapi):
+        raw = json.dumps(openapi, ensure_ascii=False)
+        bajo = raw.lower()
+    
+        ev: dict = {
+            "grupo": GRUPO, "casos": CASOS_TEST, "requisito": RF, "casoDeUso": CU,
+            "ambiente": "TEST", "prueba_local": False, "base_url": BASE_URL,
+            "run_id": RUN_ID, "fecha": ahora_iso(),
+            "git": {
+                "rama": git("branch", "--show-current"), "status_short": git("status", "--short"),
+                "diff_stat": git("diff", "--stat"), "diff_cached_stat": git("diff", "--cached", "--stat"),
+                "head": git("rev-parse", "HEAD"), "origin_test": git("rev-parse", "origin/test"),
+                "divergencia": git("rev-list", "--left-right", "--count", "HEAD...origin/test"),
+            },
+        }
+    
+        # ---------------------------------------------------------- operación VISION publicada
+        ocurrencias_vision = palabra_suelta(raw, "VISION")
+        contextos_substring = sorted({m.group(0) for m in re.finditer(r"\w*vision\w*", bajo)})
+        dto = (openapi.get("components", {}).get("schemas", {}).get("RegistrarCalibracionDTO") or {})
+        rutas_candidatas = [p for p in sorted(openapi.get("paths", {}))
+                            if any(k in p.lower() for k in ("vision", "linea-base", "baseline",
+                                                            "observacion", "vector", "comportamiento"))]
+        ev["openapi_vision"] = {
+            "rutas_totales": len(openapi.get("paths", {})),
+            "ocurrencias_de_VISION_como_palabra": ocurrencias_vision,
+            "coincidencias_por_subcadena": contextos_substring,
+            "nota_subcadena": ("Las coincidencias de 'vision' provienen de 'provisión'/'revisión'. "
+                               "Se cuenta la palabra como token para no producir un falso positivo."),
+            "rutas_candidatas": rutas_candidatas,
+            "registrar_calibracion_dto": {
+                "properties": list((dto.get("properties") or {}).keys()),
+                "required": dto.get("required"),
+                "declara_modo_calibracion": "modo_calibracion" in (dto.get("properties") or {}),
+            },
+            "enums_con_VISION": [n for n, s in (openapi.get("components", {}).get("schemas") or {}).items()
+                                 if s.get("enum") and any("VISION" in str(x).upper() for x in s["enum"])],
+        }
+    
+        # ---------------------------------------------------------- fuente formal de vectores
+        endpoints_apto_ia = []
+        for ruta, ops in openapi.get("paths", {}).items():
+            for metodo, op in ops.items():
+                if isinstance(op, dict) and "apto_para_ia" in json.dumps(op):
+                    endpoints_apto_ia.append(f"{metodo.upper()} {ruta}")
+        schemas_apto_ia = [n for n, s in (openapi.get("components", {}).get("schemas") or {}).items()
+                           if "apto_para_ia" in json.dumps(s)]
+        ev["fuente_vectores"] = {
+            "schemas_con_apto_para_ia": schemas_apto_ia,
+            "endpoints_que_exponen_apto_para_ia": endpoints_apto_ia,
+            "entidad_de_observacion_vision": None,
+            "nota": ("apto_para_ia solo aparece en el schema de calidad de telemetría de sensores. "
+                     "No se asume que sea el vector de comportamiento VISION solo por llevar ese "
+                     "campo: el caso exige una entidad con cámara, área, timestamp y componentes."),
+        }
+    
+        # ---------------------------------------------------------- configuración del algoritmo
+        terminos = ["linea_base", "baseline", "ventana_observacion", "vector_comportamiento",
+                    "p5", "p95", "winsoriz", "percentil", "epsilon", "max_iter", "refinamiento",
+                    "convergencia", "mediana_iterativa"]
+        ev["configuracion_algoritmo"] = {t: (t in bajo) for t in terminos}
+        ev["N"] = None
+        ev["epsilon"] = None
+        ev["max_iter"] = None
+    
+        # ---------------------------------------------------------- compuerta de 10 puntos
+        puntos = {
+            "1_operacion_vision_publicada": ocurrencias_vision &gt; 0,
+            "2_fuente_formal_de_vectores_vision": False,
+            "3_componentes_numericos_del_vector": False,
+            "4_vinculo_camara_area_observacion": False,
+            "5_apto_para_ia_consultable_por_flujo_formal": len(endpoints_apto_ia) &gt; 0,
+            "6_minimo_N_consultable": False,
+            "7_persistencia_de_linea_base_verificable": ("linea_base" in bajo or "baseline" in bajo),
+            "8_epsilon_consultable": "epsilon" in bajo,
+            "9_max_iteraciones_consultable": ("max_iter" in bajo or "iteracion" in bajo),
+            "10_regla_de_refinamiento_definida": False,
+        }
+        ev["compuerta_ejecutabilidad"] = {
+            "puntos": puntos,
+            "cumplidos": sum(1 for v in puntos.values() if v),
+            "total": len(puntos),
+            "criterio": ("Los 10 puntos de la sección 3 del paquete. Sin fuente formal VISION no se "
+                         "crean K, M ni áreas gemelas y no se ejecuta ningún POST."),
+        }
+    
+        vision_ejecutable = all(puntos.values())
+        motivo_bloqueo = (
+            "TEST no publica ninguna operación VISION: 'VISION' no aparece como palabra en todo el "
+            "contrato (las coincidencias son 'provisión'/'revisión'), el DTO del registro de "
+            "calibración no declara modo_calibracion, y no existe entidad ni ruta de vector de "
+            "comportamiento VISION, ni configuración de ε, máximo de iteraciones, p5/p95 ni "
+            "persistencia de línea base."
+        )
+    
+        for caso in CASOS_TEST:
+            ev[caso] = {
+                "ambiente": "TEST",
+                "resultado": "APROBADO" if vision_ejecutable else "BLOQUEADO / NO VERIFICABLE",
+                "motivo": None if vision_ejecutable else motivo_bloqueo,
+                "posts_vision_ejecutados": 0,
+                "K": None, "M": None, "baseline_K": None, "baseline_KM": None, "comparacion": None,
+            } if caso == "TC-M09-284" else {
+                "ambiente": "TEST",
+                "resultado": "APROBADO" if vision_ejecutable else "BLOQUEADO / NO VERIFICABLE",
+                "motivo": None if vision_ejecutable else motivo_bloqueo,
+                "posts_vision_ejecutados": 0,
+                "dataset": None, "oracle_descartar": None, "oracle_winsorizar": None,
+                "baseline_producto": None, "interpretacion_observada": None,
+            }
+    
+        # Impedimento adicional y concreto para las áreas gemelas de TC-M09-284.
+        tipo_modelo = None
+        for n, s in (openapi.get("components", {}).get("schemas") or {}).items():
+            pr = (s.get("properties") or {}).get("tipo_modelo_asignado")
+            if pr:
+                tipo_modelo = {"schema": n, "definicion": pr}
+                break
+        ev["TC-M09-284"]["impedimento_areas_gemelas"] = {
+            "tipo_modelo_asignado": tipo_modelo,
+            "admite_POBLACIONAL": bool(tipo_modelo) and "POBLACIONAL" in json.dumps(tipo_modelo),
+            "nota": ("El caso pide áreas gemelas con tipo_modelo_asignado POBLACIONAL. El contrato "
+                     "no admite ese valor para infraestructuras; POBLACIONAL es el tipo de activo "
+                     "biológico, no el modelo asignado al área."),
+        }
+    
+        ev["presupuesto"] = {"postVisionPlanificadosTest": 3, "postVisionEjecutados": 0,
+                             "nota": "No se ejecuta ningún POST VISION mientras la operación no exista."}
+        ev["resultado"] = "APROBADO" if vision_ejecutable else "BLOQUEADO / NO VERIFICABLE"
+        ev["motivo"] = None if vision_ejecutable else motivo_bloqueo
+        ev["seguridad"] = {"limpio": True,
+                           "criterio": "Esta compuerta solo consulta el contrato público; no usa credenciales."}
+    
+        (OUT_DIR / "evidencia.json").write_text(
+            json.dumps(ev, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    
+        # La compuerta falla a propósito mientras VISION no exista: deja constancia del bloqueo.
+&gt;       assert vision_ejecutable, (
+            "TC-M09-284 y TC-M09-285 quedan BLOQUEADOS / NO VERIFICABLES.\n" + motivo_bloqueo +
+            f"\nPuntos de ejecutabilidad cumplidos: {ev['compuerta_ejecutabilidad']['cumplidos']}"
+            f"/{ev['compuerta_ejecutabilidad']['total']}"
+        )
+E       AssertionError: TC-M09-284 y TC-M09-285 quedan BLOQUEADOS / NO VERIFICABLES.
+E         TEST no publica ninguna operación VISION: 'VISION' no aparece como palabra en todo el contrato (las coincidencias son 'provisión'/'revisión'), el DTO del registro de calibración no declara modo_calibracion, y no existe entidad ni ruta de vector de comportamiento VISION, ni configuración de ε, máximo de iteraciones, p5/p95 ni persistencia de línea base.
+E         Puntos de ejecutabilidad cumplidos: 0/10
+E       assert False
+
+test_tc_m09_g140_test.py:215: AssertionError</failure></testcase></testsuite></testsuites>

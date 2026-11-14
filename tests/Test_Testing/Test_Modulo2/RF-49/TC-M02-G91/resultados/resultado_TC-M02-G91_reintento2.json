@@ -1,0 +1,27 @@
+{
+  "tc": "TC-M02-G91",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G91-REEVAL-V3-20260919-152400",
+  "veredicto": "Aprobado",
+  "nota_global": "Fix del PR #321 confirmado desplegado en TEST. GET /activos-biologicos/{id}/sensores responde 200 con contrato envolvente. Filtros ACTIVA/HISTORIAL operativos. DELETE sigue 405 (Restricción 8 OK).",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-222: Rechazar eliminación (DELETE) de una asociación existente (Restricción 8 append-only)",
+      "esperado": "HTTP 405 Method Not Allowed rechazando el borrado físico y preservando el registro histórico intacto",
+      "obtenido": "HTTP 405 Method Not Allowed verificado en endpoint específico y ruta base; inmutabilidad histórica preservada",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-G91_v3.html",
+      "nota_qa": "Aprobado: el servidor rechaza cualquier intento de DELETE con HTTP 405 Method Not Allowed, garantizando la inmutabilidad física append-only del historial (Restricción 8 RF-49)."
+    },
+    {
+      "paso": "TC-M02-223: Verificar visibilidad de la asociación creada en consultas posteriores (RF-49 Criterio de aceptación)",
+      "esperado": "HTTP 200 OK en GET /activos-biologicos/{id}/sensores reflejando la asociación creada con contrato envolvente y campos completos",
+      "obtenido": "HTTP 200 OK verificado con contrato envolvente {id_activo_biologico, tipo_consulta, asociaciones}; asociación ID 94 visible e íntegra; filtros ACTIVA e HISTORIAL operativos",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-G91_v3.html",
+      "nota_qa": "Fix del PR #321 verificado empíricamente: el endpoint GET /activos-biologicos/{id}/sensores está plenamente operativo y desplegado en TEST. Documentación de huérfanas: id_asociacion 93 (superada) y 94 (activa) no pudieron desactivarse vía PATCH por gap RBAC (HTTP 403 Forbidden en acción 3 recurso 30 en TEST)."
+    }
+  ]
+}

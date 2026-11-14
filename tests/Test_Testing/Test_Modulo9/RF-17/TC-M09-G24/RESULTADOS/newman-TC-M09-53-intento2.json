@@ -1,0 +1,226 @@
+{
+  "grupo": "TC-M09-G24",
+  "rol": "Administrador",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "rama": "qa/juan-esteban-m09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-05T21:44:20.692Z",
+  "estado": "PASS",
+  "caso": "TC-M09-53",
+  "plan": {
+    "caso": "TC-M09-53",
+    "especie": "Cachama Blanca",
+    "id_especie": 4,
+    "variable": "Temperatura Ambiental",
+    "id_variable": 9,
+    "unidad": "°C",
+    "limitesFisicos": [
+      -50,
+      100
+    ],
+    "puntos": {
+      "a": -20,
+      "b": 10,
+      "e": 25,
+      "c": 40,
+      "d": 70,
+      "g": 85
+    },
+    "defecto": {
+      "regla": "FA-05 solapamiento entre niveles",
+      "detalle": "precaucion 10-40 y critico 25-70 ocupan a la vez [25, 40]",
+      "codigoEsperado": "SOLAPAMIENTO_NIVELES"
+    },
+    "beforeIds": [
+      10,
+      11
+    ],
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 9,
+      "valor_min": -20,
+      "valor_max": 70,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": -20,
+          "limite_superior": 10
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 10,
+          "limite_superior": 40
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 25,
+          "limite_superior": 70
+        }
+      ]
+    }
+  },
+  "events": [
+    {
+      "caso": "TC-M09-53",
+      "method": "POST",
+      "endpoint": "/configuracion/umbrales",
+      "status": 422,
+      "payload": {
+        "id_especie": 4,
+        "id_variable_ambiental": 9,
+        "valor_min": -20,
+        "valor_max": 70,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": -20,
+            "limite_superior": 10
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 10,
+            "limite_superior": 40
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 25,
+            "limite_superior": 70
+          }
+        ]
+      },
+      "response": {
+        "error_code": "SOLAPAMIENTO_NIVELES",
+        "message": "Los niveles de alerta deben ser contiguos sin huecos ni solapamientos. El nivel 'precaucion' termina en 40 pero el siguiente comienza en 25.",
+        "fields": [],
+        "timestamp": "2026-09-05T21:44:20.108199+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-53",
+      "method": "GET",
+      "endpoint": "/configuracion/umbrales",
+      "status": 200,
+      "response": {
+        "total": 2,
+        "items": [
+          {
+            "id_umbral_ambiental": 10,
+            "id_especie": 4,
+            "id_variable_ambiental": 1,
+            "unidad_medida": "°C",
+            "valor_min": "0.00",
+            "valor_max": "100.00",
+            "es_activo": true,
+            "fecha_actualizacion": null,
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "26.00",
+                "limite_superior": "32.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "22.00",
+                "limite_superior": "26.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "0.00",
+                "limite_superior": "22.00"
+              }
+            ]
+          },
+          {
+            "id_umbral_ambiental": 11,
+            "id_especie": 4,
+            "id_variable_ambiental": 3,
+            "unidad_medida": "mg/L",
+            "valor_min": "0.00",
+            "valor_max": "100.00",
+            "es_activo": true,
+            "fecha_actualizacion": null,
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "4.00",
+                "limite_superior": "12.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "2.00",
+                "limite_superior": "4.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "0.00",
+                "limite_superior": "2.00"
+              }
+            ]
+          }
+        ]
+      },
+      "transportError": false
+    }
+  ],
+  "postGetStatus": 200,
+  "totalUmbralesEspecie": 2,
+  "idsEspecie": [
+    10,
+    11
+  ],
+  "persisted": [],
+  "idCreado": null,
+  "STOP_ALL": false,
+  "stats": {
+    "iterations": {
+      "total": 1,
+      "pending": 0,
+      "failed": 0
+    },
+    "items": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "scripts": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "prerequests": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "requests": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "tests": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 8,
+      "pending": 0,
+      "failed": 0
+    },
+    "testScripts": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "prerequestScripts": {
+      "total": 0,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "failures": [],
+  "reporter": "htmlextra 1.23.1",
+  "html": "newman-TC-M09-53-intento2.html"
+}

@@ -1,0 +1,699 @@
+================================================================================
+INFORME DE REEVALUACIÓN — TC-M05-G14 (RF-76) — REINTENTO 1
+Fecha de ejecución: 2026-11-11
+Staging: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/
+Activo de prueba: 853 (periodo_retiro_dias = 0 en todos los POST)
+Motivo: Reevaluación tras corrección de INC-M05-270-G14 (Dev #954, migración d2e71a4c980b)
+================================================================================
+
+1) RESULTADO DEL GATE DE DESPLIEGUE (PASO 1)
+--------------------------------------------------------------------------------
+A. HECHOS OBSERVADOS EN AMBIENTE TEST (vía POST /test-control/query, solo SELECT, sin CTE)
+   Corrida sandbox: gate-g14-<uuid> (solo lectura; teardown DELETE HTTP 200 {"status":"Rollback exitoso"})
+
+   Consulta 1a — Columna objetivo en modulo5.registros_medicamentos:
+     SQL: SELECT table_schema, table_name, column_name, data_type, numeric_precision, numeric_scale
+          FROM information_schema.columns
+          WHERE table_schema='modulo5' AND table_name='registros_medicamentos' AND column_name='cantidad'
+     HTTP 200 | X-Request-ID: 152df084-0762-4a02-a9f3-00f2c4957706
+     Resultado literal:
+       table_schema=modulo5 | table_name=registros_medicamentos | column_name=cantidad
+       data_type=numeric | numeric_precision=10 | numeric_scale=4
+
+   Consulta 1b — Versión Alembic en TEST:
+     SQL: SELECT version_num FROM alembic_version
+     HTTP 200 | X-Request-ID: cf854b29-e5c5-45b6-aad3-9f31ea9e3d22
+     Resultado literal: version_num = "143fa2eda4fc"
+     SQL esquema: SELECT table_schema, table_name FROM information_schema.tables WHERE table_name='alembic_version'
+     HTTP 200 | X-Request-ID: 0396fa0d-6855-4675-b492-2ce6dbdc82ed
+     Resultado literal: table_schema="public", table_name="alembic_version"
+
+   Consulta 1c — Precisión y escala de columnas relacionadas en modulo5 (TEST):
+     HTTP 200 | X-Request-ID: b9c0ab96-537f-48fd-90b8-c1e963d68e88
+     Resultados literales en information_schema.columns:
+       - modulo5.registros_medicamentos.cantidad                   : numeric(10, 4)
+       - modulo5.registros_medicamentos.costo_unitario_medicamento : numeric(10, 4)
+       - modulo5.registros_medicamentos.costo_total_medicamento    : numeric(12, 4)
+       - modulo5.registros_medicamentos.dosis_por_individuo        : numeric(10, 4)
+       - modulo5.registro_suministro.cantidad                      : numeric(10, 4)
+       - modulo5.registro_suministro.precio_unitario_resuelto      : numeric(10, 2)
+       - modulo5.registro_suministro.costo_registro                : numeric(14, 4)
+       - modulo5.acumulado_ciclo.acumulado_total_ciclo             : numeric(16, 4)
+       - modulo5.auditorias_suministros.costo_afectado             : numeric(16, 4)
+       - modulo5.reporte_gastos_acumulados.total_costo_alimento    : numeric(16, 4)
+       - modulo5.reporte_gastos_acumulados.total_costo_medicamento : numeric(16, 4)
+       - modulo5.reporte_gastos_acumulados.total_costo_directo     : numeric(16, 4)
+
+   Veredicto del GATE: APROBADO (cantidad es numeric(10, 4) en TEST). Se autoriza ejecución de Pasos 2 y 3.
+
+B. LECTURA DE CÓDIGO LOCAL (no constituye prueba de despliegue en TEST)
+   - Migración d2e71a4c980b: SÍ existe en
+     alembic/versions/d2e71a4c980b_rf76_precision_dosis_cuatro_decimales.py
+     (cambia modulo5.registros_medicamentos.cantidad de Numeric(10,3) a Numeric(10,4),
+     recreando modulo5.vw_m05_aplicacion_medicamentos con sus permisos y comentarios).
+     En la cadena local de Alembic, d2e71a4c980b es ancestro de 143fa2eda4fc (head).
+   - ORM local: SÍ tiene cantidad mapeada como Numeric(10, 4) en
+     src/supplies/infrastructure/models/registro_medicamento_model.py (línea 60:
+     `cantidad: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 4), nullable=False)`),
+     junto con costo_unitario_medicamento Numeric(10, 4), costo_total_medicamento Numeric(12, 4)
+     y dosis_por_individuo Numeric(10, 4).
+   - DTO local: src/supplies/infrastructure/dto/registrar_medicamento_dto.py define
+     `dosis_aplicada: Decimal = Field(max_digits=10, decimal_places=4, ...)` y `@model_validator`
+     para dosis_aplicada <= 0.
+   - Traductor de errores DB local (src/shared/db_error_translator.py, líneas 92-100):
+     SÍ mapea rechazos del trigger de RF-76 en `traducir_rechazo_trigger` cuando
+     `(sqlstate, funcion) == ("P0001", "modulo5.fn_trg_calcular_costo_total_medicamento")`:
+       * "CANTIDAD_INVALIDA" -> ValidationError(400, code="VAL_ENTRADA", field="dosis_aplicada",
+         message="La dosis aplicada debe ser mayor a cero.")
+       * "COSTO_INVALIDO" -> ValidationError(400, code="VAL_ENTRADA", field="costo_unitario",
+         message="El costo unitario del medicamento debe ser mayor a cero.")
+
+2) INTEGRIDAD SHA-256 (INICIAL Y FINAL)
+--------------------------------------------------------------------------------
+Archivo: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py
+  SHA-256 inicial: A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D
+  SHA-256 final  : A693E2DF2229EB52501079E9BC9365B39E084C52C2C87699067DB2F8079B680D
+  Estado         : COINCIDE (sin modificaciones)
+
+Archivo: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/ejecutar_tc_m05_g14.ps1
+  SHA-256 inicial: 01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536
+  SHA-256 final  : 01EEA075BAEC9150E3683F18BCF84161C14DCF1E8497D3732E0E83045829D536
+  Estado         : COINCIDE (sin modificaciones)
+
+3) RESUMEN DE LA CORRIDA OFICIAL (PASO 2 — REINTENTO 1)
+--------------------------------------------------------------------------------
+Comando ejecutado:
+  powershell -ExecutionPolicy Bypass -File "tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G14\ejecutar_tc_m05_g14.ps1" -Reintento 1 -ActivoId 853
+
+Resultado global (JUnit XML / pytest):
+  Total ejecutados: 30 | Passed: 30 | Failed: 0 | Errors: 0 | Skipped: 0 | Duración: 18.11s (pytest) / 18.042s (JUnit)
+
+Desglose por bloque de tests:
+  - Infraestructura (5/5 PASSED):
+      * test_00_inocuidad_linea_base          -> PASSED (1.528s)
+      * test_01_preparacion                   -> PASSED (1.992s)
+      * test_a17_estado_activo_tras_grupo_a   -> PASSED (0.131s)
+      * test_zz_cierre_corrida_principal      -> PASSED (0.111s)
+      * test_zz_inocuidad_final               -> PASSED (1.428s)
+  - Subcaso A (A01–A16, 16/16 PASSED):
+      * A01-id_activo_biologico-omitido       -> PASSED (0.382s)
+      * A02-nombre_medicamento-omitido        -> PASSED (0.349s)
+      * A03-fecha_aplicacion-omitido          -> PASSED (0.337s)
+      * A04-hora_aplicacion-omitido           -> PASSED (0.346s)
+      * A05-via_administracion-omitido        -> PASSED (0.358s)
+      * A06-dosis_aplicada-omitido            -> PASSED (0.353s)
+      * A07-unidad_dosis-omitido              -> PASSED (0.479s)
+      * A08-motivo_aplicacion-omitido         -> PASSED (0.359s)
+      * A09-costo_unitario-omitido            -> PASSED (0.344s)
+      * A10-nombre_veterinario-omitido        -> PASSED (0.352s)
+      * A11-via_administracion-invalido       -> PASSED (0.360s)
+      * A12-nombre_veterinario-invalido       -> PASSED (0.374s)
+      * A13-unidad_dosis-invalido             -> PASSED (0.345s)
+      * A14-hora_aplicacion-invalido          -> PASSED (0.341s)
+      * A15-fecha_aplicacion-invalido         -> PASSED (0.354s)
+      * A16-nombre_medicamento-invalido       -> PASSED (0.342s)
+  - Subcaso B (B01–B09, 9/9 PASSED):
+      * B01-dosis_0                           -> PASSED (0.485s)
+      * B02-dosis_negativa                    -> PASSED (0.365s)
+      * B03-dosis_0.0001 (test_zz_b03_dosis_minima) -> PASSED (3.084s)
+      * B04-motivo_9_caracteres               -> PASSED (0.350s)
+      * B05-motivo_10_caracteres              -> PASSED (0.610s)
+      * B06-fecha_hoy                         -> PASSED (0.511s)
+      * B07-fecha_manana                      -> PASSED (0.424s)
+      * B08-fecha_inicio_ciclo_menos_1        -> PASSED (0.346s)
+      * B09-fecha_inicio_ciclo                -> PASSED (0.507s)
+
+Fallos clasificados:
+  Ninguno (0 fallos, 0 errores).
+
+Texto literal de las aserciones de B03 (test_tc_m05_g14.py):
+  B03 NO verifica solamente HTTP 201; además valida estado_registro == "VALIDADO", ausencia de retiro,
+  incremento +1 en el conteo del activo, conservación de id_estado == 1 del activo y cantidad == Decimal("0.0001").
+  Aserciones literales en `_assert_registro_valido` (líneas 479-499):
+    1. `assert resp.status_code == 201`
+    2. `assert medicamento.get("estado_registro") == "VALIDADO"`
+    3. `assert medicamento.get("fecha_fin_retiro") is None`
+    4. `assert despues == antes + 1`
+    5. `assert estado == ESTADO_ACTIVO` (donde `ESTADO_ACTIVO = 1`)
+  Aserciones literales en `test_zz_b03_dosis_minima` (líneas 751-760):
+    6. `assert recibido is not None, f"[{enviado}] HTTP 201 sin 'cantidad' en la respuesta"`
+    7. `Decimal(str(recibido))` (bloque try/except InvalidOperation -> AssertionError)
+    8. `assert cantidad == Decimal("0.0001"), ...`
+  Más verificación de teardown `_cerrar_ok(c)`:
+    9. `assert resp.status_code == 200` y `assert "Rollback exitoso" in status`.
+
+4) DIAGNÓSTICO DEL CRITERIO DE RE-PRUEBA D01–D12 (PASO 3 — NO ES REPORTE OFICIAL)
+--------------------------------------------------------------------------------
+Script: evidencias/run-20261111-140320/diagnostico_reintento1/diag_precision.py
+Corrida única con un solo login (DEF-04), activo 853, fase abierta en sandbox (id_gestion_fases=811, id_ciclo_productiva=5).
+
+Tabla D01–D12 (esperado vs obtenido):
+ID  | Dosis JSON  | CU  | Origen                     | Esperado                     | HTTP | error_code  | Resp cantidad | Resp costo | BD SELECT (id)                | X-Request-ID                         | Veredicto
+----|-------------|-----|----------------------------|------------------------------|------|-------------|---------------|------------|-------------------------------|--------------------------------------|----------
+D01 | 0.0001      | 500 | [especificación + Dev]     | 201, cant 0.0001, c 0.0500   | 201  | null        | 0.0001        | 0.0500     | id=246; /query HTTP 200 -> [] | 3765a21a-9f65-495a-af61-ba27ec16b000 | OK
+D02 | 0.0004      | 500 | [contrato Dev]             | 201, cant 0.0004, c 0.2000   | 201  | null        | 0.0004        | 0.2000     | id=247; /query HTTP 200 -> [] | cf0c3f80-07bb-45f4-9e62-6b23af7268c7 | OK
+D03 | 0.0005      | 500 | [criterio INC]             | 201, cant 0.0005, c 0.2500   | 201  | null        | 0.0005        | 0.2500     | id=248; /query HTTP 200 -> [] | 54b6776f-3379-4d3e-9162-55aba9b73c3b | OK
+D04 | 0.0015      | 500 | [criterio INC]             | 201, cant 0.0015, c 0.7500   | 201  | null        | 0.0015        | 0.7500     | id=249; /query HTTP 200 -> [] | 03f943e8-010a-4981-bbfc-96c6cac87fed | OK
+D05 | 0.001       | 500 | [control]                  | 201, cant 0.001              | 201  | null        | 0.0010        | 0.5000     | id=250; /query HTTP 200 -> [] | 9b4c81c4-fe82-4a7f-9edd-308cee5d94e9 | OK
+D06 | 0.00001     | 500 | [contrato Dev]             | 400 VAL_ENTRADA, sin pers.   | 400  | VAL_ENTRADA | null          | null       | N/A (conteo 5 -> 5)           | 701a02f5-9373-49d6-a671-ee403ecf16df | OK
+D07 | 1.23456     | 500 | [contrato Dev]             | 400, sin persistencia        | 400  | VAL_ENTRADA | null          | null       | N/A (conteo 5 -> 5)           | 017c619a-7248-4d8f-94e9-c2035c190c0a | OK
+D08 | 0.00010     | 500 | [contrato Dev]             | 201, cant 0.0001             | 201  | null        | 0.0001        | 0.0500     | id=251; /query HTTP 200 -> [] | c3a99b2f-72e3-4285-8aa0-6b69850c3395 | OK
+D09 | 0           | 500 | [especificación E4]        | 400, sin persistencia        | 400  | VAL_ENTRADA | null          | null       | N/A (conteo 6 -> 6)           | ad25fa54-ee0f-44c1-ac64-88ee2e23fa40 | OK
+D10 | 999999.9999 | 1   | [contrato Dev / max 10,4]  | 201, cant 999999.9999        | 201  | null        | 999999.9999   | 999999.9999| id=252; /query HTTP 200 -> [] | 3fccd3fe-260a-4a2b-b2b6-fd2328c1e625 | OK
+D11 | 1000000     | 1   | [contrato Dev]             | 400, sin persistencia        | 400  | VAL_ENTRADA | null          | null       | N/A (conteo 7 -> 7)           | 8e8a82f6-c2bd-47ef-ad42-217abfd327bf | OK
+D12 | 10          | 500 | [control post-400]         | 201 (corrida sigue sana)     | 201  | null        | 10.0000       | 5000.0000  | id=253; /query HTTP 200 -> [] | 3878e939-ea7b-4f18-9437-44434dae1e0a | OK
+
+Observaciones sobre consultas BD (/test-control/query) y ledger/acumulado de RF-78:
+- HECHO OBSERVADO: Todas las consultas `SELECT` mediante `POST /test-control/query` sobre
+  `modulo5.registros_medicamentos` (por id 246..253), `modulo5.registro_suministro` (para D01 id=246
+  [X-Request-ID: 90de25a0-6a51-4820-a127-7261c9033c08] y D03 id=248 [X-Request-ID: 134dfbe8-f824-4551-9bee-21f272652a74])
+  y `modulo5.acumulado_ciclo` (id_activo_biologico=853 [X-Request-ID: 61563705-1b24-45f3-91c6-f6a0fe3b3020])
+  devolvieron `HTTP 200` con `{"data": []}` (0 filas visibles desde `/test-control/query`).
+  Se marca como **observación** que las filas no son visibles en `/test-control/query` (consistente como
+  inferencia con políticas RLS de `modulo5` activadas en migración `6adf6dbab26b` cuando `/test-control/query`
+  opera sin variables de contexto de sesión de usuario).
+- HECHO OBSERVADO (API HTTP autenticada): La consulta `GET /suministros/costeo-directo/acumulado/activo/853`
+  (X-Request-ID: c97f35c6-0d5e-48b7-8481-6188554d3081) devolvió `HTTP 200` dentro de la misma corrida con:
+    * id_activo_biologico: 853, id_ciclo_productivo: 5, id_gestion_fases: 811
+    * acumulado_total_ciclo: "1005001.7999"
+    * acumulado_por_categoria: {"MEDICAMENTO": "1005001.7999"}
+    * version_acumulado: 7, estado: "ACTIVO"
+  La suma aritmética exacta de los 8 registros creados en la corrida (D01=0.0500 + D02=0.2000 +
+  D03=0.2500 + D04=0.7500 + D05=0.5000 + D08=0.0500 + D10=999999.9999 + D12=5000.0000) es `1005001.7999`,
+  coincidiendo hasta el cuarto decimal en el acumulado del ciclo.
+
+5) CONTEOS DE INOCUIDAD BASE / FINAL POR CORRIDA
+--------------------------------------------------------------------------------
+- Paso 1 (Gate):
+    * Corrida: gate-g14-<uuid> (solo lectura /test-control/query) -> Teardown HTTP 200 "Rollback exitoso"
+- Paso 2 (Evaluación oficial — Reintento 1, activo 853):
+    * Corrida 1 (test_00_inocuidad_linea_base): conteo base = 0 | Teardown HTTP 200
+    * Corrida 2 (corrida_principal: prep + A01-A16 + A17 + B01-B02 + B04-B09): Teardown HTTP 200
+    * Corrida 3 (test_zz_b03_dosis_minima): Teardown HTTP 200
+    * Corrida 4 (test_zz_inocuidad_final): conteo final = 0 | Teardown HTTP 200
+    * Coincidencia base == final: SÍ (0 == 0)
+- Paso 3 (Diagnóstico D01–D12, activo 853):
+    * Corrida 1 (test_00_diag_inocuidad_base): conteo base = 0 | Teardown HTTP 200 "Rollback exitoso"
+    * Corrida 2 (test_01_diag_precision_d01_d12): 8 creaciones + 4 rechazos | Teardown HTTP 200 "Rollback exitoso"
+    * Corrida 3 (test_02_diag_inocuidad_final): conteo final = 0 | Teardown HTTP 200 "Rollback exitoso"
+    * Coincidencia base == final: SÍ (0 == 0)
+
+6) RESULTADO DEL ESCANEO DE SECRETOS
+--------------------------------------------------------------------------------
+Patrones verificados desde .env.test en memoria (sin imprimir valores):
+  - admin_password
+  - sandbox_secret
+  - sandbox_secret_ult20 (últimos 20 caracteres del secreto sandbox)
+  - prefijo_JWT (prefijo estándar de token JWT de 3 caracteres)
+
+Resultado por archivo generado en evidencias/run-20261111-140320/:
+  - console_execution.log -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - resultado_TC-M05-G14_reintento1.html -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - resultado_TC-M05-G14_reintento1.xml -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - trazas_http.jsonl -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - diagnostico_reintento1/diag_precision.py -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - diagnostico_reintento1/diag_resultados.json -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - diagnostico_reintento1/console_diag.log -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+  - INFORME_REEVALUACION_G14.txt -> admin_password: no encontrado | sandbox_secret: no encontrado | sandbox_secret_ult20: no encontrado | prefijo_JWT: no encontrado
+
+7) LISTA DE ARCHIVOS GENERADOS
+--------------------------------------------------------------------------------
+Todos dentro de tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/:
+  - console_execution.log
+  - resultado_TC-M05-G14_reintento1.html
+  - resultado_TC-M05-G14_reintento1.xml
+  - trazas_http.jsonl
+  - INFORME_REEVALUACION_G14.txt
+  - diagnostico_reintento1/diag_precision.py
+  - diagnostico_reintento1/diag_resultados.json
+  - diagnostico_reintento1/console_diag.log
+
+(No se escribió nada en resultados/, no se creó narrativo .md ni INC, y no se ejecutó git add/commit.)
+
+================================================================================
+ANEXO A — CONTENIDO COMPLETO DE diag_precision.py
+================================================================================
+# | Fecha      | Nombre                   | Que se hizo                                                              |
+# |------------|--------------------------|--------------------------------------------------------------------------|
+# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G14 RF-76 reintento 1: diagnóstico de precisión decimal(10,4)     |
+"""Diagnóstico del criterio de re-prueba para TC-M05-G14 (RF-76, activo 853).
+
+NO es un reporte oficial. Ejecuta D01-D12 en una única corrida sandbox con un
+solo login (DEF-04), verifica inocuidad base y final en corridas separadas y
+guarda el resumen estructurado en ``diag_resultados.json`` (sin secretos).
+"""
+from __future__ import annotations
+
+import json
+import os
+import uuid
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
+from pathlib import Path
+
+import pytest
+import requests
+from dotenv import dotenv_values
+
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    try:
+        ZONA_USUARIO = ZoneInfo("America/Bogota")
+    except ZoneInfoNotFoundError:
+        ZONA_USUARIO = timezone(timedelta(hours=-5), "America/Bogota")
+except ImportError:
+    ZONA_USUARIO = timezone(timedelta(hours=-5), "America/Bogota")
+
+NOMBRE_ZONA = "America/Bogota"
+ID_ACTIVO = 853
+TIMEOUT_S = 45
+DIR_DIAG = Path(__file__).resolve().parent
+RAIZ_REPO = Path(__file__).resolve().parents[8]
+ENV_TEST = dotenv_values(RAIZ_REPO / ".env.test") if (RAIZ_REPO / ".env.test").exists() else {}
+
+_INOCUIDAD: dict[str, int] = {}
+_RESULTADOS: dict = {"activo": ID_ACTIVO, "casos": [], "observaciones_ledger_acumulado": []}
+
+
+def _env(nombre: str) -> str:
+    val = os.environ.get(nombre) or ENV_TEST.get(nombre)
+    if not val:
+        raise AssertionError(f"Falta variable de entorno requerida: {nombre}")
+    return val
+
+
+def _secretos() -> list[str]:
+    vals = []
+    for k in ("TEST_SANDBOX_SECRET", "TEST_ADMIN_PASSWORD"):
+        v = os.environ.get(k) or ENV_TEST.get(k)
+        if v:
+            vals.append(v)
+    return vals
+
+
+def _seguro(texto: str, extra: tuple[str, ...] = ()) -> str:
+    out = (texto or "")[:500]
+    for s in [*_secretos(), *extra]:
+        if s:
+            out = out.replace(s, "***")
+    return out
+
+
+def _hoy_bogota() -> str:
+    return datetime.now(ZONA_USUARIO).date().isoformat()
+
+
+class _CuerpoSensible(dict):
+    def __repr__(self) -> str:
+        return "<cuerpo sensible omitido>"
+
+    __str__ = __repr__
+
+
+class CorridaDiag:
+    def __init__(self, prefijo: str) -> None:
+        self.base = _env("TEST_BASE_URL").rstrip("/")
+        self.run_id = f"{prefijo}-{uuid.uuid4()}"
+        self.token: str | None = None
+        self.cerrada = False
+        self.http = requests.Session()
+        self.http.headers.update(
+            {
+                "X-Test-Run-Id": self.run_id,
+                "X-Sandbox-Secret": _env("TEST_SANDBOX_SECRET"),
+                "X-Zona-Horaria": NOMBRE_ZONA,
+            }
+        )
+
+    def login(self) -> None:
+        assert self.token is None, "DEF-04: un solo login por run_id"
+        body = _CuerpoSensible(
+            correo_electronico=_env("TEST_ADMIN_EMAIL"),
+            contrasena=_env("TEST_ADMIN_PASSWORD"),
+        )
+        r = self.http.post(f"{self.base}/sesiones/", json=body, timeout=TIMEOUT_S)
+        assert r.status_code == 200, f"Login HTTP {r.status_code}: {_seguro(r.text)}"
+        token = r.json().get("token")
+        assert token, "Login sin token"
+        self.token = token
+        self.http.headers["Authorization"] = f"Bearer {token}"
+
+    def get(self, ruta: str, **kw) -> requests.Response:
+        return self.http.get(f"{self.base}{ruta}", timeout=TIMEOUT_S, **kw)
+
+    def post_json(self, ruta: str, payload: dict) -> requests.Response:
+        return self.http.post(f"{self.base}{ruta}", json=payload, timeout=TIMEOUT_S)
+
+    def post_raw_json(self, ruta: str, raw_body: str) -> requests.Response:
+        return self.http.post(
+            f"{self.base}{ruta}",
+            data=raw_body.encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            timeout=TIMEOUT_S,
+        )
+
+    def query(self, sql: str) -> tuple[int, dict, str | None]:
+        r = self.http.post(
+            f"{self.base}/test-control/query",
+            json={"query": sql},
+            timeout=TIMEOUT_S,
+        )
+        try:
+            body = r.json()
+        except ValueError:
+            body = {"raw": _seguro(r.text, (self.token,) if self.token else ())}
+        return r.status_code, body, r.headers.get("X-Request-ID")
+
+    def cerrar(self) -> tuple[int, str]:
+        if self.cerrada:
+            return 200, "ya cerrada"
+        self.cerrada = True
+        try:
+            r = self.http.delete(f"{self.base}/test-control/runs/{self.run_id}", timeout=TIMEOUT_S)
+            return r.status_code, _seguro(r.text, (self.token,) if self.token else ())
+        finally:
+            self.http.close()
+
+
+def _cerrar_con_rollback(c: CorridaDiag) -> None:
+    code, texto = c.cerrar()
+    assert code == 200 and "Rollback exitoso" in texto, f"Teardown fallo: HTTP {code} {texto}"
+
+
+def _contar_medicamentos_http(c: CorridaDiag, id_activo: int) -> int:
+    r = c.get("/suministros/medicamentos", params={"id_activo_biologico": id_activo})
+    assert r.status_code == 200, f"GET medicamentos HTTP {r.status_code}"
+    return int(r.json()["total"])
+
+
+def _preparar_fase(c: CorridaDiag, id_activo: int) -> dict:
+    r_fases = c.get(f"/activos-biologicos/{id_activo}/fases")
+    assert r_fases.status_code == 200, f"GET fases HTTP {r_fases.status_code}"
+    activas = [f for f in r_fases.json().get("fases") or [] if f.get("es_activa") is True]
+    if activas:
+        return {"fase_abierta_por_diag": False, "fase": activas[0]}
+
+    r_ciclos = c.get(f"/activos-biologicos/{id_activo}/ciclos-productivos")
+    assert r_ciclos.status_code == 200, f"GET ciclos HTTP {r_ciclos.status_code}"
+    con_fases = sorted(
+        (ci for ci in r_ciclos.json().get("items") or [] if ci.get("fases")),
+        key=lambda ci: ci["id_ciclo_productivo"],
+    )
+    assert con_fases, f"Activo {id_activo} sin ciclos productivos con fases"
+    id_ciclo = con_fases[0]["id_ciclo_productivo"]
+    rf = c.post_json(
+        f"/activos-biologicos/{id_activo}/fases",
+        {"id_ciclo_productiva": id_ciclo, "motivo_cambio": "TC-M05-G14 diag: apertura de fase en sandbox"},
+    )
+    assert rf.status_code == 201, f"POST fases HTTP {rf.status_code}: {_seguro(rf.text)}"
+    return {"fase_abierta_por_diag": True, "fase": rf.json()}
+
+
+def _payload_raw(id_activo: int, hora: str, dosis_raw: str, costo_unitario: int | float) -> str:
+    base = {
+        "id_activo_biologico": id_activo,
+        "nombre_medicamento": "Oxitetraciclina",
+        "fecha_aplicacion": _hoy_bogota(),
+        "hora_aplicacion": hora,
+        "via_administracion": "INTRAMUSCULAR",
+        "dosis_aplicada": "__DOSIS_LITERAL__",
+        "unidad_dosis": "ml",
+        "periodo_retiro_dias": 0,
+        "motivo_aplicacion": "Tratamiento de infección respiratoria",
+        "costo_unitario": costo_unitario,
+        "nombre_veterinario": "Dr. Pérez",
+    }
+    return json.dumps(base, ensure_ascii=False).replace('"__DOSIS_LITERAL__"', dosis_raw)
+
+
+# (id, dosis_raw, costo_unitario, hora, expected_http, expected_error_code, expected_cantidad, expected_costo, origen)
+CASOS_DIAG = [
+    ("D01", "0.0001", 500, "10:01", 201, None, "0.0001", "0.0500", "[especificación + Dev]"),
+    ("D02", "0.0004", 500, "10:02", 201, None, "0.0004", "0.2000", "[contrato Dev]"),
+    ("D03", "0.0005", 500, "10:03", 201, None, "0.0005", "0.2500", "[criterio INC]"),
+    ("D04", "0.0015", 500, "10:04", 201, None, "0.0015", "0.7500", "[criterio INC]"),
+    ("D05", "0.001", 500, "10:05", 201, None, "0.001", None, "[control]"),
+    ("D06", "0.00001", 500, "10:06", 400, "VAL_ENTRADA", None, None, "[contrato Dev]"),
+    ("D07", "1.23456", 500, "10:07", 400, None, None, None, "[contrato Dev]"),
+    ("D08", "0.00010", 500, "10:08", 201, None, "0.0001", None, "[contrato Dev]"),
+    ("D09", "0", 500, "10:09", 400, None, None, None, "[especificación E4]"),
+    ("D10", "999999.9999", 1, "10:10", 201, None, "999999.9999", None, "[contrato Dev / max 10,4]"),
+    ("D11", "1000000", 1, "10:11", 400, None, None, None, "[contrato Dev]"),
+    ("D12", "10", 500, "10:12", 201, None, "10", None, "[control post-400]"),
+]
+
+
+def _dec_eq(a, b) -> bool:
+    if a is None or b is None:
+        return False
+    return Decimal(str(a)) == Decimal(str(b))
+
+
+def test_00_diag_inocuidad_base():
+    c = CorridaDiag("diag-m05-g14-base")
+    try:
+        c.login()
+        total = _contar_medicamentos_http(c, ID_ACTIVO)
+    except BaseException:
+        c.cerrar()
+        raise
+    _cerrar_con_rollback(c)
+    _INOCUIDAD["base"] = total
+    _RESULTADOS["inocuidad_base"] = total
+
+
+def test_01_diag_precision_d01_d12():
+    c = CorridaDiag("diag-m05-g14")
+    ids_creados: dict[str, int] = {}
+    fallos_eval: list[str] = []
+
+    try:
+        c.login()
+        prep = _preparar_fase(c, ID_ACTIVO)
+        _RESULTADOS["preparacion"] = {
+            "fase_abierta_por_diag": prep["fase_abierta_por_diag"],
+            "id_gestion_fases": prep["fase"].get("id_gestion_fases"),
+            "id_ciclo_productiva": prep["fase"].get("id_ciclo_productiva"),
+        }
+
+        for cid, dosis_raw, costo_u, hora, esp_http, esp_ec, esp_cant, esp_costo, origen in CASOS_DIAG:
+            antes_http = _contar_medicamentos_http(c, ID_ACTIVO)
+            raw_payload = _payload_raw(ID_ACTIVO, hora, dosis_raw, costo_u)
+            resp = c.post_raw_json("/suministros/medicamentos", raw_payload)
+            despues_http = _contar_medicamentos_http(c, ID_ACTIVO)
+            req_id = resp.headers.get("X-Request-ID")
+
+            try:
+                body = resp.json()
+            except ValueError:
+                body = {}
+
+            med = body.get("medicamento") if isinstance(body, dict) else None
+            error_code = body.get("error_code") if isinstance(body, dict) else None
+            id_reg = med.get("id_registro_medicamento") if isinstance(med, dict) else None
+            resp_cant = med.get("cantidad") if isinstance(med, dict) else None
+            resp_costo = med.get("costo_total_medicamento") if isinstance(med, dict) else None
+
+            bd_info = {"query_http": None, "rows": [], "x_request_id": None}
+            if id_reg is not None:
+                ids_creados[cid] = id_reg
+                q_http, q_body, q_req = c.query(
+                    "SELECT id_registro_medicamento, id_registro_rf76::text AS id_registro_rf76, "
+                    "cantidad::text AS cantidad, costo_unitario_medicamento::text AS costo_unitario_medicamento, "
+                    "costo_total_medicamento::text AS costo_total_medicamento, "
+                    "dosis_por_individuo::text AS dosis_por_individuo, estado_registro "
+                    f"FROM modulo5.registros_medicamentos WHERE id_registro_medicamento = {int(id_reg)}"
+                )
+                bd_info = {
+                    "query_http": q_http,
+                    "rows": q_body.get("data", []) if isinstance(q_body, dict) else [],
+                    "detail": q_body.get("detail") if isinstance(q_body, dict) else None,
+                    "x_request_id": q_req,
+                }
+
+            ok = resp.status_code == esp_http
+            if esp_http == 201:
+                ok = ok and (despues_http == antes_http + 1)
+                if esp_cant is not None:
+                    ok = ok and _dec_eq(resp_cant, esp_cant)
+                if esp_costo is not None:
+                    ok = ok and _dec_eq(resp_costo, esp_costo)
+            else:
+                ok = ok and (despues_http == antes_http)
+                if esp_ec is not None:
+                    ok = ok and (error_code == esp_ec)
+
+            registro = {
+                "id": cid,
+                "dosis_enviada_json": dosis_raw,
+                "costo_unitario": costo_u,
+                "hora": hora,
+                "origen": origen,
+                "esperado_http": esp_http,
+                "esperado_error_code": esp_ec,
+                "esperado_cantidad": esp_cant,
+                "esperado_costo_total": esp_costo,
+                "http": resp.status_code,
+                "error_code": error_code,
+                "x_request_id": req_id,
+                "conteo_http_antes": antes_http,
+                "conteo_http_despues": despues_http,
+                "id_registro_medicamento": id_reg,
+                "resp_cantidad": resp_cant,
+                "resp_costo_total": resp_costo,
+                "bd_registros_medicamentos": bd_info,
+                "veredicto": "OK" if ok else "FALLA",
+            }
+            _RESULTADOS["casos"].append(registro)
+            if not ok:
+                fallos_eval.append(f"{cid} (http={resp.status_code}, error_code={error_code}, cant={resp_cant}, costo={resp_costo})")
+
+        # Consultar ledger (modulo5.registro_suministro) y acumulado (modulo5.acumulado_ciclo) para D01 y D03
+        for cid in ("D01", "D03"):
+            if cid not in ids_creados:
+                _RESULTADOS["observaciones_ledger_acumulado"].append(
+                    {"caso": cid, "nota": "observación: no se creó registro para consultar ledger/acumulado"}
+                )
+                continue
+            id_reg = ids_creados[cid]
+            q_led_http, q_led_body, q_led_req = c.query(
+                "SELECT rs.id_registro_suministro::text, rs.id_registro_rf76::text, "
+                "rs.tipo_suministro, rs.cantidad::text, rs.precio_unitario_resuelto::text, "
+                "rs.costo_registro::text, rs.id_gestion_fases, rs.id_ciclo_productivo "
+                "FROM modulo5.registro_suministro rs "
+                "JOIN modulo5.registros_medicamentos rm ON rm.id_registro_rf76 = rs.id_registro_rf76 "
+                f"WHERE rm.id_registro_medicamento = {int(id_reg)}"
+            )
+            _RESULTADOS["observaciones_ledger_acumulado"].append(
+                {
+                    "caso": cid,
+                    "tabla": "modulo5.registro_suministro",
+                    "id_registro_medicamento": id_reg,
+                    "query_http": q_led_http,
+                    "x_request_id": q_led_req,
+                    "rows": q_led_body.get("data", []) if isinstance(q_led_body, dict) else [],
+                    "detail": q_led_body.get("detail") if isinstance(q_led_body, dict) else None,
+                }
+            )
+
+        q_ac_http, q_ac_body, q_ac_req = c.query(
+            "SELECT id_acumulado_ciclo, id_activo_biologico, id_ciclo_productivo, id_gestion_fases, "
+            "acumulado_total_ciclo::text, acumulado_por_categoria::text, estado "
+            f"FROM modulo5.acumulado_ciclo WHERE id_activo_biologico = {ID_ACTIVO}"
+        )
+        _RESULTADOS["observaciones_ledger_acumulado"].append(
+            {
+                "caso": "D01+D03_ciclo",
+                "tabla": "modulo5.acumulado_ciclo",
+                "query_http": q_ac_http,
+                "x_request_id": q_ac_req,
+                "rows": q_ac_body.get("data", []) if isinstance(q_ac_body, dict) else [],
+                "detail": q_ac_body.get("detail") if isinstance(q_ac_body, dict) else None,
+            }
+        )
+
+        # También consultar vía API HTTP de costeo directo (GET /suministros/costeo-directo/acumulado/activo/{id})
+        r_costeo = c.get(f"/suministros/costeo-directo/acumulado/activo/{ID_ACTIVO}")
+        _RESULTADOS["observaciones_ledger_acumulado"].append(
+            {
+                "caso": "API_acumulado_ciclo",
+                "endpoint": f"/suministros/costeo-directo/acumulado/activo/{ID_ACTIVO}",
+                "http": r_costeo.status_code,
+                "x_request_id": r_costeo.headers.get("X-Request-ID"),
+                "body": r_costeo.json() if r_costeo.headers.get("content-type", "").startswith("application/json") else _seguro(r_costeo.text),
+            }
+        )
+    except BaseException:
+        c.cerrar()
+        raise
+    _cerrar_con_rollback(c)
+
+    (DIR_DIAG / "diag_resultados.json").write_text(
+        json.dumps(_RESULTADOS, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    assert not fallos_eval, "Incumplimientos en diagnostico: " + "; ".join(fallos_eval)
+
+
+def test_02_diag_inocuidad_final():
+    c = CorridaDiag("diag-m05-g14-fin")
+    try:
+        c.login()
+        total = _contar_medicamentos_http(c, ID_ACTIVO)
+    except BaseException:
+        c.cerrar()
+        raise
+    _cerrar_con_rollback(c)
+    _INOCUIDAD["final"] = total
+    _RESULTADOS["inocuidad_final"] = total
+    (DIR_DIAG / "diag_resultados.json").write_text(
+        json.dumps(_RESULTADOS, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    assert total == _INOCUIDAD["base"], (
+        f"Contaminacion en diagnostico: base={_INOCUIDAD['base']}, final={total}"
+    )
+
+================================================================================
+ANEXO B — SALIDA DE CONSOLA RELEVANTE (SIN SECRETOS)
+================================================================================
+--- 1) Corrida oficial (console_execution.log) ---
+============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 30 items
+
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_00_inocuidad_linea_base PASSED [  3%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_01_preparacion PASSED [  6%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A01-id_activo_biologico-omitido] PASSED [ 10%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A02-nombre_medicamento-omitido] PASSED [ 13%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A03-fecha_aplicacion-omitido] PASSED [ 16%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A04-hora_aplicacion-omitido] PASSED [ 20%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A05-via_administracion-omitido] PASSED [ 23%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A06-dosis_aplicada-omitido] PASSED [ 26%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A07-unidad_dosis-omitido] PASSED [ 30%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A08-motivo_aplicacion-omitido] PASSED [ 33%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A09-costo_unitario-omitido] PASSED [ 36%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A10-nombre_veterinario-omitido] PASSED [ 40%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A11-via_administracion-invalido] PASSED [ 43%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A12-nombre_veterinario-invalido] PASSED [ 46%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A13-unidad_dosis-invalido] PASSED [ 50%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A14-hora_aplicacion-invalido] PASSED [ 53%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A15-fecha_aplicacion-invalido] PASSED [ 56%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a_rechazo_campos[A16-nombre_medicamento-invalido] PASSED [ 60%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_a17_estado_activo_tras_grupo_a PASSED [ 63%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B01-dosis_0] PASSED [ 66%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B02-dosis_negativa] PASSED [ 70%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B04-motivo_9_caracteres] PASSED [ 73%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B05-motivo_10_caracteres] PASSED [ 76%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B06-fecha_hoy] PASSED [ 80%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B07-fecha_manana] PASSED [ 83%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B08-fecha_inicio_ciclo_menos_1] PASSED [ 86%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_b_valores_limite[B09-fecha_inicio_ciclo] PASSED [ 90%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_zz_cierre_corrida_principal PASSED [ 93%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_zz_b03_dosis_minima[B03-dosis_0.0001] PASSED [ 96%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/test_tc_m05_g14.py::test_zz_inocuidad_final PASSED [100%]
+
+======================= 30 passed, 1 warning in 18.11s ========================
+
+--- 2) Corrida de diagnóstico D01–D12 (console_diag.log) ---
+============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.9', 'Platform': 'Windows-11-10.0.26300-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1'}}
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collecting ... collected 3 items
+
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/diagnostico_reintento1/diag_precision.py::test_00_diag_inocuidad_base PASSED [ 33%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/diagnostico_reintento1/diag_precision.py::test_01_diag_precision_d01_d12 PASSED [ 66%]
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G14/evidencias/run-20261111-140320/diagnostico_reintento1/diag_precision.py::test_02_diag_inocuidad_final PASSED [100%]
+
+======================== 3 passed, 1 warning in 12.90s ========================
+

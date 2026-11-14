@@ -1,0 +1,59 @@
+{
+  "grupo": "TC-M09-G29",
+  "rf": "RF-17",
+  "runId": "run-20260905",
+  "capturadoEn": "2026-09-05T20:08:48-05:00",
+  "modo": "PRECHECK_SOLO_LECTURA",
+  "testApi": {
+    "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "health": 200,
+    "openapi": 200,
+    "inventarioDispositivosGetSinAutenticacion": 401,
+    "eventosEdgeGetSinAutenticacion": {
+      "status": 405,
+      "allow": "POST"
+    }
+  },
+  "broker": {
+    "envTestMqttBrokerUrl": "ABSENT",
+    "envTestMqttBrokerToken": "ABSENT_OR_EMPTY",
+    "envDevMqttBrokerUrl": "ABSENT",
+    "envDevMqttBrokerToken": "ABSENT_OR_EMPTY",
+    "envExample": "Solo referencia RF-23: http://localhost:8001 y token vacío; no es una configuración TEST utilizable.",
+    "dockerComposeTestMqtt": "NO_DECLARADO",
+    "sondeoRed": "NO_REALIZADO: no existe URL/puerto TEST configurado y no se permiten adivinanzas ni escaneo de puertos."
+  },
+  "clienteMqtt": {
+    "mosquittoSub": "NOT_FOUND",
+    "mosquittoPub": "NOT_FOUND",
+    "mqttCli": "NOT_FOUND",
+    "mqttExplorer": "NOT_FOUND",
+    "python": {
+      "paho": "NOT_FOUND",
+      "pahoMqtt": "NOT_FOUND",
+      "gmqtt": "NOT_FOUND",
+      "asyncioMqtt": "NOT_FOUND"
+    },
+    "nodeMqtt": "NOT_FOUND"
+  },
+  "trazabilidadCodigo": {
+    "rf17UmbralesMqttBrokerEdgeSyncAck": "NO_MATCHES",
+    "rf17": "RegistrarUmbralUseCase y EditarUmbralUseCase solo persisten umbral, niveles y auditoría.",
+    "mqtt": "MqttHttpAdapter y ConfigurarRemotamenteUseCase se limitan a RF-23, POST /configuracion/dispositivos-iot/{id}/configurar.",
+    "edge": "NodoEdgeStubAdapter es un stub temporal; no ofrece estado real de conexión ni control de desconexión.",
+    "offlineControl": "NO_DOCUMENTED_SAFE_OR_AUTHORIZED_CONTROL"
+  },
+  "operacionesMutantes": {
+    "httpPost": 0,
+    "httpPatch": 0,
+    "mqttPublish": 0,
+    "mqttSubscribe": 0,
+    "databaseWrites": 0,
+    "infrastructureChanges": 0
+  },
+  "conclusion": {
+    "tcM0962": "BLOCKED — MQTT_TEST_INFRASTRUCTURE_NOT_AVAILABLE; secondary: MQTT_CLIENT_MISSING.",
+    "tcM0963": "BLOCKED — NO EXISTE MECANISMO SEGURO/AUTORIZADO PARA INDUCIR EDGE OFFLINE; MQTT infrastructure and client are also unavailable.",
+    "grupo": "BLOQUEADO — no se puede verificar Server → MQTT → Edge ni ejecutar el escenario offline sin simular o alterar TEST."
+  }
+}

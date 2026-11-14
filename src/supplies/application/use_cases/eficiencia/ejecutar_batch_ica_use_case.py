@@ -1,3 +1,9 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74: alerta interna de batch y cola     |
+# | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: fallo técnico 500/503, aviso de fallo persistente y pendientes |
+# | 2026-11-12 | Arekkazu         | USAB-M05-M06 N-07 RF-74/80: el cálculo automático queda firmado por el usuario de servicio |
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: preservar el corte manual al finalizar y evitar un aviso de ventana duplicado. |
 """Caso de uso: motor batch de cálculo ICA (RF-74, Flujo C — alcance completo).
 
 Orquesta una corrida completa:
@@ -9,8 +15,10 @@ Orquesta una corrida completa:
 - Procesa con **workers paralelos** (``asyncio`` + ``to_thread``, una sesión/transacción
   independiente por activo); el paralelismo solo se activa si el nº de activos supera el
   ``umbral_paralelizacion``.
-- **Reintentos** por fallo técnico con backoff; agotados → ``fallos_calculo_ica``
-  (``CA_FALLO_PERSISTENTE`` — E5).
+- **Reintentos** por fallo técnico (también un ``AppError`` 5xx, p. ej. el error de BD traducido)
+  tras el intento inicial, uno por cada espera de ``backoff_minutos`` hasta ``max_reintentos``;
+  agotados → ``fallos_calculo_ica`` (``CA_FALLO_PERSISTENTE`` — E5) y aviso a quien puede
+  reintentarlo a mano.
 - **Control de ventana**: si se excede ``ventana_horas`` se interrumpe, se preservan los
   pendientes en la cola (``VENTANA_EXCEDIDA`` — FA-06) y la corrida queda ``INTERRUMPIDO``.
 
@@ -28,7 +36,8 @@ from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AppError, BusinessRuleError, ConflictError
+from src.shared.database import id_usuario_servicio
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, es_fallo_tecnico
 from src.supplies.application.use_cases.eficiencia.calcular_ica_use_case import CalcularICAUseCase
 from src.supplies.domain.entities.ejecucion_batch_ica import EjecucionBatchICA
 from src.supplies.domain.entities.fallo_calculo_ica import FalloCalculoICA
@@ -40,6 +49,7 @@ from src.supplies.domain.repositories.configuracion_batch_ica_repository import 
 )
 from src.supplies.domain.repositories.ejecucion_batch_ica_repository import EjecucionBatchICARepository
 from src.supplies.domain.repositories.fallo_calculo_ica_repository import FalloCalculoICARepository
+from src.supplies.domain.repositories.notificacion_suministros_port import NotificacionSuministrosPort
 from src.supplies.domain.repositories.resultado_ica_repository import ResultadoICARepository
 from src.supplies.domain.value_objects.eficiencia_enums import (
     CausaInterrupcionBatch,
@@ -51,6 +61,9 @@ from src.supplies.domain.value_objects.eficiencia_enums import (
 )
 
 logger = logging.getLogger(__name__)
+
+# administracion_batch_ica (50), acción E: Administrador y Productor reactivan el batch.
+_RECURSO_BATCH_ICA, _ACCION_EJECUTAR = 50, 5
 
 _PERIODOS = (PeriodoEvaluacion.SEMANAL, PeriodoEvaluacion.MENSUAL, PeriodoEvaluacion.POR_CICLO)
 _PRIORIDAD_CRITICA = 1
@@ -81,6 +94,7 @@ class EjecutarBatchICAUseCase:
         session_factory: Callable[[], Session],
         construir_calculo: Callable[[Session], CalcularICAUseCase],
         construir_fallo_repo: Callable[[Session], FalloCalculoICARepository],
+        notificador: Optional[NotificacionSuministrosPort] = None,
     ) -> None:
         self.db = db
         self.ejecucion_repo = ejecucion_repo
@@ -91,6 +105,7 @@ class EjecutarBatchICAUseCase:
         self.session_factory = session_factory
         self.construir_calculo = construir_calculo
         self.construir_fallo_repo = construir_fallo_repo
+        self.notificador = notificador
 
     async def ejecutar(
         self,
@@ -143,11 +158,19 @@ class EjecutarBatchICAUseCase:
         )
         self.db.commit()
 
-        procesados, fallidos, interrumpido = await self._procesar(
+        if excedentes:
+            self._alertar(
+                f"El proceso batch de cálculo de CA superó el límite configurado de {limite} activos. "
+                f"{len(excedentes)} activos quedaron en cola para el siguiente ciclo; puede reactivar el "
+                "procesado de forma manual.",
+                {"id_ejecucion": ejecucion.id_ejecucion, "en_cola": len(excedentes)},
+            )
+
+        procesados, fallos, interrumpido = await self._procesar(
             seleccionados, config, ejecucion, num_workers
         )
 
-        return self._finalizar(ejecucion.id_ejecucion, procesados, fallidos, interrumpido)
+        return self._finalizar(ejecucion.id_ejecucion, procesados, fallos, interrumpido, len(excedentes))
 
     # ── Selección / priorización ─────────────────────────────────────────────
     def _seleccionar_trabajos(self, *, solo_cola: bool) -> list[_Trabajo]:
@@ -190,7 +213,8 @@ class EjecutarBatchICAUseCase:
         deadline = ejecucion.hora_inicio + timedelta(hours=config.ventana_horas)
         sem = asyncio.Semaphore(num_workers)
         lock = asyncio.Lock()
-        contadores = {"procesados": 0, "fallidos": 0, "interrumpido": False}
+        contadores = {"procesados": 0, "interrumpido": False}
+        fallos: list[dict] = []
 
         async def worker(trabajo: _Trabajo) -> None:
             async with sem:
@@ -208,22 +232,24 @@ class EjecutarBatchICAUseCase:
                             contadores["interrumpido"] = True
                     await asyncio.to_thread(self._encolar_pendiente, trabajo, motivo)
                     return
-                estado = await asyncio.to_thread(
+                fallo = await asyncio.to_thread(
                     self._procesar_activo, trabajo.id_activo, config, ejecucion.id_ejecucion
                 )
                 async with lock:
                     contadores["procesados"] += 1
-                    if estado == "FALLO":
-                        contadores["fallidos"] += 1
+                    if fallo is not None:
+                        fallos.append(fallo)
                 if trabajo.id_cola is not None:
                     await asyncio.to_thread(self._marcar_cola, trabajo.id_cola)
 
         await asyncio.gather(*(worker(t) for t in seleccionados))
-        return contadores["procesados"], contadores["fallidos"], contadores["interrumpido"]
+        return contadores["procesados"], fallos, contadores["interrumpido"]
 
     # ── Trabajo por activo (en hilo, sesión propia) ──────────────────────────
-    def _procesar_activo(self, id_activo: int, config, id_ejecucion: int) -> str:
-        for intento in range(1, config.max_reintentos + 1):
+    def _procesar_activo(self, id_activo: int, config, id_ejecucion: int) -> Optional[dict]:
+        """``None`` si el activo quedó resuelto; si no, el fallo persistente registrado (E5)."""
+        intentos = 1 + config.max_reintentos
+        for intento in range(1, intentos + 1):
             db = self.session_factory()
             try:
                 uc = self.construir_calculo(db)
@@ -233,25 +259,28 @@ class EjecutarBatchICAUseCase:
                         id_activo_biologico=id_activo,
                         periodo=periodo,
                         tipo_calculo=tipo,
-                        id_usuario=None,
+                        # N-07: lo calcula el Sistema; sin id, la auditoría lo firmaba con el usuario 1.
+                        id_usuario=id_usuario_servicio(db),
                         intento=intento,
                     )
-                return "OK"
-            except AppError:
-                # Regla de negocio/dato (p.ej. activo no ACTIVO): no se reintenta.
+                return None
+            except Exception as exc:
                 db.rollback()
-                return "OK"
-            except Exception as exc:  # fallo técnico → reintento con backoff
-                db.rollback()
-                logger.warning("Batch ICA: fallo técnico activo %s intento %s: %s", id_activo, intento, exc)
-                if intento < config.max_reintentos:
+                if not es_fallo_tecnico(exc):
+                    # Regla de negocio/dato (p.ej. activo no ACTIVO): no se reintenta.
+                    return None
+                causa = exc.message if isinstance(exc, AppError) else str(exc)
+                logger.warning("Batch ICA: fallo técnico activo %s intento %s: %s", id_activo, intento, causa)
+                if intento < intentos:
                     time.sleep(self._backoff_segundos(config, intento))
                     continue
-                self._registrar_fallo(id_activo, str(exc), config.max_reintentos, id_ejecucion)
-                return "FALLO"
+                ahora = datetime.now(timezone.utc)
+                self._registrar_fallo(id_activo, causa, config.max_reintentos, id_ejecucion, ahora)
+                return {"id_activo_biologico": id_activo, "causa_fallo": causa[:300],
+                        "timestamp_ultimo_intento": ahora.isoformat()}
             finally:
                 db.close()
-        return "FALLO"
+        return None  # pragma: no cover — el bucle siempre retorna
 
     @staticmethod
     def _backoff_segundos(config, intento: int) -> float:
@@ -259,7 +288,8 @@ class EjecutarBatchICAUseCase:
         idx = min(intento - 1, len(minutos) - 1)
         return float(minutos[idx]) * 60.0
 
-    def _registrar_fallo(self, id_activo: int, causa: str, intentos: int, id_ejecucion: int) -> None:
+    def _registrar_fallo(self, id_activo: int, causa: str, intentos: int, id_ejecucion: int,
+                         ultimo_intento: datetime) -> None:
         db = self.session_factory()
         try:
             repo = self.construir_fallo_repo(db)
@@ -269,7 +299,7 @@ class EjecutarBatchICAUseCase:
                     causa_fallo=causa,
                     intentos=intentos,
                     id_ejecucion_batch=id_ejecucion,
-                    timestamp_ultimo_intento=datetime.now(timezone.utc),
+                    timestamp_ultimo_intento=ultimo_intento,
                 )
             )
             db.commit()
@@ -329,20 +359,42 @@ class EjecutarBatchICAUseCase:
             db.close()
 
     # ── Cierre de la corrida ─────────────────────────────────────────────────
-    def _finalizar(self, id_ejecucion: int, procesados: int, fallidos: int, interrumpido: bool) -> EjecucionBatchICA:
-        ejecucion = self.ejecucion_repo.obtener(id_ejecucion)
+    def _finalizar(self, id_ejecucion: int, procesados: int, fallos: list[dict], interrumpido: bool,
+                   en_cola_por_limite: int) -> EjecucionBatchICA:
+        ejecucion = self.ejecucion_repo.obtener(id_ejecucion, para_actualizar=True)
         ejecucion.cantidad_activos_procesados = procesados
-        ejecucion.cantidad_fallidos = fallidos
+        ejecucion.cantidad_fallidos = len(fallos)
         ahora = datetime.now(timezone.utc)
-        if ejecucion.estado == EstadoEjecucionBatch.INTERRUMPIDO:
-            # Interrumpido manualmente (FA-12) mientras corría: solo se actualizan métricas.
-            ejecucion.cantidad_activos_pendientes = max(
-                ejecucion.cantidad_activos_total - procesados, 0
-            )
-        elif interrumpido:
-            ejecucion.interrumpir(causa=CausaInterrupcionBatch.VENTANA_EXCEDIDA.value, hora_corte=ahora)
-        else:
-            ejecucion.completar(hora_fin=ahora)
+        corte_por_ventana = interrumpido and ejecucion.esta_en_ejecucion
+        if ejecucion.esta_en_ejecucion:
+            if corte_por_ventana:
+                ejecucion.interrumpir(causa=CausaInterrupcionBatch.VENTANA_EXCEDIDA.value, hora_corte=ahora)
+            else:
+                ejecucion.completar(hora_fin=ahora)
+        # Pendientes = los que no alcanzaron a procesarse + los que el límite dejó en cola (FA-07);
+        # completar()/interrumpir() solo ven los primeros.
+        ejecucion.cantidad_activos_pendientes = (
+            max(ejecucion.cantidad_activos_total - procesados, 0) + en_cola_por_limite
+        )
         guardada = self.ejecucion_repo.guardar(ejecucion)
         self.db.commit()
+        if corte_por_ventana:
+            self._alertar(
+                "El proceso batch de cálculo de CA no completó su ejecución. Se procesaron "
+                f"{procesados} de {guardada.cantidad_activos_total} activos. El proceso continuará en el "
+                "siguiente ciclo o reactive el procesado de forma manual.",
+                {"id_ejecucion": id_ejecucion, "procesados": procesados},
+            )
+        if fallos:
+            # E5: un aviso por corrida con cada activo, su causa y su último intento (no uno por activo).
+            self._alertar(
+                f"El cálculo de CA falló en {len(fallos)} activo(s) después de agotar los reintentos. "
+                "Revíselos en Fallos persistentes y reintente el cálculo de forma manual.",
+                {"id_ejecucion": id_ejecucion, "fallos": fallos},
+            )
         return guardada
+
+    def _alertar(self, mensaje: str, detalle: dict) -> None:
+        """RF-74: alerta interna al Administrador y al Productor (quienes operan el batch, recurso 50)."""
+        if self.notificador is not None:
+            self.notificador.a_permiso(_RECURSO_BATCH_ICA, _ACCION_EJECUTAR, "BATCH_ICA_INTERRUMPIDO", mensaje, detalle)

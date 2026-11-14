@@ -1,0 +1,2344 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m02-g89-ciclo-vida-asociaciones"
+    },
+    "item": [
+      {
+        "id": "e6cc218f-69ca-42f2-a856-310ff4f38bad",
+        "name": "TC-M02-217",
+        "item": [
+          {
+            "id": "10fe2765-580a-49f4-93a8-3b7d4c1344ea",
+            "name": "00 - Autenticación Admin",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8e618c46-b639-4564-93a8-9af6170baa4c",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "var data = pm.response.json();",
+                    "pm.collectionVariables.set('bearerToken', data.token);"
+                  ],
+                  "_lastExecutionId": "3ea5a2d2-9858-4f32-a759-1258af1d40d9"
+                }
+              }
+            ]
+          },
+          {
+            "id": "b67c9058-a784-4a51-a190-073e705cacf3",
+            "name": "01 - Setup Asociación Inicial A (DIRECTA Sensor 2)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "19",
+                  "sensores"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{bearerToken}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8eca70ce-490a-4954-9637-b21bf599f30c",
+                  "type": "text/javascript",
+                  "exec": [
+                    "var data = pm.response.json();",
+                    "pm.test('Paso 01: Código HTTP es 201 Created', function () {",
+                    "    pm.response.to.have.status(201);",
+                    "});",
+                    "pm.test('Paso 01: Asociación A creada en estado inicial ACTIVA', function () {",
+                    "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                    "});",
+                    "pm.test('Paso 01: Sensor asociado coincide con sensor 2', function () {",
+                    "    pm.expect(data.sensor_id).to.eql(2);",
+                    "});",
+                    "if (data && data.id_asociacion_activo_sensor) {",
+                    "    pm.collectionVariables.set('id_asociacion_A', data.id_asociacion_activo_sensor);",
+                    "}"
+                  ],
+                  "_lastExecutionId": "c311865d-4903-4cba-ac3b-f38f90b485fe"
+                }
+              }
+            ]
+          },
+          {
+            "id": "fd1047da-5183-4215-a9e7-187e90b27a22",
+            "name": "02 - Crear Asociación B (Supera automáticamente a Asociación A)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "19",
+                  "sensores"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{bearerToken}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "cfd19b8d-3123-4d24-bd2d-27689d12eb0a",
+                  "type": "text/javascript",
+                  "exec": [
+                    "var data = pm.response.json();",
+                    "pm.test('Paso 02: Código HTTP es 201 Created (Superación exitosa)', function () {",
+                    "    pm.response.to.have.status(201);",
+                    "});",
+                    "pm.test('Paso 02: Asociación B creada en estado ACTIVA', function () {",
+                    "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                    "});",
+                    "pm.test('Paso 02: Sensor asociado coincide con sensor 2', function () {",
+                    "    pm.expect(data.sensor_id).to.eql(2);",
+                    "});",
+                    "if (data && data.id_asociacion_activo_sensor) {",
+                    "    pm.collectionVariables.set('id_asociacion_B', data.id_asociacion_activo_sensor);",
+                    "}"
+                  ],
+                  "_lastExecutionId": "240559be-1b75-4d97-b067-40fbc5a89d9d"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "b907e090-29b4-4292-ac74-27b1ee008168",
+        "name": "TC-M02-216",
+        "item": [
+          {
+            "id": "8cccbf1d-d0e5-4895-9be8-4030af567bc5",
+            "name": "00 - Autenticación Admin",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "0b9fc7ce-6b6e-4464-b13c-772772a9e426",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "var data = pm.response.json();",
+                    "pm.collectionVariables.set('bearerToken', data.token);"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "8f73f64c-b1c6-4c20-aeca-607d99f116e6",
+            "name": "01 - Desactivar Asociación Manualmente (ACTIVA -> INACTIVA)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "19",
+                  "sensores",
+                  "{{id_asociacion_B}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{bearerToken}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "PATCH",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"estado_nuevo\": \"INACTIVA\",\n  \"motivo\": \"Desactivacion manual de sensor por mantenimiento TC-M02-216\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "ae54bcbf-72b5-485e-b9fc-4f56466a4f07",
+                  "type": "text/javascript",
+                  "exec": [
+                    "var data = pm.response.json();",
+                    "pm.test('Código HTTP esperado según RF-49 es 200 OK', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "pm.test('TC-M02-216: Estado de asociación cambia a INACTIVA', function () {",
+                    "    pm.expect(data.estado_asociacion).to.eql('INACTIVA');",
+                    "});",
+                    "pm.test('TC-M02-216: fecha_fin queda debidamente poblada', function () {",
+                    "    pm.expect(data.fecha_fin).to.not.be.null;",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "da6636bc-7fde-4518-9b28-bd2c8ce5f32d",
+        "name": "TC-M02-218",
+        "item": [
+          {
+            "id": "b9084106-0bde-4a0a-bb4e-34ec411c4307",
+            "name": "00 - Autenticación Admin",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "7db3d962-3e39-485d-998f-ea091065a273",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "var data = pm.response.json();",
+                    "pm.collectionVariables.set('bearerToken', data.token);"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "d835b268-f7eb-463d-8c80-20320efa30e5",
+            "name": "01 - Reactivar Asociación (INACTIVA -> ACTIVA)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "19",
+                  "sensores",
+                  "{{id_asociacion_B}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{bearerToken}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "PATCH",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"estado_nuevo\": \"ACTIVA\",\n  \"motivo\": \"Reactivacion de sensor tras mantenimiento TC-M02-218\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "f7ca9396-c7c4-46bb-bbf5-1358cdb922ad",
+                  "type": "text/javascript",
+                  "exec": [
+                    "var data = pm.response.json();",
+                    "pm.test('Código HTTP esperado según RF-49 es 200 OK', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "pm.test('TC-M02-218: Estado de asociación cambia a ACTIVA', function () {",
+                    "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                    "});",
+                    "pm.test('TC-M02-218: fecha_fin vuelve a NULL al reactivar', function () {",
+                    "    pm.expect(data.fecha_fin).to.be.null;",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "055b0a2b-bc63-489c-9252-9068e4ce34f1",
+        "name": "TC-M02-219",
+        "item": [
+          {
+            "id": "0e869517-6447-48c6-a9c4-b7583e164bc0",
+            "name": "00 - Autenticación Admin",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "4b0a84c8-6b49-4ab5-a8c6-2a99f3bdeb11",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "var data = pm.response.json();",
+                    "pm.collectionVariables.set('bearerToken', data.token);"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "84a6bbfe-3133-497d-8872-789df60f4b6b",
+            "name": "01 - Transición Inválida (Rechazo de SUPERADA manual)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "19",
+                  "sensores",
+                  "{{id_asociacion_B}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{bearerToken}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "PATCH",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"estado_nuevo\": \"SUPERADA\",\n  \"motivo\": \"Intento no permitido de superacion manual directa TC-M02-219\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "687d5b78-7575-43ac-ae77-f84b70ba980c",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('TC-M02-219: Código HTTP esperado es 422 Unprocessable Entity (TRANSICION_INVALIDA)', function () {",
+                    "    pm.response.to.have.status(422);",
+                    "    var data = pm.response.json();",
+                    "    pm.expect(data.error_code).to.eql('TRANSICION_INVALIDA');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "2a531de3-9476-4986-b3a2-8813265e1d60",
+        "name": "99 - Teardown / Cleanup",
+        "item": [
+          {
+            "id": "7fc18d01-b225-479c-9274-17747683e4aa",
+            "name": "01 - Desactivar Asociación B (Cleanup Lógico Append-Only)",
+            "request": {
+              "url": {
+                "path": [
+                  "activos-biologicos",
+                  "19",
+                  "sensores",
+                  "{{id_asociacion_B}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{bearerToken}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "PATCH",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"estado_nuevo\": \"INACTIVA\",\n  \"motivo\": \"Cleanup tecnico append-only TC-M02-G89\"\n}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "db3166d8-65c7-4171-9722-98852f11f846",
+                  "type": "text/javascript",
+                  "exec": [
+                    "// Operacion logica append-only (no destructiva) para garantizar la inocuidad del entorno de pruebas",
+                    "pm.test('Teardown: Desactivar Asociación B exitoso (200 OK) o ya inactiva (409 Conflict)', function () {",
+                    "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "administador.dev@gmail.com",
+        "key": "adminEmail"
+      },
+      {
+        "type": "any",
+        "value": "Test1234!",
+        "key": "adminPassword"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "bearerToken"
+      },
+      {
+        "type": "any",
+        "value": "19",
+        "key": "id_activo"
+      },
+      {
+        "type": "any",
+        "value": "2",
+        "key": "id_sensor"
+      },
+      {
+        "type": "any",
+        "value": "1",
+        "key": "dispositivo_iot_id"
+      },
+      {
+        "type": "any",
+        "value": "1",
+        "key": "id_infraestructura"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "id_asociacion_A"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "id_asociacion_B"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m02-g89-ciclo-vida-asociaciones",
+      "name": "TC-M02-G89: Ciclo de Vida de Asociaciones IoT (RF-49)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Suite automatizada en Newman para el caso agrupado TC-M02-G89 (RF-49 / CU11). Entorno: TEST.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "7bc78f57-1210-4ce7-8b43-7124f1c4553b",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "administador.dev@gmail.com",
+        "key": "adminEmail"
+      },
+      {
+        "type": "any",
+        "value": "Test1234!",
+        "key": "adminPassword"
+      }
+    ]
+  },
+  "globals": {
+    "id": "76d6d48b-5a39-4c81-845b-07b9ff9e8073",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 466,
+      "responseMin": 161,
+      "responseMax": 998,
+      "responseSd": 377.52615803411555,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789525921975,
+      "completed": 1789525923636
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "cc899cd5-f1a6-44a3-b8fe-0e31521bf9d8",
+          "httpRequestId": "8e5f0570-57d3-4ba6-b823-69465937b811"
+        },
+        "item": {
+          "id": "10fe2765-580a-49f4-93a8-3b7d4c1344ea",
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8e618c46-b639-4564-93a8-9af6170baa4c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.collectionVariables.set('bearerToken', data.token);"
+                ],
+                "_lastExecutionId": "3ea5a2d2-9858-4f32-a759-1258af1d40d9"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c0806d0d-81f3-401b-b936-e4dfa0b828d5",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "85",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "70947af4-fa35-4728-aaa1-4b62246781a2",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "406"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 16 Sep 2026 02:32:00 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=3yMoZMZ19AeGLKYfiGB3yhXGfMzwvuEjy2r5LYJXAL4; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "280267d1-7c99-497b-8bb7-863e3578f757"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              77,
+              68,
+              81,
+              105,
+              76,
+              67,
+              74,
+              113,
+              100,
+              71,
+              107,
+              105,
+              79,
+              105,
+              73,
+              120,
+              78,
+              122,
+              107,
+              120,
+              78,
+              67,
+              73,
+              115,
+              73,
+              110,
+              74,
+              118,
+              98,
+              67,
+              73,
+              54,
+              77,
+              83,
+              119,
+              105,
+              90,
+              88,
+              104,
+              119,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              53,
+              78,
+              84,
+              85,
+              48,
+              78,
+              122,
+              73,
+              120,
+              76,
+              67,
+              74,
+              112,
+              89,
+              88,
+              81,
+              105,
+              79,
+              106,
+              69,
+              51,
+              79,
+              68,
+              107,
+              49,
+              77,
+              106,
+              85,
+              53,
+              77,
+              106,
+              70,
+              57,
+              46,
+              119,
+              49,
+              90,
+              68,
+              50,
+              69,
+              56,
+              109,
+              122,
+              98,
+              56,
+              98,
+              69,
+              76,
+              55,
+              105,
+              73,
+              111,
+              76,
+              52,
+              84,
+              84,
+              108,
+              82,
+              86,
+              110,
+              115,
+              90,
+              79,
+              95,
+              116,
+              109,
+              102,
+              49,
+              48,
+              45,
+              106,
+              100,
+              101,
+              53,
+              104,
+              110,
+              56,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 998,
+          "responseSize": 406
+        },
+        "id": "10fe2765-580a-49f4-93a8-3b7d4c1344ea",
+        "assertions": [
+          {
+            "assertion": "[Auth] Autenticación exitosa (200 OK)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "7c21dd46-af5f-4dbd-b202-8640557296fd",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "143a2bf6-f72b-4ef9-979f-ffb80f352a61"
+        },
+        "item": {
+          "id": "b67c9058-a784-4a51-a190-073e705cacf3",
+          "name": "01 - Setup Asociación Inicial A (DIRECTA Sensor 2)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8eca70ce-490a-4954-9637-b21bf599f30c",
+                "type": "text/javascript",
+                "exec": [
+                  "var data = pm.response.json();",
+                  "pm.test('Paso 01: Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Paso 01: Asociación A creada en estado inicial ACTIVA', function () {",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});",
+                  "pm.test('Paso 01: Sensor asociado coincide con sensor 2', function () {",
+                  "    pm.expect(data.sensor_id).to.eql(2);",
+                  "});",
+                  "if (data && data.id_asociacion_activo_sensor) {",
+                  "    pm.collectionVariables.set('id_asociacion_A', data.id_asociacion_activo_sensor);",
+                  "}"
+                ],
+                "_lastExecutionId": "c311865d-4903-4cba-ac3b-f38f90b485fe"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "19",
+              "sensores"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQiLCJqdGkiOiIxNzkxNCIsInJvbCI6MSwiZXhwIjoxNzg5NTU0NzIxLCJpYXQiOjE3ODk1MjU5MjF9.w1ZD2E8mzb8bEL7iIoL4TTlRVnsZO_tmf10-jde5hn8"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3dc759e6-4c8a-453e-93ab-d2d8d863e7ea",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "137",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3yMoZMZ19AeGLKYfiGB3yhXGfMzwvuEjy2r5LYJXAL4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+          }
+        },
+        "response": {
+          "id": "82ff84a9-c409-41ee-822b-434fb73d4521",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "298"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 16 Sep 2026 02:32:01 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "50cf2283-86b9-4783-81a5-a8a0eb246aee"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              34,
+              58,
+              52,
+              50,
+              44,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              49,
+              57,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              100,
+              105,
+              114,
+              101,
+              99,
+              116,
+              97,
+              34,
+              44,
+              34,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              95,
+              105,
+              111,
+              116,
+              95,
+              105,
+              100,
+              34,
+              58,
+              49,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              95,
+              105,
+              100,
+              34,
+              58,
+              50,
+              44,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              49,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              54,
+              84,
+              48,
+              50,
+              58,
+              51,
+              50,
+              58,
+              48,
+              49,
+              46,
+              57,
+              50,
+              57,
+              48,
+              56,
+              51,
+              90,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              102,
+              105,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              109,
+              111,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              97,
+              100,
+              118,
+              101,
+              114,
+              116,
+              101,
+              110,
+              99,
+              105,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 161,
+          "responseSize": 298
+        },
+        "id": "b67c9058-a784-4a51-a190-073e705cacf3",
+        "assertions": [
+          {
+            "assertion": "Paso 01: Código HTTP es 201 Created",
+            "skipped": false
+          },
+          {
+            "assertion": "Paso 01: Asociación A creada en estado inicial ACTIVA",
+            "skipped": false
+          },
+          {
+            "assertion": "Paso 01: Sensor asociado coincide con sensor 2",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "10278be0-4739-4a7b-942e-cbbb2366ccd2",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "d300bb7b-48f6-49ae-802d-56b9b381e847"
+        },
+        "item": {
+          "id": "fd1047da-5183-4215-a9e7-187e90b27a22",
+          "name": "02 - Crear Asociación B (Supera automáticamente a Asociación A)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "cfd19b8d-3123-4d24-bd2d-27689d12eb0a",
+                "type": "text/javascript",
+                "exec": [
+                  "var data = pm.response.json();",
+                  "pm.test('Paso 02: Código HTTP es 201 Created (Superación exitosa)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Paso 02: Asociación B creada en estado ACTIVA', function () {",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});",
+                  "pm.test('Paso 02: Sensor asociado coincide con sensor 2', function () {",
+                  "    pm.expect(data.sensor_id).to.eql(2);",
+                  "});",
+                  "if (data && data.id_asociacion_activo_sensor) {",
+                  "    pm.collectionVariables.set('id_asociacion_B', data.id_asociacion_activo_sensor);",
+                  "}"
+                ],
+                "_lastExecutionId": "240559be-1b75-4d97-b067-40fbc5a89d9d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "19",
+              "sensores"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQiLCJqdGkiOiIxNzkxNCIsInJvbCI6MSwiZXhwIjoxNzg5NTU0NzIxLCJpYXQiOjE3ODk1MjU5MjF9.w1ZD2E8mzb8bEL7iIoL4TTlRVnsZO_tmf10-jde5hn8"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9a855dc8-8b7a-499d-a4a2-c937f34bbc6f",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "137",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3yMoZMZ19AeGLKYfiGB3yhXGfMzwvuEjy2r5LYJXAL4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+          }
+        },
+        "response": {
+          "id": "86b7a1e3-8d0b-451a-9776-548acd326a8e",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "298"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 16 Sep 2026 02:32:01 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "a73cbbad-15d6-46a9-877f-2d1031980b24"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              34,
+              58,
+              52,
+              51,
+              44,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              49,
+              57,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              100,
+              105,
+              114,
+              101,
+              99,
+              116,
+              97,
+              34,
+              44,
+              34,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              95,
+              105,
+              111,
+              116,
+              95,
+              105,
+              100,
+              34,
+              58,
+              49,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              95,
+              105,
+              100,
+              34,
+              58,
+              50,
+              44,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              49,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              54,
+              84,
+              48,
+              50,
+              58,
+              51,
+              50,
+              58,
+              48,
+              50,
+              46,
+              49,
+              56,
+              54,
+              52,
+              55,
+              48,
+              90,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              102,
+              105,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              109,
+              111,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              97,
+              100,
+              118,
+              101,
+              114,
+              116,
+              101,
+              110,
+              99,
+              105,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 239,
+          "responseSize": 298
+        },
+        "id": "fd1047da-5183-4215-a9e7-187e90b27a22",
+        "assertions": [
+          {
+            "assertion": "Paso 02: Código HTTP es 201 Created (Superación exitosa)",
+            "skipped": false
+          },
+          {
+            "assertion": "Paso 02: Asociación B creada en estado ACTIVA",
+            "skipped": false
+          },
+          {
+            "assertion": "Paso 02: Sensor asociado coincide con sensor 2",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1002
+    },
+    "failures": [],
+    "error": null
+  }
+}

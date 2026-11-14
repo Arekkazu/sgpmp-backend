@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: comprobar finca autorizada antes de leer el estado y su historial. |
 from __future__ import annotations
 
 from typing import Optional
@@ -33,7 +36,20 @@ class ObtenerEstadoDispositivoUseCase:
         self.estado_repo = estado_repo
         self.transicion_repo = transicion_repo
 
-    def execute(self, id_dispositivo_iot: int, limite_historial: int = 20) -> ResultadoEstadoDispositivo:
+    def execute(
+        self,
+        id_dispositivo_iot: int,
+        limite_historial: int = 20,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> ResultadoEstadoDispositivo:
+        if ids_fincas_permitidas is not None and not self.estado_repo.pertenece_a_fincas(
+            id_dispositivo_iot, ids_fincas_permitidas
+        ):
+            raise NotFoundError(
+                code='ESTADO_DISPOSITIVO_NO_ENCONTRADO',
+                message=f'No se encontró estado para el dispositivo {id_dispositivo_iot}.',
+            )
         estado = self.estado_repo.obtener_por_dispositivo(id_dispositivo_iot)
         if estado is None:
             raise NotFoundError(

@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "TC-M02-G61 - Reintento 2 (2026-10-09, TEST) - fase CORREGIDA, bajas re-confirmadas",
+    "description": "Reintento 2 en TEST, tras reintento1 (2026-09-15). TEST fue reiniciado desde entonces: fincas/infraestructuras/activos de reintento1 (ids 250/251/60) ya no existen, asi que esta corrida crea fixtures frescas para los 3 sub-casos. RESULTADO: los 3 sub-casos pasan ahora. Sub-caso 1 (RF-37 asignar fase, TC-M02-106) estaba ROTO en reintento1 (500 ERROR_INTERNO, TypeError por id_usuario faltante en cerrar_gestion_activa) -- YA CORREGIDO en TEST, responde 201. Sub-casos 2 y 3 (RF-45 bajas) ya estaban corregidos en reintento1 y se re-confirman aqui con datos nuevos. Nota: el catalogo de especies/ciclos ahora valida compatibilidad especie<->ciclo (CICLO_ESPECIE_INCOMPATIBLE) y el registro de lotes valida densidad maxima configurada por especie (DENSIDAD_MAXIMA_NO_CONFIGURADA/SUPERADA) -- validaciones nuevas desde la ultima corrida, no existian en 2026-09-15.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+      }
+    },
+    {
+      "name": "Setup 1/3 - Crear finca QA fresca (TEST quedo sin ninguna)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('nombre_finca', 'QA Reintento G sesenta y uno');"]}},
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "  pm.test('finca creada (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "  pm.collectionVariables.set('id_finca', respuesta.id_finca);",
+              "  postman.setNextRequest('Setup 2/3 - Crear infraestructura fresca (especie cachama, para sub-caso 1 y 2)');",
+              "} else if (pm.response.code === 409) {",
+              "  pm.test('finca ya existia de una corrida anterior (HTTP 409, reutilizable)', function () { pm.expect(respuesta.error_code).to.equal('FINCA_DUPLICADA'); });",
+              "  postman.setNextRequest('Setup 1b/3 - Reutilizar finca existente por nombre');",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"{{nombre_finca}}\",\n  \"ubicacion\": {\"departamento\": \"Huila\", \"municipio\": \"Neiva\", \"vereda\": \"QA\", \"latitud\": \"2.9\", \"longitud\": \"-75.2\"},\n  \"tamano_h\": 10\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"]}
+      }
+    },
+    {
+      "name": "Setup 1b/3 - Reutilizar finca existente por nombre",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('listado de fincas obtenido (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const encontrada = respuesta && respuesta.items ? respuesta.items.find(f => f.nombre === pm.collectionVariables.get('nombre_finca')) : null;",
+              "pm.test('se encontro la finca existente por nombre', function () { pm.expect(encontrada).to.not.equal(null); });",
+              "if (encontrada) { pm.collectionVariables.set('id_finca', encontrada.id_finca); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"]}
+      }
+    },
+    {
+      "name": "Setup 2/3 - Crear infraestructura fresca (especie cachama, para sub-caso 1 y 2)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('nombre_infra_cachama', 'QA-G61R2-infra-cachama-' + Date.now());"]}},
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('infraestructura creada (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_infraestructura', respuesta.id_infraestructura); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"finca_id\": {{id_finca}},\n  \"nombre_infraestructura\": \"{{nombre_infra_cachama}}\",\n  \"superficie\": 10,\n  \"especie_id\": {{id_especie_cachama}},\n  \"tipo_area\": \"estanque\"\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"]}
+      }
+    },
+    {
+      "name": "Setup 3/3 - Crear infraestructura fresca (especie mojarra, para sub-caso 3 - lote)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('nombre_infra_mojarra', 'QA-G61R2-infra-mojarra-' + Date.now());"]}},
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('infraestructura lote creada (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_infraestructura_lote', respuesta.id_infraestructura); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"finca_id\": {{id_finca}},\n  \"nombre_infraestructura\": \"{{nombre_infra_mojarra}}\",\n  \"superficie\": 10,\n  \"especie_id\": {{id_especie_mojarra}},\n  \"tipo_area\": \"estanque\"\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"]}
+      }
+    },
+    {
+      "name": "Setup sub-caso 1 - Crear activo INDIVIDUAL sin fase (TC-M02-106)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('identificador_g106', 'QAG61R2-106-' + Date.now().toString().slice(-8));"]}},
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('activo sub-caso 1 creado (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_activo_g106', respuesta.id_activo_biologico); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_g106}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/activos-biologicos", "host": ["{{base_url}}"], "path": ["activos-biologicos"]}
+      }
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-106) - Asignar fase via RF-37 (CORREGIDO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CORREGIDO: asignar fase ya responde 201 (antes 500 ERROR_INTERNO desde 2026-09-09)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productivo_cachama}}\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/activos-biologicos/{{id_activo_g106}}/fases", "host": ["{{base_url}}"], "path": ["activos-biologicos", "{{id_activo_g106}}", "fases"]}
+      }
+    },
+    {
+      "name": "Setup sub-caso 2 - Crear activo INDIVIDUAL para baja total (TC-M02-112)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('identificador_g112', 'QAG61R2-112-' + Date.now().toString().slice(-8));"]}},
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('activo sub-caso 2 creado (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_activo_g112', respuesta.id_activo_biologico); pm.collectionVariables.set('fecha_baja_g112', respuesta.fecha_creacion.slice(0, 10)); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_g112}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/activos-biologicos", "host": ["{{base_url}}"], "path": ["activos-biologicos"]}
+      }
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-112) - Baja TOTAL de activo individual (CORREGIDO, re-confirmado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('baja total aceptada (HTTP 201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_baja_g112}}\",\n  \"motivo_baja\": \"TC-M02-112 - re-verificacion reintento2\"\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/activos-biologicos/{{id_activo_g112}}/eventos/baja", "host": ["{{base_url}}"], "path": ["activos-biologicos", "{{id_activo_g112}}", "eventos", "baja"]}
+      }
+    },
+    {
+      "name": "Setup sub-caso 3 - Crear lote POBLACIONAL (especie mojarra, densidad OK)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('lote creado (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_activo_g113', respuesta.id_activo_biologico); pm.collectionVariables.set('fecha_baja_g113', respuesta.fecha_creacion.slice(0, 10)); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie_mojarra}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura_lote}},\n  \"cantidad_inicial\": 40\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/activos-biologicos", "host": ["{{base_url}}"], "path": ["activos-biologicos"]}
+      }
+    },
+    {
+      "name": "Sub-caso 3, paso 1/2 (TC-M02-113) - Capturar cantidad_actual base del lote",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('lectura base del lote (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.collectionVariables.set('cantidad_antes', respuesta && respuesta.detalle_poblacional ? respuesta.detalle_poblacional.cantidad_actual : null);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}", "host": ["{{base_url}}"], "path": ["activos-biologicos", "{{id_activo_g113}}"]}
+      }
+    },
+    {
+      "name": "Sub-caso 3, paso 2/2 (TC-M02-113) - Baja PARCIAL de lote (cantidad_afectada=15) (CORREGIDO, re-confirmado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('baja parcial aceptada (HTTP 201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_baja_g113}}\",\n  \"motivo_baja\": \"TC-M02-113 - re-verificacion reintento2\",\n  \"cantidad_afectada\": 15\n}", "options": {"raw": {"language": "json"}}},
+        "url": {"raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}/eventos/baja", "host": ["{{base_url}}"], "path": ["activos-biologicos", "{{id_activo_g113}}", "eventos", "baja"]}
+      }
+    },
+    {
+      "name": "Sub-caso 3, verificacion - cantidad_actual bajo exactamente 15 y el lote sigue ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('lectura final del lote (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const antes = parseInt(pm.collectionVariables.get('cantidad_antes'), 10);",
+              "const despues = respuesta && respuesta.detalle_poblacional ? respuesta.detalle_poblacional.cantidad_actual : null;",
+              "pm.test('cantidad_actual bajo exactamente 15 (delta antes/despues)', function () { pm.expect(antes - despues).to.equal(15); });",
+              "pm.test('el lote sigue ACTIVO (baja parcial no cierra el activo)', function () { pm.expect(respuesta.nombre_estado).to.equal('ACTIVO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}", "host": ["{{base_url}}"], "path": ["activos-biologicos", "{{id_activo_g113}}"]}
+      }
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "admin_correo", "value": "admin@pecuaria.co"},
+    {"key": "admin_contrasena", "value": "Test1234!"},
+    {"key": "token", "value": ""},
+    {"key": "id_ciclo_productivo_cachama", "value": "4"},
+    {"key": "id_especie_cachama", "value": "4"},
+    {"key": "id_especie_mojarra", "value": "5"},
+    {"key": "nombre_finca", "value": ""},
+    {"key": "id_finca", "value": ""},
+    {"key": "nombre_infra_cachama", "value": ""},
+    {"key": "id_infraestructura", "value": ""},
+    {"key": "nombre_infra_mojarra", "value": ""},
+    {"key": "id_infraestructura_lote", "value": ""},
+    {"key": "identificador_g106", "value": ""},
+    {"key": "id_activo_g106", "value": ""},
+    {"key": "identificador_g112", "value": ""},
+    {"key": "id_activo_g112", "value": ""},
+    {"key": "fecha_baja_g112", "value": ""},
+    {"key": "id_activo_g113", "value": ""},
+    {"key": "fecha_baja_g113", "value": ""},
+    {"key": "cantidad_antes", "value": ""}
+  ]
+}

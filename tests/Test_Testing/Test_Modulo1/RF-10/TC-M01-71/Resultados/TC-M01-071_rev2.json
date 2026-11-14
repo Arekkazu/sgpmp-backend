@@ -1,0 +1,2075 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m01-71-rev2-test"
+    },
+    "item": [
+      {
+        "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+        "name": "1. Iniciar sesión como Administrador",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+              "type": "text/javascript",
+              "exec": [
+                "let respuesta = null;",
+                "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+                "pm.test('Login del Administrador: respuesta HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "pm.test('Login del Administrador: contiene token válido', function () {",
+                "    pm.expect(respuesta).to.not.equal(null);",
+                "    pm.expect(respuesta).to.have.property('token');",
+                "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+                "});",
+                "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+                "    pm.collectionVariables.set('token', respuesta.token);",
+                "} else {",
+                "    pm.execution.setNextRequest(null);",
+                "}"
+              ],
+              "_lastExecutionId": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ca078ad7-b461-4598-be5d-8ca583163b1b",
+        "name": "2. Consultar página 1 con tamano 50",
+        "request": {
+          "url": {
+            "path": [
+              "auditoria",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "25f07a71-bd18-4498-8e39-636c93b72bab",
+              "type": "text/javascript",
+              "exec": [
+                "const respuesta = pm.response.json();",
+                "pm.test('Página 1: respuesta HTTP 200 o 206', function () {",
+                "    pm.expect([200, 206]).to.include(pm.response.code);",
+                "});",
+                "pm.test('Página 1: contiene la estructura esperada', function () {",
+                "    pm.expect(respuesta).to.have.property('total');",
+                "    pm.expect(respuesta).to.have.property('pagina');",
+                "    pm.expect(respuesta).to.have.property('tamano');",
+                "    pm.expect(respuesta).to.have.property('items');",
+                "    pm.expect(respuesta.items).to.be.an('array');",
+                "});",
+                "pm.test('Página 1: número de página correcto', function () {",
+                "    pm.expect(respuesta.pagina).to.equal(1);",
+                "});",
+                "pm.test('Página 1: tamaño solicitado de 50 y no supera el máximo', function () {",
+                "    pm.expect(respuesta.tamano).to.equal(50);",
+                "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                "});",
+                "pm.test('Página 1: contiene exactamente 50 registros', function () {",
+                "    pm.expect(respuesta.items.length).to.equal(50);",
+                "});",
+                "pm.test('Historial: contiene al menos 120 registros', function () {",
+                "    pm.expect(respuesta.total).to.be.at.least(120);",
+                "});",
+                "pm.test('Página 1: ids únicos dentro de la página', function () {",
+                "    const ids = respuesta.items.map(item => item.id_evento);",
+                "    pm.expect(new Set(ids).size).to.equal(ids.length);",
+                "});",
+                "pm.test('Página 1: expone ancla fecha_hasta para páginas siguientes', function () {",
+                "    pm.expect(respuesta).to.have.property('fecha_hasta');",
+                "    pm.expect(respuesta.fecha_hasta).to.be.a('string').and.not.empty;",
+                "});",
+                "const idsPagina1 = respuesta.items.map(item => item.id_evento);",
+                "pm.collectionVariables.set('totalRegistros', String(respuesta.total));",
+                "pm.collectionVariables.set('idsPagina1', JSON.stringify(idsPagina1));",
+                "pm.collectionVariables.set('fecha_hasta_ancla', String(respuesta.fecha_hasta));",
+                "pm.collectionVariables.set('cantidadPagina1', String(respuesta.items.length));",
+                "console.log('PAGINA 1 total=' + respuesta.total + ' items=' + respuesta.items.length + ' ancla=' + respuesta.fecha_hasta + ' first=' + idsPagina1[0] + ' last=' + idsPagina1[idsPagina1.length-1]);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "084128a5-0e7c-4deb-9c00-704566264392",
+        "name": "3. Consultar página 2 con ancla fecha_hasta",
+        "request": {
+          "url": {
+            "path": [
+              "auditoria",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "2"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              },
+              {
+                "key": "fecha_hasta",
+                "value": "{{fecha_hasta_ancla}}"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "fb2a747d-ab8b-4e5c-8b08-260b1980897a",
+              "type": "text/javascript",
+              "exec": [
+                "const respuesta = pm.response.json();",
+                "const idsPagina1 = JSON.parse(pm.collectionVariables.get('idsPagina1') || '[]');",
+                "const idsPagina2 = (respuesta.items || []).map(item => item.id_evento);",
+                "const repetidos = idsPagina2.filter(id => idsPagina1.includes(id));",
+                "const totalEsperado = Number(pm.collectionVariables.get('totalRegistros'));",
+                "pm.test('Página 2: respuesta HTTP 200 o 206', function () {",
+                "    pm.expect([200, 206]).to.include(pm.response.code);",
+                "});",
+                "pm.test('Página 2: contiene la estructura esperada', function () {",
+                "    pm.expect(respuesta).to.have.property('total');",
+                "    pm.expect(respuesta).to.have.property('pagina');",
+                "    pm.expect(respuesta).to.have.property('tamano');",
+                "    pm.expect(respuesta).to.have.property('items');",
+                "    pm.expect(respuesta.items).to.be.an('array');",
+                "});",
+                "pm.test('Página 2: número de página correcto', function () {",
+                "    pm.expect(respuesta.pagina).to.equal(2);",
+                "});",
+                "pm.test('Página 2: tamaño solicitado de 50 y no supera el máximo', function () {",
+                "    pm.expect(respuesta.tamano).to.equal(50);",
+                "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                "});",
+                "pm.test('Página 2: contiene exactamente 50 registros', function () {",
+                "    pm.expect(respuesta.items.length).to.equal(50);",
+                "});",
+                "pm.test('Página 2: total estable respecto de página 1 (mismo ancla)', function () {",
+                "    pm.expect(respuesta.total).to.equal(totalEsperado);",
+                "});",
+                "pm.test('Página 2: ids únicos dentro de la página', function () {",
+                "    pm.expect(new Set(idsPagina2).size).to.equal(idsPagina2.length);",
+                "});",
+                "pm.test('Página 2: no repite eventos de página 1', function () {",
+                "    pm.expect(repetidos, 'ids repetidos=' + JSON.stringify(repetidos)).to.have.lengthOf(0);",
+                "});",
+                "pm.collectionVariables.set('idsPagina2', JSON.stringify(idsPagina2));",
+                "pm.collectionVariables.set('cantidadPagina2', String(respuesta.items.length));",
+                "console.log('PAGINA 2 items=' + idsPagina2.length + ' repetidos_p1=' + JSON.stringify(repetidos) + ' first=' + idsPagina2[0] + ' last=' + idsPagina2[idsPagina2.length-1]);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "8290b6b5-1676-46a0-9136-bfc772852ed5",
+        "name": "4. Consultar página 3 con ancla fecha_hasta",
+        "request": {
+          "url": {
+            "path": [
+              "auditoria",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "3"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              },
+              {
+                "key": "fecha_hasta",
+                "value": "{{fecha_hasta_ancla}}"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "534cbc14-be89-4166-8ca1-f8d65255b0e3",
+              "type": "text/javascript",
+              "exec": [
+                "const respuesta = pm.response.json();",
+                "const idsPagina1 = JSON.parse(pm.collectionVariables.get('idsPagina1') || '[]');",
+                "const idsPagina2 = JSON.parse(pm.collectionVariables.get('idsPagina2') || '[]');",
+                "const idsAnteriores = idsPagina1.concat(idsPagina2);",
+                "const idsPagina3 = (respuesta.items || []).map(item => item.id_evento);",
+                "const repetidos = idsPagina3.filter(id => idsAnteriores.includes(id));",
+                "const total = Number(pm.collectionVariables.get('totalRegistros'));",
+                "const cantidadEsperadaPagina3 = Math.min(50, total - 100);",
+                "pm.test('Página 3: respuesta HTTP 200 o 206', function () {",
+                "    pm.expect([200, 206]).to.include(pm.response.code);",
+                "});",
+                "pm.test('Página 3: contiene la estructura esperada', function () {",
+                "    pm.expect(respuesta).to.have.property('total');",
+                "    pm.expect(respuesta).to.have.property('pagina');",
+                "    pm.expect(respuesta).to.have.property('tamano');",
+                "    pm.expect(respuesta).to.have.property('items');",
+                "    pm.expect(respuesta.items).to.be.an('array');",
+                "});",
+                "pm.test('Página 3: número de página correcto', function () {",
+                "    pm.expect(respuesta.pagina).to.equal(3);",
+                "});",
+                "pm.test('Página 3: tamaño solicitado de 50 y no supera el máximo', function () {",
+                "    pm.expect(respuesta.tamano).to.equal(50);",
+                "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                "});",
+                "pm.test('Página 3: contiene los registros restantes esperados', function () {",
+                "    pm.expect(respuesta.items.length).to.equal(cantidadEsperadaPagina3);",
+                "});",
+                "pm.test('Página 3: total estable respecto de página 1 (mismo ancla)', function () {",
+                "    pm.expect(respuesta.total).to.equal(total);",
+                "});",
+                "pm.test('Página 3: ids únicos dentro de la página', function () {",
+                "    pm.expect(new Set(idsPagina3).size).to.equal(idsPagina3.length);",
+                "});",
+                "pm.test('Página 3: no repite eventos de páginas anteriores', function () {",
+                "    pm.expect(repetidos, 'ids repetidos=' + JSON.stringify(repetidos)).to.have.lengthOf(0);",
+                "});",
+                "pm.collectionVariables.set('cantidadPagina3', String(respuesta.items.length));",
+                "console.log('PAGINA 3 items=' + idsPagina3.length + ' esperados=' + cantidadEsperadaPagina3 + ' repetidos=' + JSON.stringify(repetidos) + ' first=' + idsPagina3[0] + ' last=' + idsPagina3[idsPagina3.length-1]);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "662f3f35-e902-4e22-a4d3-074dc049e5a3",
+        "name": "5. Rechazar tamano mayor al máximo 50",
+        "request": {
+          "url": {
+            "path": [
+              "auditoria",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "51"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "39c77f2e-22c1-4ed2-be3d-943c5445443e",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Límite: tamano=51 es rechazado por el contrato (HTTP 422)', function () {",
+                "    pm.response.to.have.status(422);",
+                "});"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "admin.dev@gmail.com",
+        "key": "correo"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "contrasena"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "totalRegistros"
+      },
+      {
+        "type": "any",
+        "value": "[]",
+        "key": "idsPagina1"
+      },
+      {
+        "type": "any",
+        "value": "[]",
+        "key": "idsPagina2"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "fecha_hasta_ancla"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "cantidadPagina1"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "cantidadPagina2"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "cantidadPagina3"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m01-71-rev2-test",
+      "name": "TC-M01-071 - Paginación historial de auditoría - rev2 TEST",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Reevaluación TEST de TC-M01-071 / RF-10. Conserva el objetivo: máximo 50 por página, suficientes registros para 3 páginas, y sin id_evento repetido entre páginas. Corrige la colección histórica para el contrato actual: GET /auditoria/?pagina&tamano y reenvío de fecha_hasta (ancla) devuelta en página 1. Contraseña vía variable de entorno, no en el archivo.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "bd900257-9512-4c72-9141-823ddb81f0ba",
+    "values": [
+      {
+        "type": "any",
+        "value": "[redacted]",
+        "key": "contrasena"
+      }
+    ]
+  },
+  "globals": {
+    "id": "49f28449-9299-4cb9-b408-16a12ce1ea27",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 2,
+        "pending": 0,
+        "failed": 2
+      },
+      "testScripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 855,
+      "responseMin": 855,
+      "responseMax": 855,
+      "responseSd": 0,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1790323859826,
+      "completed": 1790323860782
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "0f055eb2-d498-43b6-995a-4bb40fb323a8",
+          "httpRequestId": "74bfc5e5-6db0-43aa-92cb-76e13db5fe98"
+        },
+        "item": {
+          "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+          "name": "1. Iniciar sesión como Administrador",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+                "type": "text/javascript",
+                "exec": [
+                  "let respuesta = null;",
+                  "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+                  "pm.test('Login del Administrador: respuesta HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Login del Administrador: contiene token válido', function () {",
+                  "    pm.expect(respuesta).to.not.equal(null);",
+                  "    pm.expect(respuesta).to.have.property('token');",
+                  "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+                  "    pm.collectionVariables.set('token', respuesta.token);",
+                  "} else {",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ],
+                "_lastExecutionId": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2114b736-4e29-4802-ac36-36746fa7ab29",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "78",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin.dev@gmail.com\",\n  \"contrasena\": \"[redacted]\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "response": {
+          "id": "e3480036-314b-4a9c-9d5c-4d478f402581",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "240"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 25 Sep 2026 08:10:59 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "8a0d6c6f-4bcb-40e6-9f9d-13bdebc6341b"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              82,
+              69,
+              68,
+              69,
+              78,
+              67,
+              73,
+              65,
+              76,
+              69,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              65,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              99,
+              111,
+              114,
+              114,
+              101,
+              99,
+              116,
+              97,
+              115,
+              46,
+              32,
+              73,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              32,
+              50,
+              32,
+              100,
+              101,
+              32,
+              53,
+              46,
+              32,
+              84,
+              114,
+              97,
+              115,
+              32,
+              101,
+              108,
+              32,
+              113,
+              117,
+              105,
+              110,
+              116,
+              111,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              44,
+              32,
+              115,
+              117,
+              32,
+              99,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              115,
+              101,
+              114,
+              195,
+              161,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              53,
+              84,
+              48,
+              56,
+              58,
+              49,
+              49,
+              58,
+              48,
+              48,
+              46,
+              53,
+              55,
+              50,
+              54,
+              54,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 855,
+          "responseSize": 240
+        },
+        "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+        "assertions": [
+          {
+            "assertion": "Login del Administrador: respuesta HTTP 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Login del Administrador: respuesta HTTP 200",
+              "message": "expected response to have status code 200 but got 401",
+              "stack": "AssertionError: expected response to have status code 200 but got 401\n   at Object.eval sandbox-script.js:1:1)"
+            }
+          },
+          {
+            "assertion": "Login del Administrador: contiene token válido",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Login del Administrador: contiene token válido",
+              "message": "expected { …(4) } to have property 'token'",
+              "stack": "AssertionError: expected { …(4) } to have property 'token'\n   at Object.eval sandbox-script.js:2:1)"
+            }
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 240
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Login del Administrador: respuesta HTTP 200",
+          "message": "expected response to have status code 200 but got 401",
+          "stack": "AssertionError: expected response to have status code 200 but got 401\n   at Object.eval sandbox-script.js:1:1)",
+          "checksum": "04d0b18729d887ffe8a8dd7df63ba1f8",
+          "id": "23d8b4dd-9fdb-4fb1-9183-49f7cce38bf2",
+          "timestamp": 1790323860748,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+          "name": "1. Iniciar sesión como Administrador",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+                "type": "text/javascript",
+                "exec": [
+                  "let respuesta = null;",
+                  "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+                  "pm.test('Login del Administrador: respuesta HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Login del Administrador: contiene token válido', function () {",
+                  "    pm.expect(respuesta).to.not.equal(null);",
+                  "    pm.expect(respuesta).to.have.property('token');",
+                  "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+                  "    pm.collectionVariables.set('token', respuesta.token);",
+                  "} else {",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ],
+                "_lastExecutionId": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m01-71-rev2-test"
+          },
+          "item": [
+            {
+              "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+              "name": "1. Iniciar sesión como Administrador",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+                    "type": "text/javascript",
+                    "exec": [
+                      "let respuesta = null;",
+                      "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+                      "pm.test('Login del Administrador: respuesta HTTP 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Login del Administrador: contiene token válido', function () {",
+                      "    pm.expect(respuesta).to.not.equal(null);",
+                      "    pm.expect(respuesta).to.have.property('token');",
+                      "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+                      "    pm.collectionVariables.set('token', respuesta.token);",
+                      "} else {",
+                      "    pm.execution.setNextRequest(null);",
+                      "}"
+                    ],
+                    "_lastExecutionId": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ca078ad7-b461-4598-be5d-8ca583163b1b",
+              "name": "2. Consultar página 1 con tamano 50",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "50"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "25f07a71-bd18-4498-8e39-636c93b72bab",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const respuesta = pm.response.json();",
+                      "pm.test('Página 1: respuesta HTTP 200 o 206', function () {",
+                      "    pm.expect([200, 206]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Página 1: contiene la estructura esperada', function () {",
+                      "    pm.expect(respuesta).to.have.property('total');",
+                      "    pm.expect(respuesta).to.have.property('pagina');",
+                      "    pm.expect(respuesta).to.have.property('tamano');",
+                      "    pm.expect(respuesta).to.have.property('items');",
+                      "    pm.expect(respuesta.items).to.be.an('array');",
+                      "});",
+                      "pm.test('Página 1: número de página correcto', function () {",
+                      "    pm.expect(respuesta.pagina).to.equal(1);",
+                      "});",
+                      "pm.test('Página 1: tamaño solicitado de 50 y no supera el máximo', function () {",
+                      "    pm.expect(respuesta.tamano).to.equal(50);",
+                      "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                      "});",
+                      "pm.test('Página 1: contiene exactamente 50 registros', function () {",
+                      "    pm.expect(respuesta.items.length).to.equal(50);",
+                      "});",
+                      "pm.test('Historial: contiene al menos 120 registros', function () {",
+                      "    pm.expect(respuesta.total).to.be.at.least(120);",
+                      "});",
+                      "pm.test('Página 1: ids únicos dentro de la página', function () {",
+                      "    const ids = respuesta.items.map(item => item.id_evento);",
+                      "    pm.expect(new Set(ids).size).to.equal(ids.length);",
+                      "});",
+                      "pm.test('Página 1: expone ancla fecha_hasta para páginas siguientes', function () {",
+                      "    pm.expect(respuesta).to.have.property('fecha_hasta');",
+                      "    pm.expect(respuesta.fecha_hasta).to.be.a('string').and.not.empty;",
+                      "});",
+                      "const idsPagina1 = respuesta.items.map(item => item.id_evento);",
+                      "pm.collectionVariables.set('totalRegistros', String(respuesta.total));",
+                      "pm.collectionVariables.set('idsPagina1', JSON.stringify(idsPagina1));",
+                      "pm.collectionVariables.set('fecha_hasta_ancla', String(respuesta.fecha_hasta));",
+                      "pm.collectionVariables.set('cantidadPagina1', String(respuesta.items.length));",
+                      "console.log('PAGINA 1 total=' + respuesta.total + ' items=' + respuesta.items.length + ' ancla=' + respuesta.fecha_hasta + ' first=' + idsPagina1[0] + ' last=' + idsPagina1[idsPagina1.length-1]);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "084128a5-0e7c-4deb-9c00-704566264392",
+              "name": "3. Consultar página 2 con ancla fecha_hasta",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "2"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "50"
+                    },
+                    {
+                      "key": "fecha_hasta",
+                      "value": "{{fecha_hasta_ancla}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "fb2a747d-ab8b-4e5c-8b08-260b1980897a",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const respuesta = pm.response.json();",
+                      "const idsPagina1 = JSON.parse(pm.collectionVariables.get('idsPagina1') || '[]');",
+                      "const idsPagina2 = (respuesta.items || []).map(item => item.id_evento);",
+                      "const repetidos = idsPagina2.filter(id => idsPagina1.includes(id));",
+                      "const totalEsperado = Number(pm.collectionVariables.get('totalRegistros'));",
+                      "pm.test('Página 2: respuesta HTTP 200 o 206', function () {",
+                      "    pm.expect([200, 206]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Página 2: contiene la estructura esperada', function () {",
+                      "    pm.expect(respuesta).to.have.property('total');",
+                      "    pm.expect(respuesta).to.have.property('pagina');",
+                      "    pm.expect(respuesta).to.have.property('tamano');",
+                      "    pm.expect(respuesta).to.have.property('items');",
+                      "    pm.expect(respuesta.items).to.be.an('array');",
+                      "});",
+                      "pm.test('Página 2: número de página correcto', function () {",
+                      "    pm.expect(respuesta.pagina).to.equal(2);",
+                      "});",
+                      "pm.test('Página 2: tamaño solicitado de 50 y no supera el máximo', function () {",
+                      "    pm.expect(respuesta.tamano).to.equal(50);",
+                      "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                      "});",
+                      "pm.test('Página 2: contiene exactamente 50 registros', function () {",
+                      "    pm.expect(respuesta.items.length).to.equal(50);",
+                      "});",
+                      "pm.test('Página 2: total estable respecto de página 1 (mismo ancla)', function () {",
+                      "    pm.expect(respuesta.total).to.equal(totalEsperado);",
+                      "});",
+                      "pm.test('Página 2: ids únicos dentro de la página', function () {",
+                      "    pm.expect(new Set(idsPagina2).size).to.equal(idsPagina2.length);",
+                      "});",
+                      "pm.test('Página 2: no repite eventos de página 1', function () {",
+                      "    pm.expect(repetidos, 'ids repetidos=' + JSON.stringify(repetidos)).to.have.lengthOf(0);",
+                      "});",
+                      "pm.collectionVariables.set('idsPagina2', JSON.stringify(idsPagina2));",
+                      "pm.collectionVariables.set('cantidadPagina2', String(respuesta.items.length));",
+                      "console.log('PAGINA 2 items=' + idsPagina2.length + ' repetidos_p1=' + JSON.stringify(repetidos) + ' first=' + idsPagina2[0] + ' last=' + idsPagina2[idsPagina2.length-1]);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "8290b6b5-1676-46a0-9136-bfc772852ed5",
+              "name": "4. Consultar página 3 con ancla fecha_hasta",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "3"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "50"
+                    },
+                    {
+                      "key": "fecha_hasta",
+                      "value": "{{fecha_hasta_ancla}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "534cbc14-be89-4166-8ca1-f8d65255b0e3",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const respuesta = pm.response.json();",
+                      "const idsPagina1 = JSON.parse(pm.collectionVariables.get('idsPagina1') || '[]');",
+                      "const idsPagina2 = JSON.parse(pm.collectionVariables.get('idsPagina2') || '[]');",
+                      "const idsAnteriores = idsPagina1.concat(idsPagina2);",
+                      "const idsPagina3 = (respuesta.items || []).map(item => item.id_evento);",
+                      "const repetidos = idsPagina3.filter(id => idsAnteriores.includes(id));",
+                      "const total = Number(pm.collectionVariables.get('totalRegistros'));",
+                      "const cantidadEsperadaPagina3 = Math.min(50, total - 100);",
+                      "pm.test('Página 3: respuesta HTTP 200 o 206', function () {",
+                      "    pm.expect([200, 206]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Página 3: contiene la estructura esperada', function () {",
+                      "    pm.expect(respuesta).to.have.property('total');",
+                      "    pm.expect(respuesta).to.have.property('pagina');",
+                      "    pm.expect(respuesta).to.have.property('tamano');",
+                      "    pm.expect(respuesta).to.have.property('items');",
+                      "    pm.expect(respuesta.items).to.be.an('array');",
+                      "});",
+                      "pm.test('Página 3: número de página correcto', function () {",
+                      "    pm.expect(respuesta.pagina).to.equal(3);",
+                      "});",
+                      "pm.test('Página 3: tamaño solicitado de 50 y no supera el máximo', function () {",
+                      "    pm.expect(respuesta.tamano).to.equal(50);",
+                      "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                      "});",
+                      "pm.test('Página 3: contiene los registros restantes esperados', function () {",
+                      "    pm.expect(respuesta.items.length).to.equal(cantidadEsperadaPagina3);",
+                      "});",
+                      "pm.test('Página 3: total estable respecto de página 1 (mismo ancla)', function () {",
+                      "    pm.expect(respuesta.total).to.equal(total);",
+                      "});",
+                      "pm.test('Página 3: ids únicos dentro de la página', function () {",
+                      "    pm.expect(new Set(idsPagina3).size).to.equal(idsPagina3.length);",
+                      "});",
+                      "pm.test('Página 3: no repite eventos de páginas anteriores', function () {",
+                      "    pm.expect(repetidos, 'ids repetidos=' + JSON.stringify(repetidos)).to.have.lengthOf(0);",
+                      "});",
+                      "pm.collectionVariables.set('cantidadPagina3', String(respuesta.items.length));",
+                      "console.log('PAGINA 3 items=' + idsPagina3.length + ' esperados=' + cantidadEsperadaPagina3 + ' repetidos=' + JSON.stringify(repetidos) + ' first=' + idsPagina3[0] + ' last=' + idsPagina3[idsPagina3.length-1]);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "662f3f35-e902-4e22-a4d3-074dc049e5a3",
+              "name": "5. Rechazar tamano mayor al máximo 50",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "51"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "39c77f2e-22c1-4ed2-be3d-943c5445443e",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Límite: tamano=51 es rechazado por el contrato (HTTP 422)', function () {",
+                      "    pm.response.to.have.status(422);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "admin.dev@gmail.com",
+              "key": "correo"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "contrasena"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "totalRegistros"
+            },
+            {
+              "type": "any",
+              "value": "[]",
+              "key": "idsPagina1"
+            },
+            {
+              "type": "any",
+              "value": "[]",
+              "key": "idsPagina2"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "fecha_hasta_ancla"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "cantidadPagina1"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "cantidadPagina2"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "cantidadPagina3"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m01-71-rev2-test",
+            "name": "TC-M01-071 - Paginación historial de auditoría - rev2 TEST",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Reevaluación TEST de TC-M01-071 / RF-10. Conserva el objetivo: máximo 50 por página, suficientes registros para 3 páginas, y sin id_evento repetido entre páginas. Corrige la colección histórica para el contrato actual: GET /auditoria/?pagina&tamano y reenvío de fecha_hasta (ancla) devuelta en página 1. Contraseña vía variable de entorno, no en el archivo.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "0f055eb2-d498-43b6-995a-4bb40fb323a8",
+          "httpRequestId": "74bfc5e5-6db0-43aa-92cb-76e13db5fe98",
+          "scriptId": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+          "execution": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 1,
+          "test": "Login del Administrador: contiene token válido",
+          "message": "expected { …(4) } to have property 'token'",
+          "stack": "AssertionError: expected { …(4) } to have property 'token'\n   at Object.eval sandbox-script.js:2:1)",
+          "checksum": "4176b7a5eb9bd8305b6e3c3a46efd079",
+          "id": "41b64448-5179-4daf-9f78-f9648ebe1c55",
+          "timestamp": 1790323860751,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 2,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:1 in test-script",
+        "source": {
+          "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+          "name": "1. Iniciar sesión como Administrador",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+                "type": "text/javascript",
+                "exec": [
+                  "let respuesta = null;",
+                  "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+                  "pm.test('Login del Administrador: respuesta HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Login del Administrador: contiene token válido', function () {",
+                  "    pm.expect(respuesta).to.not.equal(null);",
+                  "    pm.expect(respuesta).to.have.property('token');",
+                  "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+                  "    pm.collectionVariables.set('token', respuesta.token);",
+                  "} else {",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ],
+                "_lastExecutionId": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m01-71-rev2-test"
+          },
+          "item": [
+            {
+              "id": "6908c522-157f-4be3-b714-1084060f5f7b",
+              "name": "1. Iniciar sesión como Administrador",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+                    "type": "text/javascript",
+                    "exec": [
+                      "let respuesta = null;",
+                      "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+                      "pm.test('Login del Administrador: respuesta HTTP 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Login del Administrador: contiene token válido', function () {",
+                      "    pm.expect(respuesta).to.not.equal(null);",
+                      "    pm.expect(respuesta).to.have.property('token');",
+                      "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+                      "    pm.collectionVariables.set('token', respuesta.token);",
+                      "} else {",
+                      "    pm.execution.setNextRequest(null);",
+                      "}"
+                    ],
+                    "_lastExecutionId": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ca078ad7-b461-4598-be5d-8ca583163b1b",
+              "name": "2. Consultar página 1 con tamano 50",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "50"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "25f07a71-bd18-4498-8e39-636c93b72bab",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const respuesta = pm.response.json();",
+                      "pm.test('Página 1: respuesta HTTP 200 o 206', function () {",
+                      "    pm.expect([200, 206]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Página 1: contiene la estructura esperada', function () {",
+                      "    pm.expect(respuesta).to.have.property('total');",
+                      "    pm.expect(respuesta).to.have.property('pagina');",
+                      "    pm.expect(respuesta).to.have.property('tamano');",
+                      "    pm.expect(respuesta).to.have.property('items');",
+                      "    pm.expect(respuesta.items).to.be.an('array');",
+                      "});",
+                      "pm.test('Página 1: número de página correcto', function () {",
+                      "    pm.expect(respuesta.pagina).to.equal(1);",
+                      "});",
+                      "pm.test('Página 1: tamaño solicitado de 50 y no supera el máximo', function () {",
+                      "    pm.expect(respuesta.tamano).to.equal(50);",
+                      "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                      "});",
+                      "pm.test('Página 1: contiene exactamente 50 registros', function () {",
+                      "    pm.expect(respuesta.items.length).to.equal(50);",
+                      "});",
+                      "pm.test('Historial: contiene al menos 120 registros', function () {",
+                      "    pm.expect(respuesta.total).to.be.at.least(120);",
+                      "});",
+                      "pm.test('Página 1: ids únicos dentro de la página', function () {",
+                      "    const ids = respuesta.items.map(item => item.id_evento);",
+                      "    pm.expect(new Set(ids).size).to.equal(ids.length);",
+                      "});",
+                      "pm.test('Página 1: expone ancla fecha_hasta para páginas siguientes', function () {",
+                      "    pm.expect(respuesta).to.have.property('fecha_hasta');",
+                      "    pm.expect(respuesta.fecha_hasta).to.be.a('string').and.not.empty;",
+                      "});",
+                      "const idsPagina1 = respuesta.items.map(item => item.id_evento);",
+                      "pm.collectionVariables.set('totalRegistros', String(respuesta.total));",
+                      "pm.collectionVariables.set('idsPagina1', JSON.stringify(idsPagina1));",
+                      "pm.collectionVariables.set('fecha_hasta_ancla', String(respuesta.fecha_hasta));",
+                      "pm.collectionVariables.set('cantidadPagina1', String(respuesta.items.length));",
+                      "console.log('PAGINA 1 total=' + respuesta.total + ' items=' + respuesta.items.length + ' ancla=' + respuesta.fecha_hasta + ' first=' + idsPagina1[0] + ' last=' + idsPagina1[idsPagina1.length-1]);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "084128a5-0e7c-4deb-9c00-704566264392",
+              "name": "3. Consultar página 2 con ancla fecha_hasta",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "2"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "50"
+                    },
+                    {
+                      "key": "fecha_hasta",
+                      "value": "{{fecha_hasta_ancla}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "fb2a747d-ab8b-4e5c-8b08-260b1980897a",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const respuesta = pm.response.json();",
+                      "const idsPagina1 = JSON.parse(pm.collectionVariables.get('idsPagina1') || '[]');",
+                      "const idsPagina2 = (respuesta.items || []).map(item => item.id_evento);",
+                      "const repetidos = idsPagina2.filter(id => idsPagina1.includes(id));",
+                      "const totalEsperado = Number(pm.collectionVariables.get('totalRegistros'));",
+                      "pm.test('Página 2: respuesta HTTP 200 o 206', function () {",
+                      "    pm.expect([200, 206]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Página 2: contiene la estructura esperada', function () {",
+                      "    pm.expect(respuesta).to.have.property('total');",
+                      "    pm.expect(respuesta).to.have.property('pagina');",
+                      "    pm.expect(respuesta).to.have.property('tamano');",
+                      "    pm.expect(respuesta).to.have.property('items');",
+                      "    pm.expect(respuesta.items).to.be.an('array');",
+                      "});",
+                      "pm.test('Página 2: número de página correcto', function () {",
+                      "    pm.expect(respuesta.pagina).to.equal(2);",
+                      "});",
+                      "pm.test('Página 2: tamaño solicitado de 50 y no supera el máximo', function () {",
+                      "    pm.expect(respuesta.tamano).to.equal(50);",
+                      "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                      "});",
+                      "pm.test('Página 2: contiene exactamente 50 registros', function () {",
+                      "    pm.expect(respuesta.items.length).to.equal(50);",
+                      "});",
+                      "pm.test('Página 2: total estable respecto de página 1 (mismo ancla)', function () {",
+                      "    pm.expect(respuesta.total).to.equal(totalEsperado);",
+                      "});",
+                      "pm.test('Página 2: ids únicos dentro de la página', function () {",
+                      "    pm.expect(new Set(idsPagina2).size).to.equal(idsPagina2.length);",
+                      "});",
+                      "pm.test('Página 2: no repite eventos de página 1', function () {",
+                      "    pm.expect(repetidos, 'ids repetidos=' + JSON.stringify(repetidos)).to.have.lengthOf(0);",
+                      "});",
+                      "pm.collectionVariables.set('idsPagina2', JSON.stringify(idsPagina2));",
+                      "pm.collectionVariables.set('cantidadPagina2', String(respuesta.items.length));",
+                      "console.log('PAGINA 2 items=' + idsPagina2.length + ' repetidos_p1=' + JSON.stringify(repetidos) + ' first=' + idsPagina2[0] + ' last=' + idsPagina2[idsPagina2.length-1]);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "8290b6b5-1676-46a0-9136-bfc772852ed5",
+              "name": "4. Consultar página 3 con ancla fecha_hasta",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "3"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "50"
+                    },
+                    {
+                      "key": "fecha_hasta",
+                      "value": "{{fecha_hasta_ancla}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "534cbc14-be89-4166-8ca1-f8d65255b0e3",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const respuesta = pm.response.json();",
+                      "const idsPagina1 = JSON.parse(pm.collectionVariables.get('idsPagina1') || '[]');",
+                      "const idsPagina2 = JSON.parse(pm.collectionVariables.get('idsPagina2') || '[]');",
+                      "const idsAnteriores = idsPagina1.concat(idsPagina2);",
+                      "const idsPagina3 = (respuesta.items || []).map(item => item.id_evento);",
+                      "const repetidos = idsPagina3.filter(id => idsAnteriores.includes(id));",
+                      "const total = Number(pm.collectionVariables.get('totalRegistros'));",
+                      "const cantidadEsperadaPagina3 = Math.min(50, total - 100);",
+                      "pm.test('Página 3: respuesta HTTP 200 o 206', function () {",
+                      "    pm.expect([200, 206]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Página 3: contiene la estructura esperada', function () {",
+                      "    pm.expect(respuesta).to.have.property('total');",
+                      "    pm.expect(respuesta).to.have.property('pagina');",
+                      "    pm.expect(respuesta).to.have.property('tamano');",
+                      "    pm.expect(respuesta).to.have.property('items');",
+                      "    pm.expect(respuesta.items).to.be.an('array');",
+                      "});",
+                      "pm.test('Página 3: número de página correcto', function () {",
+                      "    pm.expect(respuesta.pagina).to.equal(3);",
+                      "});",
+                      "pm.test('Página 3: tamaño solicitado de 50 y no supera el máximo', function () {",
+                      "    pm.expect(respuesta.tamano).to.equal(50);",
+                      "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+                      "});",
+                      "pm.test('Página 3: contiene los registros restantes esperados', function () {",
+                      "    pm.expect(respuesta.items.length).to.equal(cantidadEsperadaPagina3);",
+                      "});",
+                      "pm.test('Página 3: total estable respecto de página 1 (mismo ancla)', function () {",
+                      "    pm.expect(respuesta.total).to.equal(total);",
+                      "});",
+                      "pm.test('Página 3: ids únicos dentro de la página', function () {",
+                      "    pm.expect(new Set(idsPagina3).size).to.equal(idsPagina3.length);",
+                      "});",
+                      "pm.test('Página 3: no repite eventos de páginas anteriores', function () {",
+                      "    pm.expect(repetidos, 'ids repetidos=' + JSON.stringify(repetidos)).to.have.lengthOf(0);",
+                      "});",
+                      "pm.collectionVariables.set('cantidadPagina3', String(respuesta.items.length));",
+                      "console.log('PAGINA 3 items=' + idsPagina3.length + ' esperados=' + cantidadEsperadaPagina3 + ' repetidos=' + JSON.stringify(repetidos) + ' first=' + idsPagina3[0] + ' last=' + idsPagina3[idsPagina3.length-1]);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "662f3f35-e902-4e22-a4d3-074dc049e5a3",
+              "name": "5. Rechazar tamano mayor al máximo 50",
+              "request": {
+                "url": {
+                  "path": [
+                    "auditoria",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "51"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "39c77f2e-22c1-4ed2-be3d-943c5445443e",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Límite: tamano=51 es rechazado por el contrato (HTTP 422)', function () {",
+                      "    pm.response.to.have.status(422);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "admin.dev@gmail.com",
+              "key": "correo"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "contrasena"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "totalRegistros"
+            },
+            {
+              "type": "any",
+              "value": "[]",
+              "key": "idsPagina1"
+            },
+            {
+              "type": "any",
+              "value": "[]",
+              "key": "idsPagina2"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "fecha_hasta_ancla"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "cantidadPagina1"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "cantidadPagina2"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "cantidadPagina3"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m01-71-rev2-test",
+            "name": "TC-M01-071 - Paginación historial de auditoría - rev2 TEST",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Reevaluación TEST de TC-M01-071 / RF-10. Conserva el objetivo: máximo 50 por página, suficientes registros para 3 páginas, y sin id_evento repetido entre páginas. Corrige la colección histórica para el contrato actual: GET /auditoria/?pagina&tamano y reenvío de fecha_hasta (ancla) devuelta en página 1. Contraseña vía variable de entorno, no en el archivo.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "0f055eb2-d498-43b6-995a-4bb40fb323a8",
+          "httpRequestId": "74bfc5e5-6db0-43aa-92cb-76e13db5fe98",
+          "scriptId": "00b8ab41-2116-4019-9e1c-bd37d14f2284",
+          "execution": "7e969550-ef2a-44fb-badc-1e1c0a111e44"
+        }
+      }
+    ],
+    "error": null
+  }
+}

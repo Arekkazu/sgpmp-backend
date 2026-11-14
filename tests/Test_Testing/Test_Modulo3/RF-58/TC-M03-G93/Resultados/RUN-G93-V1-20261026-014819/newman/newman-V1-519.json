@@ -1,0 +1,863 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+        "name": "Dashboard filtrado por unidad",
+        "request": {
+          "url": {
+            "path": [
+              "iot",
+              "monitoreo",
+              "dashboard",
+              "{{id_infraestructura}}"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+              "type": "text/javascript",
+              "exec": [
+                "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+                "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+                "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                "if(fase==='V1'){",
+                "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+                "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+                "}",
+                "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+              ],
+              "_lastExecutionId": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "id": "c86a463a-e1da-4ad2-b36a-18deeb609e9f",
+          "type": "text/javascript",
+          "exec": [
+            "if (pm.environment.get('qa_autorizado') !== 'SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+            "pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('token_productor')});",
+            "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+            "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+          ],
+          "_lastExecutionId": "820358be-93d0-4f56-94b7-f3ba212577ca"
+        }
+      }
+    ],
+    "variable": [],
+    "info": {
+      "_postman_id": "9d5c2509-7003-43d3-ae74-6fc140d5d9e9",
+      "name": "G93 RF-58 TC-M03-184",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "53e7164d-d9e4-4c5b-845f-fd8af5dca3a5",
+    "values": [
+      {
+        "type": "any",
+        "value": "SI",
+        "key": "qa_autorizado"
+      },
+      {
+        "type": "any",
+        "value": "V1",
+        "key": "fase"
+      },
+      {
+        "type": "any",
+        "value": "519",
+        "key": "id_infraestructura"
+      },
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "token_productor"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G93-V1-20261026-014819",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      }
+    ]
+  },
+  "globals": {
+    "id": "99af3cda-538f-4d11-8d7d-277c26107c16",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 3,
+        "pending": 0,
+        "failed": 2
+      },
+      "testScripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 607,
+      "responseMin": 607,
+      "responseMax": 607,
+      "responseSd": 0,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1792979308574,
+      "completed": 1792979309298
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 1,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "cf15bdd6-3ff7-4bb9-b9fd-0d04d4cb4f0d",
+          "httpRequestId": "348d9b33-daa5-4097-bdf1-93a6e7254f50"
+        },
+        "item": {
+          "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+          "name": "Dashboard filtrado por unidad",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard",
+                "{{id_infraestructura}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+                "type": "text/javascript",
+                "exec": [
+                  "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+                  "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+                  "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                  "if(fase==='V1'){",
+                  "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+                  "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+                  "}",
+                  "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+                ],
+                "_lastExecutionId": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "iot",
+              "monitoreo",
+              "dashboard",
+              "519"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "RUN-G93-V1-20261026-014819"
+            },
+            {
+              "key": "X-Sandbox-Secret",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "8d1545ae-5d9a-43f9-8059-c04e85a141a3",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d379b103-efd3-4157-8d00-a4b3e39da624",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "74"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 26 Oct 2026 01:48:29 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "21b0f205-9a80-4fa0-80a1-7a6d48cbce9b"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "RUN-G93-V1-20261026-014819"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              53,
+              48,
+              44,
+              34,
+              114,
+              101,
+              115,
+              117,
+              109,
+              101,
+              110,
+              95,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 607,
+          "responseSize": 74
+        },
+        "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+        "assertions": [
+          {
+            "assertion": "[TC-M03-184][PRE][PRE-RUN-ECO]",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M03-184][ASSERT][API-184-01]",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "[TC-M03-184][ASSERT][API-184-01]",
+              "message": "unidad visible: expected undefined to exist",
+              "stack": "AssertionError: unidad visible: expected undefined to exist\n   at Object.eval sandbox-script.js:2:1)"
+            }
+          },
+          {
+            "assertion": "[TC-M03-184][ASSERT][API-184-02]",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 2,
+              "test": "[TC-M03-184][ASSERT][API-184-02]",
+              "message": "expected undefined to be null",
+              "stack": "AssertionError: expected undefined to be null\n   at Object.eval sandbox-script.js:3:1)"
+            }
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 74
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 1,
+          "test": "[TC-M03-184][ASSERT][API-184-01]",
+          "message": "unidad visible: expected undefined to exist",
+          "stack": "AssertionError: unidad visible: expected undefined to exist\n   at Object.eval sandbox-script.js:2:1)",
+          "checksum": "b0140d70359cce486239e7cc0291534a",
+          "id": "718312db-300c-4700-99fd-7f5bae6d7e33",
+          "timestamp": 1792979309265,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 2,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:1 in test-script",
+        "source": {
+          "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+          "name": "Dashboard filtrado por unidad",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard",
+                "{{id_infraestructura}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+                "type": "text/javascript",
+                "exec": [
+                  "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+                  "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+                  "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                  "if(fase==='V1'){",
+                  "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+                  "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+                  "}",
+                  "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+                ],
+                "_lastExecutionId": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+              "name": "Dashboard filtrado por unidad",
+              "request": {
+                "url": {
+                  "path": [
+                    "iot",
+                    "monitoreo",
+                    "dashboard",
+                    "{{id_infraestructura}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "por_pagina",
+                      "value": "50"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+                      "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+                      "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                      "if(fase==='V1'){",
+                      "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+                      "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+                      "}",
+                      "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+                    ],
+                    "_lastExecutionId": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "c86a463a-e1da-4ad2-b36a-18deeb609e9f",
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get('qa_autorizado') !== 'SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+                  "pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('token_productor')});",
+                  "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+                  "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+                ],
+                "_lastExecutionId": "820358be-93d0-4f56-94b7-f3ba212577ca"
+              }
+            }
+          ],
+          "variable": [],
+          "info": {
+            "_postman_id": "9d5c2509-7003-43d3-ae74-6fc140d5d9e9",
+            "name": "G93 RF-58 TC-M03-184",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 1,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "cf15bdd6-3ff7-4bb9-b9fd-0d04d4cb4f0d",
+          "httpRequestId": "348d9b33-daa5-4097-bdf1-93a6e7254f50",
+          "scriptId": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+          "execution": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 2,
+          "test": "[TC-M03-184][ASSERT][API-184-02]",
+          "message": "expected undefined to be null",
+          "stack": "AssertionError: expected undefined to be null\n   at Object.eval sandbox-script.js:3:1)",
+          "checksum": "9b52f1ac4cd724bc2841192c32242012",
+          "id": "2c3f0ef4-42a8-49c7-9c22-11baaeb09b1d",
+          "timestamp": 1792979309268,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 3,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:2 in test-script",
+        "source": {
+          "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+          "name": "Dashboard filtrado por unidad",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard",
+                "{{id_infraestructura}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+                "type": "text/javascript",
+                "exec": [
+                  "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+                  "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+                  "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                  "if(fase==='V1'){",
+                  "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+                  "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+                  "}",
+                  "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+                ],
+                "_lastExecutionId": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "54034d34-8896-4fda-9c4d-e23a66d6ca22",
+              "name": "Dashboard filtrado por unidad",
+              "request": {
+                "url": {
+                  "path": [
+                    "iot",
+                    "monitoreo",
+                    "dashboard",
+                    "{{id_infraestructura}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "por_pagina",
+                      "value": "50"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+                      "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+                      "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+                      "if(fase==='V1'){",
+                      "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+                      "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+                      "}",
+                      "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+                    ],
+                    "_lastExecutionId": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "c86a463a-e1da-4ad2-b36a-18deeb609e9f",
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get('qa_autorizado') !== 'SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+                  "pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('token_productor')});",
+                  "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+                  "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+                ],
+                "_lastExecutionId": "820358be-93d0-4f56-94b7-f3ba212577ca"
+              }
+            }
+          ],
+          "variable": [],
+          "info": {
+            "_postman_id": "9d5c2509-7003-43d3-ae74-6fc140d5d9e9",
+            "name": "G93 RF-58 TC-M03-184",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 1,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "cf15bdd6-3ff7-4bb9-b9fd-0d04d4cb4f0d",
+          "httpRequestId": "348d9b33-daa5-4097-bdf1-93a6e7254f50",
+          "scriptId": "bd7a274f-6437-4e29-a76b-1b27fc93f7ec",
+          "execution": "e4ce1bf0-e1d4-46f7-8600-d8e69b042ec3"
+        }
+      }
+    ],
+    "error": null
+  }
+}
