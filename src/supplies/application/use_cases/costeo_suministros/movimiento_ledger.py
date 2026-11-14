@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78/79/80: efectos de cada movimiento   |
 # | 2026-11-04 | Arekkazu         | M06 RF-90: la provisión a M06 lleva la fecha del consumo |
+# | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: registro y tipo de suministro en cada evento del movimiento |
 """Efectos de un movimiento del ledger de RF-78, comunes a todos los caminos.
 
 Cada fila nueva de ``registro_suministro`` — un consumo (RF-75) o medicamento
@@ -101,5 +102,7 @@ class RegistradorMovimientoLedger:
                 costo_afectado=registro.costo_registro,
                 origen_precio=origen_precio,
                 fecha_emision=ahora,
+                id_registro_suministro=registro.id_registro_suministro,
+                id_tipo_suministro=registro.tipo_suministro,
             )
         )
