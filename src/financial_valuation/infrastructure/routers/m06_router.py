@@ -21,6 +21,7 @@
 # | 2026-11-13 | Arekkazu | INC-M06-90-G97 RF-88: depreciación lineal consultable de un activo al costo |
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
+# | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -639,9 +640,11 @@ def acumulado_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO = Depends()
 
 @router.get("/estados-resultados/{id_estado}", tags=[TAG_REP], dependencies=[Depends(permiso("estado_resultados", R))],
             summary="Detalle de un estado de resultados")
-def obtener_estado(id_estado: int, m: M06 = Depends(_m06)) -> dict:
+def obtener_estado(id_estado: int, request: Request, m: M06 = Depends(_m06),
+                   usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     estado = m.reportes.obtener_estado(id_estado)
     if estado is None:
+        _negar_estado_oculto(request, m, usuario, id_estado)
         raise NotFoundError(code="ESTADO_RESULTADOS_NO_ENCONTRADO", message="El estado de resultados no existe.")
     return estado
 
@@ -662,8 +665,18 @@ def aprobar_estado(id_estado: int, m: M06 = Depends(_m06), usuario: UsuarioActua
 
 @router.get("/estados-resultados/{id_estado}/descarga", tags=[TAG_REP],
             dependencies=[Depends(permiso("estado_resultados", R))], summary="Descargar el estado aprobado (pdf o excel)")
-def descargar_estado(id_estado: int, formato: str = Query("pdf", pattern="^(pdf|excel)$"), m: M06 = Depends(_m06)) -> Response:
-    return _descarga(*m.exportar().estado_resultados(id_estado, formato))
+def descargar_estado(id_estado: int, request: Request, formato: str = Query("pdf", pattern="^(pdf|excel)$"),
+                     m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    try:
+        return _descarga(*m.exportar().estado_resultados(id_estado, formato))
+    except NotFoundError:
+        _negar_estado_oculto(request, m, usuario, id_estado)
+        raise
+
+
+def _negar_estado_oculto(request: Request, m: M06, usuario: UsuarioActual, id_estado: int) -> None:
+    _si_existe_negar(request, m, usuario, m.reportes.periodo_de_estado(id_estado), "estado_resultados",
+                     "Acceso denegado: su rol solo consulta los estados de resultados aprobados.")
 
 
 @router.get("/periodos/{id_periodo_contable}/revelaciones", tags=[TAG_REP],
@@ -678,8 +691,7 @@ def obtener_informe(id_informe: int, request: Request, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     informe = m.reportes.obtener_informe(id_informe)
     if informe is None:
-        _si_existe_negar(request, m, usuario, m.reportes.periodo_de_informe(id_informe), "revelaciones_nic41",
-                         "Acceso denegado: su rol solo consulta los informes aprobados o archivados.")
+        _negar_informe_oculto(request, m, usuario, id_informe)
         raise NotFoundError(code="INFORME_NO_ENCONTRADO", message="El informe no existe.")
     return informe
 
@@ -703,8 +715,19 @@ def resolver_informe(id_informe: int, dto: ResolverInformeDTO, m: M06 = Depends(
 
 @router.get("/revelaciones/{id_informe}/descarga", tags=[TAG_REP], dependencies=[Depends(permiso("revelaciones_nic41", R))],
             summary="Descargar el informe aprobado (pdf o excel)")
-def descargar_informe(id_informe: int, formato: str = Query("pdf", pattern="^(pdf|excel)$"), m: M06 = Depends(_m06)) -> Response:
-    return _descarga(*m.exportar().informe(id_informe, formato))
+def descargar_informe(id_informe: int, request: Request, formato: str = Query("pdf", pattern="^(pdf|excel)$"),
+                      m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    try:
+        return _descarga(*m.exportar().informe(id_informe, formato))
+    except NotFoundError:
+        _negar_informe_oculto(request, m, usuario, id_informe)
+        raise
+
+
+def _negar_informe_oculto(request: Request, m: M06, usuario: UsuarioActual, id_informe: int) -> None:
+    """RFC-027: el informe existe pero la RLS se lo oculta por estado a quien solo lee (no aprobado ni archivado)."""
+    _si_existe_negar(request, m, usuario, m.reportes.periodo_de_informe(id_informe), "revelaciones_nic41",
+                     "Acceso denegado: su rol solo consulta los informes aprobados o archivados.")
 
 
 # --- Auditoría (RF-94) ---------------------------------------------------------------------------------------

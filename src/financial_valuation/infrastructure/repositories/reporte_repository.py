@@ -9,6 +9,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: conciliación con la baja total en cero y los ingresos de individuos sin costo |
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: recuperar los supuestos al corte y la fuente de precio. |
+# | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -232,6 +233,13 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         with como_sistema(self.db):
             f = fila(self.db, "SELECT id_periodo_contable FROM modulo6.informes_revelacion_nic41 WHERE id_informe = :id",
                      {"id": id_informe})
+        return f["id_periodo_contable"] if f else None
+
+    def periodo_de_estado(self, id_estado: int) -> Optional[int]:
+        """Período del estado de resultados aunque la RLS se lo oculte a quien consulta (RFC-027). Solo el id."""
+        with como_sistema(self.db):
+            f = fila(self.db, "SELECT id_periodo_contable FROM modulo6.estados_resultados_periodo WHERE id_estado = :id",
+                     {"id": id_estado})
         return f["id_periodo_contable"] if f else None
 
     def aprobar_informe(self, id_informe: int, id_usuario: int) -> None:
