@@ -30,6 +30,7 @@
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: el directorio de logos se crea al arrancar; un logo ausente responde 404 |
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: router de ciclos productivos |
 # | 2026-11-14 | Arekkazu | M08 RF-103: router del dashboard por widgets |
+# | 2026-11-14 | Arekkazu | M08 RF-105: entrega de notificaciones, purga diaria y alertas cada 2 s |
 import asyncio
 import logging
 import os
@@ -257,7 +258,11 @@ async def _vencer_alertas_sla_periodicamente() -> None:
 
 
 async def _notificar_alertas_periodicamente() -> None:
-    """Tarea periódica RF-57 Fase 8 / E6 / E7 / E8 (DEV-32): notifica las alertas nuevas cada 10 s."""
+    """Tarea periódica RF-57 Fase 8 / E6 / E7 / E8 (DEV-32): notifica las alertas nuevas cada 2 s.
+
+    RF-103 CA-2 pide que el semáforo refleje una alerta en ≤ 5 s y el push es lo que lo dispara;
+    con 10 s no se cumplía. La consulta de pendientes es por índice y corre en un hilo aparte.
+    """
     from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
     from src.shared.database import sesion_sistema
     from src.telemetry.application.use_cases.alertas.notificar_alertas_use_case import NotificarAlertasUseCase
@@ -267,7 +272,7 @@ async def _notificar_alertas_periodicamente() -> None:
     from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(2)
         db = sesion_sistema()
         try:
             use_case = NotificarAlertasUseCase(
@@ -282,6 +287,40 @@ async def _notificar_alertas_periodicamente() -> None:
                 logger.info('NotificarAlertas: %d alertas notificadas.', n)
         except Exception:
             logger.exception('NotificarAlertas: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _entregar_notificaciones_periodicamente() -> None:
+    """RF-105 Fase 3: push de las notificaciones CRÍTICA/ADVERTENCIA pendientes (y correo de las
+    críticas) cada 15 s, con reintentos a 1, 5 y 15 min. Una vez al día purga las informativas
+    leídas o descartadas de más de 30 días."""
+    from src.identity_access.application.use_cases.notificaciones.entregar_notificaciones_use_case import (
+        EntregarNotificacionesUseCase,
+        PurgarNotificacionesUseCase,
+    )
+    from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
+    from datetime import datetime, timezone
+
+    from src.shared.database import sesion_sistema
+
+    ultima_purga = None
+    while True:
+        await asyncio.sleep(15)
+        db = sesion_sistema()
+        try:
+            repo = SqlAlchemyNotificacionRepository(db)
+            n = await asyncio.to_thread(EntregarNotificacionesUseCase(db, repo).execute)
+            if n > 0:
+                logger.info('EntregarNotificaciones: %d notificaciones procesadas.', n)
+            hoy = datetime.now(timezone.utc).date()
+            if ultima_purga != hoy:
+                borradas = await asyncio.to_thread(PurgarNotificacionesUseCase(db, repo).execute)
+                ultima_purga = hoy
+                if borradas:
+                    logger.info('PurgarNotificaciones: %d informativas antiguas borradas.', borradas)
+        except Exception:
+            logger.exception('EntregarNotificaciones: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -914,6 +953,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_vencer_alertas_sla_periodicamente()),
         asyncio.create_task(_notificar_alertas_periodicamente()),
+        asyncio.create_task(_entregar_notificaciones_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_asegurar_particiones_telemetrias_diariamente()),

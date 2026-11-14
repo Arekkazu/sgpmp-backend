@@ -35,7 +35,7 @@ from src.reporting.domain.widgets import (
     resolver_parametros,
 )
 from src.shared.alcance_finca_port import AlcanceFincaPort
-from src.shared.errors import AppError, AuthorizationError, NotFoundError, ValidationError
+from src.shared.errors import AuthorizationError, NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -119,11 +119,11 @@ class ObtenerDatosWidgetUseCase:
         permitidas = self.validar_finca(id_finca, definicion, usuario)
         parametros = resolver_parametros(definicion, self._guardados(usuario, id_widget))
 
+        # Acceso y finca ya se validaron: lo que falle desde aquí (una consulta, un parámetro del
+        # módulo fuente sin configurar) deja solo este widget sin datos.
         try:
             resultado = self._fuentes[definicion.fuente](
                 id_finca=id_finca, parametros=parametros, usuario=usuario, permitidas=permitidas, ahora=ahora)
-        except AppError:
-            raise
         except Exception:
             logger.exception("Dashboard: falló el widget %s (finca %s)", clave, id_finca)
             return DatosWidget(clave=clave, estado=ERROR, mensaje=MENSAJE_ERROR, actualizado_en=ahora, huella="")
