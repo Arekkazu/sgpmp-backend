@@ -13,6 +13,7 @@
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: valores al cierre por período, asientos que el cierre trasladó y riesgos climáticos |
+# | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-92/93: el nombre de quien aprobó sale aunque la RLS de usuarios lo oculte |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
 from src.financial_valuation.infrastructure.repositories.sql import (
-    CONSUMIDO_POR_COSECHA, a_json, alcance_periodo, escribir, fila, filas,
+    CONSUMIDO_POR_COSECHA, a_json, alcance_periodo, con_nombres, escribir, fila, filas,
 )
 from src.shared.database import como_sistema
 from src.shared.fechas import nombre_zona_usuario
@@ -73,8 +74,9 @@ _FILTROS = (("id_especie", "l.id_especie = :id_especie"), ("id_activo_biologico"
             ("id_infraestructura", "a.id_infraestructura = :id_infraestructura"), ("id_finca", "l.id_finca = :id_finca"))
 
 
-# Nombre de quien aprobó (RF-92 paso 6 / RF-93): nulo mientras no se apruebe.
-_NOMBRE_APROBADOR = "NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_aprobador"
+# Nombre de quien aprobó (RF-92 paso 6 / RF-93): nulo mientras no se apruebe. Lo agrega con_nombres (INC-M06-93-G44).
+_APROBADOR_ESTADO = {"id_usuario_aprobador": "nombre_aprobador"}
+_APROBADOR_INFORME = {"id_contador_aprobador": "nombre_aprobador"}
 
 
 class SqlAlchemyReporteRepository(ReporteRepository):
@@ -136,13 +138,12 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             RETURNING id_estado""", {**datos, "componentes": a_json(datos["componentes"]), "filtros": a_json(datos["filtros"])})
 
     def obtener_estado(self, id_estado: int) -> Optional[dict]:
-        return fila(self.db, f"""SELECT id_estado, id_periodo_contable, total_ingresos, total_gastos, resultado_neto, estado,
-                                       hash_consistencia, fecha_generacion, json_componentes AS componentes,
-                                       json_filtros AS filtros, version, id_usuario, id_usuario_aprobador, fecha_aprobacion,
-                                       (SELECT NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '')
-                                        FROM modulo1.usuarios u WHERE u.id_usuario = id_usuario_aprobador) AS nombre_aprobador
-                                FROM modulo6.estados_resultados_periodo er
-                                WHERE id_estado = :id AND {alcance_periodo('er.id_periodo_contable')}""", {"id": id_estado})
+        estado = fila(self.db, f"""SELECT id_estado, id_periodo_contable, total_ingresos, total_gastos, resultado_neto, estado,
+                                         hash_consistencia, fecha_generacion, json_componentes AS componentes,
+                                         json_filtros AS filtros, version, id_usuario, id_usuario_aprobador, fecha_aprobacion
+                                  FROM modulo6.estados_resultados_periodo er
+                                  WHERE id_estado = :id AND {alcance_periodo('er.id_periodo_contable')}""", {"id": id_estado})
+        return con_nombres(self.db, [estado], _APROBADOR_ESTADO)[0] if estado else None
 
     def aprobar_estado(self, id_estado: int, id_usuario: int) -> None:
         escribir(self.db, """UPDATE modulo6.estados_resultados_periodo
@@ -320,12 +321,12 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                       "costo": a_json(datos["costo"]), "riesgos": a_json(datos["riesgos"])})
 
     def obtener_informe(self, id_informe: int) -> Optional[dict]:
-        return fila(self.db, f"""SELECT i.id_informe, i.id_periodo_contable, i.version_informe, i.estado::text AS estado,
-                                        i.contenido_jsonb AS contenido, i.hash_informe, i.id_contador_aprobador, i.fecha_aprobacion,
-                                        i.razon_rechazo, i.id_usuario_solicitante, i.fecha_generacion, {_NOMBRE_APROBADOR}
-                                 FROM modulo6.informes_revelacion_nic41 i
-                                 LEFT JOIN modulo1.usuarios u ON u.id_usuario = i.id_contador_aprobador
-                                 WHERE i.id_informe = :id AND {alcance_periodo('i.id_periodo_contable')}""", {"id": id_informe})
+        informe = fila(self.db, f"""SELECT i.id_informe, i.id_periodo_contable, i.version_informe, i.estado::text AS estado,
+                                           i.contenido_jsonb AS contenido, i.hash_informe, i.id_contador_aprobador, i.fecha_aprobacion,
+                                           i.razon_rechazo, i.id_usuario_solicitante, i.fecha_generacion
+                                    FROM modulo6.informes_revelacion_nic41 i
+                                    WHERE i.id_informe = :id AND {alcance_periodo('i.id_periodo_contable')}""", {"id": id_informe})
+        return con_nombres(self.db, [informe], _APROBADOR_INFORME)[0] if informe else None
 
     def periodo_de_informe(self, id_informe: int) -> Optional[int]:
         """Período del informe aunque la RLS se lo oculte a quien consulta (RFC-027: 403 y no 404). Solo el id."""
@@ -354,12 +355,15 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                              WHERE id_informe = :id AND estado = 'BORRADOR'""", {"id": id_informe, "r": razon})
 
     def listar_informes(self, id_periodo_contable: int) -> list[dict]:
-        return filas(self.db, f"""SELECT i.id_informe, i.version_informe, i.estado::text AS estado, i.fecha_generacion,
-                                         i.fecha_aprobacion, i.razon_rechazo, i.hash_informe, {_NOMBRE_APROBADOR}
-                                  FROM modulo6.informes_revelacion_nic41 i
-                                  LEFT JOIN modulo1.usuarios u ON u.id_usuario = i.id_contador_aprobador
-                                  WHERE i.id_periodo_contable = :p AND {alcance_periodo('i.id_periodo_contable')}
-                                  ORDER BY i.id_informe DESC""", {"p": id_periodo_contable})
+        informes = con_nombres(self.db, filas(self.db, f"""
+            SELECT i.id_informe, i.version_informe, i.estado::text AS estado, i.fecha_generacion, i.fecha_aprobacion,
+                   i.razon_rechazo, i.hash_informe, i.id_contador_aprobador
+            FROM modulo6.informes_revelacion_nic41 i
+            WHERE i.id_periodo_contable = :p AND {alcance_periodo('i.id_periodo_contable')}
+            ORDER BY i.id_informe DESC""", {"p": id_periodo_contable}), _APROBADOR_INFORME)
+        for informe in informes:  # el listado no expone ids de usuario
+            del informe["id_contador_aprobador"]
+        return informes
 
     def siguiente_version_informe(self, id_periodo_contable: int) -> int:
         return fila(self.db, "SELECT count(*) + 1 AS v FROM modulo6.informes_revelacion_nic41 WHERE id_periodo_contable = :p",

@@ -12,6 +12,7 @@
 # | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82/88: la reversión cuenta deterioros y registros contables; el costo revertido se reutiliza; la fecha del reconocimiento sale como día |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-83..86: las filas del período traen el id de la finca para el filtro |
 # | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: el historial del activo marca el cálculo consumido y da el valor actual en cero |
+# | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-85: el nombre de quien reconoció el producto sale aunque la RLS de usuarios lo oculte |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -29,7 +30,7 @@ from src.financial_valuation.domain.entities.valoracion import (
     VariacionRegistro,
 )
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
-from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import CONSUMIDO_POR_COSECHA, a_json, con_nombres, escribir, fila, filas
 from src.shared.fechas import nombre_zona_usuario
 from src.shared.nombre_activo import nombre_activo_sql
 
@@ -458,13 +459,12 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             if filtros.get(campo) not in (None, ""):
                 condiciones.append(sql)
                 params[campo] = filtros[campo]
-        return filas(self.db, f"""
+        return con_nombres(self.db, filas(self.db, f"""
             SELECT x.id_reconocimiento_producto_agricola, x.id_evento_productivo, x.id_activo_biologico, {_ACTIVO},
                    x.producto_agricola, x.cantidad_cosechada, x.unidad_medida, x.precio_mercado_producto,
                    x.costo_venta_producto, x.valor_producto, x.valor_reduccion_activo, x.tipo::text AS tipo,
-                   x.fecha_cosecha, x.id_periodo_contable, x.id_usuario,
-                   NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_usuario
+                   x.fecha_cosecha, x.id_periodo_contable, x.id_usuario
             FROM modulo6.reconocimientos_productos_agricolas x {_JOIN_ACTIVO}
-            LEFT JOIN modulo1.usuarios u ON u.id_usuario = x.id_usuario
             WHERE {" AND ".join(condiciones) or "true"}
-            ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC LIMIT 500""", params)
+            ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC LIMIT 500""", params),
+            {"id_usuario": "nombre_usuario"})
