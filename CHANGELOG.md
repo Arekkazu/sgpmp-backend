@@ -1,3 +1,13 @@
+## [1.4.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.72...v1.4.0-rc.73) (2026-11-15)
+
+### Bug Fixes
+
+* **rf86-mod6:** la matriz contable no deja debitar una cuenta de activo al gasto de mano de obra o de consumo (QA-M06 CU09 H-01) ([b87f4ad](https://github.com/Arekkazu/sgpmp-backend/commit/b87f4adfa1b6ad7eaf1a1440813980c036924a95))
+* **rf89-mod6:** el registro de precio no se cuelga cuando el contador destinatario del aviso esta bloqueado por quien llama ([4f17638](https://github.com/Arekkazu/sgpmp-backend/commit/4f17638883e63c4b512e1d4d8f825081c2df7750))
+* **rf89-mod6:** la configuracion contable trae los productos de cada especie para registrar el precio (QA-M06 CU08 H-02) ([269e2fa](https://github.com/Arekkazu/sgpmp-backend/commit/269e2fa19ef355f6fccca105dcf0dd6c9eac8e93))
+* **rf91-mod6:** la mano de obra propia y el ajuste de un periodo cerrado pasan la trazabilidad sin evento biologico (QA-M06 CU09 H-01) ([d8bd3b3](https://github.com/Arekkazu/sgpmp-backend/commit/d8bd3b364a0efd5dad74348dd3eab7a2dc062f92))
+* **rfcot-mod6:** el contador solo ve las cotizaciones de los titulares de sus fincas (QA-M06 CU-COT H-01) ([d140937](https://github.com/Arekkazu/sgpmp-backend/commit/d14093751cad5fcd73ece6fa7bce94f4b6ef7fb9))
+
 ## [1.4.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.71...v1.4.0-rc.72) (2026-11-15)
 
 ### Bug Fixes
