@@ -2,9 +2,11 @@
 # |------------|--------------------------|------------------------------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G37 (JSON, repro, MD, TXT)                    |
 # | 2026-11-11 | Juan Sebastian Gutierrez | Reevaluacion v2.0: --reintento, obtenido real desde JUnit/trazas, sin textos fijos M12   |
+# | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 2: obtenido desde obtenidos_checkpoints.jsonl; A02c/A02d exactos; A04a/A04b/A04c |
 """Generador de artefactos de corrida para TC-M05-G37 (RF-80 v2.0 / RFC-025).
 
-Lee el JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
+Lee el JUnit XML, obtenidos_checkpoints.jsonl (valores reales que registra cada test) y
+trazas_http.jsonl del staging de la corrida y genera:
 - resultado_TC-M05-G37[_reintentoN].json
 - TC-M05-G37[_reintentoN]_resultado.md
 - INFORME_FASE234_TC-M05-G37[_reintentoN].txt
@@ -49,13 +51,13 @@ TEST_METADATA: dict[str, dict[str, str]] = {
     },
     "test_a02c_rf79_rechazo_ciclo_activo": {
         "paso": "A02c RF-79 rechazo: consolidar con ciclo activo (409 CICLO_ACTIVO)",
-        "esperado": "HTTP 409 CICLO_ACTIVO y >= 1 evento nuevo con resultado FALLIDO/RECHAZADO, id_usuario=Admin y latencia <= 2.0 s",
-        "fuente": "RF-80 v2.0 CA-1; TC-M05-G37 v2.0 (TC-M05-090)",
+        "esperado": "HTTP 409 CICLO_ACTIVO y EXACTAMENTE 1 evento nuevo en la ventana de 2 s, con resultado RECHAZADO o FALLIDO, tipo_operacion del catalogo RF-80, id_usuario = sub del JWT y latencia <= 2.0 s",
+        "fuente": "RF-80 v2.0 CA-1, Variables (resultado), Descripcion (catalogo); TC-M05-G37 v2.0 (TC-M05-090); criterio de re-prueba INC-M05-353-G37",
     },
     "test_a02d_rf81_rechazo_filtros_invalidos": {
         "paso": "A02d RF-81 rechazo: historial con fecha_fin < fecha_inicio (422 COMBINACION_FILTROS_INVALIDA)",
-        "esperado": "HTTP 422 COMBINACION_FILTROS_INVALIDA y >= 1 evento nuevo con resultado FALLIDO/RECHAZADO, id_usuario=Admin y latencia <= 2.0 s",
-        "fuente": "RF-80 v2.0 CA-1; TC-M05-G37 v2.0 (TC-M05-090)",
+        "esperado": "HTTP 422 COMBINACION_FILTROS_INVALIDA y EXACTAMENTE 1 evento nuevo en la ventana de 2 s, con resultado RECHAZADO o FALLIDO, tipo_operacion del catalogo RF-80, id_usuario = sub del JWT y latencia <= 2.0 s",
+        "fuente": "RF-80 v2.0 CA-1, Variables (resultado), Descripcion (catalogo); TC-M05-G37 v2.0 (TC-M05-090); criterio de re-prueba INC-M05-353-G37",
     },
     "test_a01c_rf79_exito_cierre": {
         "paso": "A01c RF-79 exito: cierre de ciclo -> CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO <= 2 s",
@@ -67,10 +69,20 @@ TEST_METADATA: dict[str, dict[str, str]] = {
         "esperado": "Identidad campo por campo lista == detalle /{id} y aparicion en los 6 filtros para SUMINISTRO_REGISTRADO y REGISTRO_FALLIDO",
         "fuente": "RF-80 v2.0 Postc.3, CA-4, RNF-08; TC-M05-090",
     },
-    "test_a04_restriccion_8_campos_minimos": {
-        "paso": "A04 Restriccion 8: campos minimos por tipo y flag registro_incompleto",
-        "esperado": "Todos los eventos del catalogo cumplen campos minimos o registran registro_incompleto=true con detalle_causa nombrando el faltante",
-        "fuente": "RF-80 v2.0 Restriccion 8, E2, CA-12",
+    "test_a04a_r8_minimos_y_flag_incompleto": {
+        "paso": "A04a Restriccion 8: todo evento del catalogo con un minimo de su tipo ausente queda registro_incompleto=true",
+        "esperado": ">= 1 evento del catalogo evaluado; cada evento trae los minimos de su tipo o tiene registro_incompleto=true; ninguno persistido sin tipo, resultado o fecha_emision",
+        "fuente": "RF-80 v2.0 Restriccion 8, Fase 4, E2, CA-11; criterio de re-prueba INC-M05-353-G37",
+    },
+    "test_a04b_ca12_detalle_causa_nombra_campos": {
+        "paso": "A04b CA-12: detalle_causa nombra cada campo faltante por su nombre de campo",
+        "esperado": ">= 1 evento con minimos faltantes evaluado; en cada uno detalle_causa contiene el nombre de cada campo faltante (formato 'Campos faltantes: <campo>, ...')",
+        "fuente": "RF-80 v2.0 CA-12 ('Campos faltantes: numero_reintentos, timestamps_intentos'), E2, Fase 4",
+    },
+    "test_a04c_referencias_registro_suministro_rf78": {
+        "paso": "A04c Referencia al registro: los 3 eventos de RF-78 de A01a llevan el id_registro_suministro creado",
+        "esperado": "SUMINISTRO_REGISTRADO, PRECIO_MANUAL_INGRESADO y ACUMULADO_ACTUALIZADO de A01a con id_registro_suministro = id devuelto por POST /suministros/costeo-directo",
+        "fuente": "RF-80 v2.0 Restriccion 8, CA-4",
     },
     "test_b01_clasificacion_y_retencion_catalogo": {
         "paso": "B01 Clasificacion y retencion por catalogo (NIC41 / 5 años vs TECNICO / 1 año)",
@@ -110,6 +122,27 @@ def _cargar_trazas_por_test(trazas_path: Path) -> dict[str, list[dict[str, Any]]
         nombre = item.get("test") or "init"
         por_test.setdefault(nombre, []).append(item)
     return por_test
+
+
+def _cargar_obtenidos_por_test(obtenidos_path: Path) -> dict[str, list[tuple[str, Any]]]:
+    """Valores reales registrados por cada test con _obt(), en el orden en que se registraron."""
+    por_test: dict[str, list[tuple[str, Any]]] = {}
+    if not obtenidos_path.exists():
+        return por_test
+    for linea in obtenidos_path.read_text(encoding="utf-8").splitlines():
+        s = linea.strip()
+        if not s:
+            continue
+        try:
+            item = json.loads(s)
+        except Exception:
+            continue
+        por_test.setdefault(item.get("test") or "init", []).append((item.get("clave"), item.get("valor")))
+    return por_test
+
+
+def _texto_obtenido(valores: list[tuple[str, Any]]) -> str:
+    return "; ".join(f"{clave}={json.dumps(valor, ensure_ascii=False, default=str)}" for clave, valor in valores)
 
 
 def _resumen_http_y_eventos(trazas: list[dict[str, Any]], sysout: str) -> str:
@@ -191,9 +224,10 @@ def main() -> None:
     xml_path = next((p for p in candidatos_xml if p.exists()), None)
     if xml_path is None:
         print(f"ERROR: No existe archivo XML en {staging}")
-        return
+        raise SystemExit(2)
 
     trazas_por_test = _cargar_trazas_por_test(staging / "trazas_http.jsonl")
+    obtenidos_por_test = _cargar_obtenidos_por_test(staging / "obtenidos_checkpoints.jsonl")
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
@@ -215,6 +249,8 @@ def main() -> None:
         sysout = (sysout_el.text or "").strip() if sysout_el is not None else ""
         trazas_tc = trazas_por_test.get(nombre, [])
         resumen_trazas = _resumen_http_y_eventos(trazas_tc, sysout)
+        valores_tc = obtenidos_por_test.get(nombre, [])
+        obtenido_real = _texto_obtenido(valores_tc) if valores_tc else f"SIN_OBTENIDO_REGISTRADO | {resumen_trazas}"
 
         failure = tc.find("failure")
         error = tc.find("error")
@@ -224,7 +260,7 @@ def main() -> None:
             nodo = failure if failure is not None else error
             msg = (nodo.attrib.get("message") or (nodo.text or "Fallo de aserto")).strip()
             primera_linea = msg.splitlines()[0] if msg else "Fallo de aserto"
-            obtenido = f"{primera_linea} | {resumen_trazas}"
+            obtenido = f"{primera_linea} | {obtenido_real}"
             fallas_detalle.append({
                 "test": nombre,
                 "paso": meta["paso"],
@@ -236,13 +272,35 @@ def main() -> None:
         else:
             estado = "OK"
             ok += 1
-            obtenido = resumen_trazas
+            obtenido = obtenido_real
 
         checkpoints.append({
             "paso": meta["paso"],
             "esperado": meta["esperado"],
             "obtenido": obtenido,
             "estado": estado,
+        })
+
+    # Checkpoints de la lista cerrada que no aparecen en el JUnit cuentan como FALLA (no ejecutados).
+    nombres_junit = {tc.attrib.get("name", "") for tc in testcase_elements}
+    for nombre_meta, meta in TEST_METADATA.items():
+        if nombre_meta in nombres_junit:
+            continue
+        total += 1
+        falla += 1
+        checkpoints.append({
+            "paso": meta["paso"],
+            "esperado": meta["esperado"],
+            "obtenido": "NO_EJECUTADO: el checkpoint no aparece en el JUnit XML de la corrida",
+            "estado": "FALLA",
+        })
+        fallas_detalle.append({
+            "test": nombre_meta,
+            "paso": meta["paso"],
+            "fuente": meta["fuente"],
+            "clasificacion": "PENDIENTE_DIAGNOSTICO",
+            "detalle_junit": "NO_EJECUTADO: ausente del JUnit XML",
+            "resumen_trazas": "Sin trazas",
         })
 
     veredicto = "Aprobado" if falla == 0 and total > 0 else "Rechazado"
