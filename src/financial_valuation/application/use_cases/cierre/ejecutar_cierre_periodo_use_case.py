@@ -14,6 +14,7 @@
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-14 | destroyerban | INC-M06-054B-G56 RF-91: cerrar de nuevo un período cerrado responde 409, no 404; mensaje sin fecha de cierre |
+# | 2026-11-14 | destroyerban | INC-M06-93-G44 RF-87 FA-5: el período cerrado se rechaza antes de procesar eventos pendientes (sin artefactos nuevos) |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -239,6 +240,11 @@ class EjecutarCierrePeriodoUseCase:
         la lista entran con el último precio conocido como estimación (RF-83 v1.2); los demás se excluyen y
         pasan al período siguiente, lo que exige ``autorizar_exclusiones``. Ninguno pasa al costo (RF-88 v2.0)."""
         estimados = frozenset(activos_estimados or ())
+        # FA-5 antes que nada: un período cerrado no se toca y su intento de cierre no deja artefactos (mediciones o
+        # asientos de los eventos pendientes que se procesan a continuación). _iniciar lo vuelve a verificar con bloqueo.
+        visible = self.periodos.obtener(id_periodo_contable)
+        if visible is not None and visible.estado == EstadoPeriodo.CERRADO.value:
+            raise self._error_periodo_cerrado(visible)
         # Los eventos de M02 pendientes se miden antes (RF-83: el cierre va después de los eventos).
         self.eventos_pendientes_primero()
         id_cierre = self._iniciar(id_periodo_contable, id_usuario, autorizar_exclusiones, incluir_activos_sin_precio,
@@ -288,15 +294,7 @@ class EjecutarCierrePeriodoUseCase:
         try:
             periodo = self._bloquear_periodo(id_periodo)
             if periodo.estado == EstadoPeriodo.CERRADO.value:  # FA-5 / RF-91 Restricción 4
-                ultima = self.periodos.ultima_ejecucion(id_periodo) or {}
-                quien = ultima.get("nombre_usuario_ejecutor")
-                # INC-M06-054-G56: un período cerrado sin fecha de cierre registrada toma la de su último cierre.
-                cerrado_el = periodo.fecha_cierre or ultima.get("fecha_fin")
-                raise ConflictError(code="PERIODO_CERRADO", message=(
-                    f"El período {periodo.fecha_inicio:%Y-%m} ya fue cerrado"
-                    f"{f' el {fecha_usuario(cerrado_el):%d/%m/%Y}' if cerrado_el else ''}"
-                    f"{f' por {quien}' if quien else ''}. Los períodos cerrados no se reabren: corrija con ajustes "
-                    "en el período abierto."))
+                raise self._error_periodo_cerrado(periodo)
             en_espera = None
             if periodo.estado == EstadoPeriodo.EN_CIERRE.value:
                 en_curso = self.periodos.ejecucion_en_proceso(id_periodo)
@@ -367,6 +365,18 @@ class EjecutarCierrePeriodoUseCase:
         except Exception:
             self.db.rollback()
             logger.exception("RF-87 FA-3: no se pudo dejar el cierre del período %s en espera.", id_periodo)
+
+    def _error_periodo_cerrado(self, periodo: Periodo) -> ConflictError:
+        """RF-87 FA-5: 409 con la fecha del cierre y quién lo ejecutó."""
+        ultima = self.periodos.ultima_ejecucion(periodo.id_periodo_contable) or {}
+        quien = ultima.get("nombre_usuario_ejecutor")
+        # INC-M06-054-G56: un período cerrado sin fecha de cierre registrada toma la de su último cierre.
+        cerrado_el = periodo.fecha_cierre or ultima.get("fecha_fin")
+        return ConflictError(code="PERIODO_CERRADO", message=(
+            f"El período {periodo.fecha_inicio:%Y-%m} ya fue cerrado"
+            f"{f' el {fecha_usuario(cerrado_el):%d/%m/%Y}' if cerrado_el else ''}"
+            f"{f' por {quien}' if quien else ''}. Los períodos cerrados no se reabren: corrija con ajustes "
+            "en el período abierto."))
 
     def _bloquear_periodo(self, id_periodo: int) -> Periodo:
         """Toma el período para el cierre (``FOR UPDATE NOWAIT``).
