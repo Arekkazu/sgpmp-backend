@@ -1,3 +1,9 @@
+## [1.4.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.71...v1.4.0-rc.72) (2026-11-15)
+
+### Bug Fixes
+
+* **rf87-mod6:** el periodo cerrado responde 409 con el nombre de quien lo cerro aunque la RLS de usuarios lo oculte (INC-M06-93-G44) ([570950a](https://github.com/Arekkazu/sgpmp-backend/commit/570950a9f4b4ce0a7c8daee039c3e84b067b71aa)), closes [#1123](https://github.com/Arekkazu/sgpmp-backend/issues/1123)
+
 ## [1.4.0-rc.71](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.70...v1.4.0-rc.71) (2026-11-15)
 
 ### Bug Fixes
