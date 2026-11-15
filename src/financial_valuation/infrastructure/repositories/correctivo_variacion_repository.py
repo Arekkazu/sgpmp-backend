@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: solicitudes de correctivo de variaciones |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
+# | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-86: el nombre de quien solicitó y resolvió el correctivo sale aunque la RLS de usuarios lo oculte |
 """Implementación SQL de :class:`CorrectivoVariacionRepository`."""
 from __future__ import annotations
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.entities.valoracion import SolicitudCorrectivo, VariacionRegistro
 from src.financial_valuation.domain.repositories.correctivo_variacion_repository import CorrectivoVariacionRepository
-from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import con_nombres, escribir, fila, filas
 from src.shared.nombre_activo import nombre_activo_sql
 
 _COLUMNAS_SOLICITUD = """id_solicitud_correctivo_variacion, id_variacion_valor_razonable, motivo, estado, id_usuario_solicitante,
@@ -75,19 +76,15 @@ class SqlAlchemyCorrectivoVariacionRepository(CorrectivoVariacionRepository):
             if filtros.get(campo) not in (None, ""):
                 condiciones.append(sql)
                 params[campo] = filtros[campo]
-        return filas(self.db, f"""
+        return con_nombres(self.db, filas(self.db, f"""
             SELECT sc.id_solicitud_correctivo_variacion, sc.id_variacion_valor_razonable, sc.motivo, sc.estado,
-                   sc.fecha_solicitud, sc.id_usuario_solicitante,
-                   NULLIF(trim(coalesce(us.nombre, '') || ' ' || coalesce(us.apellidos, '')), '') AS nombre_solicitante,
-                   sc.fecha_resolucion, sc.id_usuario_resolutor,
-                   NULLIF(trim(coalesce(ur.nombre, '') || ' ' || coalesce(ur.apellidos, '')), '') AS nombre_resolutor,
+                   sc.fecha_solicitud, sc.id_usuario_solicitante, sc.fecha_resolucion, sc.id_usuario_resolutor,
                    sc.motivo_rechazo, sc.id_variacion_correctiva,
                    v.id_activo_biologico, {nombre_activo_sql()} AS identificador, v.id_periodo_contable, v.tipo::text AS tipo_variacion,
                    v.monto_variacion, v.fecha_registro AS fecha_variacion
             FROM modulo6.solicitudes_correctivos_variaciones sc
             JOIN modulo6.variaciones_valor_razonable v ON v.id_variacion_valor_razonable = sc.id_variacion_valor_razonable
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = v.id_activo_biologico
-            LEFT JOIN modulo1.usuarios us ON us.id_usuario = sc.id_usuario_solicitante
-            LEFT JOIN modulo1.usuarios ur ON ur.id_usuario = sc.id_usuario_resolutor
             WHERE {" AND ".join(condiciones) or "true"}
-            ORDER BY sc.fecha_solicitud DESC, sc.id_solicitud_correctivo_variacion DESC LIMIT 500""", params)
+            ORDER BY sc.fecha_solicitud DESC, sc.id_solicitud_correctivo_variacion DESC LIMIT 500""", params),
+            {"id_usuario_solicitante": "nombre_solicitante", "id_usuario_resolutor": "nombre_resolutor"})

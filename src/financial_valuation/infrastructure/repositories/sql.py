@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: ayudas de SQL de los repositorios del módulo financiero |
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: alcance de titulares y períodos a las fincas de quien solo consulta |
+# | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-87/92/93: el nombre de quien cerró, aprobó o solicitó se ve aunque la RLS de usuarios lo oculte |
 """Ayudas de SQL compartidas por los repositorios de M06.
 
 Los repositorios de M06 usan SQL explícito: casi todas sus lecturas cruzan M02, M09 y M05, y las
@@ -17,6 +18,7 @@ from typing import Any, Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.shared.database import como_sistema
 from src.shared.db_error_translator import raise_from_db_error
 
 # RF-85 FA-4: un cálculo consumido por una cosecha del 100 % (producto de consumo con proporción 1) ya no es
@@ -51,6 +53,28 @@ def a_json(valor: Any) -> Optional[str]:
 
 def filas(db: Session, sql: str, params: Optional[dict] = None) -> list[dict]:
     return [dict(f._mapping) for f in db.execute(text(sql), params or {})]
+
+
+def nombres_usuarios(db: Session, ids) -> dict[int, Optional[str]]:
+    """Nombre de cada usuario de ``ids``. La RLS de ``modulo1.usuarios`` solo deja ver la propia fila a quien no
+    administra usuarios (el Contador, el Revisor Fiscal), y quien cerró, aprobó o solicitó un registro que ya puede
+    ver no es un dato reservado: solo el nombre se lee como sistema (INC-M06-93-G44)."""
+    ids = sorted({i for i in ids if i is not None})
+    if not ids:
+        return {}
+    with como_sistema(db):
+        return {f["id_usuario"]: f["nombre"] for f in filas(db, """
+            SELECT id_usuario, NULLIF(trim(coalesce(nombre, '') || ' ' || coalesce(apellidos, '')), '') AS nombre
+            FROM modulo1.usuarios WHERE id_usuario = ANY(:ids)""", {"ids": ids})}
+
+
+def con_nombres(db: Session, registros: list[dict], campos: dict[str, str]) -> list[dict]:
+    """Agrega a cada registro el nombre de sus usuarios: ``campos`` = columna con el id -> clave del nombre."""
+    nombres = nombres_usuarios(db, (r.get(c) for r in registros for c in campos))
+    for r in registros:
+        for columna, clave in campos.items():
+            r[clave] = nombres.get(r.get(columna))
+    return registros
 
 
 def fila(db: Session, sql: str, params: Optional[dict] = None) -> Optional[dict]:
