@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-84/88/109: configuración contable, costos de venta y matriz |
 # | 2026-11-12 | Arekkazu | M06 RF-82: 403 si la RLS oculta la configuración contable (antes 500) |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región, con GENERAL de respaldo |
+# | 2026-11-15 | Arekkazu | INC-M06-365-G21 RF-84: una región agrupada («Huila - Tolima») vale para cada uno de sus departamentos |
 """Implementación SQL de :class:`ConfiguracionContableRepository`."""
 from __future__ import annotations
 
@@ -78,10 +79,14 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
               "v": parametro.vida_util_meses, "u": id_usuario})
 
     def costos_venta_vigentes(self, id_especie: int, region: Optional[str] = None) -> Optional[ParametroCostosVenta]:
+        # Una región agrupada («Huila - Tolima») vale para cada departamento que nombra; la exacta gana a la agrupada
+        # y las dos al GENERAL.
+        depto = _region("CAST(:r AS varchar)")
         f = fila(self.db, f"""SELECT id_parametro_costo_venta, id_especie, region, pct_transporte, pct_comisiones, pct_impuestos
                               FROM modulo6.parametros_costos_venta
-                              WHERE id_especie = :e AND es_activo AND (region = :g OR {_region('region')} = {_region('CAST(:r AS varchar)')})
-                              ORDER BY region = :g LIMIT 1""",
+                              WHERE id_especie = :e AND es_activo AND (region = :g
+                                    OR {depto} = ANY(regexp_split_to_array({_region('region')}, '\\s*[-,/]\\s*')))
+                              ORDER BY region = :g, {_region('region')} <> {depto} LIMIT 1""",
                  {"e": id_especie, "r": region, "g": REGION_GENERAL})
         return ParametroCostosVenta(**f) if f else None
 

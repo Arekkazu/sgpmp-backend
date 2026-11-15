@@ -2,9 +2,14 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-14/RF-87: notificaciones internas al Contador |
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-89: avisos de vencimiento sin duplicados tras reinicios (marca persistente) |
+# | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
 """Adaptador de :class:`NotificacionFinancieraPort` sobre M01 (RF-10 + RF-14), mismo patrón que M05:
 el aviso cuelga de un evento de ``modulo1.eventos`` y deja una notificación en la bandeja interna.
-Hace su propio ``commit`` en una sesión aparte y nunca propaga errores."""
+Hace su propio ``commit`` en una sesión aparte y nunca propaga errores.
+
+INC-M06-366-G31: los destinatarios (los Contadores de la finca) se buscan en la sesión del request. La sesión
+aparte no ve lo que la transacción en curso aún no confirmó (la finca o la asignación creadas en el mismo run del
+sandbox de QA, que nunca confirma) y el aviso se quedaba sin destinatarios."""
 from __future__ import annotations
 
 import json
@@ -15,6 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
+from src.shared.database import como_sistema
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 
@@ -34,13 +40,20 @@ _SQL_YA_NOTIFICADO = text("""
 
 
 class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
-    def __init__(self, session_factory: Callable[[], Session]) -> None:
+    def __init__(self, session_factory: Callable[[], Session], db: Optional[Session] = None) -> None:
         self.session_factory = session_factory
+        self.db_request = db
+
+    def _contadores(self, db: Session, id_finca: Optional[int]) -> list[int]:
+        if self.db_request is None:
+            return sorted({f.id_usuario for f in db.execute(_SQL_CONTADORES, {"finca": id_finca})})
+        with como_sistema(self.db_request):  # la RLS de usuarios solo deja ver el propio
+            return sorted({f.id_usuario for f in self.db_request.execute(_SQL_CONTADORES, {"finca": id_finca})})
 
     def a_contadores(self, tipo_evento: str, mensaje: str, detalle: dict, id_finca: Optional[int] = None) -> None:
         db = self.session_factory()
         try:
-            destinatarios = sorted({f.id_usuario for f in db.execute(_SQL_CONTADORES, {"finca": id_finca})})
+            destinatarios = self._contadores(db, id_finca)
             id_tipo = db.execute(text("SELECT id_tipo_evento FROM modulo1.tipos_eventos WHERE nombre = :n"),
                                  {"n": tipo_evento}).scalar()
             if not destinatarios or id_tipo is None:
