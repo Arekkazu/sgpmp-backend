@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-14/RF-87: notificaciones internas al Contador |
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-89: avisos de vencimiento sin duplicados tras reinicios (marca persistente) |
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
+# | 2026-11-15 | Arekkazu | QA-M06 RF-89: el aviso no espera el bloqueo de un destinatario (POST /finanzas/precios colgado en el sandbox) |
 """Adaptador de :class:`NotificacionFinancieraPort` sobre M01 (RF-10 + RF-14), mismo patrón que M05:
 el aviso cuelga de un evento de ``modulo1.eventos`` y deja una notificación en la bandeja interna.
 Hace su propio ``commit`` en una sesión aparte y nunca propaga errores.
@@ -33,6 +34,11 @@ _SQL_CONTADORES = text("""
     WHERE r.nombre_rol = 'Contador' AND (CAST(:finca AS integer) IS NULL OR uf.id_finca = :finca)
 """)
 
+# El destinatario puede estar bloqueado por la transacción de quien llama (el run del sandbox de QA cambia el rol del
+# Contador con SELECT … FOR UPDATE y no confirma nunca): la sesión aparte esperaría su llave foránea y el request,
+# a esta sesión. Mejor perder el aviso que colgar la petición.
+SIN_ESPERAR_BLOQUEOS = text("SET LOCAL lock_timeout = '2s'")
+
 _SQL_YA_NOTIFICADO = text("""
     SELECT EXISTS (SELECT 1 FROM modulo1.eventos e JOIN modulo1.tipos_eventos t ON t.id_tipo_evento = e.tipo_evento
                    WHERE t.nombre = :n AND e.modulo = 'MODULO6' AND e.detalle @> CAST(:d AS jsonb))
@@ -53,6 +59,7 @@ class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
     def a_contadores(self, tipo_evento: str, mensaje: str, detalle: dict, id_finca: Optional[int] = None) -> None:
         db = self.session_factory()
         try:
+            db.execute(SIN_ESPERAR_BLOQUEOS)
             destinatarios = self._contadores(db, id_finca)
             id_tipo = db.execute(text("SELECT id_tipo_evento FROM modulo1.tipos_eventos WHERE nombre = :n"),
                                  {"n": tipo_evento}).scalar()

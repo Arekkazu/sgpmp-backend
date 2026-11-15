@@ -1,3 +1,25 @@
+## [1.4.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.72...v1.4.0-rc.73) (2026-11-15)
+
+### Bug Fixes
+
+* **rf86-mod6:** la matriz contable no deja debitar una cuenta de activo al gasto de mano de obra o de consumo (QA-M06 CU09 H-01) ([b87f4ad](https://github.com/Arekkazu/sgpmp-backend/commit/b87f4adfa1b6ad7eaf1a1440813980c036924a95))
+* **rf89-mod6:** el registro de precio no se cuelga cuando el contador destinatario del aviso esta bloqueado por quien llama ([4f17638](https://github.com/Arekkazu/sgpmp-backend/commit/4f17638883e63c4b512e1d4d8f825081c2df7750))
+* **rf89-mod6:** la configuracion contable trae los productos de cada especie para registrar el precio (QA-M06 CU08 H-02) ([269e2fa](https://github.com/Arekkazu/sgpmp-backend/commit/269e2fa19ef355f6fccca105dcf0dd6c9eac8e93))
+* **rf91-mod6:** la mano de obra propia y el ajuste de un periodo cerrado pasan la trazabilidad sin evento biologico (QA-M06 CU09 H-01) ([d8bd3b3](https://github.com/Arekkazu/sgpmp-backend/commit/d8bd3b364a0efd5dad74348dd3eab7a2dc062f92))
+* **rfcot-mod6:** el contador solo ve las cotizaciones de los titulares de sus fincas (QA-M06 CU-COT H-01) ([d140937](https://github.com/Arekkazu/sgpmp-backend/commit/d14093751cad5fcd73ece6fa7bce94f4b6ef7fb9))
+
+## [1.4.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.71...v1.4.0-rc.72) (2026-11-15)
+
+### Bug Fixes
+
+* **rf87-mod6:** el periodo cerrado responde 409 con el nombre de quien lo cerro aunque la RLS de usuarios lo oculte (INC-M06-93-G44) ([570950a](https://github.com/Arekkazu/sgpmp-backend/commit/570950a9f4b4ce0a7c8daee039c3e84b067b71aa)), closes [#1123](https://github.com/Arekkazu/sgpmp-backend/issues/1123)
+
+## [1.4.0-rc.71](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.70...v1.4.0-rc.71) (2026-11-15)
+
+### Bug Fixes
+
+* **rf92-mod6:** la conciliacion cuadra con el valor al cierre del periodo y los riesgos traen las categorias climatica, sanitaria y de mercado (TC-M06-G62, TC-M06-G64) ([3fb524c](https://github.com/Arekkazu/sgpmp-backend/commit/3fb524c6a2d52a2ec8ff55a0321d40aa7b9567bc)), closes [#1151](https://github.com/Arekkazu/sgpmp-backend/issues/1151) [#1152](https://github.com/Arekkazu/sgpmp-backend/issues/1152)
+
 ## [1.4.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.69...v1.4.0-rc.70) (2026-11-15)
 
 ### Bug Fixes

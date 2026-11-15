@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-288-G32 RF-91: una cadena de período cerrado no aborta la verificación |
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: comprobar y guardar los vínculos con RF-52, RF-63 y RF-73. |
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
+# | 2026-11-15 | Arekkazu | QA-M06 CU01 H-03 RF-87/91: el ajuste de un período cerrado tiene origen (la línea que corrige) |
 """Implementación SQL de :class:`TrazabilidadRepository`.
 
 Nivel 1: lectura vinculada al activo, apta en RF-62 y auditada en RF-63. Nivel 2: evento
@@ -35,6 +36,7 @@ _ORIGENES = {  # tabla de origen -> (PK, columna de evento, columna de precio)
     "valoraciones_por_costos": ("id_valoracion_por_costo", None, None),
     "deterioros_activos": ("id_deterioro_activo", "id_evento_sanitario", None),
     "procesamientos_eventos_m02": ("id_evento", "id_evento", None),
+    "lineas_asiento_nic41": ("id_linea_asiento_nic41", None, None),  # ajuste de período anterior (RF-87 CA-14)
 }
 _ESTADO_VERIFICACION = {None: "VERIFICADO", 1: "FALLO_NIVEL_1", 2: "FALLO_NIVEL_2", 3: "FALLO_NIVEL_3", 4: "FALLO_NIVEL_3"}
 

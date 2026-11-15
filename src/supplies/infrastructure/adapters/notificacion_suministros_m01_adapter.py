@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-74/77/79/81: notificaciones internas   |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: resolver destinatarios activos por rol para el aviso manual. |
 # | 2026-11-15 | Arekkazu         | INC-M05-367/368-G02 RF-74: aviso en sesión de servicio, un evento por destinatario |
+# | 2026-11-15 | Arekkazu | QA-M06 RF-74: el aviso no espera el bloqueo de un destinatario (petición colgada en el sandbox) |
 """Adaptador de :class:`NotificacionSuministrosPort` sobre M01 (RF-10 + RF-14).
 
 Igual que la alerta de fallo de archivado de RF-10: cada aviso cuelga de un
@@ -103,6 +104,8 @@ class NotificacionSuministrosM01Adapter(NotificacionSuministrosPort):
         # menos el primero (INC-M05-368). Por eso sesión de servicio y un evento por destinatario.
         try:
             with sesion_sistema() as db:
+                # Como en M06: un destinatario bloqueado por quien llama (sandbox de QA) no cuelga la petición.
+                db.execute(text("SET LOCAL lock_timeout = '2s'"))
                 id_tipo = db.execute(_SQL_TIPO_EVENTO, {"nombre": tipo_evento}).scalar()
                 if id_tipo is None:
                     logger.warning("Tipo de evento %s no existe (falta la migración bf404c6f1018).", tipo_evento)

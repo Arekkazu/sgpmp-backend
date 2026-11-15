@@ -8,6 +8,7 @@
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: verificar el contrato HTTP y los efectos de registrar una cotización. |
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: verificar un pesaje auditado y las exclusiones del cierre. |
 # | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82: el deterioro bloquea la reversión, el costo revertido se reconoce de nuevo y la fecha sale como día |
+# | 2026-11-15 | Arekkazu | QA-M06 CU09 H-01 RF-91: reconocimiento y consumo sin evento biológico no esperan auditoría de M02 |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -227,20 +228,19 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     # RF-87: cierre del período (sin variación nueva) con comprobante por tipo de hecho y especie.
     periodo = m06.periodos.que_contiene(NIT, HOY)
     assert m06.cierre().prevalidar(periodo).puede_cerrar
-    with pytest.raises(AppError) as exclusiones:
-        m06.cierre().execute(periodo.id_periodo_contable, uid)
-    assert exclusiones.value.code == "EXCLUSION_REQUIERE_AUTORIZACION"
-    cierre = m06.cierre().execute(periodo.id_periodo_contable, uid, autorizar_exclusiones=True)
+    # CU09 H-01: el reconocimiento y el consumo no nacen de un evento biológico: su cadena no pide auditoría de
+    # M02 y entran al cierre sin exclusiones (el pesaje sí la pide y está auditado).
+    cierre = m06.cierre().execute(periodo.id_periodo_contable, uid)
     assert cierre["estado"] == "CERRADO"
     codigos = sorted(c["codigo"].split("-")[3] for c in cierre["comprobantes"])
-    assert codigos == ["VARIACION_VR_PM", "VARIACION_VR_TB"]
+    assert codigos == ["CONSUMO_INSUMO", "RECONOCIMIENTO_DIFERENCIA", "VARIACION_VR_PM", "VARIACION_VR_TB"]
     assert m06.notificador.avisos and "cerrado" in m06.notificador.avisos[-1]
 
-    # RF-93: el ingreso de reconocimiento sin evidencia se difiere. Los costos del período son 150.000 + 80.000.
+    # RF-93: ingresos 40.000 + 161.500 + 190.000; gastos 150.000 + 80.000 (el servicio sí es gasto del período).
     id_estado = cierre["reportes"]["estado_resultados"]["id_estado"]
     estado = m06.reportes.obtener_estado(id_estado)
     assert (estado["total_ingresos"], estado["total_gastos"], estado["resultado_neto"]) == (
-        D("351500.0000"), D("230000.0000"), D("121500.0000"))
+        D("391500.0000"), D("230000.0000"), D("161500.0000"))
 
     # Un hecho con fecha del período cerrado entra al período siguiente (RF-87 v1.1, sin reapertura).
     _provision_m05(db_session, activo, "1000")
