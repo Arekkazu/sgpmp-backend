@@ -4,6 +4,7 @@
 # | 2026-11-12 | Arekkazu | M06 RF-82: 403 si la RLS oculta la configuración contable (antes 500) |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región, con GENERAL de respaldo |
 # | 2026-11-15 | Arekkazu | INC-M06-365-G21 RF-84: una región agrupada («Huila - Tolima») vale para cada uno de sus departamentos |
+# | 2026-11-15 | Arekkazu | QA-M06 CU08 H-02 RF-89: productos de cada especie para el precio, sin el permiso de métricas |
 """Implementación SQL de :class:`ConfiguracionContableRepository`."""
 from __future__ import annotations
 
@@ -63,7 +64,12 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
     def listar_parametros_especie(self) -> list[dict]:
         return filas(self.db, """
             SELECT e.id_especie, e.nombre AS especie, p.clasificacion::text AS clasificacion,
-                   p.categoria_precio::text AS categoria_precio, p.vida_util_meses, p.fecha_actualizacion
+                   p.categoria_precio::text AS categoria_precio, p.vida_util_meses, p.fecha_actualizacion,
+                   -- CU08 H-02: quien registra precios no siempre lee Configuración → Métricas.
+                   COALESCE((SELECT json_agg(json_build_object('id_metrica_produccion', m.id_metrica_produccion,
+                                     'nombre', m.nombre, 'unidad_medida', m.unidad_medida) ORDER BY m.nombre)
+                             FROM modulo9.metricas_produccion m WHERE m.id_especie = e.id_especie AND m.es_activo),
+                            '[]'::json) AS productos
             FROM modulo9.especies e
             LEFT JOIN modulo6.parametros_contables_especies p ON p.id_especie = e.id_especie
             WHERE e.es_activo ORDER BY e.nombre""")
