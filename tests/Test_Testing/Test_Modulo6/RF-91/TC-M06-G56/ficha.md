@@ -48,3 +48,7 @@ Fuente: `RF-91_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-10 (TC-
 - Roles: Administrador, Contador, Productor, Veterinario, Revisor Fiscal, Externo AgroFusion (auditor externo).
 - Las peticiones marcadas **[escritura]** crean o cambian datos: corren **dentro del sandbox transaccional de TEST** (cabecera X-Test-Run-Id) y al final se revierten con DELETE /test-control/runs/{id}. Requieren `--env-var permitir_escritura=SI` y `--env-var sandbox_secret=...` (secreto que da el DBA); la colección comprueba que el sandbox esté activo y, si no, omite esas peticiones.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Ajuste del oráculo por RFC-027 y release v3/v4 (15/11/2026)
+- El «Auditor externo» es el rol **Revisor Fiscal**: lo cubre el paso «revfis». Se retiró el rol «Externo AgroFusion» (ya no existe) y su login.
+- **Administrador**: desarrollo lo dejó con todos los permisos de M06; el paso «adm» espera 404/422 (permiso concedido, período inexistente) en vez de 403.
