@@ -23,6 +23,7 @@
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 # | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-84/94: costos y bitácora aceptan id_finca |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -143,11 +144,11 @@ def guardar_parametro_especie(id_especie: int, dto: ParametroEspecieDTO, m: M06 
 
 @router.put("/configuracion/costos-venta/{id_especie}", tags=[TAG_CONFIG],
             dependencies=[Depends(permiso("configuracion_contable", U))],
-            summary="Costos de venta parametrizados de una especie (fracciones del valor bruto)")
+            summary="Costos de venta parametrizados de una especie y región (fracciones del valor bruto)")
 def guardar_costos_venta(id_especie: int, dto: CostosVentaDTO, m: M06 = Depends(_m06),
                          usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     nuevo = m.guardar_costos_venta().execute(id_especie, dto.pct_transporte, dto.pct_comisiones, dto.pct_impuestos,
-                                             usuario.id_usuario)
+                                             usuario.id_usuario, dto.region)
     return {"id_parametro_costo_venta": nuevo}
 
 

@@ -6,6 +6,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
 # | 2026-11-14 | destroyerban | INC-M06-362-G30 RF-85: descuenta las cosechas registradas después del último pesaje aunque sean del mismo día |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
@@ -31,7 +32,7 @@ SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::te
        f.razon_social, (a.fecha_creacion AT TIME ZONE :tz)::date AS fecha_ingreso,
        a.origen_financiero::text AS origen_financiero, a.costo_adquisicion, a.soporte_documental,
        d.cantidad_actual, COALESCE(p.peso, d.peso_promedio) AS peso_kg, p.id_evento AS id_evento_peso,
-       a.id_dispositivo_iot, k.kg_cosechados
+       a.id_dispositivo_iot, k.kg_cosechados, f.ubicacion ->> 'departamento' AS region
 FROM modulo2.activos_biologicos a
 JOIN modulo9.especies e ON e.id_especie = a.id_especie
 JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = a.id_estado
@@ -76,6 +77,7 @@ def _activo(f: dict) -> DatosActivo:
         soporte_documental=f["soporte_documental"], cantidad_actual=f["cantidad_actual"],
         peso_kg=Decimal(f["peso_kg"]) if f["peso_kg"] is not None else None, id_evento_peso=f["id_evento_peso"],
         id_dispositivo_iot=f["id_dispositivo_iot"], kg_cosechados=Decimal(f["kg_cosechados"] or 0),
+        region=f["region"],
     )
 
 

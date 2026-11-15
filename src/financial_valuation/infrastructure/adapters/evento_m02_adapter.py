@@ -6,6 +6,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-83/85: elegibilidad de #1034 en la cola y en la cosecha pendiente de #1060 |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
+# | 2026-11-14 | Arekkazu | INC-M06-363-G27 RF-85 FA-1: la cosecha pendiente se retoma con un precio registrado en la misma transacción |
 """Adaptador de :class:`EventoM02Port`.
 
 Entran los eventos de activos con reconocimiento CONFIRMADO y posteriores a él: los anteriores ya
@@ -14,7 +15,11 @@ sin reconocimiento confirmado (PENDIENTE_RECONOCIMIENTO): no se miden, pero su e
 registrada (RF-83). Un evento ENCOLADO_CIERRE (su período estaba en cierre) se vuelve a tomar en cada
 pasada; uno con ERROR, hasta 3 intentos. Una cosecha pendiente (MEDICION_PENDIENTE de un evento
 productivo, RF-85 FA-1/FA-2) se vuelve a tomar cuando, después de su último procesamiento, se registra
-un precio o un parámetro de costos de venta de la especie."""
+un precio o un parámetro de costos de venta de la especie.
+
+INC-M06-363-G27: esas tres horas se guardan con ``clock_timestamp()``. ``now()`` es la hora en que empezó la
+transacción: dentro de una sola (el sandbox de QA, un lote) el precio quedaba con la misma hora del intento y la
+cosecha no se retomaba nunca."""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -120,10 +125,10 @@ class EventoM02Adapter(EventoM02Port):
 
     def registrar_procesamiento(self, id_evento: int, resultado: str, detalle: str | None) -> None:
         escribir(self.db, """
-            INSERT INTO modulo6.procesamientos_eventos_m02 (id_evento, resultado, detalle)
-            VALUES (:id, :resultado, :detalle)
+            INSERT INTO modulo6.procesamientos_eventos_m02 (id_evento, resultado, detalle, fecha_procesamiento)
+            VALUES (:id, :resultado, :detalle, clock_timestamp())
             ON CONFLICT (id_evento) DO UPDATE SET resultado = EXCLUDED.resultado, detalle = EXCLUDED.detalle,
-                intentos = modulo6.procesamientos_eventos_m02.intentos + 1, fecha_procesamiento = now()
+                intentos = modulo6.procesamientos_eventos_m02.intentos + 1, fecha_procesamiento = clock_timestamp()
         """, {"id": id_evento, "resultado": resultado, "detalle": (detalle or "")[:2000] or None})
 
     def pendientes_del_titular(self, numero_id_tributaria: str) -> int:

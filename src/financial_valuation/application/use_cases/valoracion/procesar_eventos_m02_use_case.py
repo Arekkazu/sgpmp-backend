@@ -13,6 +13,7 @@
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-83/86: un solo aviso por evento suspendido; el del período cerrado se conserva (#1029 + #1032 + #1036) |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: el ingreso sin costo guarda cuánto subió la base del activo |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: producto de consumo a su precio con la diferencia en resultados; costos por región; fecha en la cosecha sin precio |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -296,12 +297,14 @@ class ProcesarEventosM02UseCase:
                     "medición del activo con sus costos de venta y no admite costos manuales del producto.")
             return self._cosecha_consumo(evento, activo, periodo, dia, cantidad, metrica)
         manuales, justificacion, id_usuario = manual or (None, None, self.id_servicio)
-        precio = precio_vigente(self.precios.de_especie(activo.id_especie, CategoriaPrecio.PRODUCTO.value,
-                                                        metrica["id_metrica_produccion"]), dia)
-        parametro = self.medidor.valorador.config.costos_venta_vigentes(activo.id_especie)
-        if precio is None or (parametro is None and not manuales):
-            falta = "precio de mercado" if precio is None else "costos de venta"
-            return self._producto_pendiente(activo, periodo, evento, f"Falta {falta} para el producto {metrica['nombre']}.")
+        precio = self._precio_producto(activo, metrica, dia)
+        parametro = self.medidor.valorador.config.costos_venta_vigentes(activo.id_especie, activo.region)
+        if precio is None:  # INC-M06-363-G27: decir a qué fecha, así un precio con vigencia posterior no confunde
+            return self._producto_pendiente(activo, periodo, evento, (
+                f"Falta un precio de mercado del producto {metrica['nombre']} vigente al {dia:%d/%m/%Y}. Regístrelo "
+                "en Precios de mercado con vigencia desde esa fecha o antes y la cosecha se reconocerá sola."))
+        if parametro is None and not manuales:
+            return self._producto_pendiente(activo, periodo, evento, f"Faltan los costos de venta del producto {metrica['nombre']}.")
         costos = costos_venta(cantidad * precio.precio_unitario, parametro.pct_transporte if parametro else None,
                               parametro.pct_comisiones if parametro else None,
                               parametro.pct_impuestos if parametro else None, manuales)
@@ -325,9 +328,30 @@ class ProcesarEventosM02UseCase:
                                         justificacion=justificacion if costos.tiene_manuales else None,
                                         id_usuario=id_usuario)
 
+    def _precio_producto(self, activo, metrica, dia):
+        """RF-85 paso 3: precio vigente del producto agrícola (RF-89) a la fecha de la cosecha."""
+        return precio_vigente(self.precios.de_especie(activo.id_especie, CategoriaPrecio.PRODUCTO.value,
+                                                      metrica["id_metrica_produccion"]), dia)
+
+    def _valor_producto(self, activo, metrica, dia, cantidad) -> Optional[tuple]:
+        """INC-M06-364-G24 (RF-85 pasos 3 a 5, CA-5): ``(precio, costos, valor_neto)`` del producto de consumo con su
+        propio precio y los costos de venta de RF-84. ``None`` si falta el precio o el parámetro: la cosecha sigue con
+        el valor del activo, que es la misma biomasa medida en el mismo instante."""
+        precio = self._precio_producto(activo, metrica, dia)
+        if precio is None:
+            return None
+        parametro = self.medidor.valorador.config.costos_venta_vigentes(activo.id_especie, activo.region)
+        if parametro is None:
+            return None
+        costos = costos_venta(cantidad * precio.precio_unitario, parametro.pct_transporte, parametro.pct_comisiones,
+                              parametro.pct_impuestos)
+        return precio, costos, valor_neto(cantidad, precio.precio_unitario, costos)
+
     def _cosecha_consumo(self, evento, activo, periodo, dia, cantidad, metrica) -> tuple[str, Optional[str]]:
-        """Cosecha que consume el activo (peces, biomasa): se remide y se traslada a inventario por el
-        mismo valor, así el asiento cuadra (contradicción C-2 de RF-85 paso 7)."""
+        """Cosecha que consume el activo (peces, biomasa): se remide, se reduce en proporción a lo cosechado y el
+        producto entra al inventario a su valor razonable menos costos de venta. La diferencia con la reducción del
+        activo es ganancia o pérdida del período (NIC 41 ¶28); sin precio del producto, el producto vale lo que se
+        redujo el activo y no hay diferencia."""
         kg = a_kg(cantidad, metrica["unidad_medida"])
         if self.medidor.valorador.categoria(activo.id_especie) != CategoriaPrecio.PESO_KG.value or kg is None:
             return self._producto_pendiente(activo, periodo, evento, (
@@ -346,10 +370,18 @@ class ProcesarEventosM02UseCase:
                 "Activos biológicos."))
         proporcion = kg / base.magnitud
         valor_reduccion = truncar2(base.valor_neto * proporcion)
-        precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
-        costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
+        producto = self._valor_producto(activo, metrica, dia, cantidad)
+        if producto is not None and producto[2].requiere_revision:
+            return self._producto_pendiente(activo, periodo, evento, "Los costos de venta igualan o superan el valor del producto.")
+        if producto is None:
+            precio_unitario = q4(base.valor_razonable_bruto * proporcion / cantidad)
+            costo_unitario = q4((base.valor_razonable_bruto - base.valor_neto) * proporcion / cantidad)
+            valor = valor_reduccion
+        else:
+            precio, costos, vn = producto
+            precio_unitario, costo_unitario, valor = precio.precio_unitario, q4(costos.total / cantidad), truncar2(vn.neto)
         resultado = self._registrar_producto(evento, activo, periodo, dia, metrica, cantidad, precio_unitario,
-                                             costo_unitario, valor_reduccion, proporcion_registrada(proporcion), valor_reduccion,
+                                             costo_unitario, valor, proporcion_registrada(proporcion), valor_reduccion,
                                              base.id_calculo_valor_razonable, medicion.id_medicion,
                                              "PRODUCTO_DE_CONSUMO", Sentido.TRASLADO.value,
                                              None if kg == cantidad else f"Cantidad convertida: {cantidad} {metrica['unidad_medida']} = {kg} kg.")
@@ -397,16 +429,25 @@ class ProcesarEventosM02UseCase:
             "justificacion": justificacion, "fecha_cosecha": dia, "id_usuario": id_usuario or self.id_servicio, "tipo": tipo,
             "id_medicion_posterior": id_medicion,
         })
-        if valor > 0:
-            self.contabilizador.asentar(LineaAsiento(
-                tipo_hecho=TipoHecho.PRODUCTO_AGRICOLA.value, sentido=sentido, valor=valor, fecha_hecho=dia,
-                id_periodo_contable=periodo.id_periodo_contable, id_activo_biologico=activo.id_activo_biologico,
-                id_especie=activo.id_especie, id_finca=activo.id_finca, numero_id_tributaria=activo.numero_id_tributaria,
-                tabla_origen="reconocimientos_productos_agricolas", id_origen=id_producto,
-                tipo_evidencia=TipoEvidencia.REGISTRO_MANUAL.value,
-            ), None)
+        lineas = [(sentido, valor)]
+        if sentido == Sentido.TRASLADO.value:
+            # INC-M06-364-G24 (RF-85 paso 7): el activo sale por lo que se redujo (inventario contra activo) y la
+            # diferencia con el valor del producto es ganancia (mismo par que la cosecha periódica) o pérdida.
+            diferencia = valor - valor_reduccion
+            lineas = [(sentido, valor_reduccion),
+                      (Sentido.UNICO.value if diferencia > 0 else Sentido.PERDIDA.value, abs(diferencia))]
+        for sentido_linea, monto in lineas:
+            if monto > 0:
+                self.contabilizador.asentar(LineaAsiento(
+                    tipo_hecho=TipoHecho.PRODUCTO_AGRICOLA.value, sentido=sentido_linea, valor=monto, fecha_hecho=dia,
+                    id_periodo_contable=periodo.id_periodo_contable, id_activo_biologico=activo.id_activo_biologico,
+                    id_especie=activo.id_especie, id_finca=activo.id_finca, numero_id_tributaria=activo.numero_id_tributaria,
+                    tabla_origen="reconocimientos_productos_agricolas", id_origen=id_producto,
+                    tipo_evidencia=TipoEvidencia.REGISTRO_MANUAL.value,
+                ), None)
         self._auditar("PRODUCTO_AGRICOLA_RECONOCIDO", Severidad.INFO, activo, periodo, id_producto,
                       {"producto": metrica["nombre"], "cantidad": str(cantidad), "valor_producto": str(valor), "tipo": tipo,
+                       **({"valor_reduccion_activo": str(valor_reduccion)} if valor_reduccion is not None else {}),
                        **({"justificacion_costos_manual": justificacion} if justificacion else {})},
                       monto=valor, id_usuario=id_usuario if justificacion else None)
         return "PROCESADO", None

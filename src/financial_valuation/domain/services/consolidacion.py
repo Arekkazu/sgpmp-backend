@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: ventas y bajas sin recuperación en componentes de gasto separados |
+# | 2026-11-14 | Arekkazu | INC-M06-364-G24 RF-85/93: la pérdida al reconocer el producto de consumo va al estado de resultados |
 """Consolidaciones del cierre (RF-87 v1.1) y del estado de resultados (RF-93). Python puro."""
 from __future__ import annotations
 
@@ -85,6 +86,8 @@ _COMPONENTE_LINEA = {
     (TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, Sentido.GANANCIA.value): "ganancia_reconocimiento_inicial",
     (TipoHecho.RECONOCIMIENTO_DIFERENCIA.value, Sentido.PERDIDA.value): "perdida_reconocimiento_inicial",
     (TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.UNICO.value): "ingresos_productos_agricolas",
+    # INC-M06-364-G24: el producto de consumo que vale menos que lo que se redujo el activo (NIC 41 ¶28).
+    (TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.PERDIDA.value): "perdida_reconocimiento_inicial",
     # Toda baja sale por su valor en libros y va a GASTOS; SGPMP no reconoce ganancia por venta (RFC-018:
     # la utilidad la determina la contabilidad desde la factura). INC-M06-358-G71/G72: la venta y la baja
     # sin venta (muerte, pérdida) van en componentes separados.

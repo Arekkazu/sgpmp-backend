@@ -14,6 +14,7 @@
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: delegar el monto no positivo a la regla FA-6 de registro. |
 # | 2026-11-14 | destroyerban | INC-M06-034B-G64 RF-92: la declaración sin novedad no admite compromisos ni pignorados |
 # | 2026-11-14 | destroyerban | INC-M06-043B-G65 RF-92: monto de compromisos y garantías mayor que cero |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -57,6 +58,8 @@ class CostosVentaDTO(BaseDTO):
     pct_transporte: Decimal = Field(ge=0, le=1)
     pct_comisiones: Decimal = Field(ge=0, le=1)
     pct_impuestos: Decimal = Field(ge=0, le=1)
+    # RF-84: departamento de la finca (como figura en su ubicación). Vacío = GENERAL, el de las regiones sin uno propio.
+    region: Optional[str] = Field(default=None, min_length=2, max_length=100, pattern=r"\S")
 
 
 class AsignacionCuentaDTO(BaseDTO):
