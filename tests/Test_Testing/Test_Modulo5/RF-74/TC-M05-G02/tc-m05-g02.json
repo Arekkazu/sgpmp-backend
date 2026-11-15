@@ -87,6 +87,18 @@
     {
       "key": "tok_cont",
       "value": ""
+    },
+    {
+      "key": "despliegue_357",
+      "value": "2026-11-14T03:13"
+    },
+    {
+      "key": "manual_ua_prod",
+      "value": "0"
+    },
+    {
+      "key": "manual_ua_vet",
+      "value": "0"
     }
   ],
   "item": [
@@ -1295,7 +1307,7 @@
           }
         },
         {
-          "name": "TC-M05-007b - Texto del aviso Urgencia ALTA de CA CRITICA (real, bandeja del Productor)",
+          "name": "TC-M05-007b - Texto del aviso Urgencia ALTA de CA CRITICA (real, bandeja del Productor, desde rc.62)",
           "event": [
             {
               "listen": "test",
@@ -1303,11 +1315,67 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
-                  "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje));",
-                  "console.log(JSON.stringify(ua.map(n => n.mensaje)));",
-                  "pm.test('TC-M05-007b - el Productor recibe el aviso Urgencia ALTA de CA CRITICA (' + ua.length + ')', () => pm.expect(ua.length).to.be.above(0));",
-                  "pm.test('TC-M05-007b - el aviso nombra el activo por su identificador, no por su id interno (ej.: ' + ((ua[0] || {}).mensaje || '').slice(0, 70) + ')', () => ua.forEach(n => pm.expect(n.mensaje).to.not.match(/del activo \\d+ /)));",
-                  "pm.test('TC-M05-007b - el aviso no muestra el valor crudo del periodo (POR_CICLO, SEMANAL, MENSUAL)', () => ua.forEach(n => pm.expect(n.mensaje).to.not.match(/per[ií]odo (POR_CICLO|SEMANAL|MENSUAL)/)));"
+                  "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_357'));",
+                  "pm.collectionVariables.set('ua_prod', JSON.stringify(ua.map(n => n.mensaje)));",
+                  "console.log(JSON.stringify(ua.map(n => n.fecha_envio + ' ' + n.mensaje)));",
+                  "pm.test('TC-M05-007b - el Productor recibe el aviso Urgencia ALTA de CA CRITICA despues del arreglo (' + ua.length + ')', () => pm.expect(ua.length).to.be.above(0));",
+                  "pm.test('TC-M05-007b - el aviso nombra el activo por su identificador visible, no por su id interno (ej.: ' + ((ua[0] || {}).mensaje || '').slice(0, 90) + ')', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => { pm.expect(n.mensaje).to.not.match(/del activo \\d+ /); pm.expect(n.mensaje).to.match(/del activo \\S*[A-Za-z]\\S* /); }); });",
+                  "pm.test('TC-M05-007b - el periodo va en lenguaje natural, no como valor crudo (POR_CICLO, SEMANAL, MENSUAL)', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => pm.expect(n.mensaje).to.not.match(/POR_CICLO|SEMANAL|MENSUAL/)); });",
+                  "pm.test('TC-M05-007b - la CA va con coma decimal (ej.: CA 8,4444)', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => { pm.expect(n.mensaje).to.match(/CA \\d+,\\d+/); pm.expect(n.mensaje).to.not.match(/CA \\d+\\.\\d+/); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=50"
+          }
+        },
+        {
+          "name": "TC-M05-007b - El Veterinario del activo tambien recibe el aviso Urgencia ALTA (real, desde rc.62)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-007b - bandeja del Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_357')).map(n => n.mensaje);",
+                  "const prod = JSON.parse(pm.collectionVariables.get('ua_prod') || '[]');",
+                  "console.log('Veterinario: ' + JSON.stringify(ua));",
+                  "pm.test('TC-M05-007b - el Veterinario tiene los mismos avisos Urgencia ALTA que el Productor (Productor ' + prod.length + ', Veterinario ' + ua.length + ')', () => { pm.expect(prod.length).to.be.above(0); prod.forEach(m => pm.expect(ua).to.include(m)); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=50"
+          }
+        },
+        {
+          "name": "TC-M05-007b - El calculo manual CRITICA entrega el aviso Urgencia ALTA (real, 2026-11-14 04:17 UTC)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
+                  "console.log('Calculo manual real 2026-11-14 04:17 UTC (1627 y 1022, CRITICA): avisos Urgencia ALTA al Productor = ' + pm.collectionVariables.get('manual_ua_prod') + ', al Veterinario = ' + pm.collectionVariables.get('manual_ua_vet'));",
+                  "pm.test('TC-M05-007b - tras el calculo manual CRITICA, el Productor y el Veterinario reciben el aviso Urgencia ALTA (real: Productor ' + pm.collectionVariables.get('manual_ua_prod') + ', Veterinario ' + pm.collectionVariables.get('manual_ua_vet') + ')', () => { pm.expect(Number(pm.collectionVariables.get('manual_ua_prod'))).to.be.above(0); pm.expect(Number(pm.collectionVariables.get('manual_ua_vet'))).to.be.above(0); });"
                 ]
               }
             }
