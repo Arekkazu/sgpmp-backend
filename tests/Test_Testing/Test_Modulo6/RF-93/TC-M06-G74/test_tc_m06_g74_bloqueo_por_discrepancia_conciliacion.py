@@ -58,6 +58,21 @@ camino de error de "discrepancia" entre el cálculo de ingresos y el de
 gastos, y que `generar()` solo puede fallar por `PERIODO_NO_ENCONTRADO` o
 `PERIODO_NO_CERRADO` -- nunca por una inconsistencia entre fuentes.
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): RESUELTO EN
+DISEÑO, PENDIENTE DE DESPLIEGUE A TEST (no es un hueco de diseño ni una
+decisión abierta). El mecanismo real de conciliación NO usa los endpoints
+`/reconciliation-check` ni `/alerts` que esta ficha asumía -- la
+verificación corre en la propia generación del estado: si una variación o
+un producto agrícola del período no tiene asiento, `generar()` responde
+`422 ESTADO_RESULTADOS_NO_CONCILIA` indicando qué falta, el cierre queda
+pendiente con ese motivo, se registra `ERROR_CONCILIACION` en la bitácora
+de RF-94 y se avisa al Contador. Este mecanismo llega a TEST cuando se
+mergee y despliegue el PR #1121 (el equipo de desarrollo avisará antes de
+desplegar). Mientras ese PR no esté desplegado, el código real sigue sin
+`ESTADO_RESULTADOS_NO_CONCILIA` (confirmado abajo) y este TC se mantiene en
+rojo -- NO por ser un hallazgo nuevo, sino porque todavía no ha llegado a
+este checkout/entorno. Re-verificar tras el despliegue del PR #1121.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -85,37 +100,38 @@ ROUTER = REPO_ROOT / 'src/financial_valuation/infrastructure/routers/m06_router.
 USE_CASE = REPO_ROOT / 'src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py'
 
 
-class TestSubCasoNoExisteNingunEndpointDeConciliacionNiDeAlertas:
+class TestSubCasoNoExisteNingunEndpointDeConciliacionNiDeAlertasPendienteDespliegue:
     def test_no_existe_ningun_endpoint_de_reconciliation_check_o_conciliacion(self):
         texto = ROUTER.read_text(encoding='utf-8').lower()
         archivos = [p for p in ('reconciliation', 'conciliacion', 'discrepanc') if p in texto]
         pytest.fail(
-            f"HALLAZGO: ninguna ruta del router real de M06 menciona reconciliacion/discrepancia "
-            f"(buscado: 'reconciliation', 'conciliacion', 'discrepanc' -- encontrados: {archivos or 'ninguno'}). "
-            f"La ficha asume un endpoint POST /.../reconciliation-check que no existe."
+            f"PENDIENTE DE DESPLIEGUE (PR #1121, no es un hueco de diseno -- ver actualizacion "
+            f"2026-11-13): el mecanismo real no usa estos endpoints, usa 422 "
+            f"ESTADO_RESULTADOS_NO_CONCILIA en generar() (buscado en este checkout: 'reconciliation', "
+            f"'conciliacion', 'discrepanc' -- encontrados: {archivos or 'ninguno'})."
         ) if not archivos else None
 
     def test_no_existe_ningun_endpoint_generico_de_alerts(self):
         texto = ROUTER.read_text(encoding='utf-8').lower()
         pytest.fail(
-            "HALLAZGO: no existe ningun endpoint '/alerts' en el router real -- el unico "
-            "mecanismo de auditoria/alertas real es GET /finanzas/auditoria (RF-94), que no "
-            "recibe nunca un evento ERROR_CONCILIACION (ver TC-M06-G73)."
+            "PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): el mecanismo real "
+            "es el aviso al Contador + ERROR_CONCILIACION en bitacora, no un endpoint '/alerts' -- "
+            "aun no aparece en este checkout."
         ) if '"/alerts"' not in texto and "'/alerts'" not in texto else None
 
 
-class TestSubCasoLaGeneracionSoloPuedeFallarPorPeriodoNoLaFuente:
+class TestSubCasoLaGeneracionSoloPuedeFallarPorPeriodoPendienteDespliegue:
     def test_generar_solo_tiene_dos_posibles_errores_ninguno_de_discrepancia(self):
-        """Lee la firma real de GenerarEstadoResultadosUseCase._cerrado() / generar(): las
-        unicas excepciones de negocio posibles son PERIODO_NO_ENCONTRADO y
-        PERIODO_NO_CERRADO. No existe ningun BusinessRuleError relacionado con
-        discrepancia/conciliacion en todo el modulo."""
+        """Lee la firma real de GenerarEstadoResultadosUseCase._cerrado() / generar(). PENDIENTE
+        DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): en este checkout todavia no
+        existe el codigo ESTADO_RESULTADOS_NO_CONCILIA que el equipo confirmo ya esta resuelto
+        en diseno -- re-verificar tras el despliegue."""
         texto = USE_CASE.read_text(encoding='utf-8')
         codigos_error = [l.strip() for l in texto.splitlines() if 'code="' in l or "code='" in l]
         pytest.fail(
-            f"HALLAZGO: los unicos codigos de error que puede lanzar la generacion del estado son "
-            f"{codigos_error!r} -- ninguno corresponde a una discrepancia de conciliacion. No "
-            f"existe 'ERROR_CONCILIACION' como BusinessRuleError lanzable desde Python."
+            f"PENDIENTE DE DESPLIEGUE: los codigos de error presentes en este checkout son "
+            f"{codigos_error!r} -- 'ESTADO_RESULTADOS_NO_CONCILIA' aun no aparece, llega con el "
+            f"PR #1121."
         ) if not any('CONCILIACION' in c for c in codigos_error) else None
 
     def test_generar_con_componentes_sintenticamente_separados_nunca_puede_discrepar(self):
@@ -148,24 +164,25 @@ class TestSubCasoLaGeneracionSoloPuedeFallarPorPeriodoNoLaFuente:
         # los montos entre fuentes.
         resultado = uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
         pytest.fail(
-            f"HALLAZGO CONFIRMADO: con datos deliberadamente dispares entre dos RF fuente "
-            f"(999999.99 vs 0.01), la generacion se completa sin ningun bloqueo ni alerta -- "
-            f"resultado_neto={resultado['resultado_neto']}. No hay forma de que el sistema "
-            f"detecte o rechace una 'discrepancia' porque no compara fuentes independientes."
+            f"PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): en este checkout, "
+            f"con datos deliberadamente dispares entre dos RF fuente (999999.99 vs 0.01), la "
+            f"generacion se completa sin ningun bloqueo -- resultado_neto={resultado['resultado_neto']}. "
+            f"El mecanismo real de conciliacion ya fue confirmado por el equipo, llega con el "
+            f"despliegue de ese PR; re-verificar entonces."
         )
 
 
-class TestSubCasoDElMecanismoRealEsUnTriggerDeBdNuncaUnaRegladeNegocio:
+class TestSubCasoDElMecanismoDeTriggerEsSecundarioAlDeAplicacionPendienteDespliegue:
     def test_el_trigger_de_bd_no_identifica_componente_ni_rf_fuente(self):
-        """La ficha exige que la alerta 'identifique el componente y el RF fuente'. El
-        trigger real (fn_tgr_m06_24_consistencia_resultado_neto, ver TC-M06-G73) solo compara
-        dos numeros agregados (resultado_neto vs total_ingresos-total_gastos) -- no tiene
-        forma de saber CUAL componente o CUAL RF causo la diferencia, aunque llegara a
-        dispararse."""
+        """El trigger de BD (fn_tgr_m06_24_consistencia_resultado_neto) es una barrera de ultimo
+        recurso, no el mecanismo principal -- el real (ESTADO_RESULTADOS_NO_CONCILIA, 422 con
+        detalle de que falta) llega con el PR #1121 segun confirmo el equipo (actualizacion
+        2026-11-13). El trigger en si mismo no identifica componente/RF, pero ya no es el unico
+        mecanismo esperado."""
         migracion = REPO_ROOT / 'alembic/versions/c4d81e6f2a95_m06_nic41_esquema_rfc018.py'
         texto = migracion.read_text(encoding='utf-8', errors='ignore')
         pytest.fail(
-            "HALLAZGO: el trigger de conciliacion real compara solo 2 numeros agregados "
-            "(resultado_neto vs ingresos-gastos) -- no identifica ni el componente ni el RF "
-            "fuente de ninguna diferencia, al contrario de lo que pide la ficha."
+            "PENDIENTE DE DESPLIEGUE: el trigger de BD por si solo compara solo 2 numeros "
+            "agregados y no identifica componente/RF -- pero el mecanismo real de la aplicacion "
+            "(422 ESTADO_RESULTADOS_NO_CONCILIA con detalle) aun no esta en este checkout."
         ) if 'fn_tgr_m06_24_consistencia_resultado_neto' in texto else None

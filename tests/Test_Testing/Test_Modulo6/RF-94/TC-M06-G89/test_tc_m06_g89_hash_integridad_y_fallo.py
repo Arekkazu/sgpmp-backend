@@ -65,6 +65,16 @@ del trigger de inmutabilidad -- no requiere BD viva (el cálculo de SHA-256
 sobre datos reales se puede replicar en Python con `hashlib` para
 confirmar coherencia del algoritmo, sin necesitar Postgres).
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): NO ES UN DEFECTO.
+HASH_CALCULO_FALLIDO no aplica por la misma razón que G85/G86/G90: la
+auditoría es síncrona, en la misma transacción (RF-86) -- no se necesita un
+código de fallback para un fallo de cálculo de hash, porque cualquier fallo
+ya revierte correctamente toda la operación. Los demás hallazgos de este TC
+ya reconocían ser matices a favor del código (cubre de más, orden
+determinista, inmutabilidad ya bloquea la alteración antes) -- no son
+defectos, son documentación de un comportamiento correcto o más fuerte que
+lo que pedía la ficha.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -88,73 +98,54 @@ def _cuerpo_funcion(texto: str, nombre_funcion: str) -> str:
     return texto.split(f'{nombre_funcion}() RETURNS trigger')[1].split('$$;')[0]
 
 
-class TestSubCasoElHashEsSobreTodasLasColumnasConOrdenDeterministaNoBloqueante:
+class TestSubCasoElHashEsSobreTodasLasColumnasConOrdenDeterministaConfirmadoCorrecto:
     def test_el_trigger_real_hashea_to_jsonb_new_menos_hash_integridad(self):
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         cuerpo = _cuerpo_funcion(texto, 'modulo6.calcular_hash_auditoria')
         assert "to_jsonb(NEW) - 'hash_integridad'" in cuerpo
         assert "ORDER BY key" in cuerpo
 
-    def test_el_orden_alfabetico_por_clave_es_determinista_contradice_la_nota_bloqueante_de_la_ficha(self):
+    def test_el_orden_alfabetico_por_clave_es_determinista_confirmado_correcto(self):
+        """No es un defecto: el orden de serializacion si esta bien definido (ORDER BY key)."""
         fila = {"tipo_evento": "COSTO_REGISTRADO", "id_usuario": "7", "severidad": "INFO"}
         agregado1 = "&".join(f"{k}={v}" for k, v in sorted(fila.items()))
         agregado2 = "&".join(f"{k}={v}" for k, v in sorted(dict(reversed(list(fila.items()))).items()))
         hash1 = hashlib.sha256(agregado1.encode()).hexdigest()
         hash2 = hashlib.sha256(agregado2.encode()).hexdigest()
-        pytest.fail(
-            f"HALLAZGO: ordenando las mismas columnas alfabeticamente (ORDER BY key, como hace "
-            f"el trigger real) el hash es siempre identico sin importar el orden de entrada "
-            f"({hash1 == hash2}) -- el orden de serializacion SI esta bien definido; la nota "
-            f"'BLOQUEANTE' de la ficha sobre un 'criterio fijo' indefinido es incorrecta para "
-            f"este trigger."
-        ) if hash1 == hash2 else None
+        assert hash1 == hash2
 
-    def test_el_hash_cubre_mas_que_solo_el_payload_incluye_todas_las_columnas_de_la_fila(self):
+    def test_el_hash_cubre_mas_que_solo_el_payload_confirmado_correcto(self):
+        """No es un defecto: cubre de mas (todas las columnas), no de menos."""
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         cuerpo = _cuerpo_funcion(texto, 'modulo6.calcular_hash_auditoria')
-        pytest.fail(
-            "HALLAZGO: el trigger real hashea TODAS las columnas de la fila (to_jsonb(NEW) menos "
-            "hash_integridad), no solo 'el payload... incluyendo timestamp_evento e id_evento' "
-            "como enumera la ficha -- cubre de mas (severidad, tipo_actor, origen_registro, etc. "
-            "tambien entran al hash), no de menos."
-        ) if 'to_jsonb(NEW)' in cuerpo else None
+        assert 'to_jsonb(NEW)' in cuerpo
 
 
-class TestSubCasoDetectarAlteracionEsMootPorqueLaInmutabilidadLaBloqueaAntes:
+class TestSubCasoDetectarAlteracionEsMootPorqueLaInmutabilidadLaBloqueaAntesConfirmadoPorDiseno:
     def test_no_existe_ningun_trigger_before_update_que_recalcule_el_hash(self):
+        """No es un defecto: no se necesita BEFORE UPDATE porque la alteracion nunca llega a
+        ocurrir (ver el test siguiente)."""
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         assert 'CREATE TRIGGER trg_hash_auditoria BEFORE INSERT ON modulo6.auditorias_financieras' in texto
-        pytest.fail(
-            "HALLAZGO: trg_hash_auditoria es BEFORE INSERT unicamente -- no existe un trigger "
-            "equivalente BEFORE UPDATE que recalcule el hash tras una alteracion."
-        ) if 'trg_hash_auditoria BEFORE UPDATE' not in texto else None
+        assert 'trg_hash_auditoria BEFORE UPDATE' not in texto
 
     def test_pero_la_alteracion_nunca_llega_a_ocurrir_por_el_trigger_de_inmutabilidad(self):
         texto = BASELINE.read_text(encoding='utf-8', errors='ignore')
         cuerpo = _cuerpo_funcion(texto, 'modulo6.fn_tgr_m06_13_inmutabilidad_auditoria')
-        pytest.fail(
-            "HALLAZGO (matiza el anterior, no es un hueco real): fn_tgr_m06_13_inmutabilidad_"
-            "auditoria bloquea TODO UPDATE y TODO DELETE con una excepcion dura, para todos los "
-            "roles -- 'detectar la alteracion recalculando el hash' nunca necesita dispararse en "
-            "la practica porque hay una barrera mas fuerte (inmutabilidad total) un paso antes."
-        ) if "TG_OP = 'UPDATE'" in cuerpo and "TG_OP = 'DELETE'" in cuerpo else None
+        assert "TG_OP = 'UPDATE'" in cuerpo and "TG_OP = 'DELETE'" in cuerpo
 
 
-class TestSubCasoHashCalculoFallidoNoExisteEnAbsolutoHallazgoGrave:
+class TestSubCasoHashCalculoFallidoNoAplicaConfirmadoPorDiseno:
     def test_hash_calculo_fallido_no_aparece_en_ningun_archivo_del_repositorio(self):
-        import subprocess
+        """No es un defecto (confirmado por Analisis/Diseno 2026-11-13): no se necesita un
+        fallback de calculo de hash porque la auditoria es sincrona (misma transaccion, RF-86) --
+        cualquier fallo ya revierte correctamente toda la operacion."""
         resultado_src = [p for p in (REPO_ROOT / 'src').rglob('*.py')
                          if 'HASH_CALCULO_FALLIDO' in p.read_text(encoding='utf-8', errors='ignore')]
         resultado_alembic = [p for p in (REPO_ROOT / 'alembic').rglob('*')
                              if p.is_file() and p.suffix in ('.py', '.sql')
                              and 'HASH_CALCULO_FALLIDO' in p.read_text(encoding='utf-8', errors='ignore')]
-        pytest.fail(
-            "HALLAZGO GRAVE: 'HASH_CALCULO_FALLIDO' no aparece en ningun archivo de src/ ni "
-            "alembic/ (grep exhaustivo, cero resultados) -- el escenario completo de 'fallback "
-            "cuando el calculo del hash falla' (CA-5/FA-5) no tiene ninguna implementacion real; "
-            "un fallo de calculo propagaria una excepcion de Postgres sin controlar, que (ver "
-            "TC-M06-G85/16) tambien revertiria la operacion de negocio principal."
-        ) if not resultado_src and not resultado_alembic else None
+        assert not resultado_src and not resultado_alembic
 
 
 class TestSubCasoElMarcadorDe64CerosExisteParaOtroTriggerConexionConTcM06_17:

@@ -40,6 +40,30 @@ Confirmado con el ciclo completo en TEST:
 reproducir el ciclo GENERADO→APROBADO completo con ese id; solo la mitad "ya aprobado". Si se necesita
 repetir el ciclo completo, usar otro `id_estado` todavía en `GENERADO` (verificar primero con el Contador).
 
+## Actualización 2026-11-13 — respuesta de Análisis/Diseño sobre los hallazgos "para análisis"
+
+El equipo de Análisis/Diseño respondió sobre los 7 TC que seguían en rojo por "para análisis"
+(G74, G80, G85, G86, G88, G89, G90). Resultado tras incorporar la respuesta:
+
+- **G85, G86, G88, G89, G90 → NO SON DEFECTOS, cerrados.** Se decidió mantener la auditoría de
+  RF-94 en la misma transacción que la operación auditada (RF-86, RNF de Fiabilidad). Por esa
+  decisión no aplican la asincronía (G85), la validación de "evento recibido de un emisor
+  externo" (G86), ni el fallback local/HASH_CALCULO_FALLIDO (G89/G90). G88 se deja como está:
+  RF-94 solo exige cortar a 64 KB y marcar el truncado, y eso se cumple. Los 33 pytest de estos
+  5 TC se convirtieron de `pytest.fail()` a `assert` y pasan 100%.
+- **Falso positivo corregido en G90:** 2 subtests venían pasando en verde por error -- coincidían
+  con la aparición literal de `"FALLBACK"` en `m06_router.py` como valor del filtro de consulta
+  `origen_registro: Optional[Literal["REPOSITORIO", "FALLBACK"]]` de `GET /finanzas/auditoria`
+  (un filtro, no un mecanismo implementado). Corregido para excluir ese uso.
+- **G74, G80 → resueltos en diseño, pendientes de despliegue a TEST (PR #1121).** El mecanismo
+  real de conciliación no usa `/reconciliation-check` ni `/alerts`: la verificación corre en la
+  propia generación del estado (`422 ESTADO_RESULTADOS_NO_CONCILIA`, con detalle de qué
+  variación/producto agrícola falta y de qué activo), se registra `ERROR_CONCILIACION` en la
+  bitácora de RF-94 y se avisa al Contador. Mientras el PR #1121 no se despliegue, el código de
+  este checkout sigue sin ese mecanismo -- los 7 pytest afectados se mantienen en rojo, pero con
+  el mensaje reclasificado a "PENDIENTE DE DESPLIEGUE" (no "hallazgo sin solución"). Re-verificar
+  tras el despliegue (el equipo de desarrollo avisará antes).
+
 ## Actualización 2026-11-14 — rol Auditor confirmado en vivo
 
 El usuario proporcionó una cuenta real del rol Auditor (`auditor.rol@gmail.com`, `id_rol=81`), creado por
