@@ -5,6 +5,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-344-G42 RF-93: desglose de los costos de mantenimiento por tipo |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: ventas y bajas sin recuperación en componentes de gasto separados |
 # | 2026-11-14 | Arekkazu | INC-M06-364-G24 RF-85/93: la pérdida al reconocer el producto de consumo va al estado de resultados |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 """Consolidaciones del cierre (RF-87 v1.1) y del estado de resultados (RF-93). Python puro."""
 from __future__ import annotations
 
@@ -69,7 +70,7 @@ def consolidar_comprobantes(lineas: Iterable[LineaContable], fin_periodo: date) 
 # --- RF-93: estado de resultados ---------------------------------------------------------------
 
 INGRESOS = ("ganancia_transformacion_biologica", "ganancia_precio_mercado", "ganancia_reconocimiento_inicial",
-            "ingresos_productos_agricolas", "ganancia_ajustes_periodos_anteriores")
+            "ingresos_productos_agricolas", "ingresos_venta_activos", "ganancia_ajustes_periodos_anteriores")
 GASTOS = ("perdida_transformacion_biologica", "perdida_precio_mercado", "perdida_reconocimiento_inicial",
           "costos_mantenimiento", "inversiones_llevadas_a_gasto", "bajas_activos", "perdidas_bajas_sin_recuperacion",
           "depreciacion_activos_costo", "deterioro_activos_costo", "perdida_ajustes_periodos_anteriores")
@@ -88,9 +89,9 @@ _COMPONENTE_LINEA = {
     (TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.UNICO.value): "ingresos_productos_agricolas",
     # INC-M06-364-G24: el producto de consumo que vale menos que lo que se redujo el activo (NIC 41 ¶28).
     (TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.PERDIDA.value): "perdida_reconocimiento_inicial",
-    # Toda baja sale por su valor en libros y va a GASTOS; SGPMP no reconoce ganancia por venta (RFC-018:
-    # la utilidad la determina la contabilidad desde la factura). INC-M06-358-G71/G72: la venta y la baja
-    # sin venta (muerte, pérdida) van en componentes separados.
+    # Toda baja sale por su valor en libros y va a GASTOS (RFC-018). INC-M06-358-G71/G72: la venta y la baja sin
+    # venta (muerte, pérdida) van en componentes separados. Lo recibido por la venta va aparte como ingreso, sin
+    # línea de asiento (INC-M06-364-G71).
     (TipoHecho.BAJA_ACTIVO.value, Sentido.UNICO.value): "bajas_activos",
     (TipoHecho.BAJA_ACTIVO.value, Sentido.PERDIDA.value): "perdidas_bajas_sin_recuperacion",
     (TipoHecho.DEPRECIACION_ACTIVO_COSTO.value, Sentido.UNICO.value): "depreciacion_activos_costo",
@@ -108,6 +109,7 @@ class MovimientoResultado:
     sentido: str
     valor: Decimal
     es_reverso: bool = False
+    valor_venta: Optional[Decimal] = None  # la baja por venta trae lo recibido (RF-45)
 
 
 @dataclass(frozen=True)
@@ -140,13 +142,19 @@ class EstadoResultados:
 def estado_resultados(movimientos: Iterable[MovimientoResultado], costos: Iterable[CostoPeriodo]) -> EstadoResultados:
     """RF-93. Los costos de mantenimiento salen de RF-90 (todos los orígenes, también los que
     viajan como factura), no de las líneas ``CONSUMO_INSUMO``, para no contarlos dos veces. Las
-    inversiones capitalizadas y los costos de venta no son gasto (RF-84, RF-90 CA-10/CA-11)."""
+    inversiones capitalizadas y los costos de venta no son gasto (RF-84, RF-90 CA-10/CA-11).
+
+    INC-M06-364-G71: lo recibido por una venta es ingreso en bruto; su valor en libros sigue en GASTOS, así el neto es
+    la utilidad de la venta (o su pérdida). No tiene línea de asiento: la factura de venta va a la contabilidad
+    externa (RFC-018), igual que los costos de mantenimiento que viajan como factura."""
     comp = {c: CERO for c in INGRESOS + GASTOS}
     desglose = {s: CERO for s in SUBTIPOS_MANTENIMIENTO}  # RF-87 paso 7: por tipo, aunque alguno sea 0
     for m in movimientos:
         nombre = _COMPONENTE_LINEA.get((m.tipo_hecho, m.sentido))
         if nombre is not None:
             comp[nombre] += -m.valor if m.es_reverso else m.valor
+        if m.valor_venta is not None and nombre == "bajas_activos":
+            comp["ingresos_venta_activos"] += -m.valor_venta if m.es_reverso else m.valor_venta
     for c in costos:
         monto = -c.monto if c.es_reverso else c.monto
         if c.naturaleza == "MANTENIMIENTO":

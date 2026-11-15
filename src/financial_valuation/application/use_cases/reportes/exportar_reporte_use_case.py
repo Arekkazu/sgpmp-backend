@@ -9,6 +9,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: los títulos de las secciones salen del constructor y el estado por sección no se imprime |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el informe de revelaciones se descarga en PDF/A-1b |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: mostrar los métodos, los supuestos y sus faltantes en las descargas. |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -39,6 +40,7 @@ ETIQUETAS_COMPONENTES = {
     "ganancia_precio_mercado": "Ganancia por variación de precio de mercado",
     "ganancia_reconocimiento_inicial": "Ganancia en el reconocimiento inicial",
     "ingresos_productos_agricolas": "Ingresos por productos agrícolas",
+    "ingresos_venta_activos": "Ingresos por venta de activos biológicos",
     "ganancia_ajustes_periodos_anteriores": "Ajustes de períodos anteriores (ganancia)",
     "perdida_transformacion_biologica": "Pérdida por transformación biológica",
     "perdida_precio_mercado": "Pérdida por variación de precio de mercado",
