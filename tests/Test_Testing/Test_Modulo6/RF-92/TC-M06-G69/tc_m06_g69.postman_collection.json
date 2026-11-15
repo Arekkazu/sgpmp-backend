@@ -190,56 +190,6 @@
       }
     },
     {
-      "name": "Login ext",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (!pm.variables.get('correo_ext')) { console.log('PRECONDICION: sin cuenta ext'); pm.execution.skipRequest(); }"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test('login 200', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('tok_ext', j.token || '');",
-              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
-              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/sesiones/",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "sesiones",
-            ""
-          ]
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"{{correo_ext}}\",\n  \"contrasena\": \"{{clave_ext}}\"\n}"
-        }
-      }
-    },
-    {
       "name": "Descubrir periodos contables (Contador)",
       "event": [
         {
@@ -713,14 +663,14 @@
       }
     },
     {
-      "name": "TC-92-071 Auditor externo tiene lectura de informes (404 por id inexistente, no 403)",
+      "name": "TC-92-071 Revisor Fiscal (auditor externo, RFC-027) tiene lectura de informes (404 por id inexistente, no 403)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -747,7 +697,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -764,14 +714,14 @@
       }
     },
     {
-      "name": "TC-92-071 Auditor externo consulta un APROBADO (permitido)",
+      "name": "TC-92-071 Revisor Fiscal (auditor externo, RFC-027) consulta un APROBADO (permitido)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }",
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }",
               "if (!pm.collectionVariables.get('inf_APROBADO')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe APROBADO'); pm.execution.skipRequest(); }"
             ]
           }
@@ -798,7 +748,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -815,14 +765,14 @@
       }
     },
     {
-      "name": "TC-92-071 Auditor externo descarga un APROBADO (permitido segun RF-92)",
+      "name": "TC-92-071 Revisor Fiscal (auditor externo, RFC-027) descarga un APROBADO (permitido segun RF-92)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }",
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }",
               "if (!pm.collectionVariables.get('inf_APROBADO')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe APROBADO'); pm.execution.skipRequest(); }"
             ]
           }
@@ -849,7 +799,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -873,14 +823,14 @@
       }
     },
     {
-      "name": "TC-92-072 Auditor externo consulta un BORRADOR -> 403",
+      "name": "TC-92-072 Revisor Fiscal (auditor externo, RFC-027) consulta un BORRADOR -> 403",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }",
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }",
               "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR'); pm.execution.skipRequest(); }"
             ]
           }
@@ -907,7 +857,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -924,14 +874,14 @@
       }
     },
     {
-      "name": "TC-92-072 Auditor externo aprueba -> 403",
+      "name": "TC-92-072 Revisor Fiscal (auditor externo, RFC-027) aprueba -> 403",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -957,7 +907,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -979,14 +929,14 @@
       }
     },
     {
-      "name": "TC-92-072 Auditor externo rechaza -> 403",
+      "name": "TC-92-072 Revisor Fiscal (auditor externo, RFC-027) rechaza -> 403",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -1012,7 +962,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -1034,14 +984,14 @@
       }
     },
     {
-      "name": "TC-92-072 Auditor externo genera informe -> 403",
+      "name": "TC-92-072 Revisor Fiscal (auditor externo, RFC-027) genera informe -> 403",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -1067,7 +1017,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -1324,7 +1274,7 @@
       }
     },
     {
-      "name": "TC-92-083 Administrador aprueba -> 403",
+      "name": "TC-92-083 Administrador aprueba (decision de desarrollo: Administrador con todos los permisos de M06; 404 por id inexistente. RFC-027 C27.4 pendiente de actualizar)",
       "event": [
         {
           "listen": "test",
@@ -1332,7 +1282,8 @@
             "type": "text/javascript",
             "exec": [
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
+              "pm.test(\"HTTP 404\", () => { pm.response.to.have.status(404); });",
+              "pm.test(\"error_code INFORME_NO_ENCONTRADO\", () => { pm.expect(j.error_code).to.eql('INFORME_NO_ENCONTRADO'); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]

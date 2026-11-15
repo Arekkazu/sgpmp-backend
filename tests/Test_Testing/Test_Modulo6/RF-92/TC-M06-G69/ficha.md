@@ -62,3 +62,10 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-11 (TC-
 - Roles: Contador, Administrador, Productor, Revisor Fiscal, Externo AgroFusion (auditor externo).
 - Sin escritura en TEST.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Ajuste del oráculo por RF-92 v1.2 / RFC-027 (13/11/2026)
+- El «Auditor externo» es el rol **Revisor Fiscal**: lee informes APROBADO/ARCHIVADO (200; id inexistente 404), descarga APROBADO, y recibe 403 en BORRADOR y en aprobar, rechazar y generar (TC-92-071 y TC-92-072).
+- **Externo AgroFusion** no tiene acceso a Finanzas: 403 `ACCESO_DENEGADO` en lectura y descarga (TC-92-071).
+- **Administrador**: RFC-027 C27.4 dice que no es lector (403), pero desarrollo lo dejó con todos los permisos de M06 y Miguel actualizará los requerimientos. Mientras tanto el caso valida lo aplicado: lee (200/404) y «aprobar» sobre un id inexistente responde 404. Reajustar cuando se publique la corrección.
+- Aviso: el filtro por estado del Revisor Fiscal (BORRADOR → 403) no figura en el release; si falla, es un hallazgo real.
+- (15/11/2026) El rol «Externo AgroFusion» ya no existe en v3 (las cuentas del SSO nacen Administrador): se retiraron del caso los pasos de esa cuenta y su login.
