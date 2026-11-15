@@ -47,7 +47,7 @@ ETIQUETAS_COMPONENTES = {
     "perdida_reconocimiento_inicial": "Pérdida en el reconocimiento inicial",
     "costos_mantenimiento": "Costos de mantenimiento",
     "inversiones_llevadas_a_gasto": "Inversiones llevadas a gasto",
-    "bajas_activos": "Valor en libros de activos vendidos",
+    "bajas_activos": "Valor en libros de activos vendidos o sacrificados",
     "perdidas_bajas_sin_recuperacion": "Pérdidas por bajas sin recuperación",
     "depreciacion_activos_costo": "Depreciación de activos al costo",
     "deterioro_activos_costo": "Deterioro de activos al costo",

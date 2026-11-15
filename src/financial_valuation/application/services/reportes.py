@@ -158,7 +158,7 @@ class ConstructorEstadoResultados:
         calculo = self.calcular(id_periodo_contable, filtros, ids_excluidos)
         excluidos = self._con_montos(id_periodo_contable, filtros, excluidos)
         componentes = {**calculo["componentes"], "desglose_costos_mantenimiento": calculo["desglose_costos_mantenimiento"],
-                       "activos_excluidos_cierre": excluidos}
+                       "activos_excluidos_cierre": excluidos, "ventas_sin_valor": calculo["ventas_sin_valor"]}
         c = {k: Decimal(v) for k, v in calculo["componentes"].items()}
         version = self.reportes.siguiente_version_estado(id_periodo_contable)
         id_estado = self.reportes.agregar_estado({
