@@ -12,6 +12,7 @@
 # | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: valores al cierre por período, asientos que el cierre trasladó y riesgos climáticos |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -24,19 +25,42 @@ from src.financial_valuation.infrastructure.repositories.sql import (
     CONSUMIDO_POR_COSECHA, a_json, alcance_periodo, escribir, fila, filas,
 )
 from src.shared.database import como_sistema
+from src.shared.fechas import nombre_zona_usuario
 from src.shared.nombre_activo import nombre_activo_sql
 
 ES_BASE_C = "COALESCE((c.json_metodo_costo->>'es_producto')::boolean, false) = false"
 CONSUMIDO_C = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")  # RF-85 FA-4: vale 0
+ALERTAS_CLIMATICAS = "('ESTRES_TERMICO', 'RIESGO_HIDRICO', 'FALLO_AMBIENTAL')"  # modulo3.enum_tipo_alerta
 
 
-def _dado_de_baja(limite: str) -> str:
-    """TC-M06-G62: el activo salió por una baja total hasta ``limite``. La baja total no deja un cálculo nuevo
-    (la parcial sí, con el resto), así que su último cálculo no es su valor: vale 0. Que fue total lo dice la
-    auditoría de la baja (``proporcion`` = 1), que es inmutable."""
-    return f"""EXISTS (SELECT 1 FROM modulo6.lineas_asiento_nic41 lb
+def _hasta(periodo: str, comparacion: str) -> str:
+    """TC-M06-G62: el período ``periodo`` empieza antes (``<``) o no después (``<=``) que el del informe. Va por período
+    y no por fecha: un hecho fechado dentro de un período ya cerrado entra al siguiente (RF-87 v1.1) y no cambia el
+    valor con que cerró aquel."""
+    return f"""(SELECT pc.fecha_inicio FROM modulo6.periodos_contables pc
+                WHERE pc.id_periodo_contable = {periodo}) {comparacion} :i"""
+
+
+# Líneas que el cierre trasladó al período siguiente (RF-91), con el período en que se midieron.
+_TRASLADADAS = "unnest(CAST(:mov_lineas AS bigint[]), CAST(:mov_origen AS integer[])) AS m(id_linea, origen)"
+
+
+def _costo_al(momento: str) -> str:
+    """TC-M06-G62: valor al costo (RF-88: costo − depreciación − deterioro, sin bajar de cero) al inicio o al cierre
+    del período: sin la depreciación ni el deterioro que se registraron después. Nulo si el activo no va al costo."""
+    return f"""CASE WHEN vc.id_valoracion_por_costo IS NOT NULL THEN
+        GREATEST(vc.costos_adquisicion - (vc.depreciacion_acumulada - post.dep_{momento})
+                 - (vc.deterioro_acumulado - post.det_{momento}), 0) END"""
+
+
+def _dado_de_baja(comparacion: str) -> str:
+    """TC-M06-G62: el activo salió por una baja total en un período hasta el del informe. La baja total no deja un
+    cálculo nuevo (la parcial sí, con el resto), así que su último cálculo no es su valor: vale 0. Que fue total lo
+    dice la auditoría de la baja (``proporcion`` = 1), que es inmutable. La baja cuenta en el período en que se
+    registró, aunque el cierre haya trasladado su asiento."""
+    return f"""EXISTS (SELECT 1 FROM modulo6.lineas_asiento_nic41 lb LEFT JOIN {_TRASLADADAS} ON m.id_linea = lb.id_linea_asiento_nic41
         WHERE lb.id_activo_biologico = a.id_activo_biologico AND lb.tipo_hecho = 'BAJA_ACTIVO' AND NOT lb.es_reverso
-          AND lb.fecha_hecho {limite}
+          AND {_hasta("COALESCE(m.origen, lb.id_periodo_contable)", comparacion)}
           AND NOT EXISTS (SELECT 1 FROM modulo6.lineas_asiento_nic41 r
                           WHERE r.es_reverso AND r.tipo_hecho = lb.tipo_hecho AND r.id_activo_biologico = lb.id_activo_biologico
                             AND r.tabla_origen = lb.tabla_origen AND r.id_origen = lb.id_origen)
@@ -144,21 +168,36 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                           tipo_cierre::text AS tipo_cierre FROM modulo6.periodos_contables
                                    WHERE id_periodo_contable = :p""", p)
         rango = {**p, "nit": periodo["numero_id_tributaria"], "i": periodo["fecha_inicio"], "f": periodo["fecha_fin"]}
+        # TC-M06-G62: lo que el cierre trasladó al período siguiente lo dice su auditoría (RF-91), que el Contador
+        # que genera el informe puede no ver: se leen solo los ids de las líneas.
+        # ponytail: una auditoría con más de 64 KB (~400 líneas) queda truncada y sus líneas no se ven aquí; la
+        # conciliación de esos activos saldría como advertencia. Guardar el período de origen en la línea si pasa.
+        with como_sistema(self.db):
+            movidas = filas(self.db, """
+                SELECT (x->>'id_linea')::bigint AS id_linea, min(af.id_periodo_contable) AS origen
+                FROM modulo6.auditorias_financieras af CROSS JOIN LATERAL jsonb_array_elements(af.datos_nuevos->'lineas') x
+                WHERE af.tipo_evento = 'EXCLUSION_CIERRE_AUTORIZADA' AND af.id_periodo_contable IN (
+                    SELECT id_periodo_contable FROM modulo6.periodos_contables WHERE numero_id_tributaria = :nit)
+                GROUP BY 1""", rango)
+        rango.update(mov_lineas=[m["id_linea"] for m in movidas], mov_origen=[m["origen"] for m in movidas])
         activos = filas(self.db, f"""
             SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, e.id_especie, e.nombre AS especie,
                    ri.clasificacion::text AS clasificacion, ri.indicador_valoracion::text AS indicador_valoracion,
                    ri.origen_financiero::text AS origen_financiero, ri.costo_adquisicion,
                    ri.fecha_creacion::date AS fecha_reconocimiento, d.cantidad_actual, f.id_finca,
-                   CASE WHEN {_dado_de_baja("< :i")} THEN 0 ELSE
+                   CASE WHEN {_dado_de_baja("<")} THEN 0 ELSE
                    (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
-                     WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date < :i
+                     WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C}
+                       AND {_hasta("c.id_periodo_contable", "<")}
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) END AS valor_inicio,
-                   CASE WHEN {_dado_de_baja("<= :f")} THEN 0 ELSE
+                   CASE WHEN {_dado_de_baja("<=")} THEN 0 ELSE
                    (SELECT CASE WHEN {CONSUMIDO_C} THEN 0 ELSE c.valor_neto END FROM modulo6.calculos_valor_razonable c
-                     WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C} AND c.fecha_calculo::date <= :f
+                     WHERE c.id_activo_biologico = a.id_activo_biologico AND c.estado = 'CALCULADO' AND {ES_BASE_C}
+                       AND {_hasta("c.id_periodo_contable", "<=")}
                      ORDER BY c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC LIMIT 1) END AS valor_cierre,
-                   vc.valor_contable_por_costo, vc.razon_sin_mercado, vc.vida_util_meses, vc.depreciacion_acumulada,
-                   vc.deterioro_acumulado, vc.costos_adquisicion AS costo_base
+                   {_costo_al("cierre")} AS valor_contable_por_costo, {_costo_al("inicio")} AS valor_costo_inicio,
+                   vc.razon_sin_mercado, vc.vida_util_meses, vc.depreciacion_acumulada - post.dep_cierre AS depreciacion_acumulada,
+                   vc.deterioro_acumulado - post.det_cierre AS deterioro_acumulado, vc.costos_adquisicion AS costo_base
             FROM modulo6.reconocimientos_iniciales ri
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = ri.id_activo_biologico
             JOIN modulo9.especies e ON e.id_especie = a.id_especie
@@ -166,6 +205,19 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             JOIN modulo9.fincas f ON f.id_finca = i.id_finca
             LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales d ON d.id_activo_biologico = a.id_activo_biologico
             LEFT JOIN modulo6.valoraciones_por_costos vc ON vc.id_activo_biologico = a.id_activo_biologico AND vc.es_activa
+            LEFT JOIN LATERAL (  -- TC-M06-G62: depreciación y deterioro registrados desde el inicio / después del cierre
+                SELECT COALESCE(sum(x.v) FILTER (WHERE x.dep AND x.tras_cierre), 0) AS dep_cierre,
+                       COALESCE(sum(x.v) FILTER (WHERE NOT x.dep AND x.tras_cierre), 0) AS det_cierre,
+                       COALESCE(sum(x.v) FILTER (WHERE x.dep AND x.desde_inicio), 0) AS dep_inicio,
+                       COALESCE(sum(x.v) FILTER (WHERE NOT x.dep AND x.desde_inicio), 0) AS det_inicio
+                FROM (SELECT CASE WHEN l.es_reverso THEN -l.valor ELSE l.valor END AS v,
+                             COALESCE(l.tipo_hecho_corregido, l.tipo_hecho)::text LIKE 'DEPRECIACION%' AS dep,
+                             NOT {_hasta("COALESCE(m.origen, l.id_periodo_contable)", "<=")} AS tras_cierre,
+                             NOT {_hasta("COALESCE(m.origen, l.id_periodo_contable)", "<")} AS desde_inicio
+                      FROM modulo6.lineas_asiento_nic41 l LEFT JOIN {_TRASLADADAS} ON m.id_linea = l.id_linea_asiento_nic41
+                      WHERE vc.id_valoracion_por_costo IS NOT NULL AND l.id_activo_biologico = a.id_activo_biologico
+                        AND COALESCE(l.tipo_hecho_corregido, l.tipo_hecho)::text ~ '^(DEPRECIACION|DETERIORO)') x
+            ) post ON true
             WHERE ri.estado = 'CONFIRMADO' AND f.numero_id_tributaria = :nit AND ri.fecha_creacion::date <= :f
             ORDER BY e.nombre, a.identificador""", rango)
         movimientos = filas(self.db, """
@@ -173,6 +225,15 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                    l.sentido::text AS sentido, l.es_reverso, sum(l.valor) AS valor
             FROM modulo6.lineas_asiento_nic41 l WHERE l.id_periodo_contable = :p
             GROUP BY 1, 2, 3, 4""", p)
+        # TC-M06-G62: asientos que el cierre movió de período. Sale del informe el que se midió en este período y
+        # quedó en otro (su efecto está en el valor al cierre, no en los movimientos); entra el que llegó de uno
+        # anterior (su efecto ya estaba en el valor al inicio).
+        trasladadas = filas(self.db, f"""
+            SELECT l.id_activo_biologico, COALESCE(l.tipo_hecho_corregido, l.tipo_hecho)::text AS tipo_hecho,
+                   l.sentido::text AS sentido, l.es_reverso, m.origen = :p AS sale, sum(l.valor) AS valor
+            FROM {_TRASLADADAS} JOIN modulo6.lineas_asiento_nic41 l ON l.id_linea_asiento_nic41 = m.id_linea
+            WHERE (m.origen = :p) <> (l.id_periodo_contable = :p)
+            GROUP BY 1, 2, 3, 4, 5""", rango)
         # TC-M06-G62: ingresos de individuos sin costo (compra, donación, traslado) que subieron la base del activo.
         ingresos = filas(self.db, """
             SELECT c.id_activo_biologico, c.json_metodo_costo->'ingreso_individuos'->>'tipo_ingreso' AS tipo_ingreso,
@@ -204,27 +265,37 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                  ORDER BY mp.fecha_medicion DESC, mp.id_medicion_posterior DESC LIMIT 1
             ) m ON true
             WHERE c.id_activo_biologico = ANY(:activos) AND c.estado = 'CALCULADO'
-              AND {ES_BASE_C} AND c.fecha_calculo::date <= :f
+              AND {ES_BASE_C} AND {_hasta("c.id_periodo_contable", "<=")}
             ORDER BY c.id_activo_biologico, c.fecha_calculo DESC, c.id_calculo_valor_razonable DESC
         """, {**rango, "activos": [a["id_activo_biologico"] for a in activos]})
-        riesgos = filas(self.db, """
-            SELECT 'SANITARIO' AS categoria, es.tipo::text AS tipo, count(*) AS cantidad
+        # TC-M06-G64: los riesgos climáticos son las alertas ambientales de Telemetría (RF-57); la descartada no fue
+        # un riesgo. Los días se cuentan en la zona de quien genera el informe.
+        riesgos = filas(self.db, f"""
+            SELECT 'CLIMATICO' AS categoria, al.tipo_alerta::text AS tipo, count(*) AS cantidad
+            FROM modulo3.alertas al LEFT JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = al.id_activo_biologico
+            JOIN modulo9.infraestructuras i ON i.id_infraestructura = COALESCE(al.id_infraestructura, a.id_infraestructura)
+            JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+            WHERE f.numero_id_tributaria = :nit AND al.tipo_alerta::text IN {ALERTAS_CLIMATICAS}
+              AND al.estado_alerta <> 'DESCARTADA' AND (al.fecha_evento AT TIME ZONE :tz)::date BETWEEN :i AND :f
+            GROUP BY 1, 2
+            UNION ALL
+            SELECT 'SANITARIO', es.tipo::text, count(*)
             FROM modulo2.eventos_sanitarios es JOIN modulo2.eventos_activos ea ON ea.id_eventos = es.id_evento
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = ea.id_activo_biologico
             JOIN modulo9.infraestructuras i ON i.id_infraestructura = a.id_infraestructura
             JOIN modulo9.fincas f ON f.id_finca = i.id_finca
-            WHERE f.numero_id_tributaria = :nit AND ea.fecha::date BETWEEN :i AND :f GROUP BY 1, 2
+            WHERE f.numero_id_tributaria = :nit AND (ea.fecha AT TIME ZONE :tz)::date BETWEEN :i AND :f GROUP BY 1, 2
             UNION ALL
             SELECT 'BAJA', eb.tipo::text, count(*)
             FROM modulo2.eventos_bajas eb JOIN modulo2.eventos_activos ea ON ea.id_eventos = eb.id_evento
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = ea.id_activo_biologico
             JOIN modulo9.infraestructuras i ON i.id_infraestructura = a.id_infraestructura
             JOIN modulo9.fincas f ON f.id_finca = i.id_finca
-            WHERE f.numero_id_tributaria = :nit AND ea.fecha::date BETWEEN :i AND :f GROUP BY 1, 2
+            WHERE f.numero_id_tributaria = :nit AND (ea.fecha AT TIME ZONE :tz)::date BETWEEN :i AND :f GROUP BY 1, 2
             UNION ALL
             SELECT 'MERCADO', 'PRECIO_ESTIMADO', count(*) FROM modulo6.calculos_valor_razonable
             WHERE id_periodo_contable = :p AND tiene_valor_estimado
-            HAVING count(*) > 0""", rango)
+            HAVING count(*) > 0""", {**rango, "tz": nombre_zona_usuario()})
         cierre = fila(self.db, """SELECT activos_excluidos, id_cierre FROM modulo6.ejecuciones_cierre_periodo
                                   WHERE id_periodo_contable = :p AND estado = 'COMPLETADO' ORDER BY id_cierre DESC LIMIT 1""", p)
         estado = fila(self.db, """SELECT resultado_neto FROM modulo6.estados_resultados_periodo
@@ -233,7 +304,8 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         costos = fila(self.db, """SELECT COALESCE(sum(CASE WHEN es_reverso THEN -monto_costo ELSE monto_costo END), 0) AS total
                                   FROM modulo6.registros_costos WHERE id_periodo_contable = :p
                                     AND naturaleza_costo = 'MANTENIMIENTO' AND estado = 'REGISTRADO'""", p)
-        return {"periodo": periodo, "activos": activos, "movimientos": movimientos, "ingresos": ingresos, "precios": precios,
+        return {"periodo": periodo, "activos": activos, "movimientos": movimientos, "trasladadas": trasladadas,
+                "ingresos": ingresos, "precios": precios,
                 "supuestos": supuestos, "riesgos": riesgos, "cierre": cierre,
                 "resultado_neto_estado": estado["resultado_neto"] if estado else None,
                 "costos_mantenimiento": costos["total"]}
