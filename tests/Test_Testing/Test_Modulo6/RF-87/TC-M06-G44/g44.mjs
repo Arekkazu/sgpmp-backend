@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {CASOS,LIMITE,hoyBogota,porId,ids,iguales,evaluar,criterio,listaFaltantes,rolEnMensaje,contiene,horaBogota,fechaBogota} from './lib/g44_core.mjs';
+import {CASOS,LIMITE,hoyBogota,porId,ids,iguales,evaluar,criterio,listaFaltantes,rolEnMensaje,contiene,fechaEnZonas,horaEnZonas} from './lib/g44_core.mjs';
 import {contrato,validarLecturas,validarError,esquema} from './lib/contrato.mjs';
 import {informe} from './lib/informe.mjs';
 import {sha256,clasificarFallo,validarFormaResultado,crearSolicitante,lanzarHijo,listarEvidencias,guardarResultado,contexto as contextoInfra,leerEnv as leerEnvInfra,preflight as preflightInfra} from './lib/infra.mjs';
@@ -30,7 +30,7 @@ export function comprobar(){
 export const contexto=(a,prueba=false)=>contextoInfra(a,{capacidades:CAPACIDADES,grupo:'G44',casos:CASOS,dir:DIR,prueba});
 export const leerEnv=(p=process.env,archivo=path.join(ROOT,'.env.qa'))=>leerEnvInfra(p,archivo);
 export const preflight=(c,e=process.env)=>{
-  const p=preflightInfra(c,e,{grupo:'G44',api:API,front:FRONT,efectos:['Cuatro logins','Cancelación del cierre 67 y del cierre creado en 8','DELETE y restauración de asignaciones 34 y 49','Un costo MANO_OBRA_PROPIA en 220','PUT y restauración de titular finca 467','POST de cierre 7, 219, 8 dos veces, 220 y 260','DELETE del RUN y lecturas sin cabeceras']});
+  const p=preflightInfra(c,e,{grupo:'G44',api:API,front:FRONT,efectos:['Cuatro logins','Cancelación del cierre 67 y del cierre creado en 8','DELETE y restauración de asignaciones 34 y 49','Un costo MANO_OBRA_PROPIA en 220','PUT y restauración de titular finca 467','POST de cierre 7, 219, 8 dos veces y 260; POST de cierre del 220 solo con Veterinario y Productor en 029, además de los escenarios 028','DELETE del RUN y lecturas sin cabeceras']});
   p.barreras.push(...['QA_ADMIN_EMAIL','QA_ADMIN_PASSWORD','QA_PROD_EMAIL','QA_PROD_PASSWORD','QA_VETERINARIO_EMAIL','QA_VETERINARIO_PASSWORD'].filter(k=>!String(e[k]??'').trim()));
   p.ok=p.barreras.length===0;return p;
 };
@@ -45,16 +45,20 @@ export async function ejecutar(c,e=process.env,opciones={}){
   const r={grupo:'G44',rf:'RF-87',run_id:c.runId,version:c.version,autorizacion_referencia:c.ref,casos:Object.fromEntries(CASOS.map(k=>[k,{estado:'NO_CONCLUYENTE',motivo:'No ejecutado',comprobaciones:[]}])),preflight:pf,solicitudes:[],comprobaciones:[],precios:[],activos:[],lineas:[],incidencias:[],evidencias:[],problemas_tecnicos:[],cypress:{paneles:{},total_pruebas:0},rollback:{verificado:false},herramientas:{node:process.version},oficial:false,consume_version:false};
   let token=null,escrituras=false,bases=new Map(),periodosBase=[],titularesBase=new Map(),costoNuevo=null,permitirNewman=false,eleccion=null;
   const tokens={};const inicio=Date.now();
-  const solicitante=crearSolicitante({api,runId:c.runId,secret:e.QA_SANDBOX_SECRET,limite:LIMITE,solicitudes:r.solicitudes,esquema,validarLecturas,validarError,clean,id:n=>`G44-${String(n).padStart(3,'0')}`,token:()=>token,inicio});
+  const sanear=x=>Array.isArray(x)?x.map(sanear):x&&typeof x==='object'?Object.fromEntries(Object.entries(x).map(([k,v])=>[k,/token|password|contrasena|cookie|secret|jwt|serial|identificador|numero_id_tributaria|nombre_usuario/i.test(k)?'[RESERVADO]':sanear(v)])):typeof x==='string'?clean(x):x;
+  let ultimaRespuesta=null;
+  const registrarRespuesta=z=>{ultimaRespuesta=z;if(['POST','PUT','PATCH','DELETE'].includes(z.metodo)&&!(z.http>=200&&z.http<300)){r.respuestas_escritura_fallida??=[];r.respuestas_escritura_fallida.push({...z,cuerpo:sanear(z.cuerpo)});}};
+  const registrarAbortoContrato=z=>{r.aborto_contrato={ruta:z.ruta,campo:clean(z.error?.message),http:z.http,cuerpo:sanear(z.cuerpo),solicitud:z.id};};
+  const solicitante=crearSolicitante({api,runId:c.runId,secret:e.QA_SANDBOX_SECRET,limite:LIMITE,solicitudes:r.solicitudes,esquema,validarLecturas,validarError,clean,id:n=>`G44-${String(n).padStart(3,'0')}`,token:()=>token,inicio,registrarRespuesta,registrarAbortoContrato});
   const req=solicitante.req;
   const usar=rol=>{token=tokens[rol];};
   const get=async(ruta,sinRun=false)=>{const z=await req('GET',ruta,undefined,sinRun);if(z.http!==200)throw Error(`GET_${z.http}_${ruta}`);return z.data;};
   const periodos=(sinRun=false)=>get('/finanzas/periodos',sinRun);
   const pre=(id,sinRun=false)=>get(`/finanzas/periodos/${id}/prevalidacion`,sinRun);
   const cierre=async(id,criterio)=>{
+    escrituras=true;
     const z=await req('POST',`/finanzas/periodos/${id}/cierre`,{});
     // Se conserva el cuerpo íntegro de la respuesta, saneando campos sensibles.
-    const sanear=(x)=>Array.isArray(x)?x.map(sanear):x&&typeof x==='object'?Object.fromEntries(Object.entries(x).map(([k,v])=>[k,/token|password|contrasena|cookie|secret|jwt|serial|identificador|numero_id_tributaria|nombre_usuario/i.test(k)?'[RESERVADO]':sanear(v)])):typeof x==='string'?clean(x):x;
     r.respuestas_cierre??={};r.respuestas_cierre[criterio]={periodo:id,http:z.http,solicitud:r.solicitudes.at(-1)?.id,cuerpo:sanear(z.data)};
     if(z.http===200){
       r.respuestas_cierre[criterio].comprobantes=sanear(await get(`/finanzas/periodos/${id}/comprobantes`));
@@ -72,7 +76,7 @@ export async function ejecutar(c,e=process.env,opciones={}){
   const marca=(id,esperado,cumple,observado,noConcluyente=false)=>criterio(id,esperado,cumple,observado,noConcluyente);
   const sinArtefactos=(id,s)=>s.estado==='ABIERTO'&&iguales(s.comprobantes,bases.get(id).comprobantes)&&iguales(s.variaciones,bases.get(id).variaciones);
   const apiCriterios={'TC-M06-028':[],'TC-M06-029':[],'TC-M06-030':[]};
-  const incidente=(numero,clave,esperado,obtenido,impacto,severidad,relacion='')=>{const claves={'01':['029_admin','029_veterinario','029_productor'],'02':['030_cerrado'],'03':['030_segundo'],'04':['028_a'],'05':['028_b'],'06':['028_c']}[clave];const ids=claves.map(k=>r.respuestas_cierre?.[k]?.solicitud).filter(Boolean);r.incidencias.push({id:`INC-M06-G44-${clave}`,casos:[caso(numero)],esperado,obtenido,evidencia:`resultado.json; solicitudes ${ids.join(', ')}`,impacto,severidad,justificacion_severidad:severidad==='ALTA'?'La discrepancia bloquea un control relevante del cierre sin alternativa demostrada.':'La discrepancia afecta parcialmente el control o la explicación al usuario.',certeza:'CONFIRMADA',equipo:'Desarrollo',fundamento:'Primera discrepancia comprobada en la API pública de cierre.',hipotesis:'Causa raíz por determinar.',accion:'Desarrollo revisa el comportamiento y QA repite en RUN autorizado.',relacion});};
+  const incidente=(numero,clave,esperado,obtenido,impacto,severidad,relacion='')=>{const claves={'01':['029_veterinario','029_productor'],'02':['030_cerrado'],'03':['030_segundo'],'04':['028_a'],'05':['028_b'],'06':['028_c']}[clave];const ids=claves.map(k=>r.respuestas_cierre?.[k]?.solicitud).filter(Boolean);r.incidencias.push({id:`INC-M06-G44-${clave}`,casos:[caso(numero)],esperado,obtenido,evidencia:`resultado.json; solicitudes ${ids.join(', ')}`,impacto,severidad,justificacion_severidad:severidad==='ALTA'?'La discrepancia bloquea un control relevante del cierre sin alternativa demostrada.':'La discrepancia afecta parcialmente el control o la explicación al usuario.',certeza:'CONFIRMADA',equipo:'Desarrollo',fundamento:'Primera discrepancia comprobada en la API pública de cierre.',hipotesis:'Causa raíz por determinar.',accion:'Desarrollo revisa el comportamiento y QA repite en RUN autorizado.',relacion});};
   try{
     // Autenticación previa al RUN lógico: una solicitud por usuario, sin reintento.
     for(const [rol,prefijo] of [['contador','QA_CONTADOR'],['admin','QA_ADMIN'],['veterinario','QA_VETERINARIO'],['productor','QA_PROD']]){
@@ -82,16 +86,26 @@ export async function ejecutar(c,e=process.env,opciones={}){
     }
     const permisos={};for(const rol of Object.keys(tokens)){usar(rol);permisos[rol]=(await get('/sesiones/me/permisos')).permisos.map(p=>[p.nombre_recurso,Number(p.id_accion)]);}
     const tiene=(rol,recurso,accion)=>permisos[rol].some(([n,a])=>n===recurso&&a===accion);
-    if(!tiene('contador','cierre_periodo',5)||!tiene('contador','cierre_periodo',2)||!tiene('contador','configuracion_contable',3)||!tiene('contador','costos_activos',1)||!tiene('admin','fincas',3)||!tiene('admin','cierre_periodo',2)||['admin','veterinario','productor'].some(x=>tiene(x,'cierre_periodo',5)))throw Error('PERMISOS_NO_COINCIDEN');
+    const checks=[];
+    const check=(requisito,esperado,observado,cumple,bloqueante=true)=>checks.push({requisito,esperado,observado,cumple:Boolean(cumple),bloqueante});
+    for(const [rol,recurso,accion,esperado,bloqueante] of [
+      ['contador','cierre_periodo',5,true,true],['contador','cierre_periodo',2,true,true],
+      ['contador','configuracion_contable',3,true,true],['contador','costos_activos',1,true,true],
+      ['admin','fincas',3,true,true],['admin','cierre_periodo',2,true,true],
+      ['veterinario','cierre_periodo',5,false,true],['productor','cierre_periodo',5,false,true],
+      ['admin','cierre_periodo',5,true,false]
+    ])check(`permiso_${rol}_${recurso}_${accion}`,esperado,tiene(rol,recurso,accion),tiene(rol,recurso,accion)===esperado,bloqueante);
+    r.preflight_datos=checks;
+    r.observaciones=[...(r.observaciones??[]),`OBS-G44-02: GET /sesiones/me/permisos: Administrador cierre_periodo·5 ${tiene('admin','cierre_periodo',5)?'observado':'no observado'} (permiso 618 informado por DBA). Decisión D2 del responsable QA, 2026-11-13: Administrador puede ejecutar el cierre; TC-M06-029 exige 403 solo para Veterinario y Productor. RF-87 CA-6 y FA-4 y la fila TC-M06-G44 de la matriz (punto 2) requieren actualización formal.`];
+    const permisosFallidos=checks.filter(x=>x.bloqueante&&!x.cumple).map(x=>x.requisito);
+    if(permisosFallidos.length)throw Error(`PERMISOS_NO_CONCLUYENTES_${permisosFallidos.join('_')}`);
     usar('contador');const activos=await get('/finanzas/activos');const ps=await periodos();periodosBase=ps.map(x=>Number(x.id_periodo_contable));
-    for(const p of ps){if(p.ultimo_cierre?.nombre_usuario_ejecutor)nombresPrivados.add(p.ultimo_cierre.nombre_usuario_ejecutor);if(p.numero_id_tributaria)nitsPrivados.add(p.numero_id_tributaria);}
+    for(const p of ps){if(p.ultimo_cierre){void p.ultimo_cierre.precios_congelados;if(p.ultimo_cierre.nombre_usuario_ejecutor)nombresPrivados.add(p.ultimo_cierre.nombre_usuario_ejecutor);}if(p.numero_id_tributaria)nitsPrivados.add(p.numero_id_tributaria);}
     const cfg=await get('/finanzas/configuracion');const m34=cfg.matriz.find(x=>Number(x.id_asignacion_cuenta_contable)===34),m49=cfg.matriz.find(x=>Number(x.id_asignacion_cuenta_contable)===49);
     const asignacion=(m,tipo,debito,credito)=>m&&m.tipo_hecho===tipo&&m.sentido==='UNICO'&&m.id_especie===null&&m.subtipo_costo===null&&m.cuenta_debito===debito&&m.cuenta_credito===credito;
     const p8=await pre(8),p220=await pre(220),p260=await pre(260);
     for(const id of [7,8,219,220,260])bases.set(id,await estado(id));
     usar('admin');for(const id of [466,467]){const t=await get(`/configuracion/fincas/${id}/titular`);titularesBase.set(id,t);if(t.numero_id_tributaria)nitsPrivados.add(t.numero_id_tributaria);if(t.razon_social)nombresPrivados.add(t.razon_social);}
-    const checks=[];
-    const check=(requisito,esperado,observado,cumple,bloqueante=true)=>checks.push({requisito,esperado,observado,cumple:Boolean(cumple),bloqueante});
     for(const [id,esperado] of [[7,'CERRADO'],[219,'CERRADO'],[220,'ABIERTO'],[260,'ABIERTO']])check(`periodo_${id}_estado`,esperado,bases.get(id).estado,bases.get(id).estado===esperado);
     const cierre8=porId(ps,8)?.ultimo_cierre;
     const ochoValido=bases.get(8).estado==='ABIERTO'||bases.get(8).estado==='EN_CIERRE'&&Number(cierre8?.id_cierre)===67&&cierre8?.estado==='EN_PROCESO'&&Number(cierre8?.paso_actual)===3;
@@ -118,18 +132,18 @@ export async function ejecutar(c,e=process.env,opciones={}){
     if(fallidos.length)throw Error(`PREFLIGHT_DATOS_NO_CONCLUYENTE_${fallidos.join('_')}`);
     // 029: cada rol se observa por separado; también se verifica que 220 permanezca intacto.
     const acceso=[],mensajes=[];
-    for(const [rol,etiqueta] of [['admin','Administrador'],['veterinario','Veterinario'],['productor','Productor']]){
+    for(const [rol,etiqueta] of [['veterinario','Veterinario'],['productor','Productor']]){
       usar(rol);const z=await cierre(220,`029_${rol}`);usar('contador');const s=await estado(220);
       acceso.push(z.http===403&&iguales(s,bases.get(220)));
       mensajes.push(z.http===403&&rolEnMensaje(z.data?.message,etiqueta)&&/exclusiv[oa]/i.test(String(z.data?.message??''))&&/Contador/i.test(String(z.data?.message??'')));
       r[`observado_029_${rol}`]=obs(`029.${rol}`,z,`; sin cambios ${iguales(s,bases.get(220))}; rol en mensaje ${rolEnMensaje(z.data?.message,etiqueta)}`);
     }
     usar('admin');const adminP=await req('GET','/finanzas/periodos');const adminPre=await req('GET','/finanzas/periodos/220/prevalidacion');
-    apiCriterios[caso('029')].push(marca('029_acceso','403 y 220 sin cambios para tres roles',acceso.every(Boolean),`029.acceso: ${acceso.join(',')}`),marca('029_mensaje','403, rol explícito y cierre exclusivo del Contador',mensajes.every(Boolean),`029.mensaje: ${mensajes.join(',')}`),marca('029_admin','Administrador consulta estado y prevalidación con 200',adminP.http===200&&adminPre.http===200,`029.admin: HTTP ${adminP.http}/${adminPre.http}`));
+    apiCriterios[caso('029')].push(marca('029_acceso','403 y 220 sin cambios para Veterinario y Productor',acceso.every(Boolean),`029.acceso: ${acceso.join(',')}`),marca('029_mensaje','403, rol explícito y cierre exclusivo del Contador',mensajes.every(Boolean),`029.mensaje: ${mensajes.join(',')}`),marca('029_admin','Administrador consulta estado y prevalidación con 200',adminP.http===200&&adminPre.http===200,`029.admin: HTTP ${adminP.http}/${adminPre.http}`));
     const literal029='Acceso denegado: El proceso de cierre del periodo contable es competencia exclusiva del Contador del sistema. Su rol actual ([ROL_USUARIO]) no tiene permisos de cierre contable bajo la política RBAC del módulo M06.';
-    for(const [rol,etiqueta] of [['admin','Administrador'],['veterinario','Veterinario'],['productor','Productor']]){const x=r.respuestas_cierre[`029_${rol}`];if(x?.http===403&&String(x.cuerpo?.message??'')!==literal029.replace('[ROL_USUARIO]',etiqueta))r.observaciones=[...(r.observaciones??[]),`OBS-G44-01: 029_${rol}: recibido «${clean(x.cuerpo?.message)}»; especificado FA-4 «${literal029}».`];}
+    for(const [rol,etiqueta] of [['veterinario','Veterinario'],['productor','Productor']]){const x=r.respuestas_cierre[`029_${rol}`];if(x?.http===403&&String(x.cuerpo?.message??'')!==literal029.replace('[ROL_USUARIO]',etiqueta))r.observaciones=[...(r.observaciones??[]),`OBS-G44-01: 029_${rol}: recibido «${clean(x.cuerpo?.message)}»; especificado FA-4 «${literal029}».`];}
     usar('contador');const periodo7=porId(await periodos(),7),ej7=periodo7?.ultimo_cierre?.nombre_usuario_ejecutor||periodo7?.ultimo_cierre?.id_usuario_ejecutor;const z7=await cierre(7,'030_cerrado'),s7=await estado(7);
-    const cerrado=z7.http===409&&['PERIODO_CERRADO','PERIODO_INMUTABLE'].includes(z7.data?.error_code)&&contiene(z7.data?.message,String(periodo7.fecha_cierre??'').slice(0,10))&&contiene(z7.data?.message,ej7)&&iguales(s7,bases.get(7));
+    const cerrado=z7.http===409&&['PERIODO_CERRADO','PERIODO_INMUTABLE'].includes(z7.data?.error_code)&&fechaEnZonas(z7.data?.message,periodo7?.fecha_cierre)&&contiene(z7.data?.message,ej7)&&iguales(s7,bases.get(7));
     apiCriterios[caso('030')].push(marca('030_cerrado','409 Periodo inmutable con fecha y Contador ejecutor; 7 CERRADO',cerrado,obs('030_cerrado',z7,`; 7 sin cambios ${iguales(s7,bases.get(7))}`)));
     if(cerrado&&!/Periodo inmutable.*Los periodos cerrados no pueden reabrirse/is.test(String(z7.data?.message??'')))r.observaciones=[...(r.observaciones??[]),`OBS-G44-01: 030_cerrado: recibido «${clean(z7.data?.message)}»; especificado FA-5 «Periodo inmutable: El periodo contable [ID_PERIODO] ya fue cerrado el [FECHA_CIERRE] por el Contador [ID_USUARIO_EJECUTOR]. Los periodos cerrados no pueden reabrirse.».`];
     const z219=await cierre(219,'030_cerrado_219'),s219=await estado(219);
@@ -146,14 +160,15 @@ export async function ejecutar(c,e=process.env,opciones={}){
       const primero=await cierre(8,'030_primero'),p8primero=porId(await periodos(),8),x=p8primero?.ultimo_cierre;
       if(x?.nombre_usuario_ejecutor)nombresPrivados.add(x.nombre_usuario_ejecutor);
       const segundo=await cierre(8,'030_segundo'),s8=await estado(8);
-      const hora=x?.fecha_inicio?`${fechaBogota(x.fecha_inicio)} ${horaBogota(x.fecha_inicio)}`:null;
+      const hora=horaEnZonas(segundo.data?.message,x?.fecha_inicio);
       const quien=x?.nombre_usuario_ejecutor||x?.id_usuario_ejecutor;
-      const concurrencia=primero.http===409&&primero.data?.error_code==='EXCLUSION_REQUIERE_AUTORIZACION'&&p8primero?.estado==='EN_CIERRE'&&x?.estado==='EN_PROCESO'&&Number(x?.paso_actual)===3&&segundo.http===409&&['CIERRE_EN_EJECUCION','CONFLICTO_CONCURRENCIA'].includes(segundo.data?.error_code)&&contiene(segundo.data?.message,hora)&&contiene(segundo.data?.message,quien);
+      const concurrencia=primero.http===409&&primero.data?.error_code==='EXCLUSION_REQUIERE_AUTORIZACION'&&p8primero?.estado==='EN_CIERRE'&&x?.estado==='EN_PROCESO'&&Number(x?.paso_actual)===3&&segundo.http===409&&['CIERRE_EN_EJECUCION','CONFLICTO_CONCURRENCIA'].includes(segundo.data?.error_code)&&hora.coincide&&contiene(segundo.data?.message,quien);
+      if(concurrencia&&hora.soloUtc)r.observaciones=[...(r.observaciones??[]),'OBS-G44-03: la hora del mensaje está en UTC sin indicar la zona; el usuario opera en America/Bogota (cinco horas de diferencia).'];
       const sinSegundo=Number(s8.ultimo_cierre_id)===Number(x?.id_cierre)&&s8.estado==='EN_CIERRE'&&iguales(s8.comprobantes,base8libre.comprobantes)&&iguales(s8.variaciones,base8libre.variaciones);
       const cancelX=await req('POST','/finanzas/periodos/8/cierre/cancelacion',{});
       const final8=await estado(8);
       const cancelado=cancelX.http===200&&cancelX.data?.estado==='ABIERTO'&&final8.estado==='ABIERTO'&&iguales(final8.lineas,base8libre.lineas)&&iguales(final8.comprobantes,base8libre.comprobantes)&&iguales(final8.variaciones,base8libre.variaciones);
-      apiCriterios[caso('030')].push(marca('030_concurrencia','Segundo POST: 409 con hora de inicio y ejecutor del cierre activo',concurrencia,obs('030_concurrencia',segundo,`; primer cierre ${x?.id_cierre??'ausente'}; hora y usuario presentes ${Boolean(hora&&quien)}`)),marca('030_sin_segundo','Mismo cierre activo, sin artefactos nuevos; cancelación vuelve a ABIERTO',sinSegundo&&cancelado,`030.sin_segundo: cierre igual ${sinSegundo}; cancelación ${cancelX.http}; restauración ${cancelado}`));
+      apiCriterios[caso('030')].push(marca('030_concurrencia','Segundo POST: 409 con hora de inicio y ejecutor del cierre activo',concurrencia,obs('030_concurrencia',segundo,`; primer cierre ${x?.id_cierre??'ausente'}; hora y usuario presentes ${Boolean(hora.coincide&&quien)}`)),marca('030_sin_segundo','Mismo cierre activo, sin artefactos nuevos; cancelación vuelve a ABIERTO',sinSegundo&&cancelado,`030.sin_segundo: cierre igual ${sinSegundo}; cancelación ${cancelX.http}; restauración ${cancelado}`));
       if(concurrencia&&!/Conflicto de concurrencia.*Espere a que el proceso actual finalice/is.test(String(segundo.data?.message??'')))r.observaciones=[...(r.observaciones??[]),`OBS-G44-01: 030_concurrencia: recibido «${clean(segundo.data?.message)}»; especificado FA-5 «Conflicto de concurrencia: El periodo [ID_PERIODO] está siendo procesado por otro proceso de cierre activo iniciado el [TIMESTAMP_INICIO] por [ID_USUARIO]. Espere a que el proceso actual finalice antes de intentar un nuevo cierre.».`];
     }
     // 028-a: costo del mes actual en la finca 467, periodo 220.
@@ -200,7 +215,7 @@ export async function ejecutar(c,e=process.env,opciones={}){
       if(put.http===200){usar('admin');const rep=await req('PUT','/configuracion/fincas/467/titular',Object.fromEntries(['tipo_id_tributaria','numero_id_tributaria','dv','razon_social'].map(k=>[k,titularesBase.get(467)[k]])));usar('contador');if(rep.http!==200){r.problemas_tecnicos.push(`TITULAR_467_RESTAURAR_${rep.http}`);const q=apiCriterios[caso('028')].find(x=>x.id==='028_c');if(q?.cumple)q.noConcluyente=true;}}
     }
     for(const [numero,criterios] of Object.entries(apiCriterios)){r.casos[numero]=evaluar({[numero]:criterios})[numero];for(const q of r.casos[numero].comprobaciones)r.comprobaciones.push({caso:numero,id:q.id,fuente:'API',tipo:'ASSERT',estado:q.estado,evidencia:'resultado.json'});}
-    if(r.casos[caso('029')].estado==='RECHAZADO')incidente('029','01','403 FA-4 con rol y sin cambios',r.observado_029_admin,'Control de acceso o explicación al rol incorrectos.','MEDIA');
+    if(r.casos[caso('029')].estado==='RECHAZADO')incidente('029','01','403 FA-4 con rol y sin cambios para Veterinario y Productor',[r.observado_029_veterinario,r.observado_029_productor].join('; '),'Control de acceso o explicación al rol incorrectos.','MEDIA');
     if(!cerrado)incidente('030','02','409 Periodo inmutable con fecha y ejecutor',obs('030_cerrado',z7),'El 409 omite información de auditoría requerida.','MEDIA');
     if(apiCriterios[caso('030')].some(q=>['030_concurrencia','030_sin_segundo'].includes(q.id)&&!q.cumple&&!q.noConcluyente))incidente('030','03','Segundo cierre rechazado por concurrencia con hora y usuario',apiCriterios[caso('030')].filter(q=>['030_concurrencia','030_sin_segundo'].includes(q.id)).map(q=>q.observado).join('; '),'El estado de cierre activo no se representa como exige RF-87.','MEDIA','INC-M06-G43-01');
     if(!a&&z220a)incidente('028','04','Bloqueo por PENDIENTE_CUENTA con lista',obs('028_a',z220a),'Cierre con cuenta faltante sin explicación suficiente.','ALTA');
@@ -213,11 +228,14 @@ export async function ejecutar(c,e=process.env,opciones={}){
     r.observaciones=[...(r.observaciones??[]),...r.seguimiento_incidencias_v2.map(x=>`Incidencia de V2 ${x.id} (${x.caso}): ${x.estado_v3}.`)];
     permitirNewman=CASOS.every(x=>['APROBADO','RECHAZADO'].includes(r.casos[x].estado)&&r.casos[x].comprobaciones.every(q=>q.estado!=='NO_CONCLUYENTE'));
     if(permitirNewman){const lanzar=local&&typeof opciones.hijo==='function'?opciones.hijo:(script,input,timeout)=>lanzarHijo({base:DIR,script,input,timeout,env:e,clean});const n=await lanzar('newman_hijo.mjs',{salida:path.join(c.dir,'newman'),coleccion:path.join(DIR,'G44.postman_collection.json'),environment:{values:[{key:'base_url',value:api},{key:'contador_token',value:tokens.contador},{key:'run_id',value:c.runId},{key:'sandbox_secret',value:e.QA_SANDBOX_SECRET}]}},300000);r.herramientas.newman=n.data??{codigo:2};if(n.code||n.data?.codigo!==0)r.problemas_tecnicos.push(`NEWMAN_${clean(n.error??n.code)}`);}
-  }catch(err){r.problemas_tecnicos.push(clean(err.message));for(const numero of CASOS)if(r.casos[numero].motivo==='No ejecutado')r.casos[numero]={estado:'NO_CONCLUYENTE',motivo:clean(err.message),comprobaciones:[]};}
+  }catch(err){r.problemas_tecnicos.push(clean(err.message));if(!r.aborto_contrato&&/(?:TIPO_INVALIDO|CAMPO_AUSENTE|LECTURA_FUERA_CONTRATO|RUTA_FUERA_CONTRATO)/.test(err.message)&&ultimaRespuesta)r.aborto_contrato={ruta:ultimaRespuesta.ruta,campo:clean(err.message),http:ultimaRespuesta.http,cuerpo:sanear(ultimaRespuesta.cuerpo),solicitud:ultimaRespuesta.solicitud};for(const numero of CASOS)if(r.casos[numero].motivo==='No ejecutado')r.casos[numero]={estado:'NO_CONCLUYENTE',motivo:clean(err.message),comprobaciones:[]};}
   finally{
     r.cierre={run:{cierre_http:null},rollback:r.rollback};
     if(Object.keys(tokens).length){try{
       usar('contador');const d=await req('DELETE',`/test-control/runs/${c.runId}`);r.cierre.run.cierre_http=d.http;if(d.http!==200)throw Error(`DELETE_${d.http}`);
+      if(!escrituras){r.rollback={verificado:true,motivo:'Sin escrituras; DELETE 200'};}
+      else{
+      if(bases.size!==5||periodosBase.length===0||titularesBase.size!==2)throw Error('BASES_ROLLBACK_INCOMPLETAS');
       const despues=[];for(const id of [7,8,219,220,260])despues.push(await estado(id,true));
       const ps=await periodos(true),cfg=await get('/finanzas/configuracion',true),costos=await get('/finanzas/costos?id_periodo_contable=220',true);
       usar('admin');const titulares=new Map();for(const id of [466,467])titulares.set(id,await get(`/configuracion/fincas/${id}/titular`,true));
@@ -227,6 +245,7 @@ export async function ejecutar(c,e=process.env,opciones={}){
       const periodosIguales=iguales(ps.map(x=>Number(x.id_periodo_contable)).sort((a,b)=>a-b),[...periodosBase].sort((a,b)=>a-b));
       const basesIguales=[7,8,219,220,260].every((id,i)=>iguales(despues[i],bases.get(id)));
       r.rollback={verificado:Boolean(matriz&&costoAusente&&titularIgual&&periodosIguales&&basesIguales),motivo:`Lecturas poscierre sin cabeceras: matriz ${matriz}; costo ausente ${costoAusente}; titular ${titularIgual}; periodos ${periodosIguales}; líneas y artefactos ${basesIguales}`};
+      }
     }catch(err){r.rollback={verificado:false,motivo:clean(err.message)};r.problemas_tecnicos.push(`ROLLBACK_${clean(err.message)}`);}}
     r.cierre.rollback=r.rollback;
     r.total_solicitudes_api=solicitante.total()+(r.herramientas.newman?.solicitudes??0);

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | QA-M06 RF-41: guarda la fecha recortada a ahora (reloj del usuario adelantado) |
 """Caso de uso: registro de eventos sanitarios (RF-41)."""
 
 from __future__ import annotations
@@ -83,7 +86,7 @@ class RegistrarEventoSanitarioUseCase:
         validar_estado_permite_eventos(activo)
 
         fecha = dto.fecha or datetime.now(timezone.utc)
-        validar_fecha_evento(fecha, activo, self.evento_repo)
+        fecha = validar_fecha_evento(fecha, activo, self.evento_repo)
 
         if dto.tipo in _TIPOS_REQUIEREN_DIAGNOSTICO:
             if not self.evento_repo.tiene_diagnostico_previo(id_activo):

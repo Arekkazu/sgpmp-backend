@@ -8,6 +8,7 @@ HISTORIAL DE CAMBIOS:
 | 2026-11-07 | Equipo QA                | Version inicial de generacion de artefactos JSON y HTML. |
 | 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: soporte --reintento, metricas reales desde trazas_http.jsonl/contexto_g43.json y PENDIENTE_DIAGNOSTICO. |
 | 12/11/2026 | Juan Sebastian Gutierrez | C3: nombres reales de paso, fuente literal en checkpoints, NO_ENCONTRADO:<paso> y observaciones completas. |
+| 13/11/2026 | Juan Sebastian Gutierrez | reintento INC-M05-358-G43 |
 """
 
 from __future__ import annotations
@@ -226,7 +227,20 @@ def _valores_reales_paso(paso_id: str, por_paso: dict[str, list[dict]], ctx: dic
         st = t_a2.get("status_code") if t_a2 else "NO_ENCONTRADO:A02_gestor_finca_ajena"
         err = t_a2.get("error_code") if t_a2 else "NO_ENCONTRADO:A02_gestor_finca_ajena.error_code"
         xreq = (t_a2 or {}).get("x_request_id") or "NO_ENCONTRADO:A02_gestor_finca_ajena.x_request_id"
-        return f"A02_gestor_finca_ajena HTTP {st} (error_code={err}, X-Request-Id={xreq})"
+        rb = (t_a2 or {}).get("response_body")
+        keys = list(rb.keys()) if isinstance(rb, dict) else []
+        msg = rb.get("message", "") if isinstance(rb, dict) else str(rb)
+        return f"A02_gestor_finca_ajena HTTP {st} (error_code={err}, mensaje={msg!r}, claves={keys}, X-Request-Id={xreq})"
+
+    if paso_id == "A02b":
+        t_a2b = _buscar_traza(por_paso, "A02b_gestor_export_ajena")
+        st = t_a2b.get("status_code") if t_a2b else "NO_ENCONTRADO:A02b_gestor_export_ajena"
+        err = t_a2b.get("error_code") if t_a2b else "NO_ENCONTRADO:A02b_gestor_export_ajena.error_code"
+        xreq = (t_a2b or {}).get("x_request_id") or "NO_ENCONTRADO:A02b_gestor_export_ajena.x_request_id"
+        rb = (t_a2b or {}).get("response_body")
+        keys = list(rb.keys()) if isinstance(rb, dict) else []
+        msg = rb.get("message", "") if isinstance(rb, dict) else str(rb)
+        return f"A02b_gestor_export_ajena HTTP {st} (error_code={err}, mensaje={msg!r}, claves={keys}, X-Request-Id={xreq})"
 
     if paso_id == "A03":
         a03_ctx = ctx.get("a03") or {}
@@ -257,11 +271,13 @@ def _valores_reales_paso(paso_id: str, por_paso: dict[str, list[dict]], ctx: dic
         )
 
     if paso_id == "A04":
+        t_pre = _buscar_traza(por_paso, "A04_productor_precondicion_activo")
         t_p = _buscar_traza(por_paso, "A04_productor_su_finca")
+        st_pre = t_pre.get("status_code") if t_pre else "NO_ENCONTRADO:A04_productor_precondicion_activo"
         st = t_p.get("status_code") if t_p else "NO_ENCONTRADO:A04_productor_su_finca"
         n_items = len((t_p or {}).get("response_body", {}).get("items", [])) if (t_p and isinstance(t_p.get("response_body"), dict)) else "NO_ENCONTRADO:A04_productor_su_finca.items"
         xreq = (t_p or {}).get("x_request_id") or "NO_ENCONTRADO:A04_productor_su_finca.x_request_id"
-        return f"A04_productor_su_finca HTTP {st} (items={n_items}, X-Request-Id={xreq})"
+        return f"A04_productor_precondicion_activo HTTP {st_pre}; A04_productor_su_finca HTTP {st} (items={n_items}, X-Request-Id={xreq})"
 
     if paso_id == "T98":
         cerradas = ctx.get("corridas_cerradas") or {}
@@ -367,23 +383,23 @@ def construir_json(
             "A02",
             "A02 Rechazo a usuario sin la unidad del activo (102 / 037)",
             "test_a02_gestor_granja_rechazo_sin_unidad",
-            "HTTP 403 con mensaje de E2 ('No tiene permisos para consultar el historial del activo [id]. Verifique su rol y unidades productivas asignadas.') y sin fuga de datos",
-            "RF-81 Restr. 1 / E2 / CA-3 / TC-M05-102 (037)",
+            "HTTP 403 con mensaje de E2 ('No tiene permisos para consultar el historial del activo 957. Verifique su rol y unidades productivas asignadas.') y sin registros ni resumen",
+            "RF-81 Fase 1, E2, Restriccion 1, CA-3",
             False,
         ),
         (
-            "A03",
-            "A03 Auditoría de consulta rechazada (102 / 037, CU04 FA-04)",
-            "test_a03_auditoria_intento_rechazado",
-            "Registro de al menos 1 evento de auditoría en la bitácora con resultado RECHAZADO tras el intento denegado",
-            "Caso CU04 FA-04 / TC-M05-102 (037)",
+            "A02b",
+            "A02b Rechazo a exportación sin la unidad del activo (RF-81)",
+            "test_a02b_gestor_granja_rechazo_exportacion_sin_unidad",
+            "HTTP 403 con mensaje de E2 completo, sin generar archivo ni id_exportacion",
+            "RF-81 Fase 1, E2, Restriccion 1",
             False,
         ),
         (
             "A04",
             "A04 [OBSERVACION] Productor consulta activo de su unidad",
             "test_a04_observacion_productor_consulta_su_unidad",
-            "Productor consulta activo 957 de su unidad -> HTTP 200 (observacion fuera de spec RF-81)",
+            "Productor consulta activo 957 de su unidad -> HTTP 200 con precondicion de visibilidad (HTTP 200)",
             "Observacion de interoperabilidad (fuera de spec RF-81)",
             True,
         ),
@@ -412,7 +428,7 @@ def construir_json(
 
     for paso_id, paso_label, fn_name, esperado, fuente, es_obs in definicion:
         item = casos.get(fn_name, {"estado": "FALLA", "mensaje": f"Test {fn_name} no encontrado en junitxml", "time_s": 0.0})
-        estado = "OBS" if (es_obs and item["estado"] == "OK") else item["estado"]
+        estado = item["estado"]
         if not es_obs:
             total_eval += 1
             if estado == "OK":
@@ -442,6 +458,9 @@ def construir_json(
 
     obs_ctx = ctx.get("observaciones") or {}
     observaciones = {
+        "obs_inexistente": obs_ctx.get("obs_inexistente"),
+        "obs_auditoria_tras_403": obs_ctx.get("obs_auditoria_tras_403"),
+        "obs_distincion_403_404": obs_ctx.get("obs_distincion_403_404"),
         "obs_pag": obs_ctx.get("obs_pag"),
         "obs_r8": obs_ctx.get("obs_r8") or [],
         "obs_hash": obs_ctx.get("obs_hash") or [],
@@ -478,7 +497,7 @@ def construir_html(payload: dict) -> str:
 
     filas = []
     for cp in payload["checkpoints"]:
-        badge_cls = "ok" if cp["estado"] == "OK" else ("obs" if cp["estado"] == "OBS" else "fail")
+        badge_cls = "ok" if cp["estado"] == "OK" else "fail"
         filas.append(
             "<tr>"
             f"<td><strong>{html.escape(cp['paso'])}</strong></td>"

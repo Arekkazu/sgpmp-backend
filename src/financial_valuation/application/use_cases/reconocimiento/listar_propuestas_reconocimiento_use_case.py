@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82 CA-1: bandeja de propuestas de reconocimiento inicial |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-82: la propuesta trae el id de la finca para el filtro |
 """Caso de uso RF-82 pasos 1-6: propuestas calculadas al vuelo para los activos sin reconocimiento."""
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ def serializar_propuesta(p: Propuesta) -> dict:
     a = p.activo
     return {
         "id_activo_biologico": a.id_activo_biologico, "identificador": a.identificador, "tipo": a.tipo,
-        "especie": a.especie, "id_especie": a.id_especie, "finca": a.finca, "estado": a.estado,
+        "especie": a.especie, "id_especie": a.id_especie, "id_finca": a.id_finca, "finca": a.finca, "estado": a.estado,
         "origen_financiero": a.origen_financiero, "costo_adquisicion": a.costo_adquisicion,
         "soporte_documental": a.soporte_documental, "fecha_reconocimiento": p.fecha_reconocimiento,
         "es_apertura": p.es_apertura, "clasificacion": p.clasificacion, "indicador_valoracion": p.indicador_valoracion,

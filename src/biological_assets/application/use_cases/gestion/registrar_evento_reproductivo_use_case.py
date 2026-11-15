@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | QA-M06 RF-42: guarda la fecha recortada a ahora (reloj del usuario adelantado) |
 """Caso de uso: registro de eventos reproductivos (RF-42)."""
 
 from __future__ import annotations
@@ -111,7 +114,7 @@ class RegistrarEventoReproductivoUseCase:
             )
 
         fecha = dto.fecha or datetime.now(timezone.utc)
-        validar_fecha_evento(fecha, activo, self.evento_repo)
+        fecha = validar_fecha_evento(fecha, activo, self.evento_repo)
 
         # FA-04: validar categoría según tipo de activo
         if activo.tipo == 'POBLACIONAL' and dto.categoria != 'nacimiento':

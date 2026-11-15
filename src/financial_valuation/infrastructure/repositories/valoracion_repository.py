@@ -9,6 +9,8 @@
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-10 | Arekkazu | INC-M06-297-G34 RF-86: eventos del período con medición pendiente |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
+# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82/88: la reversión cuenta deterioros y registros contables; el costo revertido se reutiliza; la fecha del reconocimiento sale como día |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-83..86: las filas del período traen el id de la finca para el filtro |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -36,9 +38,11 @@ _COLUMNAS_CALCULO = """id_calculo_valor_razonable, id_activo_biologico, id_preci
     json_metodo_costo, id_usuario, estado::text AS estado, justificacion, id_parametro_costo_venta, id_evento_magnitud,
     tiene_valor_estimado, fecha_calculo"""
 
+# fecha_reconocimiento es timestamptz pero guarda un día contable (medianoche UTC): con la sesión en UTC, ::date
+# devuelve ese día. Como instante, el navegador en UTC-5 lo mostraba como el día anterior (QA M06, 14-11).
 _COLUMNAS_RECONOCIMIENTO = """id_reconocimiento_inicial, id_activo_biologico, estado::text AS estado,
     clasificacion::text AS clasificacion, indicador_valoracion::text AS indicador_valoracion,
-    valor_razonable_neto_inicial, fecha_reconocimiento, id_periodo_contable, origen_financiero::text AS origen_financiero,
+    valor_razonable_neto_inicial, fecha_reconocimiento::date AS fecha_reconocimiento, id_periodo_contable, origen_financiero::text AS origen_financiero,
     costo_adquisicion, id_precio_mercado, id_calculo_valor_razonable, id_valoracion_por_costo, es_apertura,
     cuenta_debito, cuenta_credito"""
 
@@ -48,7 +52,7 @@ ES_BASE = "COALESCE((json_metodo_costo->>'es_producto')::boolean, false) = false
 
 
 # Activo, especie, finca y clasificación de cada registro de los listados del período.
-_ACTIVO = f"""{nombre_activo_sql()} AS identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, f.nombre AS finca,
+_ACTIVO = f"""{nombre_activo_sql()} AS identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, i.id_finca, f.nombre AS finca,
     ri.clasificacion::text AS clasificacion"""
 _JOIN_ACTIVO = """JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = x.id_activo_biologico
     JOIN modulo9.especies e ON e.id_especie = a.id_especie
@@ -213,6 +217,19 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             JOIN modulo6.reconocimientos_iniciales r ON r.id_reconocimiento_inicial = :r
             WHERE v.id_activo_biologico = r.id_activo_biologico AND v.fecha_registro >= r.fecha_creacion
             UNION ALL
+            SELECT 'DETERIORO', d.id_deterioro_activo, d.fecha_registro
+            FROM modulo6.deterioros_activos d
+            JOIN modulo6.reconocimientos_iniciales r ON r.id_reconocimiento_inicial = :r
+            WHERE d.id_valoracion_por_costo = r.id_valoracion_por_costo
+            UNION ALL
+            -- Costos, depreciación, productos y cualquier otro hecho del activo asentado después del reconocimiento.
+            SELECT 'REGISTRO_CONTABLE', l.id_linea_asiento_nic41, l.fecha_creacion
+            FROM modulo6.lineas_asiento_nic41 l
+            JOIN modulo6.reconocimientos_iniciales r ON r.id_reconocimiento_inicial = :r
+            WHERE l.id_activo_biologico = r.id_activo_biologico AND l.fecha_creacion >= r.fecha_creacion
+              AND l.tabla_origen NOT IN ('reconocimientos_iniciales', 'revisiones_reconocimiento',
+                                         'deterioros_activos', 'variaciones_valor_razonable')
+            UNION ALL
             SELECT 'CIERRE_PERIODO', l.id_comprobante_nic41, c.fecha_creacion
             FROM modulo6.lineas_asiento_nic41 l JOIN modulo6.comprobantes_nic41 c USING (id_comprobante_nic41)
             WHERE l.tabla_origen = 'reconocimientos_iniciales' AND l.id_origen = :r
@@ -228,6 +245,19 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
     # --- RF-88 ---------------------------------------------------------------------------------
 
     def agregar_valoracion_costo(self, valoracion: ValoracionCosto) -> int:
+        # La tabla admite una sola valoración por activo: la que dejó inactiva una reversión se reutiliza, o el
+        # activo revertido no se podía volver a reconocer al costo («El activo ya tiene una valoración por costo»).
+        reutilizada = escribir(self.db, """
+            UPDATE modulo6.valoraciones_por_costos
+            SET escenario_activacion = CAST(:esc AS modulo6.enum_valoraciones_por_costos_escenario),
+                costos_adquisicion = :c, tasa_depreciacion = :t, fecha_adquisicion = :f, depreciacion_acumulada = :dep,
+                deterioro_acumulado = :det, valor_contable_por_costo = :v, razon_sin_mercado = :razon, id_usuario = :u,
+                fecha_marcacion = now(), es_activa = true, justificacion = :j, vida_util_meses = :vida
+            WHERE id_activo_biologico = :a AND NOT es_activa
+            RETURNING id_valoracion_por_costo
+        """, self._parametros_costo(valoracion))
+        if reutilizada is not None:
+            return reutilizada
         return escribir(self.db, """
             INSERT INTO modulo6.valoraciones_por_costos (id_activo_biologico, escenario_activacion, costos_adquisicion,
                 tasa_depreciacion, fecha_adquisicion, depreciacion_acumulada, deterioro_acumulado, valor_contable_por_costo,
@@ -235,12 +265,16 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             VALUES (:a, CAST(:esc AS modulo6.enum_valoraciones_por_costos_escenario), :c, :t, :f, :dep, :det, :v, :razon,
                 :u, now(), true, :j, :vida)
             RETURNING id_valoracion_por_costo
-        """, {"a": valoracion.id_activo_biologico, "esc": valoracion.escenario_activacion,
-              "c": valoracion.costos_adquisicion, "t": valoracion.tasa_depreciacion, "f": valoracion.fecha_adquisicion,
-              "dep": valoracion.depreciacion_acumulada, "det": valoracion.deterioro_acumulado,
-              "v": valoracion.valor_contable_por_costo, "razon": valoracion.razon_sin_mercado,
-              "u": valoracion.id_usuario, "j": valoracion.justificacion, "vida": valoracion.vida_util_meses},
+        """, self._parametros_costo(valoracion),
             {"unique_valoraciones_por_costos_activo_biologico": "El activo ya tiene una valoración por costo."})
+
+    @staticmethod
+    def _parametros_costo(valoracion: ValoracionCosto) -> dict:
+        return {"a": valoracion.id_activo_biologico, "esc": valoracion.escenario_activacion,
+                "c": valoracion.costos_adquisicion, "t": valoracion.tasa_depreciacion, "f": valoracion.fecha_adquisicion,
+                "dep": valoracion.depreciacion_acumulada, "det": valoracion.deterioro_acumulado,
+                "v": valoracion.valor_contable_por_costo, "razon": valoracion.razon_sin_mercado,
+                "u": valoracion.id_usuario, "j": valoracion.justificacion, "vida": valoracion.vida_util_meses}
 
     def valoracion_costo_activa(self, id_activo_biologico: int) -> Optional[ValoracionCosto]:
         f = fila(self.db, """
@@ -290,7 +324,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
         """Activos reconocidos con su último valor razonable neto o su valor por costo; del titular si se da."""
         return filas(self.db, f"""
         SELECT a.id_activo_biologico, {nombre_activo_sql()} AS identificador, a.tipo::text AS tipo, e.nombre AS especie, f.nombre AS finca,
-               est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento,
+               est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento::date AS fecha_reconocimiento,
                ri.indicador_valoracion::text AS indicador_reconocimiento, ri.es_apertura,
                (vc.id_valoracion_por_costo IS NOT NULL) AS valorado_por_costo, vc.valor_contable_por_costo,
                vc.costos_adquisicion AS costo_base, vc.depreciacion_acumulada, vc.deterioro_acumulado, vc.vida_util_meses,

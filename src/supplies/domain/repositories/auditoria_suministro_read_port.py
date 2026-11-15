@@ -5,6 +5,7 @@
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: rechazar rangos temporales invertidos antes de consultar o exportar. |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Puerto de lectura de la bitácora ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Complementa a ``AuditoriaSuministroPort`` (solo escritura). ``tipo_operacion``
@@ -35,6 +36,7 @@ class FiltrosAuditoriaSuministro:
     entidad_afectada: Optional[str] = None
     id_activo_biologico: Optional[int] = None
     id_ciclo_productivo: Optional[int] = None
+    id_finca: Optional[int] = None
     resultado: Optional[str] = None
     clasificacion_registro: Optional[str] = None
     pagina: int = 1

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: E11 200, edición 405 y alcance     |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Router FastAPI para el registro de medicamentos (`/suministros/medicamentos`).
 
 Expone los flujos de RF-76 (CU-01):
@@ -126,6 +127,7 @@ def consultar_medicamentos(
     fecha_desde: Optional[date] = Query(None, description="Fecha de aplicación mínima (inclusive)."),
     fecha_hasta: Optional[date] = Query(None, description="Fecha de aplicación máxima (inclusive)."),
     estado_registro: Optional[str] = Query(None, description="VALIDADO o ANULADO."),
+    id_finca: Optional[int] = Query(None, gt=0, description="Solo los registros de activos de esta finca."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsultaMedicamentosResponse:
@@ -135,6 +137,7 @@ def consultar_medicamentos(
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         estado_registro=estado_registro,
+        id_finca=id_finca,
     )
     items = [MedicamentoResponse.model_validate(m) for m in medicamentos]
     return ConsultaMedicamentosResponse(total=len(items), items=items)

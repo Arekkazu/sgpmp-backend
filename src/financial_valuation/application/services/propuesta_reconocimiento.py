@@ -8,6 +8,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82: la donación por valor razonable también omite el hecho menor a 0,01 (#1027 + #1036) |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -169,7 +170,7 @@ class ProponedorReconocimiento:
         propuesta.indicador_valoracion = IndicadorValoracion.VALORACION_POR_COSTO.value
         propuesta.valor_inicial = Decimal(activo.costo_adquisicion)
         propuesta.advertencias.append(f"Valoración por costo por ausencia de precio de mercado para la especie "
-                                      f"{activo.especie} (NIC 41 ¶30).")
+                                      f"{activo.especie}.")
         # La compra ya entra al activo por su factura; la donación y el traslado se asientan al costo.
         if origen == "donacion":
             propuesta.hechos = _hecho(TipoHecho.RECONOCIMIENTO_DONACION.value, Sentido.UNICO.value, propuesta.valor_inicial)

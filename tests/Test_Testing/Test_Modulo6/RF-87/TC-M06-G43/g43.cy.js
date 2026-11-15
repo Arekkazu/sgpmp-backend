@@ -139,7 +139,22 @@ describe('G43 panel del Contador',()=>{
       if(!vista.resumen_dom.encabezados.length)acta.motivo='ERROR_QA_RESUMEN_DOM_VACIO';
       if(acta.peticiones.some(x=>x.http!=null&&!x.eco))acta.estado='NO_CONCLUYENTE';
     });
-    cy.then(()=>{if(acta.estado!=='APROBADO')return;const elegir=PANEL==='027'?'Autorizo excluir del comprobante':PANEL==='026'?'Medir con el último precio conocido, como estimación':'Excluir de este cierre';cy.contains('label',elegir).find('input').check({force:true});cy.contains('button','Cerrar período').should('not.be.disabled');if(PANEL==='025'){cy.contains('button','Cancelar cierre (No)').click();cy.contains('button','Cerrar período').should('be.disabled');}});
+    cy.then(()=>{
+      if(acta.estado!=='APROBADO')return;
+      const elegir=PANEL==='027'?'Autorizo excluir del comprobante':PANEL==='026'?'Medir con el último precio conocido, como estimación':'Excluir de este cierre';
+      cy.contains('label',elegir).find('input').check({force:true});
+      const cerrar=()=>cy.contains('button','Cerrar período');
+      const casilla=PANEL!=='027'&&acta.casilla_autorizacion;
+      if(casilla){cerrar().should('be.disabled').then(()=>{acta.radio_solo_deshabilitado=true;});cy.contains('label','Autorizo excluir del comprobante las líneas con trazabilidad incompleta').find('input').check({force:true}).then(()=>{acta.casilla_lineas_marcada=true;});}
+      cerrar().should('not.be.disabled').then(()=>{acta.decision_habilitada=true;});
+      if(PANEL==='025'||PANEL==='026'){
+        cy.contains('button','Cancelar cierre (No)').click();
+        cerrar().should('be.disabled');
+        cy.contains('label',elegir).find('input').should('not.be.checked');
+        if(casilla)cy.contains('label','Autorizo excluir del comprobante las líneas con trazabilidad incompleta').find('input').should('not.be.checked');
+        cy.then(()=>{acta.cancelacion_desmarca=true;});
+      }
+    });
     cy.then(()=>{if(acta.post_prohibidos.length){acta.estado='NO_CONCLUYENTE';acta.motivo=`ERROR_QA_POST_CIERRE_DISPARADO: ${acta.post_prohibidos.join(', ')}`;}});
   });
 });

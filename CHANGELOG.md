@@ -1,3 +1,55 @@
+## [1.4.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.65...v1.4.0-rc.66) (2026-11-14)
+
+### Features
+
+* **rf25-mod9:** filtro por finca del usuario en Suministros, Finanzas e Integración contable ([813d91b](https://github.com/Arekkazu/sgpmp-backend/commit/813d91bc30eaaff404559437a4d67d058ea3fada))
+* **rf25-mod9:** infraestructuras de una finca del usuario en /usuarios/me/fincas/{id_finca}/infraestructuras para el filtro por finca ([66424fe](https://github.com/Arekkazu/sgpmp-backend/commit/66424fe85efa3c9b7b3001b81481d9ba316a0db4))
+* **rf82-mod6:** la propuesta de reconocimiento trae el id de la finca para el filtro por finca ([e29aca0](https://github.com/Arekkazu/sgpmp-backend/commit/e29aca052eb8f949a8d4bb0320b55701f546a2cb))
+
+## [1.4.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.64...v1.4.0-rc.65) (2026-11-14)
+
+### Bug Fixes
+
+* **rf40-mod2:** «hoy» con el reloj del usuario adelantado ya no es fecha futura en eventos ni en el cambio de fase (QA M06 punto 5) ([3cded22](https://github.com/Arekkazu/sgpmp-backend/commit/3cded22476a4f0bacac9d6d4a7e8822a9d5162da))
+* **rf82-mod6:** la fecha del reconocimiento inicial viaja como día y no como instante UTC (QA M06 punto 5) ([92fe557](https://github.com/Arekkazu/sgpmp-backend/commit/92fe55764b82cfb68a485280e8a61f1c4d8b46b6))
+* **rf82-mod6:** la reversión del reconocimiento se bloquea con deterioros o registros contables posteriores y el activo revertido al costo se reconoce de nuevo (QA M06 CU01 H-03) ([bce2329](https://github.com/Arekkazu/sgpmp-backend/commit/bce23298b8468fe53fb26a438db60b006032cac6))
+* **rf92-mod6:** los textos que ve el usuario no citan párrafos de la NIC 41 ([854c624](https://github.com/Arekkazu/sgpmp-backend/commit/854c624565fefcca6919f05bf42b93bb9d72ba59))
+
+## [1.4.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.63...v1.4.0-rc.64) (2026-11-14)
+
+### Bug Fixes
+
+* **rf97-mod7:** el ExchangeId del documento AAEF sigue el formato AF-SIGAB-AAAA-MM-NNNNNNN que exige SIGCON ([4353483](https://github.com/Arekkazu/sgpmp-backend/commit/4353483f484213636e1611d4e6a471fb92d08850))
+
+## [1.4.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.62...v1.4.0-rc.63) (2026-11-14)
+
+### Features
+
+* **identity-access:** la cuenta creada por el SSO de AgroFusion nace Administrador y se retira el rol Externo AgroFusion ([9ff4d38](https://github.com/Arekkazu/sgpmp-backend/commit/9ff4d381082f21d0ae8e147ff9c37dbd0c496d6c))
+
+## [1.4.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.61...v1.4.0-rc.62) (2026-11-14)
+
+### Features
+
+* **rf88-mod6:** consulta de la depreciacion lineal de un activo al costo a una fecha (INC-M06-90-G97) ([4f3d496](https://github.com/Arekkazu/sgpmp-backend/commit/4f3d4962d5c03e329e8d16f86f6fb467071b0811))
+* **rf93-mod6:** el estado de resultados se concilia con sus fuentes y no se genera si un hecho no tiene asiento (TC-M06-G74, FA-2) ([f5cc4ad](https://github.com/Arekkazu/sgpmp-backend/commit/f5cc4adaff70ac5bf50cb6533c9ed0087814e32d))
+
+### Bug Fixes
+
+* **rf-cot-mod6:** devolver el error de negocio para montos no positivos ([#1101](https://github.com/Arekkazu/sgpmp-backend/issues/1101)) ([381445e](https://github.com/Arekkazu/sgpmp-backend/commit/381445e4f31a91047c46a98cb91ecfe54bbab61a))
+* **rf74-mod5:** mostrar datos legibles en el aviso de ca crítica ([#1082](https://github.com/Arekkazu/sgpmp-backend/issues/1082)) ([9ddca0e](https://github.com/Arekkazu/sgpmp-backend/commit/9ddca0ebdec94e6013a7613760bdd242a8465ebb))
+* **rf77-mod5:** el reporte de gastos avisa el recorte al inicio del ciclo aunque el periodo anterior quede vacio (INC-M05-360-G23) ([e3e5bd2](https://github.com/Arekkazu/sgpmp-backend/commit/e3e5bd2572ee99836f15df1ee7b1e0042fabc53b))
+* **rf87-mod6:** el cierre usa el precio congelado al iniciar y acredita los activos estimados (INC-M06-91-G43) ([e73c9c9](https://github.com/Arekkazu/sgpmp-backend/commit/e73c9c9e137b298215d5dfde04d4cc6e151cdeff))
+* **rf91-mod6:** el Revisor Fiscal recibe 403 y no 404 en la cadena abierta y el informe no aprobado (INC-M06-061B-G57, RFC-027) ([16b990e](https://github.com/Arekkazu/sgpmp-backend/commit/16b990eea367ccfef9003e1e01330003637f124c))
+* **rf91-mod6:** verificar auditorias fuente de trazabilidad ([#1104](https://github.com/Arekkazu/sgpmp-backend/issues/1104)) ([07c7bdd](https://github.com/Arekkazu/sgpmp-backend/commit/07c7bdd34c67faf099f0baa2531e4f7dd2164f98))
+* **rf92-mod6:** el informe de revelaciones expone el estado de cada seccion y una bloqueada impide aprobarlo ([#1110](https://github.com/Arekkazu/sgpmp-backend/issues/1110)) ([b1309f7](https://github.com/Arekkazu/sgpmp-backend/commit/b1309f737e26e9763041eb02cc579706a56915cf))
+* **rf92-mod6:** el PDF del informe de revelaciones aprobado cumple PDF/A-1b ([#1108](https://github.com/Arekkazu/sgpmp-backend/issues/1108)) ([f88bfaa](https://github.com/Arekkazu/sgpmp-backend/commit/f88bfaa6bd838cb1bf1cb3a43fc2f9e65017d01d))
+* **rf92-mod6:** el Revisor Fiscal recibe 403 y no 404 en la descarga del informe y en el estado de resultados no aprobado (RFC-027) ([20920b6](https://github.com/Arekkazu/sgpmp-backend/commit/20920b649dc1f4e2dea4eeff23a3555deb93057b)), closes [#1118](https://github.com/Arekkazu/sgpmp-backend/issues/1118) [#1115](https://github.com/Arekkazu/sgpmp-backend/issues/1115)
+* **rf92-mod6:** la conciliacion del informe cuadra con bajas totales e ingresos de individuos sin costo ([#1107](https://github.com/Arekkazu/sgpmp-backend/issues/1107)) ([e44cbe2](https://github.com/Arekkazu/sgpmp-backend/commit/e44cbe2a8ad8133a56b699e59926645475391bd8))
+* **rf92-mod6:** revelar metodos y supuestos por activo ([#1106](https://github.com/Arekkazu/sgpmp-backend/issues/1106)) ([f52a2d2](https://github.com/Arekkazu/sgpmp-backend/commit/f52a2d2fcfc980d8fbf7ca963381ed721f998907))
+* **rf93-mod6:** ventas y bajas sin recuperacion en componentes de gasto separados ([#1083](https://github.com/Arekkazu/sgpmp-backend/issues/1083)) ([8e5c5b1](https://github.com/Arekkazu/sgpmp-backend/commit/8e5c5b139d52ac90867134815e766f09940e612f))
+* **rf94-mod6:** la bitácora del período muestra los precios y el nombre de quien firmó cada evento (QA M06 CU13 H-01/H-02, C3) ([a1419d4](https://github.com/Arekkazu/sgpmp-backend/commit/a1419d4256d42dcc9d9fa3b10b1f6a5aacfd5163))
+
 ## [1.4.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.60...v1.4.0-rc.61) (2026-11-13)
 
 ### Bug Fixes

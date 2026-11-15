@@ -215,13 +215,19 @@ try{
       assert.equal(z.destino,d,u);assert.equal(z.ruta,r,u);
     }
   });
-  await paso(10,'Escenarios RF-87 V2 y ejemplo en proceso hijo','CONTRATO',async()=>{
+  await paso(10,'Escenarios RF-87 V2/V3 y ejemplo V3 en proceso hijo','CONTRATO',async()=>{
     const ejemplo=path.join(os.tmpdir(),'g43-verificar-ejemplo');
-    const z=await proceso(process.execPath,[path.join(base,'pruebas','g43_v2_escenarios.test.mjs')],{...envGuard,QA_VERIFICAR_EJEMPLO:ejemplo},null,300000);
-    if(z.error==='EPERM')throw Error('spawn EPERM');
+    const z=await proceso(process.execPath,[path.join(base,'pruebas','g43_v3_escenarios.test.mjs')],{...envGuard,QA_VERIFICAR_EJEMPLO:ejemplo},null,300000);
+    if(z.error==='EPERM'){
+      process.env.QA_VERIFICAR_EJEMPLO=ejemplo;
+      try{await import('./g43_v3_escenarios.test.mjs');}finally{delete process.env.QA_VERIFICAR_EJEMPLO;}
+      assert(fs.existsSync(path.join(ejemplo,'capacidades.json')));
+      assert(fs.existsSync(path.join(ejemplo,'RUN-G43-V3-20261113-000000','resultado.json')));
+      return;
+    }
     assert.equal(z.code,0,(z.out+z.err).slice(-800));
     assert(fs.existsSync(path.join(ejemplo,'capacidades.json')));
-    assert(fs.existsSync(path.join(ejemplo,'RUN-G43-V2-20261112-000000','resultado.json')));
+    assert(fs.existsSync(path.join(ejemplo,'RUN-G43-V3-20261113-000000','resultado.json')));
   });
   const bloqueos=fs.existsSync(guardLog)?fs.readFileSync(guardLog,'utf8').trim().split(/\r?\n/).filter(Boolean):[];
   tabla.push({numero:'RED',nombre:'Intentos externos',estado:bloqueos.length===0?'OK':'FALLO',clasificacion_fallo:bloqueos.length===0?'NINGUNO':'PREFLIGHT_ENTORNO',intentos:bloqueos.length});

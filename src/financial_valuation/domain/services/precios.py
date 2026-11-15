@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-89: prioridad de fuente, vigencia y estado efectivo del precio |
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: el precio corregido sale del cálculo y queda CORREGIDO |
+# | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: forma JSON del precio que congela el cierre |
 """Reglas de RF-89 sobre el repositorio de precios (NIC 41 ¶17). Python puro.
 
 El estado de un precio depende de la fecha (PROGRAMADO, ACTIVO, VENCIDO, SUPERADO) y el
@@ -36,6 +37,24 @@ class Precio:
 
     def vigente_en(self, dia: date) -> bool:
         return self.fecha_vigencia <= dia and (self.fecha_vencimiento is None or self.fecha_vencimiento >= dia)
+
+
+def precio_a_dict(precio: Precio) -> dict:
+    """Forma JSON del precio que el cierre congela al iniciar (RF-87 paso 2) y vuelve a leer al reanudar."""
+    return {"id_precio_mercado": precio.id_precio_mercado, "id_especie": precio.id_especie, "categoria": precio.categoria,
+            "precio_unitario": str(precio.precio_unitario), "unidad_medida": precio.unidad_medida, "fuente": precio.fuente,
+            "fecha_vigencia": precio.fecha_vigencia.isoformat(),
+            "fecha_vencimiento": precio.fecha_vencimiento.isoformat() if precio.fecha_vencimiento else None,
+            "id_metrica_produccion": precio.id_metrica_produccion}
+
+
+def precio_desde_dict(datos: dict) -> Precio:
+    vencimiento = datos.get("fecha_vencimiento")
+    return Precio(id_precio_mercado=datos["id_precio_mercado"], id_especie=datos["id_especie"], categoria=datos["categoria"],
+                  precio_unitario=Decimal(datos["precio_unitario"]), unidad_medida=datos["unidad_medida"],
+                  fuente=datos["fuente"], fecha_vigencia=date.fromisoformat(datos["fecha_vigencia"]),
+                  fecha_vencimiento=date.fromisoformat(vencimiento) if vencimiento else None,
+                  id_metrica_produccion=datos.get("id_metrica_produccion"))
 
 
 def _corregidos(precios: Iterable[Precio]) -> set[int]:

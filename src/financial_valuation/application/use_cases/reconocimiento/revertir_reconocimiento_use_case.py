@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82 R2/paso 10: reversión auditada del reconocimiento inicial |
 # | 2026-11-05 | Arekkazu | M06 RF-82: el bloqueo de la reversión nombra los registros sin códigos ni ids |
+# | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82 FA-6: el deterioro y los registros contables posteriores bloquean la reversión |
 """Caso de uso RF-82 paso 10: asiento espejo y el activo vuelve a la bandeja de propuestas."""
 from __future__ import annotations
 
@@ -13,10 +14,11 @@ from src.financial_valuation.domain.repositories.activo_financiero_port import A
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.value_objects.nic41 import Severidad
 from src.shared.errors import ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import hoy_usuario
+from src.shared.fechas import fecha_usuario, hoy_usuario
 
 
-_DEPENDIENTE = {"MEDICION_POSTERIOR": "medición posterior", "VARIACION": "variación de valor", "CIERRE_PERIODO": "cierre del período"}
+_DEPENDIENTE = {"MEDICION_POSTERIOR": "medición posterior", "VARIACION": "variación de valor", "DETERIORO": "deterioro",
+                "CIERRE_PERIODO": "cierre del período"}
 
 class RevertirReconocimientoUseCase:
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
@@ -41,7 +43,7 @@ class RevertirReconocimientoUseCase:
                                  "fecha": periodo_original.fecha_fin})
         if dependientes:  # R2 b / FA-6
             self._auditar_bloqueo(reconocimiento, dependientes, id_usuario)
-            detalle = "; ".join(f"{_DEPENDIENTE.get(d['tipo'], 'registro contable')} del {d['fecha']:%Y-%m-%d}"
+            detalle = "; ".join(f"{_DEPENDIENTE.get(d['tipo'], 'registro contable')} del {fecha_usuario(d['fecha']):%Y-%m-%d}"
                                 for d in dependientes[:10])
             raise ConflictError(code="REVERSION_BLOQUEADA", message=(
                 f"No es posible revertir el reconocimiento inicial del activo {activo.identificador}. Existen registros "

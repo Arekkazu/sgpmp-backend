@@ -1,6 +1,7 @@
 # | Fecha      | Nombre         | Que se hizo                                                            |
 # |------------|----------------|------------------------------------------------------------------------|
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-288-G32 RF-91: una cadena de período cerrado no aborta el resto |
+# | 2026-11-13 | Leandro | TC-M06-G52 RF-91: conservar una línea válida con evidencia de origen al probar fallos aislados. |
 """INC-M06-288-G32 (#975): la verificación del período abierto no se cae por una línea arrastrada.
 
 El cierre (RF-87 paso 3) pasa al período siguiente las líneas con trazabilidad incompleta, pero
@@ -17,10 +18,11 @@ from decimal import Decimal as D
 import pytest
 from sqlalchemy import text
 
+from src.financial_valuation.domain.entities.contabilidad import LineaAsiento
 from src.financial_valuation.infrastructure.repositories.sql import escribir
 from src.shared.errors import AppError
 from tests.integration.test_m06_flujo_nic41_integration import (
-    HOY, NIT, _activo, _configurar, _escalar, _finca, _matriz, _pesaje, _precio, _provision_m05,  # noqa: F401
+    HOY, NIT, _activo, _auditar_pesaje, _configurar, _escalar, _finca, _matriz, _pesaje, _precio, _provision_m05,
     contador, m06,
 )
 
@@ -53,9 +55,18 @@ def _periodo_cerrado_con_linea_arrastrada(db_session, m06, uid) -> tuple[int, in
                                SET id_periodo_contable = :p, estado_trazabilidad = 'PENDIENTE_TRAZABILIDAD'
                                WHERE id_linea_asiento_nic41 = :l"""), {"p": siguiente, "l": id_linea})
     db_session.execute(text("SET LOCAL session_replication_role = origin"))
-    # Y una línea normal del período abierto (consumo de M05 con fecha del período cerrado → entra al siguiente).
+    # Una línea del período abierto respaldada por un evento biológico auditado.
+    # La provisión crea el período siguiente si todavía no existe.
     _provision_m05(db_session, activo, "1000")
     m06.procesar_provisiones().execute()
+    evento = _pesaje(db_session, activo, "430")
+    _auditar_pesaje(db_session, activo, evento, uid)
+    m06.contabilizador.asentar(LineaAsiento(
+        tipo_hecho="BAJA_ACTIVO", sentido="UNICO", valor=D("1000"), fecha_hecho=HOY,
+        id_periodo_contable=siguiente, id_activo_biologico=activo, id_especie=especie, id_finca=finca,
+        numero_id_tributaria=NIT, tabla_origen="procesamientos_eventos_m02", id_origen=evento,
+        tipo_evidencia="REGISTRO_MANUAL", id_usuario=uid,
+    ), uid)
     return periodo.id_periodo_contable, siguiente, id_linea, id_variacion
 
 

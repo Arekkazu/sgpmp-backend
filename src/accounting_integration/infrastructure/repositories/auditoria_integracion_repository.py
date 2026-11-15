@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102: persistencia append-only de la auditoría de integración |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 """Auditoría de M07 en ``modulo7.eventos_integracion`` (RF-102). Los triggers bloquean UPDATE,
 DELETE y TRUNCATE; aquí solo se inserta y se consulta."""
 from __future__ import annotations
@@ -67,6 +68,7 @@ class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
             ("hasta", filtros.hasta, "e.fecha_evento < CAST(:hasta AS date) + 1"),
             ("endpoint", filtros.endpoint, "e.endpoint = :endpoint"),
             ("codigo_http", filtros.codigo_http, "e.codigo_http = :codigo_http"),
+            ("nit", filtros.numero_id_tributaria, "e.numero_id_tributaria = :nit"),
         ):
             if valor is not None:
                 condiciones.append(sql)

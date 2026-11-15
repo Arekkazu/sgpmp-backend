@@ -5,6 +5,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: el Productor solo ve los titulares y períodos de sus fincas |
+# | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: precios congelados al iniciar el cierre |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -108,16 +109,19 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
                  {"n": periodo.numero_id_tributaria, "i": periodo.fecha_inicio})
         return Periodo(**f) if f else None
 
-    def iniciar_cierre(self, id_periodo_contable: int, id_usuario: int, incluir_sin_precio: bool) -> int:
+    def iniciar_cierre(self, id_periodo_contable: int, id_usuario: int, incluir_sin_precio: bool,
+                       precios_congelados: Optional[list[dict]] = None) -> int:
         return escribir(self.db, """
             INSERT INTO modulo6.ejecuciones_cierre_periodo (id_periodo_contable, id_usuario_ejecutor, estado, paso_actual,
-                                                            fecha_inicio, es_incluir_activos_sin_precio, intento_reintento)
-            VALUES (:p, :u, 'EN_PROCESO', 1, now(), :i, 0) RETURNING id_cierre
-        """, {"p": id_periodo_contable, "u": id_usuario, "i": incluir_sin_precio})
+                                                            fecha_inicio, es_incluir_activos_sin_precio, intento_reintento,
+                                                            json_precios_congelados)
+            VALUES (:p, :u, 'EN_PROCESO', 1, now(), :i, 0, CAST(:precios AS jsonb)) RETURNING id_cierre
+        """, {"p": id_periodo_contable, "u": id_usuario, "i": incluir_sin_precio, "precios": a_json(precios_congelados)})
 
     def ejecucion_en_proceso(self, id_periodo_contable: int) -> Optional[dict]:
         return fila(self.db, f"""SELECT e.id_cierre, e.id_usuario_ejecutor, e.fecha_inicio,
-                                        e.paso_actual = {_PASO_ESPERA} AS esperando_autorizacion, {_NOMBRE_EJECUTOR}
+                                        e.paso_actual = {_PASO_ESPERA} AS esperando_autorizacion,
+                                        e.json_precios_congelados AS precios_congelados, {_NOMBRE_EJECUTOR}
                                  FROM modulo6.ejecuciones_cierre_periodo e {_JOIN_EJECUTOR}
                                  WHERE e.id_periodo_contable = :p AND e.estado = 'EN_PROCESO'""", {"p": id_periodo_contable})
 

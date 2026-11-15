@@ -2,6 +2,9 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-84: script del grupo TC-M06-G16 (pytest + sandbox, rol Contador) |
 # | 2026-11-11 | Daniela Castillo | M06 RF-84: 078 revisado: el neto resta la suma de los cuatro costos de venta; tipo_costo=VENTA se cumple por construcción (078b) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G16-V2.0.html |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0: 079b exige la referencia_documental guardada en json_metodo_costo (INC-M06-316 corregido)
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G16 - Cálculo del valor razonable menos costos de venta: parametrizado, manual y mixto.   RF-84 (CU03).   Casos: TC-M06-078 a TC-M06-081 (078b y 079b: tipo_costo=VENTA y referencia documental).
 
@@ -12,7 +15,7 @@ El método por componente queda en json_metodo_costo y el global en metodo_costo
 del cálculo: se cumple por construcción (los cuatro componentes son costos de venta; 078b verifica que el neto resta su suma).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G16/TC-M06-G16.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G16/reporte-TC-M06-G16.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G16/TC-M06-G16.py" -v -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-84/TC-M06-G16/reporte-TC-M06-G16-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -49,6 +52,7 @@ def _confirmar(env, esc, manuales, justif):
     c = env.calculo(ida)
     assert c is not None and dec(c["valor_razonable_bruto"]) == BRUTO, c
     c["_id_activo"] = ida
+    env.comparar_calculo_bd(ida, c)                       # la base de datos es la fuente de verdad: debe coincidir con la API
     return c
 
 
@@ -102,10 +106,15 @@ def test_TC_M06_079b_referencia_documental_como_dato_propio(env):
     esc = env.escenario(categoria="POR_CABEZA", precio="10000000.00", costos=None)
     manuales = {"transporte": "120000", "comisiones": "180000", "impuestos": "40000", "otros": "60000"}
     c = _confirmar(env, esc, manuales, JUSTIF)
-    refs = [k for k in _claves(c) if "referencia" in k or "soporte" in k or "documental" in k]
-    if not refs:
-        bloqueado("funcionalidad no implementada: no existe un dato de referencia documental del costo manual; solo hay "
-                  f"'justificacion' (texto libre, mín. 20 caracteres). Claves del cálculo: {sorted(c)}")
+    meta = c.get("json_metodo_costo") or {}
+    assert meta.get("referencia_documental") == REF_DOC, (
+        "la referencia documental de los costos manuales debe quedar guardada junto al cálculo (RF-84 R4; INC-M06-316): "
+        f"se envió {REF_DOC!r} y json_metodo_costo trae {meta}")
+    assert c.get("justificacion") == JUSTIF, "la justificación también debe quedar guardada junto al cálculo"
+    import json as _j
+    bd = env.calculo_bd(c["_id_activo"])
+    assert REF_DOC in _j.dumps(bd.get("json_metodo_costo"), ensure_ascii=False), (
+        f"INC-M06-316 (corregido, #1003): la base de datos debe guardar la referencia documental {REF_DOC!r} en json_metodo_costo: {bd.get('json_metodo_costo')}")
 
 
 def test_TC_M06_080_metodos_mixtos_por_componente(env):

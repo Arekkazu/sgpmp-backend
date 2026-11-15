@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-14 | Arekkazu | QA-M06 RF-37/40: «hoy» con el reloj del usuario adelantado no es fecha futura |
 """Regla única de fechas: se guarda y viaja en UTC; el día se ve en la zona del usuario.
 
 - **Instantes** (``datetime``): todo lo que entra se normaliza a UTC con
@@ -87,6 +88,18 @@ def fecha_usuario(valor: datetime | date) -> date:
     if isinstance(valor, datetime):
         return a_utc(valor).astimezone(zona_usuario()).date()
     return valor
+
+
+def hasta_ahora(valor: datetime) -> Optional[datetime]:
+    """Instante de un evento sin pasar de ahora; ``None`` si cae en un día posterior a hoy del usuario.
+
+    El frontend envía «hoy» con la hora del equipo del usuario: un reloj adelantado unos segundos la
+    volvía futura. Futuro es un día posterior; un instante de hoy por delante del servidor se recorta a
+    ahora, porque la BD rechaza ``fecha > clock_timestamp()``.
+    """
+    if fecha_usuario(valor) > hoy_usuario():
+        return None
+    return min(a_utc(valor), datetime.now(timezone.utc))
 
 
 def inicio_dia_usuario(dia: date) -> datetime:

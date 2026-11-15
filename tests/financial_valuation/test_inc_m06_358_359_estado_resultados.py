@@ -1,10 +1,12 @@
 # | Fecha      | Nombre         | Que se hizo                                                                  |
 # |------------|----------------|------------------------------------------------------------------------------|
-# | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 y INC-M06-359-G79 RF-93: bajas sin venta, excluidos y ceros |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 y INC-M06-359-G79 RF-93: ventas y bajas sin recuperación separadas, excluidos y ceros |
+# | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: el fake de reportes responde la conciliación |
 """Estado de resultados (RF-93).
 
 - INC-M06-358-G71/G72 (#1083): la baja sin venta (``BAJA_ACTIVO`` / ``PERDIDA``) se descartaba; ahora
-  suma en ``bajas_activos`` (gasto).
+  suma en ``perdidas_bajas_sin_recuperacion`` y la venta en ``bajas_activos``, ambas gasto. Ninguna baja
+  genera ingreso (RFC-018).
 - INC-M06-359-G79 (#1084): los activos excluidos del cierre quedan fuera de todos los componentes (no
   solo listados) y se listan con sus montos; los montos salen con 4 decimales («0.0000»).
 """
@@ -14,16 +16,28 @@ from src.financial_valuation.application.services.reportes import ConstructorEst
 from src.financial_valuation.domain.services.consolidacion import MovimientoResultado, estado_resultados
 
 
-def test_baja_sin_venta_suma_en_gastos():
+def test_baja_sin_venta_suma_en_perdidas_sin_recuperacion():
     er = estado_resultados([MovimientoResultado("BAJA_ACTIVO", "PERDIDA", D("1200"))], [])
-    assert er.componentes["bajas_activos"] == D("1200")
-    assert er.total_gastos == D("1200") and er.resultado_neto == D("-1200")
+    assert er.componentes["perdidas_bajas_sin_recuperacion"] == D("1200")
+    assert er.componentes["bajas_activos"] == D("0")
+    assert er.total_gastos == D("1200") and er.total_ingresos == D("0") and er.resultado_neto == D("-1200")
 
 
-def test_baja_por_venta_sigue_en_gastos_y_ambas_se_suman():
+def test_venta_y_muerte_van_en_componentes_separados_y_ninguna_es_ingreso():
     er = estado_resultados([MovimientoResultado("BAJA_ACTIVO", "UNICO", D("500")),
                             MovimientoResultado("BAJA_ACTIVO", "PERDIDA", D("300"))], [])
-    assert er.componentes["bajas_activos"] == D("800")
+    assert er.componentes["bajas_activos"] == D("500")
+    assert er.componentes["perdidas_bajas_sin_recuperacion"] == D("300")
+    assert er.total_gastos == D("800") and er.total_ingresos == D("0")
+
+
+def test_la_descarga_nombra_los_dos_componentes_como_gasto():
+    from src.financial_valuation.application.use_cases.reportes.exportar_reporte_use_case import (
+        _GASTOS, ETIQUETAS_COMPONENTES,
+    )
+    assert ETIQUETAS_COMPONENTES["bajas_activos"] == "Valor en libros de activos vendidos"
+    assert ETIQUETAS_COMPONENTES["perdidas_bajas_sin_recuperacion"] == "Pérdidas por bajas sin recuperación"
+    assert {"bajas_activos", "perdidas_bajas_sin_recuperacion"} <= _GASTOS
 
 
 class _Reportes:
@@ -39,6 +53,9 @@ class _Reportes:
 
     def siguiente_version_estado(self, id_periodo):
         return "V1"
+
+    def hechos_sin_asiento(self, id_periodo):
+        return []
 
     def agregar_estado(self, datos):
         self.estado = datos

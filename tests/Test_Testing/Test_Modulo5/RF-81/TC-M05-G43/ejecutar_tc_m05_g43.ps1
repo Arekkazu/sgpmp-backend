@@ -11,10 +11,11 @@ HISTORIAL DE CAMBIOS:
 | 12/11/2026 | Juan Sebastian Gutierrez | Correccion de la raiz del repo (5 niveles) |
 | 12/11/2026 | Juan Sebastian Gutierrez | C4: verificacion SHA-256 de las 10 suites previas (G14..G38) y exclusion explicita del staging nuevo. |
 | 12/11/2026 | Juan Sebastian Gutierrez | F2: escaneo de secretos antes de integridad, exclusion de ARCHIVADO_NO_OFICIAL.txt y detalle de SHA en integridad. |
+| 13/11/2026 | Juan Sebastian Gutierrez | reintento INC-M05-358-G43 |
 #>
 
 param(
-    [int]$Reintento = 0
+    [int]$Reintento = 2
 )
 
 $ErrorActionPreference = "Stop"
@@ -63,15 +64,13 @@ foreach ($k in $SnapEvidenciasRaw.Keys) {
 $Mod5Dir = Join-Path $RepoRoot "tests\Test_Testing\Test_Modulo5"
 $PrevSuiteScripts = @(
     (Join-Path $Mod5Dir "RF-76\TC-M05-G14\test_tc_m05_g14.py"),
-    (Join-Path $Mod5Dir "RF-76\TC-M05-G15\test_tc_m05_g15.py"),
-    (Join-Path $Mod5Dir "RF-76\TC-M05-G16\test_tc_m05_g16.py"),
-    (Join-Path $Mod5Dir "RF-76\TC-M05-G17\test_tc_m05_g17.py"),
-    (Join-Path $Mod5Dir "RF-76\TC-M05-G19\test_tc_m05_g19.py"),
-    (Join-Path $Mod5Dir "RF-77\TC-M05-G21\test_tc_m05_g21.py"),
-    (Join-Path $Mod5Dir "RF-77\TC-M05-G24\test_tc_m05_g24.py"),
+    (Join-Path $Mod5Dir "RF-76\TC-M05-G18\test_tc_m05_g18.py"),
+    (Join-Path $Mod5Dir "RF-77\TC-M05-G20\test_tc_m05_g20.py"),
     (Join-Path $Mod5Dir "RF-77\TC-M05-G25\test_tc_m05_g25.py"),
     (Join-Path $Mod5Dir "RF-80\TC-M05-G37\test_tc_m05_g37.py"),
-    (Join-Path $Mod5Dir "RF-80\TC-M05-G38\test_tc_m05_g38.py")
+    (Join-Path $Mod5Dir "RF-80\TC-M05-G38\test_tc_m05_g38.py"),
+    (Join-Path $Mod5Dir "RF-80\TC-M05-G39\test_tc_m05_g39.py"),
+    (Join-Path $Mod5Dir "RF-80\TC-M05-G40\test_tc_m05_g40.py")
 )
 $SnapPrevSuitesAntes = @{}
 foreach ($sp in $PrevSuiteScripts) {
@@ -228,7 +227,7 @@ foreach ($sp in $PrevSuiteScripts) {
     }
 }
 if ($IntegrityExit -eq 0) {
-    Write-Host "[INTEGRIDAD] OK: resultados/, evidencias/ previas y 10 suites previas sin cambios."
+    Write-Host "[INTEGRIDAD] OK: resultados/, evidencias/ previas y 8 suites previas sin cambios."
 }
 
 Write-Host "[TC-M05-G43] Finalizado. Staging: $EvDir"

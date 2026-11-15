@@ -1,0 +1,443 @@
+{
+  "tc": "TC-M05-G39",
+  "summary": {
+    "total": 10,
+    "ok": 9,
+    "falla": 1,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)",
+      "esperado": "GET /suministros/auditoria 200 con total y ultimo_id base; DELETE -> 200 Rollback exitoso",
+      "obtenido": "OBTENIDO: POST /sesiones/ -> HTTP 200 [X-Request-Id=dbfc4103-b6a6-45da-acfa-440f3c12bea7]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=113a33db-faef-4574-8f2b-9a40b02022aa]; DELETE /test-control/runs/tc-m05-g39-inobase-81e0f950 -> HTTP 200 [X-Request-Id=c882dab4-ae71-4f2f-bd9f-52666c77f9e0]",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Eventos sin activo o sin ciclo marcados incompletos con causa (costeo sin fase y PATCH 405)",
+      "esperado": "[RF-80 v2.0 Restriccion 8 'TODOS los eventos', CA-12, CA-11] (i) costeo-directo sin fase -> 409 y >= 1 REGISTRO_FALLIDO; (ii) PATCH /suministros/auditoria/{id de la corrida} -> 405 y >= 1 RECHAZADO; TODO evento nuevo sin id_activo_biologico o sin id_ciclo_productivo (>= 1, (i) y (ii) incluidos) con registro_incompleto=true y detalle_causa que nombra cada campo ausente; 0 eventos nuevos con tipo_operacion, resultado o fecha_emision nulos; cierre RF-79 -> 200 con CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO sin causa por conciliacion pendiente",
+      "obtenido": "OBTENIDO: {\"ultimo_id_inicio_corrida\": 80474, \"estimulo_i\": {\"id_activo\": 2424, \"http\": 409, \"error_code\": \"CICLO_NO_ACTIVO\", \"x_request_id\": \"2b4b39fb-9869-4a87-b1f7-de10c6c5d305\", \"latencia_s\": 0.463}, \"eventos_i\": [{\"id_auditoria_suministro\": 80481, \"entidad_afectada\": \"registro_suministro\", \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"fecha_emision\": \"2026-11-13T20:52:36.491157Z\", \"id_activo_biologico\": 2424, \"id_ciclo_productivo\": null, \"registro_incompleto\": true, \"detalle_causa\": \"Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2424. Solicitud: 98caf469-d369-407c-982b-984013dedda4. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.\"}], \"cierre_b\": {\"id_activo\": 2425, \"http\": 200, \"x_request_id\": \"ca6442e4-5f31-4a7d-9678-01fc87327b76\"}, \"estimulo_ii\": {\"id_objetivo\": 80481, \"http\": 405, \"allow\": \"GET\", \"x_request_id\": \"2c45dc39-5028-4e31-be9f-a6163ea7a337\"}, \"eventos_ii\": [{\"id_auditoria_suministro\": 80488, \"entidad_afectada\": \"auditorias_suministros\", \"tipo_operacion\": \"UPDATE\", \"resultado\": \"RECHAZADO\", \"fecha_emision\": \"2026-11-13T20:52:40.576671Z\", \"id_activo_biologico\": null, \"id_ciclo_productivo\": null, \"registro_incompleto\": true, \"detalle_causa\": \"Se rechazó una solicitud de actualización parcial del registro 80481 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.\"}], \"eventos_nuevos\": [{\"id_auditoria_suministro\": 80481, \"entidad_afectada\": \"registro_suministro\", \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"fecha_emision\": \"2026-11-13T20:52:36.491157Z\", \"id_activo_biologico\": 2424, \"id_ciclo_productivo\": null, \"registro_incompleto\": true, \"detalle_causa\": \"Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2424. Solicitud: 98caf469-d369-407c-982b-984013dedda4. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.\"}, {\"id_auditoria_suministro\": 80482, \"entidad_afectada\": \"registro_suministro\", \"tipo_operacion\": \"SUMINISTRO_REGISTRADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:37.375427Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, {\"id_auditoria_suministro\": 80483, \"entidad_afectada\": \"registro_suministro\", \"tipo_operacion\": \"PRECIO_MANUAL_INGRESADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:37.375427Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, {\"id_auditoria_suministro\": 80484, \"entidad_afectada\": \"registro_suministro\", \"tipo_operacion\": \"ACUMULADO_ACTUALIZADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:37.375427Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, {\"id_auditoria_suministro\": 80485, \"entidad_afectada\": \"resultado_ica\", \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:38.394973Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, {\"id_auditoria_suministro\": 80486, \"entidad_afectada\": \"provision_nic41\", \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:38.449660Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, {\"id_auditoria_suministro\": 80487, \"entidad_afectada\": \"provision_nic41\", \"tipo_operacion\": \"REPORTE_COSTOS_GENERADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:38.453015Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, {\"id_auditoria_suministro\": 80488, \"entidad_afectada\": \"auditorias_suministros\", \"tipo_operacion\": \"UPDATE\", \"resultado\": \"RECHAZADO\", \"fecha_emision\": \"2026-11-13T20:52:40.576671Z\", \"id_activo_biologico\": null, \"id_ciclo_productivo\": null, \"registro_incompleto\": true, \"detalle_causa\": \"Se rechazó una solicitud de actualización parcial del registro 80481 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.\"}], \"conteos\": {\"eventos_nuevos\": 8, \"con_campos_base_nulos\": 0, \"sin_activo_o_sin_ciclo\": 2, \"sin_contexto_que_incumplen\": 0}, \"consolidacion\": {\"CICLO_CONSOLIDADO\": {\"id_auditoria_suministro\": 80486, \"entidad_afectada\": \"provision_nic41\", \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:38.449660Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}, \"REPORTE_COSTOS_GENERADO\": {\"id_auditoria_suministro\": 80487, \"entidad_afectada\": \"provision_nic41\", \"tipo_operacion\": \"REPORTE_COSTOS_GENERADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:38.453015Z\", \"id_activo_biologico\": 2425, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}}} | POST /sesiones/ -> HTTP 200 [X-Request-Id=cc010d36-62e6-4d57-b753-265779a13dbf]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=ee649272-88ec-4bbb-beeb-1c6ab3af9eb3]; POST /activos-biologicos -> HTTP 201 (id_activo=2424) [X-Request-Id=296a422b-76ba-4354-9c1e-737b2e4555f9]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=be154be6-9152-4cc4-885a-43306b040410]; POST /suministros/costeo-directo -> HTTP 409 CICLO_NO_ACTIVO [X-Request-Id=2b4b39fb-9869-4a87-b1f7-de10c6c5d305]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=c007ff1f-3065-4f00-bf2c-fc290be580b0]; POST /activos-biologicos -> HTTP 201 (id_activo=2425) [X-Request-Id=b77fa85c-c1fc-408b-8d48-1a6607974c3a]; POST /activos-biologicos/2425/fases -> HTTP 201 (id_activo=2425) [X-Request-Id=74f9c0a0-f37a-4dbf-be6c-15948357670e]; (+9 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Emisores consumo, medicamento, RF-78 y resultado_ica sobre un activo con una sola fase activa",
+      "esperado": "[RF-80 v2.0 Restriccion 8 'TODOS los eventos', RNF-08, CA-11] >= 1 evento nuevo de registros_consumo_alimentos, registros_medicamentos y resultado_ica; en todos tipo_operacion, resultado y fecha_emision no nulos, id_activo_biologico = activo creado e id_ciclo_productivo igual al del evento RF-78 del mismo activo (o nulo con registro_incompleto=true y causa que lo nombra); resultado_ica INSERT/EXITOSO con ciclo no nulo y GET /{id} igual al listado; cierre -> 200",
+      "obtenido": "OBTENIDO: {\"ultimo_id_inicio_a02\": 80488, \"activo\": 2426, \"fases_activas\": [998], \"rf78\": {\"http\": 200, \"x_request_id\": \"85043466-cc46-49bb-86c3-cd629d617a80\", \"eventos\": [{\"id_auditoria_suministro\": 80489, \"entidad_afectada\": \"registro_suministro\", \"tipo_operacion\": \"SUMINISTRO_REGISTRADO\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:42.673743Z\", \"id_activo_biologico\": 2426, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}]}, \"ciclo_referencia_rf78\": 1, \"consumo\": {\"http\": 201, \"x_request_id\": \"dd4bc3ff-b62a-4617-96ba-3ac0357c47bc\"}, \"medicamento\": {\"http\": 201, \"x_request_id\": \"803b024c-9231-4a16-a12e-ba1844d13bc6\"}, \"cierre\": {\"http\": 200, \"x_request_id\": \"ba95f70e-bdab-4019-bc01-56cf96a2fbb3\"}, \"por_entidad\": {\"consumo\": [{\"id_auditoria_suministro\": 80492, \"entidad_afectada\": \"registros_consumo_alimentos\", \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:43.340894Z\", \"id_activo_biologico\": 2426, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}], \"medicamento\": [{\"id_auditoria_suministro\": 80495, \"entidad_afectada\": \"registros_medicamentos\", \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:43.557417Z\", \"id_activo_biologico\": 2426, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}], \"resultado_ica\": [{\"id_auditoria_suministro\": 80498, \"entidad_afectada\": \"resultado_ica\", \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:43.799240Z\", \"id_activo_biologico\": 2426, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}]}, \"incumplen\": [], \"resultado_ica_insert\": [{\"id_auditoria_suministro\": 80498, \"entidad_afectada\": \"resultado_ica\", \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"fecha_emision\": \"2026-11-13T20:52:43.799240Z\", \"id_activo_biologico\": 2426, \"id_ciclo_productivo\": 1, \"registro_incompleto\": false, \"detalle_causa\": null}], \"detalle_resultado_ica\": [{\"id\": 80498, \"http\": 200, \"x_request_id\": \"baee5a1b-46c8-4e8c-8c1e-620da29c07a1\", \"campos_distintos\": {}}]} | GET /suministros/auditoria -> HTTP 200 [X-Request-Id=0ce562d7-ed39-4cbb-8c94-2d558a74f6f0]; POST /activos-biologicos -> HTTP 201 (id_activo=2426) [X-Request-Id=8625f8c6-abb3-4c02-bafa-aa1ddea57c47]; POST /activos-biologicos/2426/fases -> HTTP 201 (id_activo=2426) [X-Request-Id=3ba386f1-b9e1-4dc5-b733-c42e01cb6633]; GET /activos-biologicos/2426/fases -> HTTP 200 (id_activo=2426) [X-Request-Id=c68c1243-e5d1-4cc7-b845-c50789b8de4e]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=9d03e899-e13e-4111-a6b2-e9ffca6b7c23]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=85043466-cc46-49bb-86c3-cd629d617a80]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=e38d3658-ae16-4486-a233-66bcd90c5c66]; GET /suministros/consumo-alimentos/tipos-alimento -> HTTP 200 (total=8) [X-Request-Id=aebd8ff6-6634-4ec9-8745-d54154bde92a]; (+6 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Filtro por activo y ciclo con ordenar_por=fecha_emision",
+      "esperado": "[RF-80 v2.0 CA-4 'orden cronologico (por timestamp_emision)'; RNF-08] GET /suministros/auditoria?id_activo_biologico&id_ciclo_productivo&ordenar_por=fecha_emision incluye el resultado_ica del cierre y los eventos de A02 de ese activo y ciclo; >= 2 eventos con fecha_emision no nula y lista monotona en UNA sola direccion; fecha_emision(resultado_ica) > fecha_emision(RF-78) y su posicion coincide con la direccion detectada",
+      "obtenido": "OBTENIDO: {\"parametros\": {\"id_activo_biologico\": 2426, \"id_ciclo_productivo\": 1, \"ordenar_por\": \"fecha_emision\", \"pagina\": 1, \"registros_por_pagina\": 100}, \"http\": 200, \"x_request_id\": \"b21cb4d4-0fdf-49b5-bd04-c6164f4ea352\", \"total\": 12, \"lista\": [[80500, \"provision_nic41\", \"2026-11-13T20:52:43.847180Z\"], [80499, \"provision_nic41\", \"2026-11-13T20:52:43.842851Z\"], [80498, \"resultado_ica\", \"2026-11-13T20:52:43.799240Z\"], [80497, \"registro_suministro\", \"2026-11-13T20:52:43.575951Z\"], [80496, \"registro_suministro\", \"2026-11-13T20:52:43.575951Z\"], [80495, \"registros_medicamentos\", \"2026-11-13T20:52:43.557417Z\"], [80494, \"registro_suministro\", \"2026-11-13T20:52:43.366734Z\"], [80493, \"registro_suministro\", \"2026-11-13T20:52:43.366734Z\"], [80492, \"registros_consumo_alimentos\", \"2026-11-13T20:52:43.340894Z\"], [80491, \"registro_suministro\", \"2026-11-13T20:52:42.673743Z\"], [80490, \"registro_suministro\", \"2026-11-13T20:52:42.673743Z\"], [80489, \"registro_suministro\", \"2026-11-13T20:52:42.673743Z\"]], \"esperados_de_a02\": [80489, 80490, 80491, 80492, 80493, 80494, 80495, 80496, 80497, 80498, 80499, 80500], \"faltan\": [], \"sin_fecha_emision\": [], \"direccion_detectada\": \"NO_CRECIENTE\", \"posiciones\": {\"resultado_ica\": 2, \"rf78\": 11}, \"fecha_emision\": {\"resultado_ica\": \"2026-11-13T20:52:43.799240+00:00\", \"rf78\": \"2026-11-13T20:52:42.673743+00:00\"}} | GET /suministros/auditoria -> HTTP 200 (total=12, ids=[80500, 80499, 80498, 80497, 80496, 80495]) [X-Request-Id=b21cb4d4-0fdf-49b5-bd04-c6164f4ea352]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Inmutabilidad por API (PUT/PATCH/DELETE/POST como Admin)",
+      "esperado": "Cada metodo -> HTTP 405 Allow: GET, GET objetivo intacto (incluido hash) y 1 evento RECHAZADO de Admin en <=2 s sin cuerpo enviado",
+      "obtenido": "OBTENIDO: GET /suministros/auditoria/80482 -> HTTP 200 (id_activo=2425) [X-Request-Id=71a27c39-9f40-4f66-ada1-2ae784a101fc]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=4fe4345b-c776-4e69-96d3-5fc07b3376a5]; PUT /suministros/auditoria/80482 -> HTTP 405 (Allow=GET) [X-Request-Id=4693d8e6-ce9a-4ff9-84ef-e04b6b52e21f]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=d2f63d9e-018e-4cfa-893e-171c8ecc6824]; GET /suministros/auditoria/80501 -> HTTP 200 [X-Request-Id=4fd4456d-a2c8-487d-b329-785603021327]; GET /suministros/auditoria/80482 -> HTTP 200 (id_activo=2425) [X-Request-Id=94da3299-d62c-49b7-a823-9722283e0f3f]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=a7b54968-2b46-4f23-9249-eaba6761d8e4]; PATCH /suministros/auditoria/80482 -> HTTP 405 (Allow=GET) [X-Request-Id=ed3860af-cd0d-4c0c-b8d9-3101eb750900]; (+13 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Intentos de otros actores (Productor, ID inexistente 999999999, sin token)",
+      "esperado": "Productor PUT -> 405 sin fuga + 1 RECHAZADO de Productor; Admin ID 999999999 -> 405 + 1 RECHAZADO; sin token -> 401",
+      "obtenido": "OBTENIDO: POST /sesiones/ -> HTTP 200 [X-Request-Id=245ada08-14a9-467b-9229-44dd51e22292]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=80ceffa6-d335-4c41-8379-641645574671]; PUT /suministros/auditoria/80482 -> HTTP 405 (Allow=GET) [X-Request-Id=6ca8971f-eb7d-4e9b-a418-257009b985e1]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=6452f40c-fbf2-4a36-8334-c6c4d37036f6]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=46b162ff-36a0-4593-863b-9fd4eafedd69]; PUT /suministros/auditoria/999999999 -> HTTP 405 (Allow=GET) [X-Request-Id=1d047925-00bc-436f-ae66-72ffcea88ebd]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=ac643acf-d8d6-4d49-a0ea-b5f9b1715436]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=467dfddc-f329-4c96-9abc-6e042d5b3b24]; (+5 requests)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Recalculo SHA-256 (nuevos v2 e historicos v1) + simulacion local alterada",
+      "esperado": "Recalculo desde GET /{id} igual a hash_integridad en nuevos v2 e historicos v1 (87/88/89); simulacion alterada difiere",
+      "obtenido": "AssertionError: B03 discrepancia hash v2 en [(80498, 'resultado_ica')] [TC-M05-093; C25.3, ADR-M05-02] | OBTENIDO: {\"claves no columna excluidas\": [\"nombre_activo\", \"nombre_usuario\"], \"evaluados_v2\": [{\"id\": 80481, \"entidad\": \"registro_suministro\", \"almacenado\": \"7ffefd052ec5b539411853ed6ff628b86b143242a83e1fc6693b5075c4637185\", \"recalculado\": \"7ffefd052ec5b539411853ed6ff628b86b143242a83e1fc6693b5075c4637185\", \"coincide\": true}, {\"id\": 80482, \"entidad\": \"registro_suministro\", \"almacenado\": \"99294517db856a3ceac21ef0cc4ed04d643ed54355e145627900fcc72e4e0aea\", \"recalculado\": \"99294517db856a3ceac21ef0cc4ed04d643ed54355e145627900fcc72e4e0aea\", \"coincide\": true}, {\"id\": 80483, \"entidad\": \"registro_suministro\", \"almacenado\": \"ad308d94266696ef04eabdb261b7e3d787d727c36139b833b4430cfa3356963e\", \"recalculado\": \"ad308d94266696ef04eabdb261b7e3d787d727c36139b833b4430cfa3356963e\", \"coincide\": true}, {\"id\": 80484, \"entidad\": \"registro_suministro\", \"almacenado\": \"4cf46f7af7dddf042271ca45310241ad3e6d0fd6177eecb54f08d985a9752446\", \"recalculado\": \"4cf46f7af7dddf042271ca45310241ad3e6d0fd6177eecb54f08d985a9752446\", \"coincide\": true}, {\"id\": 80485, \"entidad\": \"resultado_ica\", \"almacenado\": \"59bde7aee880d82068e1e345e909b00cd827c2d9cddc6ebca101486d9494a9be\", \"recalculado\": \"59bde7aee880d82068e1e345e909b00cd827c2d9cddc6ebca101486d9494a9be\", \"coincide\": true}, {\"id\": 80486, \"entidad\": \"provision_nic41\", \"almacenado\": \"000e19039036438a68458611236b9f678e68be0eb63f98bb04856b9d36c6a787\", \"recalculado\": \"000e19039036438a68458611236b9f678e68be0eb63f98bb04856b9d36c6a787\", \"coincide\": true}, {\"id\": 80487, \"entidad\": \"provision_nic41\", \"almacenado\": \"0e4d10fb58f7f38124ee2c08a882052c5cde603612d762671262b1307cde70db\", \"recalculado\": \"0e4d10fb58f7f38124ee2c08a882052c5cde603612d762671262b1307cde70db\", \"coincide\": true}, {\"id\": 80488, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"8ab7b43471657300d2e9fd77fa43e397d91559391023e65de49df46b6c917231\", \"recalculado\": \"8ab7b43471657300d2e9fd77fa43e397d91559391023e65de49df46b6c917231\", \"coincide\": true}, {\"id\": 80489, \"entidad\": \"registro_suministro\", \"almacenado\": \"73dccdafcec90066b1f65d847be1f607771aba8bfb1ca3bd1460b033fa186523\", \"recalculado\": \"73dccdafcec90066b1f65d847be1f607771aba8bfb1ca3bd1460b033fa186523\", \"coincide\": true}, {\"id\": 80490, \"entidad\": \"registro_suministro\", \"almacenado\": \"7108114b8070256d90466b47645c50bfca4b5b900e2650a47913fed31b963757\", \"recalculado\": \"7108114b8070256d90466b47645c50bfca4b5b900e2650a47913fed31b963757\", \"coincide\": true}, {\"id\": 80491, \"entidad\": \"registro_suministro\", \"almacenado\": \"43e19d668497d388ab55288f0c10a78b37d5978eec75a560cc4d202732cd9848\", \"recalculado\": \"43e19d668497d388ab55288f0c10a78b37d5978eec75a560cc4d202732cd9848\", \"coincide\": true}, {\"id\": 80493, \"entidad\": \"registro_suministro\", \"almacenado\": \"ed27c8acbbe2fc80953810e46993be26a792a8c2ff914011d04bd35bf28610b1\", \"recalculado\": \"ed27c8acbbe2fc80953810e46993be26a792a8c2ff914011d04bd35bf28610b1\", \"coincide\": true}, {\"id\": 80494, \"entidad\": \"registro_suministro\", \"almacenado\": \"019cb4d661577552cee8aaef003352adb54cfd7001b4b3d36b92ffc6e8319802\", \"recalculado\": \"019cb4d661577552cee8aaef003352adb54cfd7001b4b3d36b92ffc6e8319802\", \"coincide\": true}, {\"id\": 80496, \"entidad\": \"registro_suministro\", \"almacenado\": \"bc79883063eb0188405d6233502244a3571c2046bf4c11cb4cfe1f6f76204ac0\", \"recalculado\": \"bc79883063eb0188405d6233502244a3571c2046bf4c11cb4cfe1f6f76204ac0\", \"coincide\": true}, {\"id\": 80497, \"entidad\": \"registro_suministro\", \"almacenado\": \"250c808f63c3edd2f8181edeadde5e701ee720a290e8e520ee1195eaefd1fab0\", \"recalculado\": \"250c808f63c3edd2f8181edeadde5e701ee720a290e8e520ee1195eaefd1fab0\", \"coincide\": true}, {\"id\": 80498, \"entidad\": \"resultado_ica\", \"almacenado\": \"22b6255fc6396e63ccec57d9f4303a8708c753cce9469af27c637463397e65fc\", \"recalculado\": \"2a4b2d8a1c516bfa625df74d460a4f3703a7d495ef24bdfb74476f94d4104685\", \"coincide\": false}, {\"id\": 80499, \"entidad\": \"provision_nic41\", \"almacenado\": \"67f747f72a114ff79a513e7f511715f9903726e9971d9bef08f3c58f595c932c\", \"recalculado\": \"67f747f72a114ff79a513e7f511715f9903726e9971d9bef08f3c58f595c932c\", \"coincide\": true}, {\"id\": 80500, \"entidad\": \"provision_nic41\", \"almacenado\": \"57d7d67ba5eb762830dfbf32631988efa0122d74fa66ca1fae8d279f5617ea94\", \"recalculado\": \"57d7d67ba5eb762830dfbf32631988efa0122d74fa66ca1fae8d279f5617ea94\", \"coincide\": true}, {\"id\": 80501, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"d39250a7488b6f9382a101250e5b2c96816520ea552ac46561730e3f602358c8\", \"recalculado\": \"d39250a7488b6f9382a101250e5b2c96816520ea552ac46561730e3f602358c8\", \"coincide\": true}, {\"id\": 80502, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"e20755df6a249fca86355caa1e0c11f686532739cea81fbe7b8057b365b19cdb\", \"recalculado\": \"e20755df6a249fca86355caa1e0c11f686532739cea81fbe7b8057b365b19cdb\", \"coincide\": true}, {\"id\": 80503, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"8b98bf1a2f970aba0d1ccf782376539e41a6fa3cc00bb37c2b8883ed51072098\", \"recalculado\": \"8b98bf1a2f970aba0d1ccf782376539e41a6fa3cc00bb37c2b8883ed51072098\", \"coincide\": true}, {\"id\": 80504, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"bce44b6739a3f74c6d5aca9aabb14b499cb9a0d45d786fe84628fd6b60f56ef3\", \"recalculado\": \"bce44b6739a3f74c6d5aca9aabb14b499cb9a0d45d786fe84628fd6b60f56ef3\", \"coincide\": true}, {\"id\": 80505, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"874088cd12cba13509bb4f26fcece02d78d47e3bd3984bc685391727633e4a64\", \"recalculado\": \"874088cd12cba13509bb4f26fcece02d78d47e3bd3984bc685391727633e4a64\", \"coincide\": true}, {\"id\": 80506, \"entidad\": \"auditorias_suministros\", \"almacenado\": \"fe4a2671c39ba012f45e860e23e1be454ac8f116803468d2cae0e453e701787e\", \"recalculado\": \"fe4a2671c39ba012f45e860e23e1be454ac8f116803468d2cae0e453e701787e\", \"coincide\": true}], \"evaluados_v1\": [], \"conteo_por_entidad\": {\"registro_suministro\": 11, \"provision_nic41\": 4, \"auditorias_suministros\": 7, \"resultado_ica\": 2}, \"v2_fuera_de_alcance\": [\"registros_consumo_alimentos\", \"registros_medicamentos\"]} | GET /suministros/auditoria -> HTTP 200 [X-Request-Id=ff188fbd-0d38-4abc-8504-157889418a7e]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=db30bf57-75ca-4c14-861c-e16c1362c704]; GET /suministros/auditoria/80492 -> HTTP 200 (id_activo=2426) [X-Request-Id=94ca797b-b26c-4331-b4d5-398e67d81fd9]; GET /suministros/auditoria/80495 -> HTTP 200 (id_activo=2426) [X-Request-Id=150e41f3-a724-427e-a1f4-976b5f5cd308]; GET /suministros/auditoria/80481 -> HTTP 200 (id_activo=2424) [X-Request-Id=5fa4229b-725f-4c7d-9564-02f8b2dbdc2c]; GET /suministros/auditoria/80482 -> HTTP 200 (id_activo=2425) [X-Request-Id=edb35539-222e-4224-885f-549bf2b05000]; GET /suministros/auditoria/80483 -> HTTP 200 (id_activo=2425) [X-Request-Id=2a0cd34b-fee3-4541-b5c9-efbaad49d703]; GET /suministros/auditoria/80484 -> HTTP 200 (id_activo=2425) [X-Request-Id=a9a0b8f9-9f79-4cac-8c61-58973821d367]; (+20 requests)",
+      "estado": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "B04 Ausencia de endpoints de escritura en /openapi.json",
+      "esperado": "GET /openapi.json no declara POST/PUT/PATCH/DELETE bajo /suministros/auditoria*",
+      "obtenido": "OBTENIDO: GET /openapi.json -> HTTP 200 [X-Request-Id=3d909de0-546e-4403-b587-c4ab7f4337c4]",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre de la corrida sandbox principal",
+      "esperado": "DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso",
+      "obtenido": "OBTENIDO: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=e1563477-0764-4141-a6e2-85ca2c731c0d]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=0e4d0197-6e39-435e-bbc2-2e0b1c299443]; GET /suministros/auditoria/87 -> HTTP 200 (id_activo=57) [X-Request-Id=c7fa334c-9a1b-45c9-840f-b678f7e8786d]; GET /suministros/auditoria/88 -> HTTP 200 (id_activo=57) [X-Request-Id=3c7840c0-2931-44bc-9c25-799eaa0d9991]; GET /suministros/auditoria/89 -> HTTP 200 (id_activo=57) [X-Request-Id=d8a6d6b6-2f63-445b-9c5b-46cb3f3825ee]; DELETE /test-control/runs/tc-m05-g39-adm-cd27ede4 -> HTTP 200 [X-Request-Id=ece80490-2c8f-4d16-b474-4c1a19a9a33c]",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura",
+      "esperado": "total y ultimo_id iguales a T00; GET de activos creados -> HTTP 404; DELETE -> 200",
+      "obtenido": "OBTENIDO: POST /sesiones/ -> HTTP 200 [X-Request-Id=9fe5d071-a323-423a-983e-fbf0d274f59b]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=767492e8-23ac-4e8c-a05b-dbe10b56665a]; GET /activos-biologicos/2424 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=179ec86e-d12a-49c0-8899-4362bdc7133c]; GET /activos-biologicos/2425 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=b2c4cce5-0ede-4b99-9d33-9aa66034ce47]; GET /activos-biologicos/2426 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=69c6c0ac-0a91-41a0-911e-c03b4982a93a]; DELETE /test-control/runs/tc-m05-g39-inopost-0798a787 -> HTTP 200 [X-Request-Id=7cfbdc09-6d93-4261-ace2-5191a8169d1c]",
+      "estado": "OK"
+    }
+  ],
+  "observaciones": {
+    "total_eventos_corrida": 26,
+    "todos_uuids_presentes_y_validos": true,
+    "todos_uuids_unicos": true,
+    "uuids_invalidos": [],
+    "uuids_duplicados": [],
+    "eventos_corrida": [
+      {
+        "id_auditoria_suministro": 80481,
+        "tipo_operacion": "REGISTRO_FALLIDO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "afd6f050-f836-471c-8eb2-0aa205264ec1",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80482,
+        "tipo_operacion": "SUMINISTRO_REGISTRADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "0997b823-cd26-408c-88b0-a5f076129e07",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80483,
+        "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "132f4eda-83fd-4be3-b126-339d6751d8c7",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80484,
+        "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "dd335702-8e21-4fd1-b491-48349643ee02",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80485,
+        "tipo_operacion": "INSERT",
+        "entidad_afectada": "resultado_ica",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "575a184c-6082-4bd5-a088-4f7b6ec6c053",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80486,
+        "tipo_operacion": "CICLO_CONSOLIDADO",
+        "entidad_afectada": "provision_nic41",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "5915d931-6aab-41c8-9466-b8032b50ef1c",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80487,
+        "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+        "entidad_afectada": "provision_nic41",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "7ac9bef8-afa6-421d-a059-8f03827f3d88",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80488,
+        "tipo_operacion": "UPDATE",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "79ef67df-d5d0-4392-8631-29e25cef7e50",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80489,
+        "tipo_operacion": "SUMINISTRO_REGISTRADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "dc08614d-a26a-4910-b45e-f2ad714e9576",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80490,
+        "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "08693953-32af-4d2a-ad11-65e0dd270ede",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80491,
+        "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "451b9743-bc87-4935-b1a3-fe55a0e259d2",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80492,
+        "tipo_operacion": "INSERT",
+        "entidad_afectada": "registros_consumo_alimentos",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "80a75480-8e38-418d-86f9-2fd38bf4d401",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80493,
+        "tipo_operacion": "SUMINISTRO_REGISTRADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "eadfeb61-45f8-4cdc-9c22-6e9dd477ad30",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80494,
+        "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "6554f706-49ab-4280-8dff-d3c8246c74f4",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80495,
+        "tipo_operacion": "INSERT",
+        "entidad_afectada": "registros_medicamentos",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "0025e94d-fd0e-445e-b2b7-70e121c40984",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80496,
+        "tipo_operacion": "SUMINISTRO_REGISTRADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "0563983c-8b21-461c-9151-09d2a89bdf05",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80497,
+        "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+        "entidad_afectada": "registro_suministro",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "ccc888f7-b448-4834-922c-865db63bc48e",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80498,
+        "tipo_operacion": "INSERT",
+        "entidad_afectada": "resultado_ica",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "2a3f1f21-1754-4996-b70a-2858b0ee65a7",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80499,
+        "tipo_operacion": "CICLO_CONSOLIDADO",
+        "entidad_afectada": "provision_nic41",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "954a5fe5-da87-4d11-8c21-31e9fb6c0d2c",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80500,
+        "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+        "entidad_afectada": "provision_nic41",
+        "resultado": "EXITOSO",
+        "id_evento_m05": "c91ec2a3-1d04-4b4f-b25a-17425956fdc9",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80501,
+        "tipo_operacion": "UPDATE",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "9d5564a1-fc19-4b9a-91d9-5c56db202f27",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80502,
+        "tipo_operacion": "UPDATE",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "e96d66f1-bb0e-490e-a8d3-2c58aa993641",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80503,
+        "tipo_operacion": "DELETE",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "83c0ce5b-6397-49fe-8ba2-e86454e2cee0",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80504,
+        "tipo_operacion": "INSERT",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "3b11fc0f-8f4a-4750-b438-be066901c2d2",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80505,
+        "tipo_operacion": "UPDATE",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "530ed03c-f7fb-48ca-86aa-f84a929d5e0a",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      },
+      {
+        "id_auditoria_suministro": 80506,
+        "tipo_operacion": "UPDATE",
+        "entidad_afectada": "auditorias_suministros",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "a9230c38-d875-4dac-83fe-62fc023ec203",
+        "uuid_valido": true,
+        "version_hash_integridad": 2
+      }
+    ],
+    "historicos_87_88_89": [
+      {
+        "id_auditoria_suministro": 87,
+        "tipo_operacion": "CICLO_CONSOLIDADO",
+        "registro_incompleto": true,
+        "detalle_causa": null,
+        "version_hash_integridad": 1
+      },
+      {
+        "id_auditoria_suministro": 88,
+        "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+        "registro_incompleto": true,
+        "detalle_causa": null,
+        "version_hash_integridad": 1
+      },
+      {
+        "id_auditoria_suministro": 89,
+        "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+        "registro_incompleto": true,
+        "detalle_causa": null,
+        "version_hash_integridad": 1
+      }
+    ],
+    "b01_rechazos_tipo_y_clasificacion": [
+      {
+        "metodo": "PUT",
+        "id_auditoria_suministro": 80501,
+        "tipo_operacion": "UPDATE",
+        "clasificacion_registro": "NIC41",
+        "retencion_aplicable": "5 años",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "9d5564a1-fc19-4b9a-91d9-5c56db202f27",
+        "version_hash_integridad": 2
+      },
+      {
+        "metodo": "PATCH",
+        "id_auditoria_suministro": 80502,
+        "tipo_operacion": "UPDATE",
+        "clasificacion_registro": "NIC41",
+        "retencion_aplicable": "5 años",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "e96d66f1-bb0e-490e-a8d3-2c58aa993641",
+        "version_hash_integridad": 2
+      },
+      {
+        "metodo": "DELETE",
+        "id_auditoria_suministro": 80503,
+        "tipo_operacion": "DELETE",
+        "clasificacion_registro": "NIC41",
+        "retencion_aplicable": "5 años",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "83c0ce5b-6397-49fe-8ba2-e86454e2cee0",
+        "version_hash_integridad": 2
+      },
+      {
+        "metodo": "POST",
+        "id_auditoria_suministro": 80504,
+        "tipo_operacion": "INSERT",
+        "clasificacion_registro": "NIC41",
+        "retencion_aplicable": "5 años",
+        "resultado": "RECHAZADO",
+        "id_evento_m05": "3b11fc0f-8f4a-4750-b438-be066901c2d2",
+        "version_hash_integridad": 2
+      }
+    ],
+    "b02_sin_token_401": {
+      "http_status": 401,
+      "x_request_id": "8f96b2aa-c5f3-46f3-8064-b14dc954354d",
+      "eventos_nuevos_observados": 0,
+      "ids_eventos_observados": []
+    },
+    "b03_etiqueta_simulacion": "simulacion local; la alteracion real en BD no es ejecutable en TEST: requiere DML y el trigger lo bloquea",
+    "b03_hash_no_verificable_via_api": {
+      "nota": "hash no verificable via API (ver evidencias/parteA-reintento2/CONFIRMACION_HASH_G39.txt): la respuesta devuelve los numericos sin la escala con la que se sellaron",
+      "eventos": [
+        {
+          "id": 80492,
+          "entidad": "registros_consumo_alimentos",
+          "hash_almacenado": "322d613ab54a37b38eead62c9c394db9c0b6f840c9fb727a3540e4818acc81ac",
+          "hash_recalculado": "9800c2615bad74468b77fbdb20a2f72b6588a5bb27263110a3865eb437725b0b",
+          "numericos_texto_crudo": {
+            "datos_nuevos.id_consumo_alimeto": "2132",
+            "datos_nuevos.id_activo_biologico": "2426",
+            "datos_nuevos.id_tipo_alimento": "2",
+            "datos_nuevos.cantidad_suministrada": "10.0",
+            "datos_nuevos.costo_total": "25000.0",
+            "datos_nuevos.id_usuario": "104",
+            "datos_nuevos.costo_unitario": "2500.0",
+            "datos_nuevos.consumo_por_individuo_kg": "0.1667"
+          },
+          "x_request_id": "94ca797b-b26c-4331-b4d5-398e67d81fd9"
+        },
+        {
+          "id": 80495,
+          "entidad": "registros_medicamentos",
+          "hash_almacenado": "ca0aa90a28ff60323cb7c56bbd0999f572947d46582464e6a6c5b9ebac027e94",
+          "hash_recalculado": "16bebaedc516f8d618134ba644fea1d04ee6c03907f94b062ace190e95b586ac",
+          "numericos_texto_crudo": {
+            "datos_nuevos.id_registro_medicamento": "280",
+            "datos_nuevos.id_activo_biologico": "2426",
+            "datos_nuevos.cantidad": "5.0",
+            "datos_nuevos.costo_unitario_medicamento": "25000.0",
+            "datos_nuevos.costo_total_medicamento": "125000.0",
+            "datos_nuevos.id_usuario": "104",
+            "datos_nuevos.periodo_retiro_dias": "0",
+            "datos_nuevos.dosis_por_individuo": "0.0833"
+          },
+          "x_request_id": "150e41f3-a724-427e-a1f4-976b5f5cd308"
+        }
+      ]
+    },
+    "version_hash_integridad_eventos_nuevos": [
+      "2"
+    ],
+    "formatos_detalle_causa_incompletos": [
+      "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2424. Solicitud: 98caf469-d369-407c-982b-984013dedda4. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.",
+      "Se rechazó una solicitud de actualización del registro 80482 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.",
+      "Se rechazó una solicitud de actualización del registro 999999999 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.",
+      "Se rechazó una solicitud de actualización parcial del registro 80481 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.",
+      "Se rechazó una solicitud de actualización parcial del registro 80482 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.",
+      "Se rechazó una solicitud de eliminación del registro 80482 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo.",
+      "Se rechazó una solicitud de inserción del registro 80482 de la bitácora, que es de solo lectura. Campos faltantes: activo biológico, ciclo productivo."
+    ],
+    "costos_productivos": "no se puede producir por API: ningun emisor en src/ ni en migraciones; solo tests/integration/test_inc_m05_278_g39_auditoria_integridad_integration.py:457; trigger en esquema_baseline.sql:42892; correccion solo por lectura de codigo (a107980ae001:42)",
+    "resultado_ica_batch_nocturno_80411_80426": "Parte 0.5: fecha_emision presente, sin id_ciclo_productivo y registro_incompleto=true",
+    "resultado_ica_historicos_fecha_emision_nula": "Parte 0.5 no mostro ninguno entre los 15 resultado_ica mas recientes (CHECK NOT VALID)",
+    "alembic_heads": "dos heads en el merge 0ca5adff (a107980ae001 y d1f3a5c7e902), unidas por 810b1e4eb4f9 (commit 16738d58); origin/test con una sola head 0884ba08a944",
+    "a03_direccion_orden": "la API ordena DESC con nulos al final (auditoria_suministro_read_repository.py:111-112) y no expone un parametro de direccion; CA-4 no fija la direccion",
+    "riesgo_g18": "descartado: fn_sellar_auditoria_m05 (BEFORE INSERT, unico) marca el incidente REGISTRO_FALLIDO como incompleto con causa antes de los CHECK"
+  }
+}

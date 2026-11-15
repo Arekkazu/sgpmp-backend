@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | INC-M06-337/342/345/350/351 RF-86/87: cierre en espera, ajuste, acumulado, matriz, titular y 403 |
+# | 2026-11-13 | Leandro | TC-M06-G52 RF-91: comprobar el ajuste sobre una variación que sí ingresó al cierre. |
 """Lote QA M06 del 2026-11-10 contra el esquema real: el cierre que espera autorización se queda
 EN_CIERRE (y se cancela), el período cerrado nombra a quién lo cerró, el ajuste de período anterior,
 el acumulado del período abierto, los bloqueos por matriz y titular, el aviso de cuenta faltante y
@@ -20,6 +21,7 @@ from tests.integration.test_m06_flujo_nic41_integration import (  # noqa: F401 (
     HOY,
     _MATRIZ,
     _activo,
+    _auditar_pesaje,
     _configurar,
     _finca,
     _pesaje,
@@ -67,6 +69,9 @@ def _codigo(llamada) -> str:
 def test_cierre_espera_en_cierre_se_cancela_y_el_ajuste_va_al_periodo_abierto(db_session, m06, contador):
     uid = contador["id_usuario"]
     _, activo, periodo = _reconocido(db_session, m06, uid)
+    evento = _pesaje(db_session, activo, "420")
+    _auditar_pesaje(db_session, activo, evento, uid)
+    assert m06.procesar_eventos().execute().get("PROCESADO") == 1
     db_session.execute(text("SET LOCAL session_replication_role = replica"))  # el precio vence: activo sin precio
     db_session.execute(text("UPDATE modulo6.precios_mercado SET fecha_vencimiento = :d WHERE id_especie = :e"),
                        {"d": HOY - timedelta(days=1), "e": ESPECIE})
@@ -92,7 +97,7 @@ def test_cierre_espera_en_cierre_se_cancela_y_el_ajuste_va_al_periodo_abierto(db
     # La autorización continúa el mismo cierre.
     _codigo(lambda: m06.cierre().execute(p, uid))
     en_espera = m06.periodos.ejecucion_en_proceso(p)["id_cierre"]
-    cierre = m06.cierre().execute(p, uid, incluir_activos_sin_precio=True)
+    cierre = m06.cierre().execute(p, uid, incluir_activos_sin_precio=True, autorizar_exclusiones=True)
     assert (cierre["estado"], cierre["id_cierre"]) == ("CERRADO", en_espera)
 
     # INC-M06-350-G44 02: el período cerrado nombra a quien lo cerró.
@@ -101,17 +106,17 @@ def test_cierre_espera_en_cierre_se_cancela_y_el_ajuste_va_al_periodo_abierto(db
 
     # INC-M06-351-G45 03: ajuste en el período abierto, con referencia y justificación; el cerrado no cambia.
     [original] = [ln for ln in m06.asientos.del_activo(activo)
-                  if ln.tipo_hecho == "RECONOCIMIENTO_DIFERENCIA" and ln.id_periodo_contable == p]
+                  if ln.tipo_hecho == "VARIACION_VR_TB" and ln.id_periodo_contable == p]
     lineas_cerradas = len(m06.asientos.del_periodo(p))
     justificacion = "El costo de adquisición tenía un descuento no aplicado"
     assert _codigo(lambda: m06.ajuste_periodo_anterior().execute(
-        original.id_linea_asiento_nic41, "DISMINUIR", D("40000.01"), justificacion, uid))[0] == "AJUSTE_SUPERA_VALOR"
+        original.id_linea_asiento_nic41, "DISMINUIR", original.valor + D("0.01"), justificacion, uid))[0] == "AJUSTE_SUPERA_VALOR"
     ajuste = m06.ajuste_periodo_anterior().execute(original.id_linea_asiento_nic41, "DISMINUIR", D("10000"),
                                                    justificacion, uid)
     assert ajuste["id_periodo_contable"] == cierre["id_periodo_siguiente"] and ajuste["estado"] == "REGISTRADA"
     [linea] = [ln for ln in m06.asientos.ajustes_de(original.id_linea_asiento_nic41)]
     assert (linea.tipo_hecho, linea.tipo_hecho_corregido, linea.justificacion) == (
-        "AJUSTE_PERIODO_ANTERIOR", "RECONOCIMIENTO_DIFERENCIA", justificacion)
+        "AJUSTE_PERIODO_ANTERIOR", "VARIACION_VR_TB", justificacion)
     assert (linea.cuenta_debito, linea.cuenta_credito) == (original.cuenta_credito, original.cuenta_debito)
     assert len(m06.asientos.del_periodo(p)) == lineas_cerradas
     assert _codigo(lambda: m06.ajuste_periodo_anterior().execute(
@@ -121,7 +126,7 @@ def test_cierre_espera_en_cierre_se_cancela_y_el_ajuste_va_al_periodo_abierto(db
     acumulado = m06.estado_resultados().acumulado(cierre["id_periodo_siguiente"], {})
     assert acumulado["estado_periodo"] == "ABIERTO" and not acumulado["es_definitivo"]
     # El ajuste resta del componente del hecho que corrige (la consulta usa tipo_hecho_corregido).
-    assert D(acumulado["componentes"]["ganancia_reconocimiento_inicial"]) == D("-10000")
+    assert D(acumulado["componentes"]["ganancia_transformacion_biologica"]) == D("-10000")
     assert m06.reportes.listar_estados(cierre["id_periodo_siguiente"]) == []
 
 

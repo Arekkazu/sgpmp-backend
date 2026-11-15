@@ -1,0 +1,78 @@
+{
+  "caso": "TC-M06-G104",
+  "generado_en": "2026-11-10T19:55:03.936853+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "caso_completo_reclasificado": false,
+  "tc_m06_25_ejecutado": true,
+  "sql_escritura": false,
+  "periodos_cerrados": false,
+  "precios_compartidos_modificados": false,
+  "subcasos": [
+    {
+      "subcaso": "TC-M06-25",
+      "estado": "APROBADO",
+      "precio": 493,
+      "especie": 424,
+      "referencia": 489,
+      "importe": "5100000.00",
+      "fecha_vigencia": "2026-11-11",
+      "desviacion_pct": "2.00",
+      "umbral": "50.00",
+      "estado_precio": "PROGRAMADO",
+      "es_aplicado": false,
+      "http": 201,
+      "evento_registro": 13098
+    },
+    {
+      "subcaso": "TC-M06-26",
+      "estado": "APROBADO",
+      "alternativa": "evidencia historica",
+      "precio": 437,
+      "especie": 424,
+      "programado": {
+        "fuente": "GET /finanzas/auditoria evento 7062",
+        "timestamp_evento": "2026-11-08T21:24:54.529057Z",
+        "estado": "PROGRAMADO",
+        "fecha_vigencia": "2026-11-09"
+      },
+      "activo": {
+        "fuente": "GET /finanzas/precios guardado en la evaluacion de TC-M06-G102 antes del precio 490",
+        "estado": "ACTIVO",
+        "fecha_vigencia": "2026-11-09",
+        "precio_unitario": "3900000.00"
+      },
+      "despues": {
+        "estado": "SUPERADO",
+        "precio_unitario": "3900000.00",
+        "fecha_vigencia": "2026-11-09"
+      }
+    },
+    {
+      "subcaso": "TC-M06-29",
+      "estado": "PREPARADO, PENDIENTE DE FECHA",
+      "comprobacion_pendiente": "2026-11-11",
+      "zona": "America/Bogota",
+      "especie": 544,
+      "finca": 472,
+      "periodo": 266,
+      "titular": "900000104",
+      "activo_costo": 1643,
+      "activo_valor_razonable": 1644,
+      "precio": 492,
+      "observado": {
+        "simulacion": "SIN_PRECIO",
+        "cambio_metodo": "422 SIN_PRECIO_PARA_VALOR_RAZONABLE",
+        "modelo_costo_despues_del_rechazo": "VALORACION_POR_COSTO",
+        "valoracion_costo_activa": 44,
+        "reconocimiento_valor_razonable": 533,
+        "valor_neto": "940000.0000"
+      },
+      "alternativa_precio_vencido": {
+        "fecha": "2026-11-10",
+        "resultado": "NO_LEGITIMO",
+        "escrituras": false,
+        "soporte": "resultados/segunda_evaluacion/soporte_preparacion/inspeccion_precio_vencido_tc_m06_29.json"
+      }
+    }
+  ]
+}

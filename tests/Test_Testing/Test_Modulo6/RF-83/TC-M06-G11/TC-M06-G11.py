@@ -2,6 +2,8 @@
 # |------------|------------------|--------------------------------------------------------------------------|
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G11 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G11 con 20 mediciones aleatorias (varios runs), +-0,0001 y valor máximo DECIMAL(18,4) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G11-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G11 - Separación de efectos (transformación y precio) y valores límite de la variación.   RF-83 (CU02).   Casos: TC-M06-054 a TC-M06-057.
 
@@ -19,7 +21,7 @@ transformación = actual - pre_ajustado; precio + transformación = actual - ant
   9.999.999,99 kg x 10.000.000,01 por kg (producto exacto, costos en cero).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G11/TC-M06-G11.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G11/reporte-TC-M06-G11.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G11/TC-M06-G11.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G11/reporte-TC-M06-G11-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -67,8 +69,8 @@ def test_TC_M06_054_separacion_de_efectos_con_evento_y_cambio_de_precio(env):
     ida = env.base_medible(esc, "500")                              # anterior 10.000.000,0000
     assert env.medir(esc, ida, "20800.00", "525").status == 200     # pre-ajustado 500 kg x 20.800 = 10.400.000; actual 525 x 20.800
     fs = _filas(env, ida)
-    if not fs:
-        no_verificable("no se generó medición.")
+    assert fs, f"no se generó medición (base de datos sin filas); API: {env.mediciones(ida)}"
+    assert len(fs) == len(env.mediciones(ida)), f"la base tiene {len(fs)} mediciones y la API {len(env.mediciones(ida))}"
     f = fs[-1]
     assert dec(f["anterior"]) == dec("10000000"), f
     assert dec(f["actual"]) == dec("10920000"), f
@@ -147,6 +149,9 @@ def test_TC_M06_057_variacion_minima_de_0_0001(env, kg_final, signo):
     f = fs[-1]
     assert dec(f["total"]) == dec("0.0001") * signo and _suma_exacta(f), f
     assert dec(f["actual"]) == dec("4") + dec("0.0001") * signo, f
+    # INC-M06-307 (corregido por Desarrollo, #994): un componente menor a 0,01 se registra SIN línea de valor 0 en el asiento.
+    en_cero = [l for l in lineas_de(env.historial(ida)) if dec(l["valor"]) == 0]
+    assert not en_cero, f"INC-M06-307: no debe existir ninguna línea de asiento con valor 0,00: {en_cero}"
 
 
 def test_TC_M06_057_valor_maximo_decimal_18_4(env):
@@ -156,8 +161,7 @@ def test_TC_M06_057_valor_maximo_decimal_18_4(env):
     ida = env.base_medible(esc, "1")                                                 # valor 10.000.000,0100
     assert env.medir(esc, ida, None, "9999999.99").status == 200                     # 9.999.999,99 x 10.000.000,01
     fs = _filas(env, ida)
-    if not fs:
-        no_verificable(f"no se generó medición para el valor máximo; eventos {env.tipos_auditoria(ida)}")
+    assert fs, f"no se generó medición para el valor máximo; eventos {env.tipos_auditoria(ida)}; API: {env.mediciones(ida)}"
     f = fs[-1]
     assert dec(f["actual"]) == dec("99999999999999.9999"), f"el valor máximo debe aceptarse sin desbordamiento: {f}"
     assert _suma_exacta(f), f"la suma de efectos debe seguir siendo exacta: {f}"

@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-83: script del grupo TC-M06-G10 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-83: G10 con valores de la ficha (+/-300.000), evento pendiente + cierre y 8 activos con precio + 2 sin precio |
 # | 2026-11-11 | Daniela Castillo | M06 RF-83 v1.2: 053 revisado (solo valor razonable sin precio ni histórico queda pendiente) y caso nuevo 053b (activo por costo) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G10-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G10 - Medición por cierre de período (RF-87): efecto precio, prioridad del evento y activos sin precio.
 RF-83 (CU02).   Casos: TC-M06-051 a TC-M06-053.
@@ -23,7 +25,7 @@ ejecutar dentro del sandbox (precondiciones, tiempo) el caso queda BLOQUEADO / N
 - 053b (nuevo, RF-83 v1.2): un activo valorado por costo (NIC 41 ¶30) no se mide en el cierre ni queda como pendiente de precio.
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G10/TC-M06-G10.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G10/reporte-TC-M06-G10.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G10/TC-M06-G10.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-83/TC-M06-G10/reporte-TC-M06-G10-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 
@@ -51,8 +53,7 @@ def _asegurar(env, segundos):
 
 def _periodo(env, ida, conf):
     p = (conf.get("id_periodo_contable") if hasattr(conf, "get") else None) or env.periodo(ida)
-    if not p:
-        no_verificable(f"no se pudo determinar el período contable del activo {ida}.")
+    assert p, f"no se pudo determinar el período contable del activo {ida}"
     return p
 
 
@@ -93,9 +94,12 @@ def test_TC_M06_051_cierre_sin_eventos_todo_es_efecto_precio(env):
     _cerrar(env, id_periodo)
     for ida, esperado, signo in ((a, dec("300000"), "+"), (b, dec("-300000"), "-")):
         ms = _de_cierre(env, ida)
-        if not ms:
-            no_verificable(f"el cierre no creó medición para el activo {ida}.")
+        assert ms, f"el cierre no creó medición para el activo {ida} (API); mediciones: {env.mediciones(ida)}"
         m = ms[-1]
+        db = env.sql("SELECT origen_medicion::text AS origen, id_evento, ganancia_perdida_transformacion::text AS transf, ganancia_perdida_precio_mercado::text AS precio, "
+                     f"variacion_total::text AS total FROM modulo6.mediciones_posteriores WHERE id_activo_biologico = {int(ida)}")
+        assert len(db) == 1 and db[0]["origen"] == "CIERRE_PERIODO" and db[0]["id_evento"] is None, f"base de datos: una sola medición, de cierre y sin evento: {db}"
+        assert dec(db[0]["transf"]) == 0 and dec(db[0]["precio"]) == esperado and dec(db[0]["total"]) == esperado, f"base de datos, efectos de la medición: {db}"
         assert len(env.mediciones(ida)) == 1 and len(ms) == 1, f"debe haber una sola medición, la del cierre: {env.mediciones(ida)}"
         assert m.get("id_periodo_contable") == id_periodo, f"la medición debe estar vinculada al período {id_periodo}: {m}"
         assert m.get("id_evento") is None, "sin evento biológico no debe haber id_evento"
@@ -116,8 +120,9 @@ def test_TC_M06_052_evento_y_cierre_el_evento_tiene_prioridad(env):
     id_periodo = _periodo(env, ida, conf)
     _cerrar(env, id_periodo)                                         # el cierre procesa primero los eventos pendientes
     ms = env.mediciones(ida)
-    if not ms:
-        no_verificable("ni el evento ni el cierre generaron medición.")
+    assert ms, "ni el evento ni el cierre generaron medición"
+    db = env.sql(f"SELECT origen_medicion::text AS origen, id_evento FROM modulo6.mediciones_posteriores WHERE id_activo_biologico = {int(ida)}")
+    assert len(db) == 1 and db[0]["origen"] == "EVENTO" and db[0]["id_evento"], f"base de datos: una sola medición, por el evento: {db}"
     por_evento = [m for m in ms if m.get("origen_medicion") == "EVENTO"]
     assert len(por_evento) == 1 and por_evento[0].get("id_evento"), f"debe haber una medición por el evento, con id_evento: {ms}"
     assert len(ms) == 1, f"el cierre no debe registrar una segunda medición del mismo activo y valor: {ms}"
@@ -160,8 +165,10 @@ def test_TC_M06_053_activos_sin_precio_quedan_pendientes_y_el_cierre_continua(en
     for ida in con_precio:
         ms = _de_cierre(env, ida)
         assert len(ms) == 1 and dec(ms[0]["ganancia_perdida_precio_mercado"]) == dec("300000"), f"activo {ida} sin medición de cierre: {ms}"
+        assert env.contar("mediciones_posteriores", ida) == 1, f"base de datos: el activo {ida} con precio debe tener 1 medición"
     for ida in sin_precio:
         assert not env.mediciones(ida), f"el activo sin precio no debe medirse: {env.mediciones(ida)}"
+        assert env.contar("mediciones_posteriores", ida) == 0, f"base de datos: el activo {ida} sin precio no debe tener mediciones"
     extra = len(excluidos) - len(sin_precio)
     obs(f"medidos {len(con_precio)} activos con precio; pendientes {len(sin_precio)} (motivo PENDIENTE_PRECIO); "
         f"otros excluidos del titular en TEST: {extra}; activos_procesados del cierre: {r.data.get('activos_procesados')}")
@@ -177,5 +184,6 @@ def test_TC_M06_053b_activo_por_costo_no_se_mide_en_el_cierre_ni_queda_pendiente
     excluidos = {int(x["id_activo_biologico"]): x for x in (r.data or {}).get("activos_excluidos", [])}
     obs(f"cierre del período {id_periodo}: estado {r.data.get('estado')}; activo por costo excluido: {ida in excluidos} {excluidos.get(ida, '')}")
     assert not env.mediciones(ida), f"RF-83 v1.2: el activo por costo no se mide en el cierre: {env.mediciones(ida)}"
+    assert env.contar("mediciones_posteriores", ida) == 0, "base de datos: el activo por costo no debe tener mediciones"
     assert ida not in excluidos, f"el activo por costo no debe quedar como pendiente de precio (no usa precio): {excluidos.get(ida)}"
     assert r.data.get("estado") == "CERRADO", f"el cierre debe completarse: {r.data.get('estado')}"

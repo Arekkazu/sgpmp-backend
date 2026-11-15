@@ -3,6 +3,8 @@
 # | 2026-11-07 | Daniela Castillo | M06 RF-85: script del grupo TC-M06-G23 (pytest + sandbox, rol Contador) |
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G23: el valor del activo se lee de sus propios cálculos (no del del producto); se agregan los costos del producto, el cálculo RF-84 y el estado de la línea |
 # | 2026-11-08 | Daniela Castillo | M06 RF-85 G23: costo_venta_producto se guarda por unidad (210 por kg); la prueba compara el total (costo por unidad x cantidad) |
+# | 2026-11-12 | Daniela Castillo | M06 reprueba V2.0 (RF-83 v1.2, RF-84 v1.1, RF-85 v1.2, RF-88 v2.0): el reporte HTML pasa a llamarse reporte-TC-M06-G23-V2.0.html |
+# | 2026-11-13 | Daniela Castillo | M06 V2.0 (2.ª pasada): la base de datos pasa a ser la fuente de verdad (SQL ya funciona), expectativas alineadas con las correcciones de Desarrollo (notas de la versión 1.4.0) y las precondiciones que fallan ya no se omiten: quedan en rojo con diagnóstico |
 """
 TC-M06-G23 - Reconocimiento de PRODUCTO_PERIODICO: valor del producto, activo sin reducción y asiento.   RF-85 (CU04).   Casos: TC-M06-107 y TC-M06-108.
 
@@ -14,7 +16,7 @@ Escala: 200 kg a 3.500,00 por kg = 700.000,0000 menos 6 % = 658.000,0000 (la fic
 queda en 18.800.000,0000. El asiento esperado: inventario de productos agrícolas / resultado por medición a valor razonable (matriz RF-109).
 
 Cómo correrlo:
-    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G23/TC-M06-G23.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G23/reporte-TC-M06-G23.html" --self-contained-html
+    python -m pytest "tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G23/TC-M06-G23.py" -v -s -rs --noconftest --html="tests/Test_Testing/Test_Modulo6/RF-85/TC-M06-G23/reporte-TC-M06-G23-V2.0.html" --self-contained-html
 """
 from __future__ import annotations
 

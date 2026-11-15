@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | TC-DIS-257/262/264 RF-92/93: períodos para quien solo consulta reportes y descargas en palabras |
 # | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-93: el activo excluido se descarga con su causa en palabras y el resultado fuera |
+# | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el doble de generar_pdf acepta la opción PDF/A |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Primera evaluación QA de M06: el Productor no veía ningún estado de resultados porque los períodos exigían el
 permiso del cierre, y las descargas mostraban claves, montos crudos y estados sin traducir."""
 from __future__ import annotations
@@ -72,9 +74,9 @@ def test_periodos_aceptan_lectura_del_estado_de_resultados(monkeypatch):
 
 def _doc(monkeypatch) -> dict:
     capturado = {}
-    monkeypatch.setattr(generador_archivos, "generar_pdf", lambda d, _a: capturado.setdefault("doc", d) and b"%PDF")
+    monkeypatch.setattr(generador_archivos, "generar_pdf", lambda d, _a, **_k: capturado.setdefault("doc", d) and b"%PDF")
     import src.financial_valuation.application.use_cases.reportes.exportar_reporte_use_case as modulo
-    monkeypatch.setattr(modulo, "generar_pdf", lambda d, _a: capturado.setdefault("doc", d) and b"%PDF")
+    monkeypatch.setattr(modulo, "generar_pdf", lambda d, _a, **_k: capturado.setdefault("doc", d) and b"%PDF")
     return capturado
 
 
@@ -109,6 +111,6 @@ def test_informe_descargado_con_secciones_y_campos_en_palabras(monkeypatch):
     uc = ExportarReporteUseCase(periodos=None, reportes=SimpleNamespace(obtener_informe=lambda _i: informe))
     uc.informe(83, "pdf")
     doc = capturado["doc"]
-    assert doc.filas[0] == ["Conciliación del valor en libros (¶50)", "Activo: BOV-101; Valor al cierre: $ 4.855.000"]
-    assert doc.filas[1] == ["Activos medidos al costo (¶54-56)", "Datos insuficientes para esta sección"]
+    assert doc.filas[0] == ["Conciliación del valor en libros", "Activo: BOV-101; Valor al cierre: $ 4.855.000"]
+    assert doc.filas[1] == ["Activos medidos al costo", "Datos insuficientes para esta sección"]
     assert doc.encabezado[0] == "Estado: Aprobado"

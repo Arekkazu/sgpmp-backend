@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: E5 405, alcance y wiring nuevo     |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Router FastAPI para el registro de consumo de alimento (`/suministros/consumo-alimentos`).
 
 Expone los flujos de RF-75 (CU-01):
@@ -110,6 +111,7 @@ def consultar_consumos(
     fecha_hasta: Optional[date] = Query(None, description="Fecha de consumo máxima (inclusive)."),
     tipo_alimento: Optional[str] = Query(None, description="Filtrar por tipo de alimento."),
     estado_registro: Optional[str] = Query(None, description="VALIDADO o ANULADO."),
+    id_finca: Optional[int] = Query(None, gt=0, description="Solo los registros de activos de esta finca."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsultaConsumosResponse:
@@ -120,6 +122,7 @@ def consultar_consumos(
         fecha_hasta=fecha_hasta,
         tipo_alimento=tipo_alimento,
         estado_registro=estado_registro,
+        id_finca=id_finca,
     )
     items = [ConsumoAlimentoResponse.model_validate(c) for c in consumos]
     return ConsultaConsumosResponse(total=len(items), items=items)

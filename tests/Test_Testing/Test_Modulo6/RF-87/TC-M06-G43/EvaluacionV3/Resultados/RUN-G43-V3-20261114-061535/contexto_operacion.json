@@ -1,0 +1,24 @@
+{
+  "grupo": "G43",
+  "version": 3,
+  "intento": 15,
+  "run_id": "RUN-G43-V3-20261114-061535",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G43-V3-R3-20261114",
+  "casos": [
+    "TC-M06-024",
+    "TC-M06-025",
+    "TC-M06-026",
+    "TC-M06-027"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-024",
+      "TC-M06-025",
+      "TC-M06-026",
+      "TC-M06-027"
+    ],
+    "motivo": "Reintento técnico de V3 de TC-M06-G43, grupo completo. El intento RUN-G43-V3-20261114-053255 (AUT-G43-V3-R2-20261114, consumida) no fue oficial: 024 APROBADO (corrección e73c9c9e confirmada), rollback verificado, pero tres ERROR_QA dejaron 025, 026 y 027 sin decidir: Cypress no marcaba la casilla de autorizar líneas que la vista exige cuando hay líneas sin trazabilidad; el cierre de estimación del 1644 no enviaba autorizar_exclusiones para la línea 3726; y el comparador del 027 buscaba códigos internos en lugar del identificador y las etiquetas. Ronda 2 de la V3 (ORD-G43-039) corrige los tres y añade OBS-G43-UI-02. Ensayo Windows: verificar.mjs 10/10 OK (Cypress real), red 0; validar OFICIAL. SHA-256: g43.mjs fa05bc96096be953e1d711c2248d08fe8739234f22fe31444605265554e07830; g43.cy.js a03260bc99fa45b7e7257e3713e175ed1c4f0046107ef16a0206d51e205408a8; lib/g43_v2.mjs 0e1d9261e5d21ef158756e08348eb316fe332180696d19fa632a3e93e0980f37; lib/vista_cierre.cjs a179c5e0100ec554666428058896181000f48bdc5a901a58f035204b42e71e4a. Precondición vigente: usuarios_fincas 3507."
+  },
+  "version_anterior": null
+}
