@@ -1,3 +1,10 @@
+## [1.4.0-rc.69](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.68...v1.4.0-rc.69) (2026-11-15)
+
+### Features
+
+* **rf45-rf93-mod2-mod6:** la venta de un activo entra como ingreso en el estado de resultados (INC-M06-364-G71) ([58bc701](https://github.com/Arekkazu/sgpmp-backend/commit/58bc701b4e462e6306048c9fdc8bb8b93aff347a)), closes [#1142](https://github.com/Arekkazu/sgpmp-backend/issues/1142)
+* **rf93-mod6:** el estado guardado conserva el aviso de ventas sin valor y la etiqueta dice vendidos o sacrificados (INC-M06-364-G71) ([b69c58d](https://github.com/Arekkazu/sgpmp-backend/commit/b69c58d388354c05fb1e8019ef5e0353cbea704a))
+
 ## [1.4.0-rc.68](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.67...v1.4.0-rc.68) (2026-11-15)
 
 ### Bug Fixes
