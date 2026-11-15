@@ -60,6 +60,13 @@ falla (propaga la excepción) y que `db.rollback()` se invoca -- es decir,
 que la operación principal SÍ se bloquea/revierte por un fallo exclusivo de
 auditoría.
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): NO ES UN DEFECTO.
+Se decidió deliberadamente mantener la auditoría de M06 en la misma
+transacción que la operación auditada (RF-86, RNF de Fiabilidad). Análisis
+va a ajustar la ficha de RF-94 para que ya no exija asincronía/
+no-bloqueante. Todo lo confirmado en este TC (síncrono, misma transacción,
+bloqueante ante fallo) describe el comportamiento DESEADO, no un hallazgo.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -111,46 +118,31 @@ def _construir_caso_de_uso(auditoria_falla: bool):
     return uc, db
 
 
-class TestSubCasoLaDocumentacionRealYaReconoceQueEsSincronaNoAsincrona:
+class TestSubCasoLaDocumentacionRealYaReconoceQueEsSincronaNoAsincronaConfirmadoPorDiseno:
     def test_el_docstring_del_repositorio_real_dice_misma_transaccion(self):
+        """No es un defecto (confirmado por Analisis/Diseno 2026-11-13): la auditoria se
+        mantiene deliberadamente en la misma transaccion que la operacion (RF-86)."""
         texto = REPOSITORIO_AUDITORIA.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO GRAVE: el propio docstring del repositorio real de RF-94 dice explicitamente "
-            "'La escritura va en la misma transaccion de la operacion auditada' -- un "
-            "reconocimiento directo de que NO es asincrona ni fire-and-forget, al contrario de lo "
-            "que pide confirmar la ficha (CA-6, RNF-09)."
-        ) if 'misma transacción de la operación auditada' in texto else None
+        assert 'misma transacción de la operación auditada' in texto
 
 
-class TestSubCasoUnFalloExclusivoDeAuditoriaRevierteYBloqueaLaOperacionPrincipalHallazgoGrave:
+class TestSubCasoUnFalloExclusivoDeAuditoriaRevierteYBloqueaLaOperacionPrincipalConfirmadoPorDiseno:
     def test_generar_propaga_la_excepcion_si_solo_falla_la_auditoria(self):
-        """El calculo del estado (constructor.guardar) tiene EXITO -- solo auditoria.registrar()
-        falla. Si la auditoria fuera realmente asincrona/no bloqueante, generar() deberia
-        completarse igual. En la realidad, se propaga la excepcion: la operacion de negocio
-        principal SI se bloquea por un fallo puramente de auditoria."""
+        """No es un defecto (confirmado por Analisis/Diseno 2026-11-13): decision deliberada de
+        mantener auditoria y operacion en la misma transaccion (RF-86). Si solo falla
+        auditoria.registrar(), generar() SI debe propagar la excepcion -- es el comportamiento
+        deseado, no 'ni un error de RF-94 interrumpe el proceso principal'."""
         uc, db = _construir_caso_de_uso(auditoria_falla=True)
         with pytest.raises(RuntimeError, match='repositorio de auditoria caido'):
             uc.generar(id_periodo_contable=94, filtros={}, id_usuario=1)
-        pytest.fail(
-            "HALLAZGO GRAVE CONFIRMADO: generar() propaga la excepcion del repositorio de "
-            "auditoria -- un fallo EXCLUSIVO de RF-94 bloquea/aborta la generacion del estado de "
-            "resultados (RF-93), al contrario de 'ni un error de RF-94... interrumpen el proceso "
-            "principal' que exige la ficha."
-        )
 
     def test_generar_hace_rollback_del_db_cuando_solo_falla_la_auditoria(self):
-        """El rollback deshace TAMBIEN el guardado del estado que ya se habia calculado con
-        exito -- no solo se 'bloquea', se REVIERTE una operacion de negocio que ya habia
-        tenido exito, por un fallo que no tiene nada que ver con ese negocio."""
+        """No es un defecto: el rollback deshaciendo tambien el guardado del estado ya calculado
+        es el comportamiento esperado de 'misma transaccion', no una regresion."""
         uc, db = _construir_caso_de_uso(auditoria_falla=True)
         with pytest.raises(RuntimeError):
             uc.generar(id_periodo_contable=94, filtros={}, id_usuario=1)
-        pytest.fail(
-            f"HALLAZGO GRAVE CONFIRMADO: db.rollback() fue invocado ({db.rollback.called}) y "
-            f"db.commit() NUNCA se llego a invocar ({db.commit.called}) -- el estado de resultados "
-            f"ya calculado con exito se revierte por una falla exclusiva del repositorio de "
-            f"auditoria de RF-94."
-        ) if db.rollback.called and not db.commit.called else None
+        assert db.rollback.called and not db.commit.called
 
     def test_sin_fallo_de_auditoria_la_generacion_si_se_completa_con_un_solo_commit(self):
         """Control: confirma que en el camino feliz ambos (guardado + auditoria) comparten
@@ -161,27 +153,19 @@ class TestSubCasoUnFalloExclusivoDeAuditoriaRevierteYBloqueaLaOperacionPrincipal
         assert not db.rollback.called
 
 
-class TestSubCasoElMismoPatronBloqueanteSeRepiteEnElCierreDePeriodoElMasCritico:
+class TestSubCasoElMismoPatronSeRepiteEnElCierreDePeriodoConfirmadoPorDiseno:
     def test_ejecutar_cierre_periodo_envuelve_commit_rollback_alrededor_de_auditoria_registrar(self):
+        """No es un defecto: mismo patron deliberado (misma transaccion) tambien en el cierre."""
         texto = USE_CASE_CIERRE.read_text(encoding='utf-8')
         tiene_try_commit_rollback = texto.count('self.db.commit()') >= 2 and texto.count('self.db.rollback()') >= 2
-        pytest.fail(
-            "HALLAZGO GRAVE: ejecutar_cierre_periodo_use_case.py repite el mismo patron "
-            "try/commit/except-rollback alrededor de sus llamadas a auditoria.registrar() -- el "
-            "CIERRE CONTABLE DEL PERIODO (la operacion mas critica de M06) tambien se revierte "
-            "integramente si falla el registro de auditoria de cualquiera de sus pasos. Confirma "
-            "literalmente la nota BLOQUEANTE de la propia ficha."
-        ) if tiene_try_commit_rollback else None
+        assert tiene_try_commit_rollback
 
 
-class TestSubCasoNoExisteNingunMecanismoDeEncoladoAsincronoEnTodoElModulo:
+class TestSubCasoNoExisteNingunMecanismoDeEncoladoAsincronoConfirmadoPorDiseno:
     def test_no_existe_ningun_async_def_hilo_cola_ni_backgroundtasks(self):
+        """No es un defecto: no se necesita encolado asincrono porque la auditoria es
+        deliberadamente sincrona (misma transaccion, RF-86)."""
         archivos = list((REPO_ROOT / 'src/financial_valuation').rglob('*.py'))
         patrones = ('async def ', 'BackgroundTasks', 'Thread(', 'Queue(', 'celery', '.delay(', 'asyncio')
         encontrados = [p.name for p in archivos for pat in patrones if pat in p.read_text(encoding='utf-8', errors='ignore')]
-        pytest.fail(
-            f"HALLAZGO: no existe ningun mecanismo de ejecucion asincrona real (async def, "
-            f"BackgroundTasks, hilos, colas, celery) en todo src/financial_valuation (coincidencias "
-            f"espurias si las hay: {encontrados!r}) -- 'operacion asincrona y no bloqueante' no "
-            f"tiene ninguna implementacion que la sustente."
-        ) if not encontrados else None
+        assert not encontrados

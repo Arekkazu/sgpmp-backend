@@ -56,3 +56,7 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-12 (TC-
 - Roles: Contador.
 - Las peticiones marcadas **[escritura]** crean o cambian datos en TEST: solo corren con `--env-var "permitir_escritura=SI"`. Sin esa variable se omiten.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Corrección del oráculo de TC-92-081 (15/11/2026)
+- Se quita el código del activo (p. ej. QA-M06-BOV-01) antes de buscar terminología interna: es un dato, no un «M0x».
+- Las claves del JSON son técnicas por diseño; se valida el título de cada sección (`estado_secciones[].titulo`), que es lo que se imprime.

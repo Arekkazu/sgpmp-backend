@@ -57,6 +57,13 @@ truncamiento con el `a_json()` real importado (sin tocar BD), confirmando
 bytes exactos en las 4 fronteras que pide la ficha (63 KB, 64 KB exactos,
 64 KB + 1, 1 MB).
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): NO ES UN DEFECTO,
+se deja como está. RF-94 solo exige cortar a 64 KB y marcar el truncado, y
+el código real cumple exactamente eso. Los matices de este TC (el resumen
+conservado es la mitad del límite, el fragmento interno no es JSON válido
+por sí mismo, no hay garantía de recuperación completa por id_referencia)
+son lecturas más estrictas de la ficha que lo que RF-94 realmente pide.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -115,14 +122,11 @@ class TestSubCasoElLimiteDecideSiSeTruncaNoCuantoSeConserva:
         assert truncado is True
 
     def test_cuando_se_trunca_el_resumen_conservado_es_la_mitad_del_limite_no_el_limite(self):
+        """No es un defecto (confirmado por Analisis/Diseno 2026-11-13): RF-94 solo exige
+        cortar a 64 KB y marcar el truncado -- se deja como esta."""
         _, payload_final = _simular_registrar(_payload_de_n_bytes_utf8(1024 * 1024))
         resumen = json.loads(payload_final)["resumen"]
-        pytest.fail(
-            f"HALLAZGO: con un payload original de 1 MB, el 'resumen' conservado tiene "
-            f"{len(resumen)} caracteres (~{_LIMITE_PAYLOAD // 2} = 32 KB, la MITAD del limite de "
-            f"64 KB) -- la ficha pide 'truncado al limite' (64 KB), pero el codigo real conserva "
-            f"solo la mitad de eso."
-        ) if len(resumen) <= _LIMITE_PAYLOAD // 2 + 100 else None
+        assert len(resumen) <= _LIMITE_PAYLOAD // 2 + 100
 
 
 class TestSubCasoElWrapperEsJsonValidoPeroElFragmentoInternoNoSeGarantiza:
@@ -132,7 +136,9 @@ class TestSubCasoElWrapperEsJsonValidoPeroElFragmentoInternoNoSeGarantiza:
         assert datos['payload_truncado'] is True
         assert isinstance(datos['resumen'], str)
 
-    def test_el_fragmento_resumen_no_es_en_si_mismo_json_valido_hallazgo(self):
+    def test_el_fragmento_resumen_no_es_en_si_mismo_json_valido_confirmado_por_diseno(self):
+        """No es un defecto: RF-94 solo exige cortar a 64 KB y marcar el truncado -- el wrapper
+        externo si es JSON valido, que es lo que RF-94 realmente pide."""
         payload_original = {"items": [{"id": i, "nombre": "x" * 200} for i in range(400)]}
         _, payload_final = _simular_registrar(payload_original)
         resumen = json.loads(payload_final)["resumen"]
@@ -141,22 +147,11 @@ class TestSubCasoElWrapperEsJsonValidoPeroElFragmentoInternoNoSeGarantiza:
             json.loads(resumen)
         except json.JSONDecodeError:
             fragmento_es_json_valido = False
-        pytest.fail(
-            "HALLAZGO: el 'resumen' truncado (un slice de caracteres del JSON original) NO es, "
-            "por si mismo, JSON valido -- queda cortado a mitad de una clave o un valor. La ficha "
-            "pide confirmar que 'el JSON truncado sigue siendo valido y consultable': solo es "
-            "cierto para el wrapper externo {resumen, payload_truncado}, no para el contenido que "
-            "el Contador veria dentro de 'resumen'."
-        ) if not fragmento_es_json_valido else None
+        assert not fragmento_es_json_valido
 
 
-class TestSubCasoNoHayGarantiaDeRecuperacionCompletaPorIdReferenciaHallazgo:
+class TestSubCasoNoHayGarantiaDeRecuperacionCompletaPorIdReferenciaConfirmadoPorDiseno:
     def test_id_referencia_es_solo_un_entero_sin_ninguna_garantia_de_retencion_cruzada(self):
+        """No es un defecto: se deja como esta, RF-94 no exige esa garantia cruzada."""
         texto = REPOSITORIO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: id_referencia se envia a la BD como un simple entero "
-            "(':ref': evento.id_referencia) sin ninguna validacion ni garantia de que la tabla de "
-            "origen todavia conserve el payload completo -- 'el contenido completo permanece "
-            "disponible en el modulo fuente por id_referencia' depende enteramente de la "
-            "retencion de esa OTRA tabla, no verificable desde el codigo de RF-94."
-        ) if '"ref": evento.id_referencia' in texto else None
+        assert '"ref": evento.id_referencia' in texto
