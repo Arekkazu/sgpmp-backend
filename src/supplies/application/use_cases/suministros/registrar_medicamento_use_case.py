@@ -7,6 +7,7 @@
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: incidente en auditoría cuando el registro falla con 500/503 |
 # | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-76: el detalle del incidente en palabras; el error técnico va al log |
+# | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: tipo de suministro en el fallo del registro de medicamento |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -168,6 +169,7 @@ class RegistrarMedicamentoUseCase:
                         f"({dto.periodo_retiro_dias} días de retiro) porque {causa}; se revirtió el registro completo."
                     )[:1000],
                     numero_reintentos=0,
+                    id_tipo_suministro="MEDICAMENTO",
                 )
             )
             self.db.commit()

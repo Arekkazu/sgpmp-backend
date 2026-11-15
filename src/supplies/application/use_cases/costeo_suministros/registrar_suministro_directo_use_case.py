@@ -6,6 +6,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: auditar rechazos de negocio sin conservar escrituras parciales. |
 # | 2026-11-10 | Arekkazu | INC-M05-340-G27/341-G30 RF-78: unidad del tipo (CA-13) y réplicas simultáneas → YA_PROCESADO (CA-15) |
+# | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: tipo de suministro en los eventos de rechazo y de fallo |
 """Caso de uso: registrar un suministro en el ledger de RF-78.
 
 Orden (RF-78): Fase 3 idempotencia (E8 → 200 YA_PROCESADO) → tipo de
@@ -365,6 +366,10 @@ class RegistrarSuministroDirectoUseCase:
                     detalle_causa=detalle,
                     numero_reintentos=0,
                     registro_incompleto=incompleto,
+                    # Solo un tipo del catálogo: uno inexistente (E4) queda como dato faltante.
+                    id_tipo_suministro=(
+                        dto.tipo_suministro if dto.tipo_suministro in {t.value for t in TipoSuministro} else None
+                    ),
                 )
             )
             self.db.commit()
@@ -393,6 +398,7 @@ class RegistrarSuministroDirectoUseCase:
                     id_gestion_fases=entidad.id_gestion_fases,
                     detalle_causa=causa,
                     numero_reintentos=_MAX_REINTENTOS,
+                    id_tipo_suministro=entidad.tipo_suministro,
                 )
             )
             self.db.commit()
