@@ -1,3 +1,18 @@
+## [1.4.0-rc.67](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.66...v1.4.0-rc.67) (2026-11-15)
+
+### Bug Fixes
+
+* **rf80-mod5:** auditar rechazos de consolidar e historial y campos minimos por tipo (INC-M05-353-G37) ([f639c7b](https://github.com/Arekkazu/sgpmp-backend/commit/f639c7b86548a46d17db0a8535538a587a006098)), closes [#1077](https://github.com/Arekkazu/sgpmp-backend/issues/1077)
+* **rf84-rf85-mod6:** cosecha retomada con el precio, producto de consumo a su precio y costos de venta por region (INC-M06-363-G27, INC-M06-364-G24, INC-M06-365-G21) ([0c5da67](https://github.com/Arekkazu/sgpmp-backend/commit/0c5da67037be5518ed67269b39c18ee56f346f95))
+* **rf85-mod6:** la cosecha del 100 % deja el activo en baja tambien en el sandbox (INC-M06-361-G24) ([4b911ba](https://github.com/Arekkazu/sgpmp-backend/commit/4b911ba639865a9f3621adb8773876dfd822124c))
+* **rf85-mod6:** las cosechas del mismo dia del pesaje se acumulan y la que excede se rechaza (INC-M06-362-G30) ([57e150e](https://github.com/Arekkazu/sgpmp-backend/commit/57e150e92c9732fe2af60765fbfbd59fb15ead3e)), closes [#1124](https://github.com/Arekkazu/sgpmp-backend/issues/1124)
+* **rf87-mod6:** el periodo cerrado se rechaza con 409 antes de procesar eventos pendientes (INC-M06-93-G44) ([37fccd3](https://github.com/Arekkazu/sgpmp-backend/commit/37fccd389b7bb879660f97c241aaf5dc2fa097e3)), closes [#1123](https://github.com/Arekkazu/sgpmp-backend/issues/1123)
+* **rf91-mod6:** cerrar de nuevo un periodo cerrado responde 409 y no 404 (INC-M06-054B-G56) ([13c996f](https://github.com/Arekkazu/sgpmp-backend/commit/13c996ff0fdc9d95bd3186de68c5998ef7fc23b4)), closes [#1089](https://github.com/Arekkazu/sgpmp-backend/issues/1089)
+* **rf92-mod6:** la declaracion sin novedad no admite compromisos ni pignorados (INC-M06-034B-G64) ([2c95cb7](https://github.com/Arekkazu/sgpmp-backend/commit/2c95cb787430ae24bdfdc5a0e7a0a49988dd123f)), closes [#1090](https://github.com/Arekkazu/sgpmp-backend/issues/1090)
+* **rf92-mod6:** monto de compromisos y garantias mayor que cero en revelaciones (INC-M06-043B-G65) ([3f7ab21](https://github.com/Arekkazu/sgpmp-backend/commit/3f7ab218b03c00ba5fae72094dcc095d5b4e9382)), closes [#1091](https://github.com/Arekkazu/sgpmp-backend/issues/1091)
+* **rf94-mod6:** la auditoria financiera se acota a los titulares de las fincas del usuario (INC-M06-365-G93) ([6bc5602](https://github.com/Arekkazu/sgpmp-backend/commit/6bc5602754e66a597b9ab9499b79564974cdf326))
+* **rf94-mod6:** precio anterior y nuevo en PRECIO_MARCADO_REEMPLAZADO (INC-M06-362-G94) ([29ea569](https://github.com/Arekkazu/sgpmp-backend/commit/29ea5696a0f0bb0f04394cae1ebb236199fb4ab6)), closes [#1088](https://github.com/Arekkazu/sgpmp-backend/issues/1088)
+
 ## [1.4.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.65...v1.4.0-rc.66) (2026-11-14)
 
 ### Features
