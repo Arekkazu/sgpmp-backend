@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """Puerto de la configuración contable: periodicidad, parámetros por especie, costos de venta y
 matriz contable (RF-84, RF-88, RF-109)."""
 from __future__ import annotations
@@ -34,7 +35,8 @@ class ConfiguracionContableRepository(ABC):
     def guardar_parametro_especie(self, parametro: ParametroEspecie, id_usuario: int) -> None: ...
 
     @abstractmethod
-    def costos_venta_vigentes(self, id_especie: int) -> Optional[ParametroCostosVenta]: ...
+    def costos_venta_vigentes(self, id_especie: int, region: Optional[str] = None) -> Optional[ParametroCostosVenta]:
+        """El vigente de la especie en la región del activo; si la región no tiene uno propio, el GENERAL."""
 
     @abstractmethod
     def listar_costos_venta(self) -> list[dict]: ...

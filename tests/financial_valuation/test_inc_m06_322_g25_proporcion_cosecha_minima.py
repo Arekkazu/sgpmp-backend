@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
 # | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
 """INC-M06-322-G25 / RF-85: una cantidad cosechada que M02 acepta (mínimo 0,001 kg) se reconoce en M06.
 
 Antes, 0,001 kg sobre un activo de 1.000 kg daba proporción 0,000001, que se guardaba redondeada a 4 decimales
@@ -46,7 +47,7 @@ def _base() -> CalculoValor:  # 1.000 kg a 20.000 menos 6 % de costos de venta =
 
 
 def test_cosecha_de_0_001_kg_se_reconoce() -> None:
-    activo = SimpleNamespace(estado="ACTIVO", es_valorable=True, id_activo_biologico=7, identificador="TRU-007", id_especie=2, id_finca=3,
+    activo = SimpleNamespace(estado="ACTIVO", es_valorable=True, id_activo_biologico=7, identificador="TRU-007", id_especie=2, region=None, id_finca=3,
                              numero_id_tributaria="900123456", id_dispositivo_iot=None)
     evento = EventoM02(id_evento=500, id_activo_biologico=7, tipo="PRODUCTIVO",
                        fecha=datetime(2026, 11, 9, 15, tzinfo=timezone.utc),
@@ -63,7 +64,7 @@ def test_cosecha_de_0_001_kg_se_reconoce() -> None:
                                      reconocimiento_confirmado=lambda _id: SimpleNamespace(clasificacion="CONSUMO"),
                                      agregar_producto=lambda d: productos.append(d) or 70,
                                      agregar_calculo=lambda c: 91),
-        precios=None,
+        precios=SimpleNamespace(de_especie=lambda *a: []),  # sin precio del producto: vale lo que se redujo el activo
         medidor=SimpleNamespace(tomar_alertas=lambda: [], valorador=SimpleNamespace(categoria=lambda _e: "PESO_KG"),
                                 medir=lambda *a, **k: SimpleNamespace(estado="MEDIDO", id_medicion=33, mensaje=None, motivo=None)),
         contabilizador=SimpleNamespace(periodo_cerrado_en=lambda *a: None, periodo_para=lambda *a: SimpleNamespace(id_periodo_contable=4),

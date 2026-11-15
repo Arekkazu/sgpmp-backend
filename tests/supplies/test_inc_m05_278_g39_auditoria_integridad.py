@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: validar causa de incompletitud, UUID estable e intentos de modificación. |
+# | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: los casos completos traen los mínimos de REGISTRO_FALLIDO (Restricción 8) |
 """Regresión de auditoría; persistencia, concurrencia y HTTP se verifican aparte."""
 from uuid import UUID
 from unittest.mock import Mock
@@ -34,7 +35,8 @@ def test_evento_emite_un_uuid_estable():
 
 @pytest.mark.parametrize('detalle', [None, '', '   '])
 def test_incompleto_sin_datos_faltantes_no_inventa_causa(detalle):
-    e = evento(id_activo_biologico=8, id_ciclo_productivo=4, registro_incompleto=True, detalle_causa=detalle)
+    e = evento(id_activo_biologico=8, id_ciclo_productivo=4, id_tipo_suministro='ALIMENTO', numero_reintentos=0,
+               registro_incompleto=True, detalle_causa=detalle)
     assert 'detalle de la causa' in e.detalle_causa
     assert 'no identificó otros datos ausentes' in e.detalle_causa
 
@@ -46,7 +48,8 @@ def test_causa_existente_se_conserva_y_agrega_solo_ausencias_acreditadas():
 
 
 def test_evento_completo_no_se_marca_incompleto_por_no_tener_contexto_opcional():
-    e = evento()
+    # Con sus mínimos (Restricción 8) no importa que falten costo u origen del precio, que no exige.
+    e = evento(id_activo_biologico=8, id_ciclo_productivo=4, id_tipo_suministro='ALIMENTO', numero_reintentos=0)
     assert not e.registro_incompleto and e.detalle_causa is None
 
 

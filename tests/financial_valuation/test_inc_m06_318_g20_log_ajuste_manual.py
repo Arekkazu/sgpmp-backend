@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
 """INC-M06-318-G20 / RF-84 R5, salida 3: cada costo de venta sobrescrito a mano deja un evento
 AJUSTE_MANUAL_COSTOS_VENTA con el ítem, el valor parametrizado original, el valor manual y la justificación.
 
@@ -49,7 +50,7 @@ def test_sin_costos_manuales_no_hay_originales() -> None:
 
 def _config():
     return SimpleNamespace(
-        costos_venta_vigentes=lambda _e: SimpleNamespace(pct_transporte=D("0.01"), pct_comisiones=D("0.02"),
+        costos_venta_vigentes=lambda _e, _r=None: SimpleNamespace(pct_transporte=D("0.01"), pct_comisiones=D("0.02"),
                                                          pct_impuestos=D("0"), id_parametro_costo_venta=1),
         parametro_especie=lambda _e: SimpleNamespace(clasificacion="PRODUCCION", vida_util_meses=None,
                                                      categoria_precio="PESO_KG"),
@@ -62,7 +63,7 @@ def _confirmar(costos_manuales):
     precio = Precio(id_precio_mercado=12, id_especie=2, categoria="PESO_KG", precio_unitario=D("25000"),
                     unidad_medida="kg", fuente="MERCADO_ACTIVO", fecha_vigencia=date(2026, 9, 1))
     activo = SimpleNamespace(
-        id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, cabezas=1, id_evento_peso=None,
+        id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, region=None, cabezas=1, id_evento_peso=None,
         numero_id_tributaria="900123456", id_finca=3, finca="La Esperanza", es_valorable=True, estado="ACTIVO",
         origen_financiero="nacimiento", costo_adquisicion=None, fecha_ingreso=date(2026, 10, 1),
         magnitud=lambda _c: (D("400"), "kg"))

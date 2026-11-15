@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-316-G16 RF-84: referencia documental de los costos manuales |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
 """INC-M06-316-G16 / RF-84 R4: los costos de venta manuales exigen una referencia documental y la guardan.
 
 Antes bastaba una justificación de 20 a 1.000 caracteres: comisiones a 250.000 sin documento respondían 201."""
@@ -89,10 +90,10 @@ def _valorar(costos_manuales, referencia):
     precio = Precio(id_precio_mercado=12, id_especie=2, categoria="PESO_KG", precio_unitario=D("25000"),
                     unidad_medida="kg", fuente="MERCADO_ACTIVO", fecha_vigencia=date(2026, 9, 1))
     config = SimpleNamespace(
-        costos_venta_vigentes=lambda _e: SimpleNamespace(pct_transporte=D("0.01"), pct_comisiones=D("0.02"),
+        costos_venta_vigentes=lambda _e, _r=None: SimpleNamespace(pct_transporte=D("0.01"), pct_comisiones=D("0.02"),
                                                          pct_impuestos=D("0"), id_parametro_costo_venta=1),
         parametro_especie=lambda _e: None)
-    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2,
+    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, region=None,
                              cabezas=1, id_evento_peso=None, magnitud=lambda _c: (D("400"), "kg"))
     return Valorador(None, config).valorar(activo, date(2026, 11, 8), 3, 9, precio_congelado=precio,
                                            costos_manuales=costos_manuales, justificacion=JUSTIFICACION,

@@ -12,6 +12,9 @@
 # | 2026-11-10 | Arekkazu | INC-M06-346-G43-03 RF-87 FA-2: decisión por activo sin precio en el cierre |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: fecha de vigencia opcional en la corrección de un precio |
 # | 2026-11-13 | Leandro | INC-M06-88-G117 RF-COT: delegar el monto no positivo a la regla FA-6 de registro. |
+# | 2026-11-14 | destroyerban | INC-M06-034B-G64 RF-92: la declaración sin novedad no admite compromisos ni pignorados |
+# | 2026-11-14 | destroyerban | INC-M06-043B-G65 RF-92: monto de compromisos y garantías mayor que cero |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -19,7 +22,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import ConfigDict, Field, PositiveInt, model_validator
+from pydantic import ConfigDict, Field, PositiveInt, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 
@@ -55,6 +58,8 @@ class CostosVentaDTO(BaseDTO):
     pct_transporte: Decimal = Field(ge=0, le=1)
     pct_comisiones: Decimal = Field(ge=0, le=1)
     pct_impuestos: Decimal = Field(ge=0, le=1)
+    # RF-84: departamento de la finca (como figura en su ubicación). Vacío = GENERAL, el de las regiones sin uno propio.
+    region: Optional[str] = Field(default=None, min_length=2, max_length=100, pattern=r"\S")
 
 
 class AsignacionCuentaDTO(BaseDTO):
@@ -221,18 +226,35 @@ class FiltrosEstadoDTO(BaseDTO):
     id_finca: Optional[int] = Field(default=None, gt=0)
 
 
+def _monto_positivo(valor: Optional[Decimal]) -> Optional[Decimal]:
+    """TC-92-043: un compromiso o una garantía en cero o negativa no es una revelación válida (opcional sí)."""
+    if valor is not None and valor <= 0:
+        raise ValueError("El monto debe ser mayor que cero. Si no lo conoce, déjelo vacío.")
+    return valor
+
+
 class CompromisoDTO(BaseDTO):
     descripcion: str = Field(min_length=3, max_length=500)
-    monto_estimado: Optional[Decimal] = None
+    monto_estimado: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
     contraparte: Optional[str] = Field(default=None, max_length=200)
     fecha_estimada: Optional[date] = None
+
+    @field_validator("monto_estimado")
+    @classmethod
+    def _monto_estimado_positivo(cls, valor: Optional[Decimal]) -> Optional[Decimal]:
+        return _monto_positivo(valor)
 
 
 class PignoracionDTO(BaseDTO):
     id_activo_biologico: int = Field(gt=0)
     entidad_acreedora: str = Field(min_length=2, max_length=200)
-    monto_garantia: Optional[Decimal] = None
+    monto_garantia: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
     fecha_vencimiento: Optional[date] = None
+
+    @field_validator("monto_garantia")
+    @classmethod
+    def _monto_garantia_positivo(cls, valor: Optional[Decimal]) -> Optional[Decimal]:
+        return _monto_positivo(valor)
 
 
 class InformeRevelacionesDTO(BaseDTO):
@@ -240,6 +262,15 @@ class InformeRevelacionesDTO(BaseDTO):
     activos_pignorados: list[PignoracionDTO] = Field(default_factory=list)
     declaracion_sin_novedad: bool = False
     justificacion_inconsistencias: Optional[str] = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def _sin_novedad_excluye_compromisos_y_pignorados(self) -> "InformeRevelacionesDTO":
+        """RF-92 Entradas: declarar «sin novedad» es afirmar que no hay compromisos ni activos pignorados."""
+        if self.declaracion_sin_novedad and (self.compromisos_vigentes or self.activos_pignorados):
+            raise ValueError(
+                "La declaración de que no existen compromisos ni activos pignorados no puede ir junto con "
+                "compromisos o activos pignorados. Quite la declaración o deje vacías esas listas.")
+        return self
 
 
 class ResolverInformeDTO(BaseDTO):

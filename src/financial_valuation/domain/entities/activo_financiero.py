@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/83: vista financiera del activo biológico (M02 + finca + titular) |
 # | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """Read-model del activo biológico que M06 necesita para valorarlo (NIC 41 ¶10, ¶12)."""
 from __future__ import annotations
 
@@ -39,6 +40,8 @@ class DatosActivo:
     # RF-85: kg ya cosechados como producto de consumo después del último pesaje. M02 no baja el peso con las
     # cosechas, así que sin descontarlos cada cosecha se calcularía sobre el activo completo.
     kg_cosechados: Decimal = Decimal(0)
+    # RF-84: región de los costos de venta = departamento de la finca (``fincas.ubicacion``).
+    region: Optional[str] = None
 
     @property
     def es_poblacional(self) -> bool:
