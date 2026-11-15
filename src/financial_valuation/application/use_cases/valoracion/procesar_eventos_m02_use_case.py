@@ -14,6 +14,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G62 RF-92: el ingreso sin costo guarda cuánto subió la base del activo |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: producto de consumo a su precio con la diferencia en resultados; costos por región; fecha en la cosecha sin precio |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
@@ -22,7 +23,8 @@
   traslado, sin costo en el evento, solo se actualiza la base de valoración y se alerta al Contador.
 - Producción (RF-43): reconocimiento del producto agrícola (RF-85, ¶13 y ¶28). Si la cosecha consume el 100 %
   del activo (FA-4), su valor queda en cero y, después del commit, se registra su baja en M02 (RF-45).
-- Baja (RF-45): ``BAJA_ACTIVO`` por el valor en libros (RFC-018); no se registra el ingreso de la venta.
+- Baja (RF-45): ``BAJA_ACTIVO`` por el valor en libros (RFC-018). Lo recibido por una venta no se asienta (la factura
+  va a la contabilidad externa): queda en la auditoría y el estado de resultados lo presenta como ingreso.
 - Reproductivos, sanitarios y otros no cambian el valor razonable.
 Un activo valorado por costo (¶30) no genera variaciones de valor razonable (RF-88 CA-4).
 Un activo no elegible (estado distinto de ACTIVO o EN_TRATAMIENTO en M02, o sin reconocimiento
@@ -275,9 +277,12 @@ class ProcesarEventosM02UseCase:
             self.valoraciones.actualizar_valoracion_costo(costo)
         elif restante > 0:
             self.valoraciones.agregar_calculo(base.escalado(restante, periodo.id_periodo_contable))
+        venta = evento.datos.get("valor_venta")
         self._auditar("BAJA_ACTIVO_REGISTRADA", Severidad.INFO, activo, periodo, evento.id_evento,
                       {"tipo_baja": tipo_baja, "cantidad": str(cantidad), "proporcion": str(proporcion),
-                       "valor_libros": str(valor_libros), "valor_baja": str(valor)}, monto=valor)
+                       "valor_libros": str(valor_libros), "valor_baja": str(valor),
+                       **({"valor_venta": str(venta), "resultado_venta": str(Decimal(venta) - valor)}
+                          if venta is not None else {})}, monto=valor)
         return "PROCESADO", None
 
     # --- Producto agrícola (RF-85) -------------------------------------------------------------

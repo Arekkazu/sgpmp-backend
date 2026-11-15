@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Implementación SQLAlchemy de ``EventoActivoRepository`` (RF-39 a RF-45)."""
 
 from __future__ import annotations
@@ -69,6 +70,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                 cantidad_afectada=b.cantidad_afectada,
                 tipo=b.tipo,
                 detalles=b.detalles,
+                valor_venta=b.valor_venta,
+                referencia_venta=b.referencia_venta,
             )
 
         ingreso: Optional[EventoIngreso] = None
@@ -162,6 +165,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                     cantidad_afectada=b.cantidad_afectada,
                     tipo=b.tipo,
                     detalles=b.detalles,
+                    valor_venta=b.valor_venta,
+                    referencia_venta=b.referencia_venta,
                 ))
             elif evento.ingreso:
                 i = evento.ingreso

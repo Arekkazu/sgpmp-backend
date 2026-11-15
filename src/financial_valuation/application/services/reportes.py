@@ -9,6 +9,7 @@
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: revelar supuestos y detectar datos insuficientes por activo. |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
@@ -132,7 +133,9 @@ class ConstructorEstadoResultados:
         movimientos = self.reportes.movimientos(id_periodo_contable, consulta)
         costos = self.costos.del_periodo(id_periodo_contable, consulta)
         er = estado_resultados(
-            [MovimientoResultado(m["tipo_hecho"], m["sentido"], Decimal(m["valor"]), m["es_reverso"]) for m in movimientos],
+            [MovimientoResultado(m["tipo_hecho"], m["sentido"], Decimal(m["valor"]), m["es_reverso"],
+                                 Decimal(m["valor_venta"]) if m.get("valor_venta") is not None else None)
+             for m in movimientos],
             [CostoPeriodo(c["naturaleza_costo"], c["politica_capitalizacion"], Decimal(c["monto_costo"]), c["es_reverso"],
                           c["subtipo_costo"]) for c in costos],
         )
@@ -142,7 +145,10 @@ class ConstructorEstadoResultados:
                 "total_ingresos": q4(er.total_ingresos),
                 "total_gastos": q4(er.total_gastos), "resultado_neto": q4(er.resultado_neto),
                 "sin_actividad": [k for k, v in er.componentes.items() if v == 0], "lineas": len(movimientos),
-                "costos": len(costos)}
+                "costos": len(costos),
+                # Ventas del período registradas sin valor (anteriores al campo): su ingreso no aparece en el estado.
+                "ventas_sin_valor": sum(1 for m in movimientos if m.get("tipo_baja") == "venta"
+                                        and m.get("valor_venta") is None and not m["es_reverso"])}
 
     def guardar(self, id_periodo_contable: int, filtros: dict, id_usuario: int, excluidos: list) -> dict:
         faltantes = self.reportes.hechos_sin_asiento(id_periodo_contable)
@@ -152,7 +158,7 @@ class ConstructorEstadoResultados:
         calculo = self.calcular(id_periodo_contable, filtros, ids_excluidos)
         excluidos = self._con_montos(id_periodo_contable, filtros, excluidos)
         componentes = {**calculo["componentes"], "desglose_costos_mantenimiento": calculo["desglose_costos_mantenimiento"],
-                       "activos_excluidos_cierre": excluidos}
+                       "activos_excluidos_cierre": excluidos, "ventas_sin_valor": calculo["ventas_sin_valor"]}
         c = {k: Decimal(v) for k, v in calculo["componentes"].items()}
         version = self.reportes.siguiente_version_estado(id_periodo_contable)
         id_estado = self.reportes.agregar_estado({

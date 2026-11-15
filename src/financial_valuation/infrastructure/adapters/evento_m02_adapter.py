@@ -7,6 +7,7 @@
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-83/85: elegibilidad de #1034 en la cola y en la cosecha pendiente de #1060 |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-14 | Arekkazu | INC-M06-363-G27 RF-85 FA-1: la cosecha pendiente se retoma con un precio registrado en la misma transacción |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 """Adaptador de :class:`EventoM02Port`.
 
 Entran los eventos de activos con reconocimiento CONFIRMADO y posteriores a él: los anteriores ya
@@ -37,7 +38,7 @@ SELECT ea.id_eventos AS id_evento, ea.id_activo_biologico, ea.fecha,
             WHEN er.id_evento_reproductivo IS NOT NULL THEN 'REPRODUCTIVO'
             WHEN es.id_evento IS NOT NULL THEN 'SANITARIO'
             ELSE 'OTRO' END AS tipo,
-       upper(ec.tipo_medicion) AS tipo_medicion, eb.tipo::text AS tipo_baja, eb.cantidad_afectada,
+       upper(ec.tipo_medicion) AS tipo_medicion, eb.tipo::text AS tipo_baja, eb.cantidad_afectada, eb.valor_venta,
        ep.cantidad AS cantidad_producida, ep.id_metrica_produccion, ei.tipo::text AS tipo_ingreso,
        ei.cantidad_ingresada, coalesce(pr.resultado = 'ENCOLADO_CIERRE', false) AS encolado_en_cierre,
        ri.id_reconocimiento_inicial IS NULL AS sin_reconocimiento
@@ -102,7 +103,7 @@ WHERE ea.id_eventos = :id AND ep.id_evento IS NOT NULL AND pr.resultado = 'MEDIC
 
 
 def _evento(f: dict) -> EventoM02:
-    datos = {k: f[k] for k in ("tipo_medicion", "tipo_baja", "cantidad_afectada", "cantidad_producida",
+    datos = {k: f[k] for k in ("tipo_medicion", "tipo_baja", "cantidad_afectada", "valor_venta", "cantidad_producida",
                                "id_metrica_produccion", "tipo_ingreso", "cantidad_ingresada")}
     return EventoM02(f["id_evento"], f["id_activo_biologico"], f["fecha"], f["tipo"], datos,
                      encolado_en_cierre=f["encolado_en_cierre"], sin_reconocimiento=f["sin_reconocimiento"])
