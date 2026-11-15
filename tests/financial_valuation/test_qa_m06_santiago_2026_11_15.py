@@ -89,3 +89,19 @@ def test_el_ajuste_de_periodo_anterior_encuentra_su_origen():
                          tipo_evidencia="REGISTRO_MANUAL")
     SqlAlchemyTrazabilidadRepository(db).eslabones(linea)
     assert "FROM modulo6.lineas_asiento_nic41 WHERE id_linea_asiento_nic41 = :id" in db.sql[0]
+
+
+def test_la_matriz_rechaza_el_gasto_de_mano_de_obra_contra_el_activo():
+    import pytest
+
+    from src.financial_valuation.application.use_cases.configuracion.guardar_asignacion_cuenta_use_case import (
+        GuardarAsignacionCuentaUseCase,
+    )
+    from src.shared.errors import BusinessRuleError
+
+    caso = GuardarAsignacionCuentaUseCase(db=None, config=None, asientos=None, auditoria=None)
+    for tipo in ("MANO_OBRA_PROPIA", "CONSUMO_INSUMO"):
+        with pytest.raises(BusinessRuleError) as error:
+            caso.execute(tipo, "UNICO", None, None, "158405", "250505", 1)
+        assert error.value.code == "CUENTA_DEBITO_NO_ES_GASTO"
+        assert "158405" not in error.value.message
