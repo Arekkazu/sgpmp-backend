@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | INC-M06-364-G24 RF-85: el producto de consumo se valora con su precio y la diferencia va a resultados |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida acredita el activo (convención de la matriz) |
 """INC-M06-364-G24 / RF-85 pasos 3 a 7 y CA-5: el producto de consumo vale su precio (RF-89) menos costos de venta.
 
 Activo de 1.000 kg a 20.000 con 6 % de costos (18.800.000); cosecha de 250 kg. El activo se reduce en 4.700.000 y
@@ -72,12 +73,15 @@ def _cosechar(precio_producto: str | None):
     return resultado, productos, [(linea.sentido, linea.valor) for linea in lineas]
 
 
-@pytest.mark.parametrize("precio, valor_producto, costo_unitario, diferencia", [
-    ("12000", D("2820000.00"), D("720.0000"), ("PERDIDA", D("1880000.00"))),   # caso de QA: vale menos que el activo
-    ("25000", D("5875000.00"), D("1500.0000"), ("UNICO", D("1175000.00"))),    # vale más: ganancia (¶28)
+@pytest.mark.parametrize("precio, valor_producto, costo_unitario, asiento", [
+    # Caso de QA, vale menos que lo reducido: inventario por su valor y pérdida contra el activo, como los demás
+    # pares de pérdida de la matriz (en TEST: débito 539505, crédito 158405).
+    ("12000", D("2820000.00"), D("720.0000"), [("TRASLADO", D("2820000.00")), ("PERDIDA", D("1880000.00"))]),
+    # Vale más: el activo sale por lo reducido y la diferencia es ganancia (inventario contra ingreso, ¶28).
+    ("25000", D("5875000.00"), D("1500.0000"), [("TRASLADO", D("4700000.00")), ("UNICO", D("1175000.00"))]),
 ])
 def test_el_producto_vale_su_precio_y_la_diferencia_va_a_resultados(precio, valor_producto, costo_unitario,
-                                                                     diferencia) -> None:
+                                                                     asiento) -> None:
     resultado, productos, lineas = _cosechar(precio)
 
     assert resultado == ("PROCESADO", None)
@@ -86,10 +90,12 @@ def test_el_producto_vale_su_precio_y_la_diferencia_va_a_resultados(precio, valo
     assert producto["costo_venta_producto"] == costo_unitario
     assert producto["valor_producto"] == valor_producto
     assert producto["valor_reduccion_activo"] == D("4700000.00")
-    assert lineas == [("TRASLADO", D("4700000.00")), diferencia]
-    # Inventario = traslado ± diferencia = valor del producto: el asiento cuadra.
-    signo = 1 if diferencia[0] == "UNICO" else -1
-    assert lineas[0][1] + signo * diferencia[1] == valor_producto
+    assert lineas == asiento
+    montos = dict(lineas)
+    # El inventario (traslado + ganancia) queda en el valor del producto y el activo (traslado + pérdida) baja en lo
+    # que se redujo: el asiento cuadra con las dos partes.
+    assert montos["TRASLADO"] + montos.get("UNICO", D(0)) == valor_producto
+    assert montos["TRASLADO"] + montos.get("PERDIDA", D(0)) == D("4700000.00")
 
 
 def test_sin_precio_del_producto_vale_lo_que_se_redujo_el_activo() -> None:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | INC-M06-363-G27 / INC-M06-365-G21 RF-84/85: cosecha retomada con el precio y costos por región, en PostgreSQL real |
+# | 2026-11-15 | Arekkazu | INC-M06-365-G21 RF-84: región agrupada («Huila - Tolima») por cada departamento |
 """Contra PostgreSQL real, dentro de una sola transacción como el sandbox de QA (``db_session`` usa SAVEPOINT).
 
 - INC-M06-363-G27 (TC-M06-120c/120d): la cosecha pendiente por falta de precio se reconoce al registrar el precio,
@@ -106,6 +107,14 @@ def test_costos_de_venta_por_region_con_general_de_respaldo(db_session, m06, con
     assert m06.config.costos_venta_vigentes(especie, "Córdoba").pct_transporte == D("0.02")
     assert db_session.execute(text("""SELECT count(*) FROM modulo6.parametros_costos_venta WHERE id_especie = :e
         AND es_activo AND region <> 'GENERAL'"""), {"e": especie}).scalar() == 1
+
+    # Región agrupada, como las que tiene TEST: vale para cada departamento que nombra; la exacta le gana.
+    m06.guardar_costos_venta().execute(especie, D("0.04"), D("0"), D("0"), uid, "Huila - Tolima")
+    assert m06.config.costos_venta_vigentes(especie, "Tolima").pct_transporte == D("0.04")
+    assert m06.config.costos_venta_vigentes(especie, "huila").pct_transporte == D("0.04")
+    m06.guardar_costos_venta().execute(especie, D("0.01"), D("0"), D("0"), uid, "Huila")
+    assert m06.config.costos_venta_vigentes(especie, "Huila").pct_transporte == D("0.01")
+    assert m06.config.costos_venta_vigentes(especie, "Tolima").pct_transporte == D("0.04")
 
 
 def test_el_calculo_usa_los_costos_de_la_region_de_la_finca(db_session, m06, contador):

@@ -10,6 +10,7 @@
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -244,7 +245,8 @@ class ConstructorInformeRevelaciones:
             diferencia = mov.get("RECONOCIMIENTO_DIFERENCIA:GANANCIA", CERO) - mov.get("RECONOCIMIENTO_DIFERENCIA:PERDIDA", CERO)
             tb = mov.get("VARIACION_VR_TB:GANANCIA", CERO) - mov.get("VARIACION_VR_TB:PERDIDA", CERO)
             pm = mov.get("VARIACION_VR_PM:GANANCIA", CERO) - mov.get("VARIACION_VR_PM:PERDIDA", CERO)
-            cosechas = mov.get("PRODUCTO_AGRICOLA:TRASLADO", CERO)
+            # Lo cosechado sale del activo por el traslado y, si el producto valió menos, por la pérdida (G24).
+            cosechas = mov.get("PRODUCTO_AGRICOLA:TRASLADO", CERO) + mov.get("PRODUCTO_AGRICOLA:PERDIDA", CERO)
             bajas = sum((v for k, v in mov.items() if k.startswith("BAJA_ACTIVO")), CERO)
             depreciacion = sum((v for k, v in mov.items() if k.startswith(("DEPRECIACION", "DETERIORO"))), CERO)
             es_costo = a["valor_contable_por_costo"] is not None

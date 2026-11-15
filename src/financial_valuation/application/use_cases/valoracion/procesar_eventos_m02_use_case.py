@@ -15,6 +15,7 @@
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: producto de consumo a su precio con la diferencia en resultados; costos por región; fecha en la cosecha sin precio |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -436,11 +437,12 @@ class ProcesarEventosM02UseCase:
         })
         lineas = [(sentido, valor)]
         if sentido == Sentido.TRASLADO.value:
-            # INC-M06-364-G24 (RF-85 paso 7): el activo sale por lo que se redujo (inventario contra activo) y la
-            # diferencia con el valor del producto es ganancia (mismo par que la cosecha periódica) o pérdida.
+            # INC-M06-364-G24 (RF-85 paso 7): el inventario queda en el valor del producto y el activo baja en lo que
+            # se redujo. Si el producto vale más, la diferencia es ganancia (inventario contra ingreso, el par de la
+            # cosecha periódica); si vale menos, es pérdida contra el activo, como todo par de pérdida de la matriz.
             diferencia = valor - valor_reduccion
-            lineas = [(sentido, valor_reduccion),
-                      (Sentido.UNICO.value if diferencia > 0 else Sentido.PERDIDA.value, abs(diferencia))]
+            lineas = ([(sentido, valor_reduccion), (Sentido.UNICO.value, diferencia)] if diferencia >= 0
+                      else [(sentido, valor), (Sentido.PERDIDA.value, -diferencia)])
         for sentido_linea, monto in lineas:
             if monto > 0:
                 self.contabilizador.asentar(LineaAsiento(

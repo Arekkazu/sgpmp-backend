@@ -14,6 +14,7 @@
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: conectar la notificación financiera de supuestos faltantes. |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: la baja del activo cosechado usa la sesión de M06 |
+# | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -149,7 +150,7 @@ class M06:
     @cached_property
     def trazabilidad(self): return SqlAlchemyTrazabilidadRepository(self.db)
     @cached_property
-    def notificador(self): return NotificacionFinancieraM01Adapter(sesion_sistema)
+    def notificador(self): return NotificacionFinancieraM01Adapter(sesion_sistema, self.db)
 
     # --- Servicios ---
     @cached_property
@@ -197,7 +198,8 @@ class M06:
     def procesar_provisiones(self):
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):
-        return RegistrarCostoUseCase(self.db, self.costos, self.activos, self.valoraciones, self.contabilizador)
+        return RegistrarCostoUseCase(self.db, self.costos, self.activos, self.valoraciones, self.contabilizador,
+                                     notificador=self.notificador)
     def clasificar_costo(self): return ClasificarCostoUseCase(self.db, self.costos, self.activos, self.contabilizador)
     def cierre(self):
         return EjecutarCierrePeriodoUseCase(
