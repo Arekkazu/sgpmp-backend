@@ -8,6 +8,7 @@
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-94: bitácora filtrable por la finca del activo |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G93 RF-94: la auditoría se acota a los titulares de las fincas del usuario |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44: el nombre de quien firmó cada evento sale de la ayuda compartida nombres_usuarios |
+# | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-01 RF-94: el alcance por fincas se comparte con las cotizaciones |
 """Implementación SQL de :class:`AuditoriaFinancieraRepository` sobre ``modulo6.auditorias_financieras``.
 
 El hash SHA-256 lo calcula el trigger ``trg_hash_auditoria``; ``tgr_m06_27`` corre antes y exige
@@ -21,7 +22,15 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas, nombres_usuarios
+from src.financial_valuation.infrastructure.repositories.sql import (
+    ES_ADMINISTRADOR as _ES_ADMINISTRADOR,
+    PERIODOS_DE_MIS_FINCAS as _PERIODOS_PROPIOS,
+    a_json,
+    escribir,
+    fila,
+    filas,
+    nombres_usuarios,
+)
 from src.shared.fechas import nombre_zona_usuario
 from src.shared.nombre_activo import nombre_activo_sql
 
@@ -50,10 +59,6 @@ _FILTROS = (("tipo_evento", "a.tipo_evento::text = ANY(:tipo_evento)"),
 # INC-M06-365-G93: cada quien ve la auditoría de los titulares de sus fincas, también quien lee el cierre (Contador,
 # Revisor Fiscal); el Administrador protegido, toda. Las RLS de `modulo9.fincas` y `modulo2.activos_biologicos` ya
 # acotan a las fincas asignadas. Lo global (precios, matriz, parámetros) y lo que firmó el propio usuario se ven siempre.
-_ES_ADMINISTRADOR = """COALESCE((SELECT modulo1.fn_rol_protegido(u.id_rol) FROM modulo1.usuarios u
-                                WHERE u.id_usuario = modulo1.fn_id_usuario_actual()), false)"""
-_PERIODOS_PROPIOS = """SELECT pc.id_periodo_contable FROM modulo6.periodos_contables pc
-                       WHERE pc.numero_id_tributaria IN (SELECT f.numero_id_tributaria FROM modulo9.fincas f)"""
 _ALCANCE = f"""({_ES_ADMINISTRADOR} OR a.id_usuario = modulo1.fn_id_usuario_actual()
     OR a.id_periodo_contable IN ({_PERIODOS_PROPIOS})
     OR (a.id_periodo_contable IS NULL AND (

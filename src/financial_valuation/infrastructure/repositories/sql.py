@@ -4,6 +4,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: la cosecha del 100 % deja el activo en cero e inicia su baja |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: alcance de titulares y períodos a las fincas de quien solo consulta |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-87/92/93: el nombre de quien cerró, aprobó o solicitó se ve aunque la RLS de usuarios lo oculte |
+# | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-01 RF-COT/94: alcance compartido de titulares de las fincas del usuario |
 """Ayudas de SQL compartidas por los repositorios de M06.
 
 Los repositorios de M06 usan SQL explícito: casi todas sus lecturas cruzan M02, M09 y M05, y las
@@ -43,6 +44,14 @@ def alcance_periodo(columna: str) -> str:
     ``pa`` y la condición sería siempre verdadera."""
     return (f"EXISTS (SELECT 1 FROM modulo6.periodos_contables pa WHERE pa.id_periodo_contable = {columna} "
             f"AND {alcance_titular('pa.numero_id_tributaria')})")
+
+
+# INC-M06-365-G93 / CU-COT H-01: lo que cuelga de un titular lo ve quien tiene asignada una finca suya, también
+# quien opera el cierre (Contador); el Administrador protegido ve todo. `modulo9.fincas` ya está acotada por RLS.
+ES_ADMINISTRADOR = """COALESCE((SELECT modulo1.fn_rol_protegido(u.id_rol) FROM modulo1.usuarios u
+                               WHERE u.id_usuario = modulo1.fn_id_usuario_actual()), false)"""
+PERIODOS_DE_MIS_FINCAS = """SELECT pc.id_periodo_contable FROM modulo6.periodos_contables pc
+                            WHERE pc.numero_id_tributaria IN (SELECT f.numero_id_tributaria FROM modulo9.fincas f)"""
 
 
 def a_json(valor: Any) -> Optional[str]:
