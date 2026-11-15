@@ -1,0 +1,42 @@
+{
+  "fase": "organizacion_final_g119_2026-11-15",
+  "dictamen": "APROBADO",
+  "estructura_activa": [
+    "ejecucion_tc51_2026-11-15/",
+    "ultima_evaluacion/resumen_ejecucion_vigente_TC-M06-G119.json",
+    "ultima_evaluacion/informe_cierre_TC-M06-G119.md",
+    "ultima_evaluacion/evidencia_escenario_tc52_TC-M06-G119.json",
+    "README.md"
+  ],
+  "archivo": "_arch/",
+  "movimientos": [
+    {
+      "from": "auditoria_final_2026-11-15/",
+      "to": "_arch/auditoria_final_2026-11-15/",
+      "motivo": "Auditoría solo-lectura previa a la anulación; dictamen parcial supersedido"
+    },
+    {
+      "from": "preparacion/",
+      "to": "_arch/preparacion/",
+      "motivo": "Preparación e inspección intermedia; no es el dictamen final"
+    },
+    {
+      "from": "primera_evaluacion/",
+      "to": "_arch/primera_evaluacion/",
+      "motivo": "Primera corrida bloqueada (sin anulación); evidencia histórica"
+    },
+    {
+      "from": "ultima_evaluacion/*parcial*",
+      "to": "_arch/parcial/",
+      "motivo": "Cierre parcial / HTML / hallazgos previos a TC-51; backup pre_tc51 preservado"
+    }
+  ],
+  "inconsistencia_corregida": {
+    "archivo": "ultima_evaluacion/resumen_ejecucion_vigente_TC-M06-G119.json",
+    "campo": "tc51.segundo_intento.code",
+    "antes": null,
+    "despues": "COTIZACION_NO_MODIFICABLE",
+    "fuente_verdad": "ejecucion_tc51_2026-11-15/resultado_segundo_intento.json",
+    "nota": "El null provenía de un fallo de parseo en el resumen; la respuesta HTTP real ya tenía error_code. Dictamen APROBADO no cambió."
+  }
+}

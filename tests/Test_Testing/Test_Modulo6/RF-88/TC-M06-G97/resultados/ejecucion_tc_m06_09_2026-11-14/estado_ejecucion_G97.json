@@ -1,0 +1,131 @@
+{
+  "caso": "TC-M06-G97",
+  "fecha": "2026-11-14T01:41:19-05:00",
+  "commit": "3995b923",
+  "rama": "laura",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "estado_general": "PARCIALMENTE_EJECUTADO",
+  "aprobado_grupo": false,
+  "tc_m06_09": {
+    "resultado": "APROBADO",
+    "activo": 1858,
+    "fecha_consulta": "2027-11-12",
+    "aserciones_ok": 7,
+    "aserciones_fail": 0,
+    "aserciones": [
+      {
+        "id": "A1_HTTP_exitoso",
+        "ok": true,
+        "obtenido": 200,
+        "esperado": 200,
+        "detalle": ""
+      },
+      {
+        "id": "A2_depreciacion_anual",
+        "ok": true,
+        "obtenido": "340000.0000",
+        "esperado": "340000",
+        "detalle": ""
+      },
+      {
+        "id": "A3_depreciacion_acumulada",
+        "ok": true,
+        "obtenido": "340000.0000",
+        "esperado": "340000",
+        "detalle": ""
+      },
+      {
+        "id": "A4_valor_contable",
+        "ok": true,
+        "obtenido": "1360000.0000",
+        "esperado": "1360000",
+        "detalle": ""
+      },
+      {
+        "id": "A5_depreciacion_registrada",
+        "ok": true,
+        "obtenido": "0.0000",
+        "esperado": "0",
+        "detalle": ""
+      },
+      {
+        "id": "A6_meses_transcurridos",
+        "ok": true,
+        "obtenido": 12,
+        "esperado": 12,
+        "detalle": ""
+      },
+      {
+        "id": "A7_sin_efectos_secundarios",
+        "ok": true,
+        "obtenido": {
+          "depreciacion_acumulada_registrada": "0.0000",
+          "valor_contable_por_costo": "1700000.0000",
+          "deterioro_acumulado": "0.0000",
+          "lineas_count_despues": 1,
+          "http": 200
+        },
+        "esperado": {
+          "depreciacion_acumulada_registrada": "0.0000",
+          "valor_contable_por_costo": "1700000.0000",
+          "deterioro_acumulado": "0.0000",
+          "lineas_count": 1
+        },
+        "detalle": "Consulta no debe registrar depreciacion ni nuevas lineas"
+      }
+    ]
+  },
+  "tc_m06_08": {
+    "resultado": "NO_EJECUTADO",
+    "motivo": "Pendiente fixture limpia VIDA_UTIL_NO_CONFIGURADA y autorizacion de escritura"
+  },
+  "precondiciones": {
+    "auth": {
+      "http": 200,
+      "ok": true,
+      "nota": "unico POST: login"
+    },
+    "permiso_valoracion_por_costo_R": true,
+    "get_activo": {
+      "http": 200
+    },
+    "baseline": {
+      "id_activo_biologico": 1858,
+      "identificador": "QA-RF88-AL-COSTO",
+      "especie": "Ovino Medicion Qa Rf",
+      "costos_adquisicion": "1700000.0000",
+      "vida_util_meses": 60,
+      "depreciacion_acumulada_registrada": "0.0000",
+      "deterioro_acumulado": "0.0000",
+      "valor_contable_por_costo": "1700000.0000",
+      "es_activa": true,
+      "escenario_activacion": "INICIAL_RF82",
+      "id_valoracion_por_costo": 54,
+      "lineas_count_antes": 1
+    },
+    "get_depreciacion_hoy": {
+      "http": 200
+    },
+    "coincide_preparacion": {
+      "ok": true,
+      "costo_adquisicion": "1700000.0000",
+      "vida_util_meses": 60,
+      "fecha_adquisicion": "2026-11-12",
+      "depreciacion_registrada": "0.0000"
+    },
+    "fecha_consulta": "2027-11-12"
+  },
+  "ejecucion": {
+    "metodo": "GET",
+    "url": "https://api.inmero.co/api-sgpmp-test/finanzas/activos/1858/depreciacion?fecha=2027-11-12",
+    "inicio_utc": "2026-11-14T06:41:19.080176+00:00",
+    "fin_utc": "2026-11-14T06:41:19.467778+00:00",
+    "http": 200
+  },
+  "restricciones": {
+    "sin_escrituras_negocio": true,
+    "sin_tc_m06_08": true,
+    "sin_commit_push": true,
+    "no_aprobar_g97_solo_por_09": true
+  }
+}

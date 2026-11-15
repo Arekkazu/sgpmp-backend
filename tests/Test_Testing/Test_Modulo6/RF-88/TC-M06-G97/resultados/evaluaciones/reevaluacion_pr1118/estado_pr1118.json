@@ -1,0 +1,44 @@
+{
+  "fecha_consulta_utc": "2026-11-14T01:43:00Z",
+  "incidencia": {
+    "numero": 1114,
+    "titulo": "INC-M06-90-G97 Ausencia de endpoint API para validar el cálculo de depreciación lineal y la obligatoriedad de la vida útil",
+    "estado": "open",
+    "closed_at": null,
+    "url": "https://github.com/Arekkazu/sgpmp-backend/issues/1114"
+  },
+  "pr": {
+    "numero": 1118,
+    "titulo": "fix(rf87-mod6): lote QA M05/M06 del 13-11 (precio congelado, estimados, depreciación, 403 por estado y recorte de RF-77)",
+    "estado": "open",
+    "merged": false,
+    "merged_at": null,
+    "base": "dev",
+    "head": "fix/qa-m05-m06-lote-2026-11-13",
+    "head_sha": "16b990eea367ccfef9003e1e01330003637f124c",
+    "mergeable": true,
+    "url": "https://github.com/Arekkazu/sgpmp-backend/pull/1118"
+  },
+  "commit_funcional_g97": {
+    "sha": "4f3d4962d5c03e329e8d16f86f6fb467071b0811",
+    "mensaje": "feat(rf88-mod6): consulta de la depreciacion lineal de un activo al costo a una fecha (INC-M06-90-G97)",
+    "archivos": [
+      "src/financial_valuation/application/use_cases/valoracion_costo/consultar_depreciacion_use_case.py",
+      "src/financial_valuation/infrastructure/factories/m06_factory.py",
+      "src/financial_valuation/infrastructure/routers/m06_router.py",
+      "tests/integration/test_inc_m06_90_g97_depreciacion.py"
+    ]
+  },
+  "integracion": {
+    "head_ancestro_de_origin_dev": false,
+    "head_ancestro_de_origin_test": false,
+    "origin_dev": "08e65db439c434520de5eaea4f5c3c578776d7ff",
+    "origin_test": "2cd6ee14bfb4642624cfbd6752b5a7909a48075f",
+    "conclusion": "PR #1118 no integrado a dev ni a test; no desplegado en backend TEST."
+  },
+  "contrato_reportado_en_codigo_pr": {
+    "tc_m06_09": "GET /finanzas/activos/{id_activo_biologico}/depreciacion?fecha=AAAA-MM-DD",
+    "tc_m06_08_reconocimiento": "POST/confirmacion reconocimiento → 422 VIDA_UTIL_NO_CONFIGURADA",
+    "tc_m06_08_consulta": "GET depreciacion también responde 422 VIDA_UTIL_NO_CONFIGURADA (FA-2)"
+  }
+}

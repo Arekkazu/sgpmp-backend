@@ -1,0 +1,37 @@
+{
+  "fecha_utc": "2026-11-14T01:43:30Z",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "alcance": "solo lectura GET; sin autenticación de escritura; sin POST/PUT/PATCH/DELETE",
+  "sondas": [
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1/depreciacion?fecha=2025-01-01",
+      "http_status": 404,
+      "cuerpo": {"detail": "Not Found"},
+      "interpretacion": "La ruta reportada en PR #1118 no existe en el despliegue TEST actual."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1/depreciacion",
+      "http_status": 404,
+      "cuerpo": {"detail": "Not Found"},
+      "interpretacion": "Confirmación sin query fecha: igualmente ausente."
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http_status": 200,
+      "paths_con_depreci": [],
+      "tiene_get_depreciacion": false,
+      "finanzas_activos_paths": [
+        "/finanzas/activos",
+        "/finanzas/activos/{id_activo_biologico}",
+        "/finanzas/activos/{id_activo_biologico}/simulacion",
+        "/finanzas/activos/{id_activo_biologico}/eventos-sanitarios",
+        "/finanzas/activos/{id_activo_biologico}/deterioros",
+        "/finanzas/activos/{id_activo_biologico}/valor-razonable"
+      ]
+    }
+  ],
+  "conclusion": "TEST no expone GET /finanzas/activos/{id}/depreciacion. TC-M06-09 no ejecutable en este ambiente."
+}

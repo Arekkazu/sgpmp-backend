@@ -1,0 +1,86 @@
+{
+  "caso": "TC-M06-G97",
+  "rf": "RF-88",
+  "cu": "CU07",
+  "incidencia": "INC-M06-90-G97",
+  "issue": 1114,
+  "fecha_auditoria": "2026-11-14",
+  "fase": "auditoria_tecnica_y_diseno_reevaluacion",
+  "dictamen": "PREPARADO_PARA_REEVALUACION_FUNCIONAL_PENDIENTE",
+  "aprobado": false,
+  "desbloqueado_funcionalmente": false,
+  "ejecucion_funcional_08_09": false,
+  "solucion": {
+    "pr_implementacion": 1118,
+    "pr_integracion": 1121,
+    "commit_funcional": "4f3d4962d5c03e329e8d16f86f6fb467071b0811",
+    "merge_pr_1121": "e45d5fa8a858241bba30263ea8c9ffbf9786fb31",
+    "integrado_en_origin_dev": true,
+    "integrado_en_origin_test": true,
+    "presente_en_workspace_laura": false,
+    "workspace_laura_head": "1b68169d"
+  },
+  "despliegue_test": {
+    "confirmacion_formal_operativa": "PENDIENTE",
+    "openapi_path_depreciacion": "PRESENTE",
+    "sonda_sin_token": {
+      "http": 401,
+      "error_code": "TOKEN_REQUERIDO",
+      "antes_pr1118_era": 404
+    },
+    "evidencia": "evidencia_openapi_sonda_readonly.json",
+    "nota": "Contrato expuesto en API TEST; AC autenticados y validación de runtime no ejecutados en esta fase. No declarar APROBADO solo por path 401."
+  },
+  "validaciones_codigo_origin_dev": {
+    "endpoint_get_depreciacion": true,
+    "permiso": "valoracion_por_costo:R",
+    "calcula_sin_registrar": true,
+    "vida_util_or_1_eliminado": true,
+    "reconocimiento_422_VIDA_UTIL_NO_CONFIGURADA": true,
+    "consulta_historico_sin_vida_422": true,
+    "cierre_prevalidar_VIDA_UTIL_NO_CONFIGURADA": true,
+    "cierre_execute_422_CIERRE_BLOQUEADO": true
+  },
+  "validaciones_no_confirmadas_en_test": [
+    "GET autenticado TC-M06-09 con aserciones 2M/2M/10M",
+    "POST reconocimiento TC-M06-08 camino A",
+    "GET depreciacion sobre historico sin vida util camino B",
+    "Inventario de activo real 12000000/72 en TEST",
+    "Especie aislada sin vida util autorizada"
+  ],
+  "datos_prueba": {
+    "activo_12m_72_meses_id": null,
+    "activo_12m_72_verificado_en_test": false,
+    "especie_sin_vida_util_autorizada": false,
+    "historico_sin_vida_util_autorizado": false,
+    "no_inventar_ids": true
+  },
+  "diseno_actualizado": {
+    "tc_m06_08_dos_caminos": true,
+    "tc_m06_09_get_y_aserciones": true,
+    "documentos": [
+      "AUDITORIA_TECNICA_G97.md",
+      "MATRIZ_VERIFICACIONES_G97.md",
+      "PLAN_REEVALUACION_G97.md",
+      "estado_reevaluacion_G97.json"
+    ]
+  },
+  "restricciones_cumplidas": {
+    "sin_escrituras_test": true,
+    "sin_reconocimientos_ni_cierres": true,
+    "sin_modificar_config_compartida": true,
+    "sin_pruebas_funcionales": true,
+    "sin_modificar_codigo_produccion": true,
+    "sin_datos_ficticios_como_reales": true,
+    "sin_commit_ni_push": true,
+    "historicos_preservados": true
+  },
+  "proximos_pasos": [
+    "Actualizar rama laura desde origin/dev o origin/test",
+    "Confirmar despliegue operativo (GET autenticado de humo)",
+    "Identificar o solicitar activo 12M/72 (o recalcular aserciones con activo real)",
+    "Ejecutar TC-M06-09",
+    "Solicitar autorizacion y ejecutar TC-M06-08 (camino A y/o B)",
+    "Actualizar estado oficial solo tras evidencia funcional"
+  ]
+}

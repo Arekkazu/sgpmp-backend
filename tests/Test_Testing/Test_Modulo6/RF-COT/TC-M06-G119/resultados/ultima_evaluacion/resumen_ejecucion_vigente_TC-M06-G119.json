@@ -1,0 +1,110 @@
+{
+  "caso": "TC-M06-G119",
+  "subcasos": [
+    "TC-M06-51",
+    "TC-M06-52"
+  ],
+  "fase": "cierre_completo_post_tc51_2026-11-15",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-15T07:59:15.617454+00:00",
+  "autorizacion": "Ejecución autorizada TC-M06-51 (anulación + 2º intento)",
+  "escritura_ejecutada": true,
+  "anulacion_cotizacion_6_ejecutada": true,
+  "subcasos_resultado": [
+    {
+      "subcaso": "TC-M06-51",
+      "estado": "APROBADO",
+      "cotizacion": 6,
+      "activo": 1571,
+      "evento": 25569
+    },
+    {
+      "subcaso": "TC-M06-52",
+      "estado": "APROBADO",
+      "cotizacion": 7,
+      "activo": 1570,
+      "evento": 7098
+    }
+  ],
+  "dictamen_grupo": {
+    "categoria": "APROBADO",
+    "grupo_aprobado_completo": true,
+    "motivo": "TC-M06-51 y TC-M06-52 con evidencia verificable completa"
+  },
+  "tc51": {
+    "estado": "APROBADO",
+    "cotizacion_6": {
+      "id_cotizacion": 6,
+      "estado": "ANULADA",
+      "version": 2,
+      "activos_cotizados": [
+        1571
+      ],
+      "fecha_emision": "2026-11-08",
+      "fecha_vencimiento": null,
+      "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización.",
+      "id_periodo_contable": 220,
+      "estado_periodo": "ABIERTO",
+      "valor_cotizacion_propuesto": "3900000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "fecha_actualizacion": "2026-11-15T07:59:09.966276Z",
+      "fecha_registro": "2026-11-08T21:25:14.590377Z"
+    },
+    "evento": {
+      "id_evento": 25569,
+      "tipo_evento": "COTIZACION_ANULADA",
+      "id_referencia": 6,
+      "timestamp_evento": "2026-11-15T07:59:09.966276Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 141,
+      "id_sistema": null,
+      "severidad": null,
+      "payload": {},
+      "justificacion": null
+    },
+    "segundo_intento": {
+      "http": 422,
+      "code": "COTIZACION_NO_MODIFICABLE",
+      "nota_correccion": "Alineado con resultado_segundo_intento.json (HTTP 422 error_code real); null previo fue fallo de parseo."
+    },
+    "activo_1571": {
+      "identificador": "QA-M06O-VR-03",
+      "estado": "ACTIVO",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "valor_razonable_neto": "3760000.0000",
+      "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+      "id_calculo": 804,
+      "lineas_count": 2,
+      "lineas_ids": [
+        null,
+        null
+      ]
+    }
+  },
+  "tc52": {
+    "estado": "APROBADO",
+    "cotizacion_7": {
+      "id_cotizacion": 7,
+      "estado": "VENCIDA",
+      "version": 2,
+      "activos_cotizados": [
+        1570
+      ],
+      "fecha_emision": "2026-11-08",
+      "fecha_vencimiento": "2026-11-08",
+      "motivo_anulacion": null,
+      "id_periodo_contable": 220,
+      "estado_periodo": "ABIERTO",
+      "valor_cotizacion_propuesto": "3800000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "fecha_actualizacion": "2026-11-09T00:00:06.613021Z",
+      "fecha_registro": "2026-11-08T21:25:15.761785Z"
+    },
+    "evento_id": 7098
+  },
+  "evidencias": {
+    "ejecucion_51": "C:\\Users\\ll529\\OneDrive\\Documentos\\proyecto_integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo6\\RF-COT\\TC-M06-G119\\resultados\\ejecucion_tc51_2026-11-15",
+    "escenario_52": "resultados/ultima_evaluacion/evidencia_escenario_tc52_TC-M06-G119.json",
+    "auditoria_final_readonly": "resultados/auditoria_final_2026-11-15/"
+  }
+}

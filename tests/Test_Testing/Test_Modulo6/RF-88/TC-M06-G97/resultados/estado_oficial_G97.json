@@ -1,0 +1,79 @@
+{
+  "caso": "TC-M06-G97",
+  "rf": ["RF-88"],
+  "subcasos": ["TC-M06-08", "TC-M06-09"],
+  "dictamen_general": "APROBADO",
+  "grupo_completo_aprobado": true,
+  "aserciones_totales": {
+    "ok": 18,
+    "fail": 0,
+    "detalle": "TC-M06-08 11/11 + TC-M06-09 7/7"
+  },
+  "actualizado_en": "2026-11-14",
+  "ambiente_evidencia": "https://api.inmero.co/api-sgpmp-test",
+  "commit_evidencia": "3995b923",
+  "rama": "laura",
+  "escritura_test": true,
+  "commit_push": false,
+  "informe_final": "resultados/REPORTE_FINAL_G97.html",
+  "informes_individuales": {
+    "TC-M06-08": "resultados/ejecucion_tc_m06_08_2026-11-14/REPORTE_TC-M06-08.html",
+    "TC-M06-09": "resultados/ejecucion_tc_m06_09_2026-11-14/REPORTE_TC-M06-09.html"
+  },
+  "prs_correccion": ["#1114", "#1118", "#1121"],
+  "escenarios": [
+    {
+      "id": "TC-M06-08",
+      "nombre": "Obligatoriedad de vida útil al reconocer (VIDA_UTIL_NO_CONFIGURADA)",
+      "estado": "APROBADO",
+      "aserciones_ok": 11,
+      "aserciones_fail": 0,
+      "metodo": "POST",
+      "endpoint": "/finanzas/reconocimientos/2553",
+      "http": 422,
+      "error_code": "VIDA_UTIL_NO_CONFIGURADA",
+      "activo": 2553,
+      "identificador": "QA-M06-G97-SIN-VIDA",
+      "especie": 718,
+      "efectos_secundarios": "ninguno (activo sin reconocer; sin líneas/periodos nuevos)",
+      "autorizacion_escritura": {
+        "origen": "Usuario QA en chat Cursor",
+        "alcance": "POST /finanzas/reconocimientos/2553 unicamente en TEST para TC-M06-08",
+        "fecha_local": "2026-11-14"
+      },
+      "evidencia": "resultados/ejecucion_tc_m06_08_2026-11-14/",
+      "respuesta_api": "resultados/ejecucion_tc_m06_08_2026-11-14/respuesta_reconocimiento_2553.json",
+      "inicio_utc": "2026-11-15T03:46:26.222161+00:00"
+    },
+    {
+      "id": "TC-M06-09",
+      "nombre": "Consulta de depreciación al costo (GET)",
+      "estado": "APROBADO",
+      "aserciones_ok": 7,
+      "aserciones_fail": 0,
+      "metodo": "GET",
+      "endpoint": "/finanzas/activos/1858/depreciacion?fecha=2027-11-12",
+      "http": 200,
+      "activo": 1858,
+      "identificador": "QA-RF88-AL-COSTO",
+      "valores": {
+        "depreciacion_anual": "340000.0000",
+        "depreciacion_acumulada": "340000.0000",
+        "valor_contable": "1360000.0000",
+        "depreciacion_registrada": "0.0000",
+        "meses_transcurridos": 12
+      },
+      "efectos_secundarios": "ninguno (consulta no registra depreciación ni nuevas líneas)",
+      "evidencia": "resultados/ejecucion_tc_m06_09_2026-11-14/",
+      "respuesta_api": "resultados/ejecucion_tc_m06_09_2026-11-14/respuesta_depreciacion_1858.json",
+      "inicio_utc": "2026-11-14T06:41:19.080176+00:00",
+      "nota": "Resultado de escenario intacto; el estado_ejecucion_G97.json de esa carpeta es snapshot histórico (grupo aún parcial al momento de la corrida 09)."
+    }
+  ],
+  "estructura": {
+    "resultados_oficiales": "resultados/",
+    "evaluaciones_historicas": "resultados/evaluaciones/",
+    "ejecucion_08": "resultados/ejecucion_tc_m06_08_2026-11-14/",
+    "ejecucion_09": "resultados/ejecucion_tc_m06_09_2026-11-14/"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "fecha_utc": "2026-11-15T07:54:46.074935+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "solo_lectura": true,
+  "login_http": 200,
+  "cotizaciones": {
+    "7": {
+      "id_cotizacion": 7,
+      "estado": "VENCIDA",
+      "version": 2,
+      "activos_cotizados": [
+        1570
+      ],
+      "fecha_emision": "2026-11-08",
+      "fecha_vencimiento": "2026-11-08",
+      "motivo_anulacion": null,
+      "id_periodo_contable": 220,
+      "estado_periodo": "ABIERTO",
+      "valor_cotizacion_propuesto": "3800000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "fecha_actualizacion": "2026-11-09T00:00:06.613021Z",
+      "fecha_registro": "2026-11-08T21:25:15.761785Z"
+    },
+    "6": {
+      "id_cotizacion": 6,
+      "estado": "COTIZADO",
+      "version": 1,
+      "activos_cotizados": [
+        1571
+      ],
+      "fecha_emision": "2026-11-08",
+      "fecha_vencimiento": null,
+      "motivo_anulacion": null,
+      "id_periodo_contable": 220,
+      "estado_periodo": "ABIERTO",
+      "valor_cotizacion_propuesto": "3900000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "fecha_actualizacion": null,
+      "fecha_registro": "2026-11-08T21:25:14.590377Z"
+    }
+  },
+  "cotizaciones_http": 200,
+  "activos": {
+    "1570": {
+      "http": 200,
+      "ruta": "/finanzas/activos/1570",
+      "identificador": "QA-M06O-VR-02",
+      "estado": "ACTIVO",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "valor_razonable_neto": "3760000.0000",
+      "fecha_calculo": "2026-11-08T21:25:04.061875Z"
+    },
+    "1571": {
+      "http": 200,
+      "ruta": "/finanzas/activos/1571",
+      "identificador": "QA-M06O-VR-03",
+      "estado": "ACTIVO",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "valor_razonable_neto": "3760000.0000",
+      "fecha_calculo": "2026-11-08T21:25:06.574099Z"
+    }
+  },
+  "periodos": {
+    "220": {
+      "encontrado": true,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "nit": "900000003",
+      "http": 200
+    },
+    "219": {
+      "encontrado": true,
+      "estado": "CERRADO",
+      "nit": "900000002",
+      "http": 200
+    }
+  },
+  "auditoria": {
+    "COTIZACION_ANULADA_ref_6": {
+      "http": 200,
+      "total_registros": 0,
+      "count": 0,
+      "eventos": []
+    },
+    "COTIZACION_VENCIDA_ref_7": {
+      "http": 200,
+      "total_registros": 1,
+      "count": 1,
+      "eventos": [
+        {
+          "id_evento": 7098,
+          "tipo_evento": "COTIZACION_VENCIDA",
+          "id_referencia": 7,
+          "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+          "tipo_actor": "SISTEMA",
+          "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+          "id_usuario": null,
+          "severidad": null
+        }
+      ]
+    },
+    "COTIZACION_ANULADA_ref_7": {
+      "http": 200,
+      "total_registros": 0,
+      "count": 0,
+      "eventos": []
+    },
+    "COTIZACION_VENCIDA_ref_6": {
+      "http": 200,
+      "total_registros": 0,
+      "count": 0,
+      "eventos": []
+    }
+  },
+  "contrato_openapi": {
+    "http": 200,
+    "anulacion": {
+      "path": "/finanzas/cotizaciones/{id_cotizacion}/anulacion",
+      "methods": [
+        "post"
+      ],
+      "summary": "Anular una cotización (irrevocable)",
+      "operationId": "anular_cotizacion_finanzas_cotizaciones__id_cotizacion__anulacion_post"
+    }
+  },
+  "dictamen": {
+    "tc51": "PENDIENTE DE EJECUCIÓN",
+    "tc52": "APROBADO",
+    "global": "PARCIALMENTE APROBADO"
+  }
+}
