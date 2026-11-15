@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>REPORTE FINAL G97 — RF-88 | TC-M06-08 · TC-M06-09</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --ink: #1c241c;
+    --muted: #5a655a;
+    --card: #ffffff;
+    --line: #d8ddd4;
+    --pass: #1f6b3a;
+    --pass-bg: #e7f5ec;
+    --accent: #2f4a3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #e7efe6 0%, transparent 55%),
+      radial-gradient(900px 400px at 100% 0%, #f3e6d8 0%, transparent 50%),
+      var(--bg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 64px; }
+  .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+  .btn-print {
+    border: 1px solid #9eb0a2; background: #fff; color: var(--accent);
+    border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-print:hover { background: #eef3ec; }
+  header.hero {
+    background: linear-gradient(135deg, #243528 0%, #3d5a45 55%, #5a6e4e 100%);
+    color: #f4f7f2; border-radius: 18px; padding: 28px;
+    box-shadow: 0 18px 40px rgba(36,53,40,.28);
+  }
+  header.hero .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: 12px; opacity: .8; margin-bottom: 8px;
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 1.65rem; font-weight: 700; }
+  header.hero p { margin: 0; opacity: .92; max-width: 48rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .chip {
+    display: inline-flex; background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px;
+  }
+  .badge {
+    display: inline-block; font-weight: 700; letter-spacing: .04em;
+    padding: 8px 14px; border-radius: 999px; background: #d8f3e2; color: var(--pass);
+    border: 1px solid #9ed5b3; margin: 16px 8px 0 0;
+  }
+  nav.toc {
+    margin-top: 16px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px 18px;
+  }
+  nav.toc strong { display: block; margin-bottom: 8px; color: var(--accent); }
+  nav.toc a { color: var(--accent); text-decoration: none; margin-right: 14px; font-size: 14px; }
+  nav.toc a:hover { text-decoration: underline; }
+  section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 24px; margin-top: 16px;
+  }
+  h2 {
+    margin: 0 0 12px; font-size: 1.15rem; color: var(--accent);
+    border-bottom: 2px solid #e4ebe3; padding-bottom: 8px;
+  }
+  .muted { color: var(--muted); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #eef3ec; color: #2c3b2f; }
+  .ok {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: var(--pass-bg); color: var(--pass);
+  }
+  code, .path {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: .86em; background: #f0f3ee; padding: .1rem .3rem; border-radius: 4px;
+  }
+  .call {
+    border-left: 4px solid var(--pass); background: var(--pass-bg);
+    padding: .85rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px;
+  }
+  .kpi {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .kpi div {
+    background: #f7faf6; border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .kpi strong { display: block; font-size: 1.35rem; color: var(--pass); margin-top: 4px; }
+  .note {
+    border-left: 4px solid #c9a227; background: #fff8e6;
+    padding: .7rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px;
+  }
+  footer { margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .wrap { padding: 0; max-width: none; }
+    header.hero, th, .ok, .badge, .call, .kpi div, .note {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="btn-print" type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <header class="hero">
+    <div class="kicker">SGPMP · Módulo 6 · Finanzas · Informe final de grupo</div>
+    <h1>TC-M06-G97 — Informe consolidado RF-88</h1>
+    <p>Validación de obligatoriedad de vida útil al reconocer (TC-M06-08) y de consulta de depreciación al costo (TC-M06-09). Ambiente TEST · consolidación documental del 14 de noviembre de 2026.</p>
+    <div class="meta">
+      <span class="chip">Proyecto: sgpmp-backend</span>
+      <span class="chip">Grupo: TC-M06-G97</span>
+      <span class="chip">RF-88 · CU07</span>
+      <span class="chip">Commit: 3995b923</span>
+      <span class="chip">Rama: laura</span>
+      <span class="chip">Fecha: 14 de noviembre de 2026</span>
+    </div>
+    <div>
+      <span class="badge">Dictamen: G97 APROBADO</span>
+      <span class="badge">18/18 aserciones · 100 %</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <strong>Contenido</strong>
+    <a href="#objetivo">Objetivo</a>
+    <a href="#resumen">Resumen</a>
+    <a href="#comparativa">Comparativa</a>
+    <a href="#detalle">Detalle</a>
+    <a href="#trazabilidad">Trazabilidad</a>
+    <a href="#evidencias">Evidencias</a>
+    <a href="#conclusion">Conclusión</a>
+  </nav>
+
+  <section id="objetivo">
+    <h2>1. Objetivo general</h2>
+    <p>Demostrar, con evidencias reales de TEST, el cumplimiento de RF-88 para el grupo G97:</p>
+    <ul>
+      <li><strong>TC-M06-08:</strong> rechazo de reconocimiento sin vida útil configurada (<code>VIDA_UTIL_NO_CONFIGURADA</code>).</li>
+      <li><strong>TC-M06-09:</strong> cálculo correcto de depreciación por consulta GET sin side-effects.</li>
+    </ul>
+  </section>
+
+  <section id="resumen">
+    <h2>2. Resumen visual de resultados</h2>
+    <div class="kpi">
+      <div><span class="muted">TC-M06-08</span><strong>11/11</strong></div>
+      <div><span class="muted">TC-M06-09</span><strong>7/7</strong></div>
+      <div><span class="muted">Total</span><strong>18/18</strong></div>
+      <div><span class="muted">Aprobación</span><strong>100 %</strong></div>
+      <div><span class="muted">Dictamen</span><strong style="font-size:1.1rem">APROBADO</strong></div>
+    </div>
+  </section>
+
+  <section id="comparativa">
+    <h2>3. Tabla comparativa de escenarios</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Escenario</th>
+          <th>Endpoint</th>
+          <th>HTTP</th>
+          <th>Detalle clave</th>
+          <th>Aserciones</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>TC-M06-08</strong></td>
+          <td><code>POST /finanzas/reconocimientos/2553</code></td>
+          <td>422</td>
+          <td><code>VIDA_UTIL_NO_CONFIGURADA</code> · activo 2553 sin reconocer</td>
+          <td>11/11</td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td><strong>TC-M06-09</strong></td>
+          <td><code>GET /finanzas/activos/1858/depreciacion?fecha=2027-11-12</code></td>
+          <td>200</td>
+          <td>Anual $340.000 · Acum. $340.000 · Contable $1.360.000</td>
+          <td>7/7</td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td><strong>G97</strong></td>
+          <td colspan="3">Ambos escenarios cumplidos · sin inconsistencias funcionales</td>
+          <td><strong>18/18</strong></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="detalle">
+    <h2>4. Detalle por escenario</h2>
+    <h3 style="margin:16px 0 8px;font-size:1.02rem">TC-M06-08 — Obligatoriedad de vida útil</h3>
+    <ul>
+      <li>Fixture: activo <strong>2553</strong> (<code>QA-M06-G97-SIN-VIDA</code>), especie <strong>718</strong>, vida útil vacía, clasificación PRODUCCION, costo 900000.</li>
+      <li>POST autorizado únicamente sobre 2553 en TEST (2026-11-14 local / 2026-11-15T03:46Z).</li>
+      <li>Respuesta: HTTP <strong>422</strong>, <code>error_code: VIDA_UTIL_NO_CONFIGURADA</code>.</li>
+      <li>Sin efectos secundarios: reconocimientos 0, sin valoración al costo, sin líneas/periodos nuevos.</li>
+      <li>Informe individual: <a href="ejecucion_tc_m06_08_2026-11-14/REPORTE_TC-M06-08.html"><span class="path">ejecucion_tc_m06_08_2026-11-14/REPORTE_TC-M06-08.html</span></a></li>
+    </ul>
+
+    <h3 style="margin:16px 0 8px;font-size:1.02rem">TC-M06-09 — Consulta de depreciación</h3>
+    <ul>
+      <li>Fixture: activo <strong>1858</strong> (<code>QA-RF88-AL-COSTO</code>), costo 1.700.000, vida 60 meses.</li>
+      <li>GET de solo lectura (2026-11-14T06:41Z).</li>
+      <li>Valores: depreciación anual <strong>$340.000</strong>, acumulada <strong>$340.000</strong>, valor contable <strong>$1.360.000</strong>, registrada 0, meses 12.</li>
+      <li>Sin efectos secundarios sobre valoración persistida ni líneas.</li>
+      <li>Informe individual: <a href="ejecucion_tc_m06_09_2026-11-14/REPORTE_TC-M06-09.html"><span class="path">ejecucion_tc_m06_09_2026-11-14/REPORTE_TC-M06-09.html</span></a></li>
+    </ul>
+
+    <div class="note">
+      <strong>Nota documental (no funcional):</strong> el <span class="path">estado_ejecucion_G97.json</span> dentro de la carpeta de TC-M06-09 conserva el snapshot histórico <code>PARCIALMENTE_EJECUTADO</code> (08 pendiente en ese momento). No altera el resultado aprobado del escenario 09 ni el dictamen vigente del grupo en <span class="path">estado_oficial_G97.json</span>.
+    </div>
+  </section>
+
+  <section id="trazabilidad">
+    <h2>5. Trazabilidad RF → caso → evidencia</h2>
+    <table>
+      <thead>
+        <tr><th>Requisito</th><th>Caso</th><th>Criterio verificado</th><th>Evidencia principal</th><th>Resultado</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>RF-88</td>
+          <td>TC-M06-08</td>
+          <td>POST 2553 → 422 <code>VIDA_UTIL_NO_CONFIGURADA</code></td>
+          <td><span class="path">ejecucion_tc_m06_08_2026-11-14/respuesta_reconocimiento_2553.json</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-88</td>
+          <td>TC-M06-08</td>
+          <td>11/11 aserciones + sin side-effects</td>
+          <td><span class="path">ejecucion_tc_m06_08_2026-11-14/ASERCIONES_TC-M06-08.md</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-88</td>
+          <td>TC-M06-09</td>
+          <td>GET 1858 fecha 2027-11-12 → 200 · $340.000 / $340.000 / $1.360.000</td>
+          <td><span class="path">ejecucion_tc_m06_09_2026-11-14/respuesta_depreciacion_1858.json</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-88</td>
+          <td>TC-M06-09</td>
+          <td>7/7 aserciones + sin side-effects</td>
+          <td><span class="path">ejecucion_tc_m06_09_2026-11-14/ASERCIONES_TC-M06-09.md</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-88</td>
+          <td>G97</td>
+          <td>Grupo completo 18/18 · 100 %</td>
+          <td><span class="path">estado_oficial_G97.json</span> · <span class="path">DICTAMEN_FINAL_G97.md</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="evidencias">
+    <h2>6. Resumen de evidencias disponibles</h2>
+    <table>
+      <tr><th>Tipo</th><th>Ubicación</th></tr>
+      <tr><td>Informe HTML consolidado</td><td><span class="path">REPORTE_FINAL_G97.html</span> (este archivo)</td></tr>
+      <tr><td>Informe HTML TC-M06-08</td><td><span class="path">ejecucion_tc_m06_08_2026-11-14/REPORTE_TC-M06-08.html</span></td></tr>
+      <tr><td>Informe HTML TC-M06-09</td><td><span class="path">ejecucion_tc_m06_09_2026-11-14/REPORTE_TC-M06-09.html</span></td></tr>
+      <tr><td>Estado oficial / dictamen / matriz</td><td><span class="path">estado_oficial_G97.json</span> · <span class="path">DICTAMEN_FINAL_G97.md</span> · <span class="path">matriz_trazabilidad_G97.md</span></td></tr>
+      <tr><td>Ejecución 08</td><td><span class="path">ejecucion_tc_m06_08_2026-11-14/</span></td></tr>
+      <tr><td>Ejecución 09</td><td><span class="path">ejecucion_tc_m06_09_2026-11-14/</span></td></tr>
+      <tr><td>Historial (no reescrito)</td><td><span class="path">evaluaciones/</span></td></tr>
+    </table>
+  </section>
+
+  <section id="conclusion">
+    <h2>7. Conclusión</h2>
+    <div class="call">
+      <strong>Resultado final del grupo TC-M06-G97: APROBADO.</strong><br/>
+      TC-M06-08: 11/11 · TC-M06-09: 7/7 · Total: 18/18 aserciones (100 %). Fecha de ejecución/consolidación: <strong>14 de noviembre de 2026</strong>.
+    </div>
+    <p class="muted" style="margin-top:12px">Informe generado exclusivamente a partir de evidencias existentes. Sin reejecución de POST/GET ni escrituras en TEST. Sin staging, commit ni push.</p>
+  </section>
+
+  <footer>SGPMP-Backend · Test_Testing · Módulo 6 · TC-M06-G97 · RF-88 · 2026-11-14</footer>
+</div>
+</body>
+</html>

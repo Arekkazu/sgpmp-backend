@@ -1,0 +1,24 @@
+{
+  "fase": "auditoria_readonly_post_1121",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "openapi": {
+    "path_encontrado": "/finanzas/activos/{id_activo_biologico}/depreciacion",
+    "metodos": [
+      "get"
+    ],
+    "nota": "Antes (reevaluacion_pr1118) no existia el path; ahora si."
+  },
+  "sondas_sin_token": [
+    {
+      "ruta": "/finanzas/activos/1/depreciacion?fecha=2025-01-01",
+      "http": 401,
+      "error_code": "TOKEN_REQUERIDO"
+    },
+    {
+      "ruta": "/finanzas/activos/1/depreciacion",
+      "http": 401,
+      "error_code": "TOKEN_REQUERIDO"
+    }
+  ],
+  "interpretacion": "El contrato esta expuesto en TEST (ya no 404). Confirmacion funcional de AC pendiente (sin ejecucion autorizada)."
+}
