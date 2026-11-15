@@ -1,3 +1,10 @@
+## [1.4.0-rc.68](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.67...v1.4.0-rc.68) (2026-11-15)
+
+### Bug Fixes
+
+* **rf82-rf84-rf85-mod6:** los avisos de M06 llegan a la bandeja del Contador (INC-M06-366-G31) ([3680ebb](https://github.com/Arekkazu/sgpmp-backend/commit/3680ebbfc18f164608f9c0a9fe96b166d1da458b))
+* **rf84-rf85-mod6:** la perdida del producto de consumo acredita el activo y la region agrupada vale por departamento (INC-M06-364-G24, INC-M06-365-G21) ([9e483a7](https://github.com/Arekkazu/sgpmp-backend/commit/9e483a75e45dfc5d99fc2b1769eaffec49ea2e8c))
+
 ## [1.4.0-rc.67](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.66...v1.4.0-rc.67) (2026-11-15)
 
 ### Bug Fixes
