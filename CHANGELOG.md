@@ -1,3 +1,9 @@
+## [1.4.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.69...v1.4.0-rc.70) (2026-11-15)
+
+### Bug Fixes
+
+* **rf74-mod5:** el aviso de CA critica llega al Productor y al Veterinario, tambien desde el calculo manual (INC-M05-367-G02, INC-M05-368-G02) ([3b4eb1c](https://github.com/Arekkazu/sgpmp-backend/commit/3b4eb1c06431c7b9f1e2372ebd900274782abe7f))
+
 ## [1.4.0-rc.69](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.68...v1.4.0-rc.69) (2026-11-15)
 
 ### Features
