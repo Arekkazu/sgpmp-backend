@@ -1,3 +1,9 @@
+## [1.4.0-rc.71](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.70...v1.4.0-rc.71) (2026-11-15)
+
+### Bug Fixes
+
+* **rf92-mod6:** la conciliacion cuadra con el valor al cierre del periodo y los riesgos traen las categorias climatica, sanitaria y de mercado (TC-M06-G62, TC-M06-G64) ([3fb524c](https://github.com/Arekkazu/sgpmp-backend/commit/3fb524c6a2d52a2ec8ff55a0321d40aa7b9567bc)), closes [#1151](https://github.com/Arekkazu/sgpmp-backend/issues/1151) [#1152](https://github.com/Arekkazu/sgpmp-backend/issues/1152)
+
 ## [1.4.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.69...v1.4.0-rc.70) (2026-11-15)
 
 ### Bug Fixes
