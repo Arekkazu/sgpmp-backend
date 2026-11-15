@@ -5,6 +5,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
 # | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
+# | 2026-11-14 | destroyerban | INC-M06-362-G30 RF-85: descuenta las cosechas registradas después del último pesaje aunque sean del mismo día |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
@@ -53,7 +54,10 @@ LEFT JOIN LATERAL (
     FROM modulo6.reconocimientos_productos_agricolas rp
     JOIN modulo2.eventos_activos ev ON ev.id_eventos = rp.id_evento_productivo
     WHERE rp.id_activo_biologico = a.id_activo_biologico AND rp.tipo = 'PRODUCTO_DE_CONSUMO'
-      AND (p.id_evento IS NULL OR ev.fecha > p.fecha OR (ev.fecha = p.fecha AND ev.id_eventos > p.id_evento))
+      -- INC-M06-362-G30: una cosecha guarda solo el día (medianoche UTC o la hora de creación del activo) y el pesaje
+      -- el instante real, así que las del mismo día quedaban «antes» del pesaje y no se descontaban. Cuenta la que
+      -- está fechada después del pesaje o la que se registró después de él.
+      AND (p.id_evento IS NULL OR ev.fecha > p.fecha OR ev.id_eventos > p.id_evento)
 ) k ON true
 """
 
