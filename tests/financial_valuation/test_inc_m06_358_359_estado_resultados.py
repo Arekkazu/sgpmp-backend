@@ -2,6 +2,7 @@
 # |------------|----------------|------------------------------------------------------------------------------|
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 y INC-M06-359-G79 RF-93: ventas y bajas sin recuperación separadas, excluidos y ceros |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: el fake de reportes responde la conciliación |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: etiqueta «vendidos o sacrificados» (RF-93 v1.2) |
 """Estado de resultados (RF-93).
 
 - INC-M06-358-G71/G72 (#1083): la baja sin venta (``BAJA_ACTIVO`` / ``PERDIDA``) se descartaba; ahora
@@ -35,7 +36,7 @@ def test_la_descarga_nombra_los_dos_componentes_como_gasto():
     from src.financial_valuation.application.use_cases.reportes.exportar_reporte_use_case import (
         _GASTOS, ETIQUETAS_COMPONENTES,
     )
-    assert ETIQUETAS_COMPONENTES["bajas_activos"] == "Valor en libros de activos vendidos"
+    assert ETIQUETAS_COMPONENTES["bajas_activos"] == "Valor en libros de activos vendidos o sacrificados"
     assert ETIQUETAS_COMPONENTES["perdidas_bajas_sin_recuperacion"] == "Pérdidas por bajas sin recuperación"
     assert {"bajas_activos", "perdidas_bajas_sin_recuperacion"} <= _GASTOS
 

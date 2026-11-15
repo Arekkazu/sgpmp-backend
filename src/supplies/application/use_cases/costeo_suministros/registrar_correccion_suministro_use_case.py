@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-78: corrección aditiva y códigos del RF |
 # | 2026-11-08 | Arekkazu | INC-M05-264-G31 RF-78: 3 reintentos tras el intento inicial (esperas de 1, 3 y 5 s) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: registro y tipo de suministro en el fallo de la corrección |
 """Caso de uso: corregir un registro de suministro existente (RF-78, tipo_operacion=CORRECCION).
 
 A diferencia del registro directo (que delega la concurrencia al lock de fila
@@ -236,6 +237,8 @@ class RegistrarCorreccionSuministroUseCase:
                     id_gestion_fases=original.id_gestion_fases,
                     detalle_causa=causa,
                     numero_reintentos=_MAX_REINTENTOS,
+                    id_registro_suministro=original.id_registro_suministro,
+                    id_tipo_suministro=original.tipo_suministro,
                 )
             )
             self.db.commit()

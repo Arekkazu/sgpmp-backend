@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Caso de uso: registro de baja de un activo o de individuos de un lote (RF-45)."""
 
 from __future__ import annotations
@@ -178,6 +179,8 @@ class RegistrarEventoBajaUseCase:
                 cantidad_afectada=cantidad_evento,
                 tipo=dto.tipo_baja,
                 detalles=dto.motivo_baja,
+                valor_venta=dto.valor_venta,
+                referencia_venta=dto.referencia_venta,
             ),
         )
 
@@ -220,6 +223,8 @@ class RegistrarEventoBajaUseCase:
             detalle_tecnico={
                 'tipo_baja': dto.tipo_baja,
                 'motivo': dto.motivo_baja,
+                **({'valor_venta': str(dto.valor_venta)} if dto.valor_venta is not None else {}),
+                **({'referencia_venta': dto.referencia_venta} if dto.referencia_venta else {}),
                 'registros_rf46': registros_rf46(
                     eventos_activos=resultado.id_eventos,
                     historicos_estados_activos=historico.id_historico if historico else None,

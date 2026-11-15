@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89: repositorio append-only de precios de mercado |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: un precio corregido no avisa vencimiento |
+# | 2026-11-14 | Arekkazu | INC-M06-363-G27 RF-85 FA-1: la cosecha pendiente se retoma con un precio registrado en la misma transacción |
 """Implementación SQL de :class:`PrecioRepository`. ``categoria`` es un arreglo de un solo valor
 (diseño del baseline, ``ck_precio_mercado_categoria_unica``)."""
 from __future__ import annotations
@@ -34,10 +35,11 @@ class SqlAlchemyPrecioRepository(PrecioRepository):
         nuevo_id = escribir(self.db, """
             INSERT INTO modulo6.precios_mercado (id_especie, categoria, precio_unitario, unidad_medida, fecha_vencimiento,
                 fecha_vigencia, fuente, estado, evidencia, justificacion, origen_registro, id_usuario, id_precio_corregido,
-                region, hash_evidencia, id_metrica_produccion)
+                region, hash_evidencia, id_metrica_produccion, fecha_registro)
             VALUES (:e, ARRAY[CAST(:c AS modulo6.enum_precio_mercado_categoria)], :p, :u, :venc, :vig,
                     CAST(:f AS modulo6.enum_precio_mercado_fuente), CAST(:est AS modulo6.enum_precio_mercado_estado),
-                    :ev, :j, CAST(:o AS modulo6.enum_precios_mercado_origen_precio), :usr, :corr, :r, :h, :m)
+                    :ev, :j, CAST(:o AS modulo6.enum_precios_mercado_origen_precio), :usr, :corr, :r, :h, :m,
+                    clock_timestamp())
             RETURNING id_precio_mercado
         """, {"e": precio.id_especie, "c": precio.categoria, "p": precio.precio_unitario, "u": precio.unidad_medida,
               "venc": precio.fecha_vencimiento, "vig": precio.fecha_vigencia, "f": precio.fuente, "est": estado_inicial,
