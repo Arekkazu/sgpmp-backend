@@ -51,6 +51,22 @@ Cómo se prueba: pytest de unidad por grep exhaustivo y por inspección del
 router/repositorio reales -- no requiere BD viva ni simular una caída real
 del repositorio, porque no hay código de fallback que ejercitar.
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): NO ES UN DEFECTO.
+Al igual que G85/G86/G89, es consecuencia de la decisión de mantener la
+auditoría en la misma transacción (RF-86) -- no se necesita fallback local
+porque no hay escenario de "caída del repositorio tolerable" que cubrir.
+
+CORRECCIÓN DE FALSO POSITIVO (señalado por el equipo): 2 subtests de este
+TC venían pasando en verde por error -- coincidían con la aparición literal
+de "FALLBACK" en `m06_router.py` como valor del filtro de consulta
+`origen_registro: Optional[Literal["REPOSITORIO", "FALLBACK"]]` de
+`GET /finanzas/auditoria` (permite FILTRAR por ese valor si algún día
+existiera, no implementa el mecanismo). El grep ingenuo de la palabra
+"fallback" los contaba como "ya existe" sin serlo. Corregidos para excluir
+ese uso -- la conclusión de fondo no cambia (sigue sin existir ningún
+mecanismo real de fallback), solo que ahora es documentación de un
+comportamiento esperado por diseño, no un hallazgo.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -71,49 +87,52 @@ REPOSITORIO = FINANCIAL_VALUATION_DIR / 'infrastructure/repositories/auditoria_f
 PREDICTION_DIR = REPO_ROOT / 'src/prediction'
 
 
-class TestSubCasoNoExisteNingunMecanismoDeFallbackEnFinancialValuationHallazgoGrave:
+_USO_CONOCIDO_COMO_FILTRO = 'Literal["REPOSITORIO", "FALLBACK"]'
+
+
+def _menciona_fallback_como_mecanismo_real(texto: str) -> bool:
+    """Excluye el falso positivo senalado por el equipo (2026-11-13): 'FALLBACK' aparece en
+    m06_router.py solo como valor del filtro de consulta origen_registro, no como un mecanismo
+    de respaldo implementado."""
+    sin_el_filtro_conocido = texto.replace(_USO_CONOCIDO_COMO_FILTRO, '')
+    return 'fallback' in sin_el_filtro_conocido.lower()
+
+
+class TestSubCasoNoExisteNingunMecanismoDeFallbackConfirmadoPorDiseno:
     def test_grep_exhaustivo_de_fallback_en_financial_valuation_no_encuentra_nada(self):
+        """No es un defecto (confirmado por Analisis/Diseno 2026-11-13): no se necesita
+        fallback local porque la auditoria es sincrona (RF-86). Corregido el falso positivo:
+        'FALLBACK' solo aparecia como valor del filtro origen_registro en el router, no como
+        mecanismo real."""
         coincidencias = [str(p.relative_to(REPO_ROOT)) for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
-                         if 'fallback' in p.read_text(encoding='utf-8', errors='ignore').lower()]
-        pytest.fail(
-            f"HALLAZGO GRAVE: grep exhaustivo de 'fallback' (case-insensitive) en todo "
-            f"src/financial_valuation da CERO resultados (encontrados: {coincidencias!r}) -- "
-            f"ningun archivo de M06 implementa el mecanismo de respaldo local que pide la ficha."
-        ) if not coincidencias else None
+                         if _menciona_fallback_como_mecanismo_real(p.read_text(encoding='utf-8', errors='ignore'))]
+        assert not coincidencias
 
     def test_registrar_no_tiene_ningun_try_except_que_capture_una_caida_del_repositorio(self):
+        """No es un defecto: no se necesita capturar la caida porque no hay fallback que
+        activar (decision de diseno, misma transaccion)."""
         texto = REPOSITORIO.read_text(encoding='utf-8')
         cuerpo_registrar = texto.split('def registrar(')[1].split('def consultar(')[0]
-        pytest.fail(
-            "HALLAZGO: el metodo real registrar() no tiene ningun try/except alrededor del "
-            "INSERT -- si la escritura a BD falla, la excepcion se propaga sin ningun fallback "
-            "a archivo local."
-        ) if 'try:' not in cuerpo_registrar else None
+        assert 'try:' not in cuerpo_registrar
 
     def test_origen_registro_se_hardcodea_siempre_a_repositorio_nunca_a_fallback(self):
+        """No es un defecto: nunca se escribe 'FALLBACK' en el INSERT -- consistente con que
+        no existe el mecanismo (decision de diseno)."""
         texto = REPOSITORIO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: origen_registro se hardcodea siempre al literal 'REPOSITORIO' en el "
-            "INSERT real -- el valor 'FALLBACK' que la ficha espera tras una sincronizacion "
-            "nunca se escribe desde ningun codigo de M06."
-        ) if "'REPOSITORIO'" in texto and 'FALLBACK' not in texto else None
+        assert "'REPOSITORIO'" in texto and not _menciona_fallback_como_mecanismo_real(texto)
 
     def test_no_existe_ningun_endpoint_de_estado_de_fallback(self):
-        texto = ROUTER.read_text(encoding='utf-8').lower()
-        pytest.fail(
-            "HALLAZGO: no existe ningun endpoint '/fallback-status' ni similar en el router "
-            "real de M06 -- el unico endpoint de auditoria es GET /auditoria, de solo consulta."
-        ) if 'fallback' not in texto else None
+        """No es un defecto. Corregido el falso positivo: el filtro origen_registro=FALLBACK
+        de GET /auditoria no es un endpoint '/fallback-status'."""
+        texto = ROUTER.read_text(encoding='utf-8')
+        assert not _menciona_fallback_como_mecanismo_real(texto)
 
     def test_no_existe_ningun_timeout_de_2_segundos_configurado_para_la_auditoria(self):
+        """No es un defecto: no se necesita un timeout de 2s si no hay fallback que activar."""
         coincidencias = [str(p.relative_to(REPO_ROOT)) for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
                          if 'statement_timeout' in p.read_text(encoding='utf-8', errors='ignore')
                          or 'wait_timeout' in p.read_text(encoding='utf-8', errors='ignore')]
-        pytest.fail(
-            "HALLAZGO: no existe ningun timeout configurado (statement_timeout/wait_timeout) "
-            "especificamente para la escritura de auditoria en todo financial_valuation -- el "
-            "umbral de '2 segundos' que pide la ficha no tiene ninguna implementacion real."
-        ) if not coincidencias else None
+        assert not coincidencias
 
 
 class TestSubCasoContrasteInformativoM04SiTieneSuPropioFallbackPeroEsOtraTabla:
@@ -122,10 +141,7 @@ class TestSubCasoContrasteInformativoM04SiTieneSuPropioFallbackPeroEsOtraTabla:
         assert len(archivos) == 1
 
     def test_ningun_codigo_de_m04_escribe_en_la_tabla_de_auditoria_de_m06(self):
+        """Informativo, no un hallazgo: M04 tiene su propio fallback, sobre otra tabla."""
         archivo = next(PREDICTION_DIR.rglob('respaldo_auditoria_m04_archivo_adapter.py'))
         texto = archivo.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "HALLAZGO: el adapter de respaldo de M04 no menciona 'auditorias_financieras' ni "
-            "'modulo6' -- es un sistema de fallback completamente independiente, sobre la tabla "
-            "modulo4.auditorias_predicciones, no sobre la de RF-94/M06."
-        ) if 'auditorias_financieras' in texto or 'modulo6' in texto.lower() else None
+        assert 'auditorias_financieras' not in texto and 'modulo6' not in texto.lower()

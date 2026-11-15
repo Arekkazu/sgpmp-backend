@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Entidades y read-models del agregado ``ActivoBiologico`` (M02).
 
 El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
@@ -71,6 +72,9 @@ class EventoBaja:
     cantidad_afectada: int
     tipo: str
     detalles: Optional[str] = None
+    # Solo en una venta: lo recibido y su factura o remisión (RF-45). El estado de resultados lo presenta como ingreso.
+    valor_venta: Optional[Decimal] = None
+    referencia_venta: Optional[str] = None
 
 
 @dataclass

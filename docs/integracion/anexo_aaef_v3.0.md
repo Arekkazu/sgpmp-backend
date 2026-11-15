@@ -2,6 +2,7 @@
 | Fecha      | Nombre   | Que se hizo |
 |------------|----------|-------------|
 | 2026-11-06 | Arekkazu | M07 RF-AE02: Anexo de Mapeo AAEF v3.0 (forma 1) |
+| 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId con el formato que exige SIGCON |
 -->
 # Anexo de Mapeo AAEF v3.0 — SGPMP → AgroFusion → SIGCON
 
@@ -37,7 +38,7 @@ Cualquier cambio a este archivo es una versión nueva del anexo: cambia el hash 
 
 | Campo | Origen / regla |
 |---|---|
-| `metadata.ExchangeId` | `SGPMP-{NIT}-{desde AAAAMMDD}-{hasta AAAAMMDD}-{7 dígitos}`; AgroFusion reemplaza el último segmento |
+| `metadata.ExchangeId` | `AF-SIGAB-{AAAA-MM de «desde»}-{7 dígitos}`: SIGCON exige `^AF-(?:[A-Z]+-)?\d{4}-\d{2}-\d{4,}$` y AgroFusion reemplaza el último segmento. El NIT y el rango van en `SourceSystem` y `RequestedPeriod` |
 | `metadata.GeneratedAt` | Fecha de generación (UTC) |
 | `metadata.StandardVersion` | `"1.0"` (estándar AAEF que acepta SIGCON; no es la versión del contrato) |
 | `metadata.RequestedPeriod.From` / `.To` | `desde` / `hasta` |

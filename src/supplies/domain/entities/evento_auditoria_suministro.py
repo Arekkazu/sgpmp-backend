@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: transportar UUID y versión del hash sin objetos ORM. |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
+# | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: registro y tipo de suministro del evento, leídos de datos_nuevos |
 """Entidad de lectura de un evento de ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Distinta de ``EventoAuditoriaSuministro`` (``auditoria_suministro_port.py``),
@@ -48,3 +49,18 @@ class EventoAuditoriaSuministroConsulta:
     # Nombres visibles (los llena la consulta); el del usuario queda en None si la RLS no deja leerlo.
     nombre_activo: Optional[str] = None
     nombre_usuario: Optional[str] = None
+
+    @property
+    def id_registro_suministro(self) -> Optional[str]:
+        """RF-80 Restricción 8: registro de suministro al que aplica el evento (va en ``datos_nuevos``)."""
+        valor = self._dato("id_registro_suministro")
+        return str(valor) if valor is not None else None
+
+    @property
+    def id_tipo_suministro(self) -> Optional[str]:
+        """RF-80 Restricción 8: tipo de suministro del evento (va en ``datos_nuevos``)."""
+        valor = self._dato("id_tipo_suministro")
+        return str(valor) if valor is not None else None
+
+    def _dato(self, clave: str):
+        return self.datos_nuevos.get(clave) if isinstance(self.datos_nuevos, dict) else None

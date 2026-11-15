@@ -231,56 +231,6 @@
       }
     },
     {
-      "name": "Login ext",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (!pm.variables.get('correo_ext')) { console.log('PRECONDICION: sin cuenta ext'); pm.execution.skipRequest(); }"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test('login 200', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('tok_ext', j.token || '');",
-              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
-              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/sesiones/",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "sesiones",
-            ""
-          ]
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"{{correo_ext}}\",\n  \"contrasena\": \"{{clave_ext}}\"\n}"
-        }
-      }
-    },
-    {
       "name": "Descubrir periodos contables (Contador)",
       "event": [
         {
@@ -566,14 +516,14 @@
       }
     },
     {
-      "name": "TC-91-061 Auditor externo tiene lectura de la cadena (404 por id inexistente, no 403)",
+      "name": "TC-91-061 Revisor Fiscal (auditor externo, RFC-027) tiene lectura de la cadena (404 por id inexistente, no 403)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -600,7 +550,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -618,14 +568,14 @@
       }
     },
     {
-      "name": "TC-91-062 Auditor externo consulta cadena de periodo ABIERTO -> 403",
+      "name": "TC-91-062 Revisor Fiscal (auditor externo, RFC-027) consulta cadena de periodo ABIERTO -> 403",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }",
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }",
               "if (!pm.collectionVariables.get('linea_abierta')) { console.log('PRECONDICION NO DISPONIBLE: no hay lineas en el periodo ABIERTO'); pm.execution.skipRequest(); }"
             ]
           }
@@ -652,7 +602,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -670,14 +620,14 @@
       }
     },
     {
-      "name": "TC-91-063 Auditor externo inicia verificacion -> 403",
+      "name": "TC-91-063 Revisor Fiscal (auditor externo, RFC-027) inicia verificacion -> 403",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de auditor externo (Externo AgroFusion)'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('tok_revfis')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta de Revisor Fiscal (auditor externo)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -703,7 +653,7 @@
           },
           {
             "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
+            "value": "Bearer {{tok_revfis}}"
           }
         ],
         "url": {
@@ -856,7 +806,7 @@
       }
     },
     {
-      "name": "Administrador inicia verificacion -> 403",
+      "name": "Administrador inicia verificacion (decision de desarrollo: Administrador con todos los permisos de M06; 422 por periodo inexistente)",
       "event": [
         {
           "listen": "test",
@@ -864,7 +814,7 @@
             "type": "text/javascript",
             "exec": [
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
+              "pm.test(\"HTTP en [404, 422]\", () => { pm.expect(pm.response.code).to.be.oneOf([404, 422]); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]

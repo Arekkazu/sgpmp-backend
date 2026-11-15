@@ -308,8 +308,11 @@
               "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
               "const k = j.contenido || {};",
               "const textos = []; const rec = (v) => { if (typeof v === 'string') textos.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(rec); }; rec(k);",
-              "pm.test(\"los textos del informe no contienen RF-xx, M0x, Modulo N, undefined ni #id\", () => { textos.forEach(t => pm.expect(t).to.not.match(/\\bRF-\\d|\\bM0\\d\\b|M[oó]dulo \\d|undefined|#\\d+/)); });",
-              "pm.test(\"los nombres de seccion que se imprimen no son claves internas\", () => { Object.keys(k).forEach(s => pm.expect(s, 'seccion ' + s).to.not.match(/^(parr|niif)\\d*_/)); });",
+              "// El codigo del activo (p. ej. QA-M06-BOV-01) es un dato, no terminologia interna: se quita antes de buscar.",
+              "const sinCodigos = (t) => t.replace(/\b[A-Z]{2,}(?:-[A-Z0-9]+)*-M0\\d-[A-Z0-9-]+/g, '');",
+              "pm.test(\"los textos del informe no contienen RF-xx, M0x, Modulo N, undefined ni #id\", () => { textos.forEach(t => pm.expect(sinCodigos(t)).to.not.match(/\bRF-\\d|\bM0\\d\b|M[oó]dulo \\d|undefined|#\\d+/)); });",
+              "// Las claves del JSON son tecnicas por diseno; lo que se imprime es el titulo de cada seccion (estado_secciones).",
+              "pm.test(\"los titulos de seccion que se imprimen no son claves internas\", () => { (k.estado_secciones || []).forEach(s => pm.expect(String(s.titulo), \"seccion \" + s.seccion).to.not.match(/^(parr|niif)\\d*_/)); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]

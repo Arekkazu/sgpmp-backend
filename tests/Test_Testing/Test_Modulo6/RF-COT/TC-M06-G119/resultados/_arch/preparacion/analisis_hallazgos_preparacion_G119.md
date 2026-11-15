@@ -1,0 +1,8 @@
+# TC-M06-G119 — Análisis de hallazgos (preparación)
+
+- Cotización 6: {"id_cotizacion": 6, "estado": "COTIZADO", "version": 1, "activos_cotizados": [1571], "fecha_emision": "2026-11-08", "fecha_vencimiento": null, "motivo_anulacion": null, "id_periodo_contable": 220, "estado_periodo": "ABIERTO", "valor_cotizacion_propuesto": "3900000.0000", "valor_razonable_referencia": "3760000.0000", "fecha_actualizacion": null}
+- Cotización 7: {"id_cotizacion": 7, "estado": "VENCIDA", "version": 2, "activos_cotizados": [1570], "fecha_emision": "2026-11-08", "fecha_vencimiento": "2026-11-08", "motivo_anulacion": null, "id_periodo_contable": 220, "estado_periodo": "ABIERTO", "valor_cotizacion_propuesto": "3800000.0000", "valor_razonable_referencia": "3760000.0000", "fecha_actualizacion": "2026-11-09T00:00:06.613021Z"}
+- Evaluación: {"tc51_cotizacion_6": {"apta_para_anulacion": true, "estado": "COTIZADO", "version": 1, "activo_ok": true, "sin_vencimiento": true}, "tc52_cotizacion_7": {"transicion_automatica": "YA_OCURRIO", "estado": "VENCIDA", "fecha_vencimiento": "2026-11-08", "version": 2, "activo_ok": true, "evento_COTIZACION_VENCIDA_ref_7": {"http": 200, "total_registros": 1, "muestra": [{"id_evento": 7098, "id_referencia": 7, "timestamp_evento": "2026-11-09T00:00:06.613021Z", "tipo_actor": "SISTEMA", "id_sistema": "M06_VENCIMIENTO_COTIZACIONES"}]}, "evidencia_automatica_suficiente": true, "accion": "No reprocesar; verificar activo 1570 y dictaminar con evidencia de estado+evento"}}
+- Riesgos: ["Dependencia G118: no anular cotización 6 sin autorización coordinada", "No alterar cotizaciones 4/5 ni periodos 219/220"]
+
+Implementación: anulación por POST con version+motivo; vencimiento solo por proceso de fondo diario en main.py.

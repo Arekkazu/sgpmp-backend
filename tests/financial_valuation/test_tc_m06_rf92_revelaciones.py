@@ -4,6 +4,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: estado por sección y aprobación bloqueada |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el PDF del informe aprobado es PDF/A-1b |
 # | 2026-11-13 | Arekkazu | Lote M05/M06 13-11: el activo de prueba trae su finca (supuestos por activo de #1119) |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Informe de revelaciones NIC 41 (RF-92), sin base de datos.
 
 - TC-M06-G62 (#1107): el ingreso de individuos a un lote por compra, donación o traslado sube el valor del
@@ -124,7 +125,7 @@ class _Informes:
 
 def test_una_seccion_bloqueada_impide_aprobar_el_informe():
     reportes = _Informes({"estado_secciones": [
-        {"seccion": "parr_54_56_activos_al_costo", "titulo": "Activos medidos al costo (¶54-56)", "obligatoria": True,
+        {"seccion": "parr_54_56_activos_al_costo", "titulo": "Activos medidos al costo", "obligatoria": True,
          "estado": "BLOQUEADA", "fuente": "Valoración por costo", "motivo": "El activo BOV-9 no tiene vida útil registrada."}]})
     caso = GenerarInformeRevelacionesUseCase(db=None, periodos=None, reportes=reportes, constructor=None, auditoria=None,
                                              notificador=None)

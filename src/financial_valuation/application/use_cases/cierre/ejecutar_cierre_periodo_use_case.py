@@ -12,6 +12,9 @@
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43 RF-87: precio congelado al iniciar, activos estimados en la respuesta; RF-88 FA-2 sin vida útil bloquea |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar los supuestos faltantes del borrador creado al cerrar. |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-14 | destroyerban | INC-M06-054B-G56 RF-91: cerrar de nuevo un período cerrado responde 409, no 404; mensaje sin fecha de cierre |
+# | 2026-11-14 | destroyerban | INC-M06-93-G44 RF-87 FA-5: el período cerrado se rechaza antes de procesar eventos pendientes (sin artefactos nuevos) |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -76,7 +79,7 @@ from src.financial_valuation.domain.value_objects.nic41 import (
     TipoHecho,
 )
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError, ValidationError
-from src.shared.fechas import en_zona_usuario, hoy_usuario
+from src.shared.fechas import en_zona_usuario, fecha_usuario, hoy_usuario
 
 logger = logging.getLogger(__name__)
 _CIERRE_ABANDONADO = timedelta(minutes=30)
@@ -237,6 +240,11 @@ class EjecutarCierrePeriodoUseCase:
         la lista entran con el último precio conocido como estimación (RF-83 v1.2); los demás se excluyen y
         pasan al período siguiente, lo que exige ``autorizar_exclusiones``. Ninguno pasa al costo (RF-88 v2.0)."""
         estimados = frozenset(activos_estimados or ())
+        # FA-5 antes que nada: un período cerrado no se toca y su intento de cierre no deja artefactos (mediciones o
+        # asientos de los eventos pendientes que se procesan a continuación). _iniciar lo vuelve a verificar con bloqueo.
+        visible = self.periodos.obtener(id_periodo_contable)
+        if visible is not None and visible.estado == EstadoPeriodo.CERRADO.value:
+            raise self._error_periodo_cerrado(visible)
         # Los eventos de M02 pendientes se miden antes (RF-83: el cierre va después de los eventos).
         self.eventos_pendientes_primero()
         id_cierre = self._iniciar(id_periodo_contable, id_usuario, autorizar_exclusiones, incluir_activos_sin_precio,
@@ -273,8 +281,8 @@ class EjecutarCierrePeriodoUseCase:
         if resultado["activos_al_costo_con_precio"]:  # RF-88 v2.0: ¶30 exige pasarlos a valor razonable
             self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
                 f"Al cerrar el período {resultado['periodo']}, estos activos valorados por costo ya tienen precio de mercado "
-                f"para su especie: {', '.join(resultado['activos_al_costo_con_precio'])}. La NIC 41 ¶30 exige pasarlos a "
-                "valor razonable."), {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
+                f"para su especie: {', '.join(resultado['activos_al_costo_con_precio'])}. Deben pasar a valor razonable."),
+                {"id_periodo_contable": id_periodo_contable, "id_cierre": id_cierre})
         for alerta in self.medidor.tomar_alertas():  # RF-83: mediciones estimadas o pendientes del cierre
             self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", alerta.mensaje, alerta.detalle, alerta.id_finca)
         return resultado
@@ -284,15 +292,9 @@ class EjecutarCierrePeriodoUseCase:
 
     def _iniciar(self, id_periodo, id_usuario, autorizar, incluir_sin_precio, estimados: frozenset = frozenset()) -> int:
         try:
-            periodo = self.periodos.obtener(id_periodo, bloquear=True)
-            if periodo is None:
-                raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
-            if periodo.estado == EstadoPeriodo.CERRADO.value:  # FA-5
-                quien = (self.periodos.ultima_ejecucion(id_periodo) or {}).get("nombre_usuario_ejecutor")
-                raise ConflictError(code="PERIODO_CERRADO", message=(
-                    f"El período {periodo.fecha_inicio:%Y-%m} ya fue cerrado el {periodo.fecha_cierre:%Y-%m-%d}"
-                    f"{f' por {quien}' if quien else ''}. Los períodos cerrados no se reabren: corrija con ajustes "
-                    "en el período abierto."))
+            periodo = self._bloquear_periodo(id_periodo)
+            if periodo.estado == EstadoPeriodo.CERRADO.value:  # FA-5 / RF-91 Restricción 4
+                raise self._error_periodo_cerrado(periodo)
             en_espera = None
             if periodo.estado == EstadoPeriodo.EN_CIERRE.value:
                 en_curso = self.periodos.ejecucion_en_proceso(id_periodo)
@@ -364,12 +366,37 @@ class EjecutarCierrePeriodoUseCase:
             self.db.rollback()
             logger.exception("RF-87 FA-3: no se pudo dejar el cierre del período %s en espera.", id_periodo)
 
+    def _error_periodo_cerrado(self, periodo: Periodo) -> ConflictError:
+        """RF-87 FA-5: 409 con la fecha del cierre y quién lo ejecutó."""
+        ultima = self.periodos.ultima_ejecucion(periodo.id_periodo_contable) or {}
+        quien = ultima.get("nombre_usuario_ejecutor")
+        # INC-M06-054-G56: un período cerrado sin fecha de cierre registrada toma la de su último cierre.
+        cerrado_el = periodo.fecha_cierre or ultima.get("fecha_fin")
+        return ConflictError(code="PERIODO_CERRADO", message=(
+            f"El período {periodo.fecha_inicio:%Y-%m} ya fue cerrado"
+            f"{f' el {fecha_usuario(cerrado_el):%d/%m/%Y}' if cerrado_el else ''}"
+            f"{f' por {quien}' if quien else ''}. Los períodos cerrados no se reabren: corrija con ajustes "
+            "en el período abierto."))
+
+    def _bloquear_periodo(self, id_periodo: int) -> Periodo:
+        """Toma el período para el cierre (``FOR UPDATE NOWAIT``).
+
+        La política de filas no deja bloquear un período CERRADO (solo se actualiza el que no lo está), así que el
+        bloqueo no lo devuelve aunque exista. En ese caso se lee sin bloqueo: un CERRADO vuelve tal cual, sin
+        bloqueo porque nada lo va a modificar, y quien llama responde 409; si tampoco se ve, no existe (404).
+        """
+        periodo = self.periodos.obtener(id_periodo, bloquear=True)
+        if periodo is not None:
+            return periodo
+        visible = self.periodos.obtener(id_periodo)
+        if visible is not None and visible.estado == EstadoPeriodo.CERRADO.value:
+            return visible
+        raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
+
     def cancelar(self, id_periodo_contable: int, id_usuario: int) -> dict:
         """FA-2/FA-3: el Contador no autoriza las exclusiones; el período vuelve a ABIERTO sin cambios."""
         try:
-            periodo = self.periodos.obtener(id_periodo_contable, bloquear=True)
-            if periodo is None:
-                raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
+            periodo = self._bloquear_periodo(id_periodo_contable)
             en_curso = self.periodos.ejecucion_en_proceso(id_periodo_contable)
             if periodo.estado != EstadoPeriodo.EN_CIERRE.value or not en_curso or not en_curso["esperando_autorizacion"]:
                 raise ConflictError(code="CIERRE_NO_CANCELABLE", message=(
@@ -545,7 +572,7 @@ class EjecutarCierrePeriodoUseCase:
             self.contabilizador.auditar(EventoAuditoria(
                 tipo_evento="MEDICION_PENDIENTE", severidad=Severidad.WARNING.value, id_usuario=id_usuario,
                 payload={"mensaje": (f"El activo {activo.identificador} está valorado por costo y ya hay precio de mercado "
-                                     "para su especie: la NIC 41 ¶30 exige pasarlo a valor razonable.")},
+                                     "para su especie: debe pasar a valor razonable.")},
                 id_activo_biologico=activo.id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
             ))
 

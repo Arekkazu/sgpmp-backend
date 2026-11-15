@@ -4,6 +4,7 @@
 # | 2026-11-08 | Arekkazu | RFC-024 RF-89 v1.1 CA-5: justificación de estimación menor a 50 caracteres responde 400 |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: la corrección hereda la fecha del original y se compara contra él |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
+# | 2026-11-14 | destroyerban | INC-M06-362-G94 RF-94: PRECIO_MARCADO_REEMPLAZADO guarda el precio anterior y el nuevo |
 """Caso de uso RF-89 pasos 3-8. El historial es inmutable: un precio erróneo se corrige con uno nuevo
 que referencia al anterior (FA-6) y ocupa su lugar: misma especie, categoría, producto, fuente y fecha de
 vigencia, de modo que corregir un precio histórico no desplaza al que está aplicado hoy. Una desviación
@@ -91,7 +92,10 @@ class RegistrarPrecioUseCase:
             if anterior is not None and s.fecha_vigencia >= anterior.fecha_vigencia:  # RF-94 CA-14
                 self.auditoria.registrar(EventoAuditoria(
                     tipo_evento="PRECIO_MARCADO_REEMPLAZADO", severidad="INFO", id_usuario=id_usuario,
-                    payload={"id_precio_anterior": anterior.id_precio_mercado, "id_precio_nuevo": precio.id_precio_mercado},
+                    # Los montos van en el propio evento: auditarlo no exige consultar los precios (CA-14).
+                    payload={"id_precio_anterior": anterior.id_precio_mercado, "id_precio_nuevo": precio.id_precio_mercado,
+                             "precio_unitario_anterior": str(anterior.precio_unitario),
+                             "precio_unitario_nuevo": str(precio.precio_unitario), "unidad_medida": unidad},
                     id_referencia=precio.id_precio_mercado,
                 ))
             self.db.commit()

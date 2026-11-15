@@ -7,12 +7,16 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G93 RF-94: la auditoría se acota a los titulares de las fincas del usuario |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
-filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13)."""
+filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13).
+
+INC-M06-365-G93: solo se ven los eventos de los titulares de las fincas del usuario (el Administrador, todos). Un
+período o un activo de otro titular responde 404, como si no existiera."""
 from __future__ import annotations
 
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
-from src.shared.errors import ValidationError
+from src.shared.errors import NotFoundError, ValidationError
 
 DESCRIPCIONES = {
     "RECONOCIMIENTO_INICIAL": "Registro inicial del activo en el sistema financiero",
@@ -74,6 +78,7 @@ class ConsultarAuditoriaFinancieraUseCase:
         if desconocidos:
             raise ValidationError(code="TIPO_EVENTO_INVALIDO", field="tipo_evento",
                                   message="El tipo de evento elegido no existe en la auditoría financiera.")
+        self._exigir_alcance(filtros.get("id_periodo_contable"), filtros.get("id_activo_biologico"))
         tamano = min(max(tamano, 1), 500)
         total, eventos = self.auditoria.consultar(filtros, max(pagina, 1), tamano, descendente)
         resumen = self.auditoria.conteo_por_severidad(filtros)
@@ -94,4 +99,13 @@ class ConsultarAuditoriaFinancieraUseCase:
 
     def actores(self, id_periodo_contable: int) -> list[dict]:
         """Opciones del filtro por usuario: se elige por nombre, no por un número que ninguna pantalla muestra."""
+        self._exigir_alcance(id_periodo_contable, None)
         return self.auditoria.actores({"id_periodo_contable": id_periodo_contable})
+
+    def _exigir_alcance(self, id_periodo_contable, id_activo_biologico) -> None:
+        if not (id_periodo_contable or id_activo_biologico):
+            return
+        if not self.auditoria.en_alcance(id_periodo_contable, id_activo_biologico):
+            if id_periodo_contable and not self.auditoria.en_alcance(id_periodo_contable, None):
+                raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
+            raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo no existe.")

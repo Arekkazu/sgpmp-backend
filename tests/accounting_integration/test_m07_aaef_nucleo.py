@@ -1,8 +1,10 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: pruebas del núcleo AAEF (sin BD) |
+# | 2026-11-14 | Arekkazu | M07 RF-97: el ExchangeId cumple el patrón de SIGCON |
 """Pruebas del núcleo AAEF: rango, Mappers, envelope, hash y esquema de AgroFusion."""
 import json
+import re
 from datetime import date
 from decimal import Decimal as D
 
@@ -105,6 +107,15 @@ def test_envelope_cumple_el_esquema_de_agrofusion_y_cuadra():
     assert validado.summary.TotalTransactions == 0 and validado.transactions == []
     assert [d.Header.DocumentId for d in validado.invoices] == sorted(d.Header.DocumentId for d in validado.invoices)
     assert {d.Header.Type.Code for d in validado.invoices} <= {"02", "06"}
+
+
+def test_exchange_id_cumple_sigcon_antes_y_despues_del_cambio_de_agrofusion():
+    patron_sigcon = r"AF-(?:[A-Z]+-)?\d{4}-\d{2}-\d{4,}"  # AaefMetadataDTO de SIGCON
+    exchange_id = _envelope([])["metadata"]["ExchangeId"]
+    *inicio, _ = exchange_id.split("-")  # AgroFusion reemplaza el último segmento por 7 dígitos
+    for valor in (exchange_id, "-".join([*inicio, "0001234"])):
+        assert re.fullmatch(patron_sigcon, valor), valor
+    assert exchange_id.startswith("AF-SIGAB-2026-10-") and len(exchange_id) <= 64
 
 
 def test_hash_de_contenido_es_estable_aunque_cambien_metadatos():

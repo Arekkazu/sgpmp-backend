@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | DEV-25 RF-17: /me/permisos devuelve nombre_recurso para recursos sin id fijo |
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: inyectar roles para crear la cuenta SSO como Administrador |
 """Router FastAPI para el módulo de sesiones (`/sesiones`).
 
 Expone los endpoints de inicio y cierre de sesión con JWT.
@@ -26,6 +27,7 @@ from src.identity_access.infrastructure.models.recursos_model import Recursos
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
+from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.identity_access.infrastructure.schema.permisos_schema import PermisoResumen, PermisosUsuarioResponse
@@ -182,6 +184,7 @@ def iniciar_sesion_sso(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
         db=db,
         notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )

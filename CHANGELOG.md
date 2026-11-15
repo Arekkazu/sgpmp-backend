@@ -1,3 +1,67 @@
+## [1.4.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.69...v1.4.0-rc.70) (2026-11-15)
+
+### Bug Fixes
+
+* **rf74-mod5:** el aviso de CA critica llega al Productor y al Veterinario, tambien desde el calculo manual (INC-M05-367-G02, INC-M05-368-G02) ([3b4eb1c](https://github.com/Arekkazu/sgpmp-backend/commit/3b4eb1c06431c7b9f1e2372ebd900274782abe7f))
+
+## [1.4.0-rc.69](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.68...v1.4.0-rc.69) (2026-11-15)
+
+### Features
+
+* **rf45-rf93-mod2-mod6:** la venta de un activo entra como ingreso en el estado de resultados (INC-M06-364-G71) ([58bc701](https://github.com/Arekkazu/sgpmp-backend/commit/58bc701b4e462e6306048c9fdc8bb8b93aff347a)), closes [#1142](https://github.com/Arekkazu/sgpmp-backend/issues/1142)
+* **rf93-mod6:** el estado guardado conserva el aviso de ventas sin valor y la etiqueta dice vendidos o sacrificados (INC-M06-364-G71) ([b69c58d](https://github.com/Arekkazu/sgpmp-backend/commit/b69c58d388354c05fb1e8019ef5e0353cbea704a))
+
+## [1.4.0-rc.68](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.67...v1.4.0-rc.68) (2026-11-15)
+
+### Bug Fixes
+
+* **rf82-rf84-rf85-mod6:** los avisos de M06 llegan a la bandeja del Contador (INC-M06-366-G31) ([3680ebb](https://github.com/Arekkazu/sgpmp-backend/commit/3680ebbfc18f164608f9c0a9fe96b166d1da458b))
+* **rf84-rf85-mod6:** la perdida del producto de consumo acredita el activo y la region agrupada vale por departamento (INC-M06-364-G24, INC-M06-365-G21) ([9e483a7](https://github.com/Arekkazu/sgpmp-backend/commit/9e483a75e45dfc5d99fc2b1769eaffec49ea2e8c))
+
+## [1.4.0-rc.67](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.66...v1.4.0-rc.67) (2026-11-15)
+
+### Bug Fixes
+
+* **rf80-mod5:** auditar rechazos de consolidar e historial y campos minimos por tipo (INC-M05-353-G37) ([f639c7b](https://github.com/Arekkazu/sgpmp-backend/commit/f639c7b86548a46d17db0a8535538a587a006098)), closes [#1077](https://github.com/Arekkazu/sgpmp-backend/issues/1077)
+* **rf84-rf85-mod6:** cosecha retomada con el precio, producto de consumo a su precio y costos de venta por region (INC-M06-363-G27, INC-M06-364-G24, INC-M06-365-G21) ([0c5da67](https://github.com/Arekkazu/sgpmp-backend/commit/0c5da67037be5518ed67269b39c18ee56f346f95))
+* **rf85-mod6:** la cosecha del 100 % deja el activo en baja tambien en el sandbox (INC-M06-361-G24) ([4b911ba](https://github.com/Arekkazu/sgpmp-backend/commit/4b911ba639865a9f3621adb8773876dfd822124c))
+* **rf85-mod6:** las cosechas del mismo dia del pesaje se acumulan y la que excede se rechaza (INC-M06-362-G30) ([57e150e](https://github.com/Arekkazu/sgpmp-backend/commit/57e150e92c9732fe2af60765fbfbd59fb15ead3e)), closes [#1124](https://github.com/Arekkazu/sgpmp-backend/issues/1124)
+* **rf87-mod6:** el periodo cerrado se rechaza con 409 antes de procesar eventos pendientes (INC-M06-93-G44) ([37fccd3](https://github.com/Arekkazu/sgpmp-backend/commit/37fccd389b7bb879660f97c241aaf5dc2fa097e3)), closes [#1123](https://github.com/Arekkazu/sgpmp-backend/issues/1123)
+* **rf91-mod6:** cerrar de nuevo un periodo cerrado responde 409 y no 404 (INC-M06-054B-G56) ([13c996f](https://github.com/Arekkazu/sgpmp-backend/commit/13c996ff0fdc9d95bd3186de68c5998ef7fc23b4)), closes [#1089](https://github.com/Arekkazu/sgpmp-backend/issues/1089)
+* **rf92-mod6:** la declaracion sin novedad no admite compromisos ni pignorados (INC-M06-034B-G64) ([2c95cb7](https://github.com/Arekkazu/sgpmp-backend/commit/2c95cb787430ae24bdfdc5a0e7a0a49988dd123f)), closes [#1090](https://github.com/Arekkazu/sgpmp-backend/issues/1090)
+* **rf92-mod6:** monto de compromisos y garantias mayor que cero en revelaciones (INC-M06-043B-G65) ([3f7ab21](https://github.com/Arekkazu/sgpmp-backend/commit/3f7ab218b03c00ba5fae72094dcc095d5b4e9382)), closes [#1091](https://github.com/Arekkazu/sgpmp-backend/issues/1091)
+* **rf94-mod6:** la auditoria financiera se acota a los titulares de las fincas del usuario (INC-M06-365-G93) ([6bc5602](https://github.com/Arekkazu/sgpmp-backend/commit/6bc5602754e66a597b9ab9499b79564974cdf326))
+* **rf94-mod6:** precio anterior y nuevo en PRECIO_MARCADO_REEMPLAZADO (INC-M06-362-G94) ([29ea569](https://github.com/Arekkazu/sgpmp-backend/commit/29ea5696a0f0bb0f04394cae1ebb236199fb4ab6)), closes [#1088](https://github.com/Arekkazu/sgpmp-backend/issues/1088)
+
+## [1.4.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.65...v1.4.0-rc.66) (2026-11-14)
+
+### Features
+
+* **rf25-mod9:** filtro por finca del usuario en Suministros, Finanzas e Integración contable ([813d91b](https://github.com/Arekkazu/sgpmp-backend/commit/813d91bc30eaaff404559437a4d67d058ea3fada))
+* **rf25-mod9:** infraestructuras de una finca del usuario en /usuarios/me/fincas/{id_finca}/infraestructuras para el filtro por finca ([66424fe](https://github.com/Arekkazu/sgpmp-backend/commit/66424fe85efa3c9b7b3001b81481d9ba316a0db4))
+* **rf82-mod6:** la propuesta de reconocimiento trae el id de la finca para el filtro por finca ([e29aca0](https://github.com/Arekkazu/sgpmp-backend/commit/e29aca052eb8f949a8d4bb0320b55701f546a2cb))
+
+## [1.4.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.64...v1.4.0-rc.65) (2026-11-14)
+
+### Bug Fixes
+
+* **rf40-mod2:** «hoy» con el reloj del usuario adelantado ya no es fecha futura en eventos ni en el cambio de fase (QA M06 punto 5) ([3cded22](https://github.com/Arekkazu/sgpmp-backend/commit/3cded22476a4f0bacac9d6d4a7e8822a9d5162da))
+* **rf82-mod6:** la fecha del reconocimiento inicial viaja como día y no como instante UTC (QA M06 punto 5) ([92fe557](https://github.com/Arekkazu/sgpmp-backend/commit/92fe55764b82cfb68a485280e8a61f1c4d8b46b6))
+* **rf82-mod6:** la reversión del reconocimiento se bloquea con deterioros o registros contables posteriores y el activo revertido al costo se reconoce de nuevo (QA M06 CU01 H-03) ([bce2329](https://github.com/Arekkazu/sgpmp-backend/commit/bce23298b8468fe53fb26a438db60b006032cac6))
+* **rf92-mod6:** los textos que ve el usuario no citan párrafos de la NIC 41 ([854c624](https://github.com/Arekkazu/sgpmp-backend/commit/854c624565fefcca6919f05bf42b93bb9d72ba59))
+
+## [1.4.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.63...v1.4.0-rc.64) (2026-11-14)
+
+### Bug Fixes
+
+* **rf97-mod7:** el ExchangeId del documento AAEF sigue el formato AF-SIGAB-AAAA-MM-NNNNNNN que exige SIGCON ([4353483](https://github.com/Arekkazu/sgpmp-backend/commit/4353483f484213636e1611d4e6a471fb92d08850))
+
+## [1.4.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.62...v1.4.0-rc.63) (2026-11-14)
+
+### Features
+
+* **identity-access:** la cuenta creada por el SSO de AgroFusion nace Administrador y se retira el rol Externo AgroFusion ([9ff4d38](https://github.com/Arekkazu/sgpmp-backend/commit/9ff4d381082f21d0ae8e147ff9c37dbd0c496d6c))
+
 ## [1.4.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.61...v1.4.0-rc.62) (2026-11-14)
 
 ### Features

@@ -65,8 +65,10 @@ respuesta, notificaciones, correos, PDF/Excel generados y textos que el sistema 
 1. **Nunca un código interno del proyecto.** Ningún texto visible dice `RF-xx`, `RFC-xxx`, `Módulo N`, `M01`…`M09`,
    el nombre de una tabla o columna, ni un valor de enum crudo (`INICIAL_RF82`, `PENDIENTE_CUENTA`). Se nombra lo
    que el usuario ve en el software: «Suministros», «Activos biológicos», «el módulo financiero», «la exportación
-   contable». Las referencias normativas que el usuario sí reconoce (NIC 41 ¶12, NIIF 13) están permitidas. Los
-   códigos siguen siendo válidos en docstrings, comentarios, logs y `tags`/`summary` de Swagger, que no ve el usuario final.
+   contable». Tampoco se citan párrafos de la norma («(NIC 41 ¶30)», «(¶50)»): el mensaje dice qué pasa y qué
+   hacer, no dónde lo dice la norma; «NIC 41» solo donde nombra algo que el usuario reconoce (el comprobante, el
+   informe de revelaciones). Los códigos y los párrafos siguen siendo válidos en docstrings, comentarios, logs y
+   `tags`/`summary` de Swagger, que no ve el usuario final.
 2. **Nada de vacíos ni códigos para mostrar.** Un texto pensado para mostrarse nunca se arma con un `None`
    interpolado («Factura None», «M05 None») ni sale como `null`. Un dato opcional puede ser `null` en el JSON, pero
    el frontend lo traduce a lo que significa («Sin vencimiento», «Sin calcular»); el backend no devuelve tablas,

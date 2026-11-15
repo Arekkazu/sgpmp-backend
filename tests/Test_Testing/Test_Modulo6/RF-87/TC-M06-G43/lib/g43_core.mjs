@@ -5,9 +5,10 @@ export const porId=(xs,campo,id)=>xs.find(x=>{try{return Number(x[campo])===Numb
 // Origen del patrón: TC-M06-G42/lib/g42_core.mjs; aquí solo se compara evidencia observable en este RUN.
 export function cierre8CoincideG32(respuesta,auditoria,inicioRun){
   const inicio=Date.parse(inicioRun);
+  const instante=x=>{if(typeof x!=='string')return NaN;const fecha=/[zZ]$|[+-]\d\d:?\d\d$/.test(x)?x:`${x.replace(' ','T')}-05:00`;return Date.parse(fecha);};
   return respuesta?.http===500&&Number.isFinite(inicio)&&Array.isArray(auditoria)&&auditoria.some(x=>
     x.tipo_evento==='CIERRE_PERIODO_FALLIDO'&&Number(x.payload_evento?.paso)===3&&
-    Number.isFinite(Date.parse(x.timestamp_evento))&&Date.parse(x.timestamp_evento)>=inicio);
+    Number.isFinite(instante(x.timestamp_evento))&&instante(x.timestamp_evento)>=inicio);
 }
 export const numeroAislado=(mensaje,n)=>new RegExp(`(^|[^\\d])${Number(n)}([^\\d]|$)`).test(String(mensaje??''));
 export const calculosUsanPrecio=(calculos,ids,inicial,nuevo)=>ids.every(id=>calculos.some(x=>Number(x.id_activo_biologico)===id&&Number(x.precio_unitario)===Number(inicial)&&Number(x.precio_unitario)!==Number(nuevo)));

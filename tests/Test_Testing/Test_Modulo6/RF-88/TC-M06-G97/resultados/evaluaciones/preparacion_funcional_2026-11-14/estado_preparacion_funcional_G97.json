@@ -1,0 +1,76 @@
+{
+  "caso": "TC-M06-G97",
+  "rf": "RF-88",
+  "fecha": "2026-11-14",
+  "commit_integracion_local": "3995b923665c2d375f7b321f200b727687fa652b",
+  "rama": "laura",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fase": "preparacion_funcional_readonly",
+  "aprobado": false,
+  "auth": {
+    "ok": true,
+    "rol": "Contador QA",
+    "via": "POST /sesiones/ (unico POST; resto GET)",
+    "permiso_depreciacion": "valoracion_por_costo R"
+  },
+  "tc_m06_09": {
+    "listo_para_ejecucion": true,
+    "activo_canonico_12000000_72": null,
+    "activo_recomendado": {
+      "id_activo_biologico": 1858,
+      "identificador": "QA-RF88-AL-COSTO",
+      "costo_adquisicion": "1700000.0000",
+      "vida_util_meses": 60,
+      "fecha_adquisicion": "2026-11-12",
+      "fecha_consulta": "2027-11-12",
+      "esperado": {
+        "depreciacion_anual": "340000.0000",
+        "depreciacion_acumulada": "340000.0000",
+        "valor_contable": "1360000.0000",
+        "depreciacion_registrada": "0.0000",
+        "meses_transcurridos": 12
+      }
+    },
+    "alternativas": [1635, 1639, 1643, 951, 2126, 1567],
+    "solicitud": "GET /finanzas/activos/1858/depreciacion?fecha=2027-11-12",
+    "sonda_readonly_coherente": true
+  },
+  "tc_m06_08": {
+    "camino_a_post": {
+      "listo_para_ejecucion": false,
+      "motivo": "Fixture 1864 tiene CLASIFICACION_NO_CONFIGURADA como primer bloqueo; POST devolveria ese codigo antes que VIDA_UTIL_NO_CONFIGURADA",
+      "propuesta_lectura": {
+        "id_activo_biologico": 1864,
+        "identificador": "QA-RF82-BLOQUEADO",
+        "bloqueos": ["CLASIFICACION_NO_CONFIGURADA", "VIDA_UTIL_NO_CONFIGURADA"]
+      },
+      "requiere": "Activo/especie autorizados con unico bloqueo VIDA_UTIL_NO_CONFIGURADA + autorizacion de POST"
+    },
+    "camino_b_historico": {
+      "listo_para_ejecucion": false,
+      "motivo": "Ningun activo al costo inventariado carece de vida_util_meses"
+    }
+  },
+  "inventario": {
+    "activos_valorados_vistos": 31,
+    "activos_al_costo": 9,
+    "match_12000000_72": 0
+  },
+  "restricciones_cumplidas": {
+    "sin_post_excepto_login": true,
+    "sin_put_patch_delete": true,
+    "sin_modificar_config": true,
+    "sin_cierres": true,
+    "sin_commit_push": true,
+    "wip_ajeno_no_alterado": true
+  },
+  "documentos": [
+    "INVENTARIO_ACTIVOS_TEST_G97.md",
+    "PREPARACION_TC_M06_08.md",
+    "PREPARACION_TC_M06_09.md",
+    "MATRIZ_PRECONDICIONES_G97.md",
+    "estado_preparacion_funcional_G97.json",
+    "evidencia_inventario_readonly.json",
+    "candidatos_recalculados.json"
+  ]
+}

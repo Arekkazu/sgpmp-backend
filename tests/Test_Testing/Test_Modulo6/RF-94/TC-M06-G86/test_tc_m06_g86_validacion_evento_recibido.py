@@ -58,6 +58,12 @@ Cómo se prueba: pytest de unidad sobre el código real de `registrar()` y
 la ficha exige (log técnico separado, alerta al Administrador) -- no
 requiere BD viva.
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): NO ES UN DEFECTO.
+Al igual que TC-M06-G85, es consecuencia directa de la decisión de mantener
+la auditoría en la misma transacción que la operación (RF-86) -- no existe
+un "emisor externo" que envíe eventos a validar, porque todo ocurre dentro
+del mismo proceso. Análisis ajustará la ficha de RF-94 en consecuencia.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -76,59 +82,53 @@ REPOSITORIO = REPO_ROOT / 'src/financial_valuation/infrastructure/repositories/a
 FINANCIAL_VALUATION_DIR = REPO_ROOT / 'src/financial_valuation'
 
 
-class TestSubCasoLaPremisaDeEventoRecibidoDeUnEmisorExternoNoAplica:
+class TestSubCasoLaPremisaDeEventoRecibidoDeUnEmisorExternoNoAplicaConfirmadoPorDiseno:
     def test_registrar_no_valida_tipo_evento_payload_ni_id_referencia(self):
+        """No es un defecto: no hay emisor externo que valide, porque el evento se construye en
+        el mismo proceso Python (ver actualizacion de Analisis/Diseno). Deteccion corregida:
+        'if evento.id_usuario' dentro del ternario que decide tipo_actor
+        ("USUARIO" if evento.id_usuario else "SISTEMA") no es una validacion/rechazo -- solo
+        'if evento.' como INICIO de linea (statement) cuenta como validacion real."""
+        import re
         texto = REPOSITORIO.read_text(encoding='utf-8')
         cuerpo_registrar = texto.split('def registrar(')[1].split('def consultar(')[0]
-        tiene_validacion = 'raise' in cuerpo_registrar or 'if evento.' in cuerpo_registrar
-        pytest.fail(
-            "HALLAZGO: el metodo real registrar() no contiene ningun 'if evento....' ni 'raise' -- "
-            "no valida tipo_evento, payload ni id_referencia antes de insertar. La unica barrera "
-            "posible es el CAST a ENUM de Postgres, una excepcion dura, no un rechazo controlado."
-        ) if not tiene_validacion else None
+        tiene_validacion = 'raise' in cuerpo_registrar or re.search(r'(?m)^\s*if evento\.', cuerpo_registrar)
+        assert not tiene_validacion
 
     def test_un_tipo_evento_invalido_solo_se_detectaria_por_cast_de_postgres_no_por_validacion_python(self):
         texto = REPOSITORIO.read_text(encoding='utf-8')
         assert 'CAST(:tipo AS modulo6.enum_auditoria_financiera_tipo_evento)' in texto
 
 
-class TestSubCasoNoExisteNingunLogTecnicoSeparadoDelRepositorioHallazgo:
+class TestSubCasoNoExisteNingunLogTecnicoSeparadoDelRepositorioConfirmadoPorDiseno:
     def test_no_hay_ningun_logger_dedicado_a_eventos_de_auditoria_rechazados(self):
-        archivos_con_logger = [p for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
-                               if 'logging.getLogger' in p.read_text(encoding='utf-8', errors='ignore')]
-        nombres = [p.name for p in archivos_con_logger]
-        pytest.fail(
-            f"HALLAZGO: los unicos loggers de financial_valuation ({nombres!r}) son para errores "
-            f"de negocio de casos de uso especificos (cierre, provisiones M05, eventos M02) -- "
-            f"ninguno existe para 'eventos de auditoria invalidos'. No hay distincion real entre "
-            f"'log tecnico' y 'repositorio' para RF-94: simplemente no hay ninguna ruta de codigo "
-            f"que decida rechazar un evento hacia un log en vez de insertarlo en la BD."
-        ) if archivos_con_logger else None
+        """No es un defecto: sin emisor externo, no hace falta un logger dedicado a 'eventos de
+        auditoria rechazados' aparte de los loggers de negocio ya existentes (cierre,
+        provisiones M05, eventos M02, etc. -- esos SI existen y no es lo que se evalua aqui)."""
+        patrones_rechazo = ('evento_rechazado', 'auditoria_rechazada', 'evento_auditoria_invalido')
+        archivos_con_logger_de_rechazo = [
+            p for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
+            if any(pat in p.read_text(encoding='utf-8', errors='ignore').lower() for pat in patrones_rechazo)
+        ]
+        assert not archivos_con_logger_de_rechazo
 
 
-class TestSubCasoNoExisteNingunaAlertaAlAdministradorHallazgo:
+class TestSubCasoNoExisteNingunaAlertaAlAdministradorConfirmadoPorDiseno:
     def test_no_existe_ningun_mecanismo_de_alerta_al_administrador_por_evento_invalido(self):
+        """No es un defecto: sin emisor externo, no aplica la alerta al Administrador."""
         coincidencias = [
             str(p.relative_to(REPO_ROOT)) for p in FINANCIAL_VALUATION_DIR.rglob('*.py')
             for patron in ('alerta_administrador', 'notificar_administrador', 'AlertaAdministrador')
             if patron.lower() in p.read_text(encoding='utf-8', errors='ignore').lower()
         ]
-        pytest.fail(
-            "HALLAZGO: no existe ningun mecanismo de alerta al Administrador ante un evento de "
-            "auditoria invalido en todo financial_valuation (grep exhaustivo, cero resultados)."
-        ) if not coincidencias else None
+        assert not coincidencias
 
 
-class TestSubCasoElProcesoDelEmisorSiSeInterrumpeLoOpuestoDeLaFicha:
+class TestSubCasoElProcesoDelEmisorSeInterrumpeConfirmadoPorDiseno:
     def test_una_falla_de_cast_comparte_la_misma_transaccion_que_la_operacion_principal(self):
-        """Ver TC-M06-G85: registrar() se invoca dentro del mismo try/commit/except-rollback que
-        la operacion de negocio. Una excepcion de CAST (tipo_evento invalido) no es distinta de
-        cualquier otra excepcion de auditoria: ambas revierten y propagan."""
+        """No es un defecto (ver TC-M06-G85): es el mismo patron deliberado de misma
+        transaccion -- cualquier excepcion de validacion de evento SI interrumpe/revierte el
+        proceso, y eso es lo esperado por diseno."""
         texto = (REPO_ROOT / 'src/financial_valuation/application/use_cases/reportes/'
                  'generar_estado_resultados_use_case.py').read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: self.auditoria.registrar(...) esta dentro del mismo bloque try que "
-            "self.db.commit() con un 'except Exception: self.db.rollback(); raise' -- cualquier "
-            "excepcion de validacion de evento (incluida un CAST invalido) SI interrumpe/revierte "
-            "el proceso del emisor, al contrario de lo que pide la ficha (Restriccion 4)."
-        ) if 'self.auditoria.registrar(' in texto and 'self.db.rollback()' in texto else None
+        assert 'self.auditoria.registrar(' in texto and 'self.db.rollback()' in texto

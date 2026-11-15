@@ -5,6 +5,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
 # | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -150,6 +152,9 @@ class ActivoBiologicoResponse(BaseModel):
     # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
     nombre_especie: Optional[str] = None
     nombre_infraestructura: Optional[str] = None
+    # Filtro por finca de Suministros: el selector de activo se acota a la finca elegida.
+    id_finca: Optional[int] = None
+    nombre_finca: Optional[str] = None
     # RFC-014 (DEV-20): solo en el registro; informativa, el activo se registra igual (201).
     advertencia_edad: Optional[str] = None
     # #393: solo lo llena el listado, para lotes (POBLACIONAL); la ficha del lote trae el detalle completo.
@@ -275,6 +280,8 @@ class EventoBajaResponse(BaseModel):
     cantidad_afectada: int
     tipo: str
     motivo_baja: Optional[str]
+    valor_venta: Optional[Decimal] = None  # solo en una venta
+    referencia_venta: Optional[str] = None
 
     model_config = {'from_attributes': True}
 

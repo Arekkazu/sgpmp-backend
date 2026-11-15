@@ -11,6 +11,7 @@
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: recuperar los supuestos al corte y la fuente de precio. |
 # | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -70,9 +71,13 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         return filas(self.db, f"""
             SELECT l.id_linea_asiento_nic41, COALESCE(l.tipo_hecho_corregido, l.tipo_hecho)::text AS tipo_hecho,
                    l.sentido::text AS sentido, l.valor, l.es_reverso, l.id_activo_biologico, {nombre_activo_sql()} AS activo,
-                   l.id_especie, l.id_finca, a.id_infraestructura, l.id_comprobante_nic41
+                   l.id_especie, l.id_finca, a.id_infraestructura, l.id_comprobante_nic41,
+                   eb.tipo::text AS tipo_baja, eb.valor_venta
             FROM modulo6.lineas_asiento_nic41 l
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = l.id_activo_biologico
+            -- INC-M06-364-G71: la línea de una baja apunta a su evento; la venta trae lo recibido (RF-45).
+            LEFT JOIN modulo2.eventos_bajas eb
+              ON l.tabla_origen = 'procesamientos_eventos_m02' AND eb.id_evento = l.id_origen
             WHERE {' AND '.join(condiciones)}""", params)
 
     def hechos_sin_asiento(self, id_periodo_contable: int) -> list[dict]:

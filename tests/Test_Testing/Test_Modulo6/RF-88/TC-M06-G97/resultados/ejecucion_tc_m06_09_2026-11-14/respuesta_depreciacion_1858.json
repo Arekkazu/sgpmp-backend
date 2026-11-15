@@ -1,0 +1,57 @@
+{
+  "metodo": "GET",
+  "url": "https://api.inmero.co/api-sgpmp-test/finanzas/activos/1858/depreciacion?fecha=2027-11-12",
+  "inicio_utc": "2026-11-14T06:41:19.080176+00:00",
+  "fin_utc": "2026-11-14T06:41:19.467778+00:00",
+  "http": 200,
+  "request_headers": {
+    "Accept": "application/json",
+    "X-Zona-Horaria": "America/Bogota",
+    "Authorization": "Bearer ***"
+  },
+  "response_headers": {
+    "content-type": "application/json",
+    "date": "Sat, 14 Nov 2026 06:41:18 GMT",
+    "server": "uvicorn",
+    "x-request-id": "50931496-5d92-4575-b0e3-2f7480c283c2"
+  },
+  "body": {
+    "id_activo_biologico": 1858,
+    "identificador": "QA-RF88-AL-COSTO",
+    "especie": "Ovino Medicion Qa Rf",
+    "metodo_depreciacion": "Línea recta",
+    "costo_adquisicion": "1700000.0000",
+    "vida_util_meses": 60,
+    "depreciacion_mensual": "28333.3333",
+    "depreciacion_anual": "340000.0000",
+    "fecha_adquisicion": "2026-11-12",
+    "fecha_calculo": "2027-11-12",
+    "meses_transcurridos": 12,
+    "depreciacion_acumulada": "340000.0000",
+    "depreciacion_registrada": "0.0000",
+    "deterioro_acumulado": "0.0000",
+    "valor_contable": "1360000.0000",
+    "totalmente_depreciado": false
+  },
+  "baseline_antes": {
+    "id_activo_biologico": 1858,
+    "identificador": "QA-RF88-AL-COSTO",
+    "especie": "Ovino Medicion Qa Rf",
+    "costos_adquisicion": "1700000.0000",
+    "vida_util_meses": 60,
+    "depreciacion_acumulada_registrada": "0.0000",
+    "deterioro_acumulado": "0.0000",
+    "valor_contable_por_costo": "1700000.0000",
+    "es_activa": true,
+    "escenario_activacion": "INICIAL_RF82",
+    "id_valoracion_por_costo": 54,
+    "lineas_count_antes": 1
+  },
+  "baseline_despues": {
+    "depreciacion_acumulada_registrada": "0.0000",
+    "valor_contable_por_costo": "1700000.0000",
+    "deterioro_acumulado": "0.0000",
+    "lineas_count_despues": 1,
+    "http": 200
+  }
+}

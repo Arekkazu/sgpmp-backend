@@ -6,6 +6,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-84: el cálculo en revisión también lleva los ajustes manuales (#1053 + #1054) |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
@@ -98,7 +99,7 @@ class Valorador:
         magnitud, unidad = activo.magnitud(precio.categoria)
         if not magnitud or magnitud <= 0:
             return ResultadoValoracion(None, precio, "SIN_MAGNITUD", MOTIVOS["SIN_MAGNITUD"].format(**textos))
-        parametro = self.config.costos_venta_vigentes(activo.id_especie)
+        parametro = self.config.costos_venta_vigentes(activo.id_especie, activo.region)
         if parametro is None and not costos_manuales:
             return ResultadoValoracion(None, precio, "SIN_COSTOS_VENTA", MOTIVOS["SIN_COSTOS_VENTA"].format(**textos))
         bruto = magnitud * precio.precio_unitario

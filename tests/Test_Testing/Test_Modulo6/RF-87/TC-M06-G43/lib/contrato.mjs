@@ -13,6 +13,7 @@ export function esquema(metodo,ruta){const canonical=rutaCanonica(ruta);return c
 function tipoValido(valor,tipo){
   if(tipo==='integer')return Number.isInteger(valor);
   if(tipo==='especie_estimacion')return Array.isArray(valor)&&valor.length===2&&Number.isInteger(valor[0])&&typeof valor[1]==='boolean';
+  if(tipo==='activo_estimado')return valor!==null&&typeof valor==='object'&&!Array.isArray(valor)&&Number.isInteger(valor.id_activo_biologico)&&Number.isInteger(valor.id_medicion)&&Number.isInteger(valor.id_precio_mercado)&&tipoValido(valor.precio_unitario,'decimal')&&tipoValido(valor.fecha_vigencia,'date')&&typeof valor.identificador==='string';
   if(tipo==='decimal')return (typeof valor==='string'&&/^-?\d+(\.\d+)?$/.test(valor))||(typeof valor==='number'&&Number.isFinite(valor));
   if(tipo==='date')return typeof valor==='string'&&/^\d{4}-\d\d-\d\d$/.test(valor);
   if(tipo==='datetime')return typeof valor==='string'&&/^\d{4}-\d\d-\d\d[T ]/.test(valor);

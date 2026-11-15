@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 # | 2026-11-10 | Arekkazu         | CP088 RF-81: PDF y Excel con encabezados, fechas, montos y catálogos en palabras; sin recorte |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: activo ajeno → 403 de E2, no 404 |
+# | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: exportación rechazada auditada; ciclo del resultado en el evento |
 """Caso de uso: exportar el historial de suministros a PDF o Excel (RF-81 Fase 6).
 
 - ≤ 10.000 registros: archivo síncrono (≤ 10 s).
@@ -15,7 +16,8 @@
 El archivo trae encabezado del activo, todos los campos de cada registro,
 subtotales por tipo de suministro y por ciclo, y firma (SHA-256 de las filas)
 con el timestamp del sistema. Registra ``EXPORTACION_HISTORIAL_GENERADA`` en la
-bitácora de M05 (RF-80) sin bloquear la respuesta si la auditoría falla.
+bitácora de M05 (RF-80) sin bloquear la respuesta si la auditoría falla; una
+exportación rechazada también deja su evento, con resultado ``RECHAZADO``.
 """
 from __future__ import annotations
 
@@ -27,7 +29,11 @@ from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
+from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, NotFoundError
+from src.supplies.application.use_cases.historial_suministros.auditoria_historial import (
+    ciclo_del_resultado,
+    registrar_rechazo_historial,
+)
 from src.supplies.application.use_cases.exportacion.generador_archivos import (
     Documento,
     fecha,
@@ -49,6 +55,7 @@ from src.supplies.domain.repositories.configuracion_batch_historial_repository i
     ConfiguracionBatchHistorialRepository,
 )
 from src.supplies.domain.repositories.historial_suministro_read_port import HistorialSuministroReadPort
+from src.supplies.domain.value_objects.eventos_auditoria_suministro_enums import TipoEventoAuditoriaSuministro
 from src.supplies.domain.value_objects.historial_suministro_enums import TipoTrabajoHistorial
 
 logger = logging.getLogger(__name__)
@@ -129,6 +136,21 @@ class ExportarHistorialSincronoUseCase:
         self.solicitar = solicitar
 
     def execute(
+        self, filtros: FiltrosHistorialSuministro, formato: str, *, id_usuario: int, id_rol: int
+    ) -> Union[ArchivoHistorial, TrabajoHistorialSuministro]:
+        try:
+            return self._ejecutar(filtros, formato, id_usuario=id_usuario, id_rol=id_rol)
+        except AppError as exc:
+            registrar_rechazo_historial(
+                db=self.db, auditoria_port=self.auditoria_port, activo_port=self.activo_port,
+                historial_port=self.historial_port,
+                tipo=TipoEventoAuditoriaSuministro.EXPORTACION_HISTORIAL_GENERADA,
+                filtros=filtros, id_usuario=id_usuario, error=exc,
+                datos_extra={"formato_exportacion": formato},
+            )
+            raise
+
+    def _ejecutar(
         self, filtros: FiltrosHistorialSuministro, formato: str, *, id_usuario: int, id_rol: int
     ) -> Union[ArchivoHistorial, TrabajoHistorialSuministro]:
         ids_permitidos = self._validar(filtros, formato, id_usuario, id_rol)
@@ -222,14 +244,15 @@ class ExportarHistorialSincronoUseCase:
             f"Historial_Suministros_{filtros.id_activo_biologico}_"
             f"{filtros.fecha_inicio_filtro or 'inicio'}_{filtros.fecha_fin_filtro or 'fin'}{FORMATOS[formato]}"
         )
-        self._auditar_exportacion(filtros, id_usuario, formato, resultado.total_registros_filtrados)
+        self._auditar_exportacion(filtros, id_usuario, formato, resultado.total_registros_filtrados,
+                                  ciclo_del_resultado(filtros, resultado))
         return ArchivoHistorial(
             contenido=contenido, nombre_archivo=nombre, formato=formato,
             total_registros=resultado.total_registros_filtrados,
         )
 
     def _auditar_exportacion(self, filtros: FiltrosHistorialSuministro, id_usuario: int, formato: str,
-                             total: int) -> None:
+                             total: int, id_ciclo_productivo: Optional[int] = None) -> None:
         # RF-81 Fase 7 / CA-8 / Postcondición 2: filtros aplicados y total de registros exportados.
         datos = {"filtros_aplicados": filtros.para_auditoria(), "formato_exportacion": formato,
                  "total_registros_retornados": total}
@@ -241,7 +264,8 @@ class ExportarHistorialSincronoUseCase:
                     id_usuario=id_usuario,
                     resultado="EXITOSO",
                     id_activo_biologico=filtros.id_activo_biologico,
-                    id_ciclo_productivo=filtros.id_ciclo_productivo,
+                    # Restricción 8: el ciclo filtrado o el único del resultado; con varios queda incompleto.
+                    id_ciclo_productivo=id_ciclo_productivo or filtros.id_ciclo_productivo,
                     datos_nuevos=datos,
                 )
             )

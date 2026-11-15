@@ -69,6 +69,18 @@ lanza), inspección del router para confirmar la ausencia de
 endpoints de modificación, e inspección de la migración/baseline para
 confirmar el trigger de inmutabilidad.
 
+ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): RESUELTO EN
+DISEÑO, PENDIENTE DE DESPLIEGUE A TEST -- mismo mecanismo que TC-M06-G74
+(422 ESTADO_RESULTADOS_NO_CONCILIA): el mensaje real SÍ distingue la fuente
+del error (indica si falta una variación de valor razonable o un producto
+agrícola, y de qué activo). Los demás errores de RF-93 ya tienen código
+propio (período no cerrado 422, sin permiso 403, no existe 404). Llega a
+TEST con el PR #1121; mientras no se despliegue, el código de este
+checkout sigue sin esa distinción y la primera mitad de este TC se
+mantiene en rojo -- re-verificar tras el despliegue. La segunda mitad
+(prohibición de modificación manual) permanece CONFIRMADA CORRECTA, sin
+cambios.
+
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
     $env:SECRET_KEY = "test"
@@ -105,8 +117,10 @@ def _periodo():
                    fecha_inicio=datetime.date(2026, 10, 1), fecha_fin=datetime.date(2026, 10, 31), estado="CERRADO")
 
 
-class TestSubCasoAEErrorCriticoNoSeDistinguePorFuenteNiSeAuditaHallazgo:
+class TestSubCasoAEErrorCriticoPendienteDespliegue:
     def test_un_fallo_en_el_calculo_no_registra_ningun_evento_de_auditoria(self):
+        """PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): el mecanismo real
+        de aviso al Contador + ERROR_CONCILIACION en bitacora aun no esta en este checkout."""
         periodos = MagicMock()
         periodos.obtener.return_value = _periodo()
         periodos.ultima_ejecucion.return_value = {}
@@ -119,10 +133,9 @@ class TestSubCasoAEErrorCriticoNoSeDistinguePorFuenteNiSeAuditaHallazgo:
         with pytest.raises(RuntimeError):
             uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
         pytest.fail(
-            "HALLAZGO CONFIRMADO: ante un fallo del calculo (simulando 'datos corruptos'), "
-            "auditoria.registrar() NUNCA se invoca (count="
-            f"{auditoria.registrar.call_count}) -- no hay ningun registro en RF-94 ni alerta "
-            "critica; solo se hace rollback() y se relanza la excepcion original sin envolver."
+            "PENDIENTE DE DESPLIEGUE: ante un fallo del calculo, auditoria.registrar() NUNCA se "
+            f"invoca en este checkout (count={auditoria.registrar.call_count}) -- el mecanismo "
+            "real llega con el PR #1121; re-verificar tras el despliegue."
         ) if auditoria.registrar.call_count == 0 else None
 
     def test_el_rollback_si_se_ejecuta_pero_sin_distincion_de_causa(self):
@@ -139,13 +152,15 @@ class TestSubCasoAEErrorCriticoNoSeDistinguePorFuenteNiSeAuditaHallazgo:
         db.rollback.assert_called_once()
 
     def test_no_existe_ningun_mecanismo_para_identificar_cual_de_las_cuatro_fuentes_fallo(self):
+        """PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): el mensaje real de
+        422 ESTADO_RESULTADOS_NO_CONCILIA SI identifica la fuente (variacion de valor razonable
+        vs producto agricola, y de que activo) -- confirmado por el equipo, aun no en este
+        checkout."""
         archivo = REPO_ROOT / 'src/financial_valuation/application/services/reportes.py'
         texto = archivo.read_text(encoding='utf-8')
         pytest.fail(
-            "HALLAZGO: calcular() ejecuta una sola llamada a reportes.movimientos() y otra a "
-            "costos.del_periodo() combinando TODAS las fuentes -- no existe ningun try/except "
-            "por fuente individual (VARIACION_VR_TB, VARIACION_VR_PM, PRODUCTO_AGRICOLA, "
-            "costos_mantenimiento) que permita identificar cual fallo especificamente."
+            "PENDIENTE DE DESPLIEGUE: calcular() en este checkout combina todas las fuentes sin "
+            "try/except individual -- la identificacion de fuente real llega con el PR #1121."
         ) if texto.count('try:') == 0 else None
 
 

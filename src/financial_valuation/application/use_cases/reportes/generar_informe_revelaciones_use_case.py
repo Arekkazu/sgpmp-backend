@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-92: informe de revelaciones NIC 41 (borrador, aprobación, rechazo) |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: una sección bloqueada impide aprobar el informe |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar al Contador tras guardar el informe con faltantes. |
+# | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 """Casos de uso RF-92. El informe se genera en BORRADOR sobre un período CERRADO; las alertas de
 consistencia no lo bloquean, pero continuar con ellas exige justificación (paso 3, FA-2). Al aprobar
 una versión, la APROBADA anterior pasa a ARCHIVADO (R4)."""
@@ -39,7 +40,7 @@ class GenerarInformeRevelacionesUseCase:
             raise BusinessRuleError(code="PERIODO_NO_CERRADO", message="El informe solo se genera sobre períodos cerrados.")
         if not (manuales.get("compromisos_vigentes") or manuales.get("activos_pignorados") or manuales.get("declaracion_sin_novedad")):
             raise BusinessRuleError(code="REVELACIONES_MANUALES_REQUERIDAS", message=(
-                "Ingrese los compromisos y activos pignorados del período o declare que no existen (NIC 41 ¶49)."))
+                "Ingrese los compromisos y activos pignorados del período o declare que no existen."))
         previa = self.constructor.construir(id_periodo_contable, manuales)
         if previa["alertas_consistencia"] and len((justificacion_inconsistencias or "").strip()) < 20:
             raise ConflictError(code="ALERTA_CONSISTENCIA", message=(
