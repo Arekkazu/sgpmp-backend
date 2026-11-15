@@ -1,0 +1,102 @@
+{
+  "fecha_utc": "2026-11-15T07:54:53.829209+00:00",
+  "matriz": [
+    {
+      "id": "51.1",
+      "criterio": "Cotización 6 inicialmente COTIZADO",
+      "resultado": "CUMPLE",
+      "evidencia": "snapshot cotizaciones.6; historico preparacion/ultima_evaluacion"
+    },
+    {
+      "id": "51.2",
+      "criterio": "Anulación exitosa con motivo obligatorio",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "POST no ejecutado; solicitud_anulacion_preparada_G119.json ejecutado=false; sin COTIZACION_ANULADA ref 6"
+    },
+    {
+      "id": "51.3",
+      "criterio": "Estado final ANULADA",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "estado actual=COTIZADO"
+    },
+    {
+      "id": "51.4",
+      "criterio": "Motivo persistido y conservado",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "motivo_anulacion=None"
+    },
+    {
+      "id": "51.5",
+      "criterio": "Evento COTIZACION_ANULADA registrado en RF-94",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "eventos ref6 count=0"
+    },
+    {
+      "id": "51.6",
+      "criterio": "Segundo intento rechazado por irreversibilidad",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "Sin evidencia de segundo POST; no ejecutado en esta auditoría"
+    },
+    {
+      "id": "51.7",
+      "criterio": "Activo 1571 sin cambios de estado ni valoración",
+      "resultado": "NO VERIFICABLE",
+      "evidencia": "baseline actual estado=ACTIVO VR=3760000.0000; falta par antes/después de anulación"
+    },
+    {
+      "id": "51.8",
+      "criterio": "Sin efectos contables indebidos",
+      "resultado": "NO VERIFICABLE",
+      "evidencia": "Anulación no ejecutada; contrato: anulación solo cambia estado + auditoría"
+    },
+    {
+      "id": "52.1",
+      "criterio": "Cotización 7 estado VENCIDA",
+      "resultado": "CUMPLE",
+      "evidencia": "estado=VENCIDA version=2"
+    },
+    {
+      "id": "52.2",
+      "criterio": "Versión 1 → 2",
+      "resultado": "CUMPLE",
+      "evidencia": "version=2; fecha_actualizacion=2026-11-09T00:00:06.613021Z"
+    },
+    {
+      "id": "52.3",
+      "criterio": "Evento COTIZACION_VENCIDA 7098 actor SISTEMA",
+      "resultado": "CUMPLE",
+      "evidencia": [
+        {
+          "id_evento": 7098,
+          "tipo_evento": "COTIZACION_VENCIDA",
+          "id_referencia": 7,
+          "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+          "tipo_actor": "SISTEMA",
+          "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+          "id_usuario": null,
+          "severidad": null
+        }
+      ]
+    },
+    {
+      "id": "52.4",
+      "criterio": "Activo 1570 ACTIVO VR 3.760.000 sin cambio",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 200,
+        "ruta": "/finanzas/activos/1570",
+        "identificador": "QA-M06O-VR-02",
+        "estado": "ACTIVO",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:04.061875Z"
+      }
+    },
+    {
+      "id": "52.5",
+      "criterio": "Evidencia histórica disponible y consistente",
+      "resultado": "CUMPLE",
+      "evidencia": "resultados/ultima_evaluacion/evidencia_escenario_tc52_TC-M06-G119.json"
+    }
+  ]
+}

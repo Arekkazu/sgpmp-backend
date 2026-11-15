@@ -1,0 +1,355 @@
+{
+  "peticiones": [
+    {
+      "fase": "login",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "ok": true
+    },
+    {
+      "fase": "perfil",
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "rol": "Contador"
+    },
+    {
+      "fase": "permisos",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "cotizaciones_D": true
+    },
+    {
+      "fase": "pre_cot",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "http": 200,
+      "cot": {
+        "id_cotizacion": 6,
+        "estado": "COTIZADO",
+        "version": 1,
+        "activos_cotizados": [
+          1571
+        ],
+        "fecha_emision": "2026-11-08",
+        "fecha_vencimiento": null,
+        "motivo_anulacion": null,
+        "id_periodo_contable": 220,
+        "estado_periodo": "ABIERTO",
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "valor_razonable_referencia": "3760000.0000",
+        "fecha_actualizacion": null,
+        "fecha_registro": "2026-11-08T21:25:14.590377Z"
+      }
+    },
+    {
+      "fase": "pre_activo",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "http": 200,
+      "activo": {
+        "identificador": "QA-M06O-VR-03",
+        "estado": "ACTIVO",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+        "id_calculo": 804,
+        "lineas_count": 2,
+        "lineas_ids": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "fase": "pre_periodo",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "http": 200,
+      "periodo_220": {
+        "id_periodo_contable": 220,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30",
+        "encontrado": true
+      }
+    },
+    {
+      "fase": "pre_auditoria",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=6&formato=TECNICO&tamano=20&orden=DESC",
+      "http": 200,
+      "total": 0,
+      "eventos": []
+    },
+    {
+      "fase": "pre_cot7",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "http": 200,
+      "cot7": {
+        "id_cotizacion": 7,
+        "estado": "VENCIDA",
+        "version": 2,
+        "activos_cotizados": [
+          1570
+        ],
+        "fecha_emision": "2026-11-08",
+        "fecha_vencimiento": "2026-11-08",
+        "motivo_anulacion": null,
+        "id_periodo_contable": 220,
+        "estado_periodo": "ABIERTO",
+        "valor_cotizacion_propuesto": "3800000.0000",
+        "valor_razonable_referencia": "3760000.0000",
+        "fecha_actualizacion": "2026-11-09T00:00:06.613021Z",
+        "fecha_registro": "2026-11-08T21:25:15.761785Z"
+      }
+    },
+    {
+      "fase": "post1_anulacion",
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones/6/anulacion",
+      "http": 200,
+      "request_body": {
+        "version": 1,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+      },
+      "respuesta": {
+        "id_cotizacion": 6,
+        "fecha_emision": "2026-11-08",
+        "id_periodo_contable": 220,
+        "activos_cotizados": [
+          1571
+        ],
+        "valor_razonable_referencia": "3760000.0000",
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "condiciones": "Cotización de prueba para anular",
+        "estado": "ANULADA",
+        "estado_al_cierre": null,
+        "fecha_vencimiento": null,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización.",
+        "id_usuario": 132,
+        "fecha_registro": "2026-11-08T21:25:14.590377Z",
+        "version": 2,
+        "fecha_actualizacion": "2026-11-15T07:59:09.966276Z",
+        "estado_periodo": "ABIERTO"
+      },
+      "cotizacion": {
+        "id_cotizacion": 6,
+        "estado": "ANULADA",
+        "version": 2,
+        "activos_cotizados": [
+          1571
+        ],
+        "fecha_emision": "2026-11-08",
+        "fecha_vencimiento": null,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización.",
+        "id_periodo_contable": 220,
+        "estado_periodo": "ABIERTO",
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "valor_razonable_referencia": "3760000.0000",
+        "fecha_actualizacion": "2026-11-15T07:59:09.966276Z",
+        "fecha_registro": "2026-11-08T21:25:14.590377Z"
+      }
+    },
+    {
+      "fase": "post1_get_cot",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "http": 200,
+      "cot": {
+        "id_cotizacion": 6,
+        "estado": "ANULADA",
+        "version": 2,
+        "activos_cotizados": [
+          1571
+        ],
+        "fecha_emision": "2026-11-08",
+        "fecha_vencimiento": null,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización.",
+        "id_periodo_contable": 220,
+        "estado_periodo": "ABIERTO",
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "valor_razonable_referencia": "3760000.0000",
+        "fecha_actualizacion": "2026-11-15T07:59:09.966276Z",
+        "fecha_registro": "2026-11-08T21:25:14.590377Z"
+      }
+    },
+    {
+      "fase": "post1_auditoria",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=6&formato=TECNICO&tamano=20&orden=DESC",
+      "http": 200,
+      "total": 1,
+      "eventos": [
+        {
+          "id_evento": 25569,
+          "tipo_evento": "COTIZACION_ANULADA",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-15T07:59:09.966276Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 141,
+          "id_sistema": null,
+          "id_activo_biologico": null,
+          "id_periodo_contable": 220,
+          "id_referencia": 6,
+          "payload_evento": {
+            "cambios": {
+              "estado": "ANULADA",
+              "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+            },
+            "justificacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+          },
+          "datos_anteriores": {
+            "estado": "COTIZADO",
+            "condiciones": "Cotización de prueba para anular",
+            "fecha_vencimiento": null,
+            "valor_cotizacion_propuesto": "3900000.0000"
+          },
+          "severidad_evento": "INFO",
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": null,
+          "identificador_activo": null
+        }
+      ],
+      "nota": "payload_evento enriquecido post-facto desde GET TECNICO (misma ejecución)"
+    },
+    {
+      "fase": "post2_irreversibilidad",
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones/6/anulacion",
+      "http": 422,
+      "request_body": {
+        "version": 2,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+      },
+      "respuesta": {
+        "error_code": "COTIZACION_NO_MODIFICABLE",
+        "message": "La cotización está anulada: ya no se puede cambiar.",
+        "fields": [],
+        "timestamp": "2026-11-15T07:59:11.982857+00:00"
+      },
+      "error_code": "COTIZACION_NO_MODIFICABLE"
+    },
+    {
+      "fase": "post2_get_cot",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "http": 200,
+      "cot": {
+        "id_cotizacion": 6,
+        "estado": "ANULADA",
+        "version": 2,
+        "activos_cotizados": [
+          1571
+        ],
+        "fecha_emision": "2026-11-08",
+        "fecha_vencimiento": null,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización.",
+        "id_periodo_contable": 220,
+        "estado_periodo": "ABIERTO",
+        "valor_cotizacion_propuesto": "3900000.0000",
+        "valor_razonable_referencia": "3760000.0000",
+        "fecha_actualizacion": "2026-11-15T07:59:09.966276Z",
+        "fecha_registro": "2026-11-08T21:25:14.590377Z"
+      }
+    },
+    {
+      "fase": "post2_auditoria",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=6&formato=TECNICO&tamano=20&orden=DESC",
+      "http": 200,
+      "total": 1,
+      "eventos": [
+        {
+          "id_evento": 25569,
+          "tipo_evento": "COTIZACION_ANULADA",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-15T07:59:09.966276Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 141,
+          "id_sistema": null,
+          "id_activo_biologico": null,
+          "id_periodo_contable": 220,
+          "id_referencia": 6,
+          "payload_evento": {
+            "cambios": {
+              "estado": "ANULADA",
+              "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+            },
+            "justificacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+          },
+          "datos_anteriores": {
+            "estado": "COTIZADO",
+            "condiciones": "Cotización de prueba para anular",
+            "fecha_vencimiento": null,
+            "valor_cotizacion_propuesto": "3900000.0000"
+          },
+          "severidad_evento": "INFO",
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": null,
+          "identificador_activo": null
+        }
+      ],
+      "nota": "payload_evento enriquecido post-facto desde GET TECNICO (misma ejecución)"
+    },
+    {
+      "fase": "post_activo",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "http": 200,
+      "activo": {
+        "identificador": "QA-M06O-VR-03",
+        "estado": "ACTIVO",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+        "id_calculo": 804,
+        "lineas_count": 2,
+        "lineas_ids": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "fase": "post_periodo",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "http": 200,
+      "periodo_220": {
+        "id_periodo_contable": 220,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      }
+    },
+    {
+      "fase": "post_cot7",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "http": 200,
+      "cot7": {
+        "id_cotizacion": 7,
+        "estado": "VENCIDA",
+        "version": 2,
+        "activos_cotizados": [
+          1570
+        ],
+        "fecha_emision": "2026-11-08",
+        "fecha_vencimiento": "2026-11-08",
+        "motivo_anulacion": null,
+        "id_periodo_contable": 220,
+        "estado_periodo": "ABIERTO",
+        "valor_cotizacion_propuesto": "3800000.0000",
+        "valor_razonable_referencia": "3760000.0000",
+        "fecha_actualizacion": "2026-11-09T00:00:06.613021Z",
+        "fecha_registro": "2026-11-08T21:25:15.761785Z"
+      }
+    }
+  ]
+}

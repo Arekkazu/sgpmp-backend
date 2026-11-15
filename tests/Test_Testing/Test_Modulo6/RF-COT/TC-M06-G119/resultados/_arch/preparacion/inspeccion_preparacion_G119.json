@@ -1,0 +1,754 @@
+{
+  "caso": "TC-M06-G119",
+  "subcasos": [
+    "TC-M06-51",
+    "TC-M06-52"
+  ],
+  "issue": "#1022 / INC-M06-335-G91",
+  "fase": "inspeccion_preparacion_solo_lectura",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-13T05:44:59.920739+00:00",
+  "restricciones": "Sin POST/PUT/PATCH/DELETE; sin vencer manual; sin SQL",
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/health",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:00.461737+00:00",
+      "nota": "health",
+      "respuesta": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "en": "2026-11-13T05:45:01.098496+00:00",
+      "nota": "login",
+      "respuesta": {
+        "ok": true,
+        "tipo": "Bearer"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:01.463925+00:00",
+      "nota": "perfil",
+      "respuesta": {
+        "nombre_rol": "Contador"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:01.850537+00:00",
+      "nota": "permisos",
+      "respuesta": {
+        "rol": "Contador",
+        "cotizaciones_R": true,
+        "cotizaciones_D": true,
+        "auditoria_financiera_R": true,
+        "valoracion_activos_R": true,
+        "cotizaciones_acciones": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:02.224041+00:00",
+      "nota": "cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "cotizacion_6": {
+          "id_cotizacion": 6,
+          "estado": "COTIZADO",
+          "version": 1,
+          "activos_cotizados": [
+            1571
+          ],
+          "fecha_emision": "2026-11-08",
+          "fecha_vencimiento": null,
+          "motivo_anulacion": null,
+          "id_periodo_contable": 220,
+          "estado_periodo": "ABIERTO",
+          "valor_cotizacion_propuesto": "3900000.0000",
+          "valor_razonable_referencia": "3760000.0000",
+          "fecha_actualizacion": null
+        },
+        "cotizacion_7": {
+          "id_cotizacion": 7,
+          "estado": "VENCIDA",
+          "version": 2,
+          "activos_cotizados": [
+            1570
+          ],
+          "fecha_emision": "2026-11-08",
+          "fecha_vencimiento": "2026-11-08",
+          "motivo_anulacion": null,
+          "id_periodo_contable": 220,
+          "estado_periodo": "ABIERTO",
+          "valor_cotizacion_propuesto": "3800000.0000",
+          "valor_razonable_referencia": "3760000.0000",
+          "fecha_actualizacion": "2026-11-09T00:00:06.613021Z"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones?id_activo_biologico=1571",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:02.596509+00:00",
+      "nota": "cots_activo_1571",
+      "respuesta": {
+        "total": 1,
+        "ids": [
+          6
+        ],
+        "estados": [
+          {
+            "id": 6,
+            "estado": "COTIZADO",
+            "version": 1
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones?id_activo_biologico=1570",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:02.954384+00:00",
+      "nota": "cots_activo_1570",
+      "respuesta": {
+        "total": 1,
+        "ids": [
+          7
+        ],
+        "estados": [
+          {
+            "id": 7,
+            "estado": "VENCIDA",
+            "version": 2
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1570",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:03.351689+00:00",
+      "nota": "activo_1570",
+      "respuesta": {
+        "http": 200,
+        "identificador": {
+          "omitido": true
+        },
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "razon_social": "QA M06 Operaciones SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:04.061875Z"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:03.754656+00:00",
+      "nota": "activo_1571",
+      "respuesta": {
+        "http": 200,
+        "identificador": {
+          "omitido": true
+        },
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "razon_social": "QA M06 Operaciones SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:06.574099Z"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:04.145106+00:00",
+      "nota": "periodo_220",
+      "respuesta": {
+        "periodo_220": {
+          "encontrado": true,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:04.558439+00:00",
+      "nota": "periodo_219",
+      "respuesta": {
+        "periodo_219": {
+          "encontrado": true,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=6&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:05.338245+00:00",
+      "nota": "aud_COTIZACION_ANULADA_6",
+      "respuesta": {
+        "http": 200,
+        "total_registros": 0,
+        "muestra": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=7&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:05.730773+00:00",
+      "nota": "aud_COTIZACION_ANULADA_7",
+      "respuesta": {
+        "http": 200,
+        "total_registros": 0,
+        "muestra": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&formato=TECNICO&tamano=20&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:05.730791+00:00",
+      "nota": "aud_COTIZACION_ANULADA",
+      "respuesta": {
+        "total_registros": 0,
+        "muestra": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_VENCIDA&id_referencia=6&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:06.533611+00:00",
+      "nota": "aud_COTIZACION_VENCIDA_6",
+      "respuesta": {
+        "http": 200,
+        "total_registros": 0,
+        "muestra": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_VENCIDA&id_referencia=7&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:06.936784+00:00",
+      "nota": "aud_COTIZACION_VENCIDA_7",
+      "respuesta": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7098,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+            "tipo_actor": "SISTEMA",
+            "id_sistema": "M06_VENCIMIENTO_COTIZACIONES"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_VENCIDA&formato=TECNICO&tamano=20&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:06.936810+00:00",
+      "nota": "aud_COTIZACION_VENCIDA",
+      "respuesta": {
+        "total_registros": 2,
+        "muestra": [
+          {
+            "id_evento": 7098,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+            "tipo_actor": "SISTEMA",
+            "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+            "tipo_evento": "COTIZACION_VENCIDA"
+          },
+          {
+            "id_evento": 996,
+            "id_referencia": 4,
+            "timestamp_evento": "2026-11-07T15:55:03.703631Z",
+            "tipo_actor": "SISTEMA",
+            "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+            "tipo_evento": "COTIZACION_VENCIDA"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&id_referencia=6&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:07.688511+00:00",
+      "nota": "aud_COTIZACION_REGISTRADA_6",
+      "respuesta": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7071,
+            "id_referencia": 6,
+            "timestamp_evento": "2026-11-08T21:25:14.590377Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&id_referencia=7&formato=TECNICO&tamano=10&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:08.044559+00:00",
+      "nota": "aud_COTIZACION_REGISTRADA_7",
+      "respuesta": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7072,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-08T21:25:15.761785Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=20&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T05:45:08.044579+00:00",
+      "nota": "aud_COTIZACION_REGISTRADA",
+      "respuesta": {
+        "total_registros": 5,
+        "muestra": [
+          {
+            "id_evento": 20190,
+            "id_referencia": 10,
+            "timestamp_evento": "2026-11-13T02:31:20.440127Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null,
+            "tipo_evento": "COTIZACION_REGISTRADA"
+          },
+          {
+            "id_evento": 20189,
+            "id_referencia": 9,
+            "timestamp_evento": "2026-11-13T02:24:46.425401Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null,
+            "tipo_evento": "COTIZACION_REGISTRADA"
+          },
+          {
+            "id_evento": 17257,
+            "id_referencia": 8,
+            "timestamp_evento": "2026-11-11T16:23:19.605168Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null,
+            "tipo_evento": "COTIZACION_REGISTRADA"
+          },
+          {
+            "id_evento": 7072,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-08T21:25:15.761785Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null,
+            "tipo_evento": "COTIZACION_REGISTRADA"
+          },
+          {
+            "id_evento": 7071,
+            "id_referencia": 6,
+            "timestamp_evento": "2026-11-08T21:25:14.590377Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null,
+            "tipo_evento": "COTIZACION_REGISTRADA"
+          }
+        ]
+      }
+    }
+  ],
+  "escritura_ejecutada": false,
+  "permisos": {
+    "rol": "Contador",
+    "cotizaciones_R": true,
+    "cotizaciones_D": true,
+    "auditoria_financiera_R": true,
+    "valoracion_activos_R": true,
+    "cotizaciones_acciones": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "cotizacion_6": {
+    "id_cotizacion": 6,
+    "estado": "COTIZADO",
+    "version": 1,
+    "activos_cotizados": [
+      1571
+    ],
+    "fecha_emision": "2026-11-08",
+    "fecha_vencimiento": null,
+    "motivo_anulacion": null,
+    "id_periodo_contable": 220,
+    "estado_periodo": "ABIERTO",
+    "valor_cotizacion_propuesto": "3900000.0000",
+    "valor_razonable_referencia": "3760000.0000",
+    "fecha_actualizacion": null
+  },
+  "cotizacion_7": {
+    "id_cotizacion": 7,
+    "estado": "VENCIDA",
+    "version": 2,
+    "activos_cotizados": [
+      1570
+    ],
+    "fecha_emision": "2026-11-08",
+    "fecha_vencimiento": "2026-11-08",
+    "motivo_anulacion": null,
+    "id_periodo_contable": 220,
+    "estado_periodo": "ABIERTO",
+    "valor_cotizacion_propuesto": "3800000.0000",
+    "valor_razonable_referencia": "3760000.0000",
+    "fecha_actualizacion": "2026-11-09T00:00:06.613021Z"
+  },
+  "activo_1570": {
+    "http": 200,
+    "identificador": "QA-M06O-VR-02",
+    "estado": "ACTIVO",
+    "id_finca": 467,
+    "razon_social": "QA M06 Operaciones SAS",
+    "indicador_valoracion": "VALOR_RAZONABLE",
+    "valor_razonable_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:04.061875Z"
+  },
+  "activo_1571": {
+    "http": 200,
+    "identificador": "QA-M06O-VR-03",
+    "estado": "ACTIVO",
+    "id_finca": 467,
+    "razon_social": "QA M06 Operaciones SAS",
+    "indicador_valoracion": "VALOR_RAZONABLE",
+    "valor_razonable_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:06.574099Z"
+  },
+  "periodo_220": {
+    "encontrado": true,
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "razon_social": "QA M06 Operaciones SAS"
+  },
+  "periodo_219": {
+    "encontrado": true,
+    "estado": "CERRADO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "razon_social": "QA M06 Cierre SAS"
+  },
+  "auditoria": {
+    "COTIZACION_ANULADA": {
+      "http": 200,
+      "total_registros": 0,
+      "muestra": [],
+      "id_referencia_6": {
+        "http": 200,
+        "total_registros": 0,
+        "muestra": []
+      },
+      "id_referencia_7": {
+        "http": 200,
+        "total_registros": 0,
+        "muestra": []
+      }
+    },
+    "COTIZACION_VENCIDA": {
+      "http": 200,
+      "total_registros": 2,
+      "muestra": [
+        {
+          "id_evento": 7098,
+          "id_referencia": 7,
+          "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+          "tipo_actor": "SISTEMA",
+          "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+          "tipo_evento": "COTIZACION_VENCIDA"
+        },
+        {
+          "id_evento": 996,
+          "id_referencia": 4,
+          "timestamp_evento": "2026-11-07T15:55:03.703631Z",
+          "tipo_actor": "SISTEMA",
+          "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+          "tipo_evento": "COTIZACION_VENCIDA"
+        }
+      ],
+      "id_referencia_6": {
+        "http": 200,
+        "total_registros": 0,
+        "muestra": []
+      },
+      "id_referencia_7": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7098,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+            "tipo_actor": "SISTEMA",
+            "id_sistema": "M06_VENCIMIENTO_COTIZACIONES"
+          }
+        ]
+      }
+    },
+    "COTIZACION_REGISTRADA": {
+      "http": 200,
+      "total_registros": 5,
+      "muestra": [
+        {
+          "id_evento": 20190,
+          "id_referencia": 10,
+          "timestamp_evento": "2026-11-13T02:31:20.440127Z",
+          "tipo_actor": "USUARIO",
+          "id_sistema": null,
+          "tipo_evento": "COTIZACION_REGISTRADA"
+        },
+        {
+          "id_evento": 20189,
+          "id_referencia": 9,
+          "timestamp_evento": "2026-11-13T02:24:46.425401Z",
+          "tipo_actor": "USUARIO",
+          "id_sistema": null,
+          "tipo_evento": "COTIZACION_REGISTRADA"
+        },
+        {
+          "id_evento": 17257,
+          "id_referencia": 8,
+          "timestamp_evento": "2026-11-11T16:23:19.605168Z",
+          "tipo_actor": "USUARIO",
+          "id_sistema": null,
+          "tipo_evento": "COTIZACION_REGISTRADA"
+        },
+        {
+          "id_evento": 7072,
+          "id_referencia": 7,
+          "timestamp_evento": "2026-11-08T21:25:15.761785Z",
+          "tipo_actor": "USUARIO",
+          "id_sistema": null,
+          "tipo_evento": "COTIZACION_REGISTRADA"
+        },
+        {
+          "id_evento": 7071,
+          "id_referencia": 6,
+          "timestamp_evento": "2026-11-08T21:25:14.590377Z",
+          "tipo_actor": "USUARIO",
+          "id_sistema": null,
+          "tipo_evento": "COTIZACION_REGISTRADA"
+        }
+      ],
+      "id_referencia_6": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7071,
+            "id_referencia": 6,
+            "timestamp_evento": "2026-11-08T21:25:14.590377Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null
+          }
+        ]
+      },
+      "id_referencia_7": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7072,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-08T21:25:15.761785Z",
+            "tipo_actor": "USUARIO",
+            "id_sistema": null
+          }
+        ]
+      }
+    }
+  },
+  "evaluacion": {
+    "tc51_cotizacion_6": {
+      "apta_para_anulacion": true,
+      "estado": "COTIZADO",
+      "version": 1,
+      "activo_ok": true,
+      "sin_vencimiento": true
+    },
+    "tc52_cotizacion_7": {
+      "transicion_automatica": "YA_OCURRIO",
+      "estado": "VENCIDA",
+      "fecha_vencimiento": "2026-11-08",
+      "version": 2,
+      "activo_ok": true,
+      "evento_COTIZACION_VENCIDA_ref_7": {
+        "http": 200,
+        "total_registros": 1,
+        "muestra": [
+          {
+            "id_evento": 7098,
+            "id_referencia": 7,
+            "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+            "tipo_actor": "SISTEMA",
+            "id_sistema": "M06_VENCIMIENTO_COTIZACIONES"
+          }
+        ]
+      },
+      "evidencia_automatica_suficiente": true,
+      "accion": "No reprocesar; verificar activo 1570 y dictaminar con evidencia de estado+evento"
+    }
+  },
+  "solicitud_anulacion_preparada": {
+    "endpoint": "POST /finanzas/cotizaciones/6/anulacion",
+    "headers": {
+      "Authorization": "Bearer <token Contador>",
+      "Content-Type": "application/json",
+      "X-Zona-Horaria": "America/Bogota"
+    },
+    "usuario_rol": "Contador (permiso cotizaciones desactivar)",
+    "body": {
+      "version": 1,
+      "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+    },
+    "segundo_intento": {
+      "endpoint": "POST /finanzas/cotizaciones/6/anulacion",
+      "body": {
+        "version": 2,
+        "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización. segundo intento"
+      },
+      "esperado": {
+        "http": 422,
+        "code": "COTIZACION_NO_MODIFICABLE"
+      },
+      "nota": "Usar version actualizada tras primera anulación; no ejecutar sin autorización"
+    },
+    "consultas_posteriores": [
+      "GET /finanzas/cotizaciones (filtrar id 6)",
+      "GET /finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=6",
+      "GET /finanzas/activos/1571"
+    ],
+    "ejecutado": false
+  },
+  "implementacion": {
+    "anulacion": {
+      "router": "POST /finanzas/cotizaciones/{id}/anulacion",
+      "permiso": "cotizaciones D (desactivar)",
+      "dto": "AnularCotizacionDTO: version>=1, motivo_anulacion min_length=20",
+      "reglas": "Solo estado COTIZADO y periodo no CERRADO; pasa a ANULADA; evento COTIZACION_ANULADA; sin ruta de reactivación",
+      "segundo_intento": "422 COTIZACION_NO_MODIFICABLE si estado != COTIZADO",
+      "fuentes": [
+        "m06_router.py anular_cotizacion",
+        "m06_dto.py AnularCotizacionDTO",
+        "modificar_cotizacion_use_case.py anular/_vigente"
+      ]
+    },
+    "vencimiento_automatico": {
+      "endpoint_publico": null,
+      "proceso": "main.py _procesar_m06_periodicamente: ciclo 60s; una vez por día calendario UTC llama m06.modificar_cotizacion().vencer()",
+      "criterio_sql": "estado=COTIZADO AND fecha_vencimiento < hoy AND periodo <> CERRADO",
+      "evento": "COTIZACION_VENCIDA con id_sistema=M06_VENCIMIENTO_COTIZACIONES",
+      "hoy": "hoy_usuario() en el caso de uso",
+      "fuentes": [
+        "main.py:_procesar_m06_periodicamente",
+        "modificar_cotizacion_use_case.py:vencer",
+        "cotizacion_repository.py:vencer"
+      ],
+      "no_ejecutar_manual": true
+    }
+  },
+  "dependencia_g118": {
+    "descripcion": "Cotización 6 / activo 1571 es el mismo activo aislado preparado para G118 (TC-M06-50). G118 sigue pendiente de autorización de POST de registro. Anular la cotización 6 alteraría el baseline comercial de 1571 y debe coordinarse: no ejecutar TC-M06-51 sin decisión expresa respecto a G118.",
+    "impacto_si_se_anula_6": "1571 perdería la cotización COTIZADO id 6; G118 podría necesitar otra cotización o reordenar ejecución",
+    "g118_post_ejecutado": false
+  },
+  "riesgos": [
+    "Dependencia G118: no anular cotización 6 sin autorización coordinada",
+    "No alterar cotizaciones 4/5 ni periodos 219/220"
+  ],
+  "dictamen_preparacion": {
+    "categoria": "PREPARADO_PENDIENTE_AUTORIZACION",
+    "tc51_listo_para_anulacion": true,
+    "tc52_estado": "YA_OCURRIO",
+    "tc52_evidencia_automatica_suficiente": true,
+    "escritura_ejecutada": false,
+    "motivo": "Baseline de solo lectura listo. Anulación 51 preparada (no enviada). Vencimiento 52: YA_OCURRIO. Coordinar dependencia G118 antes de anular cotización 6.",
+    "requiere_autorizacion_expresa": [
+      "POST anulación cotización 6 (TC-M06-51) — coordinar con G118",
+      "Segundo intento de anulación (irreversibilidad)",
+      "No ejecutar vencer() manual para TC-M06-52"
+    ]
+  }
+}

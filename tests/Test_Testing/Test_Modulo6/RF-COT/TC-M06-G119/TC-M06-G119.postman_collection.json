@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "TC-M06-G119",
+    "description": "Preparacion TC-M06-51/52: anulación cotización 6 y verificación de vencimiento automático cotización 7. NO ejecutar POST de anulación sin autorización expresa (coordinar G118). NO disparar vencer() manual.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base", "value": "https://api.inmero.co/api-sgpmp-test"}
+  ],
+  "item": [
+    {
+      "name": "Baseline GET cotizaciones",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones"
+      }
+    },
+    {
+      "name": "51 Anular cotizacion 6 (NO EJECUTAR sin autorizacion)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones/6/anulacion",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"version\": {{version_cot_6}},\n  \"motivo_anulacion\": \"TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización.\"\n}"
+        }
+      }
+    },
+    {
+      "name": "51b Segundo intento anulación (NO EJECUTAR sin autorizacion)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones/6/anulacion",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"version\": {{version_cot_6_post}},\n  \"motivo_anulacion\": \"TC-M06-G119 / TC-M06-51 — segundo intento de anulación para verificar irreversibilidad.\"\n}"
+        }
+      }
+    }
+  ]
+}

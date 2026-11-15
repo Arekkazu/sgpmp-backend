@@ -1,0 +1,60 @@
+{
+  "caso": "TC-M06-G119",
+  "subcaso": "TC-M06-52",
+  "nombre": "Vencimiento automático de cotizaciones",
+  "fase": "cierre_documental_solo_lectura",
+  "autorizacion": "Cierre documental con evidencias GET de preparación; sin POST/PUT/PATCH/DELETE; sin vencer() manual",
+  "estado": "APROBADO",
+  "motivo": "Transición automática demostrada: cotización 7 VENCIDA (versión 2), evento COTIZACION_VENCIDA 7098 por SISTEMA/M06_VENCIMIENTO_COTIZACIONES; activo 1570 ACTIVO con VR neto sin cambio.",
+  "fuente_evidencia": "resultados/preparacion/inspeccion_preparacion_G119.json",
+  "cotizacion_7": {
+    "id_cotizacion": 7,
+    "estado": "VENCIDA",
+    "version": 2,
+    "version_inicial_esperada": 1,
+    "incremento_version": true,
+    "activos_cotizados": [1570],
+    "fecha_emision": "2026-11-08",
+    "fecha_vencimiento": "2026-11-08",
+    "fecha_actualizacion": "2026-11-09T00:00:06.613021Z",
+    "id_periodo_contable": 220,
+    "estado_periodo": "ABIERTO",
+    "valor_cotizacion_propuesto": "3800000.0000",
+    "valor_razonable_referencia": "3760000.0000",
+    "motivo_anulacion": null
+  },
+  "evento_auditoria": {
+    "tipo_evento": "COTIZACION_VENCIDA",
+    "id_evento": 7098,
+    "id_referencia": 7,
+    "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+    "tipo_actor": "SISTEMA",
+    "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+    "coincide_con_fecha_actualizacion_cotizacion": true
+  },
+  "activo_1570": {
+    "id_activo_biologico": 1570,
+    "identificador": "QA-M06O-VR-02",
+    "estado": "ACTIVO",
+    "indicador_valoracion": "VALOR_RAZONABLE",
+    "valor_razonable_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:04.061875Z",
+    "modificado_por_vencimiento": false
+  },
+  "proceso_automatico": {
+    "endpoint_publico": null,
+    "ubicacion": "main.py:_procesar_m06_periodicamente",
+    "comportamiento": "Ciclo 60s; una vez por día UTC llama m06.modificar_cotizacion().vencer()",
+    "criterio": "estado=COTIZADO AND fecha_vencimiento < hoy AND periodo <> CERRADO",
+    "ejecucion_manual": false
+  },
+  "verificaciones": {
+    "estado_vencida": true,
+    "version_incrementada": true,
+    "evento_sistema_presente": true,
+    "activo_sigue_activo": true,
+    "vr_sin_cambio": true,
+    "vencer_manual_no_ejecutado": true
+  },
+  "escritura_en_esta_fase": false
+}
