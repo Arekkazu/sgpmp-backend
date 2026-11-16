@@ -1,0 +1,499 @@
+{
+  "caso": "TC-M06-G118",
+  "subcaso": "TC-M06-50",
+  "issue": "#1021 / INC-M06-334-G90",
+  "fase": "inspeccion_preparacion_solo_lectura",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-13T04:09:23.629348+00:00",
+  "restricciones": "Sin POST /finanzas/cotizaciones; solo GET + POST /sesiones/",
+  "registro_ejecutado": false,
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/health",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:24.076421+00:00",
+      "nota": "health",
+      "respuesta": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "en": "2026-11-13T04:09:24.719955+00:00",
+      "nota": "login",
+      "respuesta": {
+        "ok": true,
+        "tipo": "Bearer"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:25.142249+00:00",
+      "nota": "perfil",
+      "respuesta": {
+        "nombre_rol": "Contador"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:25.536067+00:00",
+      "nota": "permisos",
+      "respuesta": {
+        "rol": "Contador",
+        "cotizaciones_C": true,
+        "cotizaciones_R": true,
+        "valoracion_activos_R": true,
+        "auditoria_financiera_R": true,
+        "exportacion_contable_R": true,
+        "nota": "No se consultó GET /integracion/auditoria sin permiso (escribe ACCESO_AUDITORIA_DENEGADO)."
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:26.744784+00:00",
+      "nota": "openapi",
+      "respuesta": {
+        "post_cotizaciones": true,
+        "required": [
+          "activos_cotizados",
+          "valor_cotizacion_propuesto"
+        ],
+        "CotizacionDTO": {
+          "activos_cotizados": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Activos Cotizados"
+          },
+          "valor_cotizacion_propuesto": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,19}0*$)\\d{0,14}\\.\\d{0,4}0*$)"
+              }
+            ],
+            "title": "Valor Cotizacion Propuesto"
+          },
+          "condiciones": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condiciones"
+          },
+          "fecha_vencimiento": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Vencimiento"
+          }
+        },
+        "aaef_productores": true,
+        "aaef_vista_previa": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:27.130078+00:00",
+      "nota": "periodo_220",
+      "respuesta": {
+        "periodo_220": {
+          "encontrado": true,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:27.540482+00:00",
+      "nota": "periodo_219",
+      "respuesta": {
+        "periodo_219": {
+          "encontrado": true,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:27.956687+00:00",
+      "nota": "activo_1571",
+      "respuesta": {
+        "http": 200,
+        "id_activo_biologico": 1571,
+        "identificador": {
+          "omitido": true
+        },
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "razon_social": "QA M06 Operaciones SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+        "cantidad_calculos": 1,
+        "lineas_en_historial": 2,
+        "coincide_codigo": true,
+        "coincide_vr_referencia": true,
+        "apto_para_g118": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_periodo_contable=220",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:28.374332+00:00",
+      "nota": "lineas_220",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          894,
+          895,
+          896,
+          2665,
+          5799,
+          5800,
+          5801
+        ],
+        "lineas_del_activo_1571": [
+          896,
+          5801
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:28.769621+00:00",
+      "nota": "baseline_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "sobre_1571": [
+          6
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T04:09:29.150294+00:00",
+      "nota": "baseline_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/vista-previa/productores/900000003?desde=2026-11-01&hasta=2026-11-30",
+      "codigo": 422,
+      "escritura": false,
+      "en": "2026-11-13T04:09:29.569707+00:00",
+      "nota": "aaef_vista_previa",
+      "respuesta": {
+        "keys": [
+          "error_code",
+          "fields",
+          "message",
+          "timestamp"
+        ],
+        "error_code": "CONTRATO_NO_ACTIVO",
+        "message": "No hay una versión vigente del contrato contable. Contacte al administrador."
+      }
+    }
+  ],
+  "contrato": {
+    "endpoint": "POST /finanzas/cotizaciones",
+    "http_exito": 201,
+    "dto": "CotizacionDTO",
+    "required": [
+      "activos_cotizados",
+      "valor_cotizacion_propuesto"
+    ],
+    "campos": {
+      "activos_cotizados": "list[int] obligatorio",
+      "valor_cotizacion_propuesto": "Decimal gt=0",
+      "condiciones": "opcional",
+      "fecha_vencimiento": "opcional"
+    },
+    "efectos_use_case": {
+      "inserta_cotizacion": true,
+      "evento": "COTIZACION_REGISTRADA",
+      "asientos": false,
+      "aaef_m07": false,
+      "actualiza_vr_activo": false,
+      "cambia_estado_activo": false
+    },
+    "fuentes": [
+      "src/financial_valuation/infrastructure/dto/m06_dto.py CotizacionDTO",
+      "src/financial_valuation/application/use_cases/cotizaciones/registrar_cotizacion_use_case.py",
+      "m06_router.py POST /cotizaciones status_code=201"
+    ]
+  },
+  "activo_1571": {
+    "http": 200,
+    "id_activo_biologico": 1571,
+    "identificador": "QA-M06O-VR-03",
+    "estado": "ACTIVO",
+    "id_finca": 467,
+    "razon_social": "QA M06 Operaciones SAS",
+    "indicador_valoracion": "VALOR_RAZONABLE",
+    "valor_razonable_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+    "cantidad_calculos": 1,
+    "lineas_en_historial": 2,
+    "coincide_codigo": true,
+    "coincide_vr_referencia": true,
+    "apto_para_g118": true
+  },
+  "lineas_periodo_220": {
+    "http": 200,
+    "total": 7,
+    "ids": [
+      894,
+      895,
+      896,
+      2665,
+      5799,
+      5800,
+      5801
+    ],
+    "estados": [
+      "REGISTRADA"
+    ],
+    "ids_activos_en_lineas": [
+      1569,
+      1570,
+      1571,
+      1572
+    ],
+    "lineas_del_activo_1571": [
+      896,
+      5801
+    ]
+  },
+  "periodos": {
+    "220": {
+      "encontrado": true,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "razon_social": "QA M06 Operaciones SAS"
+    },
+    "219": {
+      "encontrado": true,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "razon_social": "QA M06 Cierre SAS"
+    }
+  },
+  "aaef": {
+    "canal_externo": {
+      "ruta": "/integracion/aaef/productores/900000003",
+      "auth_requerida": "Bearer token de canal (POST /integraciones/agrofusion/token) emitido para cliente externo por Administrador",
+      "consultado": false,
+      "motivo": "No hay credenciales de cliente externo / token de canal en el entorno QA Contador. No se inventan."
+    },
+    "vista_previa_contador": {
+      "ruta": "/integracion/aaef/vista-previa/productores/900000003",
+      "permiso_requerido": "exportacion_contable R",
+      "tiene_permiso": true,
+      "consultado": true,
+      "nota_rf": "RF-AE01: AAEF de canal opera sobre períodos cerrados; 220 está ABIERTO.",
+      "http": 422,
+      "rango": {
+        "desde": "2026-11-01",
+        "hasta": "2026-11-30"
+      },
+      "resumen": {
+        "keys": [
+          "error_code",
+          "fields",
+          "message",
+          "timestamp"
+        ],
+        "error_code": "CONTRATO_NO_ACTIVO",
+        "message": "No hay una versión vigente del contrato contable. Contacte al administrador."
+      }
+    },
+    "integracion_auditoria": {
+      "ruta": "/integracion/auditoria",
+      "consultado": false,
+      "motivo": "Consulta sin permiso puede escribir ACCESO_AUDITORIA_DENEGADO; no se intentó."
+    }
+  },
+  "permisos": {
+    "rol": "Contador",
+    "cotizaciones_C": true,
+    "cotizaciones_R": true,
+    "valoracion_activos_R": true,
+    "auditoria_financiera_R": true,
+    "exportacion_contable_R": true,
+    "nota": "No se consultó GET /integracion/auditoria sin permiso (escribe ACCESO_AUDITORIA_DENEGADO)."
+  },
+  "solicitud_preparada": {
+    "endpoint": "POST /finanzas/cotizaciones",
+    "headers": {
+      "Authorization": "Bearer <token Contador>",
+      "Content-Type": "application/json",
+      "X-Zona-Horaria": "America/Bogota"
+    },
+    "usuario_rol": "Contador (QA_CORREO)",
+    "body": {
+      "activos_cotizados": [
+        1571
+      ],
+      "valor_cotizacion_propuesto": "1000.0000",
+      "condiciones": "TC-M06-G118 / TC-M06-50 — integridad activo sin efectos contables (pendiente autorizacion)"
+    },
+    "notas": [
+      "valor_cotizacion_propuesto sigue el precedente G115 (1000.0000 > 0); no es el VR.",
+      "fecha_vencimiento omitida (opcional; RF-COT / #1020).",
+      "fecha_emision la calcula el servidor (hoy_usuario America/Bogota).",
+      "NO EJECUTADO en esta fase."
+    ],
+    "efectos_esperados": {
+      "http": 201,
+      "estado_cotizacion": "COTIZADO",
+      "valor_razonable_referencia": "3760000.0000",
+      "evento_auditoria": "COTIZACION_REGISTRADA",
+      "activo_estado": "ACTIVO sin cambio",
+      "vr_neto": "sin cambio",
+      "lineas_periodo_220": "sin nuevas",
+      "aaef": "sin nuevas exportaciones (use case no llama M07)",
+      "periodo_220": "ABIERTO",
+      "periodo_219": "CERRADO"
+    },
+    "ejecutado": false
+  },
+  "consultas_post_registro": [
+    "GET /finanzas/activos/1571",
+    "GET /finanzas/lineas?id_periodo_contable=220",
+    "GET /finanzas/periodos?numero_id_tributaria=900000003",
+    "GET /finanzas/periodos?numero_id_tributaria=900000002",
+    "GET /finanzas/cotizaciones",
+    "GET /finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&orden=DESC",
+    "AAEF: vista-previa Contador si hay permiso; canal externo solo con token de canal (no inventar)"
+  ],
+  "bloqueos": [],
+  "dictamen_preparacion": {
+    "categoria": "PREPARADO_PENDIENTE_AUTORIZACION_POST",
+    "listo_para_post": true,
+    "post_ejecutado": false,
+    "motivo": "Baseline de solo lectura completo para activo 1571 / periodo 220. Solicitud POST preparada; requiere autorización expresa antes de enviar.",
+    "limitaciones_aaef": {
+      "canal_externo": {
+        "ruta": "/integracion/aaef/productores/900000003",
+        "auth_requerida": "Bearer token de canal (POST /integraciones/agrofusion/token) emitido para cliente externo por Administrador",
+        "consultado": false,
+        "motivo": "No hay credenciales de cliente externo / token de canal en el entorno QA Contador. No se inventan."
+      },
+      "vista_previa_contador": {
+        "ruta": "/integracion/aaef/vista-previa/productores/900000003",
+        "permiso_requerido": "exportacion_contable R",
+        "tiene_permiso": true,
+        "consultado": true,
+        "nota_rf": "RF-AE01: AAEF de canal opera sobre períodos cerrados; 220 está ABIERTO.",
+        "http": 422,
+        "rango": {
+          "desde": "2026-11-01",
+          "hasta": "2026-11-30"
+        },
+        "resumen": {
+          "keys": [
+            "error_code",
+            "fields",
+            "message",
+            "timestamp"
+          ],
+          "error_code": "CONTRATO_NO_ACTIVO",
+          "message": "No hay una versión vigente del contrato contable. Contacte al administrador."
+        }
+      },
+      "integracion_auditoria": {
+        "ruta": "/integracion/auditoria",
+        "consultado": false,
+        "motivo": "Consulta sin permiso puede escribir ACCESO_AUDITORIA_DENEGADO; no se intentó."
+      }
+    }
+  },
+  "baseline_cotizaciones": {
+    "total": 7,
+    "ids": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "sobre_1571": [
+      6
+    ]
+  },
+  "baseline_auditoria": {
+    "total_registros": 5
+  }
+}

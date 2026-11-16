@@ -1,0 +1,35 @@
+{
+  "endpoint": "POST /finanzas/cotizaciones",
+  "headers": {
+    "Authorization": "Bearer <token Contador>",
+    "Content-Type": "application/json",
+    "X-Zona-Horaria": "America/Bogota"
+  },
+  "usuario_rol": "Contador (QA_CORREO)",
+  "body": {
+    "activos_cotizados": [
+      1571
+    ],
+    "valor_cotizacion_propuesto": "1000.0000",
+    "condiciones": "TC-M06-G118 / TC-M06-50 — integridad activo sin efectos contables (pendiente autorizacion)"
+  },
+  "notas": [
+    "valor_cotizacion_propuesto sigue el precedente G115 (1000.0000 > 0); no es el VR.",
+    "fecha_vencimiento omitida (opcional; RF-COT / #1020).",
+    "fecha_emision la calcula el servidor (hoy_usuario America/Bogota).",
+    "NO EJECUTADO en esta fase."
+  ],
+  "efectos_esperados": {
+    "http": 201,
+    "estado_cotizacion": "COTIZADO",
+    "valor_razonable_referencia": "3760000.0000",
+    "evento_auditoria": "COTIZACION_REGISTRADA",
+    "activo_estado": "ACTIVO sin cambio",
+    "vr_neto": "sin cambio",
+    "lineas_periodo_220": "sin nuevas",
+    "aaef": "sin nuevas exportaciones (use case no llama M07)",
+    "periodo_220": "ABIERTO",
+    "periodo_219": "CERRADO"
+  },
+  "ejecutado": false
+}

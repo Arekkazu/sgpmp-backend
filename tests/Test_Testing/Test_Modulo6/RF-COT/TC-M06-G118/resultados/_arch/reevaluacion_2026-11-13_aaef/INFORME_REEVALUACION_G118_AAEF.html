@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reevaluación AAEF — TC-M06-G118</title>
+<style>
+:root{--ink:#1a2332;--muted:#5a6577;--line:#d5dbe6;--ok:#0f6b3c;--okbg:#e7f6ee;--warn:#8a5a00;--warnbg:#fff4d9;--pend:#8b2e1f;--pendbg:#fdeceb;--acc:#1f4e79;--accs:#e8eef6}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Helvetica Neue,Arial,sans-serif;color:var(--ink);background:#f7f8fb;line-height:1.5}
+.page{max-width:920px;margin:0 auto;padding:1.5rem}
+.cover{background:linear-gradient(160deg,#1f4e79,#2f6f9a);color:#fff;border-radius:10px;padding:1.8rem;margin-bottom:1rem}
+.cover h1{margin:.2rem 0 .6rem;font-size:1.55rem}
+.badge{display:inline-block;padding:.3rem .65rem;border-radius:999px;font-size:.75rem;font-weight:700;margin:.2rem .25rem 0 0}
+.bok{background:#d9f2e4;color:#0b5a33}.bpend{background:#ffd9d4;color:#7a2418}.bwarn{background:#fff0c9;color:#7a4f00}
+section{background:#fff;border:1px solid var(--line);border-radius:8px;padding:1.1rem 1.2rem;margin-bottom:.9rem}
+h2{margin:0 0 .7rem;font-size:1.1rem;color:var(--acc);border-bottom:2px solid var(--accs);padding-bottom:.35rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:.4rem}
+th,td{border:1px solid var(--line);padding:.45rem .55rem;text-align:left;vertical-align:top}
+th{background:var(--accs);color:var(--acc)}
+.st{font-weight:700;font-size:.75rem;padding:.15rem .4rem;border-radius:4px}
+.sok{background:var(--okbg);color:var(--ok)}.sbloq{background:var(--pendbg);color:var(--pend)}.spend{background:var(--warnbg);color:var(--warn)}
+.call{border-left:4px solid var(--pend);background:var(--pendbg);padding:.7rem .9rem;border-radius:0 6px 6px 0;margin-top:.6rem}
+.muted{color:var(--muted);font-size:.9rem}
+code{font-family:Consolas,monospace;font-size:.84em;background:#f0f3f8;padding:.05rem .28rem;border-radius:3px}
+@media print{@page{size:A4;margin:12mm} body{background:#fff}.cover,th,.st,.badge,.call{-webkit-print-color-adjust:exact;print-color-adjust:exact} section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="cover">
+<p class="muted" style="color:#d7e6f5;margin:0">Reevaluación de solo lectura · Módulo 6 · RF-COT / AAEF</p>
+<h1>TC-M06-G118 — Reevaluación AAEF (13 nov 2026)</h1>
+<p>Ambiente TEST · Sesión Contador · Sin cotización · Sin cierre de período · Sin commit/push</p>
+<div>
+<span class="badge bwarn">Dictamen: REEVALUACIÓN PARCIAL</span>
+<span class="badge bok">Contrato 2.1 ACTIVO</span>
+<span class="badge bpend">G118 no aprobado completo</span>
+<span class="badge bpend">CA canal / cliente 5 bloqueados</span>
+</div>
+</header>
+
+<section>
+<h2>1. Resumen ejecutivo</h2>
+<p>Se verificó por API que el contrato AAEF <strong>2.1 (ID 3)</strong> está <strong>ACTIVO</strong>, con anexo v2.0 y transformador <code>COMPRAS</code>. La vista previa del titular QA (900000003) cambió de <code>CONTRATO_NO_ACTIVO</code> a <code>422 PERIODO_NO_CERRADO</code> (período 220 abierto). El titular de referencia (900000002) devolvió HTTP 200 con <code>X-Version-Contrato-AAEF: 2.1</code>.</p>
+<div class="call"><strong>No se declara G118 APROBADO:</strong> faltan verificación del cliente externo, autenticación de canal, transformación del titular QA y autorización de TC-M06-50.</div>
+</section>
+
+<section>
+<h2>2. Resultados por escenario</h2>
+<table>
+<tr><th>Escenario</th><th>Estado</th></tr>
+<tr><td>Contrato AAEF 2.1 / ID 3</td><td><span class="st sok">APROBADO</span></td></tr>
+<tr><td>Anexo mapeo v2.0</td><td><span class="st sok">APROBADO</span></td></tr>
+<tr><td>Transformador solo COMPRAS (config)</td><td><span class="st sok">APROBADO</span></td></tr>
+<tr><td>Vista previa QA — error de período</td><td><span class="st sok">APROBADO</span> (422 PERIODO_NO_CERRADO)</td></tr>
+<tr><td>Vista previa QA — paquete/transformación</td><td><span class="st sbloq">BLOQUEADO</span></td></tr>
+<tr><td>Vista previa referencia 900000002</td><td><span class="st sok">APROBADO</span> (referencia)</td></tr>
+<tr><td>Cliente QA ID 5 / permisos efectivos</td><td><span class="st sbloq">BLOQUEADO</span> (403)</td></tr>
+<tr><td>Autenticación canal AAEF</td><td><span class="st sbloq">BLOQUEADO</span> (sin secret en env)</td></tr>
+<tr><td>TC-M06-50 cotización</td><td><span class="st spend">PENDIENTE DE AUTORIZACIÓN</span></td></tr>
+</table>
+</section>
+
+<section>
+<h2>3. Vista previa por titular</h2>
+<table>
+<tr><th>NIT</th><th>Período</th><th>HTTP</th><th>Detalle</th></tr>
+<tr><td>900000003</td><td>220 ABIERTO</td><td>422</td><td><code>PERIODO_NO_CERRADO</code></td></tr>
+<tr><td>900000002</td><td>219 CERRADO</td><td>200</td><td>Envelope AAEF; invoices=0; no aprueba titular QA</td></tr>
+</table>
+</section>
+
+<section>
+<h2>4. Bloqueos antes de TC-M06-50</h2>
+<ul>
+<li>Autorización expresa de <code>POST /finanzas/cotizaciones</code> (activo 1571).</li>
+<li>Cierre administrativo del período 220 (si se exige AAEF del titular QA).</li>
+<li>Credencial de canal en variables de entorno seguras (sin secretos en chat).</li>
+<li>Autorización de <code>POST /integraciones/agrofusion/token</code> solo para consulta.</li>
+<li>Sesión con <code>clientes_externos</code> R para verificar cliente 5.</li>
+</ul>
+</section>
+
+<section>
+<h2>5. Confirmaciones de seguridad</h2>
+<ul>
+<li>Sin POST de cotización, sin cierre de períodos, sin altas/bajas de clientes o contratos.</li>
+<li>Sin reproducción del <code>client_secret</code>.</li>
+<li>Sin commit ni push.</li>
+<li>Evidencias históricas de <code>primera_evaluacion/</code> y <code>preparacion/</code> conservadas.</li>
+</ul>
+<p class="muted">Detalle: DIAGNOSTICO_REEVALUACION_G118_AAEF.md · estado_consolidado_G118.json · evidencia_consultas_reevaluacion_G118.json</p>
+</section>
+</main>
+</body>
+</html>

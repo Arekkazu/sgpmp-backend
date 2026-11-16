@@ -1,0 +1,50 @@
+{
+  "info": {
+    "name": "TC-M06-G118",
+    "description": "Preparacion TC-M06-50: integridad del activo y ausencia de efectos contables al registrar cotizacion. El POST de registro NO debe ejecutarse sin autorizacion expresa. Ver resultados/preparacion/solicitud_post_preparada_G118.json.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base", "value": "https://api.inmero.co/api-sgpmp-test"}
+  ],
+  "item": [
+    {
+      "name": "Baseline GET activo 1571",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/activos/{{id_activo}}"
+      }
+    },
+    {
+      "name": "Baseline GET lineas periodo 220",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/lineas?id_periodo_contable={{id_periodo}}"
+      }
+    },
+    {
+      "name": "50 Registrar cotizacion valida (NO EJECUTAR sin autorizacion)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\",\n  \"condiciones\": \"TC-M06-G118 / TC-M06-50 — integridad activo sin efectos contables (pendiente autorizacion)\"\n}"
+        }
+      }
+    }
+  ]
+}

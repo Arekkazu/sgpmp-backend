@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>REPORTE FINAL G118 — RF-COT / AAEF | TC-M06-50</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --ink: #1c241c;
+    --muted: #5a655a;
+    --card: #ffffff;
+    --line: #d8ddd4;
+    --pass: #1f6b3a;
+    --pass-bg: #e7f5ec;
+    --accent: #2f4a3a;
+    --warn: #8a6d1d;
+    --warn-bg: #fff8e6;
+    --warn-line: #c9a227;
+    --ext: #1a4a6b;
+    --ext-bg: #e8f2f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #e7efe6 0%, transparent 55%),
+      radial-gradient(900px 400px at 100% 0%, #f3e6d8 0%, transparent 50%),
+      var(--bg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 64px; }
+  .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+  .btn-print {
+    border: 1px solid #9eb0a2; background: #fff; color: var(--accent);
+    border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-print:hover { background: #eef3ec; }
+  header.hero {
+    background: linear-gradient(135deg, #243528 0%, #3d5a45 55%, #5a6e4e 100%);
+    color: #f4f7f2; border-radius: 18px; padding: 28px;
+    box-shadow: 0 18px 40px rgba(36,53,40,.28);
+  }
+  header.hero .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: 12px; opacity: .8; margin-bottom: 8px;
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 1.65rem; font-weight: 700; }
+  header.hero p { margin: 0; opacity: .92; max-width: 48rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .chip {
+    display: inline-flex; background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px;
+  }
+  .badge {
+    display: inline-block; font-weight: 700; letter-spacing: .04em;
+    padding: 8px 14px; border-radius: 999px; background: #d8f3e2; color: var(--pass);
+    border: 1px solid #9ed5b3; margin: 16px 8px 0 0;
+  }
+  .badge.ext {
+    background: var(--ext-bg); color: var(--ext); border-color: #9ec5dd;
+  }
+  nav.toc {
+    margin-top: 16px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px 18px;
+  }
+  nav.toc strong { display: block; margin-bottom: 8px; color: var(--accent); }
+  nav.toc a { color: var(--accent); text-decoration: none; margin-right: 14px; font-size: 14px; }
+  nav.toc a:hover { text-decoration: underline; }
+  section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 24px; margin-top: 16px;
+  }
+  h2 {
+    margin: 0 0 12px; font-size: 1.15rem; color: var(--accent);
+    border-bottom: 2px solid #e4ebe3; padding-bottom: 8px;
+  }
+  h3 { margin: 18px 0 8px; font-size: 1.02rem; color: #2c3b2f; }
+  .muted { color: var(--muted); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #eef3ec; color: #2c3b2f; }
+  .ok {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: var(--pass-bg); color: var(--pass);
+  }
+  .ext-tag {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: var(--ext-bg); color: var(--ext);
+  }
+  code, .path {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: .86em; background: #f0f3ee; padding: .1rem .3rem; border-radius: 4px;
+  }
+  a .path, a.path { color: var(--accent); }
+  .call {
+    border-left: 4px solid var(--pass); background: var(--pass-bg);
+    padding: .85rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px;
+  }
+  .note {
+    border-left: 4px solid var(--warn-line); background: var(--warn-bg);
+    padding: .7rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px;
+  }
+  .ext-box {
+    border-left: 4px solid var(--ext); background: var(--ext-bg);
+    padding: .7rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px;
+  }
+  .kpi {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .kpi div {
+    background: #f7faf6; border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .kpi strong { display: block; font-size: 1.25rem; color: var(--pass); margin-top: 4px; }
+  ul.compact li { margin: .25rem 0; }
+  footer { margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .wrap { padding: 0; max-width: none; }
+    header.hero, th, .ok, .badge, .call, .kpi div, .note, .ext-box, .ext-tag {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="btn-print" type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <header class="hero">
+    <div class="kicker">SGPMP · Módulo 6 · Finanzas · Informe final de grupo</div>
+    <h1>TC-M06-G118 — Informe consolidado RF-COT / AAEF</h1>
+    <p>Cotización sin efectos contables (TC-M06-50) e integridad del canal AAEF (fixture Contador, negativo 220 y autenticación externa). Ambiente TEST · cierre documental del 15 de noviembre de 2026.</p>
+    <div class="meta">
+      <span class="chip">Proyecto: sgpmp-backend</span>
+      <span class="chip">Grupo: TC-M06-G118</span>
+      <span class="chip">Módulo 6</span>
+      <span class="chip">RF-COT · AAEF · RF-94</span>
+      <span class="chip">Subcaso: TC-M06-50</span>
+      <span class="chip">Fecha cierre: 15/11/2026</span>
+      <span class="chip">Ambiente: api-sgpmp-test</span>
+    </div>
+    <div>
+      <span class="badge">Dictamen: G118 APROBADO</span>
+      <span class="badge">TC-M06-50 APROBADO · 14/14</span>
+      <span class="badge ext">Auth AAEF: confirmación externa Samuel</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <strong>Contenido</strong>
+    <a href="#objetivo">Objetivo</a>
+    <a href="#resumen">Resumen</a>
+    <a href="#componentes">Componentes</a>
+    <a href="#tc50">TC-M06-50</a>
+    <a href="#aaef">Canal AAEF</a>
+    <a href="#samuel">Confirmación Samuel</a>
+    <a href="#periodos">Períodos</a>
+    <a href="#evidencias">Evidencias</a>
+    <a href="#conclusion">Dictamen final</a>
+  </nav>
+
+  <section id="objetivo">
+    <h2>1. Objetivo general</h2>
+    <p>Demostrar, con evidencias reales de TEST, el cumplimiento del grupo <strong>G118</strong>:</p>
+    <ul class="compact">
+      <li><strong>TC-M06-50:</strong> registrar una cotización sobre el activo 1571 sin alterar su valor ni generar líneas contables.</li>
+      <li><strong>Canal AAEF:</strong> vista previa Contador coherente, negativo con período 220 abierto, y autenticación externa con rotación de credencial.</li>
+    </ul>
+    <p class="muted">La autenticación externa AAEF no fue ejecutada por Cursor; se documenta como <strong>confirmación externa de Samuel</strong>.</p>
+  </section>
+
+  <section id="resumen">
+    <h2>2. Resumen ejecutivo</h2>
+    <div class="kpi">
+      <div><span class="muted">Subcaso cotización</span><strong>1</strong></div>
+      <div><span class="muted">TC-M06-50</span><strong>14/14</strong></div>
+      <div><span class="muted">HTTP POST</span><strong>201</strong></div>
+      <div><span class="muted">Cotización</span><strong>15</strong></div>
+      <div><span class="muted">RF-94</span><strong>29463</strong></div>
+      <div><span class="muted">Dictamen G118</span><strong style="font-size:1.1rem">APROBADO</strong></div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Componente</th><th>Resultado</th><th>Fuente</th><th>Detalle</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>TC-M06-50</strong></td>
+          <td><span class="ok">APROBADO</span></td>
+          <td>Cursor</td>
+          <td>POST único · id <code>15</code> · COTIZADO v1 · RF-94 <code>29463</code></td>
+        </tr>
+        <tr>
+          <td><strong>Fixture / vista previa Contador</strong></td>
+          <td><span class="ok">CUMPLE</span></td>
+          <td>Cursor</td>
+          <td>NIT 901333217 · 2 docs tipo 02 · bruto/neto $530.000 · transactions 0</td>
+        </tr>
+        <tr>
+          <td><strong>Negativo 900000003 / 220</strong></td>
+          <td><span class="ok">CUMPLE</span></td>
+          <td>Cursor (+ Samuel)</td>
+          <td>HTTP 422 <code>PERIODO_NO_CERRADO</code></td>
+        </tr>
+        <tr>
+          <td><strong>Auth externa AAEF</strong></td>
+          <td><span class="ok">CUMPLE</span></td>
+          <td><span class="ext-tag">Samuel (externa)</span></td>
+          <td>Token + consulta productor + rotación de credencial documentada</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="componentes">
+    <h2>3. Tabla de escenarios</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Escenario</th>
+          <th>Endpoint / canal</th>
+          <th>HTTP</th>
+          <th>Detalle clave</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>TC-M06-50</strong></td>
+          <td><code>POST /finanzas/cotizaciones</code></td>
+          <td>201</td>
+          <td>Activo 1571 · VR $3.760.000 · sin líneas nuevas · período 220</td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td><strong>Vista previa Contador</strong></td>
+          <td>AAEF vista-previa NIT 901333217</td>
+          <td>200</td>
+          <td>COS-4476 / COS-4477 · tipo 02 · $530.000</td>
+          <td><span class="ok">CUMPLE</span></td>
+        </tr>
+        <tr>
+          <td><strong>Negativo 220</strong></td>
+          <td>AAEF NIT 900000003</td>
+          <td>422</td>
+          <td><code>PERIODO_NO_CERRADO</code> · 220 ABIERTO</td>
+          <td><span class="ok">CUMPLE</span></td>
+        </tr>
+        <tr>
+          <td><strong>Auth externa</strong></td>
+          <td>Token AgroFusión + GET productor</td>
+          <td>—</td>
+          <td>Confirmado por Samuel · no ejecutado por Cursor</td>
+          <td><span class="ok">CUMPLE</span></td>
+        </tr>
+        <tr>
+          <td><strong>G118</strong></td>
+          <td colspan="3">Cotización + canal AAEF (fixture, negativo y auth externa)</td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="tc50">
+    <h2>4. TC-M06-50 — Cotización</h2>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>Objetivo</td><td>Registrar cotización sobre activo 1571 sin efectos contables ni cambio de valor.</td></tr>
+      <tr><td>Endpoint</td><td><code>POST /finanzas/cotizaciones</code></td></tr>
+      <tr><td>Resultado</td><td><span class="ok">APROBADO</span> · HTTP <strong>201</strong> · criterios <strong>14/14</strong></td></tr>
+      <tr><td>Activo</td><td><strong>1571</strong> (<code>QA-M06O-VR-03</code>)</td></tr>
+      <tr><td>Identificadores</td><td>Cotización <code>15</code> · estado <code>COTIZADO</code> · versión <code>1</code> · RF-94 <code>29463</code> (<code>COTIZACION_REGISTRADA</code>)</td></tr>
+      <tr><td>VR referencia</td><td><strong>$3.760.000</strong> — sin cambio en el activo antes/después</td></tr>
+      <tr><td>Contabilidad</td><td>Sin nuevas líneas en período 220 · activo 1571 mantiene 2 líneas</td></tr>
+      <tr><td>AAEF post-cotización</td><td>Vista-previa 900000003 → HTTP <strong>422</strong> <code>PERIODO_NO_CERRADO</code></td></tr>
+      <tr><td>Escrituras</td><td><strong>Un solo POST</strong> (autorizado). Sin PUT/PATCH/DELETE ni anulación.</td></tr>
+    </table>
+
+    <h3>Criterios de aceptación (resumen)</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Criterio</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>50.1</td><td>POST HTTP 201</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.2</td><td><code>id_cotizacion</code> presente (15)</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.3</td><td>Estado COTIZADO / versión 1</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.4</td><td>Asociación activo 1571</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.5</td><td>VR referencia 3.760.000</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.6–50.8</td><td>Activo ACTIVO · VR y fecha cálculo sin cambio</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.9–50.10</td><td>Sin nuevas líneas contables</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.11</td><td>Auditoría RF-94 COTIZACION_REGISTRADA</td><td><span class="ok">CUMPLE</span> *</td></tr>
+        <tr><td>50.12</td><td>Período 220 ABIERTO</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>50.13</td><td>Período 219 CERRADO</td><td><span class="ok">CUMPLE</span> *</td></tr>
+        <tr><td>50.14</td><td>AAEF 900000003 → PERIODO_NO_CERRADO</td><td><span class="ok">CUMPLE</span> *</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <strong>* Revalidación 50.11 / 50.13 / 50.14.</strong> En la pasada inicial del script fallaron temporalmente por <code>TOKEN_REVOCADO</code> mid-script. Se revalidaron con <strong>consultas de solo lectura</strong> y login fresco; resultado final <span class="ok">CUMPLE</span>. No se ejecutó POST adicional. Evidencia:
+      <a href="ejecucion_tc50_2026-11-15/verificacion_complementaria_lectura.json"><span class="path">verificacion_complementaria_lectura.json</span></a>.
+    </div>
+
+    <h3>Evidencias TC-50</h3>
+    <ul class="compact">
+      <li><a href="ejecucion_tc50_2026-11-15/REPORTE_EJECUCION_TC-M06-50.md"><span class="path">ejecucion_tc50_2026-11-15/REPORTE_EJECUCION_TC-M06-50.md</span></a></li>
+      <li><a href="ejecucion_tc50_2026-11-15/resultado_ejecucion_TC-M06-50.json"><span class="path">ejecucion_tc50_2026-11-15/resultado_ejecucion_TC-M06-50.json</span></a></li>
+      <li><a href="ejecucion_tc50_2026-11-15/matriz_criterios_TC-M06-50.json"><span class="path">ejecucion_tc50_2026-11-15/matriz_criterios_TC-M06-50.json</span></a></li>
+      <li><a href="ejecucion_tc50_2026-11-15/solicitud_respuesta_http_TC-M06-50.json"><span class="path">ejecucion_tc50_2026-11-15/solicitud_respuesta_http_TC-M06-50.json</span></a></li>
+      <li><a href="ejecucion_tc50_2026-11-15/evidencia_rf94_TC-M06-50.json"><span class="path">ejecucion_tc50_2026-11-15/evidencia_rf94_TC-M06-50.json</span></a></li>
+      <li><a href="ejecucion_tc50_2026-11-15/comparacion_activo_1571.json"><span class="path">ejecucion_tc50_2026-11-15/comparacion_activo_1571.json</span></a></li>
+      <li><a href="preparacion/solicitud_post_preparada_G118.json"><span class="path">preparacion/solicitud_post_preparada_G118.json</span></a></li>
+    </ul>
+  </section>
+
+  <section id="aaef">
+    <h2>5. Canal AAEF — evidencias Cursor</h2>
+    <p>Ejecutadas por Cursor en solo lectura (reevaluación fixture 2026-11-15):</p>
+    <table>
+      <thead><tr><th>Validación</th><th>Resultado</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Vista previa Contador NIT <strong>901333217</strong></td>
+          <td><span class="ok">CUMPLE</span></td>
+          <td>HTTP 200 · 2 documentos tipo 02 · total bruto/neto <strong>$530.000</strong> · transactions <strong>0</strong></td>
+        </tr>
+        <tr>
+          <td>Negativo NIT <strong>900000003</strong> (período 220 abierto)</td>
+          <td><span class="ok">CUMPLE</span></td>
+          <td>HTTP 422 · <code>PERIODO_NO_CERRADO</code></td>
+        </tr>
+        <tr>
+          <td>Auth externa (Cursor)</td>
+          <td><span class="ext-tag">NO EJECUTADA</span></td>
+          <td>Sin variables <code>QA_AAEF_*</code> en el proceso Cursor · no se usó secreto de WhatsApp</td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class="compact">
+      <li><a href="reevaluacion_fixture_aaef_2026-11-15/RESULTADO_REEVALUACION_G118.md"><span class="path">reevaluacion_fixture_aaef_2026-11-15/RESULTADO_REEVALUACION_G118.md</span></a></li>
+      <li><a href="reevaluacion_fixture_aaef_2026-11-15/respuesta_vista_previa_contador.json"><span class="path">reevaluacion_fixture_aaef_2026-11-15/respuesta_vista_previa_contador.json</span></a></li>
+      <li><a href="reevaluacion_fixture_aaef_2026-11-15/resultado_escenario_negativo_220.json"><span class="path">reevaluacion_fixture_aaef_2026-11-15/resultado_escenario_negativo_220.json</span></a></li>
+    </ul>
+  </section>
+
+  <section id="samuel">
+    <h2>6. Confirmación externa — Samuel</h2>
+    <div class="ext-box">
+      <strong>Evidencia externa.</strong> La autenticación AAEF, la consulta de productor y la rotación de credencial fueron confirmadas por <strong>Samuel</strong>, no ejecutadas por Cursor. No se incluyen secretos ni enlaces de entrega de credenciales en este paquete.
+    </div>
+    <table>
+      <thead><tr><th>Prueba reportada</th><th>Resultado reportado</th></tr></thead>
+      <tbody>
+        <tr><td>S1 · <code>POST /integraciones/agrofusion/token</code></td><td>Token obtenido (<code>expires_in</code> 900)</td></tr>
+        <tr><td>S2 · GET productor 901333217</td><td>HTTP 200 · 2 docs tipo 02 · bruto/neto $530.000 · transactions 0</td></tr>
+        <tr><td>S3 · GET productor 900000003</td><td>HTTP 422 · <code>PERIODO_NO_CERRADO</code> · 220 ABIERTO</td></tr>
+        <tr><td>Rotación credencial</td><td>Cliente <code>QA_M06_AAEF_CONSULTA</code> ACTIVO · secreto previo REVOCADO</td></tr>
+      </tbody>
+    </table>
+    <ul class="compact">
+      <li><a href="confirmacion_samuel_aaef_2026-11-15/CONFIRMACION_EXTERNA_SAMUEL_AAEF.md"><span class="path">confirmacion_samuel_aaef_2026-11-15/CONFIRMACION_EXTERNA_SAMUEL_AAEF.md</span></a></li>
+      <li><a href="confirmacion_samuel_aaef_2026-11-15/evidencia_confirmacion_externa_samuel.json"><span class="path">confirmacion_samuel_aaef_2026-11-15/evidencia_confirmacion_externa_samuel.json</span></a></li>
+      <li><a href="confirmacion_samuel_aaef_2026-11-15/MATRIZ_ACTUALIZADA_POST_CONFIRMACION_SAMUEL.md"><span class="path">confirmacion_samuel_aaef_2026-11-15/MATRIZ_ACTUALIZADA_POST_CONFIRMACION_SAMUEL.md</span></a></li>
+    </ul>
+  </section>
+
+  <section id="periodos">
+    <h2>7. Estado de períodos</h2>
+    <table>
+      <thead><tr><th>Período</th><th>Estado</th><th>Observación</th></tr></thead>
+      <tbody>
+        <tr><td><strong>220</strong></td><td><span class="ok">ABIERTO</span></td><td>No se cerró en ninguna fase de G118</td></tr>
+        <tr><td><strong>219</strong></td><td>CERRADO</td><td>Verificado en TC-50 (criterio 50.13)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="evidencias">
+    <h2>8. Trazabilidad de evidencias</h2>
+    <table>
+      <thead><tr><th>Carpeta / archivo</th><th>Rol</th></tr></thead>
+      <tbody>
+        <tr><td><a href="estado_oficial_G118.json"><span class="path">estado_oficial_G118.json</span></a></td><td>Estado máquina APROBADO</td></tr>
+        <tr><td><a href="ORGANIZACION_FINAL_G118.json"><span class="path">ORGANIZACION_FINAL_G118.json</span></a></td><td>Organización y paquete QA</td></tr>
+        <tr><td><a href="README.md"><span class="path">README.md</span></a></td><td>Índice del grupo</td></tr>
+        <tr><td><span class="path">ejecucion_tc50_2026-11-15/</span></td><td>Evidencia oficial TC-50</td></tr>
+        <tr><td><span class="path">reevaluacion_fixture_aaef_2026-11-15/</span></td><td>Fixture AAEF Cursor</td></tr>
+        <tr><td><span class="path">confirmacion_samuel_aaef_2026-11-15/</span></td><td>Confirmación externa</td></tr>
+        <tr><td><span class="path">preparacion/</span></td><td>Payload y precondiciones TC-50</td></tr>
+        <tr><td><span class="path">_arch/</span></td><td>Histórico (primera evaluación, diagnóstico 13-nov, scripts aux.)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="conclusion">
+    <h2>9. Dictamen final</h2>
+    <div class="call">
+      <strong>G118: APROBADO.</strong> TC-M06-50 aprobado (14/14) con un único POST; canal AAEF verificado por Cursor en fixture/negativo; autenticación externa y rotación de credencial documentadas como confirmación de Samuel. Período 220 permanece ABIERTO.
+    </div>
+    <p class="muted" style="margin-top:12px">Este informe no inventa resultados: enlaces relativos apuntan a evidencias existentes en el paquete. Sin secretos ni enlaces de entrega de credenciales.</p>
+  </section>
+
+  <footer>
+    TC-M06-G118 · REPORTE_FINAL_G118_RF_AAEF.html · Organización final 15/11/2026 · sin commit/push en esta fase
+  </footer>
+</div>
+</body>
+</html>

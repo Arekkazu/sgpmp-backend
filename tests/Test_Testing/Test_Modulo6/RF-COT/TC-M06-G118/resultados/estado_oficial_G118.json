@@ -1,0 +1,83 @@
+{
+  "caso": "TC-M06-G118",
+  "rf": [
+    "RF-COT",
+    "AAEF"
+  ],
+  "subcasos": [
+    "TC-M06-50"
+  ],
+  "actualizado_en": "2026-11-15",
+  "fase": "organizacion_final_g118_2026-11-15",
+  "ambiente_evidencia": "https://api.inmero.co/api-sgpmp-test",
+  "dictamen_general": "APROBADO",
+  "aprobado": true,
+  "periodos": {
+    "220": "ABIERTO",
+    "219": "CERRADO"
+  },
+  "tc_m06_50": {
+    "aprobacion": "APROBADO",
+    "evidencia": "resultados/ejecucion_tc50_2026-11-15/",
+    "http": 201,
+    "id_cotizacion": 15,
+    "estado": "COTIZADO",
+    "version": 1,
+    "evento_rf94": 29463,
+    "tipo_evento_rf94": "COTIZACION_REGISTRADA",
+    "activo": 1571,
+    "identificador_activo": "QA-M06O-VR-03",
+    "valor_razonable_referencia": "3760000.0000",
+    "activo_sin_cambio_valor": true,
+    "sin_nuevas_lineas_contables": true,
+    "criterios": {
+      "cumple": 14,
+      "no_cumple": 0,
+      "no_verificable": 0,
+      "total": 14
+    },
+    "revalidacion_token_revocado": {
+      "criterios": ["50.11", "50.13", "50.14"],
+      "metodo": "consultas_solo_lectura_login_fresco",
+      "posts_adicionales": 0,
+      "evidencia": "resultados/ejecucion_tc50_2026-11-15/verificacion_complementaria_lectura.json"
+    }
+  },
+  "componentes": {
+    "fixture_aaef_vista_previa_contador": {
+      "resultado": "CUMPLE",
+      "fuente": "ejecutado_por_cursor",
+      "evidencia": "resultados/reevaluacion_fixture_aaef_2026-11-15/",
+      "nit": "901333217",
+      "http": 200,
+      "documentos": 2,
+      "tipos": ["02", "02"],
+      "total_bruto": 530000,
+      "total_neto": 530000,
+      "transactions": 0
+    },
+    "auth_externa_aaef": {
+      "resultado": "CUMPLE_CONFIRMACION_EXTERNA",
+      "fuente": "Samuel",
+      "ejecutado_por_cursor": false,
+      "evidencia": "resultados/confirmacion_samuel_aaef_2026-11-15/",
+      "incluye_rotacion_credencial": true
+    },
+    "negativo_nit_900000003_periodo_220": {
+      "resultado": "CUMPLE",
+      "fuente": "cursor_y_confirmacion_samuel",
+      "http": 422,
+      "error_code": "PERIODO_NO_CERRADO",
+      "periodo_220": "ABIERTO"
+    },
+    "tc_m06_50": {
+      "resultado": "APROBADO",
+      "fuente": "ejecutado_por_cursor"
+    }
+  },
+  "confirmacion_samuel": "resultados/confirmacion_samuel_aaef_2026-11-15/",
+  "informe_html": "resultados/REPORTE_FINAL_G118_RF_AAEF.html",
+  "organizacion": "resultados/ORGANIZACION_FINAL_G118.json",
+  "escrituras": "un_solo_POST_cotizacion",
+  "commit_push": false
+}
