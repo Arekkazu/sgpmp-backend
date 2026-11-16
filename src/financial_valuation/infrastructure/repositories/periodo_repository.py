@@ -7,6 +7,7 @@
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: el Productor solo ve los titulares y períodos de sus fincas |
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: precios congelados al iniciar el cierre |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-87 FA-5: el nombre de quien cerró el período sale aunque la RLS de usuarios lo oculte |
+# | 2026-11-16 | Arekkazu | QA-M06 CU12 H-01 RF-92/93: el período consultado trae la razón social del titular para las descargas |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -24,6 +25,8 @@ from src.shared.errors import ConflictError
 
 _COLUMNAS = """id_periodo_contable, numero_id_tributaria, tipo_cierre::text AS tipo_cierre, fecha_inicio, fecha_fin,
                estado::text AS estado, fecha_cierre"""
+_RAZON_SOCIAL = """(SELECT max(f.razon_social) FROM modulo9.fincas f
+                    WHERE f.numero_id_tributaria = pc.numero_id_tributaria) AS razon_social"""
 
 
 # Un cierre EN_PROCESO en el paso 3 espera que el Contador autorice las exclusiones (RF-87 FA-2/FA-3);
@@ -40,7 +43,8 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         self.db = db
 
     def obtener(self, id_periodo_contable: int, bloquear: bool = False) -> Optional[Periodo]:
-        sql = f"SELECT {_COLUMNAS} FROM modulo6.periodos_contables WHERE id_periodo_contable = :id"
+        sql = f"""SELECT {_COLUMNAS}, {_RAZON_SOCIAL} FROM modulo6.periodos_contables pc
+                  WHERE id_periodo_contable = :id"""
         try:
             # Bloquear es del cierre (exige leer el cierre): el alcance solo aplica a las lecturas.
             sufijo = " FOR UPDATE NOWAIT" if bloquear else f" AND {alcance_titular('numero_id_tributaria')}"
@@ -85,8 +89,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
     def listar(self, numero_id_tributaria: Optional[str], sin_titular: bool = False) -> list[Periodo]:
         return [Periodo(**f) for f in filas(self.db, f"""
             SELECT {_COLUMNAS},
-                   (SELECT max(f.razon_social) FROM modulo9.fincas f
-                     WHERE f.numero_id_tributaria = pc.numero_id_tributaria) AS razon_social
+                   {_RAZON_SOCIAL}
             FROM modulo6.periodos_contables pc
             WHERE CASE WHEN :sin THEN numero_id_tributaria IS NULL
                        ELSE CAST(:n AS varchar) IS NULL OR numero_id_tributaria = :n END
