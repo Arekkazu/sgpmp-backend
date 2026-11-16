@@ -3,6 +3,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 # | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
+# | 2026-11-15 | Arekkazu | QA-M06 CU04 H-02 RF-85: el contrato de cosechas pendientes filtra por titular |
 """INC-M06-323-G27 / RF-85 FA-1 y FA-2: una cosecha pendiente por falta de precio o de costos de venta continúa.
 
 Antes: (a) con el precio ESTIMADO ya registrado, la cola no volvía a tomar el evento MEDICION_PENDIENTE y la
@@ -197,7 +198,9 @@ def test_contrato_http_400_sin_justificacion(monkeypatch) -> None:
 def test_contrato_http_lista_las_cosechas_pendientes(monkeypatch) -> None:
     pendiente = {"id_evento": 500, "identificador": "BOV-007", "producto_agricola": "Leche", "cantidad_cosechada": "200",
                  "motivo": "Falta costos de venta para el producto Leche.", "admite_costos_manuales": True}
-    monkeypatch.setattr(m06_factory.M06, "eventos", SimpleNamespace(cosechas_pendientes=lambda: [pendiente]))
+    pedidos = []
+    monkeypatch.setattr(m06_factory.M06, "eventos", SimpleNamespace(
+        cosechas_pendientes=lambda nit=None: pedidos.append(nit) or [pendiente]))
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(m06_router.router)
@@ -206,4 +209,9 @@ def test_contrato_http_lista_las_cosechas_pendientes(monkeypatch) -> None:
         id_usuario=9, id_token=1, id_rol=5, id_estado_cuenta=Cuenta.ESTADO_ACTIVO)
     with TestClient(app, raise_server_exceptions=False) as client:
         respuesta = client.get("/finanzas/productos/pendientes")
+        del_titular = client.get("/finanzas/productos/pendientes", params={"numero_id_tributaria": "901555123"})
+        invalido = client.get("/finanzas/productos/pendientes", params={"numero_id_tributaria": "QA SG"})
     assert respuesta.status_code == 200 and respuesta.json() == [pendiente]
+    # QA-M06 CU04 H-02: el titular del selector filtra; un NIT fuera de formato es 400, no una lista vacía.
+    assert del_titular.status_code == 200 and pedidos == [None, "901555123"]
+    assert invalido.status_code == 400

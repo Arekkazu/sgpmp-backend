@@ -1,3 +1,14 @@
+## [1.4.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.73...v1.4.0-rc.74) (2026-11-16)
+
+### Bug Fixes
+
+* **rf85-mod6:** la cosecha conserva el dia del evento productivo sin correrlo por la zona horaria (QA-M06 CU04 H-01) ([296f956](https://github.com/Arekkazu/sgpmp-backend/commit/296f9561995381e8a4484c77ac58489de193ef61))
+* **rf85-mod6:** las cosechas pendientes se filtran por el titular del selector y muestran su dia (QA-M06 CU04 H-02) ([503d114](https://github.com/Arekkazu/sgpmp-backend/commit/503d114c487724013f3a2749ce5ce281e46450cb))
+* **rf87-mod6:** el aviso de cierre llega a la bandeja de cada contador con su propio evento (QA-M06 CU06 H-02) ([a527980](https://github.com/Arekkazu/sgpmp-backend/commit/a5279800abbadf8c6a179cd18f8db1ed29665166))
+* **rf88-mod6:** el deterioro mayor que el valor en libros registra lo aplicado y no lo solicitado (QA-M06 CU07 H-01) ([d496d72](https://github.com/Arekkazu/sgpmp-backend/commit/d496d72974fec70670fc113420c9c76227f6bcaf))
+* **rf90-mod6:** la factura con fecha fuera del periodo abierto se rechaza (QA-M06 CU09 H-02) ([447993e](https://github.com/Arekkazu/sgpmp-backend/commit/447993e870771f83e2573fbe036f5fdc6f3ce6ec))
+* **rfcot-mod6:** los eventos de cotizacion quedan asociados al activo y a su monto (QA-M06 CU-COT H-02) ([7774198](https://github.com/Arekkazu/sgpmp-backend/commit/7774198041b94e4fdc60292d3d66d322ad3ad937))
+
 ## [1.4.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.72...v1.4.0-rc.73) (2026-11-15)
 
 ### Bug Fixes

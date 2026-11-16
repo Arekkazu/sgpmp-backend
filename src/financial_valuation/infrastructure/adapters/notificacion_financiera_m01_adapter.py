@@ -4,13 +4,18 @@
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-89: avisos de vencimiento sin duplicados tras reinicios (marca persistente) |
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
 # | 2026-11-15 | Arekkazu | QA-M06 RF-89: el aviso no espera el bloqueo de un destinatario (POST /finanzas/precios colgado en el sandbox) |
+# | 2026-11-15 | Arekkazu | QA-M06 CU06 H-02 RF-87: un evento por destinatario; cada Contador ve el aviso |
 """Adaptador de :class:`NotificacionFinancieraPort` sobre M01 (RF-10 + RF-14), mismo patrón que M05:
 el aviso cuelga de un evento de ``modulo1.eventos`` y deja una notificación en la bandeja interna.
 Hace su propio ``commit`` en una sesión aparte y nunca propaga errores.
 
 INC-M06-366-G31: los destinatarios (los Contadores de la finca) se buscan en la sesión del request. La sesión
 aparte no ve lo que la transacción en curso aún no confirmó (la finca o la asignación creadas en el mismo run del
-sandbox de QA, que nunca confirma) y el aviso se quedaba sin destinatarios."""
+sandbox de QA, que nunca confirma) y el aviso se quedaba sin destinatarios.
+
+QA-M06 CU06 H-02: la bandeja une cada notificación con su evento y M01 solo deja leer un evento a su dueño (RLS). Con
+un evento compartido, solo el primer Contador veía el aviso (el del cierre no le llegaba al Contador de QA). Como en
+Suministros (#1150): un evento por destinatario."""
 from __future__ import annotations
 
 import json
@@ -66,12 +71,10 @@ class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
             if not destinatarios or id_tipo is None:
                 return
             notificaciones = SqlAlchemyNotificacionRepository(db)
-            SqlAlchemyEventoRepository(db).registrar(
-                tipo_evento=id_tipo, exitoso=True, id_usuario=destinatarios[0], detalle=detalle,
-                descripcion=mensaje[:255], modulo="MODULO6",
-            )
-            id_evento = notificaciones.buscar_ultimo_evento_id(id_usuario=destinatarios[0], tipo_evento=id_tipo)
+            eventos = SqlAlchemyEventoRepository(db)
             for id_usuario in destinatarios:
+                id_evento = eventos.registrar(tipo_evento=id_tipo, exitoso=True, id_usuario=id_usuario, detalle=detalle,
+                                              descripcion=mensaje[:255], modulo="MODULO6")
                 notificaciones.registrar(id_evento=id_evento, id_usuario=id_usuario, id_canal=_ID_CANAL_INTERNO,
                                          mensaje=mensaje, estado="en_cola")
             db.commit()

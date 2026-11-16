@@ -3,12 +3,16 @@
 # | 2026-11-04 | Arekkazu | M06 RF-88 paso 5: deterioro de un activo valorado por costo (NIC 41 ¶30, ¶55) |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
+# | 2026-11-15 | Arekkazu | QA-M06 CU07 H-01 RF-88 FA-1: el deterioro acumulado suma lo aplicado, no lo solicitado |
 """Caso de uso RF-88 paso 5: el Contador cuantifica el impacto económico de un evento sanitario de
 RF-41 sobre un activo valorado por costo. RF-41 aporta el hecho clínico; M06, el monto.
 
 INC-M06-281-G68-07: si costo − depreciación − deterioro da negativo, el valor en libros queda en cero y se
 registra la alerta persistente ``VALOR_LIBROS_AJUSTADO_A_CERO`` (valor calculado y aplicado, consultable por
-activo); después del commit se avisa al Contador."""
+activo); después del commit se avisa al Contador.
+
+QA-M06 CU07 H-01: el deterioro registrado y el acumulado son lo que se aplicó (lo que quedaba del valor en libros),
+igual que su línea de asiento; el impacto que pidió el Contador queda en el evento de auditoría."""
 from __future__ import annotations
 
 import logging
@@ -56,31 +60,34 @@ class RegistrarDeterioroUseCase:
             raise BusinessRuleError(code="EVENTO_SANITARIO_INVALIDO", field="id_evento_sanitario",
                                     message="El evento sanitario no existe o no es de este activo.")
         reduccion = truncar2(min(Decimal(impacto), costo.valor_contable_por_costo))
+        if reduccion <= 0:  # FA-1: ya está en cero, no queda valor que deteriorar
+            raise BusinessRuleError(code="DETERIORO_SIN_VALOR_EN_LIBROS", message=(
+                f"El activo {activo.identificador} ya tiene valor en libros $ 0: no admite más deterioro. "
+                "Evalúe registrar su baja."))
         try:
             hoy = hoy_usuario()
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, hoy, id_usuario)
             id_deterioro = self.valoraciones.agregar_deterioro(costo.id_valoracion_por_costo, id_evento_sanitario,
-                                                               impacto, justificacion.strip(), id_usuario)
-            costo.deterioro_acumulado += Decimal(impacto)
+                                                               reduccion, justificacion.strip(), id_usuario)
             calculado = valor_libros_calculado(costo.costos_adquisicion, costo.depreciacion_acumulada,
-                                               costo.deterioro_acumulado)
+                                               costo.deterioro_acumulado + Decimal(impacto))
+            costo.deterioro_acumulado += reduccion
             costo.valor_contable_por_costo = max(CERO, calculado)
             self.valoraciones.actualizar_valoracion_costo(costo)
-            if reduccion > 0:
-                self.contabilizador.asentar(LineaAsiento(
-                    tipo_hecho=TipoHecho.DETERIORO_ACTIVO_COSTO.value, sentido=Sentido.UNICO.value, valor=reduccion,
-                    fecha_hecho=hoy, id_periodo_contable=periodo.id_periodo_contable,
-                    id_activo_biologico=id_activo_biologico, id_especie=activo.id_especie, id_finca=activo.id_finca,
-                    numero_id_tributaria=activo.numero_id_tributaria, tabla_origen="deterioros_activos",
-                    id_origen=id_deterioro, tipo_evidencia=TipoEvidencia.EVENTO_SANITARIO.value,
-                    justificacion=justificacion.strip(), id_usuario=id_usuario,
-                ), id_usuario)
+            self.contabilizador.asentar(LineaAsiento(
+                tipo_hecho=TipoHecho.DETERIORO_ACTIVO_COSTO.value, sentido=Sentido.UNICO.value, valor=reduccion,
+                fecha_hecho=hoy, id_periodo_contable=periodo.id_periodo_contable,
+                id_activo_biologico=id_activo_biologico, id_especie=activo.id_especie, id_finca=activo.id_finca,
+                numero_id_tributaria=activo.numero_id_tributaria, tabla_origen="deterioros_activos",
+                id_origen=id_deterioro, tipo_evidencia=TipoEvidencia.EVENTO_SANITARIO.value,
+                justificacion=justificacion.strip(), id_usuario=id_usuario,
+            ), id_usuario)
             self.contabilizador.auditar(EventoAuditoria(
                 tipo_evento="DETERIORO_REGISTRADO", severidad=Severidad.WARNING.value, id_usuario=id_usuario,
-                payload={"id_evento_sanitario": id_evento_sanitario, "impacto": str(impacto),
-                         "valor_contable": str(costo.valor_contable_por_costo)},
+                payload={"id_evento_sanitario": id_evento_sanitario, "impacto": str(reduccion),
+                         "impacto_solicitado": str(impacto), "valor_contable": str(costo.valor_contable_por_costo)},
                 id_activo_biologico=id_activo_biologico, id_periodo_contable=periodo.id_periodo_contable,
-                id_referencia=id_deterioro, monto_afectado=impacto, metodo_nuevo="VALORACION_POR_COSTO",
+                id_referencia=id_deterioro, monto_afectado=reduccion, metodo_nuevo="VALORACION_POR_COSTO",
             ))
             if calculado < 0:
                 self.contabilizador.auditar(evento_valor_libros_cero(
