@@ -3,6 +3,7 @@
 # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G37 (JSON, repro, MD, TXT)                    |
 # | 2026-11-11 | Juan Sebastian Gutierrez | Reevaluacion v2.0: --reintento, obtenido real desde JUnit/trazas, sin textos fijos M12   |
 # | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 2: obtenido desde obtenidos_checkpoints.jsonl; A02c/A02d exactos; A04a/A04b/A04c |
+# | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 3: A04b ajustado a R8/Fase 4/E2 (lista con un elemento por campo faltante) |
 """Generador de artefactos de corrida para TC-M05-G37 (RF-80 v2.0 / RFC-025).
 
 Lee el JUnit XML, obtenidos_checkpoints.jsonl (valores reales que registra cada test) y
@@ -74,10 +75,10 @@ TEST_METADATA: dict[str, dict[str, str]] = {
         "esperado": ">= 1 evento del catalogo evaluado; cada evento trae los minimos de su tipo o tiene registro_incompleto=true; ninguno persistido sin tipo, resultado o fecha_emision",
         "fuente": "RF-80 v2.0 Restriccion 8, Fase 4, E2, CA-11; criterio de re-prueba INC-M05-353-G37",
     },
-    "test_a04b_ca12_detalle_causa_nombra_campos": {
-        "paso": "A04b CA-12: detalle_causa nombra cada campo faltante por su nombre de campo",
-        "esperado": ">= 1 evento con minimos faltantes evaluado; en cada uno detalle_causa contiene el nombre de cada campo faltante (formato 'Campos faltantes: <campo>, ...')",
-        "fuente": "RF-80 v2.0 CA-12 ('Campos faltantes: numero_reintentos, timestamps_intentos'), E2, Fase 4",
+    "test_a04b_detalle_causa_lista_campos_faltantes": {
+        "paso": "A04b detalle_causa lista los campos faltantes: 'Campos faltantes:' con un elemento por campo faltante",
+        "esperado": ">= 1 evento con minimos faltantes evaluado; en cada uno detalle_causa contiene 'Campos faltantes:' seguido de una lista con tantos elementos como campos faltan (sin exigir nombre de campo ni palabras)",
+        "fuente": "RF-80 v2.0 Restriccion 8, Fase 4, E2 ('detalle_causa listando los campos faltantes'); el formato literal de CA-12 es el escenario de PROVISION_INCREMENTAL_FALLIDA, no producible en G37",
     },
     "test_a04c_referencias_registro_suministro_rf78": {
         "paso": "A04c Referencia al registro: los 3 eventos de RF-78 de A01a llevan el id_registro_suministro creado",

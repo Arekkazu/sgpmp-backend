@@ -3,6 +3,7 @@
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G37: Persistencia y clasificacion de eventos RF-80 (CU06)      |
 # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G37 reevaluacion v2.0: unidad servicio, rechazos RF-78/79/81, R8, clasificacion, sandbox en T99 |
 # | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 2 (INC-M05-353-G37): A02c/A02d exactamente 1 evento con confirmacion a 2 s; A04 dividido en A04a/A04b/A04c (R8, E2, CA-11, CA-12, CA-4); obtenido real por checkpoint |
+# | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 3: A04b corregido a R8/Fase 4/E2 (lista con un elemento por campo faltante); el formato literal de CA-12 solo aplica a PROVISION_INCREMENTAL_FALLIDA |
 """Suite de pruebas para TC-M05-G37 (RF-80 v2.0, RFC-025 / TC-M05-090 y TC-M05-091).
 
 Cubre:
@@ -11,7 +12,7 @@ Cubre:
 - A02a/A02b/A02c/A02d: Auditoria de rechazos de negocio RF-78 (sin/con fase + repeticion), RF-79 y RF-81.
 - A03: Consistencia lista vs detalle GET /{id} y filtros para EXITOSO y REGISTRO_FALLIDO.
 - A04a: Restriccion 8 / E2 / CA-11: todo evento del catalogo con un minimo ausente queda registro_incompleto=true.
-- A04b: CA-12: detalle_causa nombra cada campo faltante con su nombre de campo.
+- A04b: R8 / Fase 4 / E2: detalle_causa trae 'Campos faltantes:' con un elemento por campo faltante.
 - A04c: CA-4 / R8: los eventos de RF-78 apuntan al id_registro_suministro creado.
 - B01/B02: Clasificacion y retencion NIC41 / 5 años vs TECNICO / 1 año y tipo no catalogado.
 - T98/T99: Cierre de corrida principal e inocuidad en corrida sandbox independiente.
@@ -1099,8 +1100,15 @@ class TestTCM05G37PersistenciaYClasificacion:
             f"registro_incompleto=true (o sin campo base y persistidos): {incumplimientos}"
         )
 
-    def test_a04b_ca12_detalle_causa_nombra_campos(self, sandbox_admin: CorridaSandbox):
-        """A04b (RF-80 v2.0 CA-12, E2, Fase 4): detalle_causa = 'Campos faltantes: <nombre_de_campo>, ...' para cada faltante."""
+    def test_a04b_detalle_causa_lista_campos_faltantes(self, sandbox_admin: CorridaSandbox):
+        """A04b (RF-80 v2.0 Restriccion 8, Fase 4, E2): detalle_causa trae 'Campos faltantes:' con un elemento por campo faltante.
+
+        Lectura adoptada (reintento 3): la R8, la Fase 4 y E2 piden "detalle_causa listando los campos
+        faltantes" sin fijar si se nombran por su nombre de campo o en palabras. El formato literal de CA-12
+        ('Campos faltantes: numero_reintentos, timestamps_intentos') es el escenario de
+        PROVISION_INCREMENTAL_FALLIDA, que no se produce en G37 ni se puede provocar por la API; no se
+        generaliza a los demas tipos.
+        """
         c = sandbox_admin
         eventos = _eventos_corrida_a04(c)
         evaluados: list[dict[str, Any]] = []
@@ -1113,27 +1121,28 @@ class TestTCM05G37PersistenciaYClasificacion:
             if not faltantes:
                 continue
             causa = ev.get("detalle_causa") or ""
-            no_nombrados = [
-                f for f in faltantes
-                if not re.search(rf"(?<![A-Za-z0-9_]){re.escape(f)}(?![A-Za-z0-9_])", causa)
-            ]
+            if "Campos faltantes:" in causa:
+                lista_txt = causa.rsplit("Campos faltantes:", 1)[1].strip().rstrip(".").strip()
+                lista = [x.strip() for x in lista_txt.split(",") if x.strip()]
+            else:
+                lista = None
             evaluados.append({
                 "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "faltantes": faltantes,
-                "detalle_causa": causa, "no_nombrados": no_nombrados,
+                "detalle_causa": causa, "lista_campos_faltantes": lista,
             })
-            if no_nombrados:
+            if lista is None or len(lista) != len(faltantes):
                 incumplimientos.append({
-                    "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo,
-                    "campos_no_nombrados": no_nombrados, "detalle_causa": causa,
+                    "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "faltantes": faltantes,
+                    "lista_campos_faltantes": lista, "detalle_causa": causa,
                 })
-        _obt("evaluacion_ca12", {"eventos_con_faltantes": len(evaluados), "evaluados": evaluados, "incumplimientos": incumplimientos})
+        _obt("evaluacion_lista_faltantes", {"eventos_con_faltantes": len(evaluados), "evaluados": evaluados, "incumplimientos": incumplimientos})
         assert len(evaluados) >= 1, (
             "A04b: 0 eventos con minimos faltantes en la corrida (verificacion en vacio); A02a sin fase debe "
-            "producir al menos un REGISTRO_FALLIDO sin id_ciclo_productivo [R8 / CA-12]"
+            "producir al menos un REGISTRO_FALLIDO sin id_ciclo_productivo [R8 / E2]"
         )
         assert not incumplimientos, (
-            "RF-80 v2.0 CA-12 (detalle_causa = 'Campos faltantes: numero_reintentos, timestamps_intentos') / E2: "
-            f"detalle_causa no nombra cada campo faltante por su nombre de campo: {incumplimientos}"
+            "RF-80 v2.0 Restriccion 8 / Fase 4 / E2 (detalle_causa listando los campos faltantes): eventos sin "
+            f"'Campos faltantes:' o con una lista que no tiene un elemento por campo faltante: {incumplimientos}"
         )
 
     def test_a04c_referencias_registro_suministro_rf78(self, sandbox_admin: CorridaSandbox):
