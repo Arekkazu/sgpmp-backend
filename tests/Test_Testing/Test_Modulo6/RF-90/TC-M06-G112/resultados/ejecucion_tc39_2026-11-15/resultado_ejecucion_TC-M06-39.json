@@ -1,0 +1,173 @@
+{
+  "caso": "TC-M06-G112",
+  "subcaso": "TC-M06-39",
+  "fase": "ejecucion_autorizada_2026-11-15",
+  "fecha_utc": "2026-11-16T02:59:10.868082+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "autorizacion": "Expresa — POST /finanzas/costos TC-M06-39",
+  "escritura": true,
+  "posts_ejecutados": 1,
+  "post": {
+    "http": 201,
+    "request": {
+      "subtipo_costo": "INVERSION_DIRECTA",
+      "origen_costo": "MANO_OBRA_PROPIA",
+      "naturaleza_costo": "INVERSION",
+      "monto_costo": "100000.0000",
+      "fecha_costo": "2026-11-15",
+      "id_activo_biologico": 1573,
+      "justificacion": "TC-M06-G112 / TC-M06-39 — capitalizar inversión directa QA (autorizada)",
+      "confirmar_capitalizacion": true
+    },
+    "respuesta": {
+      "registros": [
+        {
+          "id_registro_costo": 4498,
+          "id_activo_biologico": 1573,
+          "monto_costo": "100000.0000",
+          "naturaleza_costo": "INVERSION",
+          "vehiculo_contable": "ASIENTO_NIC41",
+          "estado": "REGISTRADO",
+          "id_linea_asiento": 7121
+        }
+      ],
+      "id_grupo_reparto": null,
+      "aviso": null
+    },
+    "error_red": null,
+    "id_registro_costo": 4498,
+    "id_linea_asiento": 7121,
+    "politica_capitalizacion": "CAPITALIZAR",
+    "cuenta_debito": "158405",
+    "cuenta_credito": "250505",
+    "verificacion_ambigua": null
+  },
+  "activo_antes": {
+    "identificador": "QA-M06O-COSTO-02",
+    "estado": "ACTIVO",
+    "id_especie": 423,
+    "id_finca": 467,
+    "costos_adquisicion": "4000000.0000",
+    "valor_contable_por_costo": "4000000.0000",
+    "es_activa": true,
+    "lineas_count": 0
+  },
+  "activo_despues": {
+    "identificador": "QA-M06O-COSTO-02",
+    "estado": "ACTIVO",
+    "id_especie": 423,
+    "id_finca": 467,
+    "costos_adquisicion": "4100000.0000",
+    "valor_contable_por_costo": "4100000.0000",
+    "es_activa": true,
+    "lineas_count": 1
+  },
+  "costo": {
+    "id_registro_costo": 4498,
+    "naturaleza_costo": "INVERSION",
+    "subtipo_costo": "INVERSION_DIRECTA",
+    "origen_costo": "MANO_OBRA_PROPIA",
+    "vehiculo_contable": "ASIENTO_NIC41",
+    "id_activo_biologico": 1573,
+    "activo": "QA-M06O-COSTO-02",
+    "monto_costo": "100000.0000",
+    "fecha_costo": "2026-11-15",
+    "id_periodo_contable": 220,
+    "estado": "REGISTRADO",
+    "politica_capitalizacion": "CAPITALIZAR",
+    "justificacion": "TC-M06-G112 / TC-M06-39 — capitalizar inversión directa QA (autorizada)",
+    "id_origen_m05": null,
+    "tercero_nit": null,
+    "tercero_dv": null,
+    "tercero_razon_social": null,
+    "factura_prefijo": null,
+    "factura_numero": null,
+    "fecha_factura": null,
+    "fecha_vencimiento_factura": null,
+    "id_grupo_reparto": null,
+    "metodo_reparto": null,
+    "cuenta_debito": null,
+    "cuenta_credito": null,
+    "es_cuenta_manual": false,
+    "es_reverso": false,
+    "id_usuario": 141,
+    "fecha_registro": "2026-11-16T02:59:07.909968Z",
+    "id_especie": 423,
+    "id_infraestructura": 1016,
+    "id_finca": 467,
+    "especie": "Equino Qa Aislado",
+    "finca": "Finca Qa Seis Operaciones"
+  },
+  "linea": {
+    "tipo_hecho": "MANO_OBRA_PROPIA",
+    "sentido": "CAPITALIZACION",
+    "valor": "100000.00",
+    "fecha_hecho": "2026-11-15",
+    "id_periodo_contable": 220,
+    "id_activo_biologico": 1573,
+    "id_especie": 423,
+    "id_finca": 467,
+    "numero_id_tributaria": "900000003",
+    "tabla_origen": "registros_costos",
+    "id_origen": 4498,
+    "tipo_evidencia": "REGISTRO_MANUAL",
+    "subtipo_costo": "INVERSION_DIRECTA",
+    "es_estimacion": false,
+    "es_reverso": false,
+    "tipo_hecho_corregido": null,
+    "id_linea_corregida": null,
+    "cuenta_debito": "158405",
+    "cuenta_credito": "250505",
+    "justificacion": "TC-M06-G112 / TC-M06-39 — capitalizar inversión directa QA (autorizada)",
+    "id_usuario": 141,
+    "id_linea_asiento_nic41": 7121,
+    "estado": "REGISTRADA",
+    "extra": {
+      "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+      "id_comprobante_nic41": null,
+      "identificador_activo": "QA-M06O-COSTO-02",
+      "tipo_activo": "INDIVIDUAL"
+    },
+    "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+    "id_comprobante_nic41": null,
+    "identificador_activo": "QA-M06O-COSTO-02",
+    "tipo_activo": "INDIVIDUAL"
+  },
+  "periodo_220": {
+    "id_periodo_contable": 220,
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30"
+  },
+  "auditoria_rf94": {
+    "evento": {
+      "id_evento": 28938,
+      "tipo_evento": "COSTO_REGISTRADO",
+      "id_referencia": 4498,
+      "monto_afectado": "100000.0000",
+      "id_periodo_contable": 220,
+      "politica_en_payload": null
+    },
+    "total_eventos_activo": 2
+  },
+  "colaterales": {
+    "activo_2552": {
+      "identificador": "QA-M06-G112-GASTO",
+      "estado": "ACTIVO",
+      "id_especie": 655,
+      "id_finca": 488,
+      "costos_adquisicion": "3000000.0000",
+      "valor_contable_por_costo": "3000000.0000",
+      "es_activa": true,
+      "lineas_count": 1
+    },
+    "periodo_629_estado": "ABIERTO"
+  },
+  "resumen_criterios": {
+    "cumple": 15,
+    "no_cumple": 0,
+    "no_verificable": 1,
+    "total": 16
+  },
+  "dictamen": "APROBADO"
+}

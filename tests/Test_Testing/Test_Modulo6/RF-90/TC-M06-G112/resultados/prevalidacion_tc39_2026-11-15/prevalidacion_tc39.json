@@ -1,0 +1,119 @@
+{
+  "fecha_utc": "2026-11-16T02:53:48.988326+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "solo_lectura": true,
+  "caso": "TC-M06-39",
+  "perfil": {
+    "http": 200,
+    "rol": "Contador",
+    "id_usuario": 141
+  },
+  "permisos": {
+    "http": 200,
+    "costos_activos_acciones": [
+      1,
+      2,
+      3
+    ]
+  },
+  "activo_1573": {
+    "http": 200,
+    "identificador": "QA-M06O-COSTO-02",
+    "estado": "ACTIVO",
+    "id_especie": 423,
+    "id_finca": 467,
+    "valoracion_costo": {
+      "es_activa": true,
+      "costos_adquisicion": "4000000.0000",
+      "valor_contable_por_costo": "4000000.0000",
+      "vida_util_meses": 120
+    },
+    "lineas_embebidas": 0
+  },
+  "costos_1573": {
+    "http": 200,
+    "total": 0,
+    "inversiones_directas": 0,
+    "muestra": []
+  },
+  "matriz_mop_capitalizacion": {
+    "todas": [
+      {
+        "id_asignacion_cuenta_contable": 36,
+        "id_especie": null,
+        "subtipo_costo": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505"
+      },
+      {
+        "id_asignacion_cuenta_contable": 3653,
+        "id_especie": 543,
+        "subtipo_costo": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505"
+      }
+    ],
+    "general_158405": {
+      "id_asignacion_cuenta_contable": 36,
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "250505"
+    },
+    "ganadora_simulada_especie_activo": {
+      "id_asignacion_cuenta_contable": 36,
+      "id_especie": null,
+      "subtipo_costo": null,
+      "cuenta_debito": "158405",
+      "cuenta_credito": "250505"
+    }
+  },
+  "periodo_220": {
+    "http": 200,
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "nit": "900000003"
+  },
+  "periodo_219": {
+    "estado": "CERRADO"
+  },
+  "lineas_220_activo_1573": {
+    "http": 200,
+    "total_periodo": 7,
+    "del_activo": 0
+  },
+  "ejecucion_previa_exitosa_detectada": false,
+  "precondiciones": {
+    "ambiente_test": true,
+    "activo_activo": true,
+    "valoracion_costo_activa": true,
+    "valor_baseline_4m": true,
+    "sin_inversion_directa_previa": true,
+    "periodo_220_abierto": true,
+    "matriz_cap_ok": true,
+    "permiso_costos": true,
+    "sin_ejecucion_previa_tc39": true
+  },
+  "todas_ok": true,
+  "payload_propuesto": {
+    "subtipo_costo": "INVERSION_DIRECTA",
+    "origen_costo": "MANO_OBRA_PROPIA",
+    "naturaleza_costo": "INVERSION",
+    "monto_costo": "100000.0000",
+    "fecha_costo": "2026-11-15",
+    "id_activo_biologico": 1573,
+    "justificacion": "TC-M06-G112 / TC-M06-39 — capitalizar inversión directa QA (autorizada)",
+    "confirmar_capitalizacion": true
+  },
+  "auditoria_baseline": {
+    "http": 200,
+    "total": 1,
+    "muestra": [
+      {
+        "tipo_evento": "RECONOCIMIENTO_INICIAL",
+        "id_activo_biologico": 1573
+      }
+    ]
+  }
+}
