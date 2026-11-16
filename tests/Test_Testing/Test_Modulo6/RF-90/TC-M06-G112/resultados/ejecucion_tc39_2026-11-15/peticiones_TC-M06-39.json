@@ -1,0 +1,74 @@
+{
+  "peticiones": [
+    {
+      "fase": "login",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "error": null
+    },
+    {
+      "fase": "baseline",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1573",
+      "http": 200
+    },
+    {
+      "fase": "baseline",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos?id_activo_biologico=1573",
+      "http": 200
+    },
+    {
+      "fase": "escritura",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 201,
+      "error": null,
+      "posts_ejecutados": 1
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos?id_activo_biologico=1573",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1573",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_periodo_contable=220",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1573&formato=TECNICO&tamano=20&orden=DESC",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "http": 200
+    },
+    {
+      "fase": "colateral",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/2552",
+      "http": 200
+    },
+    {
+      "fase": "colateral",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=901666216",
+      "http": 200
+    }
+  ],
+  "posts_ejecutados": 1
+}

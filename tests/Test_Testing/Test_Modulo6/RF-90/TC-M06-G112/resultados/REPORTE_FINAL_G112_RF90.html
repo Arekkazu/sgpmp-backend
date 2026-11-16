@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>REPORTE FINAL G112 — RF-90 / RF-94 | TC-M06-39 · TC-M06-40</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --ink: #1c241c;
+    --muted: #5a655a;
+    --card: #ffffff;
+    --line: #d8ddd4;
+    --pass: #1f6b3a;
+    --pass-bg: #e7f5ec;
+    --accent: #2f4a3a;
+    --warn: #8a6d1d;
+    --warn-bg: #fff8e6;
+    --warn-line: #c9a227;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #e7efe6 0%, transparent 55%),
+      radial-gradient(900px 400px at 100% 0%, #f3e6d8 0%, transparent 50%),
+      var(--bg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 64px; }
+  .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+  .btn-print {
+    border: 1px solid #9eb0a2; background: #fff; color: var(--accent);
+    border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-print:hover { background: #eef3ec; }
+  header.hero {
+    background: linear-gradient(135deg, #243528 0%, #3d5a45 55%, #5a6e4e 100%);
+    color: #f4f7f2; border-radius: 18px; padding: 28px;
+    box-shadow: 0 18px 40px rgba(36,53,40,.28);
+  }
+  header.hero .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: 12px; opacity: .8; margin-bottom: 8px;
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 1.65rem; font-weight: 700; }
+  header.hero p { margin: 0; opacity: .92; max-width: 48rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .chip {
+    display: inline-flex; background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px;
+  }
+  .badge {
+    display: inline-block; font-weight: 700; letter-spacing: .04em;
+    padding: 8px 14px; border-radius: 999px; background: #d8f3e2; color: var(--pass);
+    border: 1px solid #9ed5b3; margin: 16px 8px 0 0;
+  }
+  .badge.warn {
+    background: var(--warn-bg); color: var(--warn); border-color: #e2c96a;
+  }
+  nav.toc {
+    margin-top: 16px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px 18px;
+  }
+  nav.toc strong { display: block; margin-bottom: 8px; color: var(--accent); }
+  nav.toc a { color: var(--accent); text-decoration: none; margin-right: 14px; font-size: 14px; }
+  nav.toc a:hover { text-decoration: underline; }
+  section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 24px; margin-top: 16px;
+  }
+  h2 {
+    margin: 0 0 12px; font-size: 1.15rem; color: var(--accent);
+    border-bottom: 2px solid #e4ebe3; padding-bottom: 8px;
+  }
+  h3 { margin: 18px 0 8px; font-size: 1.02rem; color: #2c3b2f; }
+  .muted { color: var(--muted); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #eef3ec; color: #2c3b2f; }
+  .ok {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: var(--pass-bg); color: var(--pass);
+  }
+  .nv {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: #eef0f3; color: #4a5560;
+  }
+  .pend {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn);
+  }
+  code, .path {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: .86em; background: #f0f3ee; padding: .1rem .3rem; border-radius: 4px;
+  }
+  a .path, a.path { color: var(--accent); }
+  .call {
+    border-left: 4px solid var(--pass); background: var(--pass-bg);
+    padding: .85rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px;
+  }
+  .note {
+    border-left: 4px solid var(--warn-line); background: var(--warn-bg);
+    padding: .7rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px;
+  }
+  .kpi {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .kpi div {
+    background: #f7faf6; border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .kpi strong { display: block; font-size: 1.25rem; color: var(--pass); margin-top: 4px; }
+  ul.compact li { margin: .25rem 0; }
+  footer { margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .wrap { padding: 0; max-width: none; }
+    header.hero, th, .ok, .nv, .pend, .badge, .call, .kpi div, .note {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="btn-print" type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <header class="hero">
+    <div class="kicker">SGPMP · Módulo 6 · Finanzas · Informe final de grupo</div>
+    <h1>TC-M06-G112 — Informe consolidado RF-90 / RF-94</h1>
+    <p>Capitalización frente a gasto de inversión directa (TC-M06-39 y TC-M06-40), con auditoría RF-94. Ambiente TEST · cierre documental del 15 de noviembre de 2026.</p>
+    <div class="meta">
+      <span class="chip">Proyecto: sgpmp-backend</span>
+      <span class="chip">Grupo: TC-M06-G112</span>
+      <span class="chip">Módulo 6</span>
+      <span class="chip">RF-90 · RF-109 · RF-94</span>
+      <span class="chip">Incidente: INC-M06-87-G112 (#1098)</span>
+      <span class="chip">Fecha cierre: 15/11/2026</span>
+      <span class="chip">Ambiente: api-sgpmp-test</span>
+    </div>
+    <div>
+      <span class="badge">Dictamen: G112 APROBADO</span>
+      <span class="badge">TC-39 + TC-40 APROBADOS</span>
+      <span class="badge warn">RF-93: PENDIENTE_CASO_INDEPENDIENTE</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <strong>Contenido</strong>
+    <a href="#objetivo">Objetivo</a>
+    <a href="#resumen">Resumen</a>
+    <a href="#comparativa">Comparativa</a>
+    <a href="#tc39">TC-M06-39</a>
+    <a href="#tc40">TC-M06-40</a>
+    <a href="#rf93">RF-93</a>
+    <a href="#trazabilidad">Trazabilidad</a>
+    <a href="#evidencias">Evidencias</a>
+    <a href="#conclusion">Dictamen final</a>
+  </nav>
+
+  <section id="objetivo">
+    <h2>1. Objetivo general</h2>
+    <p>Demostrar, con evidencias reales de TEST, el cumplimiento de <strong>RF-90</strong> (y traza a RF-109 / RF-94) para el grupo G112:</p>
+    <ul class="compact">
+      <li><strong>TC-M06-39:</strong> inversión directa con política <code>CAPITALIZAR</code> sobre el activo 1573 (período 220).</li>
+      <li><strong>TC-M06-40:</strong> inversión directa con política <code>GASTO</code> sobre el activo 2552 (período 629).</li>
+    </ul>
+    <p class="muted">RF-93 (estado de resultados / <code>inversiones_llevadas_a_gasto</code>) se documenta como requisito relacionado, fuera del alcance de aprobación del grupo. Ver sección 5.</p>
+  </section>
+
+  <section id="resumen">
+    <h2>2. Resumen ejecutivo</h2>
+    <div class="kpi">
+      <div><span class="muted">Subcasos ejecutados</span><strong>2</strong></div>
+      <div><span class="muted">Subcasos aprobados</span><strong>2</strong></div>
+      <div><span class="muted">TC-M06-39</span><strong>15 CUMPLE</strong><span class="muted" style="display:block;margin-top:4px">0 NO CUMPLE · 1 NO VERIFICABLE</span></div>
+      <div><span class="muted">TC-M06-40</span><strong>13/13</strong></div>
+      <div><span class="muted">HTTP POST</span><strong>201 / 201</strong></div>
+      <div><span class="muted">Dictamen G112</span><strong style="font-size:1.1rem">APROBADO</strong></div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Subcaso</th><th>Registro costo</th><th>Línea asiento</th><th>Evento RF-94</th><th>Política</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>TC-M06-39</strong></td>
+          <td><code>4498</code></td>
+          <td><code>7121</code></td>
+          <td><code>28938</code></td>
+          <td>CAPITALIZAR</td>
+        </tr>
+        <tr>
+          <td><strong>TC-M06-40</strong></td>
+          <td><code>4497</code></td>
+          <td><code>6918</code></td>
+          <td><code>28193</code></td>
+          <td>GASTO</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="comparativa">
+    <h2>3. Tabla comparativa de escenarios</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Escenario</th>
+          <th>Endpoint</th>
+          <th>HTTP</th>
+          <th>Detalle clave</th>
+          <th>Criterios</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>TC-M06-39</strong></td>
+          <td><code>POST /finanzas/costos</code></td>
+          <td>201</td>
+          <td>Activo 1573 · período 220 · D158405/C250505 · valor $4.100.000</td>
+          <td>15 CUMPLE · 1 NO VERIFICABLE</td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td><strong>TC-M06-40</strong></td>
+          <td><code>POST /finanzas/costos</code></td>
+          <td>201</td>
+          <td>Activo 2552 · período 629 · D510506/C250505 · valor $3.000.000</td>
+          <td>13/13 CUMPLE</td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td><strong>G112</strong></td>
+          <td colspan="3">Ambos escenarios cumplidos · RF-93 fuera de alcance de aprobación</td>
+          <td><strong>2/2 subcasos</strong></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="tc39">
+    <h2>4. TC-M06-39 — CAPITALIZACIÓN</h2>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>Objetivo</td><td>Registrar inversión directa capitalizable vía <code>MANO_OBRA_PROPIA</code> e incrementar el costo histórico del activo.</td></tr>
+      <tr><td>Escenario</td><td><code>confirmar_capitalizacion: true</code> · subtipo <code>INVERSION_DIRECTA</code> · monto <code>100000.0000</code> · fecha <code>2026-11-15</code></td></tr>
+      <tr><td>Resultado</td><td><span class="ok">APROBADO</span> · HTTP <strong>201</strong></td></tr>
+      <tr><td>Activo / período</td><td>Activo <strong>1573</strong> (<code>QA-M06O-COSTO-02</code>) · período <strong>220</strong> (ABIERTO)</td></tr>
+      <tr><td>Identificadores</td><td>Costo <code>4498</code> · línea <code>7121</code> · RF-94 <code>28938</code> (<code>COSTO_REGISTRADO</code>)</td></tr>
+      <tr><td>Verificación contable</td><td><code>MANO_OBRA_PROPIA</code> / <code>CAPITALIZACION</code> · D<strong>158405</strong> / C<strong>250505</strong> · estado REGISTRADA</td></tr>
+      <tr><td>Estado final activo</td><td>ACTIVO · costos/valor <strong>$4.100.000</strong> (delta +100.000 desde $4.000.000)</td></tr>
+      <tr><td>Estado período</td><td>220 permanece <strong>ABIERTO</strong> (no se cerró)</td></tr>
+    </table>
+
+    <h3>Criterios de aceptación</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Criterio</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>39-B1…B4</td><td>Baselines activo/costos/matriz/período 220</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-E1</td><td>POST HTTP 201</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-E2 / E3</td><td><code>id_registro_costo</code> y <code>id_linea_asiento</code></td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-V1</td><td>Política CAPITALIZAR / INVERSION / REGISTRADO</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-V2</td><td>Delta costo histórico = monto</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-V3</td><td>Asiento MOP/CAPITALIZACION D158405/C250505</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-V4</td><td>Auditoría RF-94 COSTO_REGISTRADO</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-V5</td><td>Comprobante de cierre no exigido (período abierto)</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>39-X1</td><td>RF-93 / cerrar 220 (excluido del alcance G112)</td><td><span class="nv">NO VERIFICABLE</span></td></tr>
+        <tr><td>39-S1…S3</td><td>Activo ACTIVO · 220 ABIERTO · sin colateral indebido</td><td><span class="ok">CUMPLE</span></td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <strong>39-X1 no es un fallo.</strong> Queda como <span class="nv">NO VERIFICABLE</span> porque el cierre del período 220 / ER de RF-93 fue eliminado como criterio de aprobación de G112 (decisión de alcance B). No implica rechazo de TC-M06-39.
+    </div>
+
+    <h3>Evidencias</h3>
+    <ul class="compact">
+      <li><a href="ejecucion_tc39_2026-11-15/REPORTE_EJECUCION_TC-M06-39.md"><span class="path">ejecucion_tc39_2026-11-15/REPORTE_EJECUCION_TC-M06-39.md</span></a></li>
+      <li><a href="ejecucion_tc39_2026-11-15/resultado_ejecucion_TC-M06-39.json"><span class="path">ejecucion_tc39_2026-11-15/resultado_ejecucion_TC-M06-39.json</span></a></li>
+      <li><a href="ejecucion_tc39_2026-11-15/matriz_criterios_TC-M06-39.json"><span class="path">ejecucion_tc39_2026-11-15/matriz_criterios_TC-M06-39.json</span></a></li>
+      <li><a href="ejecucion_tc39_2026-11-15/solicitud_respuesta_http_TC-M06-39.json"><span class="path">ejecucion_tc39_2026-11-15/solicitud_respuesta_http_TC-M06-39.json</span></a></li>
+      <li><a href="ejecucion_tc39_2026-11-15/linea_contable_TC-M06-39.json"><span class="path">ejecucion_tc39_2026-11-15/linea_contable_TC-M06-39.json</span></a></li>
+      <li><a href="ejecucion_tc39_2026-11-15/evidencia_rf94_TC-M06-39.json"><span class="path">ejecucion_tc39_2026-11-15/evidencia_rf94_TC-M06-39.json</span></a></li>
+      <li><a href="ejecucion_tc39_2026-11-15/comparacion_activo_1573.json"><span class="path">ejecucion_tc39_2026-11-15/comparacion_activo_1573.json</span></a></li>
+      <li><a href="prevalidacion_tc39_2026-11-15/PREVALIDACION_TC-M06-39.md"><span class="path">prevalidacion_tc39_2026-11-15/PREVALIDACION_TC-M06-39.md</span></a></li>
+    </ul>
+  </section>
+
+  <section id="tc40">
+    <h2>5. TC-M06-40 — GASTO</h2>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>Objetivo</td><td>Registrar inversión directa llevada a gasto sin capitalizar el costo histórico del activo.</td></tr>
+      <tr><td>Escenario</td><td><code>confirmar_capitalizacion: false</code> · subtipo <code>INVERSION_DIRECTA</code> · monto <code>100000.0000</code> · fecha <code>2026-11-15</code></td></tr>
+      <tr><td>Resultado</td><td><span class="ok">APROBADO</span> · HTTP <strong>201</strong></td></tr>
+      <tr><td>Activo / período</td><td>Activo <strong>2552</strong> (<code>QA-M06-G112-GASTO</code>) · período <strong>629</strong> (ABIERTO)</td></tr>
+      <tr><td>Identificadores</td><td>Costo <code>4497</code> · línea <code>6918</code> · RF-94 <code>28193</code> (<code>COSTO_REGISTRADO</code>)</td></tr>
+      <tr><td>Verificación contable</td><td><code>MANO_OBRA_PROPIA</code> / sentido UNICO · D<strong>510506</strong> / C<strong>250505</strong> · asignación específica 8581</td></tr>
+      <tr><td>Estado final activo</td><td>ACTIVO · valor <strong>$3.000.000</strong> (sin capitalización)</td></tr>
+      <tr><td>Estado período</td><td>629 permanece <strong>ABIERTO</strong></td></tr>
+    </table>
+
+    <h3>Criterios de aceptación</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Criterio</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>40.1</td><td>POST HTTP éxito</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.2</td><td>Línea REGISTRADA</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.3</td><td>Origen MANO_OBRA_PROPIA</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.4</td><td>Subtipo INVERSION_DIRECTA</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.5</td><td>Política GASTO</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.6 / 40.7</td><td>Débito 510506 · Crédito 250505</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.8</td><td>Asignación ganadora 8581 (inferida)</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.9</td><td>Activo 2552 ACTIVO</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.10</td><td>Valor costo permanece 3.000.000</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.11</td><td>Sin capitalización indebida</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.12</td><td>Período 629 ABIERTO</td><td><span class="ok">CUMPLE</span></td></tr>
+        <tr><td>40.13</td><td>Períodos 219/220 intactos</td><td><span class="ok">CUMPLE</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Evidencias</h3>
+    <ul class="compact">
+      <li><a href="ejecucion_tc40_2026-11-15/REPORTE_EJECUCION_TC-M06-40.md"><span class="path">ejecucion_tc40_2026-11-15/REPORTE_EJECUCION_TC-M06-40.md</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/resultado_ejecucion_TC-M06-40.json"><span class="path">ejecucion_tc40_2026-11-15/resultado_ejecucion_TC-M06-40.json</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/matriz_criterios_TC-M06-40.json"><span class="path">ejecucion_tc40_2026-11-15/matriz_criterios_TC-M06-40.json</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/solicitud_respuesta_http_TC-M06-40.json"><span class="path">ejecucion_tc40_2026-11-15/solicitud_respuesta_http_TC-M06-40.json</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/linea_contable_TC-M06-40.json"><span class="path">ejecucion_tc40_2026-11-15/linea_contable_TC-M06-40.json</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/evidencia_rf94_TC-M06-40.json"><span class="path">ejecucion_tc40_2026-11-15/evidencia_rf94_TC-M06-40.json</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/hallazgo_H1_configuracion.json"><span class="path">ejecucion_tc40_2026-11-15/hallazgo_H1_configuracion.json</span></a></li>
+      <li><a href="ejecucion_tc40_2026-11-15/resolucion_matriz_8581.json"><span class="path">ejecucion_tc40_2026-11-15/resolucion_matriz_8581.json</span></a></li>
+    </ul>
+  </section>
+
+  <section id="rf93">
+    <h2>6. Dictamen de alcance — RF-93</h2>
+    <p>RF-93 (componente <code>inversiones_llevadas_a_gasto</code> del estado de resultados) es un requisito <strong>relacionado</strong> con el GASTO de RF-90, pero su verificación E2E requiere el cierre de un período aislado y consulta de ER. Esa operación <strong>no</strong> forma parte de la aprobación de TC-M06-39 ni TC-M06-40.</p>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>Decisión</td><td><strong>B</strong> — requisito relacionado / caso independiente</td></tr>
+      <tr><td>Estado</td><td><span class="pend">PENDIENTE_CASO_INDEPENDIENTE</span></td></tr>
+      <tr><td>Aprobación</td><td>Ni APROBADO ni RECHAZADO</td></tr>
+      <tr><td>Impacto en G112</td><td>No bloquea la aprobación del grupo (alcance RF-90 / RF-109 / RF-94)</td></tr>
+      <tr><td>Período 220</td><td>Permanece <strong>ABIERTO</strong> · no se cerró</td></tr>
+      <tr><td>Fundamento</td><td><a href="DICTAMEN_ALCANCE_RF93_G112.md"><span class="path">DICTAMEN_ALCANCE_RF93_G112.md</span></a></td></tr>
+    </table>
+  </section>
+
+  <section id="trazabilidad">
+    <h2>7. Trazabilidad RF → caso → evidencia</h2>
+    <table>
+      <thead>
+        <tr><th>Requisito</th><th>Caso</th><th>Criterio verificado</th><th>Evidencia principal</th><th>Resultado</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>RF-90 / RF-94</td>
+          <td>TC-M06-39</td>
+          <td>POST capitalizar 1573 → 201 · costo 4498 · línea 7121 · evento 28938</td>
+          <td><span class="path">ejecucion_tc39_2026-11-15/resultado_ejecucion_TC-M06-39.json</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-90 / RF-109 / RF-94</td>
+          <td>TC-M06-40</td>
+          <td>POST gasto 2552 → 201 · costo 4497 · línea 6918 · evento 28193</td>
+          <td><span class="path">ejecucion_tc40_2026-11-15/resultado_ejecucion_TC-M06-40.json</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-90 / RF-94</td>
+          <td>G112</td>
+          <td>Grupo 2/2 subcasos · cierre documental 15/11/2026</td>
+          <td><span class="path">estado_oficial_G112.json</span></td>
+          <td><span class="ok">APROBADO</span></td>
+        </tr>
+        <tr>
+          <td>RF-93</td>
+          <td>(caso independiente)</td>
+          <td>ER <code>inversiones_llevadas_a_gasto</code> tras cierre aislado</td>
+          <td><span class="path">DICTAMEN_ALCANCE_RF93_G112.md</span></td>
+          <td><span class="pend">PENDIENTE</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="evidencias">
+    <h2>8. Resumen de evidencias disponibles</h2>
+    <table>
+      <tr><th>Tipo</th><th>Ubicación</th></tr>
+      <tr><td>Informe HTML consolidado</td><td><span class="path">REPORTE_FINAL_G112_RF90.html</span> (este archivo)</td></tr>
+      <tr><td>Estado oficial / README / organización</td><td><a href="estado_oficial_G112.json"><span class="path">estado_oficial_G112.json</span></a> · <a href="README.md"><span class="path">README.md</span></a> · <a href="ORGANIZACION_FINAL_G112.json"><span class="path">ORGANIZACION_FINAL_G112.json</span></a></td></tr>
+      <tr><td>Dictamen RF-93</td><td><a href="DICTAMEN_ALCANCE_RF93_G112.md"><span class="path">DICTAMEN_ALCANCE_RF93_G112.md</span></a></td></tr>
+      <tr><td>Ejecución TC-39</td><td><span class="path">ejecucion_tc39_2026-11-15/</span></td></tr>
+      <tr><td>Ejecución TC-40</td><td><span class="path">ejecucion_tc40_2026-11-15/</span></td></tr>
+      <tr><td>Prevalidación TC-39</td><td><span class="path">prevalidacion_tc39_2026-11-15/</span></td></tr>
+      <tr><td>Histórico bloqueado 2026-11-08</td><td><a href="_arch/primera_evaluacion_bloqueada_2026-11-08/resultado_ejecucion_TC-M06-G112.html"><span class="path">_arch/primera_evaluacion_bloqueada_2026-11-08/</span></a></td></tr>
+      <tr><td>Diagnósticos intermedios</td><td><span class="path">_arch/</span> (auditoría, preparación, corrección, reevaluaciones)</td></tr>
+    </table>
+  </section>
+
+  <section id="conclusion">
+    <h2>9. Dictamen final</h2>
+    <div class="call">
+      <strong>Resultado final del grupo TC-M06-G112: APROBADO.</strong><br/>
+      TC-M06-39: <strong>APROBADO</strong> · TC-M06-40: <strong>APROBADO</strong> · G112: <strong>APROBADO</strong>.<br/>
+      RF-93: <strong>PENDIENTE_CASO_INDEPENDIENTE</strong> (ni aprobado ni rechazado).<br/>
+      Fecha de cierre documental: <strong>15 de noviembre de 2026</strong>. Período 220: <strong>ABIERTO</strong>.
+    </div>
+    <p class="muted" style="margin-top:12px">Informe generado a partir de evidencias existentes de ejecución. Matrices individuales y respuestas HTTP originales no alteradas. Sin staging, commit ni push en esta tarea.</p>
+  </section>
+
+  <footer>SGPMP-Backend · Test_Testing · Módulo 6 · TC-M06-G112 · RF-90 / RF-94 · 2026-11-15</footer>
+</div>
+</body>
+</html>

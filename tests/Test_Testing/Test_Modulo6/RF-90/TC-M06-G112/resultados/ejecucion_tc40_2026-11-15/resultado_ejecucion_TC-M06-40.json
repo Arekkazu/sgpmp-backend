@@ -1,0 +1,326 @@
+{
+  "caso": "TC-M06-G112",
+  "subcaso": "TC-M06-40",
+  "fase": "ejecucion_autorizada_2026-11-15",
+  "fecha_utc": "2026-11-16T02:35:41.955272+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "autorizacion": "Expresa — POST /finanzas/costos TC-M06-40",
+  "escritura": true,
+  "posts_ejecutados": 1,
+  "precondiciones": {
+    "ambiente_test": true,
+    "activo_activo": true,
+    "valor_3m": true,
+    "periodo_abierto": true,
+    "asig_8581": true,
+    "permiso": true
+  },
+  "post": {
+    "http": 201,
+    "request": {
+      "subtipo_costo": "INVERSION_DIRECTA",
+      "origen_costo": "MANO_OBRA_PROPIA",
+      "monto_costo": "100000.0000",
+      "fecha_costo": "2026-11-15",
+      "id_activo_biologico": 2552,
+      "justificacion": "TC-M06-G112 / TC-M06-40 — inversión directa llevada a gasto QA (autorizada)",
+      "confirmar_capitalizacion": false
+    },
+    "respuesta": {
+      "registros": [
+        {
+          "id_registro_costo": 4497,
+          "id_activo_biologico": 2552,
+          "monto_costo": "100000.0000",
+          "naturaleza_costo": "INVERSION",
+          "vehiculo_contable": "ASIENTO_NIC41",
+          "estado": "REGISTRADO",
+          "id_linea_asiento": 6918
+        }
+      ],
+      "id_grupo_reparto": null,
+      "aviso": null
+    },
+    "id_registro_costo": 4497,
+    "id_linea_asiento": 6918,
+    "politica_capitalizacion": "GASTO",
+    "cuenta_debito": "510506",
+    "cuenta_credito": "250505"
+  },
+  "activo_antes": {
+    "identificador": "QA-M06-G112-GASTO",
+    "estado": "ACTIVO",
+    "id_especie": 655,
+    "id_finca": 488,
+    "costos_adquisicion": "3000000.0000",
+    "valor_contable_por_costo": "3000000.0000",
+    "es_activa": true,
+    "lineas_count": 0
+  },
+  "activo_despues": {
+    "identificador": "QA-M06-G112-GASTO",
+    "estado": "ACTIVO",
+    "id_especie": 655,
+    "id_finca": 488,
+    "costos_adquisicion": "3000000.0000",
+    "valor_contable_por_costo": "3000000.0000",
+    "es_activa": true,
+    "lineas_count": 1
+  },
+  "costo": {
+    "id_registro_costo": 4497,
+    "naturaleza_costo": "INVERSION",
+    "subtipo_costo": "INVERSION_DIRECTA",
+    "origen_costo": "MANO_OBRA_PROPIA",
+    "vehiculo_contable": "ASIENTO_NIC41",
+    "id_activo_biologico": 2552,
+    "activo": "QA-M06-G112-GASTO",
+    "monto_costo": "100000.0000",
+    "fecha_costo": "2026-11-15",
+    "id_periodo_contable": 629,
+    "estado": "REGISTRADO",
+    "politica_capitalizacion": "GASTO",
+    "justificacion": "TC-M06-G112 / TC-M06-40 — inversión directa llevada a gasto QA (autorizada)",
+    "id_origen_m05": null,
+    "tercero_nit": null,
+    "tercero_dv": null,
+    "tercero_razon_social": null,
+    "factura_prefijo": null,
+    "factura_numero": null,
+    "fecha_factura": null,
+    "fecha_vencimiento_factura": null,
+    "id_grupo_reparto": null,
+    "metodo_reparto": null,
+    "cuenta_debito": null,
+    "cuenta_credito": null,
+    "es_cuenta_manual": false,
+    "es_reverso": false,
+    "id_usuario": 141,
+    "fecha_registro": "2026-11-16T02:35:36.613897Z",
+    "id_especie": 655,
+    "id_infraestructura": 1461,
+    "id_finca": 488,
+    "especie": "Bufalo Depreciacion Qa Mseis",
+    "finca": "Finca Gasto Qa Mseis"
+  },
+  "linea": {
+    "tipo_hecho": "MANO_OBRA_PROPIA",
+    "sentido": "UNICO",
+    "valor": "100000.00",
+    "fecha_hecho": "2026-11-15",
+    "id_periodo_contable": 629,
+    "id_activo_biologico": 2552,
+    "id_especie": 655,
+    "id_finca": 488,
+    "numero_id_tributaria": "901666216",
+    "tabla_origen": "registros_costos",
+    "id_origen": 4497,
+    "tipo_evidencia": "REGISTRO_MANUAL",
+    "subtipo_costo": "INVERSION_DIRECTA",
+    "es_estimacion": false,
+    "es_reverso": false,
+    "tipo_hecho_corregido": null,
+    "id_linea_corregida": null,
+    "cuenta_debito": "510506",
+    "cuenta_credito": "250505",
+    "justificacion": "TC-M06-G112 / TC-M06-40 — inversión directa llevada a gasto QA (autorizada)",
+    "id_usuario": 141,
+    "id_linea_asiento_nic41": 6918,
+    "estado": "REGISTRADA",
+    "extra": {
+      "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+      "id_comprobante_nic41": null,
+      "identificador_activo": "QA-M06-G112-GASTO",
+      "tipo_activo": "INDIVIDUAL"
+    },
+    "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+    "id_comprobante_nic41": null,
+    "identificador_activo": "QA-M06-G112-GASTO",
+    "tipo_activo": "INDIVIDUAL"
+  },
+  "periodo_629": {
+    "antes": {
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "nit": "901666216"
+    },
+    "despues": {
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01"
+    }
+  },
+  "periodos_protegidos": {
+    "219": "CERRADO",
+    "220": "ABIERTO"
+  },
+  "resolucion_matriz": {
+    "asignacion_8581_pre": {
+      "id": 8581,
+      "tipo_hecho": "MANO_OBRA_PROPIA",
+      "sentido": "UNICO",
+      "id_especie": 655,
+      "subtipo_costo": "INVERSION_DIRECTA",
+      "cuenta_debito": "510506",
+      "cuenta_credito": "250505"
+    },
+    "cuentas_linea": {
+      "debito": "510506",
+      "credito": "250505"
+    },
+    "inferencia_ganadora_8581": true
+  },
+  "rf94": [
+    {
+      "tipo_busqueda": "COSTO_REGISTRADO",
+      "http": 200,
+      "id_evento": 28193,
+      "tipo_evento": "COSTO_REGISTRADO",
+      "id_referencia": 4497,
+      "timestamp_evento": "2026-11-16T02:35:36.613897Z",
+      "id_usuario": 141
+    }
+  ],
+  "hallazgo_h1": {
+    "id": "H1",
+    "severidad": "MEDIA",
+    "descripcion": "No se declara que la asignación 34 conserve D158405/C250505. La reevaluación identificó general vigente 8898 D510506/C250505 y específica 8581 para especie 655 + INVERSION_DIRECTA. Hallazgo de configuración separado; ninguna asignación fue modificada en esta ejecución.",
+    "accion": "Reportar a Samuel/DBA; fuera del alcance de TC-M06-40"
+  },
+  "matriz": [
+    {
+      "id": "40.1",
+      "criterio": "POST HTTP éxito",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 201
+      }
+    },
+    {
+      "id": "40.2",
+      "criterio": "Línea REGISTRADA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "REGISTRADA",
+        "id_linea": 6918
+      }
+    },
+    {
+      "id": "40.3",
+      "criterio": "Origen MANO_OBRA_PROPIA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "origen": "MANO_OBRA_PROPIA",
+        "tipo_hecho": "MANO_OBRA_PROPIA"
+      }
+    },
+    {
+      "id": "40.4",
+      "criterio": "Subtipo INVERSION_DIRECTA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "subtipo_costo": "INVERSION_DIRECTA"
+      }
+    },
+    {
+      "id": "40.5",
+      "criterio": "Política GASTO",
+      "resultado": "CUMPLE",
+      "evidencia": "GASTO"
+    },
+    {
+      "id": "40.6",
+      "criterio": "Débito 510506",
+      "resultado": "CUMPLE",
+      "evidencia": "510506"
+    },
+    {
+      "id": "40.7",
+      "criterio": "Crédito 250505",
+      "resultado": "CUMPLE",
+      "evidencia": "250505"
+    },
+    {
+      "id": "40.8",
+      "criterio": "Asignación ganadora 8581 (inferida por cuentas+ámbito)",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "cuentas_ok": true,
+        "a8581": {
+          "id": 8581,
+          "tipo_hecho": "MANO_OBRA_PROPIA",
+          "sentido": "UNICO",
+          "id_especie": 655,
+          "subtipo_costo": "INVERSION_DIRECTA",
+          "cuenta_debito": "510506",
+          "cuenta_credito": "250505"
+        },
+        "nota": "La línea no persiste id_asignacion; se infiere por D510506/C250505 + especie 655 + INVERSION_DIRECTA coincidentes con 8581"
+      }
+    },
+    {
+      "id": "40.9",
+      "criterio": "Activo 2552 ACTIVO",
+      "resultado": "CUMPLE",
+      "evidencia": "ACTIVO"
+    },
+    {
+      "id": "40.10",
+      "criterio": "Valor costo permanece 3.000.000",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "antes": {
+          "identificador": "QA-M06-G112-GASTO",
+          "estado": "ACTIVO",
+          "id_especie": 655,
+          "id_finca": 488,
+          "costos_adquisicion": "3000000.0000",
+          "valor_contable_por_costo": "3000000.0000",
+          "es_activa": true,
+          "lineas_count": 0
+        },
+        "despues": {
+          "identificador": "QA-M06-G112-GASTO",
+          "estado": "ACTIVO",
+          "id_especie": 655,
+          "id_finca": 488,
+          "costos_adquisicion": "3000000.0000",
+          "valor_contable_por_costo": "3000000.0000",
+          "es_activa": true,
+          "lineas_count": 1
+        }
+      }
+    },
+    {
+      "id": "40.11",
+      "criterio": "Capitalización no confirmada / sin asiento CAPITALIZACION indebido",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "politica": "GASTO",
+        "sentido": "UNICO",
+        "confirmar_capitalizacion": false
+      }
+    },
+    {
+      "id": "40.12",
+      "criterio": "Período 629 ABIERTO",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01"
+      }
+    },
+    {
+      "id": "40.13",
+      "criterio": "Períodos 219/220 intactos",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "219": "CERRADO",
+        "220": "ABIERTO"
+      }
+    }
+  ],
+  "dictamen_tc40": "APROBADO",
+  "dictamen_g112_global": "NO APROBADO (grupo incompleto; solo TC-M06-40 evaluado en esta ejecución)",
+  "estado_oficial_g112_no_modificado_como_aprobado_global": true
+}
