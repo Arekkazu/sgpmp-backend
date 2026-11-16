@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-88 paso 9: paso del modelo de costo a valor razonable (NIC 41 ¶30, ¶56) |
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-16 | Arekkazu | QA-M06 CU07 H-02 RF-87/88: el paso a valor razonable no entra a un período cerrado |
 """Caso de uso RF-88 paso 9: cuando hay precio confiable, el activo pasa a valor razonable (¶30 lo
 exige). La diferencia entre el valor por costo y el valor razonable neto va a resultados.
 
@@ -14,6 +15,9 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.application.services.contabilizador import Contabilizador
 from src.financial_valuation.application.services.valorador import Valorador
+from src.financial_valuation.application.use_cases.valoracion_costo.registrar_deterioro_use_case import (
+    rechazar_si_periodo_cerrado,
+)
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
@@ -40,6 +44,8 @@ class CambiarAValorRazonableUseCase:
         if not activo.es_valorable:  # FA-4
             raise ConflictError(code="ACTIVO_NO_DISPONIBLE", message=f"El activo está {estado_legible(activo.estado)}.")
         hoy = hoy_usuario()
+        rechazar_si_periodo_cerrado(self.contabilizador, activo.numero_id_tributaria, hoy,
+                                    "el activo no se puede pasar a valor razonable en él")
         try:
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, hoy, id_usuario)
             resultado = self.valorador.valorar(activo, hoy, periodo.id_periodo_contable, id_usuario)
