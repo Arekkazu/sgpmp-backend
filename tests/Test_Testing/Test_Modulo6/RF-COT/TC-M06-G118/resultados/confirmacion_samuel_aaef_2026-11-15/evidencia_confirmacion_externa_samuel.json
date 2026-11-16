@@ -1,0 +1,66 @@
+{
+  "caso": "TC-M06-G118",
+  "tipo_evidencia": "CONFIRMACION_EXTERNA",
+  "fuente": "Samuel",
+  "ejecutado_por_cursor": false,
+  "fecha_registro": "2026-11-15",
+  "ambiente_referido": "https://api.inmero.co/api-sgpmp-test",
+  "secretos_incluidos": false,
+  "enlaces_entrega_secretos_incluidos": false,
+  "credencial": {
+    "cliente": "QA_M06_AAEF_CONSULTA",
+    "id_cliente": 5,
+    "estado_cliente": "ACTIVO",
+    "credenciales_activas": 1,
+    "secreto_whatsapp_previo": "REVOCADO",
+    "secreto_previo_comportamiento": "401 CREDENCIALES_INVALIDAS",
+    "vencimiento": "2026-11-27",
+    "canal_unico": "CONSULTA_AAEF",
+    "canal_m2m": false
+  },
+  "variables_locales_instruccion": [
+    "QA_AAEF_CLIENT_ID",
+    "QA_AAEF_CLIENT_SECRET",
+    "QA_AAEF_EMAIL"
+  ],
+  "nota_env_cursor": "En el proceso Cursor al registrar esta evidencia, la presencia de QA_AAEF_* en os.environ fue false/false/false (solo booleano de presencia; sin leer valores). Configurar únicamente en .env local; no versionar.",
+  "pruebas_reportadas_por_samuel": [
+    {
+      "id": "S1",
+      "metodo": "POST",
+      "ruta": "/integraciones/agrofusion/token",
+      "resultado_reportado": "token_obtenido",
+      "expires_in": 900
+    },
+    {
+      "id": "S2",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901333217?desde=2026-11-01&hasta=2026-11-30",
+      "http": 200,
+      "documentos": 2,
+      "tipos": ["02", "02"],
+      "document_ids": ["COS-4476-20261114", "COS-4477-20261114"],
+      "total_bruto": 530000,
+      "total_neto": 530000,
+      "transactions": 0
+    },
+    {
+      "id": "S3",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/900000003?desde=2026-11-01&hasta=2026-11-30",
+      "http": 422,
+      "error_code": "PERIODO_NO_CERRADO",
+      "periodo_220": "ABIERTO"
+    }
+  ],
+  "contraste_cursor_reevaluacion_2026-11-15": {
+    "vista_previa_contador_coherente": true,
+    "negativo_220_coherente": true,
+    "auth_externa_antes": "NO_EJECUTADA_POR_CURSOR",
+    "auth_externa_ahora": "CONFIRMADA_POR_SAMUEL"
+  },
+  "tc_m06_50": {
+    "estado": "PENDIENTE_DE_AUTORIZACION",
+    "ejecutado": false
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "caso": "TC-M06-G118",
+  "subcaso": "TC-M06-50",
+  "fase": "ejecucion_autorizada_2026-11-15",
+  "fecha_utc": "2026-11-16T03:40:49.847275+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "autorizacion": "Expresa — POST /finanzas/cotizaciones TC-M06-50",
+  "posts_ejecutados": 1,
+  "precondiciones": {
+    "activo_estado": true,
+    "identificador": true,
+    "vr_3760000": true,
+    "fecha_calculo_ok": true,
+    "sin_g118_exitosa_previa": true,
+    "periodo_220_abierto": true,
+    "periodo_219_cerrado": true,
+    "payload_igual_preparacion": true
+  },
+  "post": {
+    "http": 201,
+    "request": {
+      "activos_cotizados": [
+        1571
+      ],
+      "valor_cotizacion_propuesto": "1000.0000",
+      "condiciones": "TC-M06-G118 / TC-M06-50 — integridad activo sin efectos contables (pendiente autorizacion)"
+    },
+    "respuesta": {
+      "id_cotizacion": 15,
+      "valor_razonable_referencia": "3760000.0000",
+      "estado": "COTIZADO",
+      "id_periodo_contable": 220
+    },
+    "error_red": null,
+    "id_cotizacion": 15
+  },
+  "cotizacion": {
+    "id_cotizacion": 15,
+    "fecha_emision": "2026-11-15",
+    "id_periodo_contable": 220,
+    "activos_cotizados": [
+      1571
+    ],
+    "valor_razonable_referencia": "3760000.0000",
+    "valor_cotizacion_propuesto": "1000.0000",
+    "condiciones": "TC-M06-G118 / TC-M06-50 — integridad activo sin efectos contables (pendiente autorizacion)",
+    "estado": "COTIZADO",
+    "estado_al_cierre": null,
+    "fecha_vencimiento": null,
+    "motivo_anulacion": null,
+    "id_usuario": 141,
+    "fecha_registro": "2026-11-16T03:40:46.183953Z",
+    "version": 1,
+    "fecha_actualizacion": null,
+    "estado_periodo": "ABIERTO"
+  },
+  "activo_antes": {
+    "identificador": "QA-M06O-VR-03",
+    "estado": "ACTIVO",
+    "id_finca": 467,
+    "valor_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+    "id_calculo": 804,
+    "valor_en_libros_actual": "3760000.0000",
+    "lineas_count": 2
+  },
+  "activo_despues": {
+    "identificador": "QA-M06O-VR-03",
+    "estado": "ACTIVO",
+    "id_finca": 467,
+    "valor_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+    "id_calculo": 804,
+    "valor_en_libros_actual": "3760000.0000",
+    "lineas_count": 2
+  },
+  "lineas": {
+    "antes": 1,
+    "despues": 1,
+    "nuevas": [],
+    "activo_1571_antes": 2,
+    "activo_1571_despues": 2
+  },
+  "periodos": {
+    "220": "ABIERTO",
+    "219": "CERRADO"
+  },
+  "auditoria_rf94": {
+    "evento": {
+      "id_evento": 29463,
+      "tipo_evento": "COTIZACION_REGISTRADA",
+      "id_referencia": 15,
+      "id_activo_biologico": 1571,
+      "monto_afectado": "1000.0000"
+    }
+  },
+  "aaef_vista_previa": {
+    "http": 422,
+    "error_code": "PERIODO_NO_CERRADO"
+  },
+  "resumen_criterios": {
+    "cumple": 14,
+    "no_cumple": 0,
+    "no_verificable": 0,
+    "total": 14
+  },
+  "dictamen": "APROBADO",
+  "g118_global": "APROBADO",
+  "nota_revalidacion": "Criterios 50.11/50.13/50.14 revalidados en solo lectura tras TOKEN_REVOCADO mid-script. Un solo POST (201, id 15)."
+}
