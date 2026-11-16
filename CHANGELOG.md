@@ -1,3 +1,11 @@
+## [1.4.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.74...v1.4.0-rc.75) (2026-11-16)
+
+### Bug Fixes
+
+* **rf84-mod6:** el calculo validado por el contador se lista como validado manualmente (QA-M06 CU03 H-01) ([09cdab5](https://github.com/Arekkazu/sgpmp-backend/commit/09cdab5305221429f87822957ba29b4631f8c5a9))
+* **rf88-mod6:** el deterioro y el paso a valor razonable no entran a un periodo cerrado (QA-M06 CU07 H-02) ([d886a11](https://github.com/Arekkazu/sgpmp-backend/commit/d886a11180795f6608ce19543dd9034fc7ac923c))
+* **rf93-mod6:** las descargas nombran titular, nit y periodo (QA-M06 CU12 H-01) ([b3dd2ca](https://github.com/Arekkazu/sgpmp-backend/commit/b3dd2cae817cad59e064db501537615795c15711))
+
 ## [1.4.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.73...v1.4.0-rc.74) (2026-11-16)
 
 ### Bug Fixes

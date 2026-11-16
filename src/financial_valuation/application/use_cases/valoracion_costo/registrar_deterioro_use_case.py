@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 # | 2026-11-15 | Arekkazu | QA-M06 CU07 H-01 RF-88 FA-1: el deterioro acumulado suma lo aplicado, no lo solicitado |
+# | 2026-11-16 | Arekkazu | QA-M06 CU07 H-02 RF-87/88: el deterioro no entra a un período cerrado |
 """Caso de uso RF-88 paso 5: el Contador cuantifica el impacto económico de un evento sanitario de
 RF-41 sobre un activo valorado por costo. RF-41 aporta el hecho clínico; M06, el monto.
 
@@ -12,10 +13,14 @@ registra la alerta persistente ``VALOR_LIBROS_AJUSTADO_A_CERO`` (valor calculado
 activo); después del commit se avisa al Contador.
 
 QA-M06 CU07 H-01: el deterioro registrado y el acumulado son lo que se aplicó (lo que quedaba del valor en libros),
-igual que su línea de asiento; el impacto que pidió el Contador queda en el evento de auditoría."""
+igual que su línea de asiento; el impacto que pidió el Contador queda en el evento de auditoría.
+
+QA-M06 CU07 H-02: con el período de hoy cerrado (cierre anticipado) el deterioro se rechaza, como los costos y las
+cotizaciones; antes pasaba en silencio al período abierto siguiente."""
 from __future__ import annotations
 
 import logging
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -59,13 +64,15 @@ class RegistrarDeterioroUseCase:
         if not self.activos.evento_sanitario_del_activo(id_evento_sanitario, id_activo_biologico):
             raise BusinessRuleError(code="EVENTO_SANITARIO_INVALIDO", field="id_evento_sanitario",
                                     message="El evento sanitario no existe o no es de este activo.")
+        hoy = hoy_usuario()
+        rechazar_si_periodo_cerrado(self.contabilizador, activo.numero_id_tributaria, hoy,
+                                    "no se pueden registrar deterioros en él")
         reduccion = truncar2(min(Decimal(impacto), costo.valor_contable_por_costo))
         if reduccion <= 0:  # FA-1: ya está en cero, no queda valor que deteriorar
             raise BusinessRuleError(code="DETERIORO_SIN_VALOR_EN_LIBROS", message=(
                 f"El activo {activo.identificador} ya tiene valor en libros $ 0: no admite más deterioro. "
                 "Evalúe registrar su baja."))
         try:
-            hoy = hoy_usuario()
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, hoy, id_usuario)
             id_deterioro = self.valoraciones.agregar_deterioro(costo.id_valoracion_por_costo, id_evento_sanitario,
                                                                reduccion, justificacion.strip(), id_usuario)
@@ -117,6 +124,16 @@ class RegistrarDeterioroUseCase:
                 "valor_aplicado": "0"}, id_finca=activo.id_finca)
         except Exception:
             logger.exception("M06: no se pudo avisar el ajuste a cero del activo %s.", activo.id_activo_biologico)
+
+
+def rechazar_si_periodo_cerrado(contabilizador: Contabilizador, numero_id_tributaria: Optional[str], hoy: date,
+                                que: str) -> None:
+    """RF-87: un hecho fechado hoy no entra a un período ya cerrado (lo usan el deterioro y el paso a valor razonable)."""
+    cerrado = contabilizador.periodo_cerrado_en(numero_id_tributaria, hoy)
+    if cerrado is not None:
+        raise BusinessRuleError(code="PERIODO_CONTABLE_CERRADO", message=(
+            f"El período contable de hoy ({cerrado.nombre}) está cerrado: {que}. Podrá hacerlo desde el "
+            f"{cerrado.fecha_fin + timedelta(days=1):%d/%m/%Y}, cuando empiece el período siguiente."))
 
 
 def evento_valor_libros_cero(costo, calculado: Decimal, origen: str, id_activo_biologico: int, id_periodo: int,
