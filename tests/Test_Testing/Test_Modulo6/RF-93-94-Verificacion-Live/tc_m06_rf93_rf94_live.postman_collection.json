@@ -115,9 +115,9 @@
           }
         },
         {
-          "name": "Revisor Fiscal lee el mismo estado GENERADO -> 404 (misma RLS, ningun lector ve lo no aprobado)",
+          "name": "Revisor Fiscal lee el mismo estado GENERADO -> 403 (CAMBIO 2026-11-16, RFC-027: antes era 404 por RLS, ahora un check explicito con mensaje claro)",
           "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('404 por RLS', () => pm.response.to.have.status(404));"
+            "pm.test('403 ACCESO_DENEGADO -- RFC-027 (commit en el merge de hoy): el Revisor Fiscal recibe un 403 explicito (\\'su rol solo consulta los estados de resultados aprobados\\') en vez del 404 silencioso de RLS -- mismo resultado de fondo (no ve lo no aprobado), mejor mensaje.', () => pm.response.to.have.status(403));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
@@ -193,9 +193,9 @@
       "name": "RF-94 TC23 (INC-M06-012) - Rol Auditor (cerrado) y alcance por periodo (abierto)",
       "item": [
         {
-          "name": "Auditor -> /finanzas/auditoria -> 200 (rol cerrado 2026-11-13, confirmado en vivo 2026-11-14)",
+          "name": "Auditor -> /finanzas/auditoria -> 404 (FIXTURE DESACTUALIZADA 2026-11-16: periodo 7/NIT 900000001 nunca fue 'propio' de esta cuenta, solo se veia por el hueco de G93 ya cerrado -- pendiente de un periodo real asignado a esta cuenta)",
           "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('200 OK -- el rol Auditor (id_rol=81) existe y tiene acceso real, mas alla de lo que la migracion 810b1e4eb4f9 por si sola otorga', () => pm.response.to.have.status(200));"
+            "pm.test('404 PERIODO_NO_ENCONTRADO -- tras cerrar INC-M06-365-G93, esta cuenta Auditor no tiene ninguna finca asignada que incluya el periodo 7; el rol en si sigue funcionando (ver estados-resultados 403 abajo), solo falta darle un periodo propio real para volver a demostrar el 200 positivo', () => pm.response.to.have.status(404));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
@@ -204,9 +204,9 @@
           }
         },
         {
-          "name": "Auditor -> /finanzas/auditoria (periodo de OTRO titular/NIT) -> 200 (mismo hueco de alcance que Contador/Revisor Fiscal)",
+          "name": "Auditor -> /finanzas/auditoria (periodo de OTRO titular/NIT) -> 404 (CORREGIDO 2026-11-16, INC-M06-365-G93: antes 200 con fuga, afectaba a los 3 roles)",
           "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('200 OK -- confirma que el hueco de alcance tambien afecta al Auditor, no solo a 2 de los 3 roles', () => pm.response.to.have.status(200));"
+            "pm.test('404 PERIODO_NO_ENCONTRADO', () => pm.response.to.have.status(404));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
@@ -238,9 +238,9 @@
           }
         },
         {
-          "name": "Revisor Fiscal -> /finanzas/auditoria (periodo A) -> 200",
+          "name": "Revisor Fiscal -> /finanzas/auditoria (periodo A) -> 404 (FIXTURE DESACTUALIZADA 2026-11-16, mismo motivo que el Auditor arriba)",
           "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+            "pm.test('404 PERIODO_NO_ENCONTRADO -- ver nota del Auditor arriba: tras cerrar G93, esta cuenta no tiene ninguna finca propia asignada en el periodo 7', () => pm.response.to.have.status(404));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
@@ -249,14 +249,47 @@
           }
         },
         {
-          "name": "Revisor Fiscal -> /finanzas/auditoria (periodo de OTRO titular/NIT) -> 200 (sin alcance por periodo propio, hallazgo confirmado)",
+          "name": "Revisor Fiscal -> /finanzas/auditoria (periodo de OTRO titular/NIT) -> 404 (CORREGIDO 2026-11-16, INC-M06-365-G93: antes 200 con fuga)",
           "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('200 OK -- confirma que no hay alcance por titular/periodo propio', () => pm.response.to.have.status(200));"
+            "pm.test('404 PERIODO_NO_ENCONTRADO -- el filtro _ALCANCE/_PERIODOS_PROPIOS del repositorio ahora bloquea periodos de titulares sin fincas asignadas al usuario', () => pm.response.to.have.status(404));",
+            "pm.test('codigo PERIODO_NO_ENCONTRADO', () => pm.expect(pm.response.json().error_code).to.eql('PERIODO_NO_ENCONTRADO'));"
           ], "type": "text/javascript" } }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token_revisor}}" }],
             "url": "{{base_url}}/finanzas/auditoria?id_periodo_contable={{id_periodo_otro_titular}}&tamano=1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RF-94 G94 (INC-M06-362) - PRECIO_MARCADO_REEMPLAZADO incluye montos (CORREGIDO 2026-11-16)",
+      "item": [
+        {
+          "name": "Contador registra un precio nuevo para disparar PRECIO_MARCADO_REEMPLAZADO (escritura ya ejecutada 2026-11-16, no repetible sin ajustar el monto)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('201/200 OK', () => [200, 201].includes(pm.response.code));"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"id_especie\":39,\"categoria\":\"PESO_KG\",\"precio_unitario\":9650.00,\"fecha_vigencia\":\"2026-11-16\",\"fuente\":\"MERCADO_ACTIVO\",\"evidencia_documental\":\"QA RF-93/94 G94: registro de prueba para verificar en vivo que PRECIO_MARCADO_REEMPLAZADO incluye los montos anterior y nuevo tras el fix INC-M06-362-G94.\"}" },
+            "url": "{{base_url}}/finanzas/precios"
+          }
+        },
+        {
+          "name": "Contador consulta el evento mas reciente -> payload YA incluye precio_unitario_anterior/nuevo",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "const evento = body.eventos[0];",
+            "pm.test('tiene precio_unitario_anterior', () => pm.expect(evento.payload_evento.precio_unitario_anterior).to.exist);",
+            "pm.test('tiene precio_unitario_nuevo', () => pm.expect(evento.payload_evento.precio_unitario_nuevo).to.exist);"
+          ], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_contador}}" }],
+            "url": "{{base_url}}/finanzas/auditoria?tipo_evento=PRECIO_MARCADO_REEMPLAZADO&tamano=1&formato=TECNICO&orden=DESC"
           }
         }
       ]
