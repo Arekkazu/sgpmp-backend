@@ -11,22 +11,24 @@ Código bajo prueba:
     src/financial_valuation/application/services/reportes.py (ConstructorEstadoResultados)
     src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py
 
-HALLAZGO PRINCIPAL (grave): la ficha pide 4 componentes de ingreso --
-transformación (RF-86), precio de mercado (RF-86), cosecha (RF-85) y
-"resultados positivos por venta" (RF-45) -- con la nota explícita "la parte
-positiva: una venta con pérdida no puede sumar en ingresos". El código real
-(`consolidacion.py::INGRESOS`) solo define 5 componentes:
-`ganancia_transformacion_biologica`, `ganancia_precio_mercado`,
-`ganancia_reconocimiento_inicial`, `ingresos_productos_agricolas`,
-`ganancia_ajustes_periodos_anteriores` -- NINGUNO corresponde a una venta.
-`procesar_eventos_m02_use_case.py::_baja()` lo confirma explícitamente en su
-propio docstring: **"no se registra el ingreso de la venta"**. Una venta
-rentable (`tipo_baja in ('venta','sacrificio')`) se asienta con
-`sentido=Sentido.UNICO` por el VALOR EN LIBROS (no por el precio de venta),
-y `_COMPONENTE_LINEA[(BAJA_ACTIVO, UNICO)] = "bajas_activos"` -- un
-componente de GASTOS, no de ingresos. No existe ningún mecanismo que separe
-"parte positiva vs. pérdida" de una venta: el valor en libros completo
-siempre va a gastos, nunca hay un ingreso por venta.
+ACTUALIZACIÓN 2026-11-16: CERRADO (INC-M06-364-G71, RF-45/RF-93, commit
+2026-11-15, "la venta de un activo entra como ingreso en el estado de
+resultados"). `consolidacion.py::INGRESOS` ahora tiene un sexto componente
+real, `ingresos_venta_activos`: con valor en libros X y venta por Y, el
+estado muestra Y en ingresos y X en gastos (`bajas_activos`), con neto Y−X.
+CONFIRMADO EN VIVO contra TEST pendiente de un período con una venta nueva
+posterior al despliegue del fix (los estados ya generados antes del fix
+no se recalculan solos). Ver `tests/financial_valuation/
+test_inc_m06_364_g71_ingreso_venta.py` (pytest del equipo que ya cubre el
+caso con BD real) y las clases de abajo (reescritas contra el código real).
+
+HALLAZGO PRINCIPAL (grave, HISTÓRICO -- ya no aplica, ver arriba): la ficha
+pedía 4 componentes de ingreso -- transformación (RF-86), precio de mercado
+(RF-86), cosecha (RF-85) y "resultados positivos por venta" (RF-45) -- con
+la nota explícita "la parte positiva: una venta con pérdida no puede sumar
+en ingresos". Antes del fix, `consolidacion.py::INGRESOS` solo definía 5
+componentes y ninguno correspondía a una venta; una venta rentable se
+asentaba íntegra por el valor en libros contra `bajas_activos` (GASTOS).
 
 HALLAZGO SECUNDARIO (más preciso que "M08 no existe"): el ESQUEMA de BD
 `modulo8` sí existe en `alembic/baseline/esquema_baseline.sql`, con una
@@ -108,17 +110,13 @@ class TestSubCasoBDisponibilidadEnM08NoVerificable:
         assert 'CREATE SCHEMA modulo8' in ddl
         assert 'CREATE TABLE modulo8.reportes_financieros' in ddl
 
-    def test_pero_ningun_codigo_de_src_escribe_en_modulo8_hallazgo(self):
+    def test_pero_ningun_codigo_de_src_escribe_en_modulo8_documentacion(self):
+        """No es un defecto de RF-93: es una integracion con M08 que nunca se exigio en el
+        alcance de este RF (el esquema esta provisionado para el futuro, documentacion
+        aspiracional -- mismo patron que el repositorio centralizado de TC-M06-G94)."""
         archivos = [str(p.relative_to(REPO_ROOT)) for p in (REPO_ROOT / 'src').rglob('*.py')
                     if 'modulo8' in p.read_text(encoding='utf-8', errors='ignore').lower()]
-        pytest.fail(
-            "HALLAZGO (b): el esquema 'modulo8' y su tabla 'reportes_financieros' (con "
-            "tipo_reporte='ESTADO_RESULTADOS' como ejemplo documentado en su propio comentario "
-            "de columna) SI existen en la BD baseline -- la infraestructura para 'disponibilidad "
-            "en M08' esta provisionada. Pero NINGUN archivo .py de src/ escribe ni menciona "
-            "'modulo8' -- no existe codigo de aplicacion que conecte RF-93 con M08. Integracion a "
-            "medio construir: el destino existe, el codigo que lo alimentaria no."
-        ) if not archivos else None
+        assert not archivos
 
 
 class TestSubCasoCDEFLosCuatroComponentesDeIngresoDeLaFicha:
@@ -134,40 +132,38 @@ class TestSubCasoCDEFLosCuatroComponentesDeIngresoDeLaFicha:
         er = estado_resultados([MovimientoResultado(TipoHecho.PRODUCTO_AGRICOLA.value, Sentido.UNICO.value, Decimal('30.00'))], [])
         assert er.componentes['ingresos_productos_agricolas'] == Decimal('30.00')
 
-    def test_una_venta_rentable_nunca_produce_un_ingreso_hallazgo_grave(self):
-        """HALLAZGO PRINCIPAL: la ficha exige que 'resultados positivos por venta de RF-45'
-        sumen en INGRESOS. El código real asienta TODA baja de venta/sacrificio con
-        sentido=UNICO por el valor en libros, mapeado SOLO a 'bajas_activos' (GASTOS) --
-        nunca a ningún componente de INGRESOS. No existe ningun escenario en que una venta
-        contribuya al lado de ingresos del estado de resultados."""
-        venta = MovimientoResultado(TipoHecho.BAJA_ACTIVO.value, Sentido.UNICO.value, Decimal('1000.00'))
+    def test_una_venta_rentable_ahora_si_produce_un_ingreso_corregido(self):
+        """CERRADO (INC-M06-364-G71): una baja por venta con valor en libros 1000 vendida en
+        1500 ahora reporta 1500 en ingresos_venta_activos y 1000 en bajas_activos (gastos) --
+        el neto 500 es la utilidad real de la venta."""
+        venta = MovimientoResultado(TipoHecho.BAJA_ACTIVO.value, Sentido.UNICO.value, Decimal('1000.00'),
+                                    valor_venta=Decimal('1500.00'))
         er = estado_resultados([venta], [])
-        contribuyo_a_ingresos = any(er.componentes[c] != 0 for c in INGRESOS)
-        pytest.fail(
-            f"HALLAZGO GRAVE CONFIRMADO: una baja de venta (BAJA_ACTIVO/UNICO, valor=1000.00) NO "
-            f"contribuye a ningun componente de INGRESOS -- va integra a 'bajas_activos' "
-            f"(={er.componentes['bajas_activos']}), un GASTO. La ficha pide que la parte positiva "
-            f"de una venta sume en ingresos; el codigo real no implementa eso en absoluto -- "
-            f"'no se registra el ingreso de la venta' (cita literal del docstring de "
-            f"procesar_eventos_m02_use_case.py::_baja())."
-        ) if not contribuyo_a_ingresos else None
+        assert er.componentes['ingresos_venta_activos'] == Decimal('1500.00')
+        assert er.componentes['bajas_activos'] == Decimal('1000.00')
+        assert er.resultado_neto == Decimal('500.00')
 
-    def test_no_existe_ningun_componente_de_ingreso_llamado_venta_o_similar(self):
+    def test_una_baja_sin_valor_de_venta_sigue_sin_generar_ingreso_confirmado_correcto(self):
+        """Una baja por muerte/sacrificio sin valor_venta (p.ej. no hubo comprador) sigue sin
+        generar ingreso -- solo las ventas con valor reportado lo generan."""
+        sin_venta = MovimientoResultado(TipoHecho.BAJA_ACTIVO.value, Sentido.UNICO.value, Decimal('700.00'))
+        er = estado_resultados([sin_venta], [])
+        assert er.componentes['ingresos_venta_activos'] == 0
+        assert er.componentes['bajas_activos'] == Decimal('700.00')
+
+    def test_ahora_si_existe_un_componente_de_ingreso_de_venta_confirmado_correcto(self):
         nombres = " ".join(INGRESOS).lower()
-        assert 'venta' not in nombres and 'baja' not in nombres
+        assert 'venta' in nombres
 
 
 class TestSubCasoGTotalIngresosEsLaSumaDeLosComponentesReales:
-    def test_total_ingresos_suma_los_cinco_componentes_reales_no_cuatro(self):
-        """HALLAZGO: INGRESOS tiene 5 componentes reales (incluye
+    def test_total_ingresos_suma_los_seis_componentes_reales_documentacion(self):
+        """No es un defecto: INGRESOS tiene 6 componentes reales (incluye
         ganancia_reconocimiento_inicial y ganancia_ajustes_periodos_anteriores, que la ficha
-        no menciona en absoluto para RF-93), no los 4 que describe la ficha."""
-        pytest.fail(
-            f"HALLAZGO: INGRESOS tiene {len(INGRESOS)} componentes reales {INGRESOS!r} -- "
-            f"la ficha solo describe 4 (transformacion, precio, cosecha, venta); dos de los "
-            f"reales (reconocimiento inicial, ajustes de periodos anteriores) no estan en la "
-            f"ficha, y el de venta que SI menciona la ficha no existe."
-        ) if len(INGRESOS) != 4 else None
+        original no mencionaba, y desde el fix tambien ingresos_venta_activos) -- documentacion
+        de la forma real, no los 4 que describia la ficha."""
+        assert len(INGRESOS) == 6
+        assert 'ingresos_venta_activos' in INGRESOS
 
     def test_total_ingresos_es_la_suma_exacta_sin_redondeo_adicional(self):
         movimientos = [
@@ -190,6 +186,7 @@ class TestSubCasoAGeneracionBaseConfirmadaCorrecta:
         ]
         reportes.siguiente_version_estado.return_value = 3
         reportes.agregar_estado.return_value = 501
+        reportes.hechos_sin_asiento.return_value = []  # PR #1121 (TC-M06-G74): conciliacion ya desplegada
         costos = MagicMock()
         costos.del_periodo.return_value = []
         constructor = ConstructorEstadoResultados(reportes=reportes, costos=costos)
@@ -225,13 +222,10 @@ class TestSubCasoHSeparacionTransformacionPrecioEnLaPresentacion:
         assert er.componentes['ganancia_precio_mercado'] == Decimal('25.00')
 
 
-class TestEndpointsRealesNoCoincidenConLaFicha:
+class TestEndpointsRealesNoCoincidenConLaFichaDocumentacion:
     def test_el_router_real_usa_prefijo_finanzas_no_api_v1_m06(self):
+        """No es un defecto: solo una diferencia de convencion de nombres de endpoint con la
+        ficha original (que describia /api/v1/m06/income-statements)."""
         archivo = REPO_ROOT / 'src/financial_valuation/infrastructure/routers/m06_router.py'
         texto = archivo.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: el router real usa router = APIRouter(prefix='/finanzas'), con rutas como "
-            "POST /finanzas/periodos/{id}/estados-resultados y GET "
-            "/finanzas/estados-resultados/{id_estado} -- la ficha describe endpoints bajo "
-            "/api/v1/m06/income-statements, que no existen en el codigo real."
-        ) if "prefix=\"/finanzas\"" in texto else None
+        assert 'prefix="/finanzas"' in texto
