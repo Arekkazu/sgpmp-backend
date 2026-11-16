@@ -959,7 +959,7 @@
       }
     },
     {
-      "name": "Administrador genera informe -> 403",
+      "name": "Administrador genera informe (decision de desarrollo: Administrador con todos los permisos de M06; 404/422 por periodo inexistente)",
       "event": [
         {
           "listen": "test",
@@ -967,7 +967,7 @@
             "type": "text/javascript",
             "exec": [
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
+              "pm.test(\"HTTP en [404, 422]\", () => { pm.expect(pm.response.code).to.be.oneOf([404, 422]); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]
