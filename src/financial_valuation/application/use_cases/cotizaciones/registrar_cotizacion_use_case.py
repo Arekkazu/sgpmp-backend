@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-COT v1.1: registrar una cotización de venta (sin efecto contable) |
 # | 2026-11-08 | Arekkazu | INC-M06-332-G88 RF-COT FA-3: con el período de la emisión cerrado responde 422, no usa el siguiente |
+# | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-02 RF-COT paso 9: el evento queda asociado al activo cotizado |
 """Caso de uso RF-COT fases 1-6. La cotización no transfiere propiedad, no cambia el valor del activo
 y no genera asientos ni documentos (RFC-018 D-18.8). Su valor de referencia es la suma del último
 valor razonable neto de los activos (no se admite valor manual)."""
@@ -73,6 +74,7 @@ class RegistrarCotizacionUseCase:
                 tipo_evento="COTIZACION_REGISTRADA", severidad="INFO", id_usuario=id_usuario,
                 payload={"activos": activos_cotizados, "valor_propuesto": str(valor_propuesto),
                          "valor_razonable_referencia": str(referencia)},
+                id_activo_biologico=activo_unico(activos_cotizados),
                 id_periodo_contable=periodo.id_periodo_contable, id_referencia=id_cotizacion,
                 monto_afectado=valor_propuesto,
             ))
@@ -82,3 +84,9 @@ class RegistrarCotizacionUseCase:
             raise
         return {"id_cotizacion": id_cotizacion, "valor_razonable_referencia": referencia, "estado": "COTIZADO",
                 "id_periodo_contable": periodo.id_periodo_contable}
+
+
+def activo_unico(activos_cotizados: list[int]) -> Optional[int]:
+    """CU-COT H-02: el evento de la bitácora se asocia al activo cotizado (la columna admite uno solo)."""
+    # ponytail: con varios activos queda sin activo (la lista va en el payload); un evento por activo si hace falta
+    return activos_cotizados[0] if len(activos_cotizados) == 1 else None

@@ -2,11 +2,13 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-COT 5.4/5.5: modificar o anular una cotización antes del cierre |
 # | 2026-11-08 | Arekkazu | INC-M06-335-G91 RF-COT: el aviso de cotización no modificable nombra el estado, no su valor de enum |
+# | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-02 RF-COT paso 9: modificación y anulación con su activo y su monto |
 """Casos de uso RF-COT fases 8-9 con control optimista por ``version`` (5.9, FA-11)."""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from src.financial_valuation.application.use_cases.cotizaciones.registrar_cotizacion_use_case import activo_unico
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
 from src.financial_valuation.domain.repositories.cotizacion_repository import CotizacionRepository
@@ -64,8 +66,11 @@ class ModificarCotizacionUseCase:
                     "La cotización fue modificada por otro usuario. Recárguela y reintente."))
             self.auditoria.registrar(EventoAuditoria(
                 tipo_evento=tipo_evento, severidad="INFO", id_usuario=id_usuario,
-                payload={"cambios": cambios, "justificacion": justificacion.strip()},
+                payload={"activos": cotizacion["activos_cotizados"], "cambios": cambios,
+                         "justificacion": justificacion.strip()},
                 datos_anteriores={k: cotizacion.get(k) for k in (*CAMPOS_MODIFICABLES, "estado")},
+                id_activo_biologico=activo_unico(cotizacion["activos_cotizados"]),
+                monto_afectado=cambios.get("valor_cotizacion_propuesto", cotizacion["valor_cotizacion_propuesto"]),
                 id_periodo_contable=cotizacion["id_periodo_contable"], id_referencia=cotizacion["id_cotizacion"],
             ))
             self.db.commit()
