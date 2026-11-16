@@ -40,6 +40,18 @@ Confirmado con el ciclo completo en TEST:
 reproducir el ciclo GENERADO→APROBADO completo con ese id; solo la mitad "ya aprobado". Si se necesita
 repetir el ciclo completo, usar otro `id_estado` todavía en `GENERADO` (verificar primero con el Contador).
 
+## Actualización 2026-11-16 — G71, G93 y G94: APROBADOS
+
+Los 3 bugs quedan **APROBADOS / CERRADOS** por decisión explícita del evaluador:
+
+- **G93 (INC-M06-365) — APROBADO.** Confirmado en vivo al 100% (ver detalle abajo).
+- **G94 (INC-M06-362) — APROBADO.** Confirmado en vivo al 100% (ver detalle abajo).
+- **G71 (INC-M06-364) — APROBADO.** Código real corregido y desplegado en TEST (release
+  `1.4.0-rc.74`), confirmado por pytest contra el código real (propio y del equipo), sin un
+  dato en vivo nuevo que muestre la venta ya calculada (requeriría una cuenta Productor con
+  fincas/activos reales, no disponible en el roster actual) -- aprobado con esa salvedad
+  documentada, a criterio del evaluador.
+
 ## Actualización 2026-11-16 — G71, G93 y G94 reejecutados en vivo contra TEST
 
 Los 3 bugs reales que quedaban pendientes de desarrollo (G71 INC-M06-001, G93 INC-M06-365,
