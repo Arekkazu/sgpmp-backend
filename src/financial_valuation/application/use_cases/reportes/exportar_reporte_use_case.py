@@ -9,6 +9,8 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: los títulos de las secciones salen del constructor y el estado por sección no se imprime |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el informe de revelaciones se descarga en PDF/A-1b |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: mostrar los métodos, los supuestos y sus faltantes en las descargas. |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: columna de asientos trasladados por el cierre y fuente de cada riesgo |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -39,13 +41,14 @@ ETIQUETAS_COMPONENTES = {
     "ganancia_precio_mercado": "Ganancia por variación de precio de mercado",
     "ganancia_reconocimiento_inicial": "Ganancia en el reconocimiento inicial",
     "ingresos_productos_agricolas": "Ingresos por productos agrícolas",
+    "ingresos_venta_activos": "Ingresos por venta de activos biológicos",
     "ganancia_ajustes_periodos_anteriores": "Ajustes de períodos anteriores (ganancia)",
     "perdida_transformacion_biologica": "Pérdida por transformación biológica",
     "perdida_precio_mercado": "Pérdida por variación de precio de mercado",
     "perdida_reconocimiento_inicial": "Pérdida en el reconocimiento inicial",
     "costos_mantenimiento": "Costos de mantenimiento",
     "inversiones_llevadas_a_gasto": "Inversiones llevadas a gasto",
-    "bajas_activos": "Valor en libros de activos vendidos",
+    "bajas_activos": "Valor en libros de activos vendidos o sacrificados",
     "perdidas_bajas_sin_recuperacion": "Pérdidas por bajas sin recuperación",
     "depreciacion_activos_costo": "Depreciación de activos al costo",
     "deterioro_activos_costo": "Deterioro de activos al costo",
@@ -72,6 +75,7 @@ _CAMPOS_INFORME = {
     "cosechas": "Cosechas",
     "bajas": "Bajas",
     "depreciacion_y_deterioro": "Depreciación y deterioro",
+    "asientos_trasladados_por_cierre": "Asientos trasladados por el cierre",
     "magnitud": "Magnitud",
     "unidad_magnitud": "Unidad",
     "precio_unitario": "Precio unitario",
@@ -149,7 +153,7 @@ def _valor_informe(clave: str, valor) -> str:
     if isinstance(valor, str) and re.fullmatch(r"[A-Z]{3,}(_[A-Z0-9]+)+", valor):  # enum crudo, no un identificador
         return _rotulo(valor)
     if any(p in clave for p in ("valor", "monto", "costo", "precio", "compras", "bajas", "cosechas", "total", "depreciacion",
-                                "deterioro", "transformacion", "reconocimiento", "nacimientos", "impacto")):
+                                "deterioro", "transformacion", "reconocimiento", "nacimientos", "impacto", "trasladados")):
         try:
             return moneda(valor)
         except Exception:  # noqa: BLE001 - un valor no numérico se muestra tal cual

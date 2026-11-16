@@ -58,3 +58,6 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-07 (TC-
 - Roles: Administrador, Contador, Productor, Revisor Fiscal.
 - Sin escritura en TEST.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Ajuste del oráculo por la decisión de desarrollo (15/11/2026)
+- **Administrador**: desarrollo lo dejó con todos los permisos de M06 (decisión de Análisis pendiente); el paso «Administrador genera informe» espera 404/422 (permiso concedido, período inexistente) en vez de 403.

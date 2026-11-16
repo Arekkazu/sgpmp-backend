@@ -10,7 +10,9 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));",
+          "if (!pm.collectionVariables.get('run_sandbox')) pm.collectionVariables.set('run_sandbox', 'qa-m06-rf92g62-' + Date.now());",
+          "if (pm.variables.get('permitir_escritura') === 'SI' && pm.variables.get('sandbox_secret') && !/^(Login|Descubrir periodos|Cerrar sandbox)/.test(pm.info.requestName)) { pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_sandbox') }); pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') }); }"
         ]
       }
     }
@@ -108,6 +110,50 @@
       }
     },
     {
+      "name": "Comprobar sandbox con rollback (X-Test-Run-Id)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const eco = pm.response.headers.get('X-Test-Run-Id');",
+              "const ok = pm.variables.get('permitir_escritura') === 'SI' && !!pm.variables.get('sandbox_secret') && !!eco && eco === pm.collectionVariables.get('run_sandbox');",
+              "pm.collectionVariables.set('sandbox_activo', ok ? 'SI' : '');",
+              "pm.test('Sandbox con rollback: ' + (ok ? 'ACTIVO (las peticiones [escritura] corren en una transaccion que se revierte)' : 'NO ACTIVO (las peticiones [escritura] se omiten)'), () => {});",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
       "name": "Descubrir informes de revelaciones (Contador)",
       "event": [
         {
@@ -126,7 +172,8 @@
             "exec": [
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
               "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
-              "const cerrados = JSON.parse(pm.collectionVariables.get('cerrados') || '[]');",
+              "const qaCerrado = String(pm.environment.get('periodo_cerrado_qa') || '');",
+              "const cerrados = qaCerrado ? [qaCerrado] : JSON.parse(pm.collectionVariables.get('cerrados') || '[]');  // con -PeriodoCerrado solo se buscan informes de ese periodo",
               "const hallados = {};",
               "let pend = cerrados.length;",
               "const fin = () => { ['BORRADOR','APROBADO','ARCHIVADO','RECHAZADO'].forEach(e => pm.collectionVariables.set('inf_' + e, hallados[e] ? String(hallados[e].id_informe) : ''));",
@@ -171,14 +218,71 @@
       }
     },
     {
-      "name": "TC-92-018..024 Cuadre del rollforward (APROBADO)",
+      "name": "TC-92-018 Generar un informe nuevo del periodo [escritura] (dentro del sandbox, se revierte)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('inf_APROBADO')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe APROBADO en TEST'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('id_cerrado')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo CERRADO'); pm.execution.skipRequest(); }",
+              "if (pm.collectionVariables.get('sandbox_activo') !== 'SI') { console.log('ESCRITURA OMITIDA: requiere --env-var permitir_escritura=SI, --env-var sandbox_secret=... y el sandbox activo en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('inf_G62', String(j.id_informe || ''));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_cerrado}}/revelaciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_cerrado}}",
+            "revelaciones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"compromisos_vigentes\":[{\"descripcion\":\"QA M06 G62 compromiso {{run}}\",\"monto_estimado\":1500000,\"contraparte\":\"Banco QA\",\"fecha_estimada\":\"2026-12-31\"}],\"activos_pignorados\":[],\"justificacion_inconsistencias\":\"Justificacion QA M06: inconsistencias revisadas, se continua para la prueba de revelaciones.\"}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-018..024 Cuadre del rollforward (informe nuevo, BORRADOR)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_G62')) { console.log('PRECONDICION NO DISPONIBLE: no se genero el informe (escritura no autorizada)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -192,11 +296,11 @@
               "const k = j.contenido || {};",
               "const n = (v) => Number(v || 0);",
               "const rf = k.parr_50_conciliacion || [];",
-              "pm.test(\"TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas = cierre\", () => { rf.forEach(r => { const c = n(r.valor_inicio) + n(r.compras) + n(r.nacimientos_y_otros_ingresos) + n(r.transformacion_biologica) + n(r.precio_mercado) - n(r.cosechas) - n(r.bajas) - n(r.depreciacion_y_deterioro);",
+              "pm.test(\"TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas = cierre\", () => { rf.forEach(r => { const c = n(r.valor_inicio) + n(r.compras) + n(r.nacimientos_y_otros_ingresos) + n(r.transformacion_biologica) + n(r.precio_mercado) - n(r.cosechas) - n(r.bajas) - n(r.depreciacion_y_deterioro) + n(r.asientos_trasladados_por_cierre);",
               "  pm.expect(Math.abs(c - n(r.valor_cierre)), 'activo ' + r.identificador + ': ' + c.toFixed(2) + ' vs ' + n(r.valor_cierre)).to.be.at.most(0.01); }); });",
               "const porEsp = {}; rf.forEach(r => { porEsp[r.especie] = porEsp[r.especie] || { n: 0, v: 0 }; porEsp[r.especie].n++; porEsp[r.especie].v += n(r.valor_cierre); });",
               "pm.test(\"TC-92-022/023 la suma individual coincide con la agregacion por especie\", () => { (k.parr_41_43_descripcion || []).forEach(d => { const p = porEsp[d.especie] || { n: 0, v: 0 }; pm.expect(d.cantidad_activos, d.especie).to.eql(p.n); pm.expect(Math.abs(n(d.valor_cierre) - p.v), d.especie).to.be.at.most(0.01); }); });",
-              "pm.test(\"TC-92-024 agregacion por categoria\", () => { (k.parr_41_43_descripcion || []).forEach(d => pm.expect(d, d.especie).to.have.property('categoria')); });",
+              "pm.test(\"TC-92-024 agregacion por especie o categoria (RF-92: «especie o categoría»)\", () => { (k.parr_41_43_descripcion || []).forEach(d => pm.expect(d.categoria || d.especie, \"agrupacion de \" + JSON.stringify(d.especie)).to.be.ok); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]
@@ -216,27 +320,82 @@
           }
         ],
         "url": {
-          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_APROBADO}}",
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_G62}}",
           "host": [
             "{{base_url}}"
           ],
           "path": [
             "finanzas",
             "revelaciones",
-            "{{inf_APROBADO}}"
+            "{{inf_G62}}"
           ]
         }
       }
     },
     {
-      "name": "TC-92-018..024 Cuadre del rollforward (BORRADOR)",
+      "name": "TC-92-018 Aprobar el informe nuevo [escritura] (dentro del sandbox, se revierte)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('inf_BORRADOR')) { console.log('PRECONDICION NO DISPONIBLE: no hay informe BORRADOR en TEST'); pm.execution.skipRequest(); }"
+              "if (!pm.collectionVariables.get('inf_G62')) { console.log('PRECONDICION NO DISPONIBLE: no se genero el informe (escritura no autorizada)'); pm.execution.skipRequest(); }",
+              "if (pm.collectionVariables.get('sandbox_activo') !== 'SI') { console.log('ESCRITURA OMITIDA: requiere --env-var permitir_escritura=SI, --env-var sandbox_secret=... y el sandbox activo en TEST'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200 al aprobar\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_G62}}/resolucion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "revelaciones",
+            "{{inf_G62}}",
+            "resolucion"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"aprobar\":true}"
+        }
+      }
+    },
+    {
+      "name": "TC-92-018..024 Cuadre del rollforward (informe nuevo, APROBADO)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('inf_G62')) { console.log('PRECONDICION NO DISPONIBLE: no se genero el informe (escritura no autorizada)'); pm.execution.skipRequest(); }"
             ]
           }
         },
@@ -250,11 +409,11 @@
               "const k = j.contenido || {};",
               "const n = (v) => Number(v || 0);",
               "const rf = k.parr_50_conciliacion || [];",
-              "pm.test(\"TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas = cierre\", () => { rf.forEach(r => { const c = n(r.valor_inicio) + n(r.compras) + n(r.nacimientos_y_otros_ingresos) + n(r.transformacion_biologica) + n(r.precio_mercado) - n(r.cosechas) - n(r.bajas) - n(r.depreciacion_y_deterioro);",
+              "pm.test(\"TC-92-018..021 cada activo cuadra: inicio + entradas +/- variaciones - salidas = cierre\", () => { rf.forEach(r => { const c = n(r.valor_inicio) + n(r.compras) + n(r.nacimientos_y_otros_ingresos) + n(r.transformacion_biologica) + n(r.precio_mercado) - n(r.cosechas) - n(r.bajas) - n(r.depreciacion_y_deterioro) + n(r.asientos_trasladados_por_cierre);",
               "  pm.expect(Math.abs(c - n(r.valor_cierre)), 'activo ' + r.identificador + ': ' + c.toFixed(2) + ' vs ' + n(r.valor_cierre)).to.be.at.most(0.01); }); });",
               "const porEsp = {}; rf.forEach(r => { porEsp[r.especie] = porEsp[r.especie] || { n: 0, v: 0 }; porEsp[r.especie].n++; porEsp[r.especie].v += n(r.valor_cierre); });",
               "pm.test(\"TC-92-022/023 la suma individual coincide con la agregacion por especie\", () => { (k.parr_41_43_descripcion || []).forEach(d => { const p = porEsp[d.especie] || { n: 0, v: 0 }; pm.expect(d.cantidad_activos, d.especie).to.eql(p.n); pm.expect(Math.abs(n(d.valor_cierre) - p.v), d.especie).to.be.at.most(0.01); }); });",
-              "pm.test(\"TC-92-024 agregacion por categoria\", () => { (k.parr_41_43_descripcion || []).forEach(d => pm.expect(d, d.especie).to.have.property('categoria')); });",
+              "pm.test(\"TC-92-024 agregacion por especie o categoria (RF-92: «especie o categoría»)\", () => { (k.parr_41_43_descripcion || []).forEach(d => pm.expect(d.categoria || d.especie, \"agrupacion de \" + JSON.stringify(d.especie)).to.be.ok); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]
@@ -274,14 +433,69 @@
           }
         ],
         "url": {
-          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_BORRADOR}}",
+          "raw": "{{base_url}}/finanzas/revelaciones/{{inf_G62}}",
           "host": [
             "{{base_url}}"
           ],
           "path": [
             "finanzas",
             "revelaciones",
-            "{{inf_BORRADOR}}"
+            "{{inf_G62}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Cerrar sandbox (rollback)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('sandbox_activo') !== 'SI') { console.log('SANDBOX NO ACTIVO: nada que revertir'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.test(\"Rollback exitoso\", () => { pm.expect(j.status).to.eql('Rollback exitoso'); });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/test-control/runs/{{run_sandbox}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test-control",
+            "runs",
+            "{{run_sandbox}}"
           ]
         }
       }
@@ -295,6 +509,18 @@
     {
       "key": "permitir_escritura",
       "value": "NO"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "sandbox_activo",
+      "value": ""
+    },
+    {
+      "key": "run_sandbox",
+      "value": ""
     },
     {
       "key": "tok_cont",

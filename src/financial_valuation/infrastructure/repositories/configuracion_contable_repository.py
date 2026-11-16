@@ -2,6 +2,9 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84/88/109: configuración contable, costos de venta y matriz |
 # | 2026-11-12 | Arekkazu | M06 RF-82: 403 si la RLS oculta la configuración contable (antes 500) |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región, con GENERAL de respaldo |
+# | 2026-11-15 | Arekkazu | INC-M06-365-G21 RF-84: una región agrupada («Huila - Tolima») vale para cada uno de sus departamentos |
+# | 2026-11-15 | Arekkazu | QA-M06 CU08 H-02 RF-89: productos de cada especie para el precio, sin el permiso de métricas |
 """Implementación SQL de :class:`ConfiguracionContableRepository`."""
 from __future__ import annotations
 
@@ -23,6 +26,10 @@ from src.financial_valuation.domain.value_objects.nic41 import REGION_GENERAL
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
 from src.shared.errors import AuthorizationError
 
+
+def _region(expr: str) -> str:
+    """La región se compara sin mayúsculas, espacios de borde ni tildes: «Córdoba» = «cordoba»."""
+    return f"translate(lower(btrim({expr})), 'áéíóúüñ', 'aeiouun')"
 
 
 class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository):
@@ -57,7 +64,12 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
     def listar_parametros_especie(self) -> list[dict]:
         return filas(self.db, """
             SELECT e.id_especie, e.nombre AS especie, p.clasificacion::text AS clasificacion,
-                   p.categoria_precio::text AS categoria_precio, p.vida_util_meses, p.fecha_actualizacion
+                   p.categoria_precio::text AS categoria_precio, p.vida_util_meses, p.fecha_actualizacion,
+                   -- CU08 H-02: quien registra precios no siempre lee Configuración → Métricas.
+                   COALESCE((SELECT json_agg(json_build_object('id_metrica_produccion', m.id_metrica_produccion,
+                                     'nombre', m.nombre, 'unidad_medida', m.unidad_medida) ORDER BY m.nombre)
+                             FROM modulo9.metricas_produccion m WHERE m.id_especie = e.id_especie AND m.es_activo),
+                            '[]'::json) AS productos
             FROM modulo9.especies e
             LEFT JOIN modulo6.parametros_contables_especies p ON p.id_especie = e.id_especie
             WHERE e.es_activo ORDER BY e.nombre""")
@@ -72,11 +84,16 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         """, {"e": parametro.id_especie, "c": parametro.clasificacion, "cat": parametro.categoria_precio,
               "v": parametro.vida_util_meses, "u": id_usuario})
 
-    def costos_venta_vigentes(self, id_especie: int) -> Optional[ParametroCostosVenta]:
-        f = fila(self.db, """SELECT id_parametro_costo_venta, id_especie, region, pct_transporte, pct_comisiones, pct_impuestos
-                             FROM modulo6.parametros_costos_venta
-                             WHERE id_especie = :e AND region = :r AND es_activo""",
-                 {"e": id_especie, "r": REGION_GENERAL})
+    def costos_venta_vigentes(self, id_especie: int, region: Optional[str] = None) -> Optional[ParametroCostosVenta]:
+        # Una región agrupada («Huila - Tolima») vale para cada departamento que nombra; la exacta gana a la agrupada
+        # y las dos al GENERAL.
+        depto = _region("CAST(:r AS varchar)")
+        f = fila(self.db, f"""SELECT id_parametro_costo_venta, id_especie, region, pct_transporte, pct_comisiones, pct_impuestos
+                              FROM modulo6.parametros_costos_venta
+                              WHERE id_especie = :e AND es_activo AND (region = :g
+                                    OR {depto} = ANY(regexp_split_to_array({_region('region')}, '\\s*[-,/]\\s*')))
+                              ORDER BY region = :g, {_region('region')} <> {depto} LIMIT 1""",
+                 {"e": id_especie, "r": region, "g": REGION_GENERAL})
         return ParametroCostosVenta(**f) if f else None
 
     def listar_costos_venta(self) -> list[dict]:
@@ -87,12 +104,15 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
             ORDER BY e.nombre, p.fecha_creacion DESC""")
 
     def guardar_costos_venta(self, id_especie, region, pct_transporte, pct_comisiones, pct_impuestos, id_usuario) -> int:
-        escribir(self.db, """UPDATE modulo6.parametros_costos_venta SET es_activo = false
-                             WHERE id_especie = :e AND region = :r AND es_activo""", {"e": id_especie, "r": region})
+        escribir(self.db, f"""UPDATE modulo6.parametros_costos_venta SET es_activo = false
+                              WHERE id_especie = :e AND es_activo AND {_region('region')} = {_region('CAST(:r AS varchar)')}""",
+                 {"e": id_especie, "r": region})
+        # clock_timestamp(): la cola retoma una cosecha pendiente si el parámetro es posterior a su último intento, y
+        # now() da la misma hora a toda la transacción (INC-M06-363-G27).
         return escribir(self.db, """
             INSERT INTO modulo6.parametros_costos_venta (id_especie, region, pct_transporte, pct_comisiones, pct_impuestos,
-                                                         es_activo, id_usuario)
-            VALUES (:e, :r, :t, :c, :i, true, :u) RETURNING id_parametro_costo_venta
+                                                         es_activo, id_usuario, fecha_creacion)
+            VALUES (:e, :r, :t, :c, :i, true, :u, clock_timestamp()) RETURNING id_parametro_costo_venta
         """, {"e": id_especie, "r": region, "t": pct_transporte, "c": pct_comisiones, "i": pct_impuestos, "u": id_usuario})
 
     def resolver_cuenta(self, tipo_hecho, sentido, id_especie, subtipo_costo) -> Optional[AsignacionCuenta]:

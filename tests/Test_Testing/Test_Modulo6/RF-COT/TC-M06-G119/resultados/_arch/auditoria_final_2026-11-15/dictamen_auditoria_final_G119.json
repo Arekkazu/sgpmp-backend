@@ -1,0 +1,236 @@
+{
+  "caso": "TC-M06-G119",
+  "fase": "auditoria_final_solo_lectura_2026-11-15",
+  "fecha_utc": "2026-11-15T07:54:53.829209+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "rama": "laura",
+  "escritura_ejecutada": false,
+  "estado_oficial_no_modificado": true,
+  "tc_m06_51": {
+    "estado": "PENDIENTE DE EJECUCIÓN",
+    "cotizacion_6": {
+      "id_cotizacion": 6,
+      "estado": "COTIZADO",
+      "version": 1,
+      "activos_cotizados": [
+        1571
+      ],
+      "fecha_emision": "2026-11-08",
+      "fecha_vencimiento": null,
+      "motivo_anulacion": null,
+      "id_periodo_contable": 220,
+      "estado_periodo": "ABIERTO",
+      "valor_cotizacion_propuesto": "3900000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "fecha_actualizacion": null,
+      "fecha_registro": "2026-11-08T21:25:14.590377Z"
+    },
+    "activo_1571": {
+      "http": 200,
+      "ruta": "/finanzas/activos/1571",
+      "identificador": "QA-M06O-VR-03",
+      "estado": "ACTIVO",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "valor_razonable_neto": "3760000.0000",
+      "fecha_calculo": "2026-11-08T21:25:06.574099Z"
+    },
+    "evento_COTIZACION_ANULADA": [],
+    "motivo": "POST /finanzas/cotizaciones/6/anulacion no ejecutado. Cotización sigue COTIZADO v1. Sin motivo ni evento ANULADA."
+  },
+  "tc_m06_52": {
+    "estado": "APROBADO",
+    "confirmacion_historica": "CONFIRMADA",
+    "cotizacion_7": {
+      "id_cotizacion": 7,
+      "estado": "VENCIDA",
+      "version": 2,
+      "activos_cotizados": [
+        1570
+      ],
+      "fecha_emision": "2026-11-08",
+      "fecha_vencimiento": "2026-11-08",
+      "motivo_anulacion": null,
+      "id_periodo_contable": 220,
+      "estado_periodo": "ABIERTO",
+      "valor_cotizacion_propuesto": "3800000.0000",
+      "valor_razonable_referencia": "3760000.0000",
+      "fecha_actualizacion": "2026-11-09T00:00:06.613021Z",
+      "fecha_registro": "2026-11-08T21:25:15.761785Z"
+    },
+    "activo_1570": {
+      "http": 200,
+      "ruta": "/finanzas/activos/1570",
+      "identificador": "QA-M06O-VR-02",
+      "estado": "ACTIVO",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "valor_razonable_neto": "3760000.0000",
+      "fecha_calculo": "2026-11-08T21:25:04.061875Z"
+    },
+    "evento": {
+      "id_evento": 7098,
+      "tipo_evento": "COTIZACION_VENCIDA",
+      "id_referencia": 7,
+      "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+      "tipo_actor": "SISTEMA",
+      "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+      "id_usuario": null,
+      "severidad": null
+    }
+  },
+  "dictamen_global": "PARCIALMENTE APROBADO",
+  "grupo_aprobado_completo": false,
+  "matriz": [
+    {
+      "id": "51.1",
+      "criterio": "Cotización 6 inicialmente COTIZADO",
+      "resultado": "CUMPLE",
+      "evidencia": "snapshot cotizaciones.6; historico preparacion/ultima_evaluacion"
+    },
+    {
+      "id": "51.2",
+      "criterio": "Anulación exitosa con motivo obligatorio",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "POST no ejecutado; solicitud_anulacion_preparada_G119.json ejecutado=false; sin COTIZACION_ANULADA ref 6"
+    },
+    {
+      "id": "51.3",
+      "criterio": "Estado final ANULADA",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "estado actual=COTIZADO"
+    },
+    {
+      "id": "51.4",
+      "criterio": "Motivo persistido y conservado",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "motivo_anulacion=None"
+    },
+    {
+      "id": "51.5",
+      "criterio": "Evento COTIZACION_ANULADA registrado en RF-94",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "eventos ref6 count=0"
+    },
+    {
+      "id": "51.6",
+      "criterio": "Segundo intento rechazado por irreversibilidad",
+      "resultado": "PENDIENTE DE EJECUCIÓN",
+      "evidencia": "Sin evidencia de segundo POST; no ejecutado en esta auditoría"
+    },
+    {
+      "id": "51.7",
+      "criterio": "Activo 1571 sin cambios de estado ni valoración",
+      "resultado": "NO VERIFICABLE",
+      "evidencia": "baseline actual estado=ACTIVO VR=3760000.0000; falta par antes/después de anulación"
+    },
+    {
+      "id": "51.8",
+      "criterio": "Sin efectos contables indebidos",
+      "resultado": "NO VERIFICABLE",
+      "evidencia": "Anulación no ejecutada; contrato: anulación solo cambia estado + auditoría"
+    },
+    {
+      "id": "52.1",
+      "criterio": "Cotización 7 estado VENCIDA",
+      "resultado": "CUMPLE",
+      "evidencia": "estado=VENCIDA version=2"
+    },
+    {
+      "id": "52.2",
+      "criterio": "Versión 1 → 2",
+      "resultado": "CUMPLE",
+      "evidencia": "version=2; fecha_actualizacion=2026-11-09T00:00:06.613021Z"
+    },
+    {
+      "id": "52.3",
+      "criterio": "Evento COTIZACION_VENCIDA 7098 actor SISTEMA",
+      "resultado": "CUMPLE",
+      "evidencia": [
+        {
+          "id_evento": 7098,
+          "tipo_evento": "COTIZACION_VENCIDA",
+          "id_referencia": 7,
+          "timestamp_evento": "2026-11-09T00:00:06.613021Z",
+          "tipo_actor": "SISTEMA",
+          "id_sistema": "M06_VENCIMIENTO_COTIZACIONES",
+          "id_usuario": null,
+          "severidad": null
+        }
+      ]
+    },
+    {
+      "id": "52.4",
+      "criterio": "Activo 1570 ACTIVO VR 3.760.000 sin cambio",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 200,
+        "ruta": "/finanzas/activos/1570",
+        "identificador": "QA-M06O-VR-02",
+        "estado": "ACTIVO",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "valor_razonable_neto": "3760000.0000",
+        "fecha_calculo": "2026-11-08T21:25:04.061875Z"
+      }
+    },
+    {
+      "id": "52.5",
+      "criterio": "Evidencia histórica disponible y consistente",
+      "resultado": "CUMPLE",
+      "evidencia": "resultados/ultima_evaluacion/evidencia_escenario_tc52_TC-M06-G119.json"
+    }
+  ],
+  "contrato_anulacion": {
+    "endpoint": "POST /finanzas/cotizaciones/{id}/anulacion",
+    "openapi": {
+      "path": "/finanzas/cotizaciones/{id_cotizacion}/anulacion",
+      "methods": [
+        "post"
+      ],
+      "summary": "Anular una cotización (irrevocable)",
+      "operationId": "anular_cotizacion_finanzas_cotizaciones__id_cotizacion__anulacion_post"
+    },
+    "dto": "AnularCotizacionDTO: version>=1, motivo_anulacion min_length=20",
+    "permiso": "cotizaciones / desactivar (D)",
+    "reglas": [
+      "Solo estado COTIZADO y periodo no CERRADO",
+      "Pasa a ANULADA y persiste motivo",
+      "Evento COTIZACION_ANULADA id_referencia=id_cotizacion",
+      "Sin ruta de reactivación",
+      "Estado distinto de COTIZADO → 422 COTIZACION_NO_MODIFICABLE"
+    ],
+    "codigo": "src/financial_valuation/application/use_cases/cotizaciones/modificar_cotizacion_use_case.py"
+  },
+  "solicitud_autorizacion_tc51": {
+    "endpoint": "POST /finanzas/cotizaciones/6/anulacion",
+    "body": {
+      "version": 1,
+      "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+    },
+    "segundo_intento_esperado": {
+      "http": 422,
+      "code": "COTIZACION_NO_MODIFICABLE"
+    },
+    "periodo_220": "ABIERTO",
+    "impacto_esperado": [
+      "estado COTIZADO → ANULADA",
+      "version 1 → 2",
+      "motivo_anulacion persistido",
+      "evento COTIZACION_ANULADA (RF-94) id_referencia=6",
+      "activo 1571 sin cambio de estado ni valoración",
+      "sin asientos contables",
+      "segundo POST → 422 COTIZACION_NO_MODIFICABLE"
+    ],
+    "riesgos": [
+      "Operación irreversible: no hay reactivación",
+      "Consume la única cotización COTIZADO aislada (id 6) para TC-51",
+      "Coordinar con G118 si aún depende de no tocar activo 1571 / cotización 6"
+    ]
+  },
+  "evidencias": {
+    "snapshot": "C:\\Users\\ll529\\OneDrive\\Documentos\\proyecto_integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo6\\RF-COT\\TC-M06-G119\\resultados\\auditoria_final_2026-11-15\\snapshot_solo_lectura_G119.json",
+    "matriz": "C:\\Users\\ll529\\OneDrive\\Documentos\\proyecto_integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo6\\RF-COT\\TC-M06-G119\\resultados\\auditoria_final_2026-11-15\\matriz_criterios_G119.json",
+    "dictamen": "C:\\Users\\ll529\\OneDrive\\Documentos\\proyecto_integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo6\\RF-COT\\TC-M06-G119\\resultados\\auditoria_final_2026-11-15\\dictamen_auditoria_final_G119.json",
+    "informe": "C:\\Users\\ll529\\OneDrive\\Documentos\\proyecto_integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo6\\RF-COT\\TC-M06-G119\\resultados\\auditoria_final_2026-11-15\\DICTAMEN_AUDITORIA_FINAL_G119.md",
+    "historico_tc52": "resultados/ultima_evaluacion/evidencia_escenario_tc52_TC-M06-G119.json",
+    "solicitud_prep": "resultados/preparacion/solicitud_anulacion_preparada_G119.json"
+  }
+}

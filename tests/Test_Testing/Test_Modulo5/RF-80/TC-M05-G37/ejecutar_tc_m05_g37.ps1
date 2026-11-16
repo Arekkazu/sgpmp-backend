@@ -2,6 +2,7 @@
 # |------------|--------------------------|----------------------------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G37 RF-80: runner Pytest con staging de evidencias                              |
 # | 2026-11-11 | Juan Sebastian Gutierrez | Ajuste v2.0: sufijo _reintentoN, escaneo sin reescritura, prefijo concatenado, ASCII   |
+# | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 2: control de despliegue previo, integridad de G37/resultados/G38-G43, escaneo antes de integridad |
 <#
 .SYNOPSIS
   Ejecuta TC-M05-G37 (RF-80 v2.0, Persistencia y Clasificacion de Eventos) contra TEST.
@@ -9,12 +10,13 @@
 .DESCRIPTION
   - Carga .env.test del repo en las variables de entorno del PROCESO.
   - Verifica variables obligatorias para Admin y Sandbox.
-  - Valida integridad de suites previas G14-G25.
+  - Control de despliegue en TEST (verificar_despliegue_g37.py): si el PR #1145 no esta desplegado, exit 3 sin ejecutar pytest.
+  - Valida integridad (SHA-256) de suites previas G14-G25, G38-G43, de los scripts de G37 y de resultados/.
   - Crea el staging evidencias\run-<yyyyMMdd-HHmmss>\ y define TEST_EVIDENCE_DIR.
   - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML (con sufijo _reintentoN si aplica).
   - Genera artefactos derivados via generar_artefactos_run_g37.py (sin tocar resultados/).
   - Escaneo de reporte de secretos post-corrida sin reescritura de artefactos (exit 4 si hay hallazgos).
-  - Valida nuevamente integridad de suites previas.
+  - Valida nuevamente la integridad, DESPUES del escaneo (exit 5 si algo cambio).
 #>
 param(
     [int]$Reintento = 0
@@ -51,6 +53,18 @@ $g15Runner   = Join-Path $rf76Dir 'TC-M05-G15\ejecutar_tc_m05_g15.ps1'
 $g14Script   = Join-Path $rf76Dir 'TC-M05-G14\test_tc_m05_g14.py'
 $g14Runner   = Join-Path $rf76Dir 'TC-M05-G14\ejecutar_tc_m05_g14.ps1'
 $generadorPy = Join-Path $tcDir 'generar_artefactos_run_g37.py'
+$verificador = Join-Path $tcDir 'verificar_despliegue_g37.py'
+$runnerPs1   = Join-Path $tcDir 'ejecutar_tc_m05_g37.ps1'
+$resultadosDir = Join-Path $tcDir 'resultados'
+$rf80Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-80'
+$rf81Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-81'
+$otrasSuites = @(
+    (Join-Path $rf80Dir 'TC-M05-G38\test_tc_m05_g38.py'), (Join-Path $rf80Dir 'TC-M05-G38\ejecutar_tc_m05_g38.ps1'), (Join-Path $rf80Dir 'TC-M05-G38\generar_artefactos_run_g38.py'),
+    (Join-Path $rf80Dir 'TC-M05-G39\test_tc_m05_g39.py'), (Join-Path $rf80Dir 'TC-M05-G39\ejecutar_tc_m05_g39.ps1'), (Join-Path $rf80Dir 'TC-M05-G39\generar_artefactos_run_g39.py'),
+    (Join-Path $rf80Dir 'TC-M05-G40\test_tc_m05_g40.py'), (Join-Path $rf80Dir 'TC-M05-G40\ejecutar_tc_m05_g40.ps1'), (Join-Path $rf80Dir 'TC-M05-G40\generar_artefactos_run_g40.py'),
+    (Join-Path $rf81Dir 'TC-M05-G42\test_tc_m05_g42.py'), (Join-Path $rf81Dir 'TC-M05-G42\ejecutar_tc_m05_g42.ps1'), (Join-Path $rf81Dir 'TC-M05-G42\generar_artefactos_run_g42.py'),
+    (Join-Path $rf81Dir 'TC-M05-G43\test_tc_m05_g43.py'), (Join-Path $rf81Dir 'TC-M05-G43\ejecutar_tc_m05_g43.ps1'), (Join-Path $rf81Dir 'TC-M05-G43\generar_artefactos_run_g43.py')
+)
 
 if (-not (Test-Path -LiteralPath $prueba)) {
     Write-Host "FALTA el script de prueba: $prueba" -ForegroundColor Red
@@ -118,6 +132,18 @@ $shaG15RunnerIni = Obtener-Sha256 $g15Runner
 $shaG14ScriptIni = Obtener-Sha256 $g14Script
 $shaG14RunnerIni = Obtener-Sha256 $g14Runner
 
+# Integridad adicional: G38-G43, scripts propios de G37 y resultados/ (no deben cambiar durante la corrida)
+function Obtener-MapaSha([string[]]$archivos) {
+    $mapa = [ordered]@{}
+    foreach ($f in $archivos) { $mapa[$f] = Obtener-Sha256 $f }
+    return $mapa
+}
+$archivosExtra = New-Object 'System.Collections.Generic.List[string]'
+foreach ($f in $otrasSuites) { $archivosExtra.Add($f) }
+foreach ($f in @($prueba, $runnerPs1, $generadorPy, $verificador)) { $archivosExtra.Add($f) }
+foreach ($f in @(Get-ChildItem -LiteralPath $resultadosDir -File | Sort-Object Name)) { $archivosExtra.Add($f.FullName) }
+$mapaExtraIni = Obtener-MapaSha ([string[]]$archivosExtra)
+
 # --- Creacion del directorio de staging (sin tocar resultados/)
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runId     = "run-$timestamp"
@@ -127,6 +153,25 @@ $staging   = Join-Path $evidencias $runId
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
 
 $sufijo      = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
+
+# --- Localizacion de python en venv
+$venvPython = Join-Path $repo '.venv\Scripts\python.exe'
+$pythonCmd  = if (Test-Path -LiteralPath $venvPython) { $venvPython } else { 'python' }
+
+# --- Control de despliegue en TEST (solo lectura; sin login)
+$controlTxt = Join-Path $staging "CONTROL_DESPLIEGUE_G37$sufijo.txt"
+if (-not (Test-Path -LiteralPath $verificador)) {
+    Write-Host "FALTA el verificador de despliegue: $verificador" -ForegroundColor Red
+    exit 2
+}
+& $pythonCmd -B $verificador --salida $controlTxt
+$codigoDespliegue = $LASTEXITCODE
+if ($codigoDespliegue -ne 0) {
+    Write-Host "CONTROL DE DESPLIEGUE: codigo $codigoDespliegue. NO se ejecuta pytest. Ver $controlTxt" -ForegroundColor Red
+    exit 3
+}
+Write-Host 'Control de despliegue: PR #1145 desplegado en TEST'
+
 $htmlReport  = Join-Path $staging "resultado_TC-M05-G37$sufijo.html"
 $xmlReport   = Join-Path $staging "resultado_TC-M05-G37$sufijo.xml"
 $consolaLog  = Join-Path $staging 'console_execution.log'
@@ -140,10 +185,6 @@ Write-Host '============================================================'
 Write-Host "Ejecutando TC-M05-G37 (RF-80 v2.0: Persistencia y Clasificacion) Reintento=$Reintento"
 Write-Host "Staging: $staging"
 Write-Host '============================================================'
-
-# --- Localizacion de python en venv
-$venvPython = Join-Path $repo '.venv\Scripts\python.exe'
-$pythonCmd  = if (Test-Path -LiteralPath $venvPython) { $venvPython } else { 'python' }
 
 $cronometro = [System.Diagnostics.Stopwatch]::StartNew()
 $prevPref = $ErrorActionPreference
@@ -169,43 +210,6 @@ if (Test-Path -LiteralPath $generadorPy) {
     & $pythonCmd -B $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS --reintento $Reintento
 }
 
-# --- Verificacion de integridad de suites previas
-$shaG25ScriptFin = Obtener-Sha256 $g25Script
-$shaG25RunnerFin = Obtener-Sha256 $g25Runner
-$shaG24ScriptFin = Obtener-Sha256 $g24Script
-$shaG24RunnerFin = Obtener-Sha256 $g24Runner
-$shaG22ScriptFin = Obtener-Sha256 $g22Script
-$shaG22RunnerFin = Obtener-Sha256 $g22Runner
-$shaG21ScriptFin = Obtener-Sha256 $g21Script
-$shaG21RunnerFin = Obtener-Sha256 $g21Runner
-$shaG20ScriptFin = Obtener-Sha256 $g20Script
-$shaG20RunnerFin = Obtener-Sha256 $g20Runner
-$shaG19ScriptFin = Obtener-Sha256 $g19Script
-$shaG19RunnerFin = Obtener-Sha256 $g19Runner
-$shaG17ScriptFin = Obtener-Sha256 $g17Script
-$shaG17RunnerFin = Obtener-Sha256 $g17Runner
-$shaG16ScriptFin = Obtener-Sha256 $g16Script
-$shaG16RunnerFin = Obtener-Sha256 $g16Runner
-$shaG15ScriptFin = Obtener-Sha256 $g15Script
-$shaG15RunnerFin = Obtener-Sha256 $g15Runner
-$shaG14ScriptFin = Obtener-Sha256 $g14Script
-$shaG14RunnerFin = Obtener-Sha256 $g14Runner
-
-if ($shaG25ScriptIni -ne $shaG25ScriptFin -or $shaG25RunnerIni -ne $shaG25RunnerFin -or
-    $shaG24ScriptIni -ne $shaG24ScriptFin -or $shaG24RunnerIni -ne $shaG24RunnerFin -or
-    $shaG22ScriptIni -ne $shaG22ScriptFin -or $shaG22RunnerIni -ne $shaG22RunnerFin -or
-    $shaG21ScriptIni -ne $shaG21ScriptFin -or $shaG21RunnerIni -ne $shaG21RunnerFin -or
-    $shaG20ScriptIni -ne $shaG20ScriptFin -or $shaG20RunnerIni -ne $shaG20RunnerFin -or
-    $shaG19ScriptIni -ne $shaG19ScriptFin -or $shaG19RunnerIni -ne $shaG19RunnerFin -or
-    $shaG17ScriptIni -ne $shaG17ScriptFin -or $shaG17RunnerIni -ne $shaG17RunnerFin -or
-    $shaG16ScriptIni -ne $shaG16ScriptFin -or $shaG16RunnerIni -ne $shaG16RunnerFin -or
-    $shaG15ScriptIni -ne $shaG15ScriptFin -or $shaG15RunnerIni -ne $shaG15RunnerFin -or
-    $shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14RunnerFin) {
-    Write-Host 'ERROR CRITICO: Una suite previa fue modificada durante la ejecucion!' -ForegroundColor Red
-    exit 5
-}
-Write-Host 'Integridad de suites previas G14-G25: 100% OK'
-
 # --- Escaneo estricto de secretos (solo reporte, SIN reescribir artefactos)
 $clavesEnv = @(
     'TEST_ADMIN_PASSWORD',
@@ -216,7 +220,9 @@ $clavesEnv = @(
     'TEST_SANDBOX_SECRET',
     'BROKER_SERVICE_TOKEN',
     'TEST_ADMIN_EMAIL',
-    'TEST_VET_EMAIL'
+    'TEST_VET_EMAIL',
+    'TEST_PRODUCER_EMAIL',
+    'TEST_FIELD_ENGINEER_EMAIL'
 )
 $patronesNombrados = New-Object 'System.Collections.Generic.List[hashtable]'
 foreach ($k in $clavesEnv) {
@@ -250,8 +256,65 @@ $jwtPrefijo = $null
 
 if ($hallazgos -gt 0) {
     Write-Host 'ARTEFACTOS CON SECRETOS: NO PROMOVER' -ForegroundColor Red
-    exit 4
+} else {
+    Write-Host 'Escaneo de secretos en staging: LIMPIO (0 hallazgos)'
 }
-Write-Host 'Escaneo de secretos en staging: LIMPIO (0 hallazgos)'
 
+# --- Verificacion de integridad (despues del escaneo de secretos)
+$integridadOk = $true
+$shaG25ScriptFin = Obtener-Sha256 $g25Script
+$shaG25RunnerFin = Obtener-Sha256 $g25Runner
+$shaG24ScriptFin = Obtener-Sha256 $g24Script
+$shaG24RunnerFin = Obtener-Sha256 $g24Runner
+$shaG22ScriptFin = Obtener-Sha256 $g22Script
+$shaG22RunnerFin = Obtener-Sha256 $g22Runner
+$shaG21ScriptFin = Obtener-Sha256 $g21Script
+$shaG21RunnerFin = Obtener-Sha256 $g21Runner
+$shaG20ScriptFin = Obtener-Sha256 $g20Script
+$shaG20RunnerFin = Obtener-Sha256 $g20Runner
+$shaG19ScriptFin = Obtener-Sha256 $g19Script
+$shaG19RunnerFin = Obtener-Sha256 $g19Runner
+$shaG17ScriptFin = Obtener-Sha256 $g17Script
+$shaG17RunnerFin = Obtener-Sha256 $g17Runner
+$shaG16ScriptFin = Obtener-Sha256 $g16Script
+$shaG16RunnerFin = Obtener-Sha256 $g16Runner
+$shaG15ScriptFin = Obtener-Sha256 $g15Script
+$shaG15RunnerFin = Obtener-Sha256 $g15Runner
+$shaG14ScriptFin = Obtener-Sha256 $g14Script
+$shaG14RunnerFin = Obtener-Sha256 $g14Runner
+
+if ($shaG25ScriptIni -ne $shaG25ScriptFin -or $shaG25RunnerIni -ne $shaG25RunnerFin -or
+    $shaG24ScriptIni -ne $shaG24ScriptFin -or $shaG24RunnerIni -ne $shaG24RunnerFin -or
+    $shaG22ScriptIni -ne $shaG22ScriptFin -or $shaG22RunnerIni -ne $shaG22RunnerFin -or
+    $shaG21ScriptIni -ne $shaG21ScriptFin -or $shaG21RunnerIni -ne $shaG21RunnerFin -or
+    $shaG20ScriptIni -ne $shaG20ScriptFin -or $shaG20RunnerIni -ne $shaG20RunnerFin -or
+    $shaG19ScriptIni -ne $shaG19ScriptFin -or $shaG19RunnerIni -ne $shaG19RunnerFin -or
+    $shaG17ScriptIni -ne $shaG17ScriptFin -or $shaG17RunnerIni -ne $shaG17RunnerFin -or
+    $shaG16ScriptIni -ne $shaG16ScriptFin -or $shaG16RunnerIni -ne $shaG16RunnerFin -or
+    $shaG15ScriptIni -ne $shaG15ScriptFin -or $shaG15RunnerIni -ne $shaG15RunnerFin -or
+    $shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14RunnerFin) {
+    Write-Host 'ERROR CRITICO: Una suite previa G14-G25 fue modificada durante la ejecucion!' -ForegroundColor Red
+    $integridadOk = $false
+}
+$mapaExtraFin = Obtener-MapaSha ([string[]]$archivosExtra)
+foreach ($f in $mapaExtraIni.Keys) {
+    if ($mapaExtraIni[$f] -ne $mapaExtraFin[$f]) {
+        Write-Host "ERROR CRITICO: cambio durante la ejecucion: $f" -ForegroundColor Red
+        $integridadOk = $false
+    }
+}
+$resultadosFin = @(Get-ChildItem -LiteralPath $resultadosDir -File | ForEach-Object { $_.FullName })
+foreach ($f in $resultadosFin) {
+    if (-not $mapaExtraIni.Contains($f)) {
+        Write-Host "ERROR CRITICO: archivo nuevo en resultados/ durante la ejecucion: $f" -ForegroundColor Red
+        $integridadOk = $false
+    }
+}
+if ($integridadOk) {
+    Write-Host 'Integridad G14-G25, G38-G43, scripts G37 y resultados/: 100% OK'
+}
+
+
+if ($hallazgos -gt 0) { exit 4 }
+if (-not $integridadOk) { exit 5 }
 exit $codigoPytest

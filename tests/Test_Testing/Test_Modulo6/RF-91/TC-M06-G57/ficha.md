@@ -53,3 +53,8 @@ Fuente: `RF-91_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-11 (TC-
 - Roles: Administrador, Contador, Productor, Veterinario, Revisor Fiscal, Externo AgroFusion (auditor externo).
 - Sin escritura en TEST.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Ajuste del oráculo por RF-91 v1.2 / RFC-027 y release v3 (15/11/2026)
+- El «Auditor externo» es el rol **Revisor Fiscal**: los pasos TC-91-061, 062 y 063 usan su cuenta (404 en id inexistente, 403 en cadena de período abierto, 403 al iniciar verificación).
+- El rol «Externo AgroFusion» ya no existe en v3: se retiró su login y sus pasos.
+- **Administrador**: desarrollo lo dejó con todos los permisos de M06 (RFC-027 / decisión de Análisis pendiente). El paso «Administrador inicia verificación» espera 404/422 (permiso concedido, período inexistente) en vez de 403.

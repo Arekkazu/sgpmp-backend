@@ -3,6 +3,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82: el monto del mensaje en formato colombiano |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
 """INC-M06-317-G17 / RF-84 R3, FA-2: el valor neto ≤ 0 deja el cálculo en REVISION_REQUERIDA con alerta crítica
 y el Contador puede validarlo con justificación.
 
@@ -36,7 +37,7 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, V
 
 D = Decimal
 JUSTIFICACION = "Subasta con costos de transporte extraordinarios por cierre de la vía principal."
-ACTIVO = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, cabezas=1,
+ACTIVO = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, region=None, cabezas=1,
                          id_evento_peso=None, numero_id_tributaria="900123456", id_finca=3,
                          magnitud=lambda _c: (D("400"), "kg"))
 
@@ -45,7 +46,7 @@ def _valorar(costos_manuales):
     precio = Precio(id_precio_mercado=12, id_especie=2, categoria="PESO_KG", precio_unitario=D("25000"),
                     unidad_medida="kg", fuente="MERCADO_ACTIVO", fecha_vigencia=date(2026, 9, 1))
     config = SimpleNamespace(
-        costos_venta_vigentes=lambda _e: SimpleNamespace(pct_transporte=D("0.01"), pct_comisiones=D("0.02"),
+        costos_venta_vigentes=lambda _e, _r=None: SimpleNamespace(pct_transporte=D("0.01"), pct_comisiones=D("0.02"),
                                                          pct_impuestos=D("0"), id_parametro_costo_venta=1),
         parametro_especie=lambda _e: None)
     return Valorador(None, config).valorar(ACTIVO, date(2026, 11, 9), 0, 9, precio_congelado=precio,

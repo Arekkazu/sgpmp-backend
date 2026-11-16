@@ -6,6 +6,7 @@
 # | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
 # | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -279,6 +280,8 @@ class EventoBajaResponse(BaseModel):
     cantidad_afectada: int
     tipo: str
     motivo_baja: Optional[str]
+    valor_venta: Optional[Decimal] = None  # solo en una venta
+    referencia_venta: Optional[str] = None
 
     model_config = {'from_attributes': True}
 

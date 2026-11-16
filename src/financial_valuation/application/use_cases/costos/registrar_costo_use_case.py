@@ -3,6 +3,8 @@
 # | 2026-11-04 | Arekkazu | M06 RF-90 v2.0: costo manual con naturaleza, origen, factura y reparto |
 # | 2026-11-05 | Arekkazu | M06: mensajes sin códigos de módulo ni valores de enum |
 # | 2026-11-08 | Arekkazu | INC-M06-329-G85 RF-90: reparto sin participación positiva responde 422 antes de tocar el período |
+# | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
+# | 2026-11-15 | Arekkazu | QA-M06 CU09 H-02 RF-90: la fecha de la factura debe caer en el período abierto |
 """Caso de uso RF-90: registro manual de un costo (Contador o Administrador).
 
 Eje 1 (naturaleza, NIC 41) decide el tratamiento; eje 2 (origen) decide el vehículo:
@@ -24,6 +26,7 @@ from src.financial_valuation.application.services.contabilizador import Contabil
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria, LineaAsiento
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.domain.repositories.costo_repository import CostoRepository
+from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.nic41 import repartir
 from src.financial_valuation.domain.value_objects.nic41 import (
@@ -43,6 +46,7 @@ from src.financial_valuation.domain.value_objects.nic41 import (
 )
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 from src.shared.fechas import hoy_usuario
+from src.supplies.application.use_cases.exportacion.generador_archivos import moneda
 
 AVISO_FUENTE_UNICA = ("Esta factura llegará a la contabilidad por la exportación contable de SIGAB: no la registre manualmente en "
                       "SIGCON. Las compras de insumos para inventario general se registran directamente en SIGCON.")
@@ -72,12 +76,14 @@ class SolicitudCosto:
 
 class RegistrarCostoUseCase:
     def __init__(self, db: Session, costos: CostoRepository, activos: ActivoFinancieroPort,
-                 valoraciones: ValoracionRepository, contabilizador: Contabilizador) -> None:
+                 valoraciones: ValoracionRepository, contabilizador: Contabilizador,
+                 notificador: Optional[NotificacionFinancieraPort] = None) -> None:
         self.db = db
         self.costos = costos
         self.activos = activos
         self.valoraciones = valoraciones
         self.contabilizador = contabilizador
+        self.notificador = notificador
 
     def execute(self, s: SolicitudCosto, id_usuario: int) -> dict:
         if s.origen_costo == OrigenCosto.CONSUMO_INVENTARIO.value:  # FA-12
@@ -98,6 +104,10 @@ class RegistrarCostoUseCase:
         activos = self._activos(s)
         montos = self._repartir(s, activos)  # antes del período: un reparto inválido no deja efectos
         periodo = self.contabilizador.periodo_para(activos[0].numero_id_tributaria, s.fecha_costo, id_usuario)
+        if con_proveedor and not periodo.contiene(s.fecha_factura):  # CU09 H-02: dentro del período abierto
+            raise BusinessRuleError(code="FECHA_FACTURA_FUERA_PERIODO", field="fecha_factura", message=(
+                f"La fecha de la factura debe estar dentro del período abierto ({periodo.fecha_inicio:%d/%m/%Y} al "
+                f"{periodo.fecha_fin:%d/%m/%Y})."))
         if not periodo.contiene(s.fecha_costo):  # FA-4
             raise BusinessRuleError(code="PERIODO_CONTABLE_CERRADO", field="fecha_costo", message=(
                 "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto."))
@@ -124,6 +134,15 @@ class RegistrarCostoUseCase:
         except Exception:
             self.db.rollback()
             raise
+        if naturaleza == NaturalezaCosto.MANTENIMIENTO.value and self.notificador is not None:
+            # RF-84 paso 7 (INC-M06-366-G31): el mantenimiento es gasto del período, nunca costo de venta del cálculo.
+            nombres = ", ".join(a.identificador for a in activos)
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", (
+                f"El costo de {ETIQUETA_SUBTIPO.get(s.subtipo_costo, 'mantenimiento')} por {moneda(Decimal(s.monto_costo))} "
+                f"se registró como gasto del período ({nombres}). Los costos de mantenimiento no se descuentan del "
+                "valor razonable del activo."),
+                {"motivo": "COSTO_MANTENIMIENTO_GASTO", "ids_activos": [a.id_activo_biologico for a in activos]},
+                activos[0].id_finca)
         return {"registros": registros, "id_grupo_reparto": grupo,
                 "aviso": AVISO_FUENTE_UNICA if con_proveedor else None}
 

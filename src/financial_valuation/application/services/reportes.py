@@ -9,6 +9,9 @@
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: revelar supuestos y detectar datos insuficientes por activo. |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
+# | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: conciliación con los asientos que el cierre trasladó y riesgos climáticos, sanitarios y de mercado |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -78,9 +81,36 @@ FUENTES_SECCION = {
     "niif13_93_metodos_y_supuestos": (True, "Mediciones del valor razonable"),
     "niif13_93_precios_referencia": (True, "Precios de mercado"),
     "parr_49_restricciones_compromisos": (True, "Revelaciones ingresadas por el Contador"),
-    "parr_53_riesgos": (False, "Eventos sanitarios y bajas de los activos"),
+    "parr_53_riesgos": (False, "Alertas climáticas, eventos sanitarios, bajas y precios de mercado estimados"),
     "parr_54_56_activos_al_costo": (True, "Valoración por costo"),
 }
+
+# TC-M06-G64 (RF-92 proceso 4i, CA-5): las categorías climática, sanitaria y de mercado salen siempre, cada una con su
+# fuente, aunque el período no tenga eventos; las bajas, solo cuando las hubo.
+_CATEGORIAS_RIESGO = {
+    "CLIMATICO": ("Climático", "Alertas climáticas de Telemetría IoT"),
+    "SANITARIO": ("Sanitario", "Eventos sanitarios de Activos biológicos"),
+    "MERCADO": ("Mercado", "Mediciones con precio de mercado estimado por falta de precio vigente"),
+    "BAJA": ("Bajas", "Bajas de Activos biológicos"),
+}
+_TIPOS_RIESGO = {
+    "ESTRES_TERMICO": "Estrés térmico", "RIESGO_HIDRICO": "Riesgo hídrico", "FALLO_AMBIENTAL": "Condición ambiental fuera de rango",
+    "VACUNACION": "Vacunación", "TRATAMIENTO": "Tratamiento", "DIAGNOSTICO": "Diagnóstico", "CONTROL_PREVENTIVO": "Control preventivo",
+    "muerte": "Muerte", "venta": "Venta", "sacrificio": "Sacrificio", "perdida": "Pérdida", "descarte_sanitario": "Descarte sanitario",
+    "PRECIO_ESTIMADO": "Medición sin precio de mercado vigente",
+}
+
+
+def riesgos_del_periodo(filas: list[dict]) -> list[dict]:
+    salida = []
+    for codigo, (categoria, fuente) in _CATEGORIAS_RIESGO.items():
+        eventos = [{"categoria": categoria, "tipo": _TIPOS_RIESGO.get(f["tipo"], str(f["tipo"]).replace("_", " ").capitalize()),
+                    "cantidad": f["cantidad"], "fuente": fuente} for f in filas if f["categoria"] == codigo]
+        if not eventos and codigo != "BAJA":
+            eventos = [{"categoria": categoria, "tipo": "Sin eventos en el período", "cantidad": 0, "fuente": fuente}]
+        salida += eventos
+    return salida
+
 
 
 def estado_secciones(problemas: dict[str, list[tuple[bool, str]]]) -> list[dict]:
@@ -131,7 +161,9 @@ class ConstructorEstadoResultados:
         movimientos = self.reportes.movimientos(id_periodo_contable, consulta)
         costos = self.costos.del_periodo(id_periodo_contable, consulta)
         er = estado_resultados(
-            [MovimientoResultado(m["tipo_hecho"], m["sentido"], Decimal(m["valor"]), m["es_reverso"]) for m in movimientos],
+            [MovimientoResultado(m["tipo_hecho"], m["sentido"], Decimal(m["valor"]), m["es_reverso"],
+                                 Decimal(m["valor_venta"]) if m.get("valor_venta") is not None else None)
+             for m in movimientos],
             [CostoPeriodo(c["naturaleza_costo"], c["politica_capitalizacion"], Decimal(c["monto_costo"]), c["es_reverso"],
                           c["subtipo_costo"]) for c in costos],
         )
@@ -141,7 +173,10 @@ class ConstructorEstadoResultados:
                 "total_ingresos": q4(er.total_ingresos),
                 "total_gastos": q4(er.total_gastos), "resultado_neto": q4(er.resultado_neto),
                 "sin_actividad": [k for k, v in er.componentes.items() if v == 0], "lineas": len(movimientos),
-                "costos": len(costos)}
+                "costos": len(costos),
+                # Ventas del período registradas sin valor (anteriores al campo): su ingreso no aparece en el estado.
+                "ventas_sin_valor": sum(1 for m in movimientos if m.get("tipo_baja") == "venta"
+                                        and m.get("valor_venta") is None and not m["es_reverso"])}
 
     def guardar(self, id_periodo_contable: int, filtros: dict, id_usuario: int, excluidos: list) -> dict:
         faltantes = self.reportes.hechos_sin_asiento(id_periodo_contable)
@@ -151,7 +186,7 @@ class ConstructorEstadoResultados:
         calculo = self.calcular(id_periodo_contable, filtros, ids_excluidos)
         excluidos = self._con_montos(id_periodo_contable, filtros, excluidos)
         componentes = {**calculo["componentes"], "desglose_costos_mantenimiento": calculo["desglose_costos_mantenimiento"],
-                       "activos_excluidos_cierre": excluidos}
+                       "activos_excluidos_cierre": excluidos, "ventas_sin_valor": calculo["ventas_sin_valor"]}
         c = {k: Decimal(v) for k, v in calculo["componentes"].items()}
         version = self.reportes.siguiente_version_estado(id_periodo_contable)
         id_estado = self.reportes.agregar_estado({
@@ -178,6 +213,26 @@ class ConstructorEstadoResultados:
                 }
             resultado.append(fila)
         return resultado
+
+
+def _componentes(mov: dict) -> dict[str, Decimal]:
+    """Efecto de las líneas de un activo en su valor, por columna de la conciliación (NIC 41 ¶50)."""
+    def suma(*prefijos: str) -> Decimal:
+        return sum((v for k, v in mov.items() if k.startswith(prefijos)), CERO)
+    return {
+        "nacimientos": suma("RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION"),
+        "diferencia": mov.get("RECONOCIMIENTO_DIFERENCIA:GANANCIA", CERO) - mov.get("RECONOCIMIENTO_DIFERENCIA:PERDIDA", CERO),
+        "tb": mov.get("VARIACION_VR_TB:GANANCIA", CERO) - mov.get("VARIACION_VR_TB:PERDIDA", CERO),
+        "pm": mov.get("VARIACION_VR_PM:GANANCIA", CERO) - mov.get("VARIACION_VR_PM:PERDIDA", CERO),
+        # Lo cosechado sale del activo por el traslado y, si el producto valió menos, por la pérdida (G24).
+        "cosechas": mov.get("PRODUCTO_AGRICOLA:TRASLADO", CERO) + mov.get("PRODUCTO_AGRICOLA:PERDIDA", CERO),
+        "bajas": suma("BAJA_ACTIVO"),
+        "depreciacion": suma("DEPRECIACION", "DETERIORO"),
+    }
+
+
+def _neto(c: dict[str, Decimal]) -> Decimal:
+    return c["nacimientos"] + c["diferencia"] + c["tb"] + c["pm"] - c["cosechas"] - c["bajas"] - c["depreciacion"]
 
 
 class ConstructorInformeRevelaciones:
@@ -219,6 +274,11 @@ class ConstructorInformeRevelaciones:
         for m in d["movimientos"]:
             signo = -1 if m["es_reverso"] else 1
             mov_activo[m["id_activo_biologico"]][f"{m['tipo_hecho']}:{m['sentido']}"] += signo * Decimal(m["valor"])
+        # TC-M06-G62: el asiento que el cierre trasladó suma donde se midió y resta donde quedó (partida conciliatoria).
+        trasladadas: dict[int, dict] = defaultdict(lambda: defaultdict(lambda: CERO))
+        for m in d.get("trasladadas") or []:
+            signo = (-1 if m["es_reverso"] else 1) * (1 if m["sale"] else -1)
+            trasladadas[m["id_activo_biologico"]][f"{m['tipo_hecho']}:{m['sentido']}"] += signo * Decimal(m["valor"])
         # TC-M06-G62: el ingreso de individuos sin costo sube el valor sin asentar líneas; entra a la conciliación
         # como compra o, si fue donación o traslado, como otro ingreso.
         ingresos: dict[int, dict] = defaultdict(lambda: {"compra": CERO, "otros": CERO})
@@ -229,22 +289,18 @@ class ConstructorInformeRevelaciones:
         for a in d["activos"]:
             mov = mov_activo.get(a["id_activo_biologico"], {})
             ingreso = ingresos.get(a["id_activo_biologico"], {"compra": CERO, "otros": CERO})
-            inicio = Decimal(a["valor_inicio"] or 0)
             reconocido_en_periodo = a["fecha_reconocimiento"] >= periodo["fecha_inicio"]
+            es_costo = a["valor_contable_por_costo"] is not None
+            # El activo al costo empieza con su valor al costo; el reconocido en el período entra por compras.
+            inicio = Decimal((a.get("valor_costo_inicio") if es_costo and not reconocido_en_periodo else a["valor_inicio"]) or 0)
             compras = Decimal(a["costo_adquisicion"] or 0) if reconocido_en_periodo and a["origen_financiero"] == "compra" else CERO
             compras += ingreso["compra"]
-            nacimientos = sum((v for k, v in mov.items() if k.startswith(("RECONOCIMIENTO_NACIMIENTO", "RECONOCIMIENTO_DONACION"))), CERO)
-            nacimientos += ingreso["otros"]
-            diferencia = mov.get("RECONOCIMIENTO_DIFERENCIA:GANANCIA", CERO) - mov.get("RECONOCIMIENTO_DIFERENCIA:PERDIDA", CERO)
-            tb = mov.get("VARIACION_VR_TB:GANANCIA", CERO) - mov.get("VARIACION_VR_TB:PERDIDA", CERO)
-            pm = mov.get("VARIACION_VR_PM:GANANCIA", CERO) - mov.get("VARIACION_VR_PM:PERDIDA", CERO)
-            cosechas = mov.get("PRODUCTO_AGRICOLA:TRASLADO", CERO)
-            bajas = sum((v for k, v in mov.items() if k.startswith("BAJA_ACTIVO")), CERO)
-            depreciacion = sum((v for k, v in mov.items() if k.startswith(("DEPRECIACION", "DETERIORO"))), CERO)
-            es_costo = a["valor_contable_por_costo"] is not None
+            c = _componentes(mov)
+            nacimientos = c["nacimientos"] + ingreso["otros"]
+            trasladado = _neto(_componentes(trasladadas.get(a["id_activo_biologico"], {})))
             cierre = Decimal(a["valor_contable_por_costo"] if es_costo else (a["valor_cierre"] or 0))
-            calculado = inicio + compras + nacimientos + diferencia + tb + pm - cosechas - bajas - depreciacion
-            if not (inicio or cierre or compras or mov):  # dado de baja antes del período: nada que conciliar
+            calculado = inicio + compras + ingreso["otros"] + _neto(c) + trasladado
+            if not (inicio or cierre or compras or mov or trasladado):  # dado de baja antes del período: nada que conciliar
                 continue
             activos.append(a)
             if es_costo and not a["vida_util_meses"]:
@@ -261,9 +317,10 @@ class ConstructorInformeRevelaciones:
                     f"La conciliación del activo {a['identificador']} da {calculado:.2f} y su valor al cierre es {cierre:.2f}.")))
             rollforward.append({"id_activo_biologico": a["id_activo_biologico"], "identificador": a["identificador"],
                                 "especie": a["especie"], "valor_inicio": inicio, "compras": compras,
-                                "nacimientos_y_otros_ingresos": nacimientos + diferencia,
-                                "transformacion_biologica": tb, "precio_mercado": pm, "cosechas": cosechas,
-                                "bajas": bajas, "depreciacion_y_deterioro": depreciacion, "valor_cierre": cierre})
+                                "nacimientos_y_otros_ingresos": nacimientos + c["diferencia"],
+                                "transformacion_biologica": c["tb"], "precio_mercado": c["pm"], "cosechas": c["cosechas"],
+                                "bajas": c["bajas"], "depreciacion_y_deterioro": c["depreciacion"],
+                                "asientos_trasladados_por_cierre": trasladado, "valor_cierre": cierre})
         por_especie: dict[str, dict] = defaultdict(lambda: {"cantidad_activos": 0, "valor_cierre": CERO, "clasificaciones": set()})
         for fila_rf, a in zip(rollforward, activos):
             g = por_especie[a["especie"]]
@@ -283,6 +340,7 @@ class ConstructorInformeRevelaciones:
             problemas["niif13_93_precios_referencia"].append((True, (
                 "Las mediciones del período no tienen el precio de mercado que usaron.")))
         a_costo = [a for a in activos if a["valor_contable_por_costo"] is not None]
+        riesgos = riesgos_del_periodo(d["riesgos"])
         supuestos, insuficientes = self._metodos_y_supuestos(activos, d["supuestos"])
         contenido = {
             "parr_41_43_descripcion": [{"especie": k, "cantidad_activos": v["cantidad_activos"],
@@ -307,13 +365,13 @@ class ConstructorInformeRevelaciones:
                 "activos_pignorados": manuales.get("activos_pignorados") or [],
                 "declaracion_sin_novedad": bool(manuales.get("declaracion_sin_novedad")),
             },
-            "parr_53_riesgos": d["riesgos"],
+            "parr_53_riesgos": riesgos,
             "exclusiones_cierre": (d["cierre"] or {}).get("activos_excluidos") or [],
         }
         contenido["estado_secciones"] = estado_secciones(problemas)
         return {"contenido": contenido, "supuestos": supuestos, "supuestos_insuficientes": insuficientes,
                 "costo": contenido["parr_54_56_activos_al_costo"],
-                "riesgos": d["riesgos"], "alertas_consistencia": alertas, "periodo": periodo}
+                "riesgos": riesgos, "alertas_consistencia": alertas, "periodo": periodo}
 
     def guardar(self, id_periodo_contable: int, manuales: dict, id_usuario: int,
                 justificacion_inconsistencias: Optional[str] = None, *, informe: Optional[dict] = None) -> dict:

@@ -4,12 +4,14 @@
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-15 | Arekkazu | QA-M06 CU04 H-02 RF-85: cosechas pendientes filtradas por titular |
 """Puerto de los eventos biológicos de M02 que disparan la medición por evento (RF-83, RF-85)."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -31,8 +33,9 @@ class EventoM02Port(ABC):
         """Eventos posteriores al reconocimiento aún sin procesar (incluye los encolados por un cierre)."""
 
     @abstractmethod
-    def cosechas_pendientes(self) -> list[dict]:
-        """Cosechas cuyo reconocimiento quedó pendiente, con activo, producto, cantidad y motivo (RF-85 FA-1/FA-2)."""
+    def cosechas_pendientes(self, numero_id_tributaria: Optional[str] = None) -> list[dict]:
+        """Cosechas cuyo reconocimiento quedó pendiente, con activo, producto, cantidad y motivo (RF-85 FA-1/FA-2);
+        con ``numero_id_tributaria``, solo las de ese titular."""
 
     @abstractmethod
     def cosecha_pendiente(self, id_evento: int) -> EventoM02 | None:

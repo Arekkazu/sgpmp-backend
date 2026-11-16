@@ -2,9 +2,20 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-14/RF-87: notificaciones internas al Contador |
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-89: avisos de vencimiento sin duplicados tras reinicios (marca persistente) |
+# | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
+# | 2026-11-15 | Arekkazu | QA-M06 RF-89: el aviso no espera el bloqueo de un destinatario (POST /finanzas/precios colgado en el sandbox) |
+# | 2026-11-15 | Arekkazu | QA-M06 CU06 H-02 RF-87: un evento por destinatario; cada Contador ve el aviso |
 """Adaptador de :class:`NotificacionFinancieraPort` sobre M01 (RF-10 + RF-14), mismo patrón que M05:
 el aviso cuelga de un evento de ``modulo1.eventos`` y deja una notificación en la bandeja interna.
-Hace su propio ``commit`` en una sesión aparte y nunca propaga errores."""
+Hace su propio ``commit`` en una sesión aparte y nunca propaga errores.
+
+INC-M06-366-G31: los destinatarios (los Contadores de la finca) se buscan en la sesión del request. La sesión
+aparte no ve lo que la transacción en curso aún no confirmó (la finca o la asignación creadas en el mismo run del
+sandbox de QA, que nunca confirma) y el aviso se quedaba sin destinatarios.
+
+QA-M06 CU06 H-02: la bandeja une cada notificación con su evento y M01 solo deja leer un evento a su dueño (RLS). Con
+un evento compartido, solo el primer Contador veía el aviso (el del cierre no le llegaba al Contador de QA). Como en
+Suministros (#1150): un evento por destinatario."""
 from __future__ import annotations
 
 import json
@@ -15,6 +26,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
+from src.shared.database import como_sistema
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 
@@ -27,6 +39,11 @@ _SQL_CONTADORES = text("""
     WHERE r.nombre_rol = 'Contador' AND (CAST(:finca AS integer) IS NULL OR uf.id_finca = :finca)
 """)
 
+# El destinatario puede estar bloqueado por la transacción de quien llama (el run del sandbox de QA cambia el rol del
+# Contador con SELECT … FOR UPDATE y no confirma nunca): la sesión aparte esperaría su llave foránea y el request,
+# a esta sesión. Mejor perder el aviso que colgar la petición.
+SIN_ESPERAR_BLOQUEOS = text("SET LOCAL lock_timeout = '2s'")
+
 _SQL_YA_NOTIFICADO = text("""
     SELECT EXISTS (SELECT 1 FROM modulo1.eventos e JOIN modulo1.tipos_eventos t ON t.id_tipo_evento = e.tipo_evento
                    WHERE t.nombre = :n AND e.modulo = 'MODULO6' AND e.detalle @> CAST(:d AS jsonb))
@@ -34,24 +51,30 @@ _SQL_YA_NOTIFICADO = text("""
 
 
 class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
-    def __init__(self, session_factory: Callable[[], Session]) -> None:
+    def __init__(self, session_factory: Callable[[], Session], db: Optional[Session] = None) -> None:
         self.session_factory = session_factory
+        self.db_request = db
+
+    def _contadores(self, db: Session, id_finca: Optional[int]) -> list[int]:
+        if self.db_request is None:
+            return sorted({f.id_usuario for f in db.execute(_SQL_CONTADORES, {"finca": id_finca})})
+        with como_sistema(self.db_request):  # la RLS de usuarios solo deja ver el propio
+            return sorted({f.id_usuario for f in self.db_request.execute(_SQL_CONTADORES, {"finca": id_finca})})
 
     def a_contadores(self, tipo_evento: str, mensaje: str, detalle: dict, id_finca: Optional[int] = None) -> None:
         db = self.session_factory()
         try:
-            destinatarios = sorted({f.id_usuario for f in db.execute(_SQL_CONTADORES, {"finca": id_finca})})
+            db.execute(SIN_ESPERAR_BLOQUEOS)
+            destinatarios = self._contadores(db, id_finca)
             id_tipo = db.execute(text("SELECT id_tipo_evento FROM modulo1.tipos_eventos WHERE nombre = :n"),
                                  {"n": tipo_evento}).scalar()
             if not destinatarios or id_tipo is None:
                 return
             notificaciones = SqlAlchemyNotificacionRepository(db)
-            SqlAlchemyEventoRepository(db).registrar(
-                tipo_evento=id_tipo, exitoso=True, id_usuario=destinatarios[0], detalle=detalle,
-                descripcion=mensaje[:255], modulo="MODULO6",
-            )
-            id_evento = notificaciones.buscar_ultimo_evento_id(id_usuario=destinatarios[0], tipo_evento=id_tipo)
+            eventos = SqlAlchemyEventoRepository(db)
             for id_usuario in destinatarios:
+                id_evento = eventos.registrar(tipo_evento=id_tipo, exitoso=True, id_usuario=id_usuario, detalle=detalle,
+                                              descripcion=mensaje[:255], modulo="MODULO6")
                 notificaciones.registrar(id_evento=id_evento, id_usuario=id_usuario, id_canal=_ID_CANAL_INTERNO,
                                          mensaje=mensaje, estado="en_cola")
             db.commit()

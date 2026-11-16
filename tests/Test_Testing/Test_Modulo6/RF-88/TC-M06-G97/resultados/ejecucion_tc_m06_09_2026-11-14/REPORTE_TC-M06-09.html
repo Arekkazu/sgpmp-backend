@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>REPORTE TC-M06-09 — Consulta de depreciación | RF-88 · G97</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --ink: #1c241c;
+    --muted: #5a655a;
+    --card: #ffffff;
+    --line: #d8ddd4;
+    --pass: #1f6b3a;
+    --pass-bg: #e7f5ec;
+    --accent: #2f4a3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #e7efe6 0%, transparent 55%),
+      radial-gradient(900px 400px at 100% 0%, #f3e6d8 0%, transparent 50%),
+      var(--bg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 64px; }
+  .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+  .btn-print {
+    border: 1px solid #9eb0a2; background: #fff; color: var(--accent);
+    border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-print:hover { background: #eef3ec; }
+  header.hero {
+    background: linear-gradient(135deg, #243528 0%, #3d5a45 55%, #5a6e4e 100%);
+    color: #f4f7f2; border-radius: 18px; padding: 28px;
+    box-shadow: 0 18px 40px rgba(36,53,40,.28);
+  }
+  header.hero .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: 12px; opacity: .8; margin-bottom: 8px;
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 1.55rem; font-weight: 700; }
+  header.hero p { margin: 0; opacity: .92; max-width: 46rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .chip {
+    display: inline-flex; background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px;
+  }
+  .badge {
+    display: inline-block; font-weight: 700; letter-spacing: .04em;
+    padding: 8px 14px; border-radius: 999px; background: #d8f3e2; color: var(--pass);
+    border: 1px solid #9ed5b3; margin-top: 16px;
+  }
+  section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 24px; margin-top: 16px;
+  }
+  h2 {
+    margin: 0 0 12px; font-size: 1.15rem; color: var(--accent);
+    border-bottom: 2px solid #e4ebe3; padding-bottom: 8px;
+  }
+  .muted { color: var(--muted); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #eef3ec; color: #2c3b2f; }
+  .ok {
+    display: inline-block; font-weight: 700; font-size: 12px;
+    padding: 2px 8px; border-radius: 999px; background: var(--pass-bg); color: var(--pass);
+  }
+  code, .path {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: .86em; background: #f0f3ee; padding: .1rem .3rem; border-radius: 4px;
+  }
+  .call {
+    border-left: 4px solid var(--pass); background: var(--pass-bg);
+    padding: .75rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px;
+  }
+  .kpi {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .kpi div {
+    background: #f7faf6; border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px;
+  }
+  .kpi strong { display: block; font-size: 1.15rem; color: var(--pass); }
+  .note {
+    border-left: 4px solid #c9a227; background: #fff8e6;
+    padding: .7rem 1rem; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px;
+  }
+  footer { margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .wrap { padding: 0; max-width: none; }
+    header.hero, th, .ok, .badge, .call, .kpi div, .note {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="btn-print" type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <header class="hero">
+    <div class="kicker">SGPMP · Módulo 6 · Finanzas · Informe QA</div>
+    <h1>TC-M06-09 — Consulta de depreciación al costo</h1>
+    <p>Grupo <strong>TC-M06-G97</strong> · Requisito <strong>RF-88</strong> (CU07). Validación de cálculo de depreciación por GET de solo lectura sobre el activo 1858.</p>
+    <div class="meta">
+      <span class="chip">Ambiente: api-sgpmp-test</span>
+      <span class="chip">Commit: 3995b923</span>
+      <span class="chip">Rama: laura</span>
+      <span class="chip">Ejecución UTC: 2026-11-14T06:41:19Z</span>
+      <span class="chip">Fecha local: 2026-11-14</span>
+    </div>
+    <div class="badge">Resultado: APROBADO · 7/7 aserciones</div>
+  </header>
+
+  <section>
+    <h2>1. Objetivo y escenario</h2>
+    <p>Verificar que <code>GET /finanzas/activos/{id}/depreciacion</code> calcula correctamente depreciación anual, acumulada y valor contable para un activo valorado al costo, <strong>sin registrar</strong> depreciación ni alterar líneas contables.</p>
+    <div class="kpi">
+      <div><span class="muted">HTTP</span><strong>200</strong></div>
+      <div><span class="muted">Activo</span><strong>1858</strong></div>
+      <div><span class="muted">Aserciones</span><strong>7/7</strong></div>
+      <div><span class="muted">Side-effects</span><strong style="font-size:1rem">Ninguno</strong></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Fixture y endpoint</h2>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>Activo</td><td><strong>1858</strong> / <code>QA-RF88-AL-COSTO</code></td></tr>
+      <tr><td>Especie</td><td>Ovino Medicion Qa Rf</td></tr>
+      <tr><td>Costo adquisición</td><td>1.700.000</td></tr>
+      <tr><td>Vida útil (meses)</td><td>60</td></tr>
+      <tr><td>Fecha adquisición</td><td>2026-11-12</td></tr>
+      <tr><td>Fecha de consulta</td><td><strong>2027-11-12</strong></td></tr>
+      <tr><td>Método</td><td>GET (solo lectura)</td></tr>
+      <tr><td>URL</td><td><code>https://api.inmero.co/api-sgpmp-test/finanzas/activos/1858/depreciacion?fecha=2027-11-12</code></td></tr>
+      <tr><td>HTTP</td><td><strong>200</strong></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>3. Valores calculados</h2>
+    <table>
+      <tr><th>Concepto</th><th>Valor (evidencia)</th><th>Presentación</th></tr>
+      <tr><td>Depreciación anual</td><td><code>340000.0000</code></td><td><strong>$340.000</strong></td></tr>
+      <tr><td>Depreciación acumulada</td><td><code>340000.0000</code></td><td><strong>$340.000</strong></td></tr>
+      <tr><td>Valor contable</td><td><code>1360000.0000</code></td><td><strong>$1.360.000</strong></td></tr>
+      <tr><td>Depreciación registrada</td><td><code>0.0000</code></td><td>$0</td></tr>
+      <tr><td>Meses transcurridos</td><td><code>12</code></td><td>12</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>4. Tabla de aserciones (7/7)</h2>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Aserción</th><th>Esperado</th><th>Obtenido</th><th>Resultado</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>A1_HTTP_exitoso</td><td>HTTP exitoso</td><td><code>200</code></td><td><code>200</code></td><td><span class="ok">PASS</span></td></tr>
+        <tr><td>A2_depreciacion_anual</td><td>depreciacion_anual == 340000</td><td><code>340000</code></td><td><code>340000.0000</code></td><td><span class="ok">PASS</span></td></tr>
+        <tr><td>A3_depreciacion_acumulada</td><td>depreciacion_acumulada == 340000</td><td><code>340000</code></td><td><code>340000.0000</code></td><td><span class="ok">PASS</span></td></tr>
+        <tr><td>A4_valor_contable</td><td>valor_contable == 1360000</td><td><code>1360000</code></td><td><code>1360000.0000</code></td><td><span class="ok">PASS</span></td></tr>
+        <tr><td>A5_depreciacion_registrada</td><td>depreciacion_registrada == 0</td><td><code>0</code></td><td><code>0.0000</code></td><td><span class="ok">PASS</span></td></tr>
+        <tr><td>A6_meses_transcurridos</td><td>meses_transcurridos == 12</td><td><code>12</code></td><td><code>12</code></td><td><span class="ok">PASS</span></td></tr>
+        <tr><td>A7_sin_efectos_secundarios</td><td>Sin side-effect en valoración/líneas</td><td>registrada 0 · contable 1700000 · líneas 1</td><td>registrada 0 · contable 1700000 · líneas 1 · HTTP 200</td><td><span class="ok">PASS</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>5. Ausencia de efectos secundarios</h2>
+    <table>
+      <tr><th>Campo</th><th>Antes</th><th>Después</th></tr>
+      <tr><td>depreciacion_acumulada_registrada</td><td>0.0000</td><td>0.0000</td></tr>
+      <tr><td>valor_contable_por_costo</td><td>1700000.0000</td><td>1700000.0000</td></tr>
+      <tr><td>deterioro_acumulado</td><td>0.0000</td><td>0.0000</td></tr>
+      <tr><td>líneas contables</td><td>1</td><td>1</td></tr>
+    </table>
+    <p>La consulta no registró depreciación ni generó nuevas líneas.</p>
+  </section>
+
+  <section>
+    <h2>6. Conclusión</h2>
+    <div class="call">
+      <strong>TC-M06-09: APROBADO</strong> (7/7). Cálculo de depreciación correcto y sin efectos secundarios.
+    </div>
+    <div class="note">
+      <strong>Nota de integridad documental:</strong> el archivo <span class="path">estado_ejecucion_G97.json</span> de esta carpeta es un <em>snapshot histórico</em> al momento de ejecutar solo TC-M06-09 (<code>PARCIALMENTE_EJECUTADO</code>, 08 aún pendiente). El resultado del escenario 09 permanece <strong>APROBADO</strong>. El estado vigente del grupo es <span class="path">../estado_oficial_G97.json</span> → <strong>G97 APROBADO</strong>.
+    </div>
+  </section>
+
+  <section>
+    <h2>7. Evidencias de soporte</h2>
+    <ul>
+      <li><span class="path">ASERCIONES_TC-M06-09.md</span></li>
+      <li><span class="path">RESULTADO_TC-M06-09.md</span></li>
+      <li><span class="path">estado_ejecucion_G97.json</span> (snapshot histórico)</li>
+      <li><span class="path">respuesta_depreciacion_1858.json</span></li>
+      <li>Consolidado del grupo: <span class="path">../estado_oficial_G97.json</span> · <span class="path">../DICTAMEN_FINAL_G97.md</span> · <span class="path">../REPORTE_FINAL_G97.html</span></li>
+    </ul>
+    <p class="muted">Fuente de verdad: evidencias de esta carpeta. Informe generado sin reejecutar operaciones contra TEST.</p>
+  </section>
+
+  <footer>SGPMP-Backend · Test_Testing · Módulo 6 · TC-M06-G97 / TC-M06-09 · RF-88</footer>
+</div>
+</body>
+</html>

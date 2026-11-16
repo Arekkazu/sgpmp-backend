@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
 """INC-M06-310-G12 / RF-83 FA-1: el evento ``MEDICION_CON_ESTIMACION`` dice por qué la medición es estimada
 y con qué precio, en vez de dejarlo solo en ``supuestos_aplicados`` de la medición."""
 from __future__ import annotations
@@ -73,7 +74,7 @@ def _evento_medicion(precio: Precio, estimado: bool):
     valorador = SimpleNamespace(valorar=lambda *a, **k: SimpleNamespace(
         es_valido=True, calculo=_calculo("410", "3895000", estimado=estimado), precio=precio))
     contabilizador = ContabilizadorFake()
-    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, id_finca=4,
+    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, region=None, id_finca=4,
                              numero_id_tributaria="900")
     Medidor(valorador, ValoracionesFake(), contabilizador).medir(
         activo, PERIODO, DIA, origen="EVENTO", id_usuario=1, id_usuario_auditoria=None, id_evento=55)
@@ -117,10 +118,10 @@ def test_medicion_no_estimada_no_agrega_motivo() -> None:
 ])
 def test_valorador_marca_estimado_el_precio_congelado_vencido(precio, estimado) -> None:
     config = SimpleNamespace(
-        costos_venta_vigentes=lambda _e: SimpleNamespace(pct_transporte=D(0), pct_comisiones=D(0), pct_impuestos=D(0),
+        costos_venta_vigentes=lambda _e, _r=None: SimpleNamespace(pct_transporte=D(0), pct_comisiones=D(0), pct_impuestos=D(0),
                                                          id_parametro_costo_venta=1),
         parametro_especie=lambda _e: None)
-    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2,
+    activo = SimpleNamespace(id_activo_biologico=7, identificador="BOV-007", especie="Bovino", id_especie=2, region=None,
                              cabezas=1, id_evento_peso=None, magnitud=lambda _c: (D("410"), "kg"))
 
     resultado = Valorador(None, config).valorar(activo, DIA, 3, 1, precio_congelado=precio)

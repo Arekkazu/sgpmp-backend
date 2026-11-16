@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
 # | 2026-11-10 | Arekkazu | Lote M05/M06: fakes al día con el lote integrado (elegibilidad, alertas, período cerrado, referencia documental) |
+# | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: fakes con la región del activo y el precio del producto |
 """INC-M06-326-G30 / RF-85 CA-2, CA-6 y postcondición 2: la reducción del activo de consumo es acumulativa.
 
 Antes, tres cosechas del mismo día de 400, 400 y 300 kg sobre un activo de 1.000 kg (18.800.000) se reconocían
@@ -64,7 +65,7 @@ def _procesador(mundo: _Mundo) -> ProcesarEventosM02UseCase:
     precio = Precio(id_precio_mercado=12, id_especie=2, categoria="PESO_KG", precio_unitario=D("20000"),
                     unidad_medida="kg", fuente="MERCADO_ACTIVO", fecha_vigencia=date(2026, 9, 1))
     config = SimpleNamespace(
-        costos_venta_vigentes=lambda _e: SimpleNamespace(pct_transporte=D("0.06"), pct_comisiones=D("0"),
+        costos_venta_vigentes=lambda _e, _r=None: SimpleNamespace(pct_transporte=D("0.06"), pct_comisiones=D("0"),
                                                          pct_impuestos=D("0"), id_parametro_costo_venta=1),
         parametro_especie=lambda _e: None)
     valoraciones = SimpleNamespace(
@@ -87,7 +88,7 @@ def _procesador(mundo: _Mundo) -> ProcesarEventosM02UseCase:
         activos=SimpleNamespace(obtener=mundo.activo,
                                 metrica_produccion=lambda _id: {"id_metrica_produccion": 3, "nombre": "Trucha entera",
                                                                 "unidad_medida": "kg"}),
-        valoraciones=valoraciones, precios=None, medidor=medidor, contabilizador=contabilizador, id_usuario_servicio=1)
+        valoraciones=valoraciones, precios=SimpleNamespace(de_especie=lambda *a: []), medidor=medidor, contabilizador=contabilizador, id_usuario_servicio=1)
 
 
 def test_tres_cosechas_del_mismo_dia_reducen_de_forma_acumulativa() -> None:

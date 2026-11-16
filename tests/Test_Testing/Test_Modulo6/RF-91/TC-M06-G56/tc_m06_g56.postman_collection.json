@@ -233,56 +233,6 @@
       }
     },
     {
-      "name": "Login ext",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (!pm.variables.get('correo_ext')) { console.log('PRECONDICION: sin cuenta ext'); pm.execution.skipRequest(); }"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test('login 200', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('tok_ext', j.token || '');",
-              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
-              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/sesiones/",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "sesiones",
-            ""
-          ]
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"{{correo_ext}}\",\n  \"contrasena\": \"{{clave_ext}}\"\n}"
-        }
-      }
-    },
-    {
       "name": "Descubrir periodos contables (Contador)",
       "event": [
         {
@@ -605,7 +555,7 @@
       }
     },
     {
-      "name": "TC-91-052 adm autoriza exclusion y cierra -> 403",
+      "name": "TC-91-052 adm autoriza exclusion y cierra (decision de desarrollo: Administrador con todos los permisos de M06; 404/422 por periodo inexistente)",
       "event": [
         {
           "listen": "test",
@@ -613,7 +563,7 @@
             "type": "text/javascript",
             "exec": [
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
+              "pm.test(\"HTTP en [404, 422]\", () => { pm.expect(pm.response.code).to.be.oneOf([404, 422]); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]
@@ -651,7 +601,7 @@
       }
     },
     {
-      "name": "TC-91-052 revfis autoriza exclusion y cierra -> 403",
+      "name": "TC-91-052 revfis (auditor externo, RFC-027) autoriza exclusion y cierra -> 403",
       "event": [
         {
           "listen": "prerequest",
@@ -685,61 +635,6 @@
           {
             "key": "Authorization",
             "value": "Bearer {{tok_revfis}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/finanzas/periodos/999999999/cierre",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "finanzas",
-            "periodos",
-            "999999999",
-            "cierre"
-          ]
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{\"autorizar_exclusiones\":true}"
-        }
-      }
-    },
-    {
-      "name": "TC-91-052 ext autoriza exclusion y cierra -> 403",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (!pm.collectionVariables.get('tok_ext')) { console.log('PRECONDICION NO DISPONIBLE: sin cuenta ext'); pm.execution.skipRequest(); }"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
-              "pm.test(\"HTTP 403\", () => { pm.response.to.have.status(403); });",
-              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
-              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{tok_ext}}"
           }
         ],
         "url": {

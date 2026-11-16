@@ -9,6 +9,7 @@
 # | 2026-11-10 | Arekkazu | #394 RF-36: la ficha del lote devuelve el estado de su densidad |
 # | 2026-11-10 | Arekkazu | #393 RF-36: el listado trae el estado de densidad de cada lote |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -1092,6 +1093,8 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             cantidad_afectada=b.cantidad_afectada,
             tipo=b.tipo,
             motivo_baja=b.detalles,
+            valor_venta=b.valor_venta,
+            referencia_venta=b.referencia_venta,
         )
 
     ingreso = None

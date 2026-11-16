@@ -5,6 +5,7 @@
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: deduplicar por UUID sin revertir la transacción del emisor. |
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-80: un solo datos_nuevos al registrar el evento (#988 + #1036) |
+# | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: registro y tipo de suministro dentro de datos_nuevos |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroPort` (RF-78/79, CU-05).
 
 Usa ``flush()`` (nunca ``commit()``) y traduce errores de BD con
@@ -43,7 +44,7 @@ class SqlAlchemyAuditoriaSuministroRepository(AuditoriaSuministroPort):
             tipo_operacion=evento.tipo_operacion,
             id_usuario=evento.id_usuario,
             resultado=evento.resultado,
-            datos_nuevos=evento.datos_nuevos,
+            datos_nuevos=evento.datos_nuevos_con_referencias(),
             id_activo_biologico=evento.id_activo_biologico,
             id_ciclo_productivo=evento.id_ciclo_productivo,
             id_gestion_fases=evento.id_gestion_fases,

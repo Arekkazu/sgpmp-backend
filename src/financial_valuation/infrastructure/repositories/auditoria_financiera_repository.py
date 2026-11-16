@@ -6,6 +6,9 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-01/H-02 C3 RF-94: precios en la bitácora del período y nombre del autor |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-94: bitácora filtrable por la finca del activo |
+# | 2026-11-14 | Arekkazu | INC-M06-365-G93 RF-94: la auditoría se acota a los titulares de las fincas del usuario |
+# | 2026-11-15 | Arekkazu | INC-M06-93-G44: el nombre de quien firmó cada evento sale de la ayuda compartida nombres_usuarios |
+# | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-01 RF-94: el alcance por fincas se comparte con las cotizaciones |
 """Implementación SQL de :class:`AuditoriaFinancieraRepository` sobre ``modulo6.auditorias_financieras``.
 
 El hash SHA-256 lo calcula el trigger ``trg_hash_auditoria``; ``tgr_m06_27`` corre antes y exige
@@ -13,12 +16,21 @@ un valor de 64 caracteres, por eso se envía un marcador que el trigger reemplaz
 en la misma transacción de la operación auditada (RF-86 RNF Fiabilidad)."""
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, fila, filas
-from src.shared.database import como_sistema
+from src.financial_valuation.infrastructure.repositories.sql import (
+    ES_ADMINISTRADOR as _ES_ADMINISTRADOR,
+    PERIODOS_DE_MIS_FINCAS as _PERIODOS_PROPIOS,
+    a_json,
+    escribir,
+    fila,
+    filas,
+    nombres_usuarios,
+)
 from src.shared.fechas import nombre_zona_usuario
 from src.shared.nombre_activo import nombre_activo_sql
 
@@ -44,12 +56,23 @@ _FILTROS = (("tipo_evento", "a.tipo_evento::text = ANY(:tipo_evento)"),
             ("desde", "a.fecha_registro >= :desde"), ("hasta", "a.fecha_registro <= :hasta"))
 
 
+# INC-M06-365-G93: cada quien ve la auditoría de los titulares de sus fincas, también quien lee el cierre (Contador,
+# Revisor Fiscal); el Administrador protegido, toda. Las RLS de `modulo9.fincas` y `modulo2.activos_biologicos` ya
+# acotan a las fincas asignadas. Lo global (precios, matriz, parámetros) y lo que firmó el propio usuario se ven siempre.
+_ALCANCE = f"""({_ES_ADMINISTRADOR} OR a.id_usuario = modulo1.fn_id_usuario_actual()
+    OR a.id_periodo_contable IN ({_PERIODOS_PROPIOS})
+    OR (a.id_periodo_contable IS NULL AND (
+        a.id_activo_biologico IN (SELECT ab.id_activo_biologico FROM modulo2.activos_biologicos ab)
+        OR (a.id_activo_biologico IS NULL AND a.tipo_evento::text = ANY(:globales)))))"""
+
+
 def _donde(filtros: dict) -> tuple[str, dict]:
     activos = [(campo, sql) for campo, sql in _FILTROS if filtros.get(campo) not in (None, [], "")]
     params = {campo: filtros[campo] for campo, _ in activos}
+    params["globales"] = _GLOBALES
     if "id_periodo_contable" in params:
-        params.update(globales=_GLOBALES, tz=nombre_zona_usuario())
-    return " AND ".join(["true", *(sql for _, sql in activos)]), params
+        params["tz"] = nombre_zona_usuario()
+    return " AND ".join([_ALCANCE, *(sql for _, sql in activos)]), params
 
 
 class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
@@ -100,28 +123,24 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
             LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = a.id_activo_biologico
             WHERE {donde} ORDER BY a.fecha_registro {orden}, a.id_auditoria_financiera {orden} LIMIT :limite OFFSET :offset
         """, params)
-        nombres = self._nombres({e["id_usuario"] for e in eventos if e["id_usuario"]})
+        nombres = nombres_usuarios(self.db, (e["id_usuario"] for e in eventos))
         for e in eventos:
-            e["nombre_usuario"] = nombres.get(e["id_usuario"], "")
+            e["nombre_usuario"] = nombres.get(e["id_usuario"]) or ""
         return total, eventos
 
     def actores(self, filtros: dict) -> list[dict]:
         donde, params = _donde(filtros)
         ids = {f["id_usuario"] for f in filas(self.db, f"""SELECT DISTINCT a.id_usuario FROM modulo6.auditorias_financieras a
                                                          WHERE {donde} AND a.id_usuario IS NOT NULL""", params)}
-        nombres = self._nombres(ids)
+        nombres = nombres_usuarios(self.db, ids)
         return sorted(({"id_usuario": i, "nombre": nombres.get(i) or "Usuario sin nombre registrado"} for i in ids),
                       key=lambda a: a["nombre"].lower())
 
-    def _nombres(self, ids: set[int]) -> dict[int, str]:
-        """Nombre de quien firmó cada evento (C3). La RLS de ``modulo1.usuarios`` solo deja ver el propio usuario a
-        quien no administra usuarios, y el autor de un evento que ya puede leer no es un dato reservado."""
-        if not ids:
-            return {}
-        with como_sistema(self.db):
-            return {f["id_usuario"]: f["nombre"] for f in filas(self.db, """
-                SELECT id_usuario, trim(coalesce(nombre, '') || ' ' || coalesce(apellidos, '')) AS nombre
-                FROM modulo1.usuarios WHERE id_usuario = ANY(:ids)""", {"ids": list(ids)})}
+    def en_alcance(self, id_periodo_contable: Optional[int], id_activo_biologico: Optional[int]) -> bool:
+        return fila(self.db, f"""SELECT {_ES_ADMINISTRADOR}
+            OR ((CAST(:p AS integer) IS NULL OR :p IN ({_PERIODOS_PROPIOS}))
+                AND (CAST(:a AS integer) IS NULL OR :a IN (SELECT ab.id_activo_biologico FROM modulo2.activos_biologicos ab)))
+            AS ok""", {"p": id_periodo_contable, "a": id_activo_biologico})["ok"]
 
     def conteo_por_severidad(self, filtros: dict) -> dict[str, int]:
         """Eventos por severidad con los mismos filtros de la consulta, sin el de severidad."""

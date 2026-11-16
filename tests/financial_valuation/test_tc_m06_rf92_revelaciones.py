@@ -5,6 +5,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el PDF del informe aprobado es PDF/A-1b |
 # | 2026-11-13 | Arekkazu | Lote M05/M06 13-11: el activo de prueba trae su finca (supuestos por activo de #1119) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: asientos trasladados por el cierre, valor al costo al inicio y riesgos |
 """Informe de revelaciones NIC 41 (RF-92), sin base de datos.
 
 - TC-M06-G62 (#1107): el ingreso de individuos a un lote por compra, donación o traslado sube el valor del
@@ -12,6 +13,9 @@
 - TC-M06-G67 (#1110): el informe expone el estado de cada sección (Restricción 6) y una sección BLOQUEADA
   impide aprobarlo.
 - TC-M06-G70 (#1108): el PDF del informe aprobado declara y cumple PDF/A-1b (RNF-92-02).
+- TC-M06-G62 (#1151): el asiento que el cierre trasladó al período siguiente es partida conciliatoria; el activo al
+  costo reconocido antes del período empieza con su valor al costo.
+- TC-M06-G64 (#1152): las categorías de riesgo climática, sanitaria y de mercado salen siempre, con su fuente.
 """
 import io
 import re
@@ -20,7 +24,11 @@ from decimal import Decimal as D
 
 import pytest
 
-from src.financial_valuation.application.services.reportes import FUENTES_SECCION, ConstructorInformeRevelaciones
+from src.financial_valuation.application.services.reportes import (
+    FUENTES_SECCION,
+    ConstructorInformeRevelaciones,
+    riesgos_del_periodo,
+)
 from src.financial_valuation.application.use_cases.reportes.exportar_reporte_use_case import ExportarReporteUseCase
 from src.financial_valuation.application.use_cases.reportes.generar_informe_revelaciones_use_case import (
     GenerarInformeRevelacionesUseCase,
@@ -41,8 +49,9 @@ def _activo(id_activo, inicio, cierre, **extra):
 
 
 class _Reportes:
-    def __init__(self, activos, movimientos=(), ingresos=()):
+    def __init__(self, activos, movimientos=(), ingresos=(), trasladadas=()):
         self.datos = {"periodo": PERIODO, "activos": list(activos), "movimientos": list(movimientos),
+                      "trasladadas": list(trasladadas),
                       "ingresos": list(ingresos), "precios": [], "supuestos": [], "riesgos": [], "cierre": None,
                       "resultado_neto_estado": D("1"), "costos_mantenimiento": D("0")}
 
@@ -70,6 +79,51 @@ def test_ingreso_de_individuos_sin_costo_entra_a_la_conciliacion():
                  - fila["depreciacion_y_deterioro"])
     assert abs(calculado - fila["valor_cierre"]) <= D("0.01")
     assert informe["alertas_consistencia"] == []
+
+
+def _cuadra(fila) -> bool:
+    calculado = (fila["valor_inicio"] + fila["compras"] + fila["nacimientos_y_otros_ingresos"]
+                 + fila["transformacion_biologica"] + fila["precio_mercado"] - fila["cosechas"] - fila["bajas"]
+                 - fila["depreciacion_y_deterioro"] + fila["asientos_trasladados_por_cierre"])
+    return abs(calculado - fila["valor_cierre"]) <= D("0.01")
+
+
+def test_asiento_trasladado_por_el_cierre_es_partida_conciliatoria():
+    """QA-M06-BOV-01: la ganancia de 165.816 se midió en el período y el cierre trasladó su asiento al siguiente."""
+    def construir(trasladada):
+        reportes = _Reportes([_activo(1, D("2600000"), D("2954796"))], [_linea(1, "VARIACION_VR_TB", "GANANCIA", "188980")],
+                             trasladadas=[{**_linea(1, "VARIACION_VR_TB", "GANANCIA", "165816"), **trasladada}])
+        informe = ConstructorInformeRevelaciones(reportes).construir(7, {"declaracion_sin_novedad": True})
+        return informe["contenido"]["parr_50_conciliacion"][0], informe["alertas_consistencia"]
+
+    fila, alertas = construir({"sale": True})
+    assert fila["asientos_trasladados_por_cierre"] == D("165816") and fila["transformacion_biologica"] == D("188980")
+    assert _cuadra(fila) and alertas == []
+    # En el período al que llegó, su efecto ya está en el valor al inicio: resta.
+    assert construir({"sale": False})[0]["asientos_trasladados_por_cierre"] == D("-165816")
+
+
+def test_activo_al_costo_reconocido_antes_empieza_con_su_valor_al_costo():
+    reportes = _Reportes([_activo(1, None, None, valor_contable_por_costo=D("4200000"), valor_costo_inicio=D("4500000"),
+                                  vida_util_meses=60)],
+                         [_linea(1, "DETERIORO_ACTIVO_COSTO", "UNICO", "300000")])
+
+    [fila] = ConstructorInformeRevelaciones(reportes).construir(7, {"declaracion_sin_novedad": True})["contenido"]["parr_50_conciliacion"]
+
+    assert (fila["valor_inicio"], fila["valor_cierre"]) == (D("4500000"), D("4200000")) and _cuadra(fila)
+
+
+def test_riesgos_traen_siempre_las_tres_categorias_con_su_fuente():
+    sin_eventos = riesgos_del_periodo([])
+    assert [(r["categoria"], r["tipo"], r["cantidad"]) for r in sin_eventos] == [
+        ("Climático", "Sin eventos en el período", 0), ("Sanitario", "Sin eventos en el período", 0),
+        ("Mercado", "Sin eventos en el período", 0)]
+    assert all(r["fuente"] for r in sin_eventos)
+
+    con_eventos = riesgos_del_periodo([{"categoria": "CLIMATICO", "tipo": "ESTRES_TERMICO", "cantidad": 2},
+                                       {"categoria": "BAJA", "tipo": "muerte", "cantidad": 1}])
+    assert ("Climático", "Estrés térmico", 2) in [(r["categoria"], r["tipo"], r["cantidad"]) for r in con_eventos]
+    assert ("Bajas", "Muerte", 1) in [(r["categoria"], r["tipo"], r["cantidad"]) for r in con_eventos]
 
 
 def test_activo_dado_de_baja_antes_del_periodo_no_se_concilia_ni_se_cuenta():

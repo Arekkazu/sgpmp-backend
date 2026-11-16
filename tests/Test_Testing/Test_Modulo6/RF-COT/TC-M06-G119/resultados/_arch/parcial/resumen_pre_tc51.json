@@ -1,0 +1,78 @@
+{
+  "caso": "TC-M06-G119",
+  "subcasos": ["TC-M06-51", "TC-M06-52"],
+  "issue": "#1022 / INC-M06-335-G91",
+  "fase": "cierre_parcial_documental",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-13T05:51:00+00:00",
+  "autorizacion": "Cierre documental TC-M06-52 con evidencias de lectura; TC-M06-51 sin anulación",
+  "escritura_ejecutada": false,
+  "vencer_manual_ejecutado": false,
+  "anulacion_cotizacion_6_ejecutada": false,
+  "subcasos_resultado": [
+    {
+      "subcaso": "TC-M06-51",
+      "nombre": "Anulación de cotización",
+      "estado": "PENDIENTE_AUTORIZACION",
+      "cotizacion": 6,
+      "activo": 1571,
+      "nota": "Cotización 6 permanece COTIZADO version 1. Dependencia G118. No anulada."
+    },
+    {
+      "subcaso": "TC-M06-52",
+      "nombre": "Vencimiento automático",
+      "estado": "APROBADO",
+      "cotizacion": 7,
+      "activo": 1570,
+      "nota": "Transición automática demostrada con estado VENCIDA + evento 7098 SISTEMA."
+    }
+  ],
+  "dictamen_grupo": {
+    "categoria": "PARCIALMENTE_PENDIENTE",
+    "grupo_aprobado_completo": false,
+    "aprobados": 1,
+    "pendientes": 1,
+    "rechazados": 0,
+    "bloqueados": 0,
+    "motivo": "TC-M06-52 APROBADO; TC-M06-51 pendiente de autorización (coordinar G118). No declarar G119 completo como aprobado."
+  },
+  "tc52": {
+    "estado": "APROBADO",
+    "cotizacion_7": {
+      "estado": "VENCIDA",
+      "version": 2,
+      "fecha_vencimiento": "2026-11-08",
+      "fecha_actualizacion": "2026-11-09T00:00:06.613021Z"
+    },
+    "evento": {
+      "tipo_evento": "COTIZACION_VENCIDA",
+      "id_evento": 7098,
+      "id_referencia": 7,
+      "tipo_actor": "SISTEMA",
+      "id_sistema": "M06_VENCIMIENTO_COTIZACIONES"
+    },
+    "activo_1570": {
+      "estado": "ACTIVO",
+      "valor_razonable_neto": "3760000.0000"
+    }
+  },
+  "tc51": {
+    "estado": "PENDIENTE_AUTORIZACION",
+    "cotizacion_6": {
+      "estado": "COTIZADO",
+      "version": 1,
+      "fecha_vencimiento": null,
+      "activos_cotizados": [1571]
+    },
+    "dependencia_g118": true
+  },
+  "periodos": {
+    "220": "ABIERTO",
+    "219": "CERRADO"
+  },
+  "evidencias": {
+    "preparacion": "resultados/preparacion/inspeccion_preparacion_G119.json",
+    "escenario_52": "resultados/ultima_evaluacion/evidencia_escenario_tc52_TC-M06-G119.json",
+    "historica_bloqueada": "resultados/primera_evaluacion/"
+  }
+}
