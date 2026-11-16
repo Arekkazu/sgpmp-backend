@@ -8,6 +8,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-14 | Arekkazu | INC-M06-363-G27 RF-85 FA-1: la cosecha pendiente se retoma con un precio registrado en la misma transacción |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | QA-M06 CU04 H-01/H-02 RF-85: cosechas pendientes con su día y filtradas por titular |
 """Adaptador de :class:`EventoM02Port`.
 
 Entran los eventos de activos con reconocimiento CONFIRMADO y posteriores a él: los anteriores ya
@@ -22,6 +23,8 @@ INC-M06-363-G27: esas tres horas se guardan con ``clock_timestamp()``. ``now()``
 transacción: dentro de una sola (el sandbox de QA, un lote) el precio quedaba con la misma hora del intento y la
 cosecha no se retomaba nunca."""
 from __future__ import annotations
+
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -81,7 +84,7 @@ LIMIT :limite
 _COSECHAS_PENDIENTES = f"""
 SELECT ea.id_eventos AS id_evento, ea.id_activo_biologico, {nombre_activo_sql()} AS identificador, e.nombre AS especie, f.nombre AS finca,
        ri.clasificacion::text AS clasificacion, mp.nombre AS producto_agricola, mp.unidad_medida,
-       ep.cantidad AS cantidad_cosechada, ea.fecha AS fecha_cosecha, pr.detalle AS motivo,
+       ep.cantidad AS cantidad_cosechada, (ea.fecha AT TIME ZONE 'UTC')::date AS fecha_cosecha, pr.detalle AS motivo,
        pr.fecha_procesamiento AS fecha_ultimo_intento, pr.intentos
 FROM modulo6.procesamientos_eventos_m02 pr
 JOIN modulo2.eventos_activos ea ON ea.id_eventos = pr.id_evento
@@ -92,7 +95,7 @@ JOIN modulo9.infraestructuras i ON i.id_infraestructura = a.id_infraestructura
 JOIN modulo9.fincas f ON f.id_finca = i.id_finca
 JOIN modulo6.reconocimientos_iniciales ri ON ri.id_activo_biologico = a.id_activo_biologico AND ri.estado = 'CONFIRMADO'
 LEFT JOIN modulo9.metricas_produccion mp ON mp.id_metrica_produccion = ep.id_metrica_produccion
-WHERE pr.resultado = 'MEDICION_PENDIENTE'
+WHERE pr.resultado = 'MEDICION_PENDIENTE' AND (CAST(:nit AS text) IS NULL OR f.numero_id_tributaria = :nit)
 ORDER BY ea.fecha DESC, ea.id_eventos DESC
 """
 
@@ -116,9 +119,9 @@ class EventoM02Adapter(EventoM02Port):
     def pendientes(self, limite: int) -> list[EventoM02]:
         return [_evento(f) for f in filas(self.db, _PENDIENTES, {"limite": limite})]
 
-    def cosechas_pendientes(self) -> list[dict]:
+    def cosechas_pendientes(self, numero_id_tributaria: Optional[str] = None) -> list[dict]:
         return [{**f, "admite_costos_manuales": f["clasificacion"] != "CONSUMO"}
-                for f in filas(self.db, _COSECHAS_PENDIENTES)]
+                for f in filas(self.db, _COSECHAS_PENDIENTES, {"nit": numero_id_tributaria})]
 
     def cosecha_pendiente(self, id_evento: int) -> EventoM02 | None:
         f = fila(self.db, _COSECHA_PENDIENTE, {"id": id_evento})
