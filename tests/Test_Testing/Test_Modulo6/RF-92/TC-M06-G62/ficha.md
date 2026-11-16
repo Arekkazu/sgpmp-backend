@@ -43,3 +43,12 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-04 (TC-
 - Roles: Contador.
 - Sin escritura en TEST.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Ajuste del oráculo por el arreglo de #1153 (15/11/2026)
+- Desarrollo agregó a la conciliación la columna `asientos_trasladados_por_cierre` (asientos que el cierre pasó a otro período). La ecuación del caso ahora la suma con su signo: inicio + compras + nacimientos y otros ingresos + transformación biológica + precio de mercado − cosechas − bajas − depreciación y deterioro + asientos trasladados por el cierre = valor de cierre (tolerancia 0,01).
+- Hay que reevaluarlo sobre un informe del período 7 generado después del despliegue (los V5 y V6 guardados no cambian).
+
+## Cambio de método (15/11/2026): informe nuevo generado en el sandbox
+- Los informes guardados (V5 y V6) no cambian con el arreglo de #1153, así que la prueba ya no depende de ellos ni de que alguien genere un informe en TEST: dentro del sandbox (se revierte) se genera un informe nuevo del período, se mide el cuadre del BORRADOR y, tras aprobarlo, el del APROBADO.
+- Requiere `-Escritura` y `-PeriodoCerrado 7`. Sin escritura los pasos se omiten y salen como avisos.
+- TC-92-024: RF-92 pide agrupar por «especie o categoría»; la aserción acepta cualquiera de las dos (antes exigía la propiedad `categoria`, lo que era un falso positivo del oráculo).
