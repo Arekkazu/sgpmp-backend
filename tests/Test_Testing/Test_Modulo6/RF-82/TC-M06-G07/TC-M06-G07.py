@@ -71,9 +71,9 @@ def _n(env, ida, estado):
 
 
 def _accesos_no_autorizados(env) -> list[dict]:
-    """Eventos ACCESO_NO_AUTORIZADO del log de auditoría de M06 (API, Contador, los 500 más recientes). El 403 de RBAC guarda el id del activo
+    """Eventos ACCESO_NO_AUTORIZADO del log de auditoría de M06 (API, Administrador, los 500 más recientes). El 403 de RBAC guarda el id del activo
     en el payload y no en la columna id_activo_biologico (la envía alguien sin permiso y puede no existir), por eso no se filtra por activo."""
-    r = env.call("GET", "/finanzas/auditoria", "contador", params={"tipo_evento": "ACCESO_NO_AUTORIZADO", "tamano": 500, "orden": "DESC"})
+    r = env.call("GET", "/finanzas/auditoria", "admin", params={"tipo_evento": "ACCESO_NO_AUTORIZADO", "tamano": 500, "orden": "DESC"})
     assert r.status == 200, f"GET /finanzas/auditoria respondió {r}"
     return lista_de(r.data, "eventos")
 
