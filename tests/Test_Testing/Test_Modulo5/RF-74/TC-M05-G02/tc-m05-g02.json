@@ -93,12 +93,16 @@
       "value": "2026-11-14T03:13"
     },
     {
+      "key": "despliegue_368",
+      "value": "2026-11-15T23:10"
+    },
+    {
       "key": "manual_ua_prod",
-      "value": "0"
+      "value": "2"
     },
     {
       "key": "manual_ua_vet",
-      "value": "0"
+      "value": "2"
     }
   ],
   "item": [
@@ -1317,6 +1321,7 @@
                   "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
                   "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_357'));",
                   "pm.collectionVariables.set('ua_prod', JSON.stringify(ua.map(n => n.mensaje)));",
+                  "pm.collectionVariables.set('ua_prod_368', JSON.stringify(ua.filter(n => n.fecha_envio >= pm.collectionVariables.get('despliegue_368')).map(n => n.mensaje)));",
                   "console.log(JSON.stringify(ua.map(n => n.fecha_envio + ' ' + n.mensaje)));",
                   "pm.test('TC-M05-007b - el Productor recibe el aviso Urgencia ALTA de CA CRITICA despues del arreglo (' + ua.length + ')', () => pm.expect(ua.length).to.be.above(0));",
                   "pm.test('TC-M05-007b - el aviso nombra el activo por su identificador visible, no por su id interno (ej.: ' + ((ua[0] || {}).mensaje || '').slice(0, 90) + ')', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => { pm.expect(n.mensaje).to.not.match(/del activo \\d+ /); pm.expect(n.mensaje).to.match(/del activo \\S*[A-Za-z]\\S* /); }); });",
@@ -1338,7 +1343,7 @@
           }
         },
         {
-          "name": "TC-M05-007b - El Veterinario del activo tambien recibe el aviso Urgencia ALTA (real, desde rc.62)",
+          "name": "TC-M05-007b - El Veterinario del activo tambien recibe el aviso Urgencia ALTA (real, desde rc.70)",
           "event": [
             {
               "listen": "test",
@@ -1346,8 +1351,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('TC-M05-007b - bandeja del Veterinario (200)', () => pm.response.to.have.status(200));",
-                  "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_357')).map(n => n.mensaje);",
-                  "const prod = JSON.parse(pm.collectionVariables.get('ua_prod') || '[]');",
+                  "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_368')).map(n => n.mensaje);",
+                  "const prod = JSON.parse(pm.collectionVariables.get('ua_prod_368') || '[]');",
                   "console.log('Veterinario: ' + JSON.stringify(ua));",
                   "pm.test('TC-M05-007b - el Veterinario tiene los mismos avisos Urgencia ALTA que el Productor (Productor ' + prod.length + ', Veterinario ' + ua.length + ')', () => { pm.expect(prod.length).to.be.above(0); prod.forEach(m => pm.expect(ua).to.include(m)); });"
                 ]
@@ -1366,7 +1371,7 @@
           }
         },
         {
-          "name": "TC-M05-007b - El calculo manual CRITICA entrega el aviso Urgencia ALTA (real, 2026-11-14 04:17 UTC)",
+          "name": "TC-M05-007b - El calculo manual CRITICA entrega el aviso Urgencia ALTA (real, 2026-11-15 23:10 UTC)",
           "event": [
             {
               "listen": "test",
@@ -1374,7 +1379,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
-                  "console.log('Calculo manual real 2026-11-14 04:17 UTC (1627 y 1022, CRITICA): avisos Urgencia ALTA al Productor = ' + pm.collectionVariables.get('manual_ua_prod') + ', al Veterinario = ' + pm.collectionVariables.get('manual_ua_vet'));",
+                  "console.log('Calculo manual real 2026-11-15 23:10 UTC (1627 y 1022, CRITICA): avisos Urgencia ALTA al Productor = ' + pm.collectionVariables.get('manual_ua_prod') + ', al Veterinario = ' + pm.collectionVariables.get('manual_ua_vet'));",
                   "pm.test('TC-M05-007b - tras el calculo manual CRITICA, el Productor y el Veterinario reciben el aviso Urgencia ALTA (real: Productor ' + pm.collectionVariables.get('manual_ua_prod') + ', Veterinario ' + pm.collectionVariables.get('manual_ua_vet') + ')', () => { pm.expect(Number(pm.collectionVariables.get('manual_ua_prod'))).to.be.above(0); pm.expect(Number(pm.collectionVariables.get('manual_ua_vet'))).to.be.above(0); });"
                 ]
               }
