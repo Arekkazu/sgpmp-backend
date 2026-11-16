@@ -1,3 +1,9 @@
+## [1.4.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.75...v1.4.0-rc.76) (2026-11-16)
+
+### Bug Fixes
+
+* **rf02-mod1:** el ingreso por AgroFusion de un correo nuevo ya no responde 500 ([008657d](https://github.com/Arekkazu/sgpmp-backend/commit/008657dbf7c74bcf796118c7f4172ec01cc3a6d0))
+
 ## [1.4.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.74...v1.4.0-rc.75) (2026-11-16)
 
 ### Bug Fixes
