@@ -70,16 +70,24 @@ endpoints de modificación, e inspección de la migración/baseline para
 confirmar el trigger de inmutabilidad.
 
 ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): RESUELTO EN
-DISEÑO, PENDIENTE DE DESPLIEGUE A TEST -- mismo mecanismo que TC-M06-G74
-(422 ESTADO_RESULTADOS_NO_CONCILIA): el mensaje real SÍ distingue la fuente
-del error (indica si falta una variación de valor razonable o un producto
-agrícola, y de qué activo). Los demás errores de RF-93 ya tienen código
-propio (período no cerrado 422, sin permiso 403, no existe 404). Llega a
-TEST con el PR #1121; mientras no se despliegue, el código de este
-checkout sigue sin esa distinción y la primera mitad de este TC se
-mantiene en rojo -- re-verificar tras el despliegue. La segunda mitad
-(prohibición de modificación manual) permanece CONFIRMADA CORRECTA, sin
-cambios.
+DISEÑO -- mismo mecanismo que TC-M06-G74 (422 ESTADO_RESULTADOS_NO_CONCILIA):
+el mensaje real SÍ distingue la fuente del error (indica si falta una
+variación de valor razonable o un producto agrícola, y de qué activo). Los
+demás errores de RF-93 ya tienen código propio (período no cerrado 422, sin
+permiso 403, no existe 404). Llega a TEST con el PR #1121.
+
+ACTUALIZACIÓN 2026-11-17: PR #1121 desplegado -- CERRADO el sub-hallazgo de
+"identificación de fuente" (ver abajo, confirmado contra `_HECHO_FUENTE` en
+`reportes.py`). SIGUE ABIERTO un sub-hallazgo más angosto que el original:
+la ficha hablaba de "timeout, 5xx, datos corruptos" en general, pero el
+mecanismo real sólo audita un tipo específico de error -- un hecho de
+fuente sin asiento (`ConciliacionError`). Un fallo genérico (timeout de BD,
+`RuntimeError`, un `Decimal` inválido que no sea por falta de asiento) sigue
+cayendo en el `except Exception` genérico de `generar()`, sin auditar ni
+avisar -- eso NO lo cubre el PR #1121, que resolvió específicamente la
+discrepancia de conciliación (G74), no el manejo de errores técnicos en
+general (G80). La segunda mitad (prohibición de modificación manual)
+permanece CONFIRMADA CORRECTA, sin cambios.
 
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
@@ -117,10 +125,12 @@ def _periodo():
                    fecha_inicio=datetime.date(2026, 10, 1), fecha_fin=datetime.date(2026, 10, 31), estado="CERRADO")
 
 
-class TestSubCasoAEErrorCriticoPendienteDespliegue:
-    def test_un_fallo_en_el_calculo_no_registra_ningun_evento_de_auditoria(self):
-        """PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): el mecanismo real
-        de aviso al Contador + ERROR_CONCILIACION en bitacora aun no esta en este checkout."""
+class TestSubCasoAUnFalloGenericoSigueSinAuditarHallazgoMasAngosto:
+    def test_un_fallo_generico_en_el_calculo_sigue_sin_registrar_auditoria(self):
+        """SIGUE ABIERTO (mas angosto que el hallazgo original): un error TECNICO generico
+        (no una discrepancia de conciliacion) sigue sin auditarse. El PR #1121 (2026-11-17,
+        desplegado) solo cubre ConciliacionError -- ver TestSubCasoBElMecanismoRealSiAuditaYAvisaConciliacionCerrado
+        abajo para el caso que SI quedo cerrado."""
         periodos = MagicMock()
         periodos.obtener.return_value = _periodo()
         periodos.ultima_ejecucion.return_value = {}
@@ -133,9 +143,10 @@ class TestSubCasoAEErrorCriticoPendienteDespliegue:
         with pytest.raises(RuntimeError):
             uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
         pytest.fail(
-            "PENDIENTE DE DESPLIEGUE: ante un fallo del calculo, auditoria.registrar() NUNCA se "
-            f"invoca en este checkout (count={auditoria.registrar.call_count}) -- el mecanismo "
-            "real llega con el PR #1121; re-verificar tras el despliegue."
+            "HALLAZGO (mas angosto desde el PR #1121): ante un fallo TECNICO generico (no una "
+            f"discrepancia de conciliacion), auditoria.registrar() NUNCA se invoca "
+            f"(count={auditoria.registrar.call_count}) -- no hay registro en RF-94 ni aviso al "
+            "Contador para este tipo de error, solo para ConciliacionError."
         ) if auditoria.registrar.call_count == 0 else None
 
     def test_el_rollback_si_se_ejecuta_pero_sin_distincion_de_causa(self):
@@ -151,17 +162,39 @@ class TestSubCasoAEErrorCriticoPendienteDespliegue:
             uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
         db.rollback.assert_called_once()
 
-    def test_no_existe_ningun_mecanismo_para_identificar_cual_de_las_cuatro_fuentes_fallo(self):
-        """PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): el mensaje real de
-        422 ESTADO_RESULTADOS_NO_CONCILIA SI identifica la fuente (variacion de valor razonable
-        vs producto agricola, y de que activo) -- confirmado por el equipo, aun no en este
-        checkout."""
+    def test_no_existe_try_except_individual_pero_si_identifica_fuente_por_conciliacion(self):
+        """No es un defecto: calcular() no tiene try/except por fuente individual, pero
+        ConciliacionError SI identifica cual fuente (variacion de valor razonable vs producto
+        agricola) y que activo, via _HECHO_FUENTE -- otro mecanismo, mismo resultado util para
+        el Contador. CERRADO 2026-11-17."""
         archivo = REPO_ROOT / 'src/financial_valuation/application/services/reportes.py'
         texto = archivo.read_text(encoding='utf-8')
-        pytest.fail(
-            "PENDIENTE DE DESPLIEGUE: calcular() en este checkout combina todas las fuentes sin "
-            "try/except individual -- la identificacion de fuente real llega con el PR #1121."
-        ) if texto.count('try:') == 0 else None
+        assert '_HECHO_FUENTE' in texto
+        assert 'variaciones_valor_razonable' in texto and 'reconocimientos_productos_agricolas' in texto
+
+
+class TestSubCasoBElMecanismoRealSiAuditaYAvisaConciliacionCerrado:
+    def test_una_discrepancia_de_conciliacion_si_se_audita_y_se_avisa_al_contador(self):
+        """CERRADO: a diferencia de un fallo tecnico generico (ver arriba), una discrepancia de
+        conciliacion (ConciliacionError) SI registra ERROR_CONCILIACION en RF-94 y SI avisa al
+        Contador, confirmado via _discrepancia() en generar_estado_resultados_use_case.py."""
+        from src.financial_valuation.application.services.reportes import ConciliacionError, ConstructorEstadoResultados
+        periodos = MagicMock()
+        periodos.obtener.return_value = _periodo()
+        periodos.ultima_ejecucion.return_value = {'activos_excluidos': []}
+        reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = [{'fuente': 'reconocimientos_productos_agricolas', 'identificador': 'CAFE-02'}]
+        costos = MagicMock()
+        costos.del_periodo.return_value = []
+        constructor = ConstructorEstadoResultados(reportes=reportes, costos=costos)
+        auditoria = MagicMock()
+        notificador = MagicMock()
+        uc = GenerarEstadoResultadosUseCase(db=MagicMock(), periodos=periodos, reportes=reportes,
+                                            constructor=constructor, auditoria=auditoria, notificador=notificador)
+        with pytest.raises(ConciliacionError):
+            uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
+        assert auditoria.registrar.call_args.args[0].tipo_evento == 'ERROR_CONCILIACION'
+        notificador.a_contadores.assert_called_once()
 
 
 class TestSubCasoFGHProhibicionDeModificacionManualConfirmadaCorrecta:

@@ -109,6 +109,7 @@ class TestSubCasoAVersionadoIndependienteConfirmadoCorrecto:
         periodos.obtener.return_value = _periodo()
         periodos.ultima_ejecucion.return_value = {}
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = []
         reportes.siguiente_version_estado.side_effect = [1, 2, 3]
         reportes.agregar_estado.side_effect = [101, 102, 103]
@@ -128,6 +129,7 @@ class TestSubCasoAVersionadoIndependienteConfirmadoCorrecto:
 class TestSubCasoBAprobacionRegistraEventoDeAuditoriaConfirmado:
     def test_aprobar_registra_estado_resultados_aprobado(self):
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.obtener_estado.side_effect = [
             {'id_periodo_contable': 93, 'estado': 'GENERADO'},
             {'id_periodo_contable': 93, 'estado': 'APROBADO'},
