@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75 E5 / RF-76 R5: edición → 405        |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: rechazar la modificación de un consumo o medicamento (RF-75 E5, RF-76 R5).
 
 Los registros son inmutables: un VALIDADO solo se anula y un ANULADO no se
@@ -29,29 +30,29 @@ class RechazarModificacionUseCase:
         if registro is None:
             raise NotFoundError(
                 code="CONSUMO_NO_ENCONTRADO",
-                message=f"El registro de consumo con ID {id_consumo} no existe.",
+                message="El registro de consumo no existe.",
             )
-        self._rechazar("El registro de consumo", id_consumo, registro.estado_registro)
+        self._rechazar("El registro de consumo", registro.estado_registro)
 
     def medicamento(self, id_medicamento: int) -> None:
         registro = self.medicamento_repo.obtener_por_id(id_medicamento)
         if registro is None:
             raise NotFoundError(
                 code="MEDICAMENTO_NO_ENCONTRADO",
-                message=f"El registro de aplicación de medicamento con ID {id_medicamento} no existe.",
+                message="El registro de aplicación de medicamento no existe.",
             )
-        self._rechazar("El registro de aplicación de medicamento", id_medicamento, registro.estado_registro)
+        self._rechazar("El registro de aplicación de medicamento", registro.estado_registro)
 
     @staticmethod
-    def _rechazar(sujeto: str, id_registro: int, estado: str) -> None:
+    def _rechazar(sujeto: str, estado: str) -> None:
         if estado == EstadoRegistro.ANULADO.value:
             mensaje = (
-                f"{sujeto} {id_registro} está en estado ANULADO y no puede ser modificado ni reactivado. "
+                f"{sujeto} está anulado y no puede ser modificado ni reactivado. "
                 "Si necesita reemplazarlo, cree un nuevo registro."
             )
         else:
             mensaje = (
-                f"{sujeto} {id_registro} está en estado VALIDADO y no puede ser modificado. Para corregirlo, "
+                f"{sujeto} ya está validado y no puede ser modificado. Para corregirlo, "
                 "debe anularlo y crear un nuevo registro."
             )
         raise MethodNotAllowedError(code="REGISTRO_INMUTABLE", message=mensaje)

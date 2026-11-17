@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-74: E1/E5/E6 del RF y cálculo sin commit |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-12 | Leandro | INC-M05-357-G02 RF-74: mostrar el identificador, el período y el CA legibles en el aviso crítico. |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso núcleo: calcular el ICA de un activo para un período (RF-74).
 
 Reutilizado por el cálculo manual (Flujo A), el batch nocturno (Flujo C) y los
@@ -110,7 +111,7 @@ class CalcularICAUseCase:
             raise InfrastructureError(
                 code="ERROR_CALCULO_CA",
                 message=(
-                    f"Error interno al calcular el CA para el activo {id_activo_biologico}. "
+                    "Error interno al calcular el ICA. "
                     "La operación fue revertida."
                 ),
                 original_error=exc,
@@ -173,15 +174,15 @@ class CalcularICAUseCase:
         if activo is None:
             raise NotFoundError(
                 code="ACTIVO_NO_ENCONTRADO",
-                message=f"El activo biológico con ID {id_activo_biologico} no existe.",
+                message="El activo biológico seleccionado no existe.",
                 field="id_activo_biologico",
             )
         if not activo.esta_activo:
             raise BusinessRuleError(
                 code="ACTIVO_NO_ACTIVO",
                 message=(
-                    f"El activo biológico con ID {id_activo_biologico} no está en estado ACTIVO. "
-                    "El cálculo del CA solo aplica a activos en producción."
+                    f"El activo {activo.nombre_visible} está {activo.estado_visible}. "
+                    "El cálculo del ICA solo aplica a activos en producción."
                 ),
                 field="id_activo_biologico",
             )
