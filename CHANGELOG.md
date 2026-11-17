@@ -1,3 +1,9 @@
+## [1.4.0-rc.77](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.76...v1.4.0-rc.77) (2026-11-17)
+
+### Bug Fixes
+
+* **rf74-mod5:** los avisos de suministros nombran el activo y su estado, sin ids ni «CA» ([a61f02e](https://github.com/Arekkazu/sgpmp-backend/commit/a61f02e07cf7cf4e7d41701894f170b1482525d5))
+
 ## [1.4.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.75...v1.4.0-rc.76) (2026-11-16)
 
 ### Bug Fixes
