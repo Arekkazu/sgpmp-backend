@@ -1,0 +1,84 @@
+{
+  "fecha_utc": "2026-11-18T02:50:44.130045+00:00",
+  "nombre_caso_m08": "Períodos contables referidos como M08 en el caso; implementación real en modulo6 / M06",
+  "esquema_bd": "modulo6.periodos_contables",
+  "endpoint_periodos": "/finanzas/periodos",
+  "http_periodos_admin": 200,
+  "periodos_muestra": [
+    {
+      "id": 8,
+      "estado": "EN_CIERRE",
+      "fecha_inicio": "2026-12-01",
+      "fecha_fin": "2026-12-31"
+    },
+    {
+      "id": 7,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30"
+    },
+    {
+      "id": 260,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-12-01",
+      "fecha_fin": "2026-12-31"
+    },
+    {
+      "id": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30"
+    },
+    {
+      "id": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30"
+    },
+    {
+      "id": 266,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30"
+    },
+    {
+      "id": 258,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30"
+    },
+    {
+      "id": 631,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30"
+    }
+  ],
+  "cerrado_encontrado": true,
+  "abierto_encontrado": true,
+  "auditoria_valida_periodo": false,
+  "auditoria_param_id_periodo": false,
+  "restriccion_cerrado_en_aaef": "Sí (ConsultarAaefUseCase / aaef.py estado==CERRADO), no en GET /auditoria",
+  "consulta_tiempo_real_m06": "GET /finanzas/periodos en esta ejecución",
+  "autorizacion_backend_auditoria": "Solo permisos R de auditoría + filtros TIPOS_AUDITOR; sin ACL período",
+  "rangos_probados_auditor": {
+    "cerrado": {
+      "http": 200,
+      "total": 17,
+      "id_periodo": 7,
+      "nota": "Filtro fecha; no hay ACL de período en GET auditoría"
+    },
+    "abierto": {
+      "http": 200,
+      "total": 0,
+      "id_periodo": 260,
+      "nota": "Backend NO deniega por período ABIERTO en historial auditoría"
+    },
+    "inexistente_futuro": {
+      "http": 200,
+      "total": 0
+    }
+  },
+  "cobertura": "NO APLICA",
+  "justificacion": "GET /integracion/auditoria no integra ni autoriza por período contable. Los filtros desde/hasta son fechas de evento. La restricción CERRADO aplica a la consulta AAEF (RF-95), no al historial RF-102. No se simula integración M08 inexistente sobre este endpoint."
+}

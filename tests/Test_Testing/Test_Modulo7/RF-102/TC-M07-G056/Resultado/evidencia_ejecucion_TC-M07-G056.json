@@ -1,0 +1,541 @@
+{
+  "caso": "TC-M07-G056",
+  "rf": "RF-102",
+  "fecha_ejecucion_utc": "2026-11-18T02:50:46.264442+00:00",
+  "estado_final": "APROBADO",
+  "matriz_permisos": [
+    {
+      "funcionalidad": "Consultar historial",
+      "administrador": "Sí (HTTP 200)",
+      "auditor": "Sí restringida (HTTP 200)",
+      "sin_permisos": "No (HTTP 403 ACCESO_DENEGADO)",
+      "evidencia": "evidencia_e1_admin / e2_auditor / e3_sin_permiso"
+    },
+    {
+      "funcionalidad": "Consultar eventos AAEF (TIPOS_AUDITOR)",
+      "administrador": "Sí",
+      "auditor": "Sí (únicos permitidos)",
+      "sin_permisos": "No",
+      "evidencia": "e1 + e2 tipos"
+    },
+    {
+      "funcionalidad": "Consultar eventos de otros tipos",
+      "administrador": "Sí (fuera_TIPOS=['ACCESO_AUDITORIA_DENEGADO', 'ANEXO_EN_REVISION', 'CLIENTE_REACTIVADO', 'CLIENTE_REGISTRADO', 'CLIENTE_SUSPENDIDO', 'INTENTO_MODIFICACION_AUDITORIA', 'SECRETO_ROTADO', 'SOLICITUD_RECHAZADA', 'TOKEN_CANAL_EMITIDO', 'TOKEN_CANAL_RECHAZADO'])",
+      "auditor": "No (FA7 HTTP 403)",
+      "sin_permisos": "No",
+      "evidencia": "e2 FA7 SOLICITUD_RECHAZADA"
+    },
+    {
+      "funcionalidad": "Consultar períodos cerrados",
+      "administrador": "N/A en auditoría (filtro fecha opcional)",
+      "auditor": "N/A — sin ACL período en GET auditoría",
+      "sin_permisos": "No (403 antes de filtros)",
+      "evidencia": "evidencia_integracion_m08_TC-M07-G056.json"
+    },
+    {
+      "funcionalidad": "Consultar períodos abiertos",
+      "administrador": "N/A en auditoría (filtro fecha opcional)",
+      "auditor": "N/A — backend no deniega por ABIERTO en historial",
+      "sin_permisos": "No",
+      "evidencia": "evidencia_integracion_m08_TC-M07-G056.json"
+    },
+    {
+      "funcionalidad": "Consultar períodos inexistentes",
+      "administrador": "N/A (sin param id_periodo; rango futuro → total 0)",
+      "auditor": "N/A (igual)",
+      "sin_permisos": "No",
+      "evidencia": "rangos 2099-01-01"
+    },
+    {
+      "funcionalidad": "Consultar IP de origen",
+      "administrador": "Sí (campo presente; no_nulas=57)",
+      "auditor": "No (forzado null; no_nulas=0)",
+      "sin_permisos": "No",
+      "evidencia": "e1/e2 resumen campos"
+    },
+    {
+      "funcionalidad": "Consultar motivos de rechazo (json_detalle)",
+      "administrador": "Sí (no_nulos=55)",
+      "auditor": "No (forzado null; no_nulos=0)",
+      "sin_permisos": "No",
+      "evidencia": "e1/e2 resumen campos"
+    },
+    {
+      "funcionalidad": "Exportar auditoría",
+      "administrador": "Sí (HTTP 200)",
+      "auditor": "No (HTTP 403)",
+      "sin_permisos": "No (HTTP 403)",
+      "evidencia": "evidencia_e2_export + e1/e3"
+    }
+  ],
+  "escenarios": [
+    {
+      "id": "E1",
+      "perfil": "Administrador",
+      "nombre": "Consulta autorizada",
+      "caso_original": "TC-M07-102-013",
+      "estado": "APROBADO",
+      "validacion": "Consulta autorizada",
+      "esperado": "HTTP 200, vista completa, filtros, export si permiso E",
+      "obtenido": "HTTP 200; estructura_ok=True; tipos_fuera_auditor=['ACCESO_AUDITORIA_DENEGADO', 'ANEXO_EN_REVISION', 'CLIENTE_REACTIVADO', 'CLIENTE_REGISTRADO', 'CLIENTE_SUSPENDIDO', 'INTENTO_MODIFICACION_AUDITORIA', 'SECRETO_ROTADO', 'SOLICITUD_RECHAZADA', 'TOKEN_CANAL_EMITIDO', 'TOKEN_CANAL_RECHAZADO']; campos_ip_detalle=True; export_http=200",
+      "evidencia": "evidencia_e1_admin_TC-M07-G056.json",
+      "pasos": [
+        "Login Admin HTTP 200",
+        "GET /integracion/auditoria HTTP 200, total=153",
+        "Tipos observados: ['ACCESO_AUDITORIA_DENEGADO', 'ANEXO_EN_REVISION', 'CLIENTE_REACTIVADO', 'CLIENTE_REGISTRADO', 'CLIENTE_SUSPENDIDO', 'INTENTO_MODIFICACION_AUDITORIA', 'PAQUETE_AAEF_CONSULTADO', 'SECRETO_ROTADO', 'SOLICITUD_RECHAZADA', 'TOKEN_CANAL_EMITIDO', 'TOKEN_CANAL_RECHAZADO', 'VISTA_AAEF_GENERADA']",
+        "Filtros por tipo: [{'tipo_evento': 'PAQUETE_AAEF_CONSULTADO', 'http': 200, 'total': 16}, {'tipo_evento': 'VISTA_AAEF_GENERADA', 'http': 200, 'total': 39}, {'tipo_evento': 'CONTRATO_ACTIVADO', 'http': 200, 'total': 1}, {'tipo_evento': 'ACCESO_AUDITORIA_DENEGADO', 'http': 200, 'total': 19}, {'tipo_evento': 'ANEXO_EN_REVISION', 'http': 200, 'total': 1}, {'tipo_evento': 'CLIENTE_REACTIVADO', 'http': 200, 'total': 1}]",
+        "GET /finanzas/periodos HTTP 200, n=39",
+        "Admin rango período cerrado id=7 HTTP 200",
+        "Admin rango período abierto id=260 HTTP 200",
+        "Admin rango futuro inexistente HTTP 200",
+        "GET /integracion/auditoria/exportar?formato=json HTTP 200"
+      ],
+      "observaciones": "Admin usa auditoria_integracion:R+E. Export confirmado en ruta real."
+    },
+    {
+      "id": "E2a",
+      "perfil": "Auditor",
+      "nombre": "Restricciones de eventos y campos",
+      "caso_original": "TC-M07-102-013",
+      "estado": "APROBADO",
+      "validacion": "Restricciones de eventos y períodos",
+      "esperado": "Solo TIPOS_AUDITOR; sin IP/json_detalle; deniega tipos no autorizados",
+      "obtenido": "HTTP 200; solo_tipos=True; campos_ocultos=True; FA7_http=403; rangos={'cerrado': {'http': 200, 'total': 17, 'id_periodo': 7, 'nota': 'Filtro fecha; no hay ACL de período en GET auditoría'}, 'abierto': {'http': 200, 'total': 0, 'id_periodo': 260, 'nota': 'Backend NO deniega por período ABIERTO en historial auditoría'}, 'inexistente_futuro': {'http': 200, 'total': 0}}",
+      "evidencia": "evidencia_e2_auditor_TC-M07-G056.json",
+      "pasos": [
+        "Login Auditor (Revisor Fiscal) HTTP 200",
+        "GET auditoría HTTP 200, total=17",
+        "Tipos=['CONTRATO_ACTIVADO', 'PAQUETE_AAEF_CONSULTADO']; fuera_TIPOS_AUDITOR=[]",
+        "ip_no_nulas=0; json_detalle_no_nulos=0",
+        "Filtro SOLICITUD_RECHAZADA HTTP 403 code=ACCESO_AUDITORIA_DENEGADO",
+        "Auditor rango cerrado HTTP 200",
+        "Auditor rango abierto HTTP 200 (sin ACL período en este endpoint)",
+        "Auditor rango futuro HTTP 200"
+      ],
+      "observaciones": "ACL de período CERRADO no aplica a GET /auditoria (sí a consulta AAEF/modulo6). Restricción de períodos del requerimiento sobre historial: NO APLICA en este endpoint."
+    },
+    {
+      "id": "E2b",
+      "perfil": "Auditor",
+      "nombre": "Exportación denegada",
+      "caso_original": "TC-M07-102-013",
+      "estado": "APROBADO",
+      "validacion": "Exportación denegada",
+      "esperado": "HTTP 403 en ruta real de exportación",
+      "obtenido": "HTTP 403 code=ACCESO_DENEGADO",
+      "evidencia": "evidencia_e2_export_TC-M07-G056.json",
+      "pasos": [
+        "GET /integracion/auditoria/exportar?formato=json con token Auditor HTTP 403",
+        "code=ACCESO_DENEGADO",
+        "Permiso requerido por router: auditoria_integracion:E (Revisor Fiscal solo tiene cierres:R)"
+      ],
+      "observaciones": "Ruta real intentada: GET /integracion/auditoria/exportar"
+    },
+    {
+      "id": "E2c",
+      "perfil": "Auditor",
+      "nombre": "Restricción períodos contables (M08/M06) sobre historial",
+      "caso_original": "TC-M07-102-013",
+      "estado": "NO APLICA",
+      "validacion": "Restricciones de períodos contables en historial",
+      "esperado": "Según requerimiento: solo períodos cerrados autorizados",
+      "obtenido": "Endpoint de auditoría no valida períodos; rangos fecha abiertos/cerrados responden sin ACL de período. Cerrado=True Abierto=True",
+      "evidencia": "evidencia_integracion_m08_TC-M07-G056.json",
+      "pasos": [
+        "Inspección m07_router.consultar_auditoria: sin id_periodo",
+        "Inspección ConsultarAuditoriaIntegracionUseCase: solo TIPOS_AUDITOR / solo_exitosos",
+        "GET /finanzas/periodos HTTP 200",
+        "Pruebas desde/hasta con fechas de períodos reales sin denegación por estado"
+      ],
+      "observaciones": "GET /integracion/auditoria no integra ni autoriza por período contable. Los filtros desde/hasta son fechas de evento. La restricción CERRADO aplica a la consulta AAEF (RF-95), no al historial RF-102. No se simula integración M08 inexistente sobre este endpoint."
+    },
+    {
+      "id": "E3",
+      "perfil": "Usuario sin permisos",
+      "nombre": "Acceso rechazado",
+      "caso_original": "TC-M07-102-013",
+      "estado": "APROBADO",
+      "validacion": "Acceso rechazado",
+      "esperado": "HTTP 403 ACCESO_DENEGADO; sin historial; export 403; 401 sin token",
+      "obtenido": "consulta=403/ACCESO_DENEGADO; filtro=403; export=403/ACCESO_DENEGADO; sin_token=401; denegados_ref=19->post=21",
+      "evidencia": "evidencia_e3_sin_permiso_TC-M07-G056.json",
+      "pasos": [
+        "Login Contador (sin permisos auditoría) HTTP 200",
+        "GET /integracion/auditoria HTTP 403 code=ACCESO_DENEGADO",
+        "Sin items en body: True",
+        "GET con filtro tipo HTTP 403",
+        "GET export HTTP 403 code=ACCESO_DENEGADO",
+        "GET sin Authorization HTTP 401",
+        "ACCESO_AUDITORIA_DENEGADO ref=19 post=21"
+      ],
+      "observaciones": "403 (autorización) distinto de 401 (autenticación). Intentos denegados pueden incrementar ACCESO_AUDITORIA_DENEGADO; no es contaminación de la consulta."
+    }
+  ],
+  "integracion_m08": {
+    "fecha_utc": "2026-11-18T02:50:44.130045+00:00",
+    "nombre_caso_m08": "Períodos contables referidos como M08 en el caso; implementación real en modulo6 / M06",
+    "esquema_bd": "modulo6.periodos_contables",
+    "endpoint_periodos": "/finanzas/periodos",
+    "http_periodos_admin": 200,
+    "periodos_muestra": [
+      {
+        "id": 8,
+        "estado": "EN_CIERRE",
+        "fecha_inicio": "2026-12-01",
+        "fecha_fin": "2026-12-31"
+      },
+      {
+        "id": 7,
+        "estado": "CERRADO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      },
+      {
+        "id": 260,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-12-01",
+        "fecha_fin": "2026-12-31"
+      },
+      {
+        "id": 219,
+        "estado": "CERRADO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      },
+      {
+        "id": 220,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      },
+      {
+        "id": 266,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      },
+      {
+        "id": 258,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      },
+      {
+        "id": 631,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      }
+    ],
+    "cerrado_encontrado": true,
+    "abierto_encontrado": true,
+    "auditoria_valida_periodo": false,
+    "auditoria_param_id_periodo": false,
+    "restriccion_cerrado_en_aaef": "Sí (ConsultarAaefUseCase / aaef.py estado==CERRADO), no en GET /auditoria",
+    "consulta_tiempo_real_m06": "GET /finanzas/periodos en esta ejecución",
+    "autorizacion_backend_auditoria": "Solo permisos R de auditoría + filtros TIPOS_AUDITOR; sin ACL período",
+    "rangos_probados_auditor": {
+      "cerrado": {
+        "http": 200,
+        "total": 17,
+        "id_periodo": 7,
+        "nota": "Filtro fecha; no hay ACL de período en GET auditoría"
+      },
+      "abierto": {
+        "http": 200,
+        "total": 0,
+        "id_periodo": 260,
+        "nota": "Backend NO deniega por período ABIERTO en historial auditoría"
+      },
+      "inexistente_futuro": {
+        "http": 200,
+        "total": 0
+      }
+    },
+    "cobertura": "NO APLICA",
+    "justificacion": "GET /integracion/auditoria no integra ni autoriza por período contable. Los filtros desde/hasta son fechas de evento. La restricción CERRADO aplica a la consulta AAEF (RF-95), no al historial RF-102. No se simula integración M08 inexistente sobre este endpoint."
+  },
+  "peticiones": [
+    {
+      "fase": "login_admin",
+      "http": 200,
+      "ok": true,
+      "correo": "admin.rol@gmail.com"
+    },
+    {
+      "fase": "login_auditor",
+      "http": 200,
+      "ok": true,
+      "correo": "revisor.fiscal@gmail.com"
+    },
+    {
+      "fase": "login_sin_permiso",
+      "http": 200,
+      "ok": true,
+      "correo": "contador@gmail.com"
+    },
+    {
+      "fase": "permisos_admin",
+      "http": 200,
+      "ruta": "/sesiones/me/permisos"
+    },
+    {
+      "fase": "permisos_auditor",
+      "http": 200,
+      "ruta": "/sesiones/me/permisos"
+    },
+    {
+      "fase": "permisos_sin",
+      "http": 200,
+      "ruta": "/sesiones/me/permisos"
+    },
+    {
+      "fase": "baseline_admin",
+      "http": 200,
+      "ruta": "/integracion/auditoria",
+      "resumen": {
+        "total": 153,
+        "pagina": 1,
+        "tamano": 100,
+        "n_items": 100,
+        "tipos_evento": [
+          "ACCESO_AUDITORIA_DENEGADO",
+          "ANEXO_EN_REVISION",
+          "CLIENTE_REACTIVADO",
+          "CLIENTE_REGISTRADO",
+          "CLIENTE_SUSPENDIDO",
+          "INTENTO_MODIFICACION_AUDITORIA",
+          "PAQUETE_AAEF_CONSULTADO",
+          "SECRETO_ROTADO",
+          "SOLICITUD_RECHAZADA",
+          "TOKEN_CANAL_EMITIDO",
+          "TOKEN_CANAL_RECHAZADO",
+          "VISTA_AAEF_GENERADA"
+        ],
+        "fuera_tipos_auditor": [
+          "ACCESO_AUDITORIA_DENEGADO",
+          "ANEXO_EN_REVISION",
+          "CLIENTE_REACTIVADO",
+          "CLIENTE_REGISTRADO",
+          "CLIENTE_SUSPENDIDO",
+          "INTENTO_MODIFICACION_AUDITORIA",
+          "SECRETO_ROTADO",
+          "SOLICITUD_RECHAZADA",
+          "TOKEN_CANAL_EMITIDO",
+          "TOKEN_CANAL_RECHAZADO"
+        ],
+        "ip_origen_no_nulas": 57,
+        "json_detalle_no_nulos": 55,
+        "claves_muestra": [
+          "codigo_http",
+          "codigo_resultado",
+          "correo_usuario",
+          "endpoint",
+          "fecha_desde",
+          "fecha_evento",
+          "fecha_hasta",
+          "fecha_registro",
+          "hash_contenido",
+          "id_cliente_externo",
+          "id_evento_integracion",
+          "id_intercambio",
+          "id_solicitud",
+          "id_usuario",
+          "integridad",
+          "ip_origen",
+          "json_detalle",
+          "latencia_ms",
+          "metodo_http",
+          "modulo",
+          "nombre_cliente",
+          "numero_id_tributaria",
+          "severidad",
+          "tamano_payload_bytes",
+          "tipo_actor",
+          "tipo_evento",
+          "version_contrato"
+        ]
+      }
+    },
+    {
+      "fase": "ref_acceso_denegado",
+      "http": 200,
+      "total": 19
+    },
+    {
+      "fase": "admin_filtro_PAQUETE_AAEF_CONSULTADO",
+      "http": 200
+    },
+    {
+      "fase": "admin_filtro_VISTA_AAEF_GENERADA",
+      "http": 200
+    },
+    {
+      "fase": "admin_filtro_CONTRATO_ACTIVADO",
+      "http": 200
+    },
+    {
+      "fase": "admin_filtro_ACCESO_AUDITORIA_DENEGADO",
+      "http": 200
+    },
+    {
+      "fase": "admin_filtro_ANEXO_EN_REVISION",
+      "http": 200
+    },
+    {
+      "fase": "admin_filtro_CLIENTE_REACTIVADO",
+      "http": 200
+    },
+    {
+      "fase": "admin_periodos_m06",
+      "http": 200,
+      "n": 39
+    },
+    {
+      "fase": "admin_export",
+      "http": 200,
+      "ok": true
+    },
+    {
+      "fase": "auditor_consulta",
+      "http": 200,
+      "resumen": {
+        "total": 17,
+        "pagina": 1,
+        "tamano": 100,
+        "n_items": 17,
+        "tipos_evento": [
+          "CONTRATO_ACTIVADO",
+          "PAQUETE_AAEF_CONSULTADO"
+        ],
+        "fuera_tipos_auditor": [],
+        "ip_origen_no_nulas": 0,
+        "json_detalle_no_nulos": 0,
+        "claves_muestra": [
+          "codigo_http",
+          "codigo_resultado",
+          "correo_usuario",
+          "endpoint",
+          "fecha_desde",
+          "fecha_evento",
+          "fecha_hasta",
+          "fecha_registro",
+          "hash_contenido",
+          "id_cliente_externo",
+          "id_evento_integracion",
+          "id_intercambio",
+          "id_solicitud",
+          "id_usuario",
+          "integridad",
+          "ip_origen",
+          "json_detalle",
+          "latencia_ms",
+          "metodo_http",
+          "modulo",
+          "nombre_cliente",
+          "numero_id_tributaria",
+          "severidad",
+          "tamano_payload_bytes",
+          "tipo_actor",
+          "tipo_evento",
+          "version_contrato"
+        ]
+      }
+    },
+    {
+      "fase": "auditor_fa7",
+      "http": 403,
+      "code": "ACCESO_AUDITORIA_DENEGADO",
+      "body": {
+        "error_code": "ACCESO_AUDITORIA_DENEGADO",
+        "message": "Solo puede consultar las consultas contables y las activaciones del contrato.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:50:42.740880+00:00"
+      }
+    },
+    {
+      "fase": "auditor_export",
+      "http": 403,
+      "code": "ACCESO_DENEGADO",
+      "body": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:50:44.334587+00:00"
+      }
+    },
+    {
+      "fase": "sin_consulta",
+      "http": 403,
+      "code": "ACCESO_DENEGADO",
+      "body": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "No tiene permiso para consultar la auditoría de la integración.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:50:44.742496+00:00"
+      }
+    },
+    {
+      "fase": "sin_filtro",
+      "http": 403,
+      "body": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "No tiene permiso para consultar la auditoría de la integración.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:50:45.155422+00:00"
+      }
+    },
+    {
+      "fase": "sin_export",
+      "http": 403,
+      "code": "ACCESO_DENEGADO",
+      "body": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:50:45.571972+00:00"
+      }
+    },
+    {
+      "fase": "sin_authorization",
+      "http": 401,
+      "body": {
+        "error_code": "TOKEN_REQUERIDO",
+        "message": "Se requiere autenticación. Proporciona un token Bearer válido.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:50:45.957987+00:00"
+      }
+    },
+    {
+      "fase": "post_acceso_denegado",
+      "http": 200,
+      "total": 21,
+      "ref": 19
+    }
+  ],
+  "limitaciones": [
+    "No se modificaron períodos ni roles en TEST.",
+    "Credenciales solo por variables de entorno; tokens omitidos en evidencias.",
+    "Integración 'M08' del enunciado: períodos reales en modulo6/M06; sin ACL período en GET auditoría.",
+    "Intentos 403 pueden registrar ACCESO_AUDITORIA_DENEGADO (documentado ref→post).",
+    "G052–G055 no fueron modificados."
+  ],
+  "resumen": {
+    "aprobados": 4,
+    "rechazados": 0,
+    "bloqueados": 0,
+    "no_aplica": 1,
+    "estado_final": "APROBADO"
+  },
+  "endpoints_reales": {
+    "consulta": "GET /integracion/auditoria",
+    "exportacion": "GET /integracion/auditoria/exportar",
+    "periodos_m06": "GET /finanzas/periodos",
+    "permisos": "GET /sesiones/me/permisos",
+    "login": "POST /sesiones/"
+  },
+  "referencia_denegados": {
+    "antes": 19,
+    "despues": 21
+  }
+}

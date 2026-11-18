@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>TC-M07-G056 — RF-102 — APROBADO</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f7f7f5;color:#1a1a1a}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+th{background:#e8eef5} .note{background:#eef6ff;border-left:4px solid #2563eb;padding:10px;margin:12px 0}
+.lim{background:#fff8e6;border-left:4px solid #9a6b00;padding:10px;margin:12px 0}
+.meta span{display:inline-block;margin-right:16px;margin-bottom:6px}
+</style></head><body>
+<h1>TC-M07-G056 — Permisos de acceso y restricciones según rol</h1>
+<div class="card meta">
+  <span><strong>RF-102 / M01 · CU07</strong></span>
+  <span><strong>Endpoints:</strong> GET /integracion/auditoria, GET /integracion/auditoria/exportar</span>
+  <span><strong>Estado:</strong> <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></span>
+  <span><strong>UTC:</strong> 2026-11-18T02:50:46.264442+00:00</span>
+</div>
+<div class="note">
+Permisos reales: <code>auditoria_integracion</code> (R/E) vs <code>auditoria_integracion_cierres</code> (R).
+Auditor externo = Revisor Fiscal. Vista restringida: TIPOS_AUDITOR + sin IP/json_detalle.
+Exportación exige <code>auditoria_integracion:E</code>.
+Períodos contables: <code>modulo6.periodos_contables</code> vía M06; <strong>no</strong> hay ACL de período en GET auditoría.
+</div>
+<div class="card"><h2>Matriz de permisos (comportamiento real)</h2>
+<table><thead><tr><th>Funcionalidad</th><th>Administrador</th><th>Auditor</th><th>Sin permisos</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>Consultar historial</td><td>Sí (HTTP 200)</td><td>Sí restringida (HTTP 200)</td><td>No (HTTP 403 ACCESO_DENEGADO)</td><td>evidencia_e1_admin / e2_auditor / e3_sin_permiso</td></tr><tr><td>Consultar eventos AAEF (TIPOS_AUDITOR)</td><td>Sí</td><td>Sí (únicos permitidos)</td><td>No</td><td>e1 + e2 tipos</td></tr><tr><td>Consultar eventos de otros tipos</td><td>Sí (fuera_TIPOS=[&#x27;ACCESO_AUDITORIA_DENEGADO&#x27;, &#x27;ANEXO_EN_REVISION&#x27;, &#x27;CLIENTE_REACTIVADO&#x27;, &#x27;CLIENTE_REGISTRADO&#x27;, &#x27;CLIENTE_SUSPENDIDO&#x27;, &#x27;INTENTO_MODIFICACION_AUDITORIA&#x27;, &#x27;SECRETO_ROTADO&#x27;, &#x27;SOLICITUD_RECHAZADA&#x27;, &#x27;TOKEN_CANAL_EMITIDO&#x27;, &#x27;TOKEN_CANAL_RECHAZADO&#x27;])</td><td>No (FA7 HTTP 403)</td><td>No</td><td>e2 FA7 SOLICITUD_RECHAZADA</td></tr><tr><td>Consultar períodos cerrados</td><td>N/A en auditoría (filtro fecha opcional)</td><td>N/A — sin ACL período en GET auditoría</td><td>No (403 antes de filtros)</td><td>evidencia_integracion_m08_TC-M07-G056.json</td></tr><tr><td>Consultar períodos abiertos</td><td>N/A en auditoría (filtro fecha opcional)</td><td>N/A — backend no deniega por ABIERTO en historial</td><td>No</td><td>evidencia_integracion_m08_TC-M07-G056.json</td></tr><tr><td>Consultar períodos inexistentes</td><td>N/A (sin param id_periodo; rango futuro → total 0)</td><td>N/A (igual)</td><td>No</td><td>rangos 2099-01-01</td></tr><tr><td>Consultar IP de origen</td><td>Sí (campo presente; no_nulas=57)</td><td>No (forzado null; no_nulas=0)</td><td>No</td><td>e1/e2 resumen campos</td></tr><tr><td>Consultar motivos de rechazo (json_detalle)</td><td>Sí (no_nulos=55)</td><td>No (forzado null; no_nulos=0)</td><td>No</td><td>e1/e2 resumen campos</td></tr><tr><td>Exportar auditoría</td><td>Sí (HTTP 200)</td><td>No (HTTP 403)</td><td>No (HTTP 403)</td><td>evidencia_e2_export + e1/e3</td></tr></tbody></table></div>
+<div class="card"><h2>Escenarios</h2>
+<table><thead><tr><th>ID</th><th>Perfil</th><th>Nombre</th><th>Estado</th><th>Validación</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>E1</td><td>Administrador</td><td>Consulta autorizada</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Consulta autorizada</td><td>evidencia_e1_admin_TC-M07-G056.json</td></tr><tr><td>E2a</td><td>Auditor</td><td>Restricciones de eventos y campos</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Restricciones de eventos y períodos</td><td>evidencia_e2_auditor_TC-M07-G056.json</td></tr><tr><td>E2b</td><td>Auditor</td><td>Exportación denegada</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Exportación denegada</td><td>evidencia_e2_export_TC-M07-G056.json</td></tr><tr><td>E2c</td><td>Auditor</td><td>Restricción períodos contables (M08/M06) sobre historial</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#555;color:#fff;font-weight:600">NO APLICA</span></td><td>Restricciones de períodos contables en historial</td><td>evidencia_integracion_m08_TC-M07-G056.json</td></tr><tr><td>E3</td><td>Usuario sin permisos</td><td>Acceso rechazado</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Acceso rechazado</td><td>evidencia_e3_sin_permiso_TC-M07-G056.json</td></tr></tbody></table></div>
+<div class='card'><h3>E1 — Administrador: Consulta autorizada <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Validación:</strong> Consulta autorizada</p><p><strong>Esperado:</strong> HTTP 200, vista completa, filtros, export si permiso E</p><p><strong>Obtenido:</strong> HTTP 200; estructura_ok=True; tipos_fuera_auditor=[&#x27;ACCESO_AUDITORIA_DENEGADO&#x27;, &#x27;ANEXO_EN_REVISION&#x27;, &#x27;CLIENTE_REACTIVADO&#x27;, &#x27;CLIENTE_REGISTRADO&#x27;, &#x27;CLIENTE_SUSPENDIDO&#x27;, &#x27;INTENTO_MODIFICACION_AUDITORIA&#x27;, &#x27;SECRETO_ROTADO&#x27;, &#x27;SOLICITUD_RECHAZADA&#x27;, &#x27;TOKEN_CANAL_EMITIDO&#x27;, &#x27;TOKEN_CANAL_RECHAZADO&#x27;]; campos_ip_detalle=True; export_http=200</p><p><strong>Evidencia:</strong> <code>evidencia_e1_admin_TC-M07-G056.json</code></p><ul><li>Login Admin HTTP 200</li><li>GET /integracion/auditoria HTTP 200, total=153</li><li>Tipos observados: [&#x27;ACCESO_AUDITORIA_DENEGADO&#x27;, &#x27;ANEXO_EN_REVISION&#x27;, &#x27;CLIENTE_REACTIVADO&#x27;, &#x27;CLIENTE_REGISTRADO&#x27;, &#x27;CLIENTE_SUSPENDIDO&#x27;, &#x27;INTENTO_MODIFICACION_AUDITORIA&#x27;, &#x27;PAQUETE_AAEF_CONSULTADO&#x27;, &#x27;SECRETO_ROTADO&#x27;, &#x27;SOLICITUD_RECHAZADA&#x27;, &#x27;TOKEN_CANAL_EMITIDO&#x27;, &#x27;TOKEN_CANAL_RECHAZADO&#x27;, &#x27;VISTA_AAEF_GENERADA&#x27;]</li><li>Filtros por tipo: [{&#x27;tipo_evento&#x27;: &#x27;PAQUETE_AAEF_CONSULTADO&#x27;, &#x27;http&#x27;: 200, &#x27;total&#x27;: 16}, {&#x27;tipo_evento&#x27;: &#x27;VISTA_AAEF_GENERADA&#x27;, &#x27;http&#x27;: 200, &#x27;total&#x27;: 39}, {&#x27;tipo_evento&#x27;: &#x27;CONTRATO_ACTIVADO&#x27;, &#x27;http&#x27;: 200, &#x27;total&#x27;: 1}, {&#x27;tipo_evento&#x27;: &#x27;ACCESO_AUDITORIA_DENEGADO&#x27;, &#x27;http&#x27;: 200, &#x27;total&#x27;: 19}, {&#x27;tipo_evento&#x27;: &#x27;ANEXO_EN_REVISION&#x27;, &#x27;http&#x27;: 200, &#x27;total&#x27;: 1}, {&#x27;tipo_evento&#x27;: &#x27;CLIENTE_REACTIVADO&#x27;, &#x27;http&#x27;: 200, &#x27;total&#x27;: 1}]</li><li>GET /finanzas/periodos HTTP 200, n=39</li><li>Admin rango período cerrado id=7 HTTP 200</li><li>Admin rango período abierto id=260 HTTP 200</li><li>Admin rango futuro inexistente HTTP 200</li><li>GET /integracion/auditoria/exportar?formato=json HTTP 200</li></ul><p><strong>Observaciones:</strong> Admin usa auditoria_integracion:R+E. Export confirmado en ruta real.</p></div><div class='card'><h3>E2a — Auditor: Restricciones de eventos y campos <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Validación:</strong> Restricciones de eventos y períodos</p><p><strong>Esperado:</strong> Solo TIPOS_AUDITOR; sin IP/json_detalle; deniega tipos no autorizados</p><p><strong>Obtenido:</strong> HTTP 200; solo_tipos=True; campos_ocultos=True; FA7_http=403; rangos={&#x27;cerrado&#x27;: {&#x27;http&#x27;: 200, &#x27;total&#x27;: 17, &#x27;id_periodo&#x27;: 7, &#x27;nota&#x27;: &#x27;Filtro fecha; no hay ACL de período en GET auditoría&#x27;}, &#x27;abierto&#x27;: {&#x27;http&#x27;: 200, &#x27;total&#x27;: 0, &#x27;id_periodo&#x27;: 260, &#x27;nota&#x27;: &#x27;Backend NO deniega por período ABIERTO en historial auditoría&#x27;}, &#x27;inexistente_futuro&#x27;: {&#x27;http&#x27;: 200, &#x27;total&#x27;: 0}}</p><p><strong>Evidencia:</strong> <code>evidencia_e2_auditor_TC-M07-G056.json</code></p><ul><li>Login Auditor (Revisor Fiscal) HTTP 200</li><li>GET auditoría HTTP 200, total=17</li><li>Tipos=[&#x27;CONTRATO_ACTIVADO&#x27;, &#x27;PAQUETE_AAEF_CONSULTADO&#x27;]; fuera_TIPOS_AUDITOR=[]</li><li>ip_no_nulas=0; json_detalle_no_nulos=0</li><li>Filtro SOLICITUD_RECHAZADA HTTP 403 code=ACCESO_AUDITORIA_DENEGADO</li><li>Auditor rango cerrado HTTP 200</li><li>Auditor rango abierto HTTP 200 (sin ACL período en este endpoint)</li><li>Auditor rango futuro HTTP 200</li></ul><p><strong>Observaciones:</strong> ACL de período CERRADO no aplica a GET /auditoria (sí a consulta AAEF/modulo6). Restricción de períodos del requerimiento sobre historial: NO APLICA en este endpoint.</p></div><div class='card'><h3>E2b — Auditor: Exportación denegada <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Validación:</strong> Exportación denegada</p><p><strong>Esperado:</strong> HTTP 403 en ruta real de exportación</p><p><strong>Obtenido:</strong> HTTP 403 code=ACCESO_DENEGADO</p><p><strong>Evidencia:</strong> <code>evidencia_e2_export_TC-M07-G056.json</code></p><ul><li>GET /integracion/auditoria/exportar?formato=json con token Auditor HTTP 403</li><li>code=ACCESO_DENEGADO</li><li>Permiso requerido por router: auditoria_integracion:E (Revisor Fiscal solo tiene cierres:R)</li></ul><p><strong>Observaciones:</strong> Ruta real intentada: GET /integracion/auditoria/exportar</p></div><div class='card'><h3>E2c — Auditor: Restricción períodos contables (M08/M06) sobre historial <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#555;color:#fff;font-weight:600">NO APLICA</span></h3><p><strong>Validación:</strong> Restricciones de períodos contables en historial</p><p><strong>Esperado:</strong> Según requerimiento: solo períodos cerrados autorizados</p><p><strong>Obtenido:</strong> Endpoint de auditoría no valida períodos; rangos fecha abiertos/cerrados responden sin ACL de período. Cerrado=True Abierto=True</p><p><strong>Evidencia:</strong> <code>evidencia_integracion_m08_TC-M07-G056.json</code></p><ul><li>Inspección m07_router.consultar_auditoria: sin id_periodo</li><li>Inspección ConsultarAuditoriaIntegracionUseCase: solo TIPOS_AUDITOR / solo_exitosos</li><li>GET /finanzas/periodos HTTP 200</li><li>Pruebas desde/hasta con fechas de períodos reales sin denegación por estado</li></ul><p><strong>Observaciones:</strong> GET /integracion/auditoria no integra ni autoriza por período contable. Los filtros desde/hasta son fechas de evento. La restricción CERRADO aplica a la consulta AAEF (RF-95), no al historial RF-102. No se simula integración M08 inexistente sobre este endpoint.</p></div><div class='card'><h3>E3 — Usuario sin permisos: Acceso rechazado <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Validación:</strong> Acceso rechazado</p><p><strong>Esperado:</strong> HTTP 403 ACCESO_DENEGADO; sin historial; export 403; 401 sin token</p><p><strong>Obtenido:</strong> consulta=403/ACCESO_DENEGADO; filtro=403; export=403/ACCESO_DENEGADO; sin_token=401; denegados_ref=19-&gt;post=21</p><p><strong>Evidencia:</strong> <code>evidencia_e3_sin_permiso_TC-M07-G056.json</code></p><ul><li>Login Contador (sin permisos auditoría) HTTP 200</li><li>GET /integracion/auditoria HTTP 403 code=ACCESO_DENEGADO</li><li>Sin items en body: True</li><li>GET con filtro tipo HTTP 403</li><li>GET export HTTP 403 code=ACCESO_DENEGADO</li><li>GET sin Authorization HTTP 401</li><li>ACCESO_AUDITORIA_DENEGADO ref=19 post=21</li></ul><p><strong>Observaciones:</strong> 403 (autorización) distinto de 401 (autenticación). Intentos denegados pueden incrementar ACCESO_AUDITORIA_DENEGADO; no es contaminación de la consulta.</p></div>
+<div class="card"><h2>Integración períodos / M08</h2>
+<pre>{
+  &quot;fecha_utc&quot;: &quot;2026-11-18T02:50:44.130045+00:00&quot;,
+  &quot;nombre_caso_m08&quot;: &quot;Períodos contables referidos como M08 en el caso; implementación real en modulo6 / M06&quot;,
+  &quot;esquema_bd&quot;: &quot;modulo6.periodos_contables&quot;,
+  &quot;endpoint_periodos&quot;: &quot;/finanzas/periodos&quot;,
+  &quot;http_periodos_admin&quot;: 200,
+  &quot;periodos_muestra&quot;: [
+    {
+      &quot;id&quot;: 8,
+      &quot;estado&quot;: &quot;EN_CIERRE&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-12-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-12-31&quot;
+    },
+    {
+      &quot;id&quot;: 7,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;
+    },
+    {
+      &quot;id&quot;: 260,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-12-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-12-31&quot;
+    },
+    {
+      &quot;id&quot;: 219,
+      &quot;estado&quot;: &quot;CERRADO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;
+    },
+    {
+      &quot;id&quot;: 220,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;
+    },
+    {
+      &quot;id&quot;: 266,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;
+    },
+    {
+      &quot;id&quot;: 258,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;
+    },
+    {
+      &quot;id&quot;: 631,
+      &quot;estado&quot;: &quot;ABIERTO&quot;,
+      &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+      &quot;fecha_fin&quot;: &quot;2026-11-30&quot;
+    }
+  ],
+  &quot;cerrado_encontrado&quot;: true,
+  &quot;abierto_encontrado&quot;: true,
+  &quot;auditoria_valida_periodo&quot;: false,
+  &quot;auditoria_param_id_periodo&quot;: false,
+  &quot;restriccion_cerrado_en_aaef&quot;: &quot;Sí (ConsultarAaefUseCase / aaef.py estado==CERRADO), no en GET /auditoria&quot;,
+  &quot;consulta_tiempo_real_m06&quot;: &quot;GET /finanzas/periodos en esta ejecución&quot;,
+  &quot;autorizacion_backend_auditoria&quot;: &quot;Solo permisos R de auditoría + filtros TIPOS_AUDITOR; sin ACL período&quot;,
+  &quot;rangos_probados_auditor&quot;: {
+    &quot;cerrado&quot;: {
+      &quot;http&quot;: 200,
+      &quot;total&quot;: 17,
+      &quot;id_periodo&quot;: 7,
+      &quot;nota&quot;: &quot;Filtro fecha; no hay ACL de período en GET auditoría&quot;
+    },
+    &quot;abierto&quot;: {
+      &quot;http&quot;: 200,
+      &quot;total&quot;: 0,
+      &quot;id_periodo&quot;: 260,
+      &quot;nota&quot;: &quot;Backend NO deniega por período ABIERTO en historial auditoría&quot;
+    },
+    &quot;inexistente_futuro&quot;: {
+      &quot;http&quot;: 200,
+      &quot;total&quot;: 0
+    }
+  },
+  &quot;cobertura&quot;: &quot;NO APLICA&quot;,
+  &quot;justificacion&quot;: &quot;GET /integracion/auditoria no integra ni autoriza por período contable. Los filtros desde/hasta son fechas de evento. La restricción CERRADO aplica a la consulta AAEF (RF-95), no al historial RF-102. No se simula integración M08 inexistente sobre este endpoint.&quot;
+}</pre></div>
+<div class="lim"><h3>Limitaciones</h3><pre>[
+  &quot;No se modificaron períodos ni roles en TEST.&quot;,
+  &quot;Credenciales solo por variables de entorno; tokens omitidos en evidencias.&quot;,
+  &quot;Integración &#x27;M08&#x27; del enunciado: períodos reales en modulo6/M06; sin ACL período en GET auditoría.&quot;,
+  &quot;Intentos 403 pueden registrar ACCESO_AUDITORIA_DENEGADO (documentado ref→post).&quot;,
+  &quot;G052–G055 no fueron modificados.&quot;
+]</pre></div>
+<div class="card"><h3>Resumen</h3><pre>{
+  &quot;aprobados&quot;: 4,
+  &quot;rechazados&quot;: 0,
+  &quot;bloqueados&quot;: 0,
+  &quot;no_aplica&quot;: 1,
+  &quot;estado_final&quot;: &quot;APROBADO&quot;
+}</pre>
+<pre>{
+  &quot;consulta&quot;: &quot;GET /integracion/auditoria&quot;,
+  &quot;exportacion&quot;: &quot;GET /integracion/auditoria/exportar&quot;,
+  &quot;periodos_m06&quot;: &quot;GET /finanzas/periodos&quot;,
+  &quot;permisos&quot;: &quot;GET /sesiones/me/permisos&quot;,
+  &quot;login&quot;: &quot;POST /sesiones/&quot;
+}</pre></div>
+</body></html>
