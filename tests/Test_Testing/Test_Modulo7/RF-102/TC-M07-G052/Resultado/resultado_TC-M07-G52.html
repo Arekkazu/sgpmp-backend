@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<title>TC-M07-G052 — RF-102 — APROBADO</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:24px;color:#1a1a1a;background:#f7f7f5}
+h1,h2,h3{color:#102a43}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px 20px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+th{background:#e8eef5}
+code{font-size:11px;word-break:break-word}
+.meta span{display:inline-block;margin-right:16px;margin-bottom:6px}
+.badge{display:inline-block;padding:2px 10px;border-radius:4px;color:#fff;font-weight:600}
+.ok{background:#1b7a3d}.warn{background:#9a6b00}.na{background:#555}
+.note{background:#eef6ff;border-left:4px solid #2563eb;padding:10px 14px;margin:12px 0}
+.lim{background:#fff8e6;border-left:4px solid #9a6b00;padding:10px 14px;margin:12px 0}
+ul{margin:8px 0 8px 20px}
+</style>
+</head>
+<body>
+<h1>TC-M07-G052 — Verificar el registro y validación de eventos de integración</h1>
+
+<div class="card meta">
+  <span><strong>ID:</strong> TC-M07-G052</span>
+  <span><strong>Requisito:</strong> RF-102 · CU07 · Módulo 7</span>
+  <span><strong>Tipo:</strong> Funcional / Validación</span>
+  <span><strong>Responsable:</strong> Laura López</span>
+  <span><strong>Agrupa:</strong> TC-M07-102-001 … 004</span>
+  <span><strong>Estado final:</strong> <span class="badge ok">APROBADO</span></span>
+  <span><strong>Cierre documental UTC:</strong> 2026-11-18T01:29:00Z (consolidación; sin reejecución TEST)</span>
+</div>
+
+<div class="note">
+  <strong>Ámbitos de ejecución (no mezclar):</strong>
+  <ul>
+    <li><strong>E1, E2, E4</strong> — API TEST <code>https://api.inmero.co/api-sgpmp-test</code> (evidencia 2026-11-18T00:49:57Z).</li>
+    <li><strong>E3.1</strong> — pytest unitario aislado con mock de <code>escribir()</code> (2026-11-18T00:56:58Z; 11 passed).</li>
+    <li><strong>E3.2 y E3.3</strong> — PostgreSQL Docker local aislado <code>infra-db-1:5433</code>, BD temporal <code>sgpmp_g052_e3_tmp</code> (2026-11-18T01:21:21Z), eliminada al finalizar.</li>
+  </ul>
+  <strong>No</strong> se afirma que E3.2/E3.3 se ejecutaron contra TEST. En este cierre documental <strong>no</strong> hubo nuevas escrituras en TEST.
+</div>
+
+<div class="card">
+  <h2>Escenarios del caso agrupado</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Escenario</th><th>Estado</th><th>Entorno</th><th>Fecha evidencia UTC</th><th>Esperado</th><th>Obtenido</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>E1</td>
+        <td>Registro de eventos (TC-M07-102-001)</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>API TEST</td>
+        <td>2026-11-18T00:49:57.902061+00:00</td>
+        <td>Operaciones generadoras dejan eventos consultables</td>
+        <td>GET /integracion/auditoria total=132; PUT → 405 + INTENTO_MODIFICACION; token inválido → 401</td>
+      </tr>
+      <tr>
+        <td>E2</td>
+        <td>Campos obligatorios/condicionales (TC-M07-102-002)</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>API TEST</td>
+        <td>2026-11-18T00:49:57.902061+00:00</td>
+        <td>Estructura RF-102 según tipo</td>
+        <td>Muestra 100: generales y condicionales OK; integridad INTEGRO</td>
+      </tr>
+      <tr>
+        <td>E3</td>
+        <td>Rechazo de eventos inválidos (TC-M07-102-003)</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>Unidad + Postgres aislado</td>
+        <td>E3.1 00:56:58Z · E3.2/E3.3 01:21:21Z</td>
+        <td>Incompletos, duplicados y no catalogados rechazados</td>
+        <td>E3.1 + E3.2 + E3.3 APROBADOS (detalle abajo)</td>
+      </tr>
+      <tr>
+        <td>E4</td>
+        <td>Normalización UTC (TC-M07-102-004)</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>API TEST</td>
+        <td>2026-11-18T00:49:57.902061+00:00</td>
+        <td>fecha_evento / fecha_registro en UTC</td>
+        <td>10 eventos parseables, aware, offset UTC 0</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Detalle E3</h2>
+  <table>
+    <thead>
+      <tr><th>Sub</th><th>Estado</th><th>Ámbito</th><th>Fecha UTC</th><th>Función / restricción</th><th>Resultado</th><th>Error / código</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>E3.1 incompleto</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>pytest + mock</td>
+        <td>2026-11-18T00:56:58.020321+00:00</td>
+        <td><code>SqlAlchemyAuditoriaIntegracionRepository.registrar</code> + <code>faltantes()</code></td>
+        <td>Rechazo antes de persistir; <code>escribir()</code> no invocado</td>
+        <td><code>InfrastructureError AUDITORIA_INCOMPLETA</code></td>
+      </tr>
+      <tr>
+        <td>E3.2 UUID duplicado</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>PostgreSQL aislado</td>
+        <td>2026-11-18T01:21:21.097965+00:00</td>
+        <td><code>PRIMARY KEY (id_evento_integracion)</code> / <code>eventos_integracion_pkey</code></td>
+        <td>1.er INSERT OK; 2.º rechazado; 1 fila residual</td>
+        <td>PostgreSQL <strong>23505</strong> duplicate key</td>
+      </tr>
+      <tr>
+        <td>E3.3 tipo no catalogado</td>
+        <td><span class="badge ok">APROBADO</span></td>
+        <td>PostgreSQL aislado</td>
+        <td>2026-11-18T01:21:21.821018+00:00</td>
+        <td><code>enum_evento_integracion_tipo_evento</code></td>
+        <td>INSERT inválido rechazado; 0 filas; control válido OK</td>
+        <td>PostgreSQL <strong>22P02</strong> invalid input value for enum</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="lim">
+  <h3>Limitaciones metodológicas (E3.2 / E3.3)</h3>
+  <ul>
+    <li>Se usó <strong>DDL mínimo</strong> derivado de la migración <code>94b14a6931d6_m07_integracion_aaef_rfc017.py</code> (ENUM + PRIMARY KEY + stubs de FK), <strong>no</strong> el historial completo de migraciones Alembic del proyecto.</li>
+    <li>La BD temporal <code>sgpmp_g052_e3_tmp</code> en Docker <code>infra-db-1</code> fue <strong>eliminada</strong> tras la ejecución.</li>
+    <li>No se ejercitaron triggers append-only de UPDATE/DELETE en esa corrida (solo INSERT para PK/ENUM).</li>
+    <li>E3.1 demuestra la capa de repositorio Python; E3.2/E3.3 demuestran restricciones reales de PostgreSQL en entorno aislado, no en TEST compartido.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>Archivos de evidencia (conservados, no alterados en este cierre)</h2>
+  <ul>
+    <li><code>evidencia_ejecucion_TC-M07-G52.json</code> — E1, E2, E4 (API TEST) + snapshot histórico de E3 bloqueado</li>
+    <li><code>evidencia_e3_validaciones_aisladas_TC-M07-G52.json</code> — E3.1 APROBADO; E3.2/E3.3 entonces BLOQUEADOS (pre-Postgres)</li>
+    <li><code>pytest_e3_aisladas.txt</code> — 11 passed</li>
+    <li><code>evidencia_e3_2_duplicado_uuid_TC-M07-G52.json</code> — E3.2 APROBADO (23505)</li>
+    <li><code>evidencia_e3_3_tipo_no_catalogado_TC-M07-G52.json</code> — E3.3 APROBADO (22P02)</li>
+    <li><code>diagnostico_postgres_aislada_TC-M07-G52.json</code> — viabilidad BD temporal / DDL mínimo</li>
+  </ul>
+  <p>Scripts de soporte (no reejecutados en este cierre): <code>ejecutar_tc_m07_g52.py</code>, <code>test_tc_m07_g52_e3_validaciones_aisladas.py</code>, <code>_ejecutar_e3_aisladas.py</code>, <code>_ejecutar_e3_postgres_aislada.py</code>, <code>_sql_schema_e3_aislada.sql</code>.</p>
+</div>
+
+<div class="card">
+  <h2>Confirmaciones de cierre</h2>
+  <ul>
+    <li>Estado final del caso agrupado: <span class="badge ok">APROBADO</span></li>
+    <li>Evidencias JSON originales: <strong>conservadas sin sobrescritura</strong></li>
+    <li>Código funcional / migraciones: <strong>sin cambios</strong></li>
+    <li>Nuevas escrituras en TEST en este cierre: <strong>ninguna</strong></li>
+  </ul>
+</div>
+
+<p style="color:#666;font-size:12px">Informe consolidado documentalmente. No incluye secretos ni tokens.</p>
+</body>
+</html>

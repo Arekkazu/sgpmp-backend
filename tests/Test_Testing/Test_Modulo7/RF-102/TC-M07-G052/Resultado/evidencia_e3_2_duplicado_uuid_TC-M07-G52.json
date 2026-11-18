@@ -1,0 +1,60 @@
+{
+  "escenario": "E3.2",
+  "caso": "TC-M07-G052",
+  "fecha_utc": "2026-11-18T01:21:21.097965+00:00",
+  "bd": "sgpmp_g052_e3_tmp",
+  "container": "infra-db-1",
+  "uuid_ficticio": "22222222-2222-4222-8222-222222222252",
+  "funcion_evaluada": "CONSTRAINT eventos_integracion_pkey PRIMARY KEY (id_evento_integracion)",
+  "migracion_origen": "94b14a6931d6_m07_integracion_aaef_rfc017.py",
+  "entrada": {
+    "id_evento_integracion": "22222222-2222-4222-8222-222222222252",
+    "tipo_evento": "CONTRATO_ACTIVADO",
+    "intentos": 2
+  },
+  "esperado": "Primer INSERT OK; segundo INSERT rechazado por unique/PK (SQLSTATE 23505)",
+  "pasos": [
+    {
+      "intento": 1,
+      "ok": true,
+      "stdout": "INSERT 0 1\n",
+      "stderr": "",
+      "error": {
+        "sqlstate": null,
+        "es_unique_violation": false,
+        "es_invalid_enum": false,
+        "es_conexion": false,
+        "es_permiso": false,
+        "es_estructura": false,
+        "mensaje": "INSERT 0 1"
+      }
+    },
+    {
+      "intento": 2,
+      "ok": false,
+      "stdout": "",
+      "stderr": "ERROR:  duplicate key value violates unique constraint \"eventos_integracion_pkey\"\nDETAIL:  Key (id_evento_integracion)=(22222222-2222-4222-8222-222222222252) already exists.\n",
+      "error": {
+        "sqlstate": "23505",
+        "es_unique_violation": true,
+        "es_invalid_enum": false,
+        "es_conexion": false,
+        "es_permiso": false,
+        "es_estructura": false,
+        "mensaje": "ERROR:  duplicate key value violates unique constraint \"eventos_integracion_pkey\"\nDETAIL:  Key (id_evento_integracion)=(22222222-2222-4222-8222-222222222252) already exists."
+      }
+    }
+  ],
+  "estado": "APROBADO",
+  "filas_con_uuid": "1",
+  "obtenido": {
+    "primer_insert_ok": true,
+    "segundo_insert_ok": false,
+    "rechazo_pk": true,
+    "sqlstate": "23505",
+    "confusion_conexion": false,
+    "confusion_permiso": false,
+    "confusion_estructura": false,
+    "filas": "1"
+  }
+}
