@@ -1,0 +1,161 @@
+{
+  "info": {
+    "name": "TC-M07-G055 RF-102 Filtros y paginación auditoría",
+    "description": "GET /integracion/auditoria: filtros AND y paginación (tamano≤100). Credenciales vía environment. Informe oficial: ejecutar_tc_m07_g55.py",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.inmero.co/api-sgpmp-test"},
+    {"key": "admin_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "01 Login Admin",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('login 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+            "const j = pm.response.json();",
+            "if (j.token) pm.collectionVariables.set('admin_token', j.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_ADMIN_CORREO}}\",\n  \"contrasena\": \"{{QA_ADMIN_CONTRASENA}}\"\n}"},
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 Baseline tamano 100",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "const j = pm.response.json();",
+            "pm.test('estructura items/pagina/tamano/total', function () {",
+            "  pm.expect(j).to.have.property('items');",
+            "  pm.expect(j).to.have.property('pagina');",
+            "  pm.expect(j).to.have.property('tamano');",
+            "  pm.expect(j).to.have.property('total');",
+            "});",
+            "pm.test('items <= 100', function () { pm.expect(j.items.length).to.be.at.most(100); });",
+            "pm.test('total > 100 para paginación', function () { pm.expect(j.total).to.be.above(100); });",
+            "if (j.items && j.items.length) {",
+            "  pm.environment.set('tipo_evento_muestra', j.items[0].tipo_evento || '');",
+            "  if (j.items[0].codigo_http != null) pm.environment.set('codigo_http_muestra', String(j.items[0].codigo_http));",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=100"
+      }
+    },
+    {
+      "name": "03 Filtro tipo_evento",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "const j = pm.response.json();",
+            "const t = pm.environment.get('tipo_evento_muestra');",
+            "if (t) {",
+            "  pm.test('todos tipo_evento', function () {",
+            "    j.items.forEach(function (it) { pm.expect(it.tipo_evento).to.eql(t); });",
+            "  });",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=100&tipo_evento={{tipo_evento_muestra}}"
+      }
+    },
+    {
+      "name": "04 Filtros AND tipo+codigo_http",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "const j = pm.response.json();",
+            "const t = pm.environment.get('tipo_evento_muestra');",
+            "const c = pm.environment.get('codigo_http_muestra');",
+            "if (t && c) {",
+            "  pm.test('AND tipo y codigo_http', function () {",
+            "    j.items.forEach(function (it) {",
+            "      pm.expect(it.tipo_evento).to.eql(t);",
+            "      pm.expect(String(it.codigo_http)).to.eql(String(c));",
+            "    });",
+            "  });",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=100&tipo_evento={{tipo_evento_muestra}}&codigo_http={{codigo_http_muestra}}"
+      }
+    },
+    {
+      "name": "05 Pagina 2 tamano 100",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "const j = pm.response.json();",
+            "pm.test('items <= 100', function () { pm.expect(j.items.length).to.be.at.most(100); });",
+            "pm.test('pagina eco 2', function () { pm.expect(j.pagina).to.eql(2); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=2&tamano=100"
+      }
+    },
+    {
+      "name": "06 tamano 101 rechazado",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+              "pm.test('HTTP 400/422 le=100', function () { pm.expect([400,422]).to.include(pm.response.code); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=101"
+      }
+    }
+  ]
+}

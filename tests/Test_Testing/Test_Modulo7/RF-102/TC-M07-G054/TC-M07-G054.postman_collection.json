@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "TC-M07-G054 RF-102 Fallos de auditoría (smoke lectura)",
+    "description": "Solo consultas de contrato. La inyección de fallos de auditoría se ejecuta en pytest (no en TEST).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.inmero.co/api-sgpmp-test"},
+    {"key": "admin_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "01 Login Admin",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('login 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+            "const j = pm.response.json(); if (j.token) pm.collectionVariables.set('admin_token', j.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_ADMIN_CORREO}}\",\n  \"contrasena\": \"{{QA_ADMIN_CONTRASENA}}\"\n}"},
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 OpenAPI rutas integración",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('openapi 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "const j = pm.response.json();",
+            "pm.test('existen rutas integracion', function () {",
+            "  const keys = Object.keys(j.paths || {});",
+            "  pm.expect(keys.some(k => k.includes('/integracion'))).to.be.true;",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "url": "{{baseUrl}}/openapi.json"
+      }
+    },
+    {
+      "name": "03 GET auditoria smoke",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('auditoria 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=1"
+      }
+    }
+  ]
+}

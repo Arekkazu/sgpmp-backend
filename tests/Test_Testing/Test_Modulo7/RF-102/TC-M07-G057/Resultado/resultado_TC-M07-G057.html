@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>TC-M07-G057 — RF-102 — APROBADO</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f7f7f5;color:#1a1a1a}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+th{background:#e8eef5} .note{background:#eef6ff;border-left:4px solid #2563eb;padding:10px;margin:12px 0}
+.lim{background:#fff8e6;border-left:4px solid #9a6b00;padding:10px;margin:12px 0}
+.meta span{display:inline-block;margin-right:16px;margin-bottom:6px}
+</style></head><body>
+<h1>TC-M07-G057 — Exportación de registros de auditoría</h1>
+<div class="card meta">
+  <span><strong>RF-102 · CU07 · TC-M07-102-014</strong></span>
+  <span><strong>Endpoint:</strong> GET /integracion/auditoria/exportar</span>
+  <span><strong>Formatos:</strong> csv, json</span>
+  <span><strong>Estado:</strong> <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></span>
+  <span><strong>UTC:</strong> 2026-11-18T03:16:04.841008+00:00</span>
+</div>
+<div class="note">Permiso real: <code>auditoria_integracion:E</code>.
+Filtros: tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http, numero_id_tributaria.
+Exportación siempre en vista completa (restringida=False). Límite 50.000.
+Evidencias HTML/JSON redactan secretos; archivos originales en Resultado con hash SHA-256.</div>
+<div class="card"><h2>Escenarios</h2>
+<table><thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Validación</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>E1</td><td>Exportación CSV por Administrador</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>CSV válido descargable</td><td>evidencia_e1_export_csv_TC-M07-G057.json</td></tr><tr><td>E2</td><td>Exportación JSON por Administrador</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>JSON válido descargable</td><td>evidencia_e2_export_json_TC-M07-G057.json</td></tr><tr><td>E3</td><td>Consistencia CSV vs JSON</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Mismo conjunto de registros</td><td>evidencia_e3_consistencia_TC-M07-G057.json</td></tr><tr><td>E4</td><td>Exportación con filtros</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Filtros respetados en CSV/JSON y vs consulta</td><td>evidencia_e4_filtros_TC-M07-G057.json</td></tr><tr><td>E5</td><td>Protección de la información exportada</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Sin secretos vivos en exportación Admin</td><td>evidencia_e5_seguridad_TC-M07-G057.json</td></tr><tr><td>E6</td><td>Regresión de permisos de exportación</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Admin 200 / Auditor 403 / Sin permiso 403</td><td>evidencia_e6_permisos_TC-M07-G057.json</td></tr></tbody></table></div>
+<div class='card'><h3>E1: Exportación CSV por Administrador <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> HTTP 200, text/csv, Content-Disposition attachment, filas coherentes</p><p><strong>Obtenido:</strong> HTTP 200; ctype=text/csv; charset=utf-8; filas=156; dup=0; headers=[&#x27;tipo_evento&#x27;, &#x27;severidad&#x27;, &#x27;tipo_actor&#x27;, &#x27;id_cliente_externo&#x27;, &#x27;id_usuario&#x27;, &#x27;id_solicitud&#x27;, &#x27;endpoint&#x27;, &#x27;metodo_http&#x27;]…</p><p><strong>Evidencia:</strong> <code>evidencia_e1_export_csv_TC-M07-G057.json</code></p><ul><li>GET /integracion/auditoria/exportar?formato=csv HTTP 200</li><li>Content-Type=text/csv; charset=utf-8 ok=True</li><li>Content-Disposition=attachment; filename=&quot;auditoria_integracion_20261118_031557.csv&quot; ok=True</li><li>bytes=51949 sha256=9bd0dcc2b972182742b099fa4c1987cffabe17475db379ed2f04db5112bc2ddb</li><li>filas=156 headers=27 duplicados_id=0 especiales≈114</li><li>utf8_bom=True</li></ul><p><strong>Observaciones:</strong> Archivo original: export_original_csv_TC-M07-G057.csv</p></div><div class='card'><h3>E2: Exportación JSON por Administrador <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> HTTP 200, application/json, lista de registros, no JSON de error</p><p><strong>Obtenido:</strong> HTTP 200; registros=156; dup=0; ctype=application/json</p><p><strong>Evidencia:</strong> <code>evidencia_e2_export_json_TC-M07-G057.json</code></p><ul><li>GET /integracion/auditoria/exportar?formato=json HTTP 200</li><li>Content-Type=application/json ok=True</li><li>Content-Disposition=attachment; filename=&quot;auditoria_integracion_20261118_031557.json&quot; ok=True</li><li>bytes=136731 sha256=b1b4eb2a3c32115c88c329133792a52be1dbd3766efd51d5a78bc92b90283958</li><li>registros=156 duplicados=0 claves=27</li></ul><p><strong>Observaciones:</strong> Archivo original: export_original_json_TC-M07-G057.json (revisar fuera de HTML)</p></div><div class='card'><h3>E3: Consistencia CSV vs JSON <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Mismos ids y campos clave con mismos filtros (sin filtro)</p><p><strong>Obtenido:</strong> n_csv=156 n_json=156 ids_match=True diffs=0</p><p><strong>Evidencia:</strong> <code>evidencia_e3_consistencia_TC-M07-G057.json</code></p><ul><li>CSV filas=156 JSON registros=156</li><li>ids iguales=True</li><li>solo_csv=0 solo_json=0 diffs_campos_clave=0</li><li>campos_solo_csv=[]</li><li>campos_solo_json=[]</li></ul><p><strong>Observaciones:</strong> Normalización: CSV→str; dicts JSON-en-celda; null/vacío equivalentes</p></div><div class='card'><h3>E4: Exportación con filtros <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Export filtrado = mismo conjunto; coherente con total de consulta</p><p><strong>Obtenido:</strong> 3/3 filtros OK</p><p><strong>Evidencia:</strong> <code>evidencia_e4_filtros_TC-M07-G057.json</code></p><ul><li>Filtros contrato: [&#x27;tipo_evento&#x27;, &#x27;id_cliente_externo&#x27;, &#x27;desde&#x27;, &#x27;hasta&#x27;, &#x27;endpoint&#x27;, &#x27;codigo_http&#x27;, &#x27;numero_id_tributaria&#x27;]</li><li>Valores muestra: {&#x27;tipo_evento&#x27;: &#x27;ACCESO_AUDITORIA_DENEGADO&#x27;, &#x27;codigo_http&#x27;: 405, &#x27;endpoint&#x27;: &#x27;/integracion/auditoria&#x27;, &#x27;id_cliente_externo&#x27;: 12, &#x27;desde&#x27;: &#x27;2026-11-18&#x27;, &#x27;hasta&#x27;: &#x27;2026-11-18&#x27;, &#x27;numero_id_tributaria&#x27;: &#x27;901444215&#x27;}</li><li>tipo_evento: consulta_total=22 csv=22 json=22 ok=True</li><li>tipo_evento+codigo_http: consulta_total=0 csv=0 json=0 ok=True</li><li>desde+hasta: consulta_total=27 csv=27 json=27 ok=True</li></ul><p><strong>Observaciones:</strong> Export no pagina; se compara n_export con total de GET /auditoria</p></div><div class='card'><h3>E5: Protección de la información exportada <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Sin passwords/tokens/API keys/client secrets/HMAC vivos; hashes de integridad permitidos</p><p><strong>Obtenido:</strong> hallazgos=0</p><p><strong>Evidencia:</strong> <code>evidencia_e5_seguridad_TC-M07-G057.json</code></p><ul><li>Filas examinadas=156</li><li>Claves=[&#x27;codigo_http&#x27;, &#x27;codigo_resultado&#x27;, &#x27;correo_usuario&#x27;, &#x27;endpoint&#x27;, &#x27;fecha_desde&#x27;, &#x27;fecha_evento&#x27;, &#x27;fecha_hasta&#x27;, &#x27;fecha_registro&#x27;, &#x27;hash_contenido&#x27;, &#x27;id_cliente_externo&#x27;, &#x27;id_evento_integracion&#x27;, &#x27;id_intercambio&#x27;, &#x27;id_solicitud&#x27;, &#x27;id_usuario&#x27;, &#x27;integridad&#x27;, &#x27;ip_origen&#x27;, &#x27;json_detalle&#x27;, &#x27;latencia_ms&#x27;, &#x27;metodo_http&#x27;, &#x27;modulo&#x27;, &#x27;nombre_cliente&#x27;, &#x27;numero_id_tributaria&#x27;, &#x27;severidad&#x27;, &#x27;tamano_payload_bytes&#x27;, &#x27;tipo_actor&#x27;, &#x27;tipo_evento&#x27;, &#x27;version_contrato&#x27;]</li><li>Hallazgos=0</li><li>Se rechaza solo exposición de secretos vivos (tokens JWT, API keys, client secrets, HMAC). hash_contenido/hash_integridad y flags como secreto_provisto=false son metadatos esperados.</li></ul><p><strong>Observaciones:</strong> Admin exporta vista completa (ip_origen, json_detalle). Se valida ausencia de secretos de autenticación, no el ocultamiento de IP al Auditor.</p></div><div class='card'><h3>E6: Regresión de permisos de exportación <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Solo auditoria_integracion:E puede exportar</p><p><strong>Obtenido:</strong> admin=200 auditor=403/ACCESO_DENEGADO sin=403/ACCESO_DENEGADO</p><p><strong>Evidencia:</strong> <code>evidencia_e6_permisos_TC-M07-G057.json</code></p><ul><li>Admin export JSON HTTP 200</li><li>Auditor (Revisor Fiscal) HTTP 403 code=ACCESO_DENEGADO</li><li>Sin permisos (Contador) HTTP 403 code=ACCESO_DENEGADO</li><li>401 no aplica: los tres perfiles autenticaron correctamente</li></ul><p><strong>Observaciones:</strong> Regresión breve respecto a G056 E2b/E3</p></div>
+<div class="card"><h2>Diagnóstico</h2>
+<pre>{
+  &quot;fecha_utc&quot;: &quot;2026-11-18T03:15:56.658962+00:00&quot;,
+  &quot;endpoint&quot;: &quot;GET /integracion/auditoria/exportar&quot;,
+  &quot;formatos&quot;: [
+    &quot;csv&quot;,
+    &quot;json&quot;
+  ],
+  &quot;formato_default&quot;: &quot;csv&quot;,
+  &quot;filtros&quot;: [
+    &quot;tipo_evento&quot;,
+    &quot;id_cliente_externo&quot;,
+    &quot;desde&quot;,
+    &quot;hasta&quot;,
+    &quot;endpoint&quot;,
+    &quot;codigo_http&quot;,
+    &quot;numero_id_tributaria&quot;
+  ],
+  &quot;permiso&quot;: &quot;auditoria_integracion:E&quot;,
+  &quot;content_types&quot;: {
+    &quot;csv&quot;: &quot;text/csv; charset=utf-8&quot;,
+    &quot;json&quot;: &quot;application/json&quot;
+  },
+  &quot;content_disposition&quot;: &quot;attachment; filename=\&quot;auditoria_integracion_YYYYMMDD_HHMMSS.{formato}\&quot;&quot;,
+  &quot;limite_exportacion&quot;: 50000,
+  &quot;vista&quot;: &quot;completa (restringida=False)&quot;,
+  &quot;baseline_consulta_total&quot;: 156,
+  &quot;baseline_consulta_http&quot;: 200,
+  &quot;export_csv&quot;: {
+    &quot;http&quot;: 200,
+    &quot;filas&quot;: 156,
+    &quot;sha256&quot;: &quot;9bd0dcc2b972182742b099fa4c1987cffabe17475db379ed2f04db5112bc2ddb&quot;
+  },
+  &quot;export_json&quot;: {
+    &quot;http&quot;: 200,
+    &quot;registros&quot;: 156,
+    &quot;sha256&quot;: &quot;b1b4eb2a3c32115c88c329133792a52be1dbd3766efd51d5a78bc92b90283958&quot;
+  }
+}</pre></div>
+<div class="lim"><h3>Limitaciones</h3><pre>[
+  &quot;No se modificó BD ni roles. Credenciales solo por entorno.&quot;,
+  &quot;Archivos originales de exportación conservados en Resultado; evidencias JSON/HTML redactadas.&quot;,
+  &quot;Intentos 403 de E6 pueden incrementar ACCESO_AUDITORIA_DENEGADO / denegaciones de permiso.&quot;,
+  &quot;G052–G056 no modificados.&quot;
+]</pre></div>
+<div class="card"><h3>Resumen</h3><pre>{
+  &quot;aprobados&quot;: 6,
+  &quot;rechazados&quot;: 0,
+  &quot;bloqueados&quot;: 0,
+  &quot;no_aplica&quot;: 0,
+  &quot;estado_final&quot;: &quot;APROBADO&quot;
+}</pre></div>
+</body></html>

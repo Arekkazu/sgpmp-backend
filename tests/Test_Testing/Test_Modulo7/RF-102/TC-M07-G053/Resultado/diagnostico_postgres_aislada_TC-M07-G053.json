@@ -1,0 +1,32 @@
+{
+  "fecha_utc": "2026-11-18T02:01:29.340776+00:00",
+  "container": "infra-db-1",
+  "db": "sgpmp_g053_e_tmp",
+  "alembic_completo": false,
+  "ddl": "_sql_schema_g53_aislada.sql",
+  "migracion_origen": "94b14a6931d6",
+  "pasos": [
+    {
+      "paso": "create_db",
+      "ok": true
+    },
+    {
+      "paso": "schema",
+      "ok": true,
+      "stderr": "NOTICE:  trigger \"trg_antes_modificar_evento_integracion\" for relation \"modulo7.eventos_integracion\" does not exist, skipping\nNOTICE:  trigger \"trg_antes_truncar_evento_integracion\" for relation \"modulo7.eventos_integracion\" does not exist, skipping\n"
+    },
+    {
+      "paso": "drop_db",
+      "ok": true
+    }
+  ],
+  "viable": true,
+  "e1_aislada_hash": {
+    "insert_ok": true,
+    "hash_python": "d764e4819e055da5c1d678239e770e791c3e482071b34838f7d4d78192b3ec8c",
+    "hash_db": "d764e4819e055da5c1d678239e770e791c3e482071b34838f7d4d78192b3ec8c",
+    "coinciden": true
+  },
+  "resultado_e2": "APROBADO",
+  "resultado_e3_sql": "APROBADO"
+}

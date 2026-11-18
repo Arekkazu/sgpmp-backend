@@ -1,0 +1,20 @@
+{
+  "escenario": "E2",
+  "caso_original": "TC-M07-102-010",
+  "fecha_utc": "2026-11-18T02:19:35.451478+00:00",
+  "estado": "APROBADO",
+  "tipo_prueba": "Unitaria / integración controlada (registrador_aparte + EmitirTokenCanalUseCase)",
+  "operaciones_probadas": [
+    "registrador_aparte (fallo → alerta, sin raise)",
+    "EmitirTokenCanalUseCase.execute con auditar_aparte fallido",
+    "registrador_aparte éxito → commit aparte"
+  ],
+  "inyeccion": "SqlAlchemyAuditoriaIntegracionRepository.registrar lanza InfrastructureError dentro de sesión aparte",
+  "resultado": {
+    "pytest_ok": true,
+    "operacion_negocio_continua": true,
+    "alerta_generada": true,
+    "evento_no_confirmado_en_aparte": true
+  },
+  "nota": "El token ficticio no es un JWT real de TEST; valida el contrato de continuidad del caso de uso."
+}

@@ -1,0 +1,171 @@
+{
+  "caso": "TC-M07-G054",
+  "requisito": "RF-102",
+  "fecha_ejecucion_utc": "2026-11-18T02:19:35.455387+00:00",
+  "entorno_api": "TEST (solo smoke lectura)",
+  "estado_final": "APROBADO",
+  "matriz": [
+    {
+      "rf": "RF-101",
+      "operacion": "Registrar / editar / suspender / reactivar / revocar / rotar cliente externo",
+      "endpoint": "POST/PATCH /integracion/clientes…",
+      "servicio": "RegistrarClienteExternoUseCase / GestionarClienteExternoUseCase",
+      "comportamiento": "BLOQUEANTE",
+      "escenario": "E1",
+      "justificacion": "Usa M07.auditoria (misma Session). commit solo tras auditoria.registrar; except → rollback."
+    },
+    {
+      "rf": "RF-98",
+      "operacion": "Registrar/activar/deprecar contrato AAEF y anexos",
+      "endpoint": "POST /integracion/contratos…, /integracion/anexos…",
+      "servicio": "GestionarContratosUseCase / GestionarAnexosUseCase",
+      "comportamiento": "BLOQUEANTE",
+      "escenario": "E1",
+      "justificacion": "Docstring RF-102 4.1: auditoría en la misma transacción; si no se puede auditar, la transición no ocurre."
+    },
+    {
+      "rf": "RF-95",
+      "operacion": "Consulta AAEF Gateway / vista previa / rechazos",
+      "endpoint": "GET /integracion/aaef/productores/{nit}, vista previa",
+      "servicio": "gateway_aaef._auditar → M07.auditar_aparte",
+      "comportamiento": "NO BLOQUEANTE",
+      "escenario": "E2",
+      "justificacion": "registrador_aparte: sesión propia; excepción → log + alertar; la respuesta HTTP continúa."
+    },
+    {
+      "rf": "RF-97",
+      "operacion": "Generación envelope AAEF (mappers/hash) invocada por consulta",
+      "endpoint": "vía RF-95 (ConsultarAaefUseCase)",
+      "servicio": "ConsultarAaefUseCase + gateway_aaef",
+      "comportamiento": "NO BLOQUEANTE",
+      "escenario": "E2",
+      "justificacion": "RF-97 no persiste auditoría propia; el evento PAQUETE_AAEF_CONSULTADO/VISTA se registra con auditar_aparte."
+    },
+    {
+      "rf": "RF-101",
+      "operacion": "Emisión / rechazo de token de canal",
+      "endpoint": "POST /integraciones/agrofusion/token",
+      "servicio": "EmitirTokenCanalUseCase(auditar=auditar_aparte)",
+      "comportamiento": "NO BLOQUEANTE",
+      "escenario": "E2",
+      "justificacion": "factoria.emitir_token cablea auditar_aparte, no auditoria de la sesión request."
+    },
+    {
+      "rf": "RF-99",
+      "operacion": "No identificada en accounting_integration",
+      "endpoint": "N/D",
+      "servicio": "N/D",
+      "comportamiento": "NO DETERMINADO",
+      "escenario": "N/D",
+      "justificacion": "Sin referencias RF-99 en src/accounting_integration ni carpetas tests M07/RF-99."
+    }
+  ],
+  "escenarios": [
+    {
+      "id": "E1",
+      "caso_original": "TC-M07-102-009",
+      "nombre": "Rollback auditoría bloqueante",
+      "estado": "APROBADO",
+      "operacion": "RF-101 registrar/suspender cliente; RF-98 registrar contrato",
+      "tipo_prueba": "Unitaria controlada (mock)",
+      "esperado": "Excepción + rollback; sin commit de negocio",
+      "obtenido": "pytest_ok=True; passed≈6; E1 tests ejecutados",
+      "evidencia": "evidencia_e1_rollback_TC-M07-G054.json + pytest_g54_fallos_auditoria.txt",
+      "pasos": [
+        "Mock auditoria.registrar → InfrastructureError",
+        "Ejecutar RegistrarCliente / suspender / registrar contrato",
+        "Verificar raise, db.rollback(), ausencia de db.commit()"
+      ],
+      "observaciones": "Mutaciones en memoria pueden ocurrir antes del commit; la confirmación transaccional se revierte."
+    },
+    {
+      "id": "E2",
+      "caso_original": "TC-M07-102-010",
+      "nombre": "Continuidad auditoría no bloqueante",
+      "estado": "APROBADO",
+      "operacion": "registrador_aparte + EmitirTokenCanalUseCase (RF-95/101 token)",
+      "tipo_prueba": "Unitaria controlada (sesión aparte)",
+      "esperado": "Negocio continúa; alerta; sin falso commit del evento",
+      "obtenido": "pytest_ok=True; token ficticio emitido pese a fallo de auditoría aparte",
+      "evidencia": "evidencia_e2_continuidad_TC-M07-G054.json + pytest_g54_fallos_auditoria.txt",
+      "pasos": [
+        "Forzar fallo en registrar() dentro de registrador_aparte",
+        "Comprobar alerta y rollback de sesión aparte",
+        "Emitir token con auditar_aparte fallido → token devuelto"
+      ],
+      "observaciones": "RF-97 cubierto por el mismo mecanismo no bloqueante del gateway RF-95."
+    }
+  ],
+  "peticiones": [
+    {
+      "fase": "login_admin",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "respuesta_resumen": {
+        "ok": true
+      }
+    },
+    {
+      "fase": "openapi",
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http": 200,
+      "respuesta_resumen": {
+        "ok": true
+      }
+    },
+    {
+      "fase": "auditoria_smoke",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tamano=1",
+      "http": 200,
+      "respuesta_resumen": {
+        "total": 145
+      }
+    }
+  ],
+  "rf99": {
+    "estado": "BLOQUEADO",
+    "motivo": "No hay implementación ni referencias a RF-99 en accounting_integration; sin carpeta tests M07/RF-99; OpenAPI sin rutas asociadas.",
+    "openapi_rutas_precio_o_rf99": [],
+    "rutas_m07_detectadas_muestra": [
+      "/integracion/aaef/productores/{nit}",
+      "/integracion/aaef/vista-previa/productores/{nit}",
+      "/integracion/anexos",
+      "/integracion/anexos/{id_mapeo_anexo_aaef}/aprobar",
+      "/integracion/anexos/{id_mapeo_anexo_aaef}/revision",
+      "/integracion/auditoria",
+      "/integracion/auditoria/exportar",
+      "/integracion/clientes",
+      "/integracion/clientes/{id_cliente_externo}",
+      "/integracion/clientes/{id_cliente_externo}/reactivar",
+      "/integracion/clientes/{id_cliente_externo}/revocar",
+      "/integracion/clientes/{id_cliente_externo}/rotar",
+      "/integracion/clientes/{id_cliente_externo}/suspender",
+      "/integracion/contratos",
+      "/integracion/contratos/{id_version_contrato_aaef}/activar",
+      "/integracion/contratos/{id_version_contrato_aaef}/deprecar",
+      "/integraciones/agrofusion/roles",
+      "/integraciones/agrofusion/tipos-documento",
+      "/integraciones/agrofusion/token",
+      "/integraciones/agrofusion/usuarios",
+      "/integraciones/agrofusion/usuarios/{email}",
+      "/integraciones/agrofusion/usuarios/{usuario}",
+      "/integraciones/agrofusion/usuarios/{usuario}/estado"
+    ]
+  },
+  "limitaciones": [
+    "Inyección de fallo limitada a mocks unitarios: no se puede forzar fallo de INSERT en TEST sin alterar infraestructura compartida.",
+    "RF-99 sin implementación → cobertura BLOQUEADA (no contabilizada como E1/E2)."
+  ],
+  "resumen": {
+    "aprobados": 2,
+    "rechazados": 0,
+    "bloqueados": 0,
+    "no_aplica": 0,
+    "rf99": "BLOQUEADO",
+    "estado_final": "APROBADO",
+    "pytest_ok": true
+  }
+}

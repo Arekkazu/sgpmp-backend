@@ -1,0 +1,20 @@
+{
+  "escenario": "E1",
+  "caso_original": "TC-M07-102-009",
+  "fecha_utc": "2026-11-18T02:19:35.451452+00:00",
+  "estado": "APROBADO",
+  "tipo_prueba": "Unitaria / integración controlada (mock auditoria.registrar)",
+  "operaciones_probadas": [
+    "RegistrarClienteExternoUseCase.execute",
+    "GestionarClienteExternoUseCase.cambiar_estado(suspender)",
+    "GestionarContratosUseCase.registrar"
+  ],
+  "inyeccion": "InfrastructureError AUDITORIA_FALLIDA_QA en auditoria.registrar",
+  "resultado": {
+    "pytest_ok": true,
+    "rollback_invocado": true,
+    "commit_evitado": true,
+    "excepcion_propagada": true
+  },
+  "nota": "No se ejecutó fallo destructivo contra API/BD TEST. Evidencia de rollback = db.rollback() sin db.commit()."
+}

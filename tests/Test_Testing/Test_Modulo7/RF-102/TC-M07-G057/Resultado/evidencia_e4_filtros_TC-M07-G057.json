@@ -1,0 +1,80 @@
+{
+  "fecha_utc": "2026-11-18T03:16:02.213940+00:00",
+  "filtros_contrato": [
+    "tipo_evento",
+    "id_cliente_externo",
+    "desde",
+    "hasta",
+    "endpoint",
+    "codigo_http",
+    "numero_id_tributaria"
+  ],
+  "valores": {
+    "tipo_evento": "ACCESO_AUDITORIA_DENEGADO",
+    "codigo_http": 405,
+    "endpoint": "/integracion/auditoria",
+    "id_cliente_externo": 12,
+    "desde": "2026-11-18",
+    "hasta": "2026-11-18",
+    "numero_id_tributaria": "901444215"
+  },
+  "resultados": [
+    {
+      "filtro": "tipo_evento",
+      "params": {
+        "tipo_evento": "ACCESO_AUDITORIA_DENEGADO"
+      },
+      "consulta_http": 200,
+      "consulta_total": 22,
+      "consulta_items_pagina": 22,
+      "csv_http": 200,
+      "csv_filas": 22,
+      "csv_cumplen": true,
+      "json_http": 200,
+      "json_regs": 22,
+      "json_cumplen": true,
+      "conteos_iguales": true,
+      "ids_csv_json_iguales": true,
+      "ok": true
+    },
+    {
+      "filtro": "tipo_evento+codigo_http",
+      "params": {
+        "tipo_evento": "ACCESO_AUDITORIA_DENEGADO",
+        "codigo_http": 405
+      },
+      "consulta_http": 200,
+      "consulta_total": 0,
+      "consulta_items_pagina": 0,
+      "csv_http": 200,
+      "csv_filas": 0,
+      "csv_cumplen": true,
+      "json_http": 200,
+      "json_regs": 0,
+      "json_cumplen": true,
+      "conteos_iguales": true,
+      "ids_csv_json_iguales": true,
+      "ok": true
+    },
+    {
+      "filtro": "desde+hasta",
+      "params": {
+        "desde": "2026-11-18",
+        "hasta": "2026-11-18"
+      },
+      "consulta_http": 200,
+      "consulta_total": 27,
+      "consulta_items_pagina": 27,
+      "csv_http": 200,
+      "csv_filas": 27,
+      "csv_cumplen": true,
+      "json_http": 200,
+      "json_regs": 27,
+      "json_cumplen": true,
+      "conteos_iguales": true,
+      "ids_csv_json_iguales": true,
+      "ok": true
+    }
+  ],
+  "estado": "APROBADO"
+}

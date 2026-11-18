@@ -1,0 +1,24 @@
+{
+  "fecha_utc": "2026-11-18T03:31:29.049996+00:00",
+  "contenedor": "infra-db-1",
+  "base": "sgpmp",
+  "solo_lectura": true,
+  "sql_fuente": "consultas_sql_TC-M07-G058.sql",
+  "pasos": [
+    {
+      "paso": "probe_tabla",
+      "ok": true,
+      "existe_eventos_integracion": false,
+      "stdout": " existe \n--------\n f\n(1 row)\n\n"
+    }
+  ],
+  "viable": true,
+  "catalogo_modulo7": " table_schema |          table_name           \n--------------+-------------------------------\n modulo7      | v_rf101_historial_cliente\n modulo7      | v_rf102_auditoria_integracion\n modulo7      | v_rf102_stats_auditoria\n(3 rows)\n\n",
+  "pg_cron": " tiene_pg_cron \n---------------\n f\n(1 row)\n\n",
+  "cron_jobs_filtrados": null,
+  "tiene_pg_cron": false,
+  "contraste_m01_eventos_archivados": "           objeto           | existe \n----------------------------+--------\n modulo1.eventos_archivados | t\n(1 row)\n\n",
+  "nota": "Tabla ausente en Docker local. Evidencia estructural: migración 94b14a6931d6 y código src/accounting_integration. Datos vivos: API TEST.",
+  "funciones_modulo7": " nspname | proname \n---------+---------\n(0 rows)\n\n",
+  "existe_eventos_integracion_local": false
+}

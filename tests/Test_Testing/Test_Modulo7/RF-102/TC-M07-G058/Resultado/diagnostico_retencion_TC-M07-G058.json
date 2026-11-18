@@ -1,0 +1,34 @@
+{
+  "fecha_utc": "2026-11-18T03:31:30.493330+00:00",
+  "codigo": {
+    "archivos_revisados_n": 50,
+    "coincidencias_retencion_archivado": [],
+    "tiene_retencion_implementada": false,
+    "tiene_archivado_m07": false,
+    "evidencia_ausencia": [
+      "Ninguna coincidencia útil de retención/archivado en src/accounting_integration",
+      "Migración 94b14a6931d6 crea eventos_integracion append-only + hash + triggers inmutabilidad; sin columnas de vencimiento ni tabla histórica",
+      "Repositorio solo INSERT + SELECT; sin DELETE programado ni MOVE a archivo"
+    ],
+    "implementado": {
+      "tabla": "modulo7.eventos_integracion",
+      "hash_integridad": true,
+      "algoritmo": "SHA-256 (hash_sha256 sobre asdict del evento)",
+      "inmutabilidad_trigger": true,
+      "repositorio_append_only": false
+    },
+    "migracion": "alembic/versions/94b14a6931d6_m07_integracion_aaef_rfc017.py"
+  },
+  "sql_local": {
+    "existe_tabla": false,
+    "pg_cron": false,
+    "nota": "Tabla ausente en Docker local. Evidencia estructural: migración 94b14a6931d6 y código src/accounting_integration. Datos vivos: API TEST."
+  },
+  "conclusiones": {
+    "politica_5y_10y": "NO_IMPLEMENTADA",
+    "archivado_automatico_m07": "NO_IMPLEMENTADO",
+    "almacenamiento_historico_m07": "NO_IMPLEMENTADO",
+    "hash_integridad_actual": "IMPLEMENTADO",
+    "contraste": "modulo1.eventos_archivados existe (M01) pero NO aplica a RF-102/M07"
+  }
+}

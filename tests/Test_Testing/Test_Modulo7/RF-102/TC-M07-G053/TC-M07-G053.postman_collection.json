@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "TC-M07-G053 RF-102 Integridad y protección auditoría",
+    "description": "E1 consulta integridad; E3 PUT/PATCH/DELETE inmutables; E4 exportar sin secretos. Credenciales vía environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.inmero.co/api-sgpmp-test"},
+    {"key": "admin_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "01 Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200/201 login admin', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+              "const j = pm.response.json();",
+              "if (j.token) { pm.collectionVariables.set('admin_token', j.token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{QA_ADMIN_CORREO}}\",\n  \"contrasena\": \"{{QA_ADMIN_CONTRASENA}}\"\n}"
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 GET auditoria integridad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 auditoría', function () { pm.expect(pm.response.code).to.eql(200); });",
+              "const j = pm.response.json();",
+              "pm.test('items y total', function () { pm.expect(j).to.have.property('items'); pm.expect(j).to.have.property('total'); });",
+              "if (j.items && j.items.length) {",
+              "  pm.test('campo integridad presente', function () {",
+              "    j.items.forEach(function (it) { pm.expect(it).to.have.property('integridad'); });",
+              "  });",
+              "  pm.test('muestra sin hash_integridad en API', function () {",
+              "    j.items.forEach(function (it) { pm.expect(it).to.not.have.property('hash_integridad'); });",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=50"
+      }
+    },
+    {
+      "name": "03 PUT auditoria inmutable",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 405 PUT', function () { pm.expect(pm.response.code).to.eql(405); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"intento\": true}"},
+        "url": "{{baseUrl}}/integracion/auditoria"
+      }
+    },
+    {
+      "name": "04 PATCH auditoria inmutable",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 405 PATCH', function () { pm.expect(pm.response.code).to.eql(405); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"intento\": true}"},
+        "url": "{{baseUrl}}/integracion/auditoria"
+      }
+    },
+    {
+      "name": "05 DELETE auditoria inmutable",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 405 DELETE', function () { pm.expect(pm.response.code).to.eql(405); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria"
+      }
+    },
+    {
+      "name": "06 Verificar INTENTO_MODIFICACION_AUDITORIA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 filtro INTENTO', function () { pm.expect(pm.response.code).to.eql(200); });",
+              "const j = pm.response.json();",
+              "pm.test('hay eventos INTENTO', function () { pm.expect(j.total).to.be.at.least(1); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?tipo_evento=INTENTO_MODIFICACION_AUDITORIA&tamano=5"
+      }
+    },
+    {
+      "name": "07 Exportar auditoria JSON",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 export', function () { pm.expect(pm.response.code).to.eql(200); });",
+              "const txt = pm.response.text();",
+              "pm.test('sin client_secret literal', function () { pm.expect(txt.toLowerCase()).to.not.include('client_secret'); });",
+              "pm.test('sin TEST_SECRET_123456', function () { pm.expect(txt).to.not.include('TEST_SECRET_123456'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json"
+      }
+    }
+  ]
+}
