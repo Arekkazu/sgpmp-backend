@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-32 RF-57: notificación de alertas por el canal de RF-14, destinatarios por permisos y reintento con backoff |
 # | 2026-11-03 | Arekkazu | RF-57 E7: un reintento por minuto elegido y pausa de 1 min si el SMTP falla (bucle de SMTP en dev) |
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: nombres del área, finca, animal y sensor para los correos de alertas |
+# | 2026-11-14 | Arekkazu | M08 RF-105: nivel por severidad, animal y datos del push de la alerta |
 """Adaptador de :class:`NotificacionAlertaPort` sobre el servicio de notificaciones de RF-14.
 
 Cada notificación cuelga de un evento en ``modulo1.eventos`` (tipo 32
@@ -21,6 +22,8 @@ from src.identity_access.infrastructure.repositories.evento_repository import Sq
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.shared.email import send_email
 from src.shared.notificacion_service import NotificacionService, _correo_por_defecto
+from src.identity_access.domain.value_objects.nivel_notificacion import ADVERTENCIA, CRITICA
+from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.notificacion_alerta_port import ContextoAlerta, NotificacionAlertaPort
 
 logger = logging.getLogger(__name__)
@@ -96,7 +99,8 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
     def administradores(self) -> list[int]:
         return list(self.db.execute(_SQL_ADMINISTRADORES).scalars().all())
 
-    def enviar(self, id_usuario: int, titulo: str, cuerpo: str, *, agrupable: bool) -> Optional[bool]:
+    def enviar(self, id_usuario: int, titulo: str, cuerpo: str, *, agrupable: bool,
+               alerta: Optional[Alerta] = None) -> Optional[bool]:
         try:
             SqlAlchemyEventoRepository(self.db).registrar(
                 tipo_evento=TIPO_EVENTO_NOTIFICACION_ALERTA,
@@ -119,7 +123,21 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
             cuerpo=cuerpo,
             aplicar_anti_spam_email=agrupable,
             aplicar_anti_spam_interno=agrupable,
+            **self._datos_rf105(alerta),
         )
+
+    @staticmethod
+    def _datos_rf105(alerta: Optional[Alerta]) -> dict:
+        """RF-105: CRITICO → notificación CRÍTICA; el resto, ADVERTENCIA. El push lleva el área para
+        que el dashboard refresque el semáforo apenas llega (RF-103 CA-2)."""
+        if alerta is None:
+            return {}
+        return {
+            "nivel": CRITICA if alerta.severidad == "CRITICO" else ADVERTENCIA,
+            "id_activo_biologico": alerta.id_activo_biologico,
+            "datos_push": {"url": "telemetria/alertas", "tipo": "ALERTA", "id_alerta": alerta.id_alerta,
+                           "id_infraestructura": alerta.id_infraestructura},
+        }
 
     def reintentar_fallidas(self, ahora: datetime) -> int:
         global _pausa_hasta

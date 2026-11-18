@@ -4,6 +4,7 @@
 # | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: fallo técnico 500/503, aviso de fallo persistente y pendientes |
 # | 2026-11-12 | Arekkazu         | USAB-M05-M06 N-07 RF-74/80: el cálculo automático queda firmado por el usuario de servicio |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: preservar el corte manual al finalizar y evitar un aviso de ventana duplicado. |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: motor batch de cálculo ICA (RF-74, Flujo C — alcance completo).
 
 Orquesta una corrida completa:
@@ -160,7 +161,7 @@ class EjecutarBatchICAUseCase:
 
         if excedentes:
             self._alertar(
-                f"El proceso batch de cálculo de CA superó el límite configurado de {limite} activos. "
+                f"El proceso batch de cálculo del ICA superó el límite configurado de {limite} activos. "
                 f"{len(excedentes)} activos quedaron en cola para el siguiente ciclo; puede reactivar el "
                 "procesado de forma manual.",
                 {"id_ejecucion": ejecucion.id_ejecucion, "en_cola": len(excedentes)},
@@ -380,7 +381,7 @@ class EjecutarBatchICAUseCase:
         self.db.commit()
         if corte_por_ventana:
             self._alertar(
-                "El proceso batch de cálculo de CA no completó su ejecución. Se procesaron "
+                "El proceso batch de cálculo del ICA no completó su ejecución. Se procesaron "
                 f"{procesados} de {guardada.cantidad_activos_total} activos. El proceso continuará en el "
                 "siguiente ciclo o reactive el procesado de forma manual.",
                 {"id_ejecucion": id_ejecucion, "procesados": procesados},
@@ -388,7 +389,7 @@ class EjecutarBatchICAUseCase:
         if fallos:
             # E5: un aviso por corrida con cada activo, su causa y su último intento (no uno por activo).
             self._alertar(
-                f"El cálculo de CA falló en {len(fallos)} activo(s) después de agotar los reintentos. "
+                f"El cálculo del ICA falló en {len(fallos)} activo(s) después de agotar los reintentos. "
                 "Revíselos en Fallos persistentes y reintente el cálculo de forma manual.",
                 {"id_ejecucion": id_ejecucion, "fallos": fallos},
             )

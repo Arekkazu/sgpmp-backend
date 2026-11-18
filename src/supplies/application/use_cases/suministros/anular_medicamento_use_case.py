@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: el fin de retiro por anulación avisa también al Veterinario |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: anular una aplicación de medicamento VALIDADA (RF-76).
 
 - E8: un registro ANULADO no puede volver a anularse (409).
@@ -65,7 +66,7 @@ class AnularMedicamentoUseCase:
         if medicamento is None:
             raise NotFoundError(
                 code="MEDICAMENTO_NO_ENCONTRADO",
-                message=f"El registro de aplicación de medicamento con ID {id_medicamento} no existe.",
+                message="El registro de aplicación de medicamento no existe.",
             )
 
         if medicamento.estado_registro == EstadoRegistro.ANULADO.value:

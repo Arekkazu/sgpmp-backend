@@ -3,6 +3,7 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: notificación de alertas, tormenta (E8), contexto incompleto (E6) y fallos con reintento (E7) |
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
+# | 2026-11-14 | Arekkazu | M08 RF-105: pasa la alerta para el nivel y el destino del push |
 """Caso de uso: notificar las alertas nuevas (RF-57 Fase 8, E6, E7, E8).
 
 Corre cada pocos segundos fuera del request del broker:
@@ -179,7 +180,7 @@ class NotificarAlertasUseCase:
             self._enviar(id_usuario, alerta, titulo, cuerpo, agrupable=agrupable)
 
     def _enviar(self, id_usuario: int, alerta: Alerta, titulo: str, cuerpo: str, *, agrupable: bool) -> None:
-        if self.notificacion.enviar(id_usuario, titulo, cuerpo, agrupable=agrupable) is False:
+        if self.notificacion.enviar(id_usuario, titulo, cuerpo, agrupable=agrupable, alerta=alerta) is False:
             self.auditoria.execute(
                 tipo_evento="NOTIFICACION_FALLIDA",
                 resultado=TipoResultado.FALLIDO,
