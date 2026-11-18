@@ -71,7 +71,7 @@ class DatosWidget:
 def _huella(datos: dict[str, Any]) -> str:
     def _plano(v: Any) -> Any:
         return float(v) if isinstance(v, Decimal) else str(v)
-    return hashlib.sha1(json.dumps(datos, sort_keys=True, default=_plano).encode()).hexdigest()[:16]
+    return hashlib.sha256(json.dumps(datos, sort_keys=True, default=_plano).encode()).hexdigest()[:16]
 
 
 class ObtenerDatosWidgetUseCase:
