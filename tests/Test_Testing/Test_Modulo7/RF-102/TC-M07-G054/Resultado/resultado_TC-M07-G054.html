@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>TC-M07-G054 — RF-102 — APROBADO</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f7f7f5;color:#1a1a1a}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+th{background:#e8eef5} .note{background:#eef6ff;border-left:4px solid #2563eb;padding:10px;margin:12px 0}
+.lim{background:#fff8e6;border-left:4px solid #9a6b00;padding:10px;margin:12px 0}
+.meta span{display:inline-block;margin-right:16px;margin-bottom:6px}
+</style></head><body>
+<h1>TC-M07-G054 — Verificar el comportamiento de las operaciones ante fallos de auditoría</h1>
+<div class="card meta">
+  <span><strong>ID:</strong> TC-M07-G054</span>
+  <span><strong>RF:</strong> 102 / 95 / 97 / 98 / 101 / 99</span>
+  <span><strong>CU07</strong></span>
+  <span><strong>Responsable:</strong> Laura López</span>
+  <span><strong>Estado final:</strong> <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></span>
+  <span><strong>UTC:</strong> 2026-11-18T02:19:35.455387+00:00</span>
+</div>
+<div class="note">E1/E2 se validan con inyección controlada (mock) sobre casos de uso reales.
+No se inyectaron fallos en la API TEST compartida. RF-99: ver diagnóstico de disponibilidad.</div>
+<div class="card"><h2>Matriz de operaciones</h2>
+<table><thead><tr><th>RF</th><th>Operación</th><th>Endpoint</th><th>Comportamiento</th><th>Escenario</th><th>Justificación</th></tr></thead>
+<tbody><tr><td>RF-101</td><td>Registrar / editar / suspender / reactivar / revocar / rotar cliente externo</td><td><code>POST/PATCH /integracion/clientes…</code></td><td>BLOQUEANTE</td><td>E1</td><td>Usa M07.auditoria (misma Session). commit solo tras auditoria.registrar; except → rollback.</td></tr><tr><td>RF-98</td><td>Registrar/activar/deprecar contrato AAEF y anexos</td><td><code>POST /integracion/contratos…, /integracion/anexos…</code></td><td>BLOQUEANTE</td><td>E1</td><td>Docstring RF-102 4.1: auditoría en la misma transacción; si no se puede auditar, la transición no ocurre.</td></tr><tr><td>RF-95</td><td>Consulta AAEF Gateway / vista previa / rechazos</td><td><code>GET /integracion/aaef/productores/{nit}, vista previa</code></td><td>NO BLOQUEANTE</td><td>E2</td><td>registrador_aparte: sesión propia; excepción → log + alertar; la respuesta HTTP continúa.</td></tr><tr><td>RF-97</td><td>Generación envelope AAEF (mappers/hash) invocada por consulta</td><td><code>vía RF-95 (ConsultarAaefUseCase)</code></td><td>NO BLOQUEANTE</td><td>E2</td><td>RF-97 no persiste auditoría propia; el evento PAQUETE_AAEF_CONSULTADO/VISTA se registra con auditar_aparte.</td></tr><tr><td>RF-101</td><td>Emisión / rechazo de token de canal</td><td><code>POST /integraciones/agrofusion/token</code></td><td>NO BLOQUEANTE</td><td>E2</td><td>factoria.emitir_token cablea auditar_aparte, no auditoria de la sesión request.</td></tr><tr><td>RF-99</td><td>No identificada en accounting_integration</td><td><code>N/D</code></td><td>NO DETERMINADO</td><td>N/D</td><td>Sin referencias RF-99 en src/accounting_integration ni carpetas tests M07/RF-99.</td></tr></tbody></table></div>
+<div class='card'><h3>E1 — TC-M07-102-009: Rollback auditoría bloqueante <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Operación:</strong> RF-101 registrar/suspender cliente; RF-98 registrar contrato</p><p><strong>Tipo de prueba:</strong> Unitaria controlada (mock)</p><p><strong>Esperado:</strong> Excepción + rollback; sin commit de negocio</p><p><strong>Obtenido:</strong> pytest_ok=True; passed≈6; E1 tests ejecutados</p><p><strong>Evidencia:</strong> <code>evidencia_e1_rollback_TC-M07-G054.json + pytest_g54_fallos_auditoria.txt</code></p><ul><li>Mock auditoria.registrar → InfrastructureError</li><li>Ejecutar RegistrarCliente / suspender / registrar contrato</li><li>Verificar raise, db.rollback(), ausencia de db.commit()</li></ul><p><strong>Observaciones:</strong> Mutaciones en memoria pueden ocurrir antes del commit; la confirmación transaccional se revierte.</p></div><div class='card'><h3>E2 — TC-M07-102-010: Continuidad auditoría no bloqueante <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Operación:</strong> registrador_aparte + EmitirTokenCanalUseCase (RF-95/101 token)</p><p><strong>Tipo de prueba:</strong> Unitaria controlada (sesión aparte)</p><p><strong>Esperado:</strong> Negocio continúa; alerta; sin falso commit del evento</p><p><strong>Obtenido:</strong> pytest_ok=True; token ficticio emitido pese a fallo de auditoría aparte</p><p><strong>Evidencia:</strong> <code>evidencia_e2_continuidad_TC-M07-G054.json + pytest_g54_fallos_auditoria.txt</code></p><ul><li>Forzar fallo en registrar() dentro de registrador_aparte</li><li>Comprobar alerta y rollback de sesión aparte</li><li>Emitir token con auditar_aparte fallido → token devuelto</li></ul><p><strong>Observaciones:</strong> RF-97 cubierto por el mismo mecanismo no bloqueante del gateway RF-95.</p></div>
+<div class="lim"><h3>RF-99</h3><pre>{
+  &quot;estado&quot;: &quot;BLOQUEADO&quot;,
+  &quot;motivo&quot;: &quot;No hay implementación ni referencias a RF-99 en accounting_integration; sin carpeta tests M07/RF-99; OpenAPI sin rutas asociadas.&quot;,
+  &quot;openapi_rutas_precio_o_rf99&quot;: [],
+  &quot;rutas_m07_detectadas_muestra&quot;: [
+    &quot;/integracion/aaef/productores/{nit}&quot;,
+    &quot;/integracion/aaef/vista-previa/productores/{nit}&quot;,
+    &quot;/integracion/anexos&quot;,
+    &quot;/integracion/anexos/{id_mapeo_anexo_aaef}/aprobar&quot;,
+    &quot;/integracion/anexos/{id_mapeo_anexo_aaef}/revision&quot;,
+    &quot;/integracion/auditoria&quot;,
+    &quot;/integracion/auditoria/exportar&quot;,
+    &quot;/integracion/clientes&quot;,
+    &quot;/integracion/clientes/{id_cliente_externo}&quot;,
+    &quot;/integracion/clientes/{id_cliente_externo}/reactivar&quot;,
+    &quot;/integracion/clientes/{id_cliente_externo}/revocar&quot;,
+    &quot;/integracion/clientes/{id_cliente_externo}/rotar&quot;,
+    &quot;/integracion/clientes/{id_cliente_externo}/suspender&quot;,
+    &quot;/integracion/contratos&quot;,
+    &quot;/integracion/contratos/{id_version_contrato_aaef}/activar&quot;,
+    &quot;/integracion/contratos/{id_version_contrato_aaef}/deprecar&quot;,
+    &quot;/integraciones/agrofusion/roles&quot;,
+    &quot;/integraciones/agrofusion/tipos-documento&quot;,
+    &quot;/integraciones/agrofusion/token&quot;,
+    &quot;/integraciones/agrofusion/usuarios&quot;,
+    &quot;/integraciones/agrofusion/usuarios/{email}&quot;,
+    &quot;/integraciones/agrofusion/usuarios/{usuario}&quot;,
+    &quot;/integraciones/agrofusion/usuarios/{usuario}/estado&quot;
+  ]
+}</pre></div>
+<div class="lim"><h3>Limitaciones</h3><pre>[
+  &quot;Inyección de fallo limitada a mocks unitarios: no se puede forzar fallo de INSERT en TEST sin alterar infraestructura compartida.&quot;,
+  &quot;RF-99 sin implementación → cobertura BLOQUEADA (no contabilizada como E1/E2).&quot;
+]</pre></div>
+<div class="card"><h3>Resumen</h3><pre>{
+  &quot;aprobados&quot;: 2,
+  &quot;rechazados&quot;: 0,
+  &quot;bloqueados&quot;: 0,
+  &quot;no_aplica&quot;: 0,
+  &quot;rf99&quot;: &quot;BLOQUEADO&quot;,
+  &quot;estado_final&quot;: &quot;APROBADO&quot;,
+  &quot;pytest_ok&quot;: true
+}</pre></div>
+</body></html>
