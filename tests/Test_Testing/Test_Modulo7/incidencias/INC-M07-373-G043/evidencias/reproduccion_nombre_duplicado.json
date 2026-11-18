@@ -1,0 +1,52 @@
+{
+  "capturado": "2026-11-18T13:14:02-05:00",
+  "run_sandbox": "rollback al finalizar",
+  "cierre_run": {
+    "http": 200,
+    "respuesta": {
+      "status": "Rollback exitoso"
+    }
+  },
+  "cliente_existente": {
+    "id": 6,
+    "codigo": "QA_M07_AAEF",
+    "nombre": "QA_M07_AAEF (cliente de pruebas QA-M07)"
+  },
+  "caso_1_nombre_repetido": {
+    "solicitud": {
+      "POST": "/integracion/clientes",
+      "codigo": "QA_M07_INC373_A",
+      "nombre": "QA_M07_AAEF (cliente de pruebas QA-M07)",
+      "identificador_publico": "qa-m07-inc373-a"
+    },
+    "esperado": "HTTP 409 (RF-101 FA-8)",
+    "obtenido_http": 201,
+    "respuesta": {
+      "codigo": "QA_M07_INC373_A",
+      "nombre": "QA_M07_AAEF (cliente de pruebas QA-M07)",
+      "estado": "ACTIVO",
+      "error_code": null,
+      "message": null
+    }
+  },
+  "caso_2_control_codigo_repetido": {
+    "solicitud": {
+      "POST": "/integracion/clientes",
+      "codigo": "QA_M07_AAEF",
+      "nombre": "QA M07 control codigo duplicado"
+    },
+    "esperado": "HTTP 409",
+    "obtenido_http": 409,
+    "respuesta": {
+      "error_code": "RECURSO_DUPLICADO",
+      "message": "Ya existe un registro con esos datos.",
+      "fields": [
+        {
+          "field": "cliente_externo_codigo",
+          "message": "Ya existe un registro con esos datos."
+        }
+      ],
+      "timestamp": "2026-11-18T18:14:07.364530+00:00"
+    }
+  }
+}

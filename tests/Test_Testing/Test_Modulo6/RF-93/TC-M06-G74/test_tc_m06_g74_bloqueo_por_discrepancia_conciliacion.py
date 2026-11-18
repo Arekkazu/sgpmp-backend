@@ -59,19 +59,25 @@ gastos, y que `generar()` solo puede fallar por `PERIODO_NO_ENCONTRADO` o
 `PERIODO_NO_CERRADO` -- nunca por una inconsistencia entre fuentes.
 
 ACTUALIZACIÓN 2026-11-13 (respuesta de Análisis/Diseño): RESUELTO EN
-DISEÑO, PENDIENTE DE DESPLIEGUE A TEST (no es un hueco de diseño ni una
-decisión abierta). El mecanismo real de conciliación NO usa los endpoints
+DISEÑO. El mecanismo real de conciliación NO usa los endpoints
 `/reconciliation-check` ni `/alerts` que esta ficha asumía -- la
 verificación corre en la propia generación del estado: si una variación o
 un producto agrícola del período no tiene asiento, `generar()` responde
 `422 ESTADO_RESULTADOS_NO_CONCILIA` indicando qué falta, el cierre queda
 pendiente con ese motivo, se registra `ERROR_CONCILIACION` en la bitácora
-de RF-94 y se avisa al Contador. Este mecanismo llega a TEST cuando se
-mergee y despliegue el PR #1121 (el equipo de desarrollo avisará antes de
-desplegar). Mientras ese PR no esté desplegado, el código real sigue sin
-`ESTADO_RESULTADOS_NO_CONCILIA` (confirmado abajo) y este TC se mantiene en
-rojo -- NO por ser un hallazgo nuevo, sino porque todavía no ha llegado a
-este checkout/entorno. Re-verificar tras el despliegue del PR #1121.
+de RF-94 y se avisa al Contador. Llega con el PR #1121.
+
+ACTUALIZACIÓN 2026-11-17: CERRADO -- el PR #1121 ya está mergeado y
+desplegado (`ConciliacionError`/`ESTADO_RESULTADOS_NO_CONCILIA` en
+`src/financial_valuation/application/services/reportes.py`,
+líneas 128-149; invocado desde `generar()` en este mismo módulo). Confirmado
+contra el código real: `_HECHO_FUENTE` identifica la fuente exacta
+("la variación de valor razonable"/"el producto agrícola") y el activo
+afectado en el mensaje; `_discrepancia()` registra `ERROR_CONCILIACION` vía
+`auditoria.registrar(exc.evento(...))` y avisa al Contador vía
+`notificador.a_contadores(...)`. Las clases de abajo quedan reescritas
+contra ese código real -- los hallazgos (a)-(f) y 1-4 de arriba son
+HISTÓRICOS (ya no aplican).
 
 Como correrlo (Windows necesita el stub de fcntl):
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
@@ -88,7 +94,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.financial_valuation.application.services.reportes import ConstructorEstadoResultados
+from src.financial_valuation.application.services.reportes import ConciliacionError, ConstructorEstadoResultados
 from src.financial_valuation.application.use_cases.reportes.generar_estado_resultados_use_case import (
     GenerarEstadoResultadosUseCase,
 )
@@ -98,57 +104,72 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 REPO_ROOT = Path(__file__).resolve().parents[5]
 ROUTER = REPO_ROOT / 'src/financial_valuation/infrastructure/routers/m06_router.py'
 USE_CASE = REPO_ROOT / 'src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py'
+REPORTES = REPO_ROOT / 'src/financial_valuation/application/services/reportes.py'
 
 
-class TestSubCasoNoExisteNingunEndpointDeConciliacionNiDeAlertasPendienteDespliegue:
+def _periodo_cerrado():
+    import datetime
+    return Periodo(id_periodo_contable=93, numero_id_tributaria='900123456', tipo_cierre='MENSUAL',
+                   fecha_inicio=datetime.date(2026, 10, 1), fecha_fin=datetime.date(2026, 10, 31), estado='CERRADO')
+
+
+class TestSubCasoNoExisteNingunEndpointDeConciliacionNiDeAlertasConfirmadoPorDiseno:
     def test_no_existe_ningun_endpoint_de_reconciliation_check_o_conciliacion(self):
+        """No es un defecto: el mecanismo real no usa un endpoint de conciliacion/alertas
+        separado, usa 422 ESTADO_RESULTADOS_NO_CONCILIA directamente en generar()."""
         texto = ROUTER.read_text(encoding='utf-8').lower()
         archivos = [p for p in ('reconciliation', 'conciliacion', 'discrepanc') if p in texto]
-        pytest.fail(
-            f"PENDIENTE DE DESPLIEGUE (PR #1121, no es un hueco de diseno -- ver actualizacion "
-            f"2026-11-13): el mecanismo real no usa estos endpoints, usa 422 "
-            f"ESTADO_RESULTADOS_NO_CONCILIA en generar() (buscado en este checkout: 'reconciliation', "
-            f"'conciliacion', 'discrepanc' -- encontrados: {archivos or 'ninguno'})."
-        ) if not archivos else None
+        assert not archivos
 
     def test_no_existe_ningun_endpoint_generico_de_alerts(self):
+        """No es un defecto: el mecanismo real es el aviso al Contador + ERROR_CONCILIACION en
+        bitacora, no un endpoint '/alerts'."""
         texto = ROUTER.read_text(encoding='utf-8').lower()
-        pytest.fail(
-            "PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): el mecanismo real "
-            "es el aviso al Contador + ERROR_CONCILIACION en bitacora, no un endpoint '/alerts' -- "
-            "aun no aparece en este checkout."
-        ) if '"/alerts"' not in texto and "'/alerts'" not in texto else None
+        assert '"/alerts"' not in texto and "'/alerts'" not in texto
 
 
-class TestSubCasoLaGeneracionSoloPuedeFallarPorPeriodoPendienteDespliegue:
-    def test_generar_solo_tiene_dos_posibles_errores_ninguno_de_discrepancia(self):
-        """Lee la firma real de GenerarEstadoResultadosUseCase._cerrado() / generar(). PENDIENTE
-        DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): en este checkout todavia no
-        existe el codigo ESTADO_RESULTADOS_NO_CONCILIA que el equipo confirmo ya esta resuelto
-        en diseno -- re-verificar tras el despliegue."""
-        texto = USE_CASE.read_text(encoding='utf-8')
-        codigos_error = [l.strip() for l in texto.splitlines() if 'code="' in l or "code='" in l]
-        pytest.fail(
-            f"PENDIENTE DE DESPLIEGUE: los codigos de error presentes en este checkout son "
-            f"{codigos_error!r} -- 'ESTADO_RESULTADOS_NO_CONCILIA' aun no aparece, llega con el "
-            f"PR #1121."
-        ) if not any('CONCILIACION' in c for c in codigos_error) else None
+class TestSubCasoLaConciliacionCerradaConfirmadaCorrecta:
+    def test_estado_resultados_no_concilia_existe_en_reportes_py(self):
+        """No es un defecto: el codigo de conciliacion vive en reportes.py (ConciliacionError),
+        no en generar_estado_resultados_use_case.py -- el grep original buscaba en el archivo
+        equivocado. CERRADO 2026-11-17: confirmado desplegado."""
+        texto = REPORTES.read_text(encoding='utf-8')
+        assert 'code="ESTADO_RESULTADOS_NO_CONCILIA"' in texto
 
-    def test_generar_con_componentes_sintenticamente_separados_nunca_puede_discrepar(self):
-        """Prueba directa: aunque se intente simular una fuente con datos 'contradictorios'
-        (p.ej. ingresos de una especie y gastos de otra), el calculo siempre suma todo bajo
-        la misma formula total_ingresos - total_gastos -- no hay una segunda ruta de calculo
-        con la que comparar, asi que NUNCA se puede producir una excepcion de discrepancia
-        desde la aplicacion, sin importar que tan contradictorios sean los datos de entrada."""
+    def test_generar_bloquea_cuando_hay_hechos_sin_asiento_cerrado(self):
+        """CERRADO: si reportes.hechos_sin_asiento() devuelve faltantes, guardar() lanza
+        ConciliacionError y generar() la propaga -- ya NO es cierto que 'nunca se puede producir
+        una excepcion de discrepancia desde la aplicacion'."""
         periodos = MagicMock()
-        periodos.obtener.return_value = Periodo(
-            id_periodo_contable=93, numero_id_tributaria='900123456', tipo_cierre='MENSUAL',
-            fecha_inicio=__import__('datetime').date(2026, 10, 1),
-            fecha_fin=__import__('datetime').date(2026, 10, 31), estado='CERRADO',
-        )
+        periodos.obtener.return_value = _periodo_cerrado()
         periodos.ultima_ejecucion.return_value = {'activos_excluidos': []}
         reportes = MagicMock()
-        # Datos deliberadamente "contradictorios" entre dos fuentes distintas (RF-86 vs RF-85):
+        reportes.hechos_sin_asiento.return_value = [
+            {'fuente': 'variaciones_valor_razonable', 'identificador': 'BOV-001'},
+        ]
+        reportes.movimientos.return_value = []
+        costos = MagicMock()
+        costos.del_periodo.return_value = []
+        constructor = ConstructorEstadoResultados(reportes=reportes, costos=costos)
+        auditoria = MagicMock()
+        uc = GenerarEstadoResultadosUseCase(db=MagicMock(), periodos=periodos, reportes=reportes,
+                                            constructor=constructor, auditoria=auditoria)
+        with pytest.raises(ConciliacionError) as exc_info:
+            uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
+        assert exc_info.value.code == 'ESTADO_RESULTADOS_NO_CONCILIA'
+        assert 'la variación de valor razonable de BOV-001' in exc_info.value.message
+        auditoria.registrar.assert_called_once()
+        assert auditoria.registrar.call_args.args[0].tipo_evento == 'ERROR_CONCILIACION'
+
+    def test_generar_no_bloquea_cuando_todos_los_hechos_tienen_asiento_cerrado(self):
+        """Control positivo: sin faltantes, la generacion se completa normal (sin importar que
+        tan dispares sean los montos entre componentes -- eso sigue siendo correcto, la
+        conciliacion es sobre 'tiene asiento o no', no sobre comparar magnitudes)."""
+        periodos = MagicMock()
+        periodos.obtener.return_value = _periodo_cerrado()
+        periodos.ultima_ejecucion.return_value = {'activos_excluidos': []}
+        reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = [
             {'tipo_hecho': 'VARIACION_VR_TB', 'sentido': 'GANANCIA', 'valor': '999999.99', 'es_reverso': False},
             {'tipo_hecho': 'PRODUCTO_AGRICOLA', 'sentido': 'UNICO', 'valor': '0.01', 'es_reverso': False},
@@ -160,29 +181,18 @@ class TestSubCasoLaGeneracionSoloPuedeFallarPorPeriodoPendienteDespliegue:
         constructor = ConstructorEstadoResultados(reportes=reportes, costos=costos)
         uc = GenerarEstadoResultadosUseCase(db=MagicMock(), periodos=periodos, reportes=reportes,
                                             constructor=constructor, auditoria=MagicMock())
-        # No debe lanzar NINGUNA excepcion de conciliacion, sin importar que tan dispares sean
-        # los montos entre fuentes.
         resultado = uc.generar(id_periodo_contable=93, filtros={}, id_usuario=1)
-        pytest.fail(
-            f"PENDIENTE DE DESPLIEGUE (PR #1121, ver actualizacion 2026-11-13): en este checkout, "
-            f"con datos deliberadamente dispares entre dos RF fuente (999999.99 vs 0.01), la "
-            f"generacion se completa sin ningun bloqueo -- resultado_neto={resultado['resultado_neto']}. "
-            f"El mecanismo real de conciliacion ya fue confirmado por el equipo, llega con el "
-            f"despliegue de ese PR; re-verificar entonces."
-        )
+        assert resultado['resultado_neto'] == __import__('decimal').Decimal('1000000.00')
 
 
-class TestSubCasoDElMecanismoDeTriggerEsSecundarioAlDeAplicacionPendienteDespliegue:
-    def test_el_trigger_de_bd_no_identifica_componente_ni_rf_fuente(self):
-        """El trigger de BD (fn_tgr_m06_24_consistencia_resultado_neto) es una barrera de ultimo
-        recurso, no el mecanismo principal -- el real (ESTADO_RESULTADOS_NO_CONCILIA, 422 con
-        detalle de que falta) llega con el PR #1121 segun confirmo el equipo (actualizacion
-        2026-11-13). El trigger en si mismo no identifica componente/RF, pero ya no es el unico
-        mecanismo esperado."""
+class TestSubCasoDElMecanismoDeAplicacionSiIdentificaFuenteConfirmadoCorrecto:
+    def test_el_trigger_de_bd_es_barrera_secundaria_el_mecanismo_real_si_identifica_fuente(self):
+        """No es un defecto: el trigger de BD (fn_tgr_m06_24_consistencia_resultado_neto) sigue
+        sin identificar componente/RF por si solo, pero ya no es el unico mecanismo -- el real
+        (ConciliacionError/_HECHO_FUENTE en reportes.py) SI identifica la fuente exacta y el
+        activo afectado en el mensaje de 422. CERRADO 2026-11-17."""
         migracion = REPO_ROOT / 'alembic/versions/c4d81e6f2a95_m06_nic41_esquema_rfc018.py'
-        texto = migracion.read_text(encoding='utf-8', errors='ignore')
-        pytest.fail(
-            "PENDIENTE DE DESPLIEGUE: el trigger de BD por si solo compara solo 2 numeros "
-            "agregados y no identifica componente/RF -- pero el mecanismo real de la aplicacion "
-            "(422 ESTADO_RESULTADOS_NO_CONCILIA con detalle) aun no esta en este checkout."
-        ) if 'fn_tgr_m06_24_consistencia_resultado_neto' in texto else None
+        texto_migracion = migracion.read_text(encoding='utf-8', errors='ignore')
+        assert 'fn_tgr_m06_24_consistencia_resultado_neto' in texto_migracion
+        texto_reportes = REPORTES.read_text(encoding='utf-8')
+        assert '_HECHO_FUENTE' in texto_reportes

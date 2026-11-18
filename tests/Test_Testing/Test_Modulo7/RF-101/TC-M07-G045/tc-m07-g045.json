@@ -1,0 +1,1634 @@
+{
+  "info": {
+    "name": "TC-M07-G045 · RF-101 · Ciclo de vida del cliente",
+    "description": "Casos TC-101-010, 011 y 012. Dentro de un run del sandbox: al cerrarlo, QA_M07_SUSP y QA_M07_REV vuelven a ACTIVO y los secretos rotados vuelven a los originales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "",
+          "const cv = pm.collectionVariables;",
+          "const pad = (n) => String(n).padStart(2, '0');",
+          "const ymd = (d) => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());",
+          "if (!cv.get('run_id')) cv.set('run_id', pm.variables.replaceIn('{{$guid}}'));",
+          "if (!cv.get('run_id_b')) cv.set('run_id_b', pm.variables.replaceIn('{{$guid}}'));",
+          "const hoy = new Date();",
+          "cv.set('ayer', ymd(new Date(hoy.getTime() - 86400000)));",
+          "cv.set('manana', ymd(new Date(hoy.getTime() + 86400000)));",
+          "cv.set('fecha_venc', ymd(new Date(hoy.getTime() + 30 * 86400000)));",
+          "// Pausa entre llamadas que cuentan para el límite por minuto (RF-101 5.9): token y consulta AAEF con Authorization.",
+          "const ruta = pm.request.url.getPath();",
+          "const nombre = pm.info.requestName || '';",
+          "const cuenta = /\\/integraciones\\/agrofusion\\/token$/.test(ruta) || (/\\/integracion\\/aaef\\/productores\\//.test(ruta) && pm.request.headers.has('Authorization'));",
+          "if (cuenta && nombre.indexOf('[libre]') < 0) {",
+          "  const gap = Number(cv.get('pausa_ms') || 12500);",
+          "  const espera = Number(cv.get('ultimo_limitado') || 0) + gap - Date.now();",
+          "  if (espera > 0) { const fin = Date.now() + espera; while (Date.now() < fin) {} }",
+          "  cv.set('ultimo_limitado', String(Date.now()));",
+          "}",
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "nit",
+      "value": "901444215"
+    },
+    {
+      "key": "nit_fi",
+      "value": "901444224"
+    },
+    {
+      "key": "nit_noex",
+      "value": "901444233"
+    },
+    {
+      "key": "version_activa",
+      "value": "3.0"
+    },
+    {
+      "key": "version_inactiva",
+      "value": "1.0"
+    },
+    {
+      "key": "ejecutar_ttl",
+      "value": "false"
+    },
+    {
+      "key": "pausa_ms",
+      "value": "12500"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.rol@gmail.com"
+    },
+    {
+      "key": "correo_contador",
+      "value": "contador@gmail.com"
+    },
+    {
+      "key": "correo_parcial",
+      "value": "qa.m07.parcial@pecuaria.co"
+    },
+    {
+      "key": "correo_sinpermiso",
+      "value": "qa.m07.sinpermiso@pecuaria.co"
+    },
+    {
+      "key": "correo_desechable",
+      "value": "qa.m07.desechable@pecuaria.co"
+    },
+    {
+      "key": "correo_fincainactiva",
+      "value": "qa.m07.fincainactiva@pecuaria.co"
+    },
+    {
+      "key": "cid_aaef",
+      "value": "qa-m07-aaef"
+    },
+    {
+      "key": "cid_m2m",
+      "value": "qa-m07-m2m"
+    },
+    {
+      "key": "cid_ip",
+      "value": "qa-m07-ip"
+    },
+    {
+      "key": "cid_vencido",
+      "value": "qa-m07-vencido"
+    },
+    {
+      "key": "cid_susp",
+      "value": "qa-m07-susp"
+    },
+    {
+      "key": "cid_rev",
+      "value": "qa-m07-rev"
+    },
+    {
+      "key": "id_susp",
+      "value": "10"
+    },
+    {
+      "key": "id_rev",
+      "value": "11"
+    }
+  ],
+  "item": [
+    {
+      "name": "Preparación",
+      "item": [
+        {
+          "name": "Iniciar sesión web (correo_admin)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae token', () => pm.expect(J.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('tok_admin', J.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"{{correo_admin}}\", \"contrasena\": \"{{contrasena_admin}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-010 · Suspender y reactivar (5.4, CA-4)",
+      "item": [
+        {
+          "name": "Token de canal cid_susp para correo_contador",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_s', J.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_susp}}\", \"client_secret\": \"{{secret_susp}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "antes de suspender → 200",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_s}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "suspender",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('SUSPENDIDO', () => pm.expect(J.estado).to.eql('SUSPENDIDO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_susp}}/suspender",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_susp}}",
+                "suspender"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"motivo\": \"QA TC-M07-G045 (se revierte al cerrar el run)\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "el token emitido antes se rechaza en la siguiente solicitud → 403",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error_code = CLIENTE_NO_AUTORIZADO', () => pm.expect(J.error_code).to.eql('CLIENTE_NO_AUTORIZADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_s}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "pedir un token nuevo suspendido → 403",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error_code = CLIENTE_NO_AUTORIZADO', () => pm.expect(J.error_code).to.eql('CLIENTE_NO_AUTORIZADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_susp}}\", \"client_secret\": \"{{secret_susp}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "reactivar",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ACTIVO', () => pm.expect(J.estado).to.eql('ACTIVO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_susp}}/reactivar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_susp}}",
+                "reactivar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "token nuevo tras reactivar → 200",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_s2', J.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_susp}}\", \"client_secret\": \"{{secret_susp}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "consulta con el token nuevo → 200",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_s2}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-011 · REVOCADO es definitivo (5.5, CA-5)",
+      "item": [
+        {
+          "name": "Token de canal cid_rev para correo_contador",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_r', J.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_rev}}\", \"client_secret\": \"{{secret_rev}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "revocar",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('REVOCADO', () => pm.expect(J.estado).to.eql('REVOCADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_rev}}/revocar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_rev}}",
+                "revocar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"motivo\": \"QA TC-M07-G045 (se revierte al cerrar el run)\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "token emitido antes de revocar → 403",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error_code = CLIENTE_NO_AUTORIZADO', () => pm.expect(J.error_code).to.eql('CLIENTE_NO_AUTORIZADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_r}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "token nuevo revocado → 403",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error_code = CLIENTE_NO_AUTORIZADO', () => pm.expect(J.error_code).to.eql('CLIENTE_NO_AUTORIZADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_rev}}\", \"client_secret\": \"{{secret_rev}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "reactivar un revocado → 409",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('error_code = CLIENTE_REVOCADO', () => pm.expect(J.error_code).to.eql('CLIENTE_REVOCADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_rev}}/reactivar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_rev}}",
+                "reactivar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "suspender un revocado → 409",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('error_code = CLIENTE_REVOCADO', () => pm.expect(J.error_code).to.eql('CLIENTE_REVOCADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_rev}}/suspender",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_rev}}",
+                "suspender"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"motivo\": \"QA TC-M07-G045 (se revierte al cerrar el run)\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "rotar un revocado → 409",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('error_code = CLIENTE_REVOCADO', () => pm.expect(J.error_code).to.eql('CLIENTE_REVOCADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_rev}}/rotar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_rev}}",
+                "rotar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"motivo\": \"QA TC-M07-G045\", \"fecha_vencimiento\": \"{{fecha_venc}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-012 · Rotar y editar (5.7, CA-6)",
+      "item": [
+        {
+          "name": "rotar QA_M07_SUSP",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('muestra el secreto nuevo una vez', () => pm.expect(J.client_secret).to.be.a('string'));",
+                  "pm.collectionVariables.set('secret_nuevo', J.client_secret);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_susp}}/rotar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_susp}}",
+                "rotar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"motivo\": \"QA TC-M07-G045 rotación\", \"fecha_vencimiento\": \"{{fecha_venc}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "el secreto anterior → 401 de inmediato",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error_code = CREDENCIALES_INVALIDAS', () => pm.expect(J.error_code).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_susp}}\", \"client_secret\": \"{{secret_susp}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "el secreto nuevo → 200",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_susp}}\", \"client_secret\": \"{{secret_nuevo}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cierre",
+      "item": [
+        {
+          "name": "Cerrar el run del sandbox (rollback)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('rollback exitoso', () => pm.expect(JSON.stringify(J)).to.include('Rollback'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-012 · Edición con fecha_actualizacion vieja (412) — fuera del sandbox",
+      "item": [
+        {
+          "name": "Iniciar sesión web (correo_admin)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae token', () => pm.expect(J.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('tok_admin_r', J.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"{{correo_admin}}\", \"contrasena\": \"{{contrasena_admin}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "refrescar el cliente id_susp (fecha_actualizacion y canales)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const lista = Array.isArray(J) ? J : (Object.values(J).find(v => Array.isArray(v)) || []);",
+                  "const c = lista.find(x => String(x.id_cliente_externo) === String(pm.collectionVariables.get('id_susp')));",
+                  "pm.test('encuentra el cliente', () => pm.expect(c).to.exist);",
+                  "pm.test('el listado no muestra secretos ni hash', () => pm.expect(JSON.stringify(lista)).to.not.match(/client_secret|hash_secreto|\\$2[aby]\\$/));",
+                  "pm.collectionVariables.set('cli_fa', c.fecha_actualizacion);",
+                  "pm.collectionVariables.set('cli_ttl', String(c.ttl_token_canal_minutos));",
+                  "pm.collectionVariables.set('cli_canales', JSON.stringify(c.canales.map(x => ({canal: x.canal, limite_por_minuto: x.limite_por_minuto}))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_r}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "guardar la fecha_actualizacion vieja",
+          "description": "",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('fa_vieja', pm.collectionVariables.get('cli_fa'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP en [200]', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "docs"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "editar con la fecha vigente (mismos valores) → 200",
+          "description": "Se hace fuera del sandbox porque dentro de una sola transacción now() no cambia y el control de concurrencia no se puede ver. Deja los mismos valores del cliente QA_M07_SUSP (solo cambia la fecha de actualización y se registra CLIENTE_EDITADO).",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('body_canales', pm.collectionVariables.get('cli_canales'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_r}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_susp}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_susp}}"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"canales\": {{body_canales}}, \"ip_permitida\": null, \"ttl_token_canal_minutos\": {{cli_ttl}}, \"fecha_actualizacion\": \"{{cli_fa}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "editar con la fecha vieja → 412",
+          "description": "",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('body_canales', pm.collectionVariables.get('cli_canales'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 412', () => pm.response.to.have.status(412));",
+                  "pm.test('error_code = CONFLICTO_CONCURRENCIA', () => pm.expect(J.error_code).to.eql('CONFLICTO_CONCURRENCIA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_r}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes/{{id_susp}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes",
+                "{{id_susp}}"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"canales\": {{body_canales}}, \"ip_permitida\": null, \"ttl_token_canal_minutos\": {{cli_ttl}}, \"fecha_actualizacion\": \"{{fa_vieja}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
