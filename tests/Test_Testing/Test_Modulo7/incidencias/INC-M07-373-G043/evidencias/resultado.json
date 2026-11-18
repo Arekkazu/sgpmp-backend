@@ -1,0 +1,29 @@
+{
+  "peticiones": {
+    "ejecutadas": 24,
+    "fallidas": 0
+  },
+  "comprobaciones": {
+    "ejecutadas": 31,
+    "fallidas": 2
+  },
+  "fallos": [
+    {
+      "comprobacion": "HTTP 409",
+      "detalle": "expected response to have status code 409 but got 201",
+      "en": "TC-101-004 · Datos de registro inválidos y duplicados / duplicado: nombre existente → 409 (FA-8)"
+    },
+    {
+      "comprobacion": "no se creó ningún cliente",
+      "detalle": "expected '19' to deeply equal '18'",
+      "en": "TC-101-004 · Datos de registro inválidos y duplicados / conteo de clientes después: no cambió"
+    }
+  ],
+  "incidencia": "INC-M07-373-G043",
+  "caso": "TC-M07-G043",
+  "caso_individual": "TC-101-004",
+  "rf": "RF-101",
+  "run": "RUN-G043-V1-20261118-115824",
+  "ambiente": "TEST",
+  "evaluador": "Julian Badillo"
+}

@@ -1,0 +1,734 @@
+{
+  "info": {
+    "name": "TC-M07-G002 · RF-95 · Validación de la solicitud (sin credenciales)",
+    "description": "Casos TC-95-005, 006 y 007. La validación de forma ocurre antes de autenticar (RF-95 Fase 1), por eso no requiere token. Los valores de credenciales son ficticios.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-95-005 · Parámetros mal formados o ausentes (FA-1, CA-2)",
+      "item": [
+        {
+          "name": "desde con separador / (2026/09/01) — CA-2",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026/09/01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026/09/01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sin desde",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sin hasta",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro hasta', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('hasta'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "desde inexistente (2026-02-30)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-02-30&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-02-30"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "NIT con dígito de verificación (901444215-0)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro nit', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('nit'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215-0?desde=2026-09-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215-0"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "NIT con letras (90144A215)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro nit', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('nit'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/90144A215?desde=2026-09-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "90144A215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-95-006 · Credenciales en la URL (5.2, FA-2, CA-3)",
+      "item": [
+        {
+          "name": "client_secret=x",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&client_secret=x",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "api_key=x",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&api_key=x",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "api_key",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "token=x",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&token=x",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "token",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CLIENT_ID=x (mayúsculas)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&CLIENT_ID=x",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "CLIENT_ID",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "credencial + NIT inválido: gana CREDENCIALES_EN_URL",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/90144A215?desde=2026-09-01&hasta=2026-10-31&client_secret=x",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "90144A215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-95-007 · Método y ruta (CU01 FA-01, FA-02)",
+      "item": [
+        {
+          "name": "POST sobre la ruta AAEF → 405",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE sobre la ruta AAEF → 405",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ruta inexistente (/aaef/productor/{nit}) → 404",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productor/901444215?desde=2026-09-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productor",
+                "901444215"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

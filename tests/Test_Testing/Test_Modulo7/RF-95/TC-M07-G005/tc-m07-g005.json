@@ -1,0 +1,567 @@
+{
+  "info": {
+    "name": "TC-M07-G005 · RF-95 · Errores que decide RF-97 y RF-98",
+    "description": "Casos TC-95-015 y TC-95-016. El Gateway solo transmite el error de RF-97 (422) y la resolución de versión de RF-98 (404/410).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "",
+          "const cv = pm.collectionVariables;",
+          "const pad = (n) => String(n).padStart(2, '0');",
+          "const ymd = (d) => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());",
+          "if (!cv.get('run_id')) cv.set('run_id', pm.variables.replaceIn('{{$guid}}'));",
+          "if (!cv.get('run_id_b')) cv.set('run_id_b', pm.variables.replaceIn('{{$guid}}'));",
+          "const hoy = new Date();",
+          "cv.set('ayer', ymd(new Date(hoy.getTime() - 86400000)));",
+          "cv.set('manana', ymd(new Date(hoy.getTime() + 86400000)));",
+          "cv.set('fecha_venc', ymd(new Date(hoy.getTime() + 30 * 86400000)));",
+          "// Pausa entre llamadas que cuentan para el límite por minuto (RF-101 5.9): token y consulta AAEF con Authorization.",
+          "const ruta = pm.request.url.getPath();",
+          "const nombre = pm.info.requestName || '';",
+          "const cuenta = /\\/integraciones\\/agrofusion\\/token$/.test(ruta) || (/\\/integracion\\/aaef\\/productores\\//.test(ruta) && pm.request.headers.has('Authorization'));",
+          "if (cuenta && nombre.indexOf('[libre]') < 0) {",
+          "  const gap = Number(cv.get('pausa_ms') || 12500);",
+          "  const espera = Number(cv.get('ultimo_limitado') || 0) + gap - Date.now();",
+          "  if (espera > 0) { const fin = Date.now() + espera; while (Date.now() < fin) {} }",
+          "  cv.set('ultimo_limitado', String(Date.now()));",
+          "}",
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "nit",
+      "value": "901444215"
+    },
+    {
+      "key": "nit_fi",
+      "value": "901444224"
+    },
+    {
+      "key": "nit_noex",
+      "value": "901444233"
+    },
+    {
+      "key": "version_activa",
+      "value": "3.0"
+    },
+    {
+      "key": "version_inactiva",
+      "value": "1.0"
+    },
+    {
+      "key": "ejecutar_ttl",
+      "value": "false"
+    },
+    {
+      "key": "pausa_ms",
+      "value": "12500"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.rol@gmail.com"
+    },
+    {
+      "key": "correo_contador",
+      "value": "contador@gmail.com"
+    },
+    {
+      "key": "correo_parcial",
+      "value": "qa.m07.parcial@pecuaria.co"
+    },
+    {
+      "key": "correo_sinpermiso",
+      "value": "qa.m07.sinpermiso@pecuaria.co"
+    },
+    {
+      "key": "correo_desechable",
+      "value": "qa.m07.desechable@pecuaria.co"
+    },
+    {
+      "key": "correo_fincainactiva",
+      "value": "qa.m07.fincainactiva@pecuaria.co"
+    },
+    {
+      "key": "cid_aaef",
+      "value": "qa-m07-aaef"
+    },
+    {
+      "key": "cid_m2m",
+      "value": "qa-m07-m2m"
+    },
+    {
+      "key": "cid_ip",
+      "value": "qa-m07-ip"
+    },
+    {
+      "key": "cid_vencido",
+      "value": "qa-m07-vencido"
+    },
+    {
+      "key": "cid_susp",
+      "value": "qa-m07-susp"
+    },
+    {
+      "key": "cid_rev",
+      "value": "qa-m07-rev"
+    },
+    {
+      "key": "id_susp",
+      "value": "10"
+    },
+    {
+      "key": "id_rev",
+      "value": "11"
+    }
+  ],
+  "item": [
+    {
+      "name": "Preparación",
+      "item": [
+        {
+          "name": "Token de canal cid_aaef para correo_contador",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_c', J.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_aaef}}\", \"client_secret\": \"{{secret_aaef}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión web (correo_contador)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae token', () => pm.expect(J.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('tok_web_c', J.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"{{correo_contador}}\", \"contrasena\": \"{{contrasena_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "resolver la versión ACTIVA y una INACTIVA del contrato (cambian con las pruebas de RF-98)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const l = Array.isArray(J) ? J : (Object.values(J).find(v => Array.isArray(v)) || []);",
+                  "const act = l.find(x => x.estado === 'ACTIVO');",
+                  "pm.test('hay una versión ACTIVA', () => pm.expect(act).to.exist);",
+                  "pm.collectionVariables.set('version_activa', act ? act.contrato_version : '3.0');",
+                  "const ina = l.filter(x => x.estado === 'INACTIVO').map(x => x.contrato_version);",
+                  "pm.collectionVariables.set('version_inactiva', ina.indexOf('1.0') >= 0 ? '1.0' : (ina[0] || '1.0'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_web_c}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/contratos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "contratos"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-95-015 · Período abierto (CA-9, FA-8)",
+      "item": [
+        {
+          "name": "rango que incluye noviembre abierto → 422 PERIODO_NO_CERRADO",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('error_code = PERIODO_NO_CERRADO', () => pm.expect(J.error_code).to.eql('PERIODO_NO_CERRADO'));",
+                  "pm.test('mensaje legible y sin información interna', () => { const m = J.message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|\\.py|SELECT |psycopg|sqlalchemy/i); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-11-30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-11-30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "solo noviembre (abierto) → 422 PERIODO_NO_CERRADO",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('error_code = PERIODO_NO_CERRADO', () => pm.expect(J.error_code).to.eql('PERIODO_NO_CERRADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-11-01&hasta=2026-11-30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-11-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-11-30"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-95-016 · Versión de contrato (Accept-Version)",
+      "item": [
+        {
+          "name": "versión no registrada 9.9 → 404",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('mensaje legible y sin información interna', () => { const m = J.message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|\\.py|SELECT |psycopg|sqlalchemy/i); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "Accept-Version",
+                "value": "9.9"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "versión INACTIVA → 410",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 410', () => pm.response.to.have.status(410));",
+                  "pm.test('mensaje legible y sin información interna', () => { const m = J.message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|\\.py|SELECT |psycopg|sqlalchemy/i); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "Accept-Version",
+                "value": "{{version_inactiva}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "control: versión ACTIVA explícita → 200",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('X-Version-Contrato-AAEF = versión pedida', () => pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.eql(pm.collectionVariables.get('version_activa')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "Accept-Version",
+                "value": "{{version_activa}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
