@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                  |
+# |------------|----------|--------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-103: lee la frecuencia de actualización del layout      |
 """Implementación SQLAlchemy del puerto ``DashboardLayoutRepository`` (RF-28)."""
 from __future__ import annotations
 
@@ -5,7 +8,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.configuration.domain.entities.dashboard_layout import DashboardLayout, WidgetConfig
+from src.configuration.domain.entities.dashboard_layout import FRECUENCIA_DEFECTO, DashboardLayout, WidgetConfig
 from src.configuration.domain.repositories.dashboard_layout_repository import DashboardLayoutRepository
 from src.configuration.infrastructure.models.dashboard_layout_default_model import DashboardLayoutDefaultModel
 from src.configuration.infrastructure.models.dashboard_layout_model import DashboardLayoutModel
@@ -24,6 +27,10 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
     def _grid_desde_config(config: Optional[dict]) -> list[WidgetConfig]:
         return [WidgetConfig.from_dict(w) for w in (config or {}).get("grid", [])]
 
+    @staticmethod
+    def _frecuencia_desde_config(config: Optional[dict]) -> int:
+        return int((config or {}).get("frecuencia_actualizacion") or FRECUENCIA_DEFECTO)
+
     @classmethod
     def _a_entidad(cls, orm: DashboardLayoutModel) -> DashboardLayout:
         return DashboardLayout(
@@ -32,6 +39,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
             grid=cls._grid_desde_config(orm.config),
             active_widget=list(orm.active_widget or []),
             fecha_actualizacion=orm.fecha_actualizacion,
+            frecuencia_actualizacion=cls._frecuencia_desde_config(orm.config),
         )
 
     def obtener_por_usuario(self, id_usuario: int) -> Optional[DashboardLayout]:
@@ -58,6 +66,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
             grid=self._grid_desde_config(orm.config),
             active_widget=list(orm.active_widget or []),
             fecha_actualizacion=None,
+            frecuencia_actualizacion=self._frecuencia_desde_config(orm.config),
         )
 
     def nombre_de_rol(self, id_rol: int) -> Optional[str]:

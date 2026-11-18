@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-103: opciones, frecuencia y cómo se dibuja cada widget        |
 """Schemas de respuesta del dashboard: layout, catálogo de widgets y datos (RF-28)."""
 from __future__ import annotations
 
@@ -5,6 +8,8 @@ import datetime
 from typing import Any, Optional
 
 from pydantic import BaseModel
+
+from src.reporting.domain.widgets import DEFINICIONES
 
 
 class WidgetConfigResponse(BaseModel):
@@ -15,6 +20,7 @@ class WidgetConfigResponse(BaseModel):
     span_columnas: int
     visible: bool
     orden: int
+    parametros: dict[str, Any] = {}
 
 
 class DashboardLayoutResponse(BaseModel):
@@ -24,6 +30,8 @@ class DashboardLayoutResponse(BaseModel):
     grid: list[WidgetConfigResponse]
     active_widget: list[str]
     fecha_actualizacion: Optional[datetime.datetime]
+    # Segundos entre actualizaciones automáticas del dashboard (RF-103, 15-120).
+    frecuencia_actualizacion: int
     # El cliente la devuelve en el PATCH para que el backend detecte que el perfil
     # cambió mientras editaba.
     version_perfil: Optional[int] = None
@@ -43,24 +51,52 @@ class DashboardLayoutResponse(BaseModel):
                     span_columnas=w.span_columnas,
                     visible=w.visible,
                     orden=w.orden,
+                    parametros=w.parametros,
                 )
                 for w in entity.grid
             ],
             active_widget=entity.active_widget,
             fecha_actualizacion=entity.fecha_actualizacion,
+            frecuencia_actualizacion=entity.frecuencia_actualizacion,
             version_perfil=version_perfil,
         )
 
 
+class OpcionWidgetResponse(BaseModel):
+    """Opción configurable de un widget. ``tipo``: areas, area, especies, sensores o lista (con
+    ``valores``). El front pone el texto de la opción y de cada valor."""
+    nombre: str
+    tipo: str
+    valores: list[Any] = []
+    defecto: Any = None
+
+
 class WidgetCatalogoResponse(BaseModel):
-    """Widget disponible para el rol del usuario."""
+    """Widget disponible para el rol del usuario, con cómo se dibuja y qué se configura (RF-103)."""
     id_widget: int
     clave: str
     nombre: str
     grupo: str
     span_predeterminado: int
+    visual: Optional[str] = None
+    opciones: list[OpcionWidgetResponse] = []
+    requiere_finca: bool = True
+    reacciona_a_alertas: bool = False
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def desde_widget(cls, widget) -> WidgetCatalogoResponse:
+        definicion = DEFINICIONES.get(widget.clave)
+        extra = {} if definicion is None else {
+            "visual": definicion.visual,
+            "opciones": [OpcionWidgetResponse(nombre=o.nombre, tipo=o.tipo, valores=list(o.valores),
+                                              defecto=o.defecto) for o in definicion.opciones],
+            "requiere_finca": definicion.requiere_finca,
+            "reacciona_a_alertas": definicion.reacciona_a_alertas,
+        }
+        return cls(id_widget=widget.id_widget, clave=widget.clave, nombre=widget.nombre, grupo=widget.grupo,
+                   span_predeterminado=widget.span_predeterminado, **extra)
 
 
 class WidgetDatosResponse(BaseModel):
