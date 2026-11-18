@@ -12,7 +12,7 @@ active_test_transactions: Dict[str, Dict[str, Any]] = {}
 sandbox_lock = threading.Lock()
 
 MAX_CONCURRENT_RUNS = 5
-IDLE_TIMEOUT_SECONDS = 180
+IDLE_TIMEOUT_SECONDS = 330
 
 class SandboxCapacityExceeded(Exception):
     """Excepción lanzada cuando el sandbox alcanza su límite máximo de concurrencia."""
