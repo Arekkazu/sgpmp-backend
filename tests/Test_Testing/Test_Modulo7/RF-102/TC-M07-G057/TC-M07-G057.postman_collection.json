@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "TC-M07-G057 RF-102 Exportación auditoría CSV/JSON",
+    "description": "GET /integracion/auditoria/exportar formato=csv|json. Credenciales vía environment. Informe oficial: ejecutar_tc_m07_g57.py",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.inmero.co/api-sgpmp-test"},
+    {"key": "admin_token", "value": ""},
+    {"key": "auditor_token", "value": ""},
+    {"key": "sin_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "01 Login Admin",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('login admin 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+            "const j = pm.response.json();",
+            "if (j.token) pm.collectionVariables.set('admin_token', j.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_ADMIN_CORREO}}\",\n  \"contrasena\": \"{{QA_ADMIN_CONTRASENA}}\"\n}"},
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 Baseline consulta",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('consulta 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "const j = pm.response.json();",
+            "if (j.items && j.items.length) pm.environment.set('tipo_evento_muestra', j.items[0].tipo_evento || '');"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=50"
+      }
+    },
+    {
+      "name": "03 Export CSV",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('export csv 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "pm.test('content-type csv', function () {",
+            "  pm.expect(pm.response.headers.get('Content-Type') || '').to.include('text/csv');",
+            "});",
+            "pm.test('content-disposition attachment csv', function () {",
+            "  const d = pm.response.headers.get('Content-Disposition') || '';",
+            "  pm.expect(d.toLowerCase()).to.include('attachment');",
+            "  pm.expect(d.toLowerCase()).to.include('.csv');",
+            "});",
+            "pm.test('body no vacio', function () { pm.expect(pm.response.text().length).to.be.above(10); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=csv"
+      }
+    },
+    {
+      "name": "04 Export JSON",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('export json 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "pm.test('content-type json', function () {",
+            "  pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/json');",
+            "});",
+            "const j = pm.response.json();",
+            "pm.test('es lista', function () { pm.expect(j).to.be.an('array'); });",
+            "pm.test('tiene id_evento', function () {",
+            "  if (j.length) pm.expect(j[0]).to.have.property('id_evento_integracion');",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json"
+      }
+    },
+    {
+      "name": "05 Export JSON filtrado tipo_evento",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const t = pm.environment.get('tipo_evento_muestra');",
+            "pm.test('export filtrado 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "if (t) {",
+            "  const j = pm.response.json();",
+            "  pm.test('todos tipo_evento', function () {",
+            "    j.forEach(function (it) { pm.expect(it.tipo_evento).to.eql(t); });",
+            "  });",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json&tipo_evento={{tipo_evento_muestra}}"
+      }
+    },
+    {
+      "name": "06 Login Auditor",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('login auditor 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+            "const j = pm.response.json();",
+            "if (j.token) pm.collectionVariables.set('auditor_token', j.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_AUDITOR_CORREO}}\",\n  \"contrasena\": \"{{QA_AUDITOR_CONTRASENA}}\"\n}"},
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "07 Auditor export 403",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('auditor export 403', function () { pm.expect(pm.response.code).to.eql(403); });",
+            "const j = pm.response.json();",
+            "pm.test('ACCESO_DENEGADO', function () {",
+            "  pm.expect(j.error_code || j.code).to.eql('ACCESO_DENEGADO');",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{auditor_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json"
+      }
+    },
+    {
+      "name": "08 Login sin permiso",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('login sin 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+            "const j = pm.response.json();",
+            "if (j.token) pm.collectionVariables.set('sin_token', j.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_SIN_PERMISO_CORREO}}\",\n  \"contrasena\": \"{{QA_SIN_PERMISO_CONTRASENA}}\"\n}"},
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "09 Sin permiso export 403",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('sin permiso export 403', function () { pm.expect(pm.response.code).to.eql(403); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{sin_token}}"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=csv"
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "fecha_utc": "2026-11-18T03:15:56.658962+00:00",
+  "endpoint": "GET /integracion/auditoria/exportar",
+  "formatos": [
+    "csv",
+    "json"
+  ],
+  "formato_default": "csv",
+  "filtros": [
+    "tipo_evento",
+    "id_cliente_externo",
+    "desde",
+    "hasta",
+    "endpoint",
+    "codigo_http",
+    "numero_id_tributaria"
+  ],
+  "permiso": "auditoria_integracion:E",
+  "content_types": {
+    "csv": "text/csv; charset=utf-8",
+    "json": "application/json"
+  },
+  "content_disposition": "attachment; filename=\"auditoria_integracion_YYYYMMDD_HHMMSS.{formato}\"",
+  "limite_exportacion": 50000,
+  "vista": "completa (restringida=False)",
+  "baseline_consulta_total": 156,
+  "baseline_consulta_http": 200,
+  "export_csv": {
+    "http": 200,
+    "filas": 156,
+    "sha256": "9bd0dcc2b972182742b099fa4c1987cffabe17475db379ed2f04db5112bc2ddb"
+  },
+  "export_json": {
+    "http": 200,
+    "registros": 156,
+    "sha256": "b1b4eb2a3c32115c88c329133792a52be1dbd3766efd51d5a78bc92b90283958"
+  }
+}
