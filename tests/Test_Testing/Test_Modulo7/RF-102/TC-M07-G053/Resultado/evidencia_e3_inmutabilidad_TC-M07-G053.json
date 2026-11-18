@@ -1,0 +1,38 @@
+{
+  "escenario": "E3",
+  "fecha_utc": "2026-11-18T02:01:35.312130+00:00",
+  "estado": "APROBADO",
+  "http_metodos": {
+    "PUT": 405,
+    "PATCH": 405,
+    "DELETE": 405
+  },
+  "intentos_total": 11,
+  "sql": {
+    "escenario": "E3_SQL",
+    "fecha_utc": "2026-11-18T02:01:31.958235+00:00",
+    "update": {
+      "ok": false,
+      "mensaje": "ERROR:  [TGR-M07-14] La auditoria de integracion es inmutable (RF-102 4.4).\nCONTEXT:  PL/pgSQL function modulo7.fn_bloquear_modificacion_evento_integracion() line 3 at RAISE",
+      "es_inmutable_trigger": true,
+      "es_conexion": false,
+      "es_estructura": false
+    },
+    "delete": {
+      "ok": false,
+      "mensaje": "ERROR:  [TGR-M07-14] La auditoria de integracion es inmutable (RF-102 4.4).\nCONTEXT:  PL/pgSQL function modulo7.fn_bloquear_modificacion_evento_integracion() line 3 at RAISE",
+      "es_inmutable_trigger": true,
+      "es_conexion": false,
+      "es_estructura": false
+    },
+    "truncate": {
+      "ok": false,
+      "mensaje": "ERROR:  [TGR-M07-14] La auditoria de integracion es inmutable (RF-102 4.4).\nCONTEXT:  PL/pgSQL function modulo7.fn_bloquear_modificacion_evento_integracion() line 3 at RAISE",
+      "es_inmutable_trigger": true,
+      "es_conexion": false,
+      "es_estructura": false
+    },
+    "filas_uuid_ok_tras_intentos": "1",
+    "estado": "APROBADO"
+  }
+}
