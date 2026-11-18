@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: entrega del outbox a M06           |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: ciclo, registro y tipo de suministro en los eventos de entrega |
 """Caso de uso: entregar a M06 los eventos del outbox de provisiones (RF-79).
 
 Corre en segundo plano cada pocos segundos (CA-1: ≤ 5 s desde la persistencia).
@@ -125,8 +126,11 @@ class DespacharProvisionesM06UseCase:
                 id_usuario=self.id_usuario_sistema,
                 resultado=resultado,
                 id_activo_biologico=evento.id_activo_biologico,
+                id_ciclo_productivo=evento.contenido.get("id_ciclo"),
                 id_gestion_fases=evento.id_gestion_fases,
                 costo_afectado=evento.costo_registro,
+                id_registro_suministro=evento.id_registro_suministro,
+                id_tipo_suministro=evento.contenido.get("id_tipo_suministro"),
                 detalle_causa=(
                     f"id_evento_provision={evento.id_evento_provision}; modalidad={evento.modalidad}"
                     + (f"; id_registro_suministro={evento.id_registro_suministro}" if evento.id_registro_suministro else "")

@@ -6,6 +6,8 @@
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: el Productor solo ve los titulares y períodos de sus fincas |
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: precios congelados al iniciar el cierre |
+# | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-87 FA-5: el nombre de quien cerró el período sale aunque la RLS de usuarios lo oculte |
+# | 2026-11-16 | Arekkazu | QA-M06 CU12 H-01 RF-92/93: el período consultado trae la razón social del titular para las descargas |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -18,21 +20,22 @@ from sqlalchemy.orm import Session
 from src.financial_valuation.domain.entities.contabilidad import Periodo
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.services.consolidacion import Comprobante
-from src.financial_valuation.infrastructure.repositories.sql import a_json, alcance_titular, escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import a_json, alcance_titular, con_nombres, escribir, fila, filas
 from src.shared.errors import ConflictError
 
 _COLUMNAS = """id_periodo_contable, numero_id_tributaria, tipo_cierre::text AS tipo_cierre, fecha_inicio, fecha_fin,
                estado::text AS estado, fecha_cierre"""
+_RAZON_SOCIAL = """(SELECT max(f.razon_social) FROM modulo9.fincas f
+                    WHERE f.numero_id_tributaria = pc.numero_id_tributaria) AS razon_social"""
 
 
 # Un cierre EN_PROCESO en el paso 3 espera que el Contador autorice las exclusiones (RF-87 FA-2/FA-3);
 # mientras corre, la ejecución queda en el paso 1 hasta que termina.
 _PASO_ESPERA = 3
-_JOIN_EJECUTOR = "LEFT JOIN modulo1.usuarios u ON u.id_usuario = e.id_usuario_ejecutor"
-_NOMBRE_EJECUTOR = "NULLIF(trim(coalesce(u.nombre, '') || ' ' || coalesce(u.apellidos, '')), '') AS nombre_usuario_ejecutor"
+_EJECUTOR = {"id_usuario_ejecutor": "nombre_usuario_ejecutor"}  # el nombre lo agrega con_nombres (INC-M06-93-G44)
 _COLUMNAS_EJECUCION = f"""e.id_cierre, e.estado::text AS estado, e.paso_actual, e.activos_procesados, e.activos_pendientes,
                    e.activos_excluidos, e.json_precios_congelados AS precios_congelados, e.error_detalle, e.fecha_inicio,
-                   e.fecha_fin, e.tiempo_ejecucion_ms, e.hash_saga AS hash_cierre, e.id_usuario_ejecutor, {_NOMBRE_EJECUTOR}"""
+                   e.fecha_fin, e.tiempo_ejecucion_ms, e.hash_saga AS hash_cierre, e.id_usuario_ejecutor"""
 
 
 class SqlAlchemyPeriodoRepository(PeriodoRepository):
@@ -40,7 +43,8 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         self.db = db
 
     def obtener(self, id_periodo_contable: int, bloquear: bool = False) -> Optional[Periodo]:
-        sql = f"SELECT {_COLUMNAS} FROM modulo6.periodos_contables WHERE id_periodo_contable = :id"
+        sql = f"""SELECT {_COLUMNAS}, {_RAZON_SOCIAL} FROM modulo6.periodos_contables pc
+                  WHERE id_periodo_contable = :id"""
         try:
             # Bloquear es del cierre (exige leer el cierre): el alcance solo aplica a las lecturas.
             sufijo = " FOR UPDATE NOWAIT" if bloquear else f" AND {alcance_titular('numero_id_tributaria')}"
@@ -85,8 +89,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
     def listar(self, numero_id_tributaria: Optional[str], sin_titular: bool = False) -> list[Periodo]:
         return [Periodo(**f) for f in filas(self.db, f"""
             SELECT {_COLUMNAS},
-                   (SELECT max(f.razon_social) FROM modulo9.fincas f
-                     WHERE f.numero_id_tributaria = pc.numero_id_tributaria) AS razon_social
+                   {_RAZON_SOCIAL}
             FROM modulo6.periodos_contables pc
             WHERE CASE WHEN :sin THEN numero_id_tributaria IS NULL
                        ELSE CAST(:n AS varchar) IS NULL OR numero_id_tributaria = :n END
@@ -119,11 +122,12 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         """, {"p": id_periodo_contable, "u": id_usuario, "i": incluir_sin_precio, "precios": a_json(precios_congelados)})
 
     def ejecucion_en_proceso(self, id_periodo_contable: int) -> Optional[dict]:
-        return fila(self.db, f"""SELECT e.id_cierre, e.id_usuario_ejecutor, e.fecha_inicio,
-                                        e.paso_actual = {_PASO_ESPERA} AS esperando_autorizacion,
-                                        e.json_precios_congelados AS precios_congelados, {_NOMBRE_EJECUTOR}
-                                 FROM modulo6.ejecuciones_cierre_periodo e {_JOIN_EJECUTOR}
-                                 WHERE e.id_periodo_contable = :p AND e.estado = 'EN_PROCESO'""", {"p": id_periodo_contable})
+        en_curso = fila(self.db, f"""SELECT e.id_cierre, e.id_usuario_ejecutor, e.fecha_inicio,
+                                            e.paso_actual = {_PASO_ESPERA} AS esperando_autorizacion,
+                                            e.json_precios_congelados AS precios_congelados
+                                     FROM modulo6.ejecuciones_cierre_periodo e
+                                     WHERE e.id_periodo_contable = :p AND e.estado = 'EN_PROCESO'""", {"p": id_periodo_contable})
+        return con_nombres(self.db, [en_curso], _EJECUTOR)[0] if en_curso else None
 
     def esperar_autorizacion(self, id_cierre: int) -> None:
         escribir(self.db, f"UPDATE modulo6.ejecuciones_cierre_periodo SET paso_actual = {_PASO_ESPERA} WHERE id_cierre = :id",
@@ -166,16 +170,17 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
             WHERE c.id_periodo_contable = :p ORDER BY c.codigo""", {"p": id_periodo_contable})
 
     def ultima_ejecucion(self, id_periodo_contable: int) -> Optional[dict]:
-        return fila(self.db, f"""
+        ultima = fila(self.db, f"""
             SELECT {_COLUMNAS_EJECUCION}
-            FROM modulo6.ejecuciones_cierre_periodo e {_JOIN_EJECUTOR} WHERE e.id_periodo_contable = :p
+            FROM modulo6.ejecuciones_cierre_periodo e WHERE e.id_periodo_contable = :p
             ORDER BY e.id_cierre DESC LIMIT 1""", {"p": id_periodo_contable})
+        return con_nombres(self.db, [ultima], _EJECUTOR)[0] if ultima else None
 
     def ultimas_ejecuciones(self, ids_periodos: list[int]) -> dict[int, dict]:
         # Una consulta para todo el listado: antes era una por período (N+1).
         if not ids_periodos:
             return {}
-        return {f.pop("id_periodo_contable"): f for f in filas(self.db, f"""
+        return {f.pop("id_periodo_contable"): f for f in con_nombres(self.db, filas(self.db, f"""
             SELECT DISTINCT ON (e.id_periodo_contable) e.id_periodo_contable, {_COLUMNAS_EJECUCION}
-            FROM modulo6.ejecuciones_cierre_periodo e {_JOIN_EJECUTOR} WHERE e.id_periodo_contable = ANY(:ids)
-            ORDER BY e.id_periodo_contable, e.id_cierre DESC""", {"ids": list(ids_periodos)})}
+            FROM modulo6.ejecuciones_cierre_periodo e WHERE e.id_periodo_contable = ANY(:ids)
+            ORDER BY e.id_periodo_contable, e.id_cierre DESC""", {"ids": list(ids_periodos)}), _EJECUTOR)}

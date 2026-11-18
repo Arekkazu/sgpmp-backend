@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-81: niveles de volumen y 202 automático |
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: activo ajeno → 403 de E2, no 404 |
+# | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: consulta rechazada auditada; ciclo del resultado en el evento |
 """Caso de uso: consultar el historial/trazabilidad de suministros (RF-81).
 
 Solo lectura. Aplica el alcance por fincas vía :class:`AlcanceActivoPort` (E2,
@@ -16,7 +17,8 @@ del activo (Restricción 11):
 
 La respuesta 202 trae ``info_nivel_volumen`` (CA-17). Registra
 ``CONSULTA_HISTORIAL_EJECUTADA`` en la bitácora de M05 (RF-80) sin bloquear la
-respuesta si la auditoría falla.
+respuesta si la auditoría falla; una consulta rechazada (403, 404, 422, 429)
+también deja su evento, con resultado ``RECHAZADO`` (RF-80 CA-1).
 """
 from __future__ import annotations
 
@@ -27,7 +29,11 @@ from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
+from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, NotFoundError
+from src.supplies.application.use_cases.historial_suministros.auditoria_historial import (
+    ciclo_del_resultado,
+    registrar_rechazo_historial,
+)
 from src.supplies.domain.entities.historial_suministro import (
     FiltrosHistorialSuministro,
     LineaHistorialSuministro,
@@ -47,6 +53,7 @@ from src.supplies.domain.repositories.historial_suministro_read_port import (
     ConsultaExcedioTiempo,
     HistorialSuministroReadPort,
 )
+from src.supplies.domain.value_objects.eventos_auditoria_suministro_enums import TipoEventoAuditoriaSuministro
 from src.supplies.domain.value_objects.historial_suministro_enums import (
     TIEMPO_ESTIMADO_SEGUNDOS,
     NivelVolumen,
@@ -108,6 +115,20 @@ class ConsultarHistorialSuministrosUseCase:
         self.solicitar = solicitar
 
     def execute(
+        self, filtros: FiltrosHistorialSuministro, *, id_usuario: int, id_rol: int
+    ) -> Union[ResultadoConsultaHistorial, ConsultaHistorialAsincrona]:
+        try:
+            return self._ejecutar(filtros, id_usuario=id_usuario, id_rol=id_rol)
+        except AppError as exc:
+            registrar_rechazo_historial(
+                db=self.db, auditoria_port=self.auditoria_port, activo_port=self.activo_port,
+                historial_port=self.historial_port,
+                tipo=TipoEventoAuditoriaSuministro.CONSULTA_HISTORIAL_EJECUTADA,
+                filtros=filtros, id_usuario=id_usuario, error=exc,
+            )
+            raise
+
+    def _ejecutar(
         self, filtros: FiltrosHistorialSuministro, *, id_usuario: int, id_rol: int
     ) -> Union[ResultadoConsultaHistorial, ConsultaHistorialAsincrona]:
         ids_permitidos = self._validar(filtros, id_usuario, id_rol)
@@ -214,7 +235,8 @@ class ConsultarHistorialSuministrosUseCase:
                     id_usuario=id_usuario,
                     resultado="EXITOSO",
                     id_activo_biologico=filtros.id_activo_biologico,
-                    id_ciclo_productivo=filtros.id_ciclo_productivo,
+                    # Restricción 8: el ciclo filtrado o el único del resultado; con varios queda incompleto.
+                    id_ciclo_productivo=ciclo_del_resultado(filtros, resultado),
                     datos_nuevos=datos,
                 )
             )

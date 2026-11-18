@@ -2,6 +2,7 @@
 # |------------|----------------|--------------------------------------------------------------------------|
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: fin de retiro al Veterinario y fallos en auditoría |
 # | 2026-11-12 | Arekkazu       | Lote M05/M06 11-12 RF-76: el incidente se lee en palabras, sin códigos  |
+# | 2026-11-15 | Arekkazu       | INC-M05-367/368-G02 RF-76: la bandeja escribe en la transacción de la prueba |
 """INC-M05-352-G18 (#1072), TC-M05-G18.
 
 Defecto 1 (S1_03): el job diario que devuelve a ACTIVO los animales con el retiro vencido avisaba
@@ -18,10 +19,13 @@ from datetime import timedelta
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
 
+from src.shared.database import declarar_identidad_sistema
 from src.supplies.application.use_cases.suministros.revertir_retiros_vencidos_use_case import (
     RevertirRetirosVencidosUseCase,
 )
+from src.supplies.infrastructure.adapters import notificacion_suministros_m01_adapter
 from tests.integration.test_m05_flujo_completo_integration import (  # noqa: F401 (fixtures)
     HOY, _catalogos, _escalar, _escenario, admin, cliente,
 )
@@ -29,6 +33,17 @@ from tests.integration.test_m05_flujo_completo_integration import (  # noqa: F40
 pytestmark = pytest.mark.integration
 
 _MODULO_CORREO = "src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter.send_email"
+
+
+@pytest.fixture(autouse=True)
+def _bandeja_en_la_transaccion(db_session, monkeypatch):
+    """La bandeja escribe en su propia sesión de servicio; en la prueba, sobre la transacción exterior."""
+    def sesion_notificaciones():
+        sesion = Session(bind=db_session.connection(), join_transaction_mode="create_savepoint")
+        declarar_identidad_sistema(sesion)
+        return sesion
+
+    monkeypatch.setattr(notificacion_suministros_m01_adapter, "sesion_sistema", sesion_notificaciones)
 
 
 def _medicamento(cliente, headers, esc, **cambios):

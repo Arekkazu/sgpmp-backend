@@ -9,6 +9,9 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: los títulos de las secciones salen del constructor y el estado por sección no se imprime |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: el informe de revelaciones se descarga en PDF/A-1b |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: mostrar los métodos, los supuestos y sus faltantes en las descargas. |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: columna de asientos trasladados por el cierre y fuente de cada riesgo |
+# | 2026-11-16 | Arekkazu | QA-M06 CU12 H-01 RF-87/92/93: las descargas nombran titular, NIT y período, también en el nombre del archivo |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -39,13 +42,14 @@ ETIQUETAS_COMPONENTES = {
     "ganancia_precio_mercado": "Ganancia por variación de precio de mercado",
     "ganancia_reconocimiento_inicial": "Ganancia en el reconocimiento inicial",
     "ingresos_productos_agricolas": "Ingresos por productos agrícolas",
+    "ingresos_venta_activos": "Ingresos por venta de activos biológicos",
     "ganancia_ajustes_periodos_anteriores": "Ajustes de períodos anteriores (ganancia)",
     "perdida_transformacion_biologica": "Pérdida por transformación biológica",
     "perdida_precio_mercado": "Pérdida por variación de precio de mercado",
     "perdida_reconocimiento_inicial": "Pérdida en el reconocimiento inicial",
     "costos_mantenimiento": "Costos de mantenimiento",
     "inversiones_llevadas_a_gasto": "Inversiones llevadas a gasto",
-    "bajas_activos": "Valor en libros de activos vendidos",
+    "bajas_activos": "Valor en libros de activos vendidos o sacrificados",
     "perdidas_bajas_sin_recuperacion": "Pérdidas por bajas sin recuperación",
     "depreciacion_activos_costo": "Depreciación de activos al costo",
     "deterioro_activos_costo": "Deterioro de activos al costo",
@@ -72,6 +76,7 @@ _CAMPOS_INFORME = {
     "cosechas": "Cosechas",
     "bajas": "Bajas",
     "depreciacion_y_deterioro": "Depreciación y deterioro",
+    "asientos_trasladados_por_cierre": "Asientos trasladados por el cierre",
     "magnitud": "Magnitud",
     "unidad_magnitud": "Unidad",
     "precio_unitario": "Precio unitario",
@@ -128,6 +133,16 @@ def _nit(nit) -> str:
     return f"NIT {nit}" if nit else "Sin NIT asignado"
 
 
+def _titular(periodo) -> str:
+    """CU12 H-01: «QA SG M06 SAS · NIT 901555123 · Noviembre de 2026» (sin razón social visible, solo el NIT)."""
+    return " · ".join(p for p in (periodo.razon_social, _nit(periodo.numero_id_tributaria), periodo.nombre) if p)
+
+
+def _archivo_del_periodo(prefijo: str, periodo, sufijo: str = "") -> str:
+    """Nombre del archivo con el NIT y el período, como el del comprobante."""
+    return f"{prefijo}_{periodo.numero_id_tributaria or 'sin_nit'}_{periodo.fecha_fin:%Y%m}{sufijo}"
+
+
 def _rotulo(clave: str) -> str:
     return _CAMPOS_INFORME.get(clave) or str(clave).replace("_", " ").strip().capitalize()
 
@@ -149,7 +164,7 @@ def _valor_informe(clave: str, valor) -> str:
     if isinstance(valor, str) and re.fullmatch(r"[A-Z]{3,}(_[A-Z0-9]+)+", valor):  # enum crudo, no un identificador
         return _rotulo(valor)
     if any(p in clave for p in ("valor", "monto", "costo", "precio", "compras", "bajas", "cosechas", "total", "depreciacion",
-                                "deterioro", "transformacion", "reconocimiento", "nacimientos", "impacto")):
+                                "deterioro", "transformacion", "reconocimiento", "nacimientos", "impacto", "trasladados")):
         try:
             return moneda(valor)
         except Exception:  # noqa: BLE001 - un valor no numérico se muestra tal cual
@@ -219,9 +234,9 @@ class ExportarReporteUseCase:
         doc = Documento(titulo=f"Comprobante NIC 41 {periodo.fecha_inicio:%m/%Y}",
                         columnas=["Comprobante", "Fecha", "Hecho contable", "Especie", "Cuenta débito", "Cuenta crédito", "Valor",
                                   "Huella de integridad"],
-                        filas=filas, encabezado=[f"Titular: {_nit(periodo.numero_id_tributaria)}",
+                        filas=filas, encabezado=[f"Titular: {_titular(periodo)}",
                                                  f"Período: {periodo.fecha_inicio:%d/%m/%Y} a {periodo.fecha_fin:%d/%m/%Y}"])
-        return (*_archivo(doc, formato), f"comprobante_nic41_{periodo.numero_id_tributaria}_{periodo.fecha_fin:%Y%m}")
+        return (*_archivo(doc, formato), _archivo_del_periodo("comprobante_nic41", periodo))
 
     def estado_resultados(self, id_estado: int, formato: str) -> tuple[bytes, str, str]:
         estado = self.reportes.obtener_estado(id_estado)
@@ -243,13 +258,17 @@ class ExportarReporteUseCase:
         excluidos = componentes.get("activos_excluidos_cierre") or []
         aprobado = (f"Aprobado el {fecha(estado['fecha_aprobacion'])}" + (f" por {estado['nombre_aprobador']}" if estado.get("nombre_aprobador") else "")
                     if estado.get("fecha_aprobacion") else "Aprobado")
+        periodo = self.periodos.obtener(estado["id_periodo_contable"])
         doc = Documento(titulo="Estado de resultados del período agropecuario", columnas=["Componente", "Tipo", "Valor"],
-                        filas=filas, encabezado=[f"Versión {estado['version']} · {aprobado}", f"Alcance: {_alcance(estado['filtros'])}"],
+                        filas=filas, encabezado=[*([_titular(periodo)] if periodo else []),
+                                                 f"Versión {estado['version']} · {aprobado}", f"Alcance: {_alcance(estado['filtros'])}"],
                         pie=[f"Total ingresos: {moneda(estado['total_ingresos']) or '$ 0'}",
                              f"Total gastos: {_con_signo(estado['total_gastos'], True)}",
                              f"Resultado neto: {_resultado(estado['resultado_neto'])}",
                              *[_excluido(x) for x in excluidos]])
-        return (*_archivo(doc, formato), f"estado_resultados_v{estado['version']}")
+        nombre = (_archivo_del_periodo("estado_resultados", periodo, f"_v{estado['version']}") if periodo
+                  else f"estado_resultados_v{estado['version']}")
+        return (*_archivo(doc, formato), nombre)
 
     def informe(self, id_informe: int, formato: str) -> tuple[bytes, str, str]:
         informe = self.reportes.obtener_informe(id_informe)
@@ -271,8 +290,11 @@ class ExportarReporteUseCase:
                 filas.append([titulo, _valor_informe(seccion, valor)])
         aprobado = (f" el {fecha(informe['fecha_aprobacion'])}" if informe.get("fecha_aprobacion") else "") + (
             f" por {informe['nombre_aprobador']}" if informe.get("nombre_aprobador") else "")
+        periodo = self.periodos.obtener(informe["id_periodo_contable"])
         doc = Documento(titulo=f"Informe de revelaciones NIC 41 {informe['version_informe']}", columnas=["Sección", "Detalle"],
-                        filas=filas, encabezado=[f"Estado: {_ESTADO_DOC.get(informe['estado'], _rotulo(informe['estado']))}{aprobado}",
+                        filas=filas, encabezado=[*([_titular(periodo)] if periodo else []),
+                                                 f"Estado: {_ESTADO_DOC.get(informe['estado'], _rotulo(informe['estado']))}{aprobado}",
                                                  f"Huella de integridad: {informe['hash_informe']}"])
         # RNF-92-02 / RNF-92-03: el informe se conserva 10 años; el PDF va en PDF/A-1b (TC-M06-G70).
-        return (*_archivo(doc, formato, pdfa=True), f"revelaciones_nic41_{informe['version_informe']}")
+        nit = f"{periodo.numero_id_tributaria}_" if periodo and periodo.numero_id_tributaria else ""
+        return (*_archivo(doc, formato, pdfa=True), f"revelaciones_nic41_{nit}{informe['version_informe']}")

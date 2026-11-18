@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-COT v1.1: cotizaciones de venta (sin efecto contable) |
 # | 2026-11-05 | Arekkazu | M06 RF-COT: el UPDATE solo acepta columnas de lista cerrada (Bearer CWE-89) |
+# | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-01 RF-COT: el Contador solo ve las cotizaciones de los titulares de sus fincas |
 """Implementación SQL de :class:`CotizacionRepository`."""
 from __future__ import annotations
 
@@ -11,7 +12,13 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.cotizacion_repository import CotizacionRepository
-from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.financial_valuation.infrastructure.repositories.sql import (
+    ES_ADMINISTRADOR,
+    PERIODOS_DE_MIS_FINCAS,
+    escribir,
+    fila,
+    filas,
+)
 
 _COLUMNAS = """c.id_cotizacion, c.fecha_emision, c.id_periodo_contable, c.activos_cotizados, c.valor_razonable_referencia,
     c.valor_cotizacion_propuesto, c.condiciones, c.estado::text AS estado, c.estado_al_cierre::text AS estado_al_cierre,
@@ -20,6 +27,8 @@ _COLUMNAS = """c.id_cotizacion, c.fecha_emision, c.id_periodo_contable, c.activo
 # Columnas que ``actualizar`` puede escribir: sus nombres se interpolan en el SQL.
 _EDITABLES = {"valor_cotizacion_propuesto", "condiciones", "fecha_vencimiento", "motivo_anulacion", "estado"}
 _JOIN = "FROM modulo6.cotizaciones c JOIN modulo6.periodos_contables p ON p.id_periodo_contable = c.id_periodo_contable"
+# CU-COT H-01: la RLS da visión completa a quien opera el cierre; la cotización es del titular de su período.
+_ALCANCE = f"({ES_ADMINISTRADOR} OR c.id_periodo_contable IN ({PERIODOS_DE_MIS_FINCAS}))"
 
 
 class SqlAlchemyCotizacionRepository(CotizacionRepository):
@@ -35,7 +44,8 @@ class SqlAlchemyCotizacionRepository(CotizacionRepository):
             RETURNING id_cotizacion""", datos)
 
     def obtener(self, id_cotizacion: int) -> Optional[dict]:
-        return fila(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE c.id_cotizacion = :id", {"id": id_cotizacion})
+        return fila(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE c.id_cotizacion = :id AND {_ALCANCE}",
+                    {"id": id_cotizacion})
 
     def actualizar(self, id_cotizacion: int, version: int, cambios: dict) -> bool:
         if not cambios or not cambios.keys() <= _EDITABLES:
@@ -48,7 +58,7 @@ class SqlAlchemyCotizacionRepository(CotizacionRepository):
             WHERE id_cotizacion = :id AND version = :version""", {**cambios, "id": id_cotizacion, "version": version}))
 
     def listar(self, filtros: dict) -> list[dict]:
-        condiciones, params = ["true"], {}
+        condiciones, params = [_ALCANCE], {}
         if filtros.get("estado"):
             condiciones.append("c.estado::text = :estado")
             params["estado"] = filtros["estado"]

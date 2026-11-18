@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-91: eslabones obligatorios por tipo de evidencia |
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: exigir evidencia de las bitácoras fuente. |
+# | 2026-11-15 | Arekkazu | QA-M06 CU09 H-01 RF-91: la auditoría de una fuente solo se exige si la línea tiene ese eslabón |
 """Regla de RF-91 paso 2: qué eslabones exige cada tipo de evidencia. Python puro.
 
 ``eslabones`` trae ``True``/``False`` por eslabón comprobado; ``None`` = no aplica a esta línea.
@@ -21,6 +22,10 @@ AUDITORIAS_REQUERIDAS = {
     TipoEvidencia.EVENTO_SANITARIO.value: ("auditoria_m04",),
 }
 
+# Eslabón que cada auditoría certifica (RF-91 pasos 5-7): sin ese eslabón en la línea (``None``, p. ej. un costo
+# manual, que no nace de un evento biológico) no hay nada que auditar.
+CERTIFICA = {"auditoria_m02": "evento_m02", "auditoria_m03": "lecturas_nic41", "auditoria_m04": "evento_sanitario"}
+
 REQUERIDOS = {
     TipoEvidencia.IOT_DIRECTO.value: ("origen", "evento_m02", "lecturas_nic41", "precio_documentado"),
     TipoEvidencia.REGISTRO_MANUAL.value: ("origen", "evento_m02", "precio_documentado"),
@@ -33,15 +38,16 @@ REQUERIDOS = {
 def verificar_cadena(tipo_evidencia: str, eslabones: dict) -> tuple[str, list[str], int | None]:
     """Devuelve estado, eslabones faltantes y nivel del primer fallo.
 
-    Las auditorías requeridas por el tipo de evidencia necesitan una comprobación positiva.
-    Los demás eslabones conservan el significado de ``None`` como «no aplica».
+    Las auditorías requeridas por el tipo de evidencia necesitan una comprobación positiva siempre que la
+    línea tenga el eslabón que certifican. Los demás eslabones conservan el significado de ``None`` como «no aplica».
     """
     auditorias = AUDITORIAS_REQUERIDAS.get(tipo_evidencia, ())
     indisponibles = eslabones.get("fuentes_no_disponibles", [])
     if indisponibles:
         return "VERIFICACION_PENDIENTE", indisponibles, min(NIVEL[e] for e in indisponibles)
     faltantes = [e for e in REQUERIDOS[tipo_evidencia] if eslabones.get(e) is False]
-    faltantes.extend(e for e in auditorias if eslabones.get(e) is not True)
+    faltantes.extend(e for e in auditorias
+                     if eslabones.get(CERTIFICA[e]) is not None and eslabones.get(e) is not True)
     if not faltantes:
         return "VERIFICADO", [], None
     return "PENDIENTE_TRAZABILIDAD", faltantes, min(NIVEL[e] for e in faltantes)

@@ -6,6 +6,7 @@
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 # | 2026-11-12 | Arekkazu | TC-DIS-211 RF-75: el duplicado (E8) nombra el activo por su identificador, no por su id |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -71,7 +72,7 @@ class RegistrarConsumoAlimentoUseCase:
         if activo is None:
             raise NotFoundError(
                 code="ACTIVO_NO_ENCONTRADO",
-                message=f"El activo biológico con ID {dto.id_activo_biologico} no existe.",
+                message="El activo biológico seleccionado no existe.",
                 field="id_activo_biologico",
             )
 
@@ -80,8 +81,8 @@ class RegistrarConsumoAlimentoUseCase:
                 code="ACTIVO_ESTADO_INVALIDO",
                 message=(
                     f"No es posible registrar consumo de alimento para el activo {activo.nombre_visible} "
-                    f"porque su estado actual es {activo.nombre_estado}. Solo se permite el registro sobre "
-                    "activos en estado ACTIVO."
+                    f"porque está {activo.estado_visible}. Solo se permite el registro sobre "
+                    "activos en estado activo."
                 ),
                 field="id_activo_biologico",
             )
@@ -101,14 +102,14 @@ class RegistrarConsumoAlimentoUseCase:
         if tipo is None:
             raise BusinessRuleError(
                 code="TIPO_ALIMENTO_NO_ENCONTRADO",
-                message=f"El tipo de alimento con ID {dto.id_tipo_alimento} no existe en el catálogo.",
+                message="El tipo de alimento seleccionado no existe en el catálogo.",
                 field="id_tipo_alimento",
             )
         if not tipo.esta_activo:
             raise BusinessRuleError(
                 code="TIPO_ALIMENTO_INACTIVO",
                 message=(
-                    f"El tipo de alimento con ID {dto.id_tipo_alimento} no está en estado ACTIVO "
+                    f"El tipo de alimento {tipo.nombre} está inactivo "
                     "y no puede usarse para nuevos registros de consumo."
                 ),
                 field="id_tipo_alimento",

@@ -5,6 +5,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
+# | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
 """Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable.
 
 Los costos de venta manuales exigen una referencia documental (RF-84 R4), que queda en el cálculo y en la
@@ -82,7 +83,19 @@ class ConfirmarReconocimientoUseCase:
         except Exception:
             self.db.rollback()
             raise
+        if propuesta.indicador_valoracion == IndicadorValoracion.VALORACION_POR_COSTO.value:  # RF-82 CA-5
+            activo = propuesta.activo
+            self._avisar((f"El activo {activo.identificador} se reconoció al costo ({moneda(propuesta.valor_inicial)}) "
+                          f"porque no hay precio de mercado para la especie {activo.especie}. Cuando haya un precio, "
+                          "puede pasarlo a valor razonable."),
+                         {"motivo": "VALORACION_POR_COSTO", "id_activo_biologico": activo.id_activo_biologico,
+                          "id_reconocimiento_inicial": resultado["id_reconocimiento_inicial"]}, activo.id_finca)
         return resultado
+
+    def _avisar(self, mensaje: str, detalle: dict, id_finca: Optional[int]) -> None:
+        """INC-M06-366-G31: el aviso llega a la bandeja de los Contadores de la finca, después del commit."""
+        if self.notificador is not None:
+            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", mensaje, detalle, id_finca)
 
     def _registrar(self, propuesta: Propuesta, id_usuario: int, justificacion: Optional[str],
                    manuales: dict, referencia: Optional[str]) -> dict:
@@ -164,7 +177,8 @@ class ConfirmarReconocimientoUseCase:
             ))
 
     def _auditar_bloqueo(self, propuesta: Propuesta, id_usuario: int) -> None:
-        if not any(b["codigo"] == "RECONOCIMIENTO_BLOQUEADO_SIN_VALOR" for b in propuesta.bloqueos):
+        bloqueo = next((b for b in propuesta.bloqueos if b["codigo"] == "RECONOCIMIENTO_BLOQUEADO_SIN_VALOR"), None)
+        if bloqueo is None:
             return
         try:  # FA-7: el bloqueo queda en RF-94 aunque la operación no prospere
             self.contabilizador.auditar(EventoAuditoria(
@@ -176,6 +190,10 @@ class ConfirmarReconocimientoUseCase:
         except Exception:
             self.db.rollback()
             raise
+        # RF-82 FA-3/FA-7: el mensaje dice el motivo y qué registrar para poder reconocerlo.
+        self._avisar(bloqueo["mensaje"], {"motivo": bloqueo["codigo"],
+                                          "id_activo_biologico": propuesta.activo.id_activo_biologico},
+                     propuesta.activo.id_finca)
 
     def _dejar_en_revision(self, propuesta: Propuesta, id_usuario: int) -> None:
         """RF-84 paso 6 / FA-2: el cálculo con valor neto ≤ 0 queda en REVISION_REQUERIDA con alerta crítica.
@@ -210,7 +228,5 @@ class ConfirmarReconocimientoUseCase:
             self.db.rollback()
             raise
         propuesta.bloqueos[0]["mensaje"] = mensaje
-        if self.notificador is not None:  # después del commit
-            self.notificador.a_contadores("ALERTA_FINANCIERA_NIC41", mensaje,
-                                          {"id_calculo_valor_razonable": id_calculo,
-                                           "id_activo_biologico": activo.id_activo_biologico}, activo.id_finca)
+        self._avisar(mensaje, {"id_calculo_valor_razonable": id_calculo,
+                               "id_activo_biologico": activo.id_activo_biologico}, activo.id_finca)

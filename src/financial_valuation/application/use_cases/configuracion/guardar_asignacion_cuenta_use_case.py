@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-109/RF-86 FA-5: matriz contable y líneas pendientes de cuenta |
+# | 2026-11-15 | Arekkazu | QA-M06 CU09 H-01 RF-86/109: el gasto de consumo o de mano de obra no debita una cuenta de activo |
 """Caso de uso RF-109 (mínimo, D-2): par de cuentas débito/crédito por hecho, sentido, especie y
 subtipo. Al completarse la matriz, las líneas PENDIENTE_CUENTA de períodos abiertos que ahora
 tienen par quedan REGISTRADAS (RF-86 FA-5). Las líneas ya registradas no cambian: un cambio de
@@ -15,7 +16,11 @@ from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.asiento_repository import AsientoRepository
 from src.financial_valuation.domain.repositories.auditoria_financiera_repository import AuditoriaFinancieraRepository
 from src.financial_valuation.domain.repositories.configuracion_contable_repository import ConfiguracionContableRepository
-from src.shared.errors import NotFoundError
+from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO
+from src.shared.errors import BusinessRuleError, NotFoundError
+
+# RF-86: el consumo y la mano de obra en «Único» son gasto del período (la capitalización tiene su propio sentido).
+_GASTO_UNICO = {"CONSUMO_INSUMO", "MANO_OBRA_PROPIA"}
 
 
 class GuardarAsignacionCuentaUseCase:
@@ -28,6 +33,10 @@ class GuardarAsignacionCuentaUseCase:
 
     def execute(self, tipo_hecho: str, sentido: str, id_especie: Optional[int], subtipo_costo: Optional[str],
                 cuenta_debito: str, cuenta_credito: str, id_usuario: int) -> dict:
+        if tipo_hecho in _GASTO_UNICO and sentido == "UNICO" and cuenta_debito.startswith("1"):  # CU09 H-01
+            raise BusinessRuleError(code="CUENTA_DEBITO_NO_ES_GASTO", field="cuenta_debito", message=(
+                f"{ETIQUETA_HECHO[tipo_hecho]} en «Único» es gasto del período: el débito debe ser una cuenta de gasto "
+                "o de costo, no de activo (las que empiezan por 1). Para sumarlo al activo use «Capitalización»."))
         try:
             id_asignacion = self.config.guardar_asignacion(tipo_hecho, sentido, id_especie, subtipo_costo,
                                                            cuenta_debito, cuenta_credito, id_usuario)
