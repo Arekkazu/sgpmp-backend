@@ -1,0 +1,14 @@
+{
+  "version":"ORD-G037-001",
+  "fuente":"Código local y RF-98 v1.2; sin consulta a TEST",
+  "error_respuesta":{"cuerpo":{"error_code":"string","message":"string","fields":[{"field":"string|null","message":"string"}],"timestamp":"string"},"cita":"src/shared/error_handlers.py:40-68,306-332"},
+  "rutas":[
+    {"metodo":"POST","ruta":"/sesiones/","respuesta":{"token":"string"},"cita":"src/identity_access/infrastructure/routers/sesiones_routers.py:215-235"},
+    {"metodo":"GET","ruta":"/sesiones/me/permisos","respuesta":{"permisos":[{"nombre_recurso":"string","id_accion":"integer"}]},"cita":"src/identity_access/infrastructure/routers/sesiones_routers.py:91-140"},
+    {"metodo":"GET","ruta":"/integracion/anexos","respuesta":[{"id_mapeo_anexo_aaef":"integer","estado":"string"}],"cita":"src/accounting_integration/infrastructure/routers/m07_router.py:181-184"},
+    {"metodo":"GET","ruta":"/integracion/contratos","respuesta":[{"id_version_contrato_aaef":"integer","contrato_version":"string","estado":"string","periodo_gracia_dias":"integer|null","fecha_deprecacion":"datetime|null","fecha_inactivacion":"datetime|null"}],"cita":"src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84"},
+    {"metodo":"POST","ruta":"/integracion/contratos","respuesta":{"id_version_contrato_aaef":"integer","contrato_version":"string","estado":"string","periodo_gracia_dias":"integer|null"},"cita":"src/accounting_integration/infrastructure/routers/m07_router.py:217-223"},
+    {"metodo":"POST","ruta":"/integracion/contratos/{id}/deprecar","respuesta":{"id_version_contrato_aaef":"integer","contrato_version":"string","estado":"string","fecha_deprecacion":"datetime|null","fecha_inactivacion":"datetime|null"},"cita":"src/accounting_integration/infrastructure/routers/m07_router.py:233-237; src/accounting_integration/domain/entities/contrato.py:78-84"},
+    {"metodo":"GET","ruta":"/configuracion/parametros","respuesta":{"_nullable":true,"id_configuracion_global":"integer","frecuencia_muestreo":"integer","heartbeat":"integer","fecha_actualizacion":"datetime","id_usuario":"integer","nombre_usuario":"string|null","es_activo":"boolean","umbral_sin_senal":"integer"},"cita":"src/configuration/infrastructure/routers/configuracion_global_router.py:79-102; src/configuration/infrastructure/schema/configuracion_global_schema.py:10-34"}
+  ]
+}

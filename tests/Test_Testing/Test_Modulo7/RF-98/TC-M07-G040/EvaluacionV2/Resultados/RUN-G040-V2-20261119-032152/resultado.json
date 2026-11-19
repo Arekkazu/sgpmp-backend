@@ -1,0 +1,545 @@
+{
+  "grupo": "G040",
+  "run_id": "RUN-G040-V2-20261119-032152",
+  "version": 2,
+  "autorizacion_referencia": "AUT-G040-V2-R2-20261118",
+  "solicitudes": [
+    {
+      "id": "G040-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "ANTES_DEL_RUN",
+      "efecto_persistente": "último acceso, auditoría de sesión y notificación de login fuera del sandbox",
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "3182e346-32ac-48f1-a5cf-5faba870496b",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": null
+      }
+    },
+    {
+      "id": "G040-002",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "caso": null,
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "eb918135-5641-41a6-988a-ada76575b236",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      }
+    },
+    {
+      "id": "G040-003",
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "caso": null,
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "8df29687-80a2-4987-b546-31377b825dc3",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      }
+    },
+    {
+      "id": "G040-004",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": null,
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "d66851e6-a153-44c7-96e7-5bf95dd7975a",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      }
+    },
+    {
+      "id": "G040-005",
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/463/titular",
+      "caso": null,
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "df0e2120-0f8e-48db-a7c9-58510f22f248",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      }
+    },
+    {
+      "id": "G040-006",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=[RESERVADO]",
+      "caso": null,
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "96cbd6f8-ef74-4b65-8535-51c412805f05",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      }
+    },
+    {
+      "id": "G040-007",
+      "metodo": "POST",
+      "ruta": "/integraciones/agrofusion/token",
+      "caso": null,
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "b26bbe45-45ab-4dd7-ac3a-6e136928ef0a",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      }
+    },
+    {
+      "acceptVersion": null,
+      "id": "G040-008",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-17",
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": "3.0",
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "533e751f-01ab-477a-a361-1dee08b0dd94",
+        "X-Content-SHA256": "cf0abc7c5aece5c7a1feedee755e1652c77b754648f06f093e8e0ea510d2d416",
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "standardVersion": "1.0",
+      "invoices": 0
+    },
+    {
+      "acceptVersion": "3.0",
+      "id": "G040-009",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-18",
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": "3.0",
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "46eada6d-76d7-4c8b-ad8a-4403df5366a1",
+        "X-Content-SHA256": "cf0abc7c5aece5c7a1feedee755e1652c77b754648f06f093e8e0ea510d2d416",
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "standardVersion": "1.0",
+      "invoices": 0
+    },
+    {
+      "acceptVersion": "2.1",
+      "id": "G040-010",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-18",
+      "http": 200,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": "2.1",
+        "Deprecation": "true",
+        "Sunset": "Tue, 16 Feb 2027 13:53:12 GMT",
+        "X-Request-Id": "5e54570d-c908-4232-b1b1-2cd261f21f0f",
+        "X-Content-SHA256": "cf0abc7c5aece5c7a1feedee755e1652c77b754648f06f093e8e0ea510d2d416",
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "standardVersion": "1.0",
+      "invoices": 0
+    },
+    {
+      "acceptVersion": "9.9",
+      "id": "G040-011",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-19",
+      "http": 404,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "27ceafdb-e46d-485c-a05a-20ad2d3b25a3",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "error": {
+        "error_code": "VERSION_NO_REGISTRADA",
+        "message": "La versión 9.9 del contrato contable no está disponible.",
+        "fields": [
+          {
+            "field": "Accept-Version",
+            "message": "La versión 9.9 del contrato contable no está disponible."
+          }
+        ],
+        "timestamp": "2026-11-19T03:22:36.821051+00:00"
+      }
+    },
+    {
+      "acceptVersion": "1.0",
+      "id": "G040-012",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-20",
+      "http": 410,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "42c37419-c6dd-4b3e-9479-1a19f9003d80",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "error": {
+        "error_code": "VERSION_INACTIVA",
+        "message": "La versión 1.0 del contrato contable ya no está disponible.",
+        "fields": [
+          {
+            "field": "Accept-Version",
+            "message": "La versión 1.0 del contrato contable ya no está disponible."
+          }
+        ],
+        "timestamp": "2026-11-19T03:22:50.323013+00:00"
+      }
+    },
+    {
+      "acceptVersion": "3",
+      "id": "G040-013",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-21",
+      "http": 400,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "80fdde95-d8e7-4c03-9c1c-7ef063bb497d",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "error": {
+        "error_code": "VERSION_FORMATO_INVALIDO",
+        "message": "La versión debe tener el formato MAYOR.MENOR, por ejemplo 3.0.",
+        "fields": [
+          {
+            "field": "Accept-Version",
+            "message": "La versión debe tener el formato MAYOR.MENOR, por ejemplo 3.0."
+          }
+        ],
+        "timestamp": "2026-11-19T03:23:03.853297+00:00"
+      }
+    },
+    {
+      "acceptVersion": "3.0.0",
+      "id": "G040-014",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-21",
+      "http": 400,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "b45057e0-8130-40dd-a27a-b7144899a148",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "error": {
+        "error_code": "VERSION_FORMATO_INVALIDO",
+        "message": "La versión debe tener el formato MAYOR.MENOR, por ejemplo 3.0.",
+        "fields": [
+          {
+            "field": "Accept-Version",
+            "message": "La versión debe tener el formato MAYOR.MENOR, por ejemplo 3.0."
+          }
+        ],
+        "timestamp": "2026-11-19T03:23:17.451199+00:00"
+      }
+    },
+    {
+      "acceptVersion": "abc",
+      "id": "G040-015",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/***001?desde=2026-11-01&hasta=2026-11-30",
+      "caso": "TC-M07-21",
+      "http": 400,
+      "cabeceras": {
+        "X-Version-Contrato-AAEF": null,
+        "Deprecation": null,
+        "Sunset": null,
+        "X-Request-Id": "24d9c284-bfd4-47a0-874d-fd7dbf67bcd6",
+        "X-Content-SHA256": null,
+        "X-Test-Run-Id": "RUN-G040-V2-20261119-032152"
+      },
+      "error": {
+        "error_code": "VERSION_FORMATO_INVALIDO",
+        "message": "La versión debe tener el formato MAYOR.MENOR, por ejemplo 3.0.",
+        "fields": [
+          {
+            "field": "Accept-Version",
+            "message": "La versión debe tener el formato MAYOR.MENOR, por ejemplo 3.0."
+          }
+        ],
+        "timestamp": "2026-11-19T03:23:30.967231+00:00"
+      }
+    }
+  ],
+  "pruebas": {
+    "TC-M07-17": [
+      "APROBADO"
+    ],
+    "TC-M07-18": [
+      "APROBADO",
+      "APROBADO"
+    ],
+    "TC-M07-19": [
+      "APROBADO"
+    ],
+    "TC-M07-20": [
+      "APROBADO"
+    ],
+    "TC-M07-21": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO"
+    ]
+  },
+  "incidencias": [],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-G040.json",
+    "newman/newman-G040.html"
+  ],
+  "problemas_tecnicos": [],
+  "observaciones": [
+    "Código aceptado por decisión del responsable QA a la espera del cambio de RF-98 FA-7"
+  ],
+  "preflight_datos": [
+    {
+      "requisito": "PERMISO_CONTRATOS_R",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PERMISO_FINCAS_R",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PERMISO_AUDITORIA_R",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "UNA_ACTIVO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "DEPRECADO_EN_GRACIA",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "SIN_PENDIENTE_ACTIVABLE",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "SIN_DEPRECADO_VENCIDA",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "NIT_DISPONIBLE",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PERIODO_CERRADO_DISPONIBLE",
+      "cumple": true,
+      "bloqueante": true
+    }
+  ],
+  "versiones_elegidas": {
+    "activo": {
+      "id": 18,
+      "version": "3.0",
+      "estado": "ACTIVO",
+      "fecha_inactivacion": null
+    },
+    "deprecado": {
+      "id": 3,
+      "version": "2.1",
+      "estado": "DEPRECADO",
+      "fecha_inactivacion": "2027-02-16T13:53:12.939277+00:00"
+    },
+    "inactivo": {
+      "id": 1,
+      "version": "1.0",
+      "estado": "INACTIVO",
+      "fecha_inactivacion": null
+    }
+  },
+  "cierre": {
+    "fases": [
+      {
+        "fase": "UNICA",
+        "http": 200,
+        "rollback": {
+          "verificado": true,
+          "motivo": "Lectura p?blica poscierre sin cabeceras; igualdad de firma completa"
+        }
+      }
+    ],
+    "http": 200,
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lectura p?blica poscierre sin cabeceras; igualdad de firma completa"
+    }
+  },
+  "newman": {
+    "codigo": 0,
+    "fallos": 0,
+    "solicitudes": 2,
+    "reportes": true
+  },
+  "oficial": true,
+  "veredictos": {
+    "17": "APROBADO",
+    "18": "APROBADO",
+    "19": "APROBADO",
+    "20": "APROBADO",
+    "21": "APROBADO"
+  },
+  "casos": {
+    "TC-M07-17": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "sin_version"
+      ]
+    },
+    "TC-M07-18": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "activo",
+        "deprecado"
+      ]
+    },
+    "TC-M07-19": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "inexistente"
+      ]
+    },
+    "TC-M07-20": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "inactivo"
+      ]
+    },
+    "TC-M07-21": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "solo_mayor",
+        "semver",
+        "texto"
+      ]
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M07-17",
+      "fuente": "API",
+      "id": "sin_version",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-18",
+      "fuente": "API",
+      "id": "activo",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-18",
+      "fuente": "API",
+      "id": "deprecado",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-19",
+      "fuente": "API",
+      "id": "inexistente",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-20",
+      "fuente": "API",
+      "id": "inactivo",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-21",
+      "fuente": "API",
+      "id": "solo_mayor",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-21",
+      "fuente": "API",
+      "id": "semver",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-21",
+      "fuente": "API",
+      "id": "texto",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "cypress": {
+    "codigo": null,
+    "total_pruebas": 0,
+    "no_aplica": true
+  },
+  "consume_version": true,
+  "solicitudes_total": 18
+}
