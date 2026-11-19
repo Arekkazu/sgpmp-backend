@@ -5,6 +5,7 @@
 # | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: recibir opcionalmente la secuencia original del Edge sin coerciones ni generacion. |
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: recibir evidencia opcional y estricta del reloj al capturar la lectura. |
 # | 2026-10-30 | Arekkazu | INC-M03-136-G02 RF-53: verifica el checksum contra el contenido de la lectura |
+# | 2026-11-19 | Arekkazu | SEG-M03-02 RF-53: idempotency_key documentado como ignorado |
 from __future__ import annotations
 
 import hashlib
@@ -116,4 +117,9 @@ class IngerirTelemetriaDTO(BaseDTO):
 
 class IngerirTelemetriaBatchDTO(BaseDTO):
     registros: list[IngerirTelemetriaDTO] = Field(..., min_length=1, max_length=500)
-    idempotency_key: Optional[str] = None
+    # SEG-M03-02: se acepta y se ignora; se conserva para no romper a los clientes que ya lo envían.
+    # El duplicado real lo detecta la BD por la clave natural de la lectura (sensor, variable,
+    # timestamp_captura, origen): fn_es_duplicado y uq_telemetria_sensor_variable_captura_origen.
+    # Reintentar el mismo lote es seguro sin esta clave: las lecturas repetidas no se guardan dos veces.
+    idempotency_key: Optional[str] = Field(None, max_length=128, description=(
+        "Ignorado. El duplicado se detecta por sensor, variable, fecha de captura y origen de cada lectura."))

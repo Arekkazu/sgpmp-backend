@@ -10,6 +10,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-121-G64 RF-56 E6: límite de eventos por dispositivo configurable por entorno |
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 # | 2026-10-28 | Arekkazu | BE-2/BE-3 RF-55: id_regla_alerta en el evento y regla aplicada en la alerta |
+# | 2026-11-19 | Arekkazu | SEG-M03-01 RF-57: la alerta del evento Edge que no se genera queda en ERROR con la causa |
 from __future__ import annotations
 
 import logging
@@ -290,7 +291,7 @@ class RecibirEventoEdgeUseCase:
             )
         except Exception:
             self.db.rollback()
-            logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
+            logger.exception("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
 
     def _regla_existente(self, metadata_edge: Optional[dict]) -> Optional[ReglaAlerta]:
         """BE-2: ``metadata_edge.id_regla_alerta`` solo si la regla existe (la columna tiene FK:
