@@ -1,0 +1,82 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.7, pytest-9.0.3, pluggy-1.6.0 -- /Users/mariajosegarcia/Developer/sgpmp/sgpmp-backend/.venv/bin/python
+metadata: {'Python': '3.12.7', 'Platform': 'macOS-27.2.1-arm64-arm-64bit', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'cov': '7.1.0', 'metadata': '3.1.1', 'html': '4.2.0', 'anyio': '4.13.0'}}
+rootdir: /Users/mariajosegarcia/Developer/sgpmp/sgpmp-backend
+configfile: pytest.ini
+plugins: cov-7.1.0, metadata-3.1.1, html-4.2.0, anyio-4.13.0
+collecting ... collected 8 items
+
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_6_valores_fijos_del_anexo PASSED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_linea_base_sin_fallas_pasa_a_revision PASSED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cobertura] FAILED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_documento] PASSED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_summary] FAILED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuentas] PASSED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[estructura] PASSED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[formato_fecha] PASSED
+
+=================================== FAILURES ===================================
+________ test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cobertura] _________
+
+falla = 'cobertura'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10546d610>
+
+    @pytest.mark.parametrize("falla", sorted(FALLAS))
+    def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
+        original = uc.construir_envelope
+    
+        def con_falla(*args, **kwargs):
+            envelope = original(*args, **kwargs)
+            FALLAS[falla](envelope)
+            return envelope
+    
+        monkeypatch.setattr(uc, "construir_envelope", con_falla)
+        contratos, auditoria = _Contratos(), _Auditoria()
+        caso = uc.GestionarAnexosUseCase(contratos, auditoria, _Db())
+        with pytest.raises(BusinessRuleError) as exc:
+>           caso.enviar_a_revision(1, 1)
+
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:103: in enviar_a_revision
+    fallas = validar_con_datos_de_prueba()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:60: in validar_con_datos_de_prueba
+    if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <list_iterator object at 0x10546de10>
+
+    if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
+>          for d in envelope["invoices"] for ln in d["Lines"]):
+                                                   ^^^^^^^^^^
+E          KeyError: 'Lines'
+
+src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:61: KeyError
+______ test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_summary] ______
+
+falla = 'cuadre_summary'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10546e6f0>
+
+    @pytest.mark.parametrize("falla", sorted(FALLAS))
+    def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
+        original = uc.construir_envelope
+    
+        def con_falla(*args, **kwargs):
+            envelope = original(*args, **kwargs)
+            FALLAS[falla](envelope)
+            return envelope
+    
+        monkeypatch.setattr(uc, "construir_envelope", con_falla)
+        contratos, auditoria = _Contratos(), _Auditoria()
+        caso = uc.GestionarAnexosUseCase(contratos, auditoria, _Db())
+>       with pytest.raises(BusinessRuleError) as exc:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'src.shared.errors.BusinessRuleError'>
+
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py:144: Failed
+- generated xml file: /Users/mariajosegarcia/Developer/sgpmp/sgpmp-backend/tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/Resultado/pytest_g60_validacion.xml -
+=========================== short test summary info ============================
+FAILED tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cobertura]
+FAILED tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py::test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_summary]
+========================= 2 failed, 6 passed in 0.37s ==========================
