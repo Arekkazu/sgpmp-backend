@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: versiones del contrato AAEF, anexo y resolución de versión |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo fija M09 |
 """Contrato AAEF (RF-98 v1.1) y anexo de mapeo (RF-AE02 v3.0).
 
 El contrato avanza PENDIENTE → ACTIVO → DEPRECADO → INACTIVO, sin retrocesos ni saltos. Un MAJOR
@@ -14,10 +15,12 @@ from datetime import date, datetime, timedelta
 from typing import Iterable, Optional
 
 from src.accounting_integration.domain.services.aaef import MAPPERS_DISPONIBLES
+from src.configuration.domain.entities.parametro_mlops import RF98_GRACIA_DEFECTO_BASE, RF98_GRACIA_MINIMA_BASE
 from src.shared.errors import BusinessRuleError, FlowError, GoneError, NotFoundError, ValidationError
 
-GRACIA_MINIMA_DIAS = 30
-GRACIA_DEFECTO_DIAS = 90
+# Valores base de RF-98; los efectivos se configuran en M09 (RNF-98.10).
+GRACIA_MINIMA_DIAS = RF98_GRACIA_MINIMA_BASE
+GRACIA_DEFECTO_DIAS = RF98_GRACIA_DEFECTO_BASE
 LIMITE_VIGENTES = 2
 _FORMATO_VERSION = re.compile(r"^(\d{1,3})\.(\d{1,3})$")
 
@@ -75,11 +78,11 @@ class VersionContrato:
         self._exigir("PENDIENTE", "activar")
         self.estado, self.fecha_activacion = "ACTIVO", ahora
 
-    def deprecar(self, ahora: datetime, dias_gracia: int) -> None:
+    def deprecar(self, ahora: datetime, dias_gracia: int, minimo_dias: int = GRACIA_MINIMA_DIAS) -> None:
         self._exigir("ACTIVO", "deprecar")
-        if dias_gracia < GRACIA_MINIMA_DIAS:
+        if dias_gracia < minimo_dias:
             raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="dias_gracia",
-                                  message=f"El período de gracia debe ser de al menos {GRACIA_MINIMA_DIAS} días.")
+                                  message=f"El período de gracia debe ser de al menos {minimo_dias} días.")
         self.estado, self.fecha_deprecacion = "DEPRECADO", ahora
         self.fecha_inactivacion = ahora + timedelta(days=dias_gracia)
 

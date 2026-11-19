@@ -32,6 +32,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-103: router del dashboard por widgets |
 # | 2026-11-14 | Arekkazu | M08 RF-105: entrega de notificaciones, purga diaria y alertas cada 2 s |
 # | 2026-11-18 | Arekkazu | M08 RF-104..107: router de reportes, generación en fondo y vencimiento a las 48 h |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: router del período de gracia del contrato contable en M09 |
 import asyncio
 import logging
 import os
@@ -63,6 +64,7 @@ from src.configuration.infrastructure.routers.configuracion_global_router import
 from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
 from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
 from src.configuration.infrastructure.routers.parametros_retroalimentacion_router import router as parametros_retroalimentacion_router
+from src.configuration.infrastructure.routers.parametros_integracion_contable_router import router as parametros_integracion_contable_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -1181,6 +1183,7 @@ app.include_router(configuracion_global_router)
 app.include_router(parametros_alertas_router)
 app.include_router(politica_vision_router)
 app.include_router(parametros_retroalimentacion_router)
+app.include_router(parametros_integracion_contable_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)
