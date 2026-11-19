@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: integración AAEF de punta a punta contra PostgreSQL |
+# | 2026-11-19 | Leandro | INC-M07-372-G36 RF-98: verificar el rechazo de mapeadores y sus efectos en PostgreSQL. |
 """M07 de punta a punta contra Postgres real (migración 94b14a6931d6).
 
 M06 real (reconocimiento, factura de proveedor repartida entre dos activos, cierre del período) →
@@ -136,6 +137,58 @@ def _preparar_m07(cli: TestClient, admin: dict, contador: dict) -> int:
     r = cli.post(f"/integracion/contratos/{id_contrato}/activar", headers=admin)
     assert r.status_code == 200 and r.json()["estado"] == "ACTIVO", r.text
     return id_cliente
+
+
+@pytest.mark.parametrize(
+    "mapeadores", [[], ["MAPPER_X"], [" COMPRAS "]], ids=["vacios", "desconocido", "espacios"],
+)
+def test_rf98_rechaza_mapeadores_invalidos_sin_registrar_contrato(
+    db_session, cliente_http, crear_usuario_db, crear_auth_headers, mapeadores,
+):
+    admin = crear_auth_headers(crear_usuario_db(id_rol=1, estado=2))
+    contador = crear_auth_headers(crear_usuario_db(id_rol=5, estado=2))
+    anexo = cliente_http.post("/integracion/anexos", headers=admin, json={
+        "codigo_anexo": "AAEF-ANEXO-G36", "version_anexo": "8.0",
+        "ruta_documento": "docs/integracion/anexo_aaef_v3.0.md",
+        "sha256_documento": hashlib.sha256(b"anexo-g36").hexdigest(),
+    })
+    assert anexo.status_code == 201, anexo.text
+    id_anexo = anexo.json()["id_mapeo_anexo_aaef"]
+    revision = cliente_http.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador)
+    assert revision.status_code == 200, revision.text
+
+    url = "/integracion/contratos"
+    solicitud = {
+        "contrato_version": "8.0", "tipo_cambio": "MAJOR", "fecha_vigencia": HOY.isoformat(),
+        "id_mapeo_anexo_aaef": id_anexo, "mapeadores": mapeadores,
+    }
+    sin_permiso = cliente_http.post(url, headers=contador, json=solicitud)
+    assert sin_permiso.status_code == 403, sin_permiso.text
+
+    invalido = cliente_http.post(url, headers=admin, json=solicitud)
+    assert invalido.status_code == 400, invalido.text
+    error = invalido.json()
+    assert error["error_code"] == "MAPPERS_INVALIDOS", error
+    mensaje = "Indique transformadores válidos: compras y, si aplica, comprobante NIC 41."
+    assert error["message"] == mensaje
+    assert error["fields"] == [{"field": "mapeadores", "message": mensaje}]
+
+    malformado = cliente_http.post(url, headers=admin, json={**solicitud, "mapeadores": [None]})
+    assert (malformado.status_code, malformado.json()["error_code"]) == (400, "VAL_ENTRADA")
+    assert db_session.execute(text("""
+        SELECT count(*) FROM modulo7.versiones_contrato_aaef WHERE contrato_version = '8.0'
+    """)).scalar_one() == 0
+    eventos = text("""
+        SELECT count(*) FROM modulo7.eventos_integracion
+        WHERE version_contrato = '8.0' AND tipo_evento = 'CONTRATO_REGISTRADO'
+    """)
+    assert db_session.execute(eventos).scalar_one() == 0
+
+    valido = cliente_http.post(url, headers=admin, json={**solicitud, "mapeadores": ["COMPRAS"]})
+    assert valido.status_code == 201, valido.text
+    assert valido.json()["estado"] == "PENDIENTE"
+    assert valido.json()["mapeadores"] == ["COMPRAS"]
+    assert db_session.execute(eventos).scalar_one() == 1
 
 
 def _token(cli: TestClient, correo: str, secreto: str = SECRETO):

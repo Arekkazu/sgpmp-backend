@@ -1,19 +1,20 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-101/RF-AE02: DTOs de administración de la integración |
+# | 2026-11-19 | Leandro | INC-M07-372-G36 RF-98: delegar al caso de uso la validación de mapeadores. |
 """DTOs de entrada de la administración de M07 (clientes, anexos y contratos)."""
 from __future__ import annotations
 
 import ipaddress
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
+from src.accounting_integration.domain.services.aaef import MAPPERS_DISPONIBLES
 from src.shared.base_dto import BaseDTO
 
 Canal = Literal["IDENTIDAD_M2M", "CONSULTA_AAEF"]
-Mapper = Literal["COMPRAS", "COMPROBANTE_NIC41"]
 
 
 class CanalDTO(BaseDTO):
@@ -97,7 +98,10 @@ class RegistrarContratoDTO(BaseDTO):
     tipo_cambio: Literal["MAJOR", "MINOR"]
     fecha_vigencia: date
     id_mapeo_anexo_aaef: int = Field(ge=1)
-    mapeadores: list[Mapper] = Field(min_length=1)
+    # FA-3 valida el catálogo y la lista vacía en el caso de uso. OpenAPI documenta los valores aceptados.
+    mapeadores: list[Annotated[str, StringConstraints(strip_whitespace=False)]] = Field(
+        json_schema_extra={"minItems": 1, "items": {"type": "string", "enum": list(MAPPERS_DISPONIBLES)}},
+    )
     periodo_gracia_dias: Optional[int] = Field(None, ge=30, le=3650)
     descripcion: Optional[str] = Field(None, max_length=1000)
 
