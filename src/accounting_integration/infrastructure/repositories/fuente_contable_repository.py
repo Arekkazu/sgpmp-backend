@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-97: lectura de M06/M09 para el envelope AAEF |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: las líneas sin trazabilidad se devuelven con su hecho, activo y fecha |
 """Lectura de M06 y M09 para RF-97, como el usuario de servicio.
 
 El acceso ya se autorizó antes (permiso y todas las fincas del titular, RF-95 5.3). Leer como
@@ -77,9 +78,14 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
             """, {"nit": nit, "desde": desde, "hasta": hasta})
         return [ComprobanteNic41(**f) for f in resultado]
 
-    def lineas_sin_trazabilidad(self, nit: str, desde: date, hasta: date) -> int:
-        return fila(self.db, f"""
-            SELECT count(*) AS n FROM modulo6.lineas_asiento_nic41 l
-            JOIN modulo6.periodos_contables p ON p.id_periodo_contable = l.id_periodo_contable
-            WHERE {_RANGO} AND l.estado_trazabilidad = 'PENDIENTE_TRAZABILIDAD'
-        """, {"nit": nit, "desde": desde, "hasta": hasta})["n"]
+    def lineas_sin_trazabilidad(self, nit: str, desde: date, hasta: date) -> list[dict]:
+        with como_sistema(self.db):
+            return filas(self.db, f"""
+                SELECT l.id_linea_asiento_nic41, l.tipo_hecho::text AS tipo_hecho, l.id_activo_biologico,
+                       COALESCE(a.identificador, a.id_activo_biologico::text) AS activo, l.fecha_hecho
+                FROM modulo6.lineas_asiento_nic41 l
+                JOIN modulo6.periodos_contables p ON p.id_periodo_contable = l.id_periodo_contable
+                LEFT JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = l.id_activo_biologico
+                WHERE {_RANGO} AND l.estado_trazabilidad = 'PENDIENTE_TRAZABILIDAD'
+                ORDER BY l.fecha_hecho, l.id_linea_asiento_nic41
+            """, {"nit": nit, "desde": desde, "hasta": hasta})

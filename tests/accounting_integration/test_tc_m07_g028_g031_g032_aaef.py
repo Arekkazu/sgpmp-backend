@@ -1,9 +1,11 @@
 # | Fecha      | Nombre         | Que se hizo |
 # |------------|----------------|-------------|
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del Mapper que falla llega a la respuesta |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA identifica los hechos afectados |
 """Lote QA 2026-11-19 de la exportación contable (RF-97), sin base de datos.
 
 - TC-M07-381 (#1183): un MAPPER_FALLIDO expone ``detalle.mapper`` y ``detalle.documento``.
+- TC-M07-379 (#1181): TRAZABILIDAD_INCOMPLETA trae los hechos afectados, no solo cuántos son.
 """
 import asyncio
 import json
@@ -82,3 +84,27 @@ def test_mapper_fallido_expone_mapper_y_documento_en_la_respuesta():
     assert cuerpo["detalle"] == exc.value.detalle and cuerpo["fields"][0]["field"] == "accounting_account"
     # un error sin detalle conserva el cuerpo de siempre
     assert "detalle" not in _respuesta(AppError("OTRO", "Otro error."))
+
+
+def _linea(i, activo="BOV-00%d"):
+    return {"id_linea_asiento_nic41": 100 + i, "tipo_hecho": "VARIACION_VR_TB", "id_activo_biologico": i,
+            "activo": activo % i, "fecha_hecho": date(2026, 10, 31)}
+
+
+def test_trazabilidad_incompleta_identifica_los_hechos_afectados():
+    with pytest.raises(AppError) as exc:
+        _consultar(_Fuente([_costo(11)], sin_traza=[_linea(1), _linea(2), _linea(3)]))
+    assert exc.value.code == "TRAZABILIDAD_INCOMPLETA"
+    hechos = exc.value.detalle["hechos"]
+    assert [h["id_linea_asiento_nic41"] for h in hechos] == [101, 102, 103]
+    assert [h["activo"] for h in hechos] == ["BOV-001", "BOV-002", "BOV-003"]
+    assert hechos[0]["hecho"] == "Variación por transformación biológica" and hechos[0]["fecha_hecho"] == "2026-10-31"
+    mensaje = exc.value.message
+    assert mensaje.startswith("3 asientos") and "BOV-003" in mensaje and "VARIACION_VR_TB" not in mensaje
+    assert _respuesta(exc.value)["detalle"]["hechos"] == hechos  # serializable tal cual
+
+
+def test_trazabilidad_incompleta_con_muchos_hechos_resume_el_mensaje():
+    with pytest.raises(AppError) as exc:
+        _consultar(_Fuente(sin_traza=[_linea(i) for i in range(1, 9)]))
+    assert len(exc.value.detalle["hechos"]) == 8 and "y 3 más" in exc.value.message

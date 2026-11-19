@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 Fases 3-5 / RF-97: alcance por fincas, versión y envelope AAEF del titular |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error AAEF (Mapper, documento) llega a la respuesta y a la auditoría |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA nombra los hechos afectados y los trae en el detalle |
 """Genera el envelope AAEF de un titular para un rango de períodos cerrados (RF-97 v3.0).
 
 Lo invoca el Gateway (RF-95) con el usuario ya autenticado y con permiso; aquí se resuelve lo que
@@ -33,7 +34,27 @@ from src.accounting_integration.domain.services.aaef import (
     verificar_cuadre,
 )
 from src.accounting_integration.domain.services.esquema_agrofusion import AccountingConsultResponse
+from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
+
+
+_HECHOS_EN_MENSAJE = 5
+
+
+def _trazabilidad_incompleta(lineas: list[dict]) -> AaefError:
+    """RF-97 FA-3: bloquea «con el detalle de los hechos afectados». El mensaje nombra los primeros y el
+    ``detalle`` los trae todos, para que el Contador los ubique en Finanzas."""
+    hechos = [{**ln, "hecho": ETIQUETA_HECHO.get(ln["tipo_hecho"], "Hecho contable"),
+               "fecha_hecho": ln["fecha_hecho"].isoformat() if ln.get("fecha_hecho") else None} for ln in lineas]
+    nombrados = "; ".join(
+        h["hecho"] + (f" del activo {h['activo']}" if h.get("activo") else "")
+        + (f" del {h['fecha_hecho']}" if h["fecha_hecho"] else "") for h in hechos[:_HECHOS_EN_MENSAJE])
+    resto = len(hechos) - _HECHOS_EN_MENSAJE
+    return AaefError(
+        "TRAZABILIDAD_INCOMPLETA",
+        f"{len(hechos)} asientos del rango no tienen la trazabilidad completa: {nombrados}"
+        + (f" y {resto} más" if resto > 0 else "") + ". El Contador debe revisarlos en Finanzas antes de exportar.",
+        detalle={"hechos": hechos})
 
 
 @dataclass(frozen=True)
@@ -78,8 +99,7 @@ class ConsultarAaefUseCase:
             validar_rango(self.fuente.periodos(s.nit), s.desde, s.hasta)
             sin_traza = self.fuente.lineas_sin_trazabilidad(s.nit, s.desde, s.hasta)
             if sin_traza:  # RF-97 FA-3; el cierre de M06 ya lo impide, esto es la última defensa
-                raise AaefError("TRAZABILIDAD_INCOMPLETA", f"{sin_traza} asientos del rango no tienen la trazabilidad "
-                                "completa. El Contador debe revisarlos en Finanzas antes de exportar.")
+                raise _trazabilidad_incompleta(sin_traza)
             compras = (mapear_compras(self.fuente.costos_factura(s.nit, s.desde, s.hasta))
                        if MAPPER_COMPRAS in contrato.mapeadores else [])
             comprobantes = (mapear_comprobantes(self.fuente.comprobantes(s.nit, s.desde, s.hasta), titular)
