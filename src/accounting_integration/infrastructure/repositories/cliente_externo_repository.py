@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: persistencia de clientes externos, credenciales y canales |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G043 RF-101 FA-8: nombre de cliente externo único |
 """Clientes externos (``modulo7.clientes_externos``), su credencial (``identificadores_apis``, una sola
 ACTIVA por trigger) y sus canales (``canales_clientes_externos``)."""
 from __future__ import annotations
@@ -23,7 +24,9 @@ _SELECT = """
                     '{}'::jsonb) AS canales
     FROM modulo7.clientes_externos ce
 """
-_CONFLICTOS = {"uix_cliente_externo_codigo": "Ya existe un cliente externo con ese nombre.",
+_CONFLICTOS = {"uq_cliente_externo_codigo": "Ya existe un cliente externo con ese código.",
+               "uix_cliente_externo_codigo": "Ya existe un cliente externo con ese código.",
+               "uq_cliente_externo_nombre": "Ya existe un cliente externo con ese nombre.",
                "uq_cliente_externo_identificador_publico": "Ya existe un cliente externo con ese identificador."}
 
 
@@ -37,6 +40,10 @@ class SqlAlchemyClienteExternoRepository(ClienteExternoRepository):
 
     def obtener_por_identificador(self, identificador_publico: str) -> Optional[ClienteExterno]:
         f = fila(self.db, f"{_SELECT} WHERE ce.identificador_publico = :id", {"id": identificador_publico})
+        return ClienteExterno(**f) if f else None
+
+    def obtener_por_nombre(self, nombre: str) -> Optional[ClienteExterno]:
+        f = fila(self.db, f"{_SELECT} WHERE lower(btrim(ce.nombre)) = lower(btrim(:nombre))", {"nombre": nombre})
         return ClienteExterno(**f) if f else None
 
     def listar(self) -> list[ClienteExterno]:
