@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                         |
 # |------------|----------|---------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: ciclo de vida, niveles, entrega con reintentos y agrupación |
+# | 2026-11-18 | Arekkazu | M08 RF-105: los falsos responden preferencias por defecto y ventana de M09 |
 """RF-105 — ciclo de vida de las notificaciones, nivel por tipo, entrega en segundo plano y agrupación.
 
 Sin BD: entidad y casos de uso con falsos. Los CHECK de la BD (crítica no descartable, acción de
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from src.identity_access.domain.value_objects.nivel_notificacion import canal_por_defecto
 from src.identity_access.application.use_cases.notificaciones.entregar_notificaciones_use_case import (
     EntregarNotificacionesUseCase,
 )
@@ -130,6 +132,8 @@ class DbFake:
 
 
 class RepoEntregaFake:
+    canal_habilitado = staticmethod(lambda _u, nivel, canal: canal_por_defecto(nivel, canal))
+
     def __init__(self, pendientes, tokens=("t1",)):
         self.pendientes = pendientes
         self.tokens = list(tokens)
@@ -219,6 +223,9 @@ def test_sin_dispositivos_queda_entregada_en_la_bandeja():
 # ── Servicio de RF-14: nivel, agrupación y datos del push ─────────────────────
 
 class PortServicioFake:
+    canal_habilitado = staticmethod(lambda _u, nivel, canal: canal_por_defecto(nivel, canal))
+    ventana_agrupacion_minutos = staticmethod(lambda: 5)
+
     def __init__(self, agrupa=False):
         self.agrupa = agrupa
         self.registros = []

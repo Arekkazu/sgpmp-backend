@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                          |
 # |------------|----------|----------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación por animal, datos del push y reintentos  |
+# | 2026-11-18 | Arekkazu | M08 RF-105: ventana de agrupación desde M09 y preferencias de canal del usuario |
 """Servicio transversal de notificaciones para todos los módulos del sistema.
 
 Orquesta el envío de notificaciones por dos canales: EMAIL (id=1) e INTERNO
@@ -20,7 +21,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.shared.email import send_email
 from src.shared.firebase import send_push
-from src.identity_access.domain.value_objects.nivel_notificacion import ADVERTENCIA, CRITICA
+from src.identity_access.domain.value_objects.nivel_notificacion import ADVERTENCIA, CRITICA, EMAIL, PUSH
 from src.shared.plantilla_correo import Tono, renderizar_correo
 
 logger = logging.getLogger(__name__)
@@ -304,7 +305,7 @@ class NotificacionService:
     def _agrupar(self, id_usuario: int, tipo_evento: int, id_activo_biologico: int) -> bool:
         try:
             agrupada = self.port.sumar_ocurrencia(id_usuario, tipo_evento, id_activo_biologico,
-                                                  VENTANA_ANTI_SPAM_MINUTOS)
+                                                  self.port.ventana_agrupacion_minutos())
             if agrupada:
                 self.db.commit()
             return agrupada
@@ -365,6 +366,12 @@ class NotificacionService:
             Para el canal INTERNO siempre retorna ``None`` — nadie lo consume.
         """
         interno = canal == ID_CANAL_INTERNO
+        if nivel is not None:
+            # R6: con nivel (avisos de RF-105) rigen las preferencias del usuario para push y correo.
+            if canal == ID_CANAL_EMAIL and not self.port.canal_habilitado(id_usuario, nivel, EMAIL):
+                return None
+            if interno and fcm_tokens and not self.port.canal_habilitado(id_usuario, nivel, PUSH):
+                fcm_tokens = []
         if aplicar_anti_spam and self.port.verificar_anti_spam(
             id_usuario,
             tipo_evento,

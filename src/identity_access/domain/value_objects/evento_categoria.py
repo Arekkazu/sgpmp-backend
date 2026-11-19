@@ -5,6 +5,7 @@
 # | 2026-10-23 | Arekkazu | M05 RF-74..81: tipos de evento 33-38 de las notificaciones de suministros |
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-14: tipos 39-41 de M06/M07; sin ellos sus avisos no se registraban |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: tipo 42 FIN_PERIODO_RETIRO del aviso de fin de retiro |
+# | 2026-11-18 | Arekkazu | M08 RF-104..106: tipos 43-46 de reportes, degradación del modelo y auditoría de notificaciones |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -97,6 +98,12 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Fin del período de retiro de un medicamento (RF-76 paso 13, migración d1f3a5c7e902): lo emite
     # el job diario o la anulación del tratamiento, igual que los avisos automáticos de M05.
     42: EventoCategoria.MODIFICACION,
+    # M08 (migración a7c3e91f5b20): reporte generado o fallido (RF-104), degradación del modelo predictivo
+    # (RF-106) y creación o cambio de estado de una notificación (RF-105 Fase 5).
+    43: EventoCategoria.CONSULTA,
+    44: EventoCategoria.CONSULTA,
+    45: EventoCategoria.MODIFICACION,
+    46: EventoCategoria.MODIFICACION,
 }
 
 
@@ -148,6 +155,10 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     40: "ALERTA_FINANCIERA_NIC41",
     41: "ALERTA_INTEGRACION_CONTABLE",
     42: "FIN_PERIODO_RETIRO",
+    43: "REPORTE_GENERADO",
+    44: "REPORTE_FALLIDO",
+    45: "DEGRADACION_MODELO_PREDICTIVO",
+    46: "AUDITORIA_NOTIFICACION",
 }
 
 
