@@ -18,6 +18,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from functools import partial
 from typing import Any, Optional
+from xml.sax.saxutils import escape
 
 from src.reporting.domain.repositories.solicitud_reporte_repository import RenderizadorReportePort
 from src.reporting.domain.reportes.contenido import (
@@ -150,7 +151,7 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
     ancho_util = pagina[0] - 72
 
     def parrafo(texto: str, estilo=normal) -> Paragraph:
-        return Paragraph(texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), estilo)
+        return Paragraph(escape(texto), estilo)
 
     def tabla(t: Tabla) -> list:
         elementos: list = [parrafo(t.titulo, subtitulo)]

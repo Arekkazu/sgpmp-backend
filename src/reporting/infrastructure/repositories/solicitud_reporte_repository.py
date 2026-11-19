@@ -48,8 +48,22 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
             if orm is None:
                 orm = SolicitudReporteModel(id_solicitud_reporte=solicitud.id_solicitud_reporte)
                 self.db.add(orm)
-            for campo in _CAMPOS:
-                setattr(orm, campo, getattr(solicitud, campo))
+            orm.id_usuario = solicitud.id_usuario
+            orm.tipo_reporte = solicitud.tipo_reporte
+            orm.formato = solicitud.formato
+            orm.estado = solicitud.estado
+            orm.zona_horaria = solicitud.zona_horaria
+            orm.numero_registros = solicitud.numero_registros
+            orm.numero_partes = solicitud.numero_partes
+            orm.tamano_archivo_kb = solicitud.tamano_archivo_kb
+            orm.checksum_sha256 = solicitud.checksum_sha256
+            orm.intentos = solicitud.intentos
+            orm.mensaje_error = solicitud.mensaje_error
+            orm.fecha_snapshot = solicitud.fecha_snapshot
+            orm.fecha_generacion = solicitud.fecha_generacion
+            orm.fecha_proximo_intento = solicitud.fecha_proximo_intento
+            orm.fecha_expiracion = solicitud.fecha_expiracion
+            orm.fecha_eliminacion = solicitud.fecha_eliminacion
             orm.json_filtros = solicitud.filtros
             self.db.flush()
             self.db.refresh(orm)
