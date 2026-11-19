@@ -3,12 +3,14 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del Mapper que falla llega a la respuesta |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA identifica los hechos afectados |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: ERROR_DATOS_FINANCIEROS y ERROR_INTERNO_RF97 |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-382 RF-97: el hash de contenido no depende de NFC/NFD |
 """Lote QA 2026-11-19 de la exportación contable (RF-97), sin base de datos.
 
 - TC-M07-381 (#1183): un MAPPER_FALLIDO expone ``detalle.mapper`` y ``detalle.documento``.
 - TC-M07-379 (#1181): TRAZABILIDAD_INCOMPLETA trae los hechos afectados, no solo cuántos son.
 - TC-M07-380 (#1182): una falla al leer los datos financieros es ERROR_DATOS_FINANCIEROS; lo inesperado,
   ERROR_INTERNO_RF97.
+- TC-M07-382 (#1184): el mismo texto en NFC y en NFD produce el mismo cuerpo y el mismo hash.
 """
 import asyncio
 import json
@@ -134,3 +136,16 @@ def test_reglas_de_negocio_conservan_su_codigo():
     with pytest.raises(AppError) as exc:
         _consultar(_Fuente([_costo(11, cuenta=None)]))
     assert exc.value.code == "MAPPER_FALLIDO" and exc.value.status_code == 422
+
+
+def test_mismo_texto_en_nfc_y_nfd_da_el_mismo_hash_y_el_mismo_cuerpo():
+    import unicodedata
+
+    nfc = unicodedata.normalize("NFC", "Agroinsumos Café Ñandú SAS")
+    nfd = unicodedata.normalize("NFD", nfc)
+    assert nfc != nfd
+    a, b = _consultar(_Fuente([_costo(11, razon=nfc)])), _consultar(_Fuente([_costo(11, razon=nfd)]))
+    assert a.hash_contenido == b.hash_contenido
+    # los ExchangeId son aleatorios: se compara el contenido, no el cuerpo entero
+    assert json.loads(a.cuerpo)["invoices"] == json.loads(b.cuerpo)["invoices"]
+    assert json.loads(b.cuerpo)["invoices"][0]["ThirdParty"]["Name"] == nfc  # el cuerpo sale en NFC

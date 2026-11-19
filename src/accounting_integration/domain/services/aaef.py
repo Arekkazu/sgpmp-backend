@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
 # | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: todo MAPPER_FALLIDO dice el Mapper y el documento |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-382 RF-97: el envelope y su hash de contenido usan texto Unicode NFC |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -17,6 +18,7 @@ from __future__ import annotations
 
 import json
 import secrets
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -223,17 +225,32 @@ def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titul
 
 # --- RF-97: envelope, hash y tamaño ---------------------------------------------------------------
 
+def normalizar_nfc(valor):
+    """RNF-97.2/97.6: todo texto en Unicode NFC. Una «é» compuesta (U+00E9) y una «e» + tilde combinante
+    (U+0065 U+0301) se ven iguales pero son bytes distintos; sin normalizar darían hashes distintos."""
+    if isinstance(valor, str):
+        return unicodedata.normalize("NFC", valor)
+    if isinstance(valor, dict):
+        return {normalizar_nfc(k): normalizar_nfc(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [normalizar_nfc(v) for v in valor]
+    return valor
+
+
 def hash_contenido(invoices: list[dict]) -> str:
-    """SHA-256 de ``{invoices, transactions}`` canónico (claves ordenadas, importes de 2 decimales). RF-97 5.5."""
-    return hash_sha256({"invoices": invoices, "transactions": []})
+    """SHA-256 de ``{invoices, transactions}`` canónico (claves ordenadas, importes de 2 decimales, texto en
+    NFC). RF-97 5.5. La normalización va aquí y no en ``hash_sha256``, que M06 comparte con hashes ya guardados."""
+    return hash_sha256({"invoices": normalizar_nfc(invoices), "transactions": []})
 
 
 def construir_envelope(
     titular: Titular, desde: date, hasta: date, sistema: SistemaOrigen, generado_por: str, generado_en: date,
     compras: list[dict], comprobantes: list[dict],
 ) -> dict:
-    """Envelope con los nombres exactos que valida AgroFusion (RF-97 5.4)."""
-    invoices = sorted(compras + comprobantes, key=lambda d: d["Header"]["DocumentId"])
+    """Envelope con los nombres exactos que valida AgroFusion (RF-97 5.4). El texto sale en NFC, igual que el
+    que entra al hash de contenido."""
+    invoices = sorted(normalizar_nfc(compras + comprobantes), key=lambda d: d["Header"]["DocumentId"])
+    generado_por = normalizar_nfc(generado_por)
     bruto = sum((d["Totals"]["Subtotal"] for d in invoices), CERO)
     neto = sum((d["Totals"]["TotalPayment"] for d in invoices), CERO)
     return {
