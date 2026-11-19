@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: filtros de la bandeja, atender y descartar notificaciones |
+# | 2026-11-18 | Arekkazu | M08 RF-105 R6: preferencias de canal del usuario |
 """Router de la bandeja de notificaciones internas del usuario (RF-14, RF-105)."""
 from typing import Literal, Optional
 
@@ -18,15 +19,21 @@ from src.identity_access.application.use_cases.notificaciones.marcar_notificacio
 from src.identity_access.application.use_cases.notificaciones.marcar_todas_leidas_use_case import (
     MarcarTodasLeidasUseCase,
 )
+from src.identity_access.application.use_cases.notificaciones.preferencias_notificacion_use_case import (
+    ConsultarPreferenciasNotificacionUseCase,
+    GuardarPreferenciasNotificacionUseCase,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.notificacion_repository import (
     SqlAlchemyNotificacionRepository,
 )
 from src.identity_access.infrastructure.schema.notificacion_schema import (
     AtenderNotificacionDTO,
+    GuardarPreferenciasDTO,
     MarcadasLeidasResponse,
     NotificacionInternaResponse,
     NotificacionesPaginadasResponse,
+    PreferenciaNotificacionResponse,
 )
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse
@@ -167,3 +174,41 @@ def descartar_notificacion(
         notificaciones_repo=SqlAlchemyNotificacionRepository(db),
         db=db,
     ).execute(id_notificacion, usuario_actual.id_usuario)
+
+
+@router.get(
+    "/preferencias",
+    summary="Preferencias de canal por nivel (RF-105)",
+    response_model=list[PreferenciaNotificacionResponse],
+    responses={401: {"model": ErrorResponse}},
+)
+def consultar_preferencias(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    """Canales por nivel del usuario autenticado. Sin configurar rigen los valores por defecto: push en crítica y
+    advertencia, correo solo en crítica. La bandeja interna siempre está activa.
+
+    **Acceso:** autenticado (solo las propias)."""
+    return ConsultarPreferenciasNotificacionUseCase(SqlAlchemyNotificacionRepository(db)).execute(
+        usuario_actual.id_usuario)
+
+
+@router.put(
+    "/preferencias",
+    summary="Guardar preferencias de canal (RF-105)",
+    response_model=list[PreferenciaNotificacionResponse],
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}},
+)
+def guardar_preferencias(
+    dto: GuardarPreferenciasDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    """`{"preferencias": [{"nivel": "ADVERTENCIA", "canal": "PUSH", "habilitado": false}]}`. Solo push y correo:
+    la bandeja interna no se apaga. Nivel o canal fuera de su lista → 400.
+
+    **Acceso:** autenticado (solo las propias)."""
+    return GuardarPreferenciasNotificacionUseCase(SqlAlchemyNotificacionRepository(db), db).execute(
+        usuario_actual.id_usuario, [(p.nivel, p.canal, p.habilitado) for p in dto.preferencias])
+

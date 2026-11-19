@@ -4,6 +4,7 @@
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: resolver destinatarios activos por rol para el aviso manual. |
 # | 2026-11-15 | Arekkazu         | INC-M05-367/368-G02 RF-74: aviso en sesión de servicio, un evento por destinatario |
 # | 2026-11-15 | Arekkazu | QA-M06 RF-74: el aviso no espera el bloqueo de un destinatario (petición colgada en el sandbox) |
+# | 2026-11-18 | Arekkazu | M08 RF-105: sin destinatarios del rol, el aviso va al Administrador |
 """Adaptador de :class:`NotificacionSuministrosPort` sobre M01 (RF-10 + RF-14).
 
 Igual que la alerta de fallo de archivado de RF-10: cada aviso cuelga de un
@@ -25,6 +26,7 @@ from src.identity_access.infrastructure.repositories.notificacion_repository imp
     SqlAlchemyNotificacionRepository,
 )
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
+from src.shared.destinatarios import ids_administradores
 from src.shared.database import como_sistema, sesion_sistema
 from src.supplies.domain.repositories.notificacion_suministros_port import NotificacionSuministrosPort
 
@@ -88,7 +90,9 @@ class NotificacionSuministrosM01Adapter(NotificacionSuministrosPort):
         # Como servicio porque la RLS de usuarios solo deja ver el propio.
         try:
             with como_sistema(self.db):
-                return list(consulta())
+                ids = list(consulta())
+            # RF-105 Fase 1: sin nadie con ese rol o permiso, el aviso va al Administrador.
+            return ids or ids_administradores(self.db)
         except Exception:
             self.db.rollback()
             logger.exception("No se pudieron resolver los destinatarios de %s.", tipo_evento)
