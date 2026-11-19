@@ -32,6 +32,7 @@
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: router de ciclos productivos |
 # | 2026-11-14 | Arekkazu | M08 RF-103: router del dashboard por widgets |
 # | 2026-11-14 | Arekkazu | M08 RF-105: entrega de notificaciones, purga diaria y alertas cada 2 s |
+# | 2026-11-18 | Arekkazu | M08 RF-104..107: router de reportes, generación en fondo y vencimiento a las 48 h |
 import asyncio
 import logging
 import os
@@ -122,6 +123,9 @@ from src.supplies.infrastructure.routers.provision_nic41_router import router as
 from src.financial_valuation.infrastructure.routers.m06_router import router as m06_router
 from src.accounting_integration.infrastructure.routers.m07_router import router as m07_router
 from src.reporting.infrastructure.routers.dashboard_router import router as dashboard_router
+from src.reporting.infrastructure.routers.reportes_router import router as reportes_router
+from src.reporting.infrastructure.routers.historial_predictivo_router import router as historial_predictivo_router
+from src.configuration.infrastructure.routers.mensajes_error_router import router as mensajes_error_router
 from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria_suministros_router
 from src.identity_access.infrastructure.routers.agrofusion_integration_router import router as agrofusion_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
@@ -324,6 +328,47 @@ async def _entregar_notificaciones_periodicamente() -> None:
                     logger.info('PurgarNotificaciones: %d informativas antiguas borradas.', borradas)
         except Exception:
             logger.exception('EntregarNotificaciones: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _procesar_reportes_periodicamente() -> None:
+    """RF-104: cada 10 s genera los reportes de más de 1.000 registros (2 reintentos a 30 s) y, una vez por
+    hora, borra los archivos con más de 48 h."""
+    from datetime import datetime, timezone
+
+    from src.reporting.application.use_cases.reportes.expirar_reportes_use_case import ExpirarReportesUseCase
+    from src.reporting.application.use_cases.reportes.procesar_reportes_pendientes_use_case import (
+        ProcesarReportesPendientesUseCase,
+    )
+    from src.reporting.infrastructure.adapters.avisos_reportes_m01_adapter import AvisosReportesM01Adapter
+    from src.reporting.infrastructure.adapters.instantanea_reportes import abrir_instantanea
+    from src.reporting.infrastructure.adapters.renderizador_reportes import RenderizadorReportes
+    from src.reporting.infrastructure.adapters.solicitante_reportes import solicitante_en_segundo_plano
+    from src.reporting.infrastructure.repositories.solicitud_reporte_repository import (
+        SqlAlchemySolicitudReporteRepository,
+    )
+    from src.shared.database import sesion_sistema
+
+    ultima_expiracion = None
+    while True:
+        await asyncio.sleep(10)
+        db = sesion_sistema()
+        try:
+            repo = SqlAlchemySolicitudReporteRepository(db)
+            n = await asyncio.to_thread(ProcesarReportesPendientesUseCase(
+                db, repo, abrir_instantanea, RenderizadorReportes(), AvisosReportesM01Adapter(sesion_sistema),
+                solicitante_en_segundo_plano).execute)
+            if n:
+                logger.info('ProcesarReportes: %d reportes procesados.', n)
+            hora = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+            if ultima_expiracion != hora:
+                vencidos = await asyncio.to_thread(ExpirarReportesUseCase(db, repo).execute)
+                ultima_expiracion = hora
+                if vencidos:
+                    logger.info('ExpirarReportes: %d reportes vencidos.', vencidos)
+        except Exception:
+            logger.exception('ProcesarReportes: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -957,6 +1002,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_vencer_alertas_sla_periodicamente()),
         asyncio.create_task(_notificar_alertas_periodicamente()),
         asyncio.create_task(_entregar_notificaciones_periodicamente()),
+        asyncio.create_task(_procesar_reportes_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_asegurar_particiones_telemetrias_diariamente()),
@@ -1194,6 +1240,9 @@ app.include_router(auditoria_suministros_router)
 app.include_router(m06_router)
 app.include_router(m07_router)
 app.include_router(dashboard_router)
+app.include_router(reportes_router)
+app.include_router(historial_predictivo_router)
+app.include_router(mensajes_error_router)
 
 @app.get("/", tags=["Health"])
 async def index():

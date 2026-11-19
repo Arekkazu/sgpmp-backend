@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
+# | 2026-11-18 | Arekkazu | M08 RF-105: preferencias de canal y ventana de agrupación configurable |
 """Puerto del sistema de notificaciones (capa de dominio).
 
 Operaciones de comando y consulta para notificaciones y dispositivos FCM,
@@ -17,6 +18,10 @@ from datetime import datetime
 from typing import Any, Optional
 
 from src.identity_access.domain.entities.notificacion import Notificacion
+from src.identity_access.domain.value_objects.nivel_notificacion import (
+    VENTANA_AGRUPACION_POR_DEFECTO,
+    canal_por_defecto,
+)
 
 
 @dataclass(frozen=True)
@@ -45,6 +50,22 @@ class EntregaPendiente:
 
 class NotificacionRepository(ABC):
     """Contrato de acceso a datos para notificaciones y dispositivos FCM."""
+
+    def canal_habilitado(self, id_usuario: int, nivel: str, canal: str) -> bool:
+        """RF-105 R6: si el usuario recibe ``nivel`` por ``canal`` (PUSH o EMAIL). Sin preferencia, el valor
+        por defecto del RF."""
+        return canal_por_defecto(nivel, canal)
+
+    def ventana_agrupacion_minutos(self) -> int:
+        """Minutos en que avisos iguales sobre el mismo animal se agrupan (configurable en M09)."""
+        return VENTANA_AGRUPACION_POR_DEFECTO
+
+    def preferencias(self, id_usuario: int) -> dict[tuple[str, str], bool]:
+        """Preferencias guardadas del usuario: ``(nivel, canal) → habilitado``."""
+        return {}
+
+    def guardar_preferencias(self, id_usuario: int, preferencias: dict[tuple[str, str], bool]) -> None:
+        raise NotImplementedError
 
     @abstractmethod
     def registrar(
