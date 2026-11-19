@@ -46,6 +46,10 @@ class FuenteReportesRepository(ABC):
     def nombres_usuarios(self, ids: list[int]) -> dict[int, Optional[str]]:
         """Nombre visible de cada usuario (la RLS de usuarios oculta a los demás; solo se lee el nombre)."""
 
+    @abstractmethod
+    def opciones(self, tipo: str, fincas: Fincas) -> list[Fila]:
+        """Valores elegibles de un filtro de referencia (``valor``, ``etiqueta``) dentro del alcance."""
+
     # --- Productivos ---------------------------------------------------------------------------
 
     @abstractmethod

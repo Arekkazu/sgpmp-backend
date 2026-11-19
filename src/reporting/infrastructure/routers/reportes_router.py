@@ -1,9 +1,10 @@
 # | Fecha      | Nombre   | Que se hizo                                                          |
 # |------------|----------|----------------------------------------------------------------------|
-# | 2026-11-18 | Arekkazu | M08 RF-104: catálogo, vista previa, generación, descarga y cancelación |
+# | 2026-11-18 | Arekkazu | M08 RF-104: catálogo, opciones de filtros, vista previa, generación, descarga y cancelación |
 """Router FastAPI de reportes (`/reportes`, RF-104).
 
   GET   /reportes/catalogo                        — Reportes que el rol puede generar, con sus filtros.
+  GET   /reportes/opciones/{filtro}               — Valores de un filtro (fincas, animales, áreas…) del alcance.
   POST  /reportes/vista-previa                    — Primeras 20 filas o resumen, registros estimados.
   POST  /reportes                                 — Genera (≤1.000 registros, 201) o encola (>1.000, 202).
   GET   /reportes                                 — Mis reportes: estado y partes descargables.
@@ -15,7 +16,7 @@ se leen de ``modulo1.permisos`` en cada request y el caso de uso responde 403 si
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Response
@@ -49,7 +50,9 @@ from src.reporting.infrastructure.schema.reporte_schema import (
     ReporteResponse,
     VistaPreviaResponse,
 )
+from src.reporting.infrastructure.repositories.fuente_reportes_repository import SqlAlchemyFuenteReportesRepository
 from src.shared.database import get_db, sesion_sistema
+from src.shared.errors import AuthorizationError
 from src.shared.fechas import nombre_zona_usuario
 from src.shared.schemas import ErrorResponse
 
@@ -84,6 +87,18 @@ def _respuesta(s: SolicitudReporte, partes: list | None = None, estado: str | No
 def catalogo(db: Session = Depends(get_db), usuario_actual: UsuarioActual = Depends(get_current_user)):
     """**Acceso:** autenticado. Solo lista los tipos con permiso Ejecutar para el rol (vacío si no tiene ninguno)."""
     return ConsultarCatalogoReportesUseCase().execute(_solicitante(db, usuario_actual))
+
+
+@router.get("/opciones/{filtro}", response_model=list[dict[str, Any]], responses=_ERRORES,
+            summary="Valores elegibles de un filtro de reportes (RF-104)")
+def opciones(filtro: Literal["finca", "especie", "activo", "lote", "infraestructura", "sensor", "periodo"],
+             db: Session = Depends(get_db), usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """**Acceso:** permiso para generar al menos un reporte (403 si no). Solo lo de las fincas del usuario."""
+    solicitante = _solicitante(db, usuario_actual)
+    if not solicitante.permitidos:
+        raise AuthorizationError(code="REPORTE_NO_AUTORIZADO", field="filtro",
+                                 message="Tu rol no tiene permiso para generar reportes.")
+    return SqlAlchemyFuenteReportesRepository(db).opciones(filtro, solicitante.fincas)
 
 
 @router.post("/vista-previa", response_model=VistaPreviaResponse, responses=_ERRORES,

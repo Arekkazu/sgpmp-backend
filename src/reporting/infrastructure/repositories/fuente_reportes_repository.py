@@ -74,6 +74,35 @@ _SQL_UBICAR = {
     "especie": text("SELECT id_especie AS id, NULL::integer AS id_finca FROM modulo9.especies WHERE id_especie = :id"),
 }
 
+_SQL_OPCIONES = {
+    "finca": text("SELECT f.id_finca AS valor, f.nombre AS etiqueta FROM modulo9.fincas f "
+                  "WHERE CAST(:fincas AS integer[]) IS NULL OR f.id_finca = ANY(:fincas) ORDER BY f.nombre"),
+    "especie": text("SELECT id_especie AS valor, nombre AS etiqueta FROM modulo9.especies WHERE es_activo ORDER BY nombre"),
+    "activo": text(f"""SELECT ab.id_activo_biologico AS valor, {_NOMBRE} || ' · ' || COALESCE(e.nombre, '') AS etiqueta
+                       FROM modulo2.activos_biologicos ab {_ACTIVO} WHERE {_EN_FINCAS}
+                       ORDER BY 2 LIMIT 1000"""),
+    "lote": text(f"""SELECT ab.id_activo_biologico AS valor, {_NOMBRE} || ' · ' || COALESCE(e.nombre, '') AS etiqueta
+                     FROM modulo2.activos_biologicos ab {_ACTIVO}
+                     WHERE {_EN_FINCAS} AND ab.tipo::text = 'POBLACIONAL' ORDER BY 2 LIMIT 1000"""),
+    "infraestructura": text(f"""SELECT i.id_infraestructura AS valor, i.nombre || ' · ' || f.nombre AS etiqueta
+                                FROM modulo9.infraestructuras i JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+                                WHERE i.es_activo AND {_EN_FINCAS} ORDER BY 2"""),
+    "sensor": text(f"""SELECT s.id_sensores AS valor, COALESCE(s.nombre, 'Sensor') || ' · ' || d.serial AS etiqueta
+                       FROM modulo9.sensores s JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot
+                       JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura
+                       WHERE s.es_activo AND {_EN_FINCAS} ORDER BY 2"""),
+    "periodo": text(f"""SELECT pc.id_periodo_contable AS valor,
+                              to_char(pc.fecha_inicio, 'DD/MM/YYYY') || ' a ' || to_char(pc.fecha_fin, 'DD/MM/YYYY')
+                              || CASE pc.estado::text WHEN 'CERRADO' THEN ' · cerrado' WHEN 'ABIERTO' THEN ' · abierto'
+                                 ELSE ' · en cierre' END AS etiqueta,
+                              pc.estado::text AS estado
+                       FROM modulo6.periodos_contables pc
+                       WHERE {alcance_titular('pc.numero_id_tributaria')}
+                         AND (CAST(:fincas AS integer[]) IS NULL OR pc.numero_id_tributaria IN (
+                              SELECT f.numero_id_tributaria FROM modulo9.fincas f WHERE f.id_finca = ANY(:fincas)))
+                       ORDER BY pc.fecha_fin DESC LIMIT 120"""),
+}
+
 _SQL_PERIODO = text(f"""
     SELECT pc.id_periodo_contable, pc.fecha_inicio, pc.fecha_fin, pc.estado::text AS estado,
            pc.numero_id_tributaria AS nit, {alcance_titular('pc.numero_id_tributaria')} AS accesible
@@ -634,6 +663,9 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
         with como_sistema(self.db):  # 404 frente a 403: la RLS escondería la de otra finca
             filas = self._filas(consulta, {"id": id_referencia})
         return filas[0] if filas else None
+
+    def opciones(self, tipo: str, fincas: Fincas) -> list[Fila]:
+        return self._filas(_SQL_OPCIONES[tipo], {"fincas": fincas})
 
     def periodo(self, id_periodo: int) -> Optional[Fila]:
         filas = self._filas(_SQL_PERIODO, {"id": id_periodo})
