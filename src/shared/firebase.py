@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                  |
+# |------------|----------|--------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-105: el push lleva datos (destino, nivel, notificación) |
 """Adaptador para Firebase Cloud Messaging (FCM).
 
 Inicializa el SDK de Firebase de forma lazy usando la variable de entorno
@@ -7,6 +10,7 @@ lanzar excepciones, permitiendo que el sistema opere sin notificaciones push.
 """
 import logging
 import os
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ def _get_app():
     return _app
 
 
-def send_push(token: str, titulo: str, cuerpo: str) -> bool:
+def send_push(token: str, titulo: str, cuerpo: str, datos: Optional[dict] = None) -> bool:
     """Envía una notificación push a un dispositivo vía Firebase Cloud Messaging.
 
     Nunca lanza excepciones. Si Firebase no está configurado o el envío
@@ -54,6 +58,8 @@ def send_push(token: str, titulo: str, cuerpo: str) -> bool:
         token: FCM token del dispositivo destino. Debe ser no vacío.
         titulo: Título visible de la notificación push.
         cuerpo: Texto del cuerpo de la notificación push.
+        datos: Datos para la app (RF-105): ``url`` de destino al hacer clic, ``id_notificacion``,
+            ``nivel``, finca y área. FCM solo acepta textos; ``None`` se omite.
 
     Returns:
         ``True`` si el mensaje fue aceptado por FCM, ``False`` en cualquier
@@ -71,6 +77,7 @@ def send_push(token: str, titulo: str, cuerpo: str) -> bool:
         from firebase_admin import messaging
         message = messaging.Message(
             notification=messaging.Notification(title=titulo, body=cuerpo),
+            data={k: str(v) for k, v in (datos or {}).items() if v is not None} or None,
             # Sin Urgency, el web push sale con prioridad normal y el navegador
             # o el SO pueden diferir la entrega en segundo plano.
             webpush=messaging.WebpushConfig(headers={"Urgency": "high"}),

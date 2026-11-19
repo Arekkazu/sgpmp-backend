@@ -1,3 +1,26 @@
+## [1.4.0-rc.78](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.77...v1.4.0-rc.78) (2026-11-18)
+
+### Features
+
+* **rf103-mod8:** dashboard por widgets con datos de cada módulo y opciones configurables ([b5c8a35](https://github.com/Arekkazu/sgpmp-backend/commit/b5c8a3594226fc3286073de16069aa25f6358f99))
+* **rf105-mod8:** ciclo de vida de notificaciones con niveles, entrega por push con reintentos y filtros ([1d1982a](https://github.com/Arekkazu/sgpmp-backend/commit/1d1982adcaa2886cb8bfa8e656f930bd47b89424))
+
+### Bug Fixes
+
+* **rf103-mod8:** huella del widget con SHA-256 y consultas del dashboard armadas junto a su SQL ([2e8e9f7](https://github.com/Arekkazu/sgpmp-backend/commit/2e8e9f794ca84b2e0315265f3896273160d83053))
+
+## [1.4.0-rc.77](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.76...v1.4.0-rc.77) (2026-11-17)
+
+### Bug Fixes
+
+* **rf74-mod5:** los avisos de suministros nombran el activo y su estado, sin ids ni «CA» ([a61f02e](https://github.com/Arekkazu/sgpmp-backend/commit/a61f02e07cf7cf4e7d41701894f170b1482525d5))
+
+## [1.4.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.75...v1.4.0-rc.76) (2026-11-16)
+
+### Bug Fixes
+
+* **rf02-mod1:** el ingreso por AgroFusion de un correo nuevo ya no responde 500 ([008657d](https://github.com/Arekkazu/sgpmp-backend/commit/008657dbf7c74bcf796118c7f4172ec01cc3a6d0))
+
 ## [1.4.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.74...v1.4.0-rc.75) (2026-11-16)
 
 ### Bug Fixes

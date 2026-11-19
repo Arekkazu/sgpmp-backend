@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: existe() distingue un activo ajeno (403) de uno inexistente (404) |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Puerto de consulta del activo biológico (RF-33 / RF-36) para el módulo de suministros.
 
 El dominio de suministros solo necesita leer ciertos atributos del activo para
@@ -37,6 +38,13 @@ class ActivoConsulta:
     def nombre_visible(self) -> str:
         """Cómo se nombra el activo en un mensaje: su identificador, nunca el id interno."""
         return self.identificador or "seleccionado"
+
+    @property
+    def estado_visible(self) -> str:
+        """Cómo se nombra el estado en un mensaje («en tratamiento», «dado de baja»), nunca el código."""
+        if not self.nombre_estado:
+            return "fuera de producción"
+        return "dado de baja" if self.nombre_estado == "BAJA" else self.nombre_estado.replace("_", " ").lower()
 
     @property
     def es_poblacional(self) -> bool:

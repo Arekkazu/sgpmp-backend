@@ -103,6 +103,7 @@ def _construir_caso_de_uso(auditoria_falla: bool):
     )
     periodos.ultima_ejecucion.return_value = {'activos_excluidos': []}
     reportes = MagicMock()
+    reportes.hechos_sin_asiento.return_value = []
     reportes.movimientos.return_value = []
     reportes.siguiente_version_estado.return_value = 1
     reportes.agregar_estado.return_value = 1

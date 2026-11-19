@@ -8,6 +8,7 @@
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: incidente en auditoría cuando el registro falla con 500/503 |
 # | 2026-11-12 | Arekkazu | Lote M05/M06 11-12 RF-76: el detalle del incidente en palabras; el error técnico va al log |
 # | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: tipo de suministro en el fallo del registro de medicamento |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -190,7 +191,7 @@ class RegistrarMedicamentoUseCase:
         if activo is None:
             raise NotFoundError(
                 code="ACTIVO_NO_ENCONTRADO",
-                message=f"El activo biológico con ID {dto.id_activo_biologico} no existe.",
+                message="El activo biológico seleccionado no existe.",
                 field="id_activo_biologico",
             )
 
@@ -199,8 +200,8 @@ class RegistrarMedicamentoUseCase:
                 code="ACTIVO_ESTADO_INVALIDO",
                 message=(
                     "No es posible registrar una aplicación de medicamento para el activo "
-                    f"{activo.nombre_visible} porque su estado actual es {activo.nombre_estado}. Solo se "
-                    "permite el registro sobre activos en estado ACTIVO."
+                    f"{activo.nombre_visible} porque está {activo.estado_visible}. Solo se "
+                    "permite el registro sobre activos en estado activo o en tratamiento."
                 ),
                 field="id_activo_biologico",
             )

@@ -136,6 +136,7 @@ class TestSubCasoABCConsolidadoSiempreDisponibleEInalteradoPorUnTriggerReal:
         periodos.obtener.return_value = _periodo('CERRADO')
         periodos.ultima_ejecucion.return_value = {'activos_excluidos': []}
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = []
         reportes.siguiente_version_estado.side_effect = [1, 2, 3]
         reportes.agregar_estado.side_effect = [101, 102, 103]

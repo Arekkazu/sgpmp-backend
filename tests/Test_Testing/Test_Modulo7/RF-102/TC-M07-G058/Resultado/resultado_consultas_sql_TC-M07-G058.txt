@@ -1,0 +1,38 @@
+=== PROBE eventos_integracion ===
+ existe 
+--------
+ f
+(1 row)
+
+
+=== CATALOGO modulo7 relevante ===
+ table_schema |          table_name           
+--------------+-------------------------------
+ modulo7      | v_rf101_historial_cliente
+ modulo7      | v_rf102_auditoria_integracion
+ modulo7      | v_rf102_stats_auditoria
+(3 rows)
+
+
+=== pg_cron ===
+ tiene_pg_cron 
+---------------
+ f
+(1 row)
+
+
+=== contraste M01 eventos_archivados (NO es RF-102) ===
+           objeto           | existe 
+----------------------------+--------
+ modulo1.eventos_archivados | t
+(1 row)
+
+
+
+[INFO] modulo7.eventos_integracion NO existe en Docker local sgpmp. La migración RF-102 (94b14a6931d6) no está aplicada en esta BD. Las estadísticas de retención/hash en vivo se obtienen vía API TEST (ejecutar_tc_m07_g58.py). No se creó ni migró nada.
+
+=== funciones modulo7 ===
+ nspname | proname 
+---------+---------
+(0 rows)
+

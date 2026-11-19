@@ -53,7 +53,7 @@ class _Notificacion:
                               activo="BOV-001" if id_activo_biologico else None, sensor="DS18B20" if id_sensor else None)
     def destinatarios(self, area, *, escalamiento): return [10, 11] if not escalamiento else [20]
     def administradores(self): return [1]
-    def enviar(self, id_usuario, titulo, cuerpo, *, agrupable):
+    def enviar(self, id_usuario, titulo, cuerpo, *, agrupable, alerta=None):
         self.enviadas.append((id_usuario, titulo, agrupable))
         self.cuerpos.append(cuerpo)
         return False if self.falla else True

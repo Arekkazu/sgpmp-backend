@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>TC-M07-G055 — RF-102 — APROBADO</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f7f7f5;color:#1a1a1a}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+th{background:#e8eef5} .note{background:#eef6ff;border-left:4px solid #2563eb;padding:10px;margin:12px 0}
+.lim{background:#fff8e6;border-left:4px solid #9a6b00;padding:10px;margin:12px 0}
+.meta span{display:inline-block;margin-right:16px;margin-bottom:6px}
+</style></head><body>
+<h1>TC-M07-G055 — Consulta, filtros y paginación del historial de auditoría</h1>
+<div class="card meta">
+  <span><strong>RF-102 · CU07</strong></span>
+  <span><strong>Endpoint:</strong> GET /integracion/auditoria</span>
+  <span><strong>Estado:</strong> <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></span>
+  <span><strong>UTC:</strong> 2026-11-18T02:35:38.245753+00:00</span>
+</div>
+<div class="note">Filtros reales: tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http, numero_id_tributaria.
+Paginación: pagina, tamano (1–100). Orden: fecha_evento DESC, id_evento_integracion. Condición AND en SQL.
+Solo Admin. Sin INSERT/UPDATE/DELETE en TEST. SQL de comparación: no ejecutado contra BD compartida.</div>
+<div class="card"><h2>Escenarios</h2>
+<table><thead><tr><th>ID</th><th>Original</th><th>Nombre</th><th>Estado</th><th>Validación</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>E1</td><td>TC-M07-102-011</td><td>Consulta y filtros</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Filtros individuales y AND</td><td>evidencia_e1_filtros_TC-M07-G055.json</td></tr><tr><td>E2</td><td>TC-M07-102-012</td><td>Paginación y límite 100</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Paginación y máximo 100</td><td>evidencia_e2_paginacion_TC-M07-G055.json</td></tr></tbody></table></div>
+<div class='card'><h3>E1 — TC-M07-102-011: Consulta y filtros <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Solo eventos que cumplen filtros; combinación AND</p><p><strong>Obtenido:</strong> indiv_ok=7; and=APROBADO; fallos=ninguno</p><p><strong>Evidencia:</strong> <code>evidencia_e1_filtros_TC-M07-G055.json</code></p><ul><li>GET baseline pagina=1 tamano=100</li><li>Filtros individuales con valores de la muestra</li><li>Combinación AND de ≥2 filtros</li><li>Caso sin coincidencias / parámetro inválido</li></ul><p><strong>Observaciones:</strong> Filtros omitidos si la muestra no tenía valor (p.ej. NIT).</p></div><div class='card'><h3>E2 — TC-M07-102-012: Paginación y límite 100 <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Ninguna página &gt;100; sin duplicados; tamano&gt;100 rechazado o limitado</p><p><strong>Obtenido:</strong> total=145; páginas=2; ids_únicos=145; máx_items=100; tamano_101={&#x27;http&#x27;: 400, &#x27;esperado&#x27;: [400, 422], &#x27;ok&#x27;: True, &#x27;comportamiento&#x27;: &#x27;rechazo de validación (no se devuelve página &gt;100)&#x27;}; fuera_rango={&#x27;pagina&#x27;: 7, &#x27;http&#x27;: 200, &#x27;items&#x27;: 0, &#x27;ok&#x27;: True}; fallos=ninguno</p><p><strong>Evidencia:</strong> <code>evidencia_e2_paginacion_TC-M07-G055.json</code></p><ul><li>Verificar total &gt;100</li><li>Recorrer páginas tamano=100</li><li>Comprobar solape p1/p2 y tope 100</li><li>tamano=101 → 422; página fuera de rango → items=[]</li></ul><p><strong>Observaciones:</strong> Orden determinista por fecha_evento DESC + id_evento_integracion.</p></div>
+<div class="lim"><h3>Limitaciones</h3><pre>[
+  &quot;Comparación SQL de solo lectura no ejecutada contra BD TEST compartida (política del caso).&quot;,
+  &quot;Consultas Admin no generan ACCESO_AUDITORIA_DENEGADO; el total puede crecer por otros actores concurrentes.&quot;,
+  &quot;Validación de Query (tamano&gt;100, pagina&lt;1, codigo_http fuera de rango) responde HTTP 400 en TEST (manejador global), no 422.&quot;
+]</pre></div>
+<div class="card"><h3>Resumen</h3><pre>{
+  &quot;aprobados&quot;: 2,
+  &quot;rechazados&quot;: 0,
+  &quot;bloqueados&quot;: 0,
+  &quot;no_aplica&quot;: 0,
+  &quot;estado_final&quot;: &quot;APROBADO&quot;,
+  &quot;total_eventos&quot;: 145
+}</pre>
+<pre>{
+  &quot;filtros&quot;: [
+    &quot;tipo_evento&quot;,
+    &quot;id_cliente_externo&quot;,
+    &quot;desde&quot;,
+    &quot;hasta&quot;,
+    &quot;endpoint&quot;,
+    &quot;codigo_http&quot;,
+    &quot;numero_id_tributaria&quot;
+  ],
+  &quot;paginacion&quot;: {
+    &quot;pagina&quot;: &quot;int ge=1 default 1&quot;,
+    &quot;tamano&quot;: &quot;int 1..100 default 50&quot;
+  },
+  &quot;respuesta&quot;: [
+    &quot;items&quot;,
+    &quot;pagina&quot;,
+    &quot;tamano&quot;,
+    &quot;total&quot;
+  ],
+  &quot;and&quot;: true,
+  &quot;orden&quot;: &quot;fecha_evento DESC, id_evento_integracion&quot;
+}</pre></div>
+</body></html>

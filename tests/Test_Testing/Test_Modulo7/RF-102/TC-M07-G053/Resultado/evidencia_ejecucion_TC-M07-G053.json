@@ -1,0 +1,201 @@
+{
+  "caso": "TC-M07-G053",
+  "requisito": "RF-102",
+  "fecha_ejecucion_utc": "2026-11-18T02:01:38.010143+00:00",
+  "entorno_api": "TEST",
+  "estado_final": "APROBADO",
+  "escenarios": [
+    {
+      "id": "E1",
+      "caso_original": "TC-M07-102-005",
+      "nombre": "Hash SHA-256",
+      "estado": "APROBADO",
+      "tipo_prueba": "API TEST + unitario + Postgres aislado",
+      "esperado": "Hashes válidos / integridad verificable",
+      "obtenido": "API: 50 eventos con integridad=INTEGRO; hash_integridad en respuesta=False. Unitario SHA-256 OK. Postgres aislado: hash Python==hash DB.",
+      "evidencia": "evidencia_e1_hash_TC-M07-G053.json",
+      "pasos": [
+        "Login Admin y GET /integracion/auditoria (muestra 50)",
+        "Verificar campo integridad=INTEGRO en API (hash_integridad no expuesto en asdict)",
+        "pytest: recalcular SHA-256(JSON sort_keys) vs EventoIntegracion.hash_integridad",
+        "Postgres aislado: INSERT con hash correcto y comparar hash_python == hash_db"
+      ],
+      "observaciones": "hash_integridad es @property excluida del cálculo; API expone integridad recalculada."
+    },
+    {
+      "id": "E2",
+      "caso_original": "TC-M07-102-006",
+      "nombre": "Detección corrupción",
+      "estado": "APROBADO",
+      "tipo_prueba": "Unitario + Postgres aislado (INSERT hash falso)",
+      "esperado": "CORRUPTO + alerta",
+      "obtenido": "INSERT hash falso + _presentar → CORRUPTO; alerta=True. Sin UPDATE en TEST (triggers lo impedirían; corrupción simulada por hash almacenado incorrecto).",
+      "evidencia": "evidencia_e2_corrupcion_TC-M07-G053.json",
+      "pasos": [
+        "Unitario: _presentar con hash_guardado distinto → CORRUPTO + alertar",
+        "BD temporal: INSERT con hash falso (sin UPDATE; triggers lo impedirían)",
+        "Aplicar _presentar sobre el registro aislado y capturar alerta",
+        "DROP DATABASE sgpmp_g053_e_tmp"
+      ],
+      "observaciones": "No se alteró la BD compartida de TEST. Corrupción = desajuste hash almacenado vs contenido."
+    },
+    {
+      "id": "E3",
+      "caso_original": "TC-M07-102-007",
+      "nombre": "Inmutabilidad",
+      "estado": "APROBADO",
+      "tipo_prueba": "API TEST PUT/PATCH/DELETE + triggers SQL aislados",
+      "esperado": "Rechazo sin alterar registros",
+      "obtenido": "API PUT/PATCH/DELETE → 405; eventos INTENTO total=11. SQL triggers UPDATE/DELETE/TRUNCATE bloqueados (TGR-M07-14).",
+      "evidencia": "evidencia_e3_inmutabilidad_TC-M07-G053.json + evidencia_e3_inmutabilidad_sql_TC-M07-G053.json",
+      "pasos": [
+        "PUT /integracion/auditoria → 405",
+        "PATCH /integracion/auditoria → 405",
+        "DELETE /integracion/auditoria → 405",
+        "GET filtro INTENTO_MODIFICACION_AUDITORIA",
+        "Postgres aislado: UPDATE/DELETE/TRUNCATE → TGR-M07-14"
+      ],
+      "observaciones": "PUT, PATCH y DELETE comprobados de forma independiente (no por analogía)."
+    },
+    {
+      "id": "E4",
+      "caso_original": "TC-M07-102-008",
+      "nombre": "Protección sensible",
+      "estado": "APROBADO",
+      "tipo_prueba": "API TEST + unitario (HMAC NO APLICA)",
+      "esperado": "Sin secretos expuestos",
+      "obtenido": "Sin exposición de client_secret/tokens en muestra API; snapshot sin secretos; vista restringida oculta ip/json_detalle (unitario). HMAC 8*** → NO APLICA.",
+      "evidencia": "evidencia_e4_enmascaramiento_TC-M07-G053.json",
+      "pasos": [
+        "Escanear items de auditoría y export JSON por secretos/valores ficticios",
+        "Unitario: ClienteExterno.snapshot sin secretos",
+        "Unitario: vista restringida oculta ip_origen y json_detalle",
+        "Buscar lógica HMAC[:8]+*** en accounting_integration"
+      ],
+      "observaciones": "Regla HMAC 8*** no implementada (NO APLICA). Protección por diseño: no se persisten secretos en eventos."
+    }
+  ],
+  "peticiones": [
+    {
+      "fase": "login_admin",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "respuesta_resumen": {
+        "ok": true,
+        "tiene_token": {
+          "omitido": true
+        }
+      }
+    },
+    {
+      "fase": "consulta_auditoria",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tamano=50",
+      "http": 200,
+      "respuesta_resumen": {
+        "total": 139,
+        "items": 50,
+        "claves_item": [
+          "codigo_http",
+          "codigo_resultado",
+          "correo_usuario",
+          "endpoint",
+          "fecha_desde",
+          "fecha_evento",
+          "fecha_hasta",
+          "fecha_registro",
+          "hash_contenido",
+          "id_cliente_externo",
+          "id_evento_integracion",
+          "id_intercambio",
+          "id_solicitud",
+          "id_usuario",
+          "integridad",
+          "ip_origen",
+          "json_detalle",
+          "latencia_ms",
+          "metodo_http",
+          "modulo",
+          "nombre_cliente",
+          "numero_id_tributaria",
+          "severidad",
+          "tamano_payload_bytes",
+          "tipo_actor",
+          "tipo_evento",
+          "version_contrato"
+        ]
+      }
+    },
+    {
+      "fase": "inmutabilidad_api_PUT",
+      "metodo": "PUT",
+      "ruta": "/integracion/auditoria",
+      "http": 405,
+      "respuesta_resumen": {
+        "error_code": "METODO_NO_PERMITIDO",
+        "message": "La auditoría de la integración no se puede modificar.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:01:33.075992+00:00"
+      }
+    },
+    {
+      "fase": "inmutabilidad_api_PATCH",
+      "metodo": "PATCH",
+      "ruta": "/integracion/auditoria",
+      "http": 405,
+      "respuesta_resumen": {
+        "error_code": "METODO_NO_PERMITIDO",
+        "message": "La auditoría de la integración no se puede modificar.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:01:33.853010+00:00"
+      }
+    },
+    {
+      "fase": "inmutabilidad_api_DELETE",
+      "metodo": "DELETE",
+      "ruta": "/integracion/auditoria",
+      "http": 405,
+      "respuesta_resumen": {
+        "error_code": "METODO_NO_PERMITIDO",
+        "message": "La auditoría de la integración no se puede modificar.",
+        "fields": [],
+        "timestamp": "2026-11-18T02:01:34.804118+00:00"
+      }
+    },
+    {
+      "fase": "verificar_intento",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=INTENTO_MODIFICACION_AUDITORIA",
+      "http": 200,
+      "respuesta_resumen": {
+        "total": 11
+      }
+    },
+    {
+      "fase": "exportar_auditoria",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria/exportar?formato=json",
+      "http": 200,
+      "respuesta_resumen": {
+        "ok": true,
+        "tipo": "list",
+        "hallazgos_sensible": 0
+      }
+    }
+  ],
+  "limitaciones": [
+    "GET /integracion/auditoria expone campo 'integridad' (INTEGRO/CORRUPTO) vía _presentar; no incluye hash_integridad en asdict(evento). Recálculo independiente vs hash almacenado se validó en unitario + INSERT aislado.",
+    "Regla HMAC primeros 8 caracteres + '***': no implementada en src/accounting_integration (protección por diseño: no se persisten secretos/tokens/envelope en eventos_integracion)."
+  ],
+  "resumen": {
+    "aprobados": 4,
+    "rechazados": 0,
+    "bloqueados": 0,
+    "no_aplica": 0,
+    "estado_final": "APROBADO"
+  },
+  "pytest_ok": true,
+  "postgres_ok": true,
+  "errores": null
+}

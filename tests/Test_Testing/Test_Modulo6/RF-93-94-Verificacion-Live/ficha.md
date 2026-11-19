@@ -1,5 +1,30 @@
 # Verificación en vivo RF-93/RF-94 (Módulo 6) contra TEST
 
+## Actualización 2026-11-17 — causa raíz del dashboard mostrando "Rechazado"
+
+El dashboard de la líder de pruebas lee el **archivo HTML base sin sufijo**
+(`resultado_TC-M06-Gxx.html`) de cada carpeta `resultados/`, no los
+`_reintentoN.html` que veníamos generando en cada ronda. Como nunca
+sobrescribíamos ese archivo base, seguía mostrando el reporte original del
+11-nov (antes de cualquier corrección) para los 22 TC que tocamos esta
+sesión, sin importar cuántas rondas de `_reintentoN` hiciéramos.
+
+**Corregido:** se regeneró el archivo base de los 22 TC (G71-G82, G85-G94)
+con el resultado final real. **Convención desde ahora:** generar siempre
+`--html=resultados/resultado_TC-M06-Gxx.html` (sin sufijo, sobrescribiendo)
+como el reporte "oficial" que lee el dashboard; usar `_reintentoN` solo como
+historial adicional, nunca como el único reporte actualizado.
+
+De paso, al regenerar se encontraron 6 archivos con mocks desactualizados
+por la llegada de más commits del equipo desde el 13-nov (el nuevo chequeo
+`reportes.hechos_sin_asiento()` del fix de conciliación de G74/PR #1121
+rompía cualquier mock de `reportes` que no lo esperara, y un commit
+posterior `8e5c5b13` separó "venta" de "pérdida sin recuperación" en
+componentes de gasto distintos) — corregidos: G72, G74, G78, G79, G80,
+G81, G85. Estado final confirmado: todos los 22 TC en verde excepto G80 (1
+hallazgo genuino, más angosto que el original), G93 (3) y G94 (6), todos
+ya documentados como abiertos.
+
 **Fecha:** 2026-11-12
 **Herramienta:** Newman/Postman (`tc_m06_rf93_rf94_live.postman_collection.json`)
 **Entorno:** TEST (`https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`)

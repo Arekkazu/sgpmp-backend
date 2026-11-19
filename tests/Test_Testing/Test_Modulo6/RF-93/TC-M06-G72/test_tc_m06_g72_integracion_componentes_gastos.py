@@ -115,14 +115,18 @@ class TestSubCasoDBajasActivosVentaYPerdidaCorregido:
         er = estado_resultados([venta], [])
         assert er.componentes['bajas_activos'] == Decimal('500.00')
 
-    def test_una_baja_por_perdida_real_sin_recuperacion_ahora_si_suma_en_bajas_activos(self):
-        """CORREGIDO (commit e0ecfc93, INC-M06-358-G71/G72): antes, una perdida real
-        (sentido=PERDIDA) no tenia mapeo en _COMPONENTE_LINEA y el estado de resultados la
-        ignoraba por completo. Ahora (BAJA_ACTIVO, PERDIDA) mapea al mismo componente
-        'bajas_activos' que una baja por venta -- la perdida ya cuenta como gasto real."""
+    def test_una_baja_por_perdida_real_sin_recuperacion_ahora_si_cuenta_como_gasto(self):
+        """CORREGIDO, refinado dos veces: commit e0ecfc93 (INC-M06-358-G71/G72) primero mapeo
+        (BAJA_ACTIVO, PERDIDA) junto con las ventas a 'bajas_activos'; commit 8e5c5b13 (#1083,
+        posterior a la venta como ingreso de INC-M06-364-G71) los separo en componentes
+        distintos: venta/sacrificio (UNICO) sigue en 'bajas_activos', pero una perdida real sin
+        recuperacion (PERDIDA, ej. muerte) ahora tiene su propio componente
+        'perdidas_bajas_sin_recuperacion'. En ambos casos la perdida real ya cuenta como gasto
+        -- antes, antes de e0ecfc93, no tenia mapeo en absoluto y se ignoraba."""
         perdida_real = MovimientoResultado(TipoHecho.BAJA_ACTIVO.value, Sentido.PERDIDA.value, Decimal('800.00'))
         er = estado_resultados([perdida_real], [])
-        assert er.componentes['bajas_activos'] == Decimal('800.00')
+        assert er.componentes['perdidas_bajas_sin_recuperacion'] == Decimal('800.00')
+        assert er.componentes['bajas_activos'] == 0
         assert sum(er.componentes.values()) == Decimal('800.00')
 
     def test_no_existe_un_campo_de_valor_de_recuperacion_distinto_del_valor_en_libros_por_proporcion(self):

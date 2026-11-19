@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de cada flujo alterno      |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Entidad de dominio :class:`ResultadoICA` (RF-74 / CU-02).
 
 Representa el resultado del cálculo del ICA de un activo en un período. Es pura
@@ -105,7 +106,7 @@ class ResultadoICA:
                 if self.peso_inicial_kg is not None and self.peso_final_kg is not None
                 else ""
             )
-            return f"La ganancia de peso en el período es cero o negativa{pesos}. El CA no es calculable."
+            return f"La ganancia de peso en el período es cero o negativa{pesos}. El ICA no se puede calcular."
         if causa == CausaNoCalculo.PESO_INVALIDO and self.pesaje_descartado is not None:
             fecha, valor = self.pesaje_descartado
             return (
@@ -114,7 +115,7 @@ class ResultadoICA:
             )
         if causa == CausaNoCalculo.PESO_INVALIDO:
             return "Los registros de pesaje del período tienen valores fuera del rango válido para la especie."
-        return "Existen registros con valores corruptos o fuera de rango; el CA no es calculable."
+        return "Existen registros con valores corruptos o fuera de rango; el ICA no se puede calcular."
 
     @property
     def es_critica(self) -> bool:

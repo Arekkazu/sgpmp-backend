@@ -87,6 +87,7 @@ class TestSubCasoAUnaCategoriaSinRegistrosQuedaEnCeroSinError:
 
     def test_el_indicador_sin_actividad_si_existe_y_lista_los_componentes_vacios(self):
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = [
             {'tipo_hecho': 'VARIACION_VR_TB', 'sentido': 'GANANCIA', 'valor': '10.00', 'es_reverso': False},
         ]
@@ -102,6 +103,7 @@ class TestSubCasoAUnaCategoriaSinRegistrosQuedaEnCeroSinError:
         antes de convertir a texto, asi que un componente sin actividad serializa
         '0.0000' (4 decimales), como pide la ficha -- antes salia '0'."""
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = []
         costos = MagicMock()
         costos.del_periodo.return_value = []
@@ -121,6 +123,7 @@ class TestSubCasoBHLosActivosExcluidosAhoraSiSeExcluyenCorregido:
         id_activo_biologico, el formato real que entrega el cierre) y calcular() los
         agrega a la consulta real de movimientos/costos -- ya no es solo metadato."""
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = [
             {'tipo_hecho': 'VARIACION_VR_TB', 'sentido': 'GANANCIA', 'valor': '100.00', 'es_reverso': False},
         ]
@@ -143,6 +146,7 @@ class TestSubCasoBHLosActivosExcluidosAhoraSiSeExcluyenCorregido:
         periodos.obtener.return_value = _periodo()
         periodos.ultima_ejecucion.return_value = {'activos_excluidos': [{'id_activo_biologico': 42}]}
         reportes = MagicMock()
+        reportes.hechos_sin_asiento.return_value = []
         reportes.movimientos.return_value = [
             {'tipo_hecho': 'BAJA_ACTIVO', 'sentido': 'UNICO', 'valor': '250.00', 'es_reverso': False},
         ]

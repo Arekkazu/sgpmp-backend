@@ -2,13 +2,17 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-32 RF-57: puerto de notificación de alertas (destinatarios, envío, reintento) |
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: nombres del área, finca, animal y sensor para los correos de alertas |
+# | 2026-11-14 | Arekkazu | M08 RF-105: la alerta viaja para fijar nivel y destino |
 """Puerto de notificación de alertas de RF-57 (Fase 8, E6, E7, E8, E10)."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from src.telemetry.domain.entities.alerta import Alerta
 
 
 @dataclass(frozen=True)
@@ -40,10 +44,13 @@ class NotificacionAlertaPort(ABC):
         """Usuarios con el rol protegido (Administrador), sin importar la finca."""
 
     @abstractmethod
-    def enviar(self, id_usuario: int, titulo: str, cuerpo: str, *, agrupable: bool) -> Optional[bool]:
+    def enviar(self, id_usuario: int, titulo: str, cuerpo: str, *, agrupable: bool,
+               alerta: Optional["Alerta"] = None) -> Optional[bool]:
         """Bandeja + push + correo por el canal de RF-14. ``agrupable`` aplica la ventana
-        anti-spam (LEVE/MODERADO); CRITICO nunca se agrupa. Devuelve ``False`` si el correo
-        se intentó y falló (E7), ``True`` si salió y ``None`` si no se intentó."""
+        anti-spam (LEVE/MODERADO); CRITICO nunca se agrupa. ``alerta`` fija el nivel de la
+        notificación, el animal (para agrupar) y a qué pantalla lleva el push (RF-105).
+        Devuelve ``False`` si el correo se intentó y falló (E7), ``True`` si salió y ``None``
+        si no se intentó."""
 
     @abstractmethod
     def reintentar_fallidas(self, ahora: datetime) -> int:
