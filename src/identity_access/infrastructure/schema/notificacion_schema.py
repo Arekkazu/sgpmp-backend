@@ -1,9 +1,10 @@
 # | Fecha      | Nombre   | Que se hizo                                                      |
 # |------------|----------|------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, estado, módulo, ocurrencias y acción documentada |
+# | 2026-11-18 | Arekkazu | M08 RF-105 R6: preferencias de canal por nivel |
 """Schemas HTTP para la bandeja de notificaciones internas."""
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -56,3 +57,23 @@ class NotificacionesPaginadasResponse(BaseModel):
     pagina: int
     tamano: int
     items: list[NotificacionInternaResponse]
+
+
+class PreferenciaNotificacionResponse(BaseModel):
+    """Un canal de un nivel. IN_APP siempre habilitado y no editable; ``por_defecto`` = sin preferencia guardada."""
+    nivel: str
+    canal: str
+    habilitado: bool
+    por_defecto: bool
+    editable: bool
+
+
+class CambioPreferenciaDTO(BaseDTO):
+    nivel: Literal["CRITICA", "ADVERTENCIA", "INFORMATIVA"]
+    canal: Literal["PUSH", "EMAIL"]
+    habilitado: bool
+
+
+class GuardarPreferenciasDTO(BaseDTO):
+    preferencias: list[CambioPreferenciaDTO] = Field(min_length=1, max_length=6)
+

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                         |
 # |------------|----------|---------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: entrega por push con reintentos, correo de críticas y purga |
+# | 2026-11-18 | Arekkazu | M08 RF-105 R6: respeta las preferencias de canal del usuario |
 """Entrega en segundo plano de las notificaciones (RF-105 Fase 3) y su retención (restricción 3).
 
 La fila interna es la fuente de verdad: ya está en la bandeja apenas se registra. Este proceso
@@ -14,6 +15,9 @@ corre cada pocos segundos y toma las internas CRÍTICA o ADVERTENCIA cuyo push f
   —M01, M03— no se vuelve a enviar por correo).
 
 Así llegan por push los avisos que M05, M06 y M07 solo dejaban en la bandeja, sin tocar esos módulos.
+
+R6: si el usuario apagó el push o el correo de ese nivel en sus preferencias, no se envía por ese canal; la
+notificación ya está en su bandeja (que no se puede apagar).
 """
 from __future__ import annotations
 
@@ -24,7 +28,7 @@ from typing import Callable, Optional
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.notificacion_repository import EntregaPendiente, NotificacionRepository
-from src.identity_access.domain.value_objects.nivel_notificacion import CRITICA, titulo_push
+from src.identity_access.domain.value_objects.nivel_notificacion import CRITICA, EMAIL, PUSH, titulo_push
 from src.shared.email import send_email
 from src.shared.firebase import send_push
 from src.shared.plantilla_correo import renderizar_correo
@@ -71,7 +75,8 @@ class EntregarNotificacionesUseCase:
         return len(pendientes)
 
     def _push(self, pendiente: EntregaPendiente, ahora: datetime) -> None:
-        tokens = self.repo.buscar_fcm_tokens(pendiente.id_usuario)
+        habilitado = self.repo.canal_habilitado(pendiente.id_usuario, pendiente.nivel, PUSH)
+        tokens = self.repo.buscar_fcm_tokens(pendiente.id_usuario) if habilitado else []
         datos = {**pendiente.contexto, "id_notificacion": pendiente.id_notificacion, "nivel": pendiente.nivel}
         titulo = titulo_push(pendiente.nivel, pendiente.modulo)
         # Se intenta en todos los dispositivos; basta con que uno lo reciba.
@@ -87,6 +92,8 @@ class EntregarNotificacionesUseCase:
         self.repo.registrar_intento_push(pendiente.id_notificacion, entregada, proximo)
 
     def _correo(self, pendiente: EntregaPendiente) -> None:
+        if not self.repo.canal_habilitado(pendiente.id_usuario, pendiente.nivel, EMAIL):
+            return
         correo = self.repo.buscar_correo_usuario(pendiente.id_usuario)
         if not correo:
             return

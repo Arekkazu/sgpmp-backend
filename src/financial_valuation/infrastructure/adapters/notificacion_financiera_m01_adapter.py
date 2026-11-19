@@ -5,6 +5,7 @@
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
 # | 2026-11-15 | Arekkazu | QA-M06 RF-89: el aviso no espera el bloqueo de un destinatario (POST /finanzas/precios colgado en el sandbox) |
 # | 2026-11-15 | Arekkazu | QA-M06 CU06 H-02 RF-87: un evento por destinatario; cada Contador ve el aviso |
+# | 2026-11-18 | Arekkazu | M08 RF-105: sin Contador en la finca, el aviso va al Administrador |
 """Adaptador de :class:`NotificacionFinancieraPort` sobre M01 (RF-10 + RF-14), mismo patrón que M05:
 el aviso cuelga de un evento de ``modulo1.eventos`` y deja una notificación en la bandeja interna.
 Hace su propio ``commit`` en una sesión aparte y nunca propaga errores.
@@ -27,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from src.financial_valuation.domain.repositories.notificacion_financiera_port import NotificacionFinancieraPort
 from src.shared.database import como_sistema
+from src.shared.destinatarios import ids_administradores
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 
@@ -56,10 +58,11 @@ class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
         self.db_request = db
 
     def _contadores(self, db: Session, id_finca: Optional[int]) -> list[int]:
-        if self.db_request is None:
-            return sorted({f.id_usuario for f in db.execute(_SQL_CONTADORES, {"finca": id_finca})})
-        with como_sistema(self.db_request):  # la RLS de usuarios solo deja ver el propio
-            return sorted({f.id_usuario for f in self.db_request.execute(_SQL_CONTADORES, {"finca": id_finca})})
+        sesion = self.db_request or db
+        with como_sistema(sesion):  # la RLS de usuarios solo deja ver el propio
+            ids = sorted({f.id_usuario for f in sesion.execute(_SQL_CONTADORES, {"finca": id_finca})})
+        # RF-105 Fase 1: sin Contador asignado a la finca, el aviso va al Administrador.
+        return ids or ids_administradores(sesion)
 
     def a_contadores(self, tipo_evento: str, mensaje: str, detalle: dict, id_finca: Optional[int] = None) -> None:
         db = self.session_factory()

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
+# | 2026-11-18 | Arekkazu | M08 RF-105: escalamiento, auditoría de cada notificación, preferencias y ventana de M09 |
 """Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
 Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
@@ -10,9 +11,14 @@ temporal y la consulta/registro de dispositivos FCM.
 RF-105: el nivel definitivo sale del tipo de evento (nunca más bajo que el sugerido), la bandeja se
 ordena por nivel y luego por fecha, y ``es_leido`` se mantiene sincronizada con ``estado`` mientras
 el front anterior la siga leyendo.
+
+Fase 5: cada notificación interna creada, cada cambio de estado (LEÍDA, ATENDIDA, DESCARTADA) y cada entrega
+por push o correo deja un evento inmutable ``AUDITORIA_NOTIFICACION`` (tipo 46). Se registra en un savepoint:
+si la auditoría falla, la notificación no se pierde (queda en el log técnico).
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -31,6 +37,8 @@ from src.identity_access.domain.value_objects.nivel_notificacion import (
     LEIDA,
     NUEVA,
     NUMERO_POR_MODULO,
+    VENTANA_AGRUPACION_POR_DEFECTO,
+    canal_por_defecto,
     destino_por_defecto,
     modulo_desde,
     nivel_para,
@@ -41,7 +49,10 @@ from src.identity_access.infrastructure.models.enums_models import EnumEstadoEnv
 from src.identity_access.infrastructure.models.eventos_model import Eventos
 from src.identity_access.infrastructure.models.notificaciones_model import Notificaciones
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.shared.db_error_translator import raise_from_db_error
+
+logger = logging.getLogger(__name__)
 
 
 ID_CANAL_INTERNO = 2
@@ -51,6 +62,22 @@ _VENTANA_ENTREGA = timedelta(days=1)
 _ORDEN_NIVEL = case((Notificaciones.nivel == CRITICA, 0), (Notificaciones.nivel == "ADVERTENCIA", 1), else_=2)
 _NUMERO_MODULO = func.regexp_replace(Eventos.modulo, "[^0-9]", "", "g")
 
+TIPO_AUDITORIA_NOTIFICACION = 46
+_CANALES = {1: "EMAIL", 2: "IN_APP"}
+# RF-105 Fase 1: un aviso sanitario sobre un animal con 3+ alertas críticas en 7 días sube a CRÍTICA.
+_MODULOS_SANITARIOS = ("telemetria", "prediccion")
+_DIAS_ESCALAMIENTO, _CRITICAS_ESCALAMIENTO = 7, 3
+_SQL_PREFERENCIAS = text("""
+    SELECT nivel::text AS nivel, canal::text AS canal, es_habilitado
+    FROM modulo9.preferencias_notificaciones WHERE id_usuario = :u""")
+_SQL_GUARDAR_PREFERENCIA = text("""
+    INSERT INTO modulo9.preferencias_notificaciones (id_usuario, nivel, canal, es_habilitado)
+    VALUES (:u, CAST(:nivel AS modulo1.enum_notificacion_nivel),
+            CAST(:canal AS modulo9.enum_preferencia_notificacion_canal), :habilitado)
+    ON CONFLICT (id_usuario, nivel, canal)
+    DO UPDATE SET es_habilitado = EXCLUDED.es_habilitado, fecha_actualizacion = now()""")
+_SQL_VENTANA = text("""SELECT COALESCE(valor_actual, valor_por_defecto) FROM modulo4.parametros_mlops
+                       WHERE nombre_parametro = 'ventana_agrupacion_notificaciones_min'""")
 _SQL_ORIGEN_EVENTO = text("""
     SELECT te.nombre AS tipo, e.modulo
     FROM modulo1.eventos e
@@ -103,6 +130,10 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         origen = self.db.execute(_SQL_ORIGEN_EVENTO, {"id": id_evento}).first()
         modulo = modulo_desde(origen.modulo if origen else None)
         ahora = datetime.now(timezone.utc)
+        nivel_final = nivel_para(origen.tipo if origen else None, nivel)
+        if (nivel_final != CRITICA and id_activo_biologico is not None and modulo in _MODULOS_SANITARIOS
+                and self._criticas_recientes(id_usuario, id_activo_biologico, ahora) >= _CRITICAS_ESCALAMIENTO):
+            nivel_final = CRITICA
         notificacion = Notificaciones(
             id_evento=id_evento,
             id_usuario=id_usuario,
@@ -111,7 +142,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             fecha_envio=ahora,
             es_leido=False,
             estado_envio=EnumEstadoEnvio(estado),
-            nivel=nivel_para(origen.tipo if origen else None, nivel),
+            nivel=nivel_final,
             estado=NUEVA,
             id_activo_biologico=id_activo_biologico,
             json_contexto={"url": destino_por_defecto(modulo), **(contexto or {})},
@@ -123,7 +154,59 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         self.db.add(notificacion)
         self.db.flush()
         self.db.refresh(notificacion)
+        if id_canal == ID_CANAL_INTERNO:
+            self._auditar(id_usuario, {"accion": "CREADA", "id_notificacion": notificacion.id_notificacion,
+                                       "nivel": nivel_final, "canal": "IN_APP", "modulo": modulo, "estado": NUEVA})
         return notificacion.id_notificacion
+
+    def _criticas_recientes(self, id_usuario: int, id_activo: int, ahora: datetime) -> int:
+        return (self.db.query(func.count(Notificaciones.id_notificacion))
+                .filter(Notificaciones.id_usuario == id_usuario,
+                        Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+                        Notificaciones.id_activo_biologico == id_activo, Notificaciones.nivel == CRITICA,
+                        Notificaciones.fecha_envio >= ahora - timedelta(days=_DIAS_ESCALAMIENTO))
+                .scalar() or 0)
+
+    def _auditar(self, id_usuario: int, detalle: dict[str, Any]) -> None:
+        """Evento inmutable de la notificación (RF-105 Fase 5) en un savepoint: si falla, la notificación sigue."""
+        try:
+            with self.db.begin_nested():
+                SqlAlchemyEventoRepository(self.db).registrar(
+                    tipo_evento=TIPO_AUDITORIA_NOTIFICACION, exitoso=True, id_usuario=id_usuario, detalle=detalle,
+                    descripcion=f"Notificación {detalle.get('accion', '').lower()}", modulo="MODULO8")
+        except Exception:
+            logger.exception("RF-105: no se pudo auditar la notificación %s", detalle.get("id_notificacion"))
+
+    # --- Preferencias (R6) y ventana de agrupación (Fase 2.1) ---
+
+    def preferencias(self, id_usuario: int) -> dict[tuple[str, str], bool]:
+        return {(f.nivel, f.canal): f.es_habilitado for f in self.db.execute(_SQL_PREFERENCIAS, {"u": id_usuario})}
+
+    def canal_habilitado(self, id_usuario: int, nivel: str, canal: str) -> bool:
+        try:
+            with self.db.begin_nested():
+                guardada = self.preferencias(id_usuario).get((nivel, canal))
+        except Exception:
+            logger.exception("RF-105: no se pudieron leer las preferencias del usuario %s", id_usuario)
+            guardada = None
+        return canal_por_defecto(nivel, canal) if guardada is None else guardada
+
+    def guardar_preferencias(self, id_usuario: int, preferencias: dict[tuple[str, str], bool]) -> None:
+        try:
+            for (nivel, canal), habilitado in preferencias.items():
+                self.db.execute(_SQL_GUARDAR_PREFERENCIA, {"u": id_usuario, "nivel": nivel, "canal": canal,
+                                                           "habilitado": habilitado})
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def ventana_agrupacion_minutos(self) -> int:
+        try:
+            with self.db.begin_nested():
+                valor = self.db.execute(_SQL_VENTANA).scalar()
+            return int(valor) if valor is not None else VENTANA_AGRUPACION_POR_DEFECTO
+        except Exception:
+            return VENTANA_AGRUPACION_POR_DEFECTO
 
     def sumar_ocurrencia(
         self, id_usuario: int, tipo_evento: int, id_activo_biologico: int, ventana_minutos: int
@@ -192,6 +275,9 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             self.db.flush()
         except Exception as exc:
             raise_from_db_error(exc)
+        if entregada:
+            self._auditar(orm.id_usuario, {"accion": "ENTREGADA", "id_notificacion": id_notificacion,
+                                           "nivel": orm.nivel, "canal": "PUSH"})
 
     def purgar_informativas(self, antes_de: datetime) -> int:
         try:
@@ -214,6 +300,10 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         notificacion = self.db.get(Notificaciones, id_notificacion)
         notificacion.estado_envio = EnumEstadoEnvio(estado)
         self.db.flush()
+        if estado == "enviado" and notificacion is not None and notificacion.id_notificacion_canal != ID_CANAL_INTERNO:
+            self._auditar(notificacion.id_usuario, {
+                "accion": "ENTREGADA", "id_notificacion": id_notificacion, "nivel": notificacion.nivel,
+                "canal": _CANALES.get(notificacion.id_notificacion_canal, "EMAIL")})
 
     def verificar_anti_spam(
         self, id_usuario: int, tipo_evento: int, id_canal: int, ventana_minutos: int
@@ -360,6 +450,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         )
         if orm is None:
             return
+        anterior = orm.estado
         orm.es_leido = notificacion.es_leido
         orm.estado = notificacion.estado
         orm.accion_documentada = notificacion.accion_documentada
@@ -370,21 +461,27 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             self.db.flush()
         except Exception as exc:
             raise_from_db_error(exc)
+        if anterior != notificacion.estado:
+            self._auditar(notificacion.id_usuario, {
+                "accion": notificacion.estado, "id_notificacion": notificacion.id_notificacion,
+                "nivel": notificacion.nivel, "estado_anterior": anterior,
+                "accion_documentada": notificacion.accion_documentada})
 
     def marcar_todas_leidas(self, id_usuario: int) -> int:
+        filtro = (Notificaciones.id_usuario == id_usuario, Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+                  Notificaciones.estado == NUEVA)
         try:
+            ids = [i for (i,) in self.db.query(Notificaciones.id_notificacion).filter(*filtro).all()]
             cambiadas = (
                 self.db.query(Notificaciones)
-                .filter(
-                    Notificaciones.id_usuario == id_usuario,
-                    Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
-                    Notificaciones.estado == NUEVA,
-                )
+                .filter(*filtro)
                 .update({Notificaciones.es_leido: True, Notificaciones.estado: LEIDA,
                          Notificaciones.fecha_lectura: datetime.now(timezone.utc)},
                         synchronize_session=False)
             )
             self.db.flush()
-            return cambiadas
         except Exception as exc:
             raise_from_db_error(exc)
+        for id_notificacion in ids:
+            self._auditar(id_usuario, {"accion": LEIDA, "id_notificacion": id_notificacion, "estado_anterior": NUEVA})
+        return cambiadas

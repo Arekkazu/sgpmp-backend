@@ -1,3 +1,17 @@
+## [1.4.0-rc.79](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.78...v1.4.0-rc.79) (2026-11-19)
+
+### Features
+
+* **rf104-mod8:** opciones de los filtros de reportes dentro del alcance del usuario ([d224ac5](https://github.com/Arekkazu/sgpmp-backend/commit/d224ac58c0baadbeecb4f65c1f17b7f70ffd8458))
+* **rf104-mod8:** reportes PDF y Excel con vista previa, generacion en segundo plano y descarga de 48 h ([3042e75](https://github.com/Arekkazu/sgpmp-backend/commit/3042e751c4b7add02bee82fbb0ecb35106f04cd4))
+* **rf105-mod8:** preferencias de canal, escalamiento, respaldo al Administrador y auditoria de notificaciones ([c8b8502](https://github.com/Arekkazu/sgpmp-backend/commit/c8b850256800ae07ce81db013e6a933d62e08ee7))
+* **rf106-mod8:** historial clinico predictivo con TVCO, conflictos y pendientes de evaluar ([68fc18d](https://github.com/Arekkazu/sgpmp-backend/commit/68fc18dc561124c580e4a94c029d7eaff6482a2f))
+* **rf107-mod8:** catalogo de mensajes de error configurable y registro de los routers de M08 ([34e3346](https://github.com/Arekkazu/sgpmp-backend/commit/34e334605f08ad21ed930b1b311aaf1e6f6f8927))
+
+### Bug Fixes
+
+* **rf104-mod8:** campos de la solicitud asignados uno a uno y escape del texto del PDF con la libreria estandar ([905d6ba](https://github.com/Arekkazu/sgpmp-backend/commit/905d6bac75a122cf276f573bc810991f523dd1a8))
+
 ## [1.4.0-rc.78](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.77...v1.4.0-rc.78) (2026-11-18)
 
 ### Features

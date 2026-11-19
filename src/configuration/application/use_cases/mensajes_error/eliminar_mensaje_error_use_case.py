@@ -1,0 +1,27 @@
+# | Fecha      | Nombre   | Que se hizo                                       |
+# |------------|----------|---------------------------------------------------|
+# | 2026-11-18 | Arekkazu | M08 RF-107: borrar un mensaje del catálogo        |
+"""Caso de uso: quitar una entrada del catálogo; el front vuelve al texto que trae la respuesta del backend."""
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+
+from src.configuration.domain.repositories.catalogo_mensajes_error_repository import CatalogoMensajesErrorRepository
+from src.shared.errors import NotFoundError
+
+
+class EliminarMensajeErrorUseCase:
+
+    def __init__(self, db: Session, repo: CatalogoMensajesErrorRepository) -> None:
+        self.db = db
+        self.repo = repo
+
+    def execute(self, clave: str, idioma: str) -> None:
+        try:
+            if not self.repo.eliminar(clave, idioma):
+                raise NotFoundError(code="MENSAJE_INEXISTENTE", field="clave",
+                                    message="Ese mensaje no está en el catálogo.")
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise

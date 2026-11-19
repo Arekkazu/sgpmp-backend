@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel por tipo de evento, módulo de origen y destino |
+# | 2026-11-18 | Arekkazu | M08 RF-104..106: nivel de avisos de reportes y degradación; canales por defecto (R6) |
 """Nivel, módulo de origen y pantalla de destino de una notificación (RF-105).
 
 El nivel decide los canales: CRÍTICA va por la bandeja, push y correo; ADVERTENCIA por la bandeja y
@@ -21,6 +22,17 @@ ESTADOS = (NUEVA, LEIDA, ATENDIDA, DESCARTADA)
 
 _PRIORIDAD = {CRITICA: 0, ADVERTENCIA: 1, INFORMATIVA: 2}
 
+# RF-105 R6: canales externos por nivel cuando el usuario no configuró sus preferencias. La bandeja interna
+# siempre está habilitada (R9: es la fuente canónica de toda notificación).
+PUSH, EMAIL = "PUSH", "EMAIL"
+CANALES_EXTERNOS = (PUSH, EMAIL)
+CANALES_POR_DEFECTO = {CRITICA: {PUSH, EMAIL}, ADVERTENCIA: {PUSH}, INFORMATIVA: set()}
+VENTANA_AGRUPACION_POR_DEFECTO = 5  # minutos (RF-105 Fase 2.1)
+
+
+def canal_por_defecto(nivel: str, canal: str) -> bool:
+    return canal in CANALES_POR_DEFECTO.get(nivel, set())
+
 # Por nombre del tipo (``modulo1.tipos_eventos.nombre``): los ids no son iguales en todas las bases.
 _NIVEL_POR_TIPO = {
     "LOGIN_FALLIDO": ADVERTENCIA,
@@ -36,6 +48,8 @@ _NIVEL_POR_TIPO = {
     "ALERTA_FINANCIERA_NIC41": ADVERTENCIA,
     "FIN_PERIODO_RETIRO": ADVERTENCIA,
     "ALERTA_INTEGRACION_CONTABLE": CRITICA,
+    "REPORTE_FALLIDO": ADVERTENCIA,
+    "DEGRADACION_MODELO_PREDICTIVO": ADVERTENCIA,
 }
 
 
@@ -63,7 +77,7 @@ NUMERO_POR_MODULO = {clave: numero for numero, clave in MODULOS.items()}
 # (relativa a la base del front).
 _DESTINO_POR_MODULO = {
     "activos": "activos-biologicos", "telemetria": "telemetria/alertas", "prediccion": "prediccion",
-    "suministros": "suministros", "finanzas": "finanzas", "integracion": "integracion",
+    "suministros": "suministros", "finanzas": "finanzas", "integracion": "integracion", "reportes": "reportes",
 }
 
 
