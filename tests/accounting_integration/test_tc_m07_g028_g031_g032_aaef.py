@@ -1,0 +1,84 @@
+# | Fecha      | Nombre         | Que se hizo |
+# |------------|----------------|-------------|
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del Mapper que falla llega a la respuesta |
+"""Lote QA 2026-11-19 de la exportación contable (RF-97), sin base de datos.
+
+- TC-M07-381 (#1183): un MAPPER_FALLIDO expone ``detalle.mapper`` y ``detalle.documento``.
+"""
+import asyncio
+import json
+from datetime import date
+from decimal import Decimal as D
+
+import pytest
+
+from src.accounting_integration.application.use_cases.exportacion.consultar_aaef_use_case import (
+    ConsultarAaefUseCase,
+    SolicitudAaef,
+)
+from src.accounting_integration.domain.entities.contrato import VersionContrato
+from src.accounting_integration.domain.services.aaef import CostoFactura, Periodo, SistemaOrigen, Titular
+from src.shared.error_handlers import app_error_handler
+from src.shared.errors import AppError
+
+NIT = "900123456"
+OCT = Periodo(date(2026, 10, 1), date(2026, 10, 31), "CERRADO")
+
+
+def _costo(i, cuenta="51350501", razon="Agroinsumos del Huila SAS"):
+    return CostoFactura(i, "800555111", razon, "FE", f"88{i}", date(2026, 10, 4), date(2026, 11, 3), "ALIMENTO",
+                        D("700000"), cuenta, "BOV-001")
+
+
+class _Fuente:
+    def __init__(self, costos=(), sin_traza=None, falla=None):
+        self.costos, self.sin_traza, self.falla = list(costos), sin_traza or [], falla
+
+    def titular(self, nit):
+        return Titular(NIT, "Hacienda La Esperanza SAS")
+
+    def fincas_titular(self, nit):
+        return {1}
+
+    def fincas_usuario(self, id_usuario):
+        return {1}
+
+    def periodos(self, nit):
+        return [OCT]
+
+    def lineas_sin_trazabilidad(self, nit, desde, hasta):
+        return self.sin_traza
+
+    def costos_factura(self, nit, desde, hasta):
+        if self.falla:
+            raise self.falla
+        return self.costos
+
+    def comprobantes(self, nit, desde, hasta):
+        return []
+
+
+class _Contratos:
+    def listar_contratos(self, bloquear=False):
+        return [VersionContrato(1, "3.0", "MAJOR", date(2026, 1, 1), 1, ["COMPRAS"], estado="ACTIVO")]
+
+
+def _consultar(fuente):
+    uc = ConsultarAaefUseCase(fuente, _Contratos(), SistemaOrigen("SGPMP", "SIGAB", "TEST"), 10 * 1024 * 1024,
+                              lambda: date(2026, 11, 19))
+    return uc.execute(SolicitudAaef(NIT, OCT.fecha_inicio, OCT.fecha_fin, 7, "contador@finca.co"))
+
+
+def _respuesta(exc):
+    return json.loads(asyncio.run(app_error_handler(None, exc)).body)
+
+
+def test_mapper_fallido_expone_mapper_y_documento_en_la_respuesta():
+    with pytest.raises(AppError) as exc:
+        _consultar(_Fuente([_costo(11, cuenta=None)]))
+    assert exc.value.code == "MAPPER_FALLIDO" and exc.value.field == "accounting_account"
+    assert exc.value.detalle == {"mapper": "COMPRAS", "documento": "COS-11-20261004"}
+    cuerpo = _respuesta(exc.value)
+    assert cuerpo["detalle"] == exc.value.detalle and cuerpo["fields"][0]["field"] == "accounting_account"
+    # un error sin detalle conserva el cuerpo de siempre
+    assert "detalle" not in _respuesta(AppError("OTRO", "Otro error."))

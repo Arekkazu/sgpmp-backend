@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
 # | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: todo MAPPER_FALLIDO dice el Mapper y el documento |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -147,7 +148,8 @@ def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
     for costo in costos:
         if not (costo.tercero_nit and costo.tercero_razon_social and costo.factura_numero and costo.fecha_factura):
             raise AaefError("MAPPER_FALLIDO", f"El costo {costo.id_registro_costo} no tiene completos los datos de la "
-                            "factura del proveedor.", "Header", {"mapper": MAPPER_COMPRAS})
+                            "factura del proveedor.", "Header",
+                            {"mapper": MAPPER_COMPRAS, "id_registro_costo": costo.id_registro_costo})
         clave = (costo.tercero_nit, costo.factura_prefijo or "", costo.factura_numero)
         facturas.setdefault(clave, []).append(costo)
     documentos = []
@@ -190,7 +192,7 @@ def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titul
     for comprobante in comprobantes:
         if not comprobante.codigo.startswith(prefijo_codigo):
             raise AaefError("MAPPER_FALLIDO", f"El comprobante {comprobante.codigo} no pertenece al productor consultado.",
-                            "DocumentId", {"mapper": MAPPER_COMPROBANTE_NIC41})
+                            "DocumentId", {"mapper": MAPPER_COMPROBANTE_NIC41, "documento": comprobante.codigo})
         fecha = comprobante.fecha_comprobante.isoformat()
         nombre = ETIQUETA_HECHO.get(comprobante.tipo_hecho, comprobante.tipo_hecho)
         lineas = []
@@ -198,7 +200,7 @@ def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titul
             valor = truncar2(Decimal(str(par["valor"])))
             if valor <= 0:
                 raise AaefError("MAPPER_FALLIDO", f"El comprobante {comprobante.codigo} tiene una línea sin valor.",
-                                "Value", {"mapper": MAPPER_COMPROBANTE_NIC41})
+                                "Value", {"mapper": MAPPER_COMPROBANTE_NIC41, "documento": comprobante.codigo})
             lineas.append({
                 "Code": comprobante.tipo_hecho, "Name": nombre,
                 "Description": f"{comprobante.especie} · {comprobante.fecha_comprobante:%Y-%m}",
@@ -258,7 +260,9 @@ def verificar_cuadre(envelope: dict) -> None:
         suma = sum((ln["Value"] for ln in documento["Lines"]), CERO)
         totales = documento["Totals"]
         if not (suma == totales["Subtotal"] == totales["TotalPayment"]):
-            raise AaefError("MAPPER_FALLIDO", f"El documento {documento['Header']['DocumentId']} no cuadra.", "Totals")
+            mapper = MAPPER_COMPRAS if documento["Header"]["Type"]["Code"] == TIPO_COMPRA["Code"] else MAPPER_COMPROBANTE_NIC41
+            raise AaefError("MAPPER_FALLIDO", f"El documento {documento['Header']['DocumentId']} no cuadra.", "Totals",
+                            {"mapper": mapper, "documento": documento["Header"]["DocumentId"]})
 
 
 def serializar(envelope: dict) -> bytes:

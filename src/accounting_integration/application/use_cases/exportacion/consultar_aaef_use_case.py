@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 Fases 3-5 / RF-97: alcance por fincas, versión y envelope AAEF del titular |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error AAEF (Mapper, documento) llega a la respuesta y a la auditoría |
 """Genera el envelope AAEF de un titular para un rango de períodos cerrados (RF-97 v3.0).
 
 Lo invoca el Gateway (RF-95) con el usuario ya autenticado y con permiso; aquí se resuelve lo que
@@ -94,6 +95,8 @@ class ConsultarAaefUseCase:
                                 "Contacte al administrador del SGPMP.", detalle={"errores": exc.error_count()}) from exc
             controlar_tamano(cuerpo, self.limite_bytes)
         except AaefError as exc:
-            raise BusinessRuleError(code=exc.codigo, message=exc.mensaje, field=exc.campo) from exc
+            # RNF-96.4: el Mapper y el documento que fallaron viajan estructurados, no solo en el mensaje
+            raise BusinessRuleError(code=exc.codigo, message=exc.mensaje, field=exc.campo,
+                                    detalle=exc.detalle or None) from exc
         return ResultadoAaef(cuerpo, hash_contenido(envelope["invoices"]), contrato,
                              envelope["metadata"]["ExchangeId"], len(envelope["invoices"]))

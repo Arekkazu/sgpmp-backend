@@ -1,3 +1,6 @@
+# | Fecha      | Nombre         | Que se hizo |
+# |------------|----------------|-------------|
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: detalle opcional en ErrorResponse |
 """Schemas de respuesta HTTP compartidos por todos los módulos.
 
 Define los modelos Pydantic que estandarizan las respuestas de éxito y error
@@ -52,9 +55,11 @@ class ErrorResponse(BaseModel):
         message: Mensaje legible para el usuario final.
         fields: Lista de errores por campo. Vacía si el error no es de validación.
         timestamp: Marca temporal ISO 8601 del momento en que ocurrió el error.
+        detalle: Datos estructurados del error; solo aparece cuando el error los trae.
     """
 
     error_code: str
     message: str
     fields: list[FieldError]
     timestamp: str
+    detalle: Optional[dict] = None

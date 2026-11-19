@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 / RF-AE01: Gateway de la consulta contable de AgroFusion |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error queda en la auditoría de la solicitud rechazada |
 """Gateway de la consulta AAEF (RF-95 v2.0): las cinco responsabilidades y nada más.
 
 1. Forma de la solicitud (400) y credenciales en la URL (400 + evento de seguridad).
@@ -105,6 +106,8 @@ def atender(request: Request, db: Session, nit: str, desde: Optional[str], hasta
             request.headers.get("Accept-Version")))
     except AppError as exc:
         evento.setdefault("tipo_evento", "RATE_LIMIT_EXCEDIDO" if exc.status_code == 429 else "SOLICITUD_RECHAZADA")
+        if exc.detalle:  # RNF-96.4: Mapper, documento y campo quedan en RF-102
+            evento["json_detalle"] = {**exc.detalle, "campo": exc.field}
         _auditar(m07, evento, inicio, exc.status_code, exc.code, "WARNING" if exc.status_code < 500 else "ERROR")
         raise
     except OperationalError as exc:
