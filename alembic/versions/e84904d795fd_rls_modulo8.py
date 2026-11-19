@@ -1,3 +1,10 @@
+# | Fecha      | Nombre       | Qué se hizo                                              |
+# |------------|--------------|----------------------------------------------------------|
+# | 2026-11-19 | SamuelPR21   | Creación inicial políticas RLS modulo8                   |
+# | 2026-11-20 | SamuelPR21   | Fix: exportacion_contable en reportes_financieros,       |
+# |            |              | semaforo solo servicio, DELETE en dashboards,            |
+# |            |              | downgrade restaura RLS en consultas_auditoria_externas   |
+
 """rls_modulo8
 
 Revision ID: e84904d795fd
@@ -17,11 +24,11 @@ Clasifica la totalidad de las 13 tablas de modulo8 en patrones de acceso:
   7. AUDITORIA (append-only):         acciones_critica_log, auditorias_reportes,
                                       consultas_auditoria_externas
 
-Recursos RBAC utilizados (modulo1.recursos):
-  - activos_biologicos (29): Productor, Vet, Admin, Ing
-  - datos_analiticos_metricas (63): lectura de KPIs
+Recursos RBAC utilizados:
+  - exportacion_contable: Contador (R) para reportes financieros
   - auditoria_m04 (46): auditores (Admin, Contador, Revisor Fiscal)
   - historial_diagnostico (42): Vet + Admin para historiales clinicos
+  - datos_analiticos_metricas (63): lectura de KPIs
 
 Reutiliza funciones de modulo1/modulo2/modulo9 (F5):
   - modulo1.fn_id_usuario_actual()
@@ -30,13 +37,6 @@ Reutiliza funciones de modulo1/modulo2/modulo9 (F5):
   - modulo9.fn_fincas_del_usuario()
   - modulo9.fn_infraestructuras_del_usuario()
   - modulo2.fn_activos_del_usuario()
-
-Tabla de Seguimiento (Obligatoria CLAUDE.md):
-+------------+--------------+----------------------------------------------+
-| Fecha      | Autor        | Descripcion                                  | 
-+------------+--------------+----------------------------------------------+
-| 2026-11-19 | SamuelPR21   | Creacion inicial politicas RLS modulo8       |     
-+------------+--------------+----------------------------------------------+
 """
 
 from typing import Sequence, Union
@@ -55,7 +55,6 @@ depends_on: Union[str, Sequence[str], None] = None
 UID = "(SELECT modulo1.fn_id_usuario_actual())"
 SERVICIO = "(SELECT modulo1.fn_es_usuario_servicio())"
 
-# Subconsultas de cadena (reutilizan helpers de F5)
 _FINCA_SUBQ = (
     "SELECT f.id_finca"
     f" FROM modulo9.fn_fincas_del_usuario({UID}) f"
@@ -89,7 +88,8 @@ def upgrade() -> None:
 
     # ================================================================
     # 2. PROPIA DEL USUARIO (id_usuario = usuario actual)
-    #    RF-103: dashboards personalizados y preferencias de visualizacion
+    #    Se agregan politicas DELETE para que el borrado funcione
+    #    correctamente con FORCE RLS.
     # ================================================================
     for t in ('dashboards', 'preferencias_visualizacion'):
         op.execute(f"""
@@ -106,36 +106,47 @@ def upgrade() -> None:
               WITH CHECK (id_usuario = {UID});
         """)
         op.execute(f"""
+            CREATE POLICY pol_{t}_delete ON modulo8.{t}
+              FOR DELETE USING (id_usuario = {UID});
+        """)
+        op.execute(f"""
             CREATE POLICY pol_{t}_servicio ON modulo8.{t}
               FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
         """)
         _enable_force(t)
 
     # widgets_dashboard: hereda del dashboard padre via EXISTS
-    op.execute("""
+    op.execute(f"""
         CREATE POLICY pol_widgets_dashboard_select ON modulo8.widgets_dashboard
           FOR SELECT USING (
             EXISTS (SELECT 1 FROM modulo8.dashboards d
                     WHERE d.id_dashboard = widgets_dashboard.id_dashboard
-                      AND d.id_usuario = (SELECT modulo1.fn_id_usuario_actual())));
+                      AND d.id_usuario = {UID}));
     """)
-    op.execute("""
+    op.execute(f"""
         CREATE POLICY pol_widgets_dashboard_insert ON modulo8.widgets_dashboard
           FOR INSERT WITH CHECK (
             EXISTS (SELECT 1 FROM modulo8.dashboards d
                     WHERE d.id_dashboard = widgets_dashboard.id_dashboard
-                      AND d.id_usuario = (SELECT modulo1.fn_id_usuario_actual())));
+                      AND d.id_usuario = {UID}));
     """)
-    op.execute("""
+    op.execute(f"""
         CREATE POLICY pol_widgets_dashboard_update ON modulo8.widgets_dashboard
           FOR UPDATE USING (
             EXISTS (SELECT 1 FROM modulo8.dashboards d
                     WHERE d.id_dashboard = widgets_dashboard.id_dashboard
-                      AND d.id_usuario = (SELECT modulo1.fn_id_usuario_actual())))
+                      AND d.id_usuario = {UID}))
           WITH CHECK (
             EXISTS (SELECT 1 FROM modulo8.dashboards d
                     WHERE d.id_dashboard = widgets_dashboard.id_dashboard
-                      AND d.id_usuario = (SELECT modulo1.fn_id_usuario_actual())));
+                      AND d.id_usuario = {UID}));
+    """)
+    op.execute(f"""
+        CREATE POLICY pol_widgets_dashboard_delete ON modulo8.widgets_dashboard
+          FOR DELETE USING (
+            EXISTS (SELECT 1 FROM modulo8.dashboards d
+                    WHERE d.id_dashboard = widgets_dashboard.id_dashboard
+                      AND d.id_usuario = {UID}));
     """)
     op.execute(f"""
         CREATE POLICY pol_widgets_dashboard_servicio ON modulo8.widgets_dashboard
@@ -145,10 +156,7 @@ def upgrade() -> None:
 
     # ================================================================
     # 3. VIA ACTIVO BIOLOGICO (3 saltos a finca)
-    #    RF-103 / RF-67: historial clinico predictivo y retroalimentacion
     # ================================================================
-
-    # --- historiales_clinicos: SELECT/INSERT para Vet y Admin
     op.execute(f"""
         CREATE POLICY pol_historiales_clinicos_select ON modulo8.historiales_clinicos
           FOR SELECT USING (id_activo_biologico IN ({_ACTIVO_SUBQ}));
@@ -165,7 +173,7 @@ def upgrade() -> None:
     """)
     _enable_force('historiales_clinicos')
 
-    # --- retroalimentacion_feedback (RF-72): append-only por veterinario
+    # retroalimentacion_feedback (RF-72): append-only por veterinario
     op.execute(f"""
         CREATE POLICY pol_retroalimentacion_select ON modulo8.retroalimentacion_feedback
           FOR SELECT USING (
@@ -192,8 +200,6 @@ def upgrade() -> None:
     # ================================================================
     # 4. VIA ACTIVO + INFRA (snapshots y semaforos)
     # ================================================================
-
-    # --- snapshots_kpi (RF-103): lectura amplia por rol, escritura solo sistema
     op.execute(f"""
         CREATE POLICY pol_snapshots_kpi_select ON modulo8.snapshots_kpi
           FOR SELECT USING (
@@ -210,38 +216,15 @@ def upgrade() -> None:
     """)
     _enable_force('snapshots_kpi')
 
-    # --- configuraciones_semaforo: lectura activa, escritura admin/vet
+    # configuraciones_semaforo: escritura solo al servicio mientras
+    # no haya pantalla de configuracion (datos_analiticos_metricas U
+    # no lo tiene ningun rol actualmente).
     op.execute(f"""
         CREATE POLICY pol_semaforo_select ON modulo8.configuraciones_semaforo
           FOR SELECT USING (
-            (id_activo_biologico IS NULL
-             AND id_infraestructura IS NULL)
+            (id_activo_biologico IS NULL AND id_infraestructura IS NULL)
             OR id_activo_biologico IN ({_ACTIVO_SUBQ})
             OR id_infraestructura IN ({_INFRA_SUBQ}));
-    """)
-    op.execute(f"""
-        CREATE POLICY pol_semaforo_insert ON modulo8.configuraciones_semaforo
-          FOR INSERT WITH CHECK (
-            {permiso('datos_analiticos_metricas', 'U')}
-            AND (id_activo_biologico IS NULL
-                 OR id_activo_biologico IN ({_ACTIVO_SUBQ}))
-            AND (id_infraestructura IS NULL
-                 OR id_infraestructura IN ({_INFRA_SUBQ})));
-    """)
-    op.execute(f"""
-        CREATE POLICY pol_semaforo_update ON modulo8.configuraciones_semaforo
-          FOR UPDATE USING (
-            {permiso('datos_analiticos_metricas', 'U')}
-            AND (id_activo_biologico IS NULL
-                 OR id_activo_biologico IN ({_ACTIVO_SUBQ}))
-            AND (id_infraestructura IS NULL
-                 OR id_infraestructura IN ({_INFRA_SUBQ})))
-          WITH CHECK (
-            {permiso('datos_analiticos_metricas', 'U')}
-            AND (id_activo_biologico IS NULL
-                 OR id_activo_biologico IN ({_ACTIVO_SUBQ}))
-            AND (id_infraestructura IS NULL
-                 OR id_infraestructura IN ({_INFRA_SUBQ})));
     """)
     op.execute(f"""
         CREATE POLICY pol_semaforo_servicio ON modulo8.configuraciones_semaforo
@@ -251,7 +234,6 @@ def upgrade() -> None:
 
     # ================================================================
     # 5. VIA FINCA DIRECTA (reportes_regulatorios)
-    #    RF-103: el sistema valida id_finca antes de consultar modulos fuente
     # ================================================================
     op.execute(f"""
         CREATE POLICY pol_reportes_regulatorios_select ON modulo8.reportes_regulatorios
@@ -279,33 +261,30 @@ def upgrade() -> None:
     _enable_force('reportes_regulatorios')
 
     # ================================================================
-    # 6. REPORTES FINANCIEROS (por rol, sin filtro de finca)
-    #    RF-103 CA-6: solo Contador accede a NIC41/exportaciones/variacion.
-    #    Gestor de Granja (rol 7 = Gerencia) ve ejecutivos consolidados.
-    #    Admin ve todo.
+    # 6. REPORTES FINANCIEROS (por rol)
+    #    FIX: usar exportacion_contable R (lo tiene el Contador),
+    #    no datos_analiticos_metricas R (que NO lo tiene el Contador).
     # ================================================================
-    op.execute("""
+    op.execute(f"""
         CREATE POLICY pol_reportes_financieros_select ON modulo8.reportes_financieros
           FOR SELECT USING (
-            (SELECT modulo1.fn_tiene_permiso('datos_analiticos_metricas', 'R'))
-            OR (SELECT modulo1.fn_es_usuario_servicio()));
+            {permiso('exportacion_contable', 'R')}
+            OR {SERVICIO});
     """)
-    op.execute("""
+    op.execute(f"""
         CREATE POLICY pol_reportes_financieros_insert ON modulo8.reportes_financieros
           FOR INSERT WITH CHECK (
-            (SELECT modulo1.fn_tiene_permiso('datos_analiticos_metricas', 'C'))
-            AND id_usuario = (SELECT modulo1.fn_id_usuario_actual()));
+            {permiso('exportacion_contable', 'R')}
+            AND id_usuario = {UID});
     """)
-    op.execute("""
+    op.execute(f"""
         CREATE POLICY pol_reportes_financieros_servicio ON modulo8.reportes_financieros
-          FOR ALL USING ((SELECT modulo1.fn_es_usuario_servicio()))
-          WITH CHECK ((SELECT modulo1.fn_es_usuario_servicio()));
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
     """)
     _enable_force('reportes_financieros')
 
     # ================================================================
     # 7. AUDITORIA (append-only)
-    #    acciones_critica_log, auditorias_reportes, consultas_auditoria_externas
     # ================================================================
     _AUDITORIA = (
         'acciones_critica_log',
@@ -321,7 +300,7 @@ def upgrade() -> None:
             CREATE POLICY pol_{t}_insert ON modulo8.{t}
               FOR INSERT WITH CHECK (
                 {SERVICIO}
-                OR (id_usuario = {UID} AND {UID} IS NOT NULL));
+                OR ({UID} IS NOT NULL AND id_usuario = {UID}));
         """)
         _enable_force(t)
 
@@ -347,7 +326,7 @@ def downgrade() -> None:
           END LOOP; END $$;
     """)
 
-    # 2. Quitar FORCE + DISABLE RLS
+    # 2. Quitar FORCE + DISABLE RLS en todas las tablas
     op.execute("""
         DO $$ DECLARE t text; BEGIN
           FOR t IN
@@ -356,4 +335,11 @@ def downgrade() -> None:
             EXECUTE format('ALTER TABLE modulo8.%I NO FORCE ROW LEVEL SECURITY', t);
             EXECUTE format('ALTER TABLE modulo8.%I DISABLE ROW LEVEL SECURITY', t);
           END LOOP; END $$;
+    """)
+
+    # 3. FIX: restaurar RLS en consultas_auditoria_externas
+    #    (ya lo tenia antes de esta migracion, viene en el DDL original)
+    op.execute("""
+        ALTER TABLE modulo8.consultas_auditoria_externas
+          ENABLE ROW LEVEL SECURITY;
     """)
