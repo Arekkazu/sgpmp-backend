@@ -3,6 +3,7 @@
 # | 2026-10-29 | Arekkazu | INC-M04-215/216 RF-72: validaciones de entrada responden 422       |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: POST /ampliaciones (excepción por resultado) |
 # | 2026-11-03 | Arekkazu | RF-72: GET /bandeja, inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
+# | 2026-11-18 | Arekkazu | M08 RF-106: tras registrar, avisa al Administrador si la TVCO del modelo baja del umbral |
 """Router FastAPI para retroalimentación clínica M04 (`/prediccion/retroalimentacion`).
 
 RF-72 CU-08: registro de retroalimentación clínica sobre resultados de inferencia.
@@ -21,6 +22,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.reporting.application.use_cases.historial.vigilar_degradacion_modelo_use_case import (
+    VigilarDegradacionModeloUseCase,
+)
+from src.reporting.infrastructure.adapters.tasa_validacion_m04_adapter import TasaValidacionM04Adapter
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.retroalimentacion.ampliar_ventana_retroalimentacion_use_case import AmpliarVentanaRetroalimentacionUseCase
 from src.prediction.application.use_cases.retroalimentacion.registrar_retroalimentacion_use_case import RegistrarRetroalimentacionUseCase
@@ -48,7 +53,7 @@ from src.prediction.infrastructure.schema.ampliacion_ventana_retroalimentacion_s
     AmpliacionVentanaRetroalimentacionResponse,
 )
 from src.prediction.infrastructure.schema.retroalimentacion_clinica_schema import RetroalimentacionClinicaResponse
-from src.shared.database import get_db
+from src.shared.database import get_db, sesion_sistema
 from src.shared.fechas import FechaHoraUtc
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -92,6 +97,8 @@ def registrar_retroalimentacion(
         ampliacion_repo=SqlAlchemyAmpliacionVentanaRetroalimentacionRepository(db),
     )
     entidad = use_case.execute(dto, usuario_actual.id_usuario)
+    # RF-106: ya confirmada la retroalimentación, revisa la tasa de validación del modelo (no falla el registro).
+    VigilarDegradacionModeloUseCase(TasaValidacionM04Adapter(sesion_sistema)).execute()
     return RetroalimentacionClinicaResponse.from_entity(entidad)
 
 
