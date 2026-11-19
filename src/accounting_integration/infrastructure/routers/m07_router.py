@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: consulta AAEF para AgroFusion y administración de la integración |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: PATCH/PUT de una versión del contrato; las protegidas responden MODIFICACION_NO_PERMITIDA |
 """Routers de M07 (``/integracion``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 - ``GET /integracion/aaef/productores/{nit}``: la consulta de AgroFusion (RF-AE01). Su autenticación
@@ -26,6 +27,7 @@ from src.accounting_integration.infrastructure.dto.m07_dto import (
     AprobarAnexoDTO,
     DeprecarContratoDTO,
     EditarClienteDTO,
+    ModificarContratoDTO,
     MotivoDTO,
     RegistrarAnexoDTO,
     RegistrarClienteDTO,
@@ -47,6 +49,7 @@ TipoEvento = Literal[
     "USUARIO_ACTUALIZADO_M2M", "ESTADO_USUARIO_CAMBIADO_M2M", "CLIENTE_REGISTRADO", "CLIENTE_EDITADO",
     "CLIENTE_SUSPENDIDO", "CLIENTE_REACTIVADO", "CLIENTE_REVOCADO", "SECRETO_ROTADO", "CONTRATO_REGISTRADO",
     "CONTRATO_ACTIVADO", "CONTRATO_DEPRECADO", "CONTRATO_INACTIVADO", "CONTRATO_ACTIVACION_BLOQUEADA",
+    "CONTRATO_TRANSICION_RECHAZADA", "CONTRATO_MODIFICADO",
     "ANEXO_REGISTRADO", "ANEXO_EN_REVISION", "ANEXO_APROBADO", "ANEXO_VALIDACION_FALLIDA",
     "INTENTO_MODIFICACION_AUDITORIA", "ACCESO_AUDITORIA_DENEGADO", "REGISTRO_AUDITORIA_CORRUPTO",
 ]
@@ -221,6 +224,20 @@ def registrar_contrato(dto: RegistrarContratoDTO, m07: M07 = Depends(_m07),
     return m07.gestionar_contratos().registrar(SolicitudContrato(
         dto.contrato_version, dto.tipo_cambio, dto.fecha_vigencia, dto.id_mapeo_anexo_aaef, list(dto.mapeadores),
         dto.periodo_gracia_dias, dto.descripcion), usuario_actual.id_usuario)
+
+
+_MODIFICAR = dict(tags=[TAG_CONTRATOS], dependencies=[Depends(permiso("contratos_aaef", U))],
+                  summary="Modificar una versión pendiente (activas, deprecadas e inactivas no se modifican)")
+
+
+@router.patch("/contratos/{id_version_contrato_aaef}", **_MODIFICAR)
+@router.put("/contratos/{id_version_contrato_aaef}", **_MODIFICAR)
+def modificar_contrato(id_version_contrato_aaef: int, request: Request, dto: Optional[ModificarContratoDTO] = None,
+                       m07: M07 = Depends(_m07), usuario_actual: UsuarioActual = Depends(get_current_user)):
+    # Sin cuerpo también se valida el estado: una versión protegida responde MODIFICACION_NO_PERMITIDA.
+    cambios = dto.model_dump(exclude_none=True) if dto else {}
+    return m07.gestionar_contratos().modificar(id_version_contrato_aaef, cambios, usuario_actual.id_usuario,
+                                               request.method)
 
 
 @router.post("/contratos/{id_version_contrato_aaef}/activar", tags=[TAG_CONTRATOS],
