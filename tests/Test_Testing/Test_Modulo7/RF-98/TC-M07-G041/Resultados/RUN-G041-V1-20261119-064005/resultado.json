@@ -1,0 +1,448 @@
+{
+  "grupo": "G041",
+  "run_id": "RUN-G041-V1-20261119-064005",
+  "version": 1,
+  "autorizacion_referencia": "AUT-G041-V1-R3-20261119",
+  "solicitudes": [
+    {
+      "id": "G041-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "ANTES_DEL_RUN"
+    },
+    {
+      "id": "G041-002",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "actor": "contador",
+      "momento": "ANTES_DEL_RUN"
+    },
+    {
+      "id": "G041-003",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-004",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "actor": "contador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-005",
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-006",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-007",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_REGISTRADO&pagina=1&tamano=100",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-008",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO&pagina=1&tamano=100",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-009",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_DEPRECADO&pagina=1&tamano=100",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-010",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_INACTIVADO&pagina=1&tamano=100",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-011",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-012",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "http": 403,
+      "actor": "contador",
+      "momento": "DENTRO_DEL_RUN",
+      "error_code": "ACCESO_DENEGADO",
+      "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+    },
+    {
+      "id": "G041-013",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-014",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-015",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/4/activar",
+      "http": 403,
+      "actor": "contador",
+      "momento": "DENTRO_DEL_RUN",
+      "error_code": "ACCESO_DENEGADO",
+      "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+    },
+    {
+      "id": "G041-016",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-017",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-018",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/18/deprecar",
+      "http": 403,
+      "actor": "contador",
+      "momento": "DENTRO_DEL_RUN",
+      "error_code": "ACCESO_DENEGADO",
+      "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+    },
+    {
+      "id": "G041-019",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-020",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "http": 201,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-021",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-022",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_REGISTRADO&pagina=1&tamano=100",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-023",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/18/deprecar",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-024",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    },
+    {
+      "id": "G041-025",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_DEPRECADO&pagina=1&tamano=100",
+      "http": 200,
+      "actor": "administrador",
+      "momento": "DENTRO_DEL_RUN"
+    }
+  ],
+  "pruebas": {
+    "TC-M07-22": {
+      "API": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "UI": [
+        "APROBADO"
+      ]
+    },
+    "TC-M07-23": {
+      "API": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ]
+    }
+  },
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "observaciones": [
+    "Eventos sembrados sin estado excluidos: 7",
+    "UI: acciones ocultas",
+    "UI: Registrar anexo visible=false"
+  ],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-G041.json",
+    "newman/newman-G041.html",
+    "cypress/G041-UI-22.json",
+    "cypress/G041-cypress.json",
+    "cypress/G041-cypress-salida.log",
+    "cypress/screenshots/g041.cy.js\\G041-UI-22.png"
+  ],
+  "sembrados": 7,
+  "cierre": {
+    "http": 200,
+    "fases": [
+      {
+        "fase": "UNICA",
+        "http": 200
+      }
+    ],
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lectura pública poscierre y firma completa de contratos"
+    },
+    "lecturas_poscierre": 1,
+    "run": {
+      "cierre_http": 200
+    }
+  },
+  "newman": {
+    "codigo": 0,
+    "fallos": 0,
+    "solicitudes": 2,
+    "reportes": true
+  },
+  "cypress": {
+    "codigo": 0,
+    "total_pruebas": 1,
+    "fallo_producto": false,
+    "solicitudes": 10
+  },
+  "oficial": true,
+  "preflight_datos": [
+    {
+      "requisito": "ADMIN_C",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "ADMIN_R",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "ADMIN_U",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "ADMIN_AUDITORIA_R",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "CONTADOR_SIN_C",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "CONTADOR_SIN_U",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "UNA_ACTIVO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PENDIENTE",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "INACTIVO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "ANEXO_APROBADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "DOS_VERSIONES_LIBRES",
+      "cumple": true,
+      "bloqueante": true
+    }
+  ],
+  "versiones_elegidas": {
+    "contador": "6.0",
+    "admin": "6.1",
+    "activo": "3.0",
+    "pendiente": "2.2",
+    "inactivo": "1.0"
+  },
+  "consume_version": true,
+  "casos": {
+    "TC-M07-22": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "registro_denegado",
+        "activar_denegado",
+        "deprecar_denegado",
+        "acciones_ocultas"
+      ]
+    },
+    "TC-M07-23": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "registro_auditado",
+        "deprecacion_auditada",
+        "activacion_historica",
+        "inactivacion_historica",
+        "historial"
+      ]
+    }
+  },
+  "veredictos": {
+    "22": "APROBADO",
+    "23": "APROBADO"
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M07-22",
+      "fuente": "API",
+      "id": "registro_denegado",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-22",
+      "fuente": "API",
+      "id": "activar_denegado",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-22",
+      "fuente": "API",
+      "id": "deprecar_denegado",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-22",
+      "fuente": "UI",
+      "id": "acciones_ocultas",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "cypress/G041-UI-22.json"
+    },
+    {
+      "caso": "TC-M07-23",
+      "fuente": "API",
+      "id": "registro_auditado",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-23",
+      "fuente": "API",
+      "id": "deprecacion_auditada",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-23",
+      "fuente": "API",
+      "id": "activacion_historica",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-23",
+      "fuente": "API",
+      "id": "inactivacion_historica",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-23",
+      "fuente": "API",
+      "id": "historial",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes_total": 39
+}

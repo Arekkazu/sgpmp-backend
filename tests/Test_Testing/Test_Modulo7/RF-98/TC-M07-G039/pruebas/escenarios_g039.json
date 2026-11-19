@@ -1,0 +1,199 @@
+{
+  "escenarios": [
+    {
+      "id": "a_conforme",
+      "opciones": {
+        "auditoriaInicial": 250
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "b_inyectado",
+      "opciones": {
+        "inyectado": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "c_barajado",
+      "opciones": {
+        "barajado": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "d_warning_y_aviso",
+      "opciones": {
+        "warningYAviso": true,
+        "avisosInicial": 850,
+        "auditoriaInicial": 250
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "e_modificacion_rechazada",
+      "opciones": {
+        "modificacionRechazada": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "f_reactivacion_correcta",
+      "opciones": {
+        "reactivacionCorrecta": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "g_transicion_aceptada",
+      "opciones": {
+        "transicionAceptada": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "h_deprecacion_fechas_mal",
+      "opciones": {
+        "fechasMal": true
+      },
+      "esperado": [
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "i_sin_inactivo",
+      "opciones": {
+        "sinInactivo": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "j_sin_activo",
+      "opciones": {
+        "sinActivo": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "k_rollback_fallido",
+      "opciones": {
+        "rollbackFallido": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "l_sin_permisos",
+      "opciones": {
+        "sinPermisos": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "m_vigencia_vencida",
+      "opciones": {
+        "vigenciaVencida": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "n_base_con_version_ajena",
+      "opciones": {
+        "baseConVersionAjena": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "o_vencida_cupo_lleno",
+      "opciones": {},
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "RECHAZADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    }
+  ]
+}

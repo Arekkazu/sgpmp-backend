@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {CAPACIDADES,sanitize,verificarRollback} from '../g039.mjs';
+import {simuladorG039} from './simulador_g039.mjs';
+assert.deepEqual(CAPACIDADES.casos,['TC-M07-13','TC-M07-14','TC-M07-15','TC-M07-16']);
+assert.deepEqual(sanitize({token:'secreto',nombre_usuario:'Persona',correo_electronico:'x@y.co',valor:'eyJabc.def.ghi'}),{token:'[RESERVADO]',nombre_usuario:'[NOMBRE]',correo_electronico:'[CORREO]',valor:'[JWT]'});
+const base=[{id_version_contrato_aaef:3,contrato_version:'2.1',estado:'ACTIVO',fecha_activacion:'2026-11-17T12:00:00Z',fecha_deprecacion:null,fecha_inactivacion:null}];
+assert.equal(verificarRollback(base,structuredClone(base)),true);
+assert.equal(verificarRollback(base,[{...base[0],fecha_deprecacion:'2026-11-18T12:00:00Z'}]),false);
+const sim=simuladorG039();const run='RUN-G039-V1-20261117-000000',headers={'X-Test-Run-Id':run};
+await sim.fetcher(`${sim.api}/integracion/contratos`,{method:'GET',headers});
+await sim.fetcher(`${sim.api}/test-control/runs/${run}`,{method:'DELETE',headers:{}});
+const reabierta=await sim.fetcher(`${sim.api}/integracion/contratos`,{method:'GET',headers});
+assert.equal(reabierta.headers.get('X-Test-Run-Id'),run);
+assert.equal(sim.deleteN,1);
+console.log('OK g039_local.test.mjs');
