@@ -1,11 +1,13 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-11-18 | usuario-git | TC-M07-G060 (RF-AE01 / RF-AE02): runner de G2.1 a G2.5 contra TEST + pytest local de G2.6 y G2.7. |
+# | 2026-11-19 | usuario-git | TC-M07-G060: G2.2 espera 403 CLIENTE_NO_AUTORIZADO con el token de otro canal (RF-95 5.3 b, TC-M07-012). |
 """TC-M07-G060 — Validacion de la consulta AAEF y del Anexo.  Responsable: Maria Jose.
 
 Subcasos:
   G2.1 (Alta)  Sin cabecera Authorization: 401 NO_AUTENTICADO.
-  G2.2 (Alta)  Token invalido, vencido y de otro canal: 401 NO_AUTENTICADO en todos.
+  G2.2 (Alta)  Token invalido, vencido (401 NO_AUTENTICADO) y de otro canal (403 CLIENTE_NO_AUTORIZADO: el token es
+               valido pero el cliente no tiene el canal CONSULTA_AAEF; RF-95 5.3 b / FA-4 / CA-5, TC-M07-012).
   G2.3 (Alta)  Parametros ausentes o mal formados, desde > hasta: 400 PARAMETROS_INVALIDOS con field.
   G2.4 (Alta)  Credenciales en la URL (token, password, api_key): 400 CREDENCIALES_EN_URL y sin rastro del valor.
   G2.5 (Media) NIT inexistente: 404 TITULAR_NO_ENCONTRADO; NIT mal formado: 400 PARAMETROS_INVALIDOS.
@@ -110,7 +112,8 @@ def escenario(sid, nombre, prioridad, esperado, estado, obtenido, pasos=None, **
 
 NOMBRES_API = {
     "G2.1": ("Sin cabecera Authorization", "Alta", "401 NO_AUTENTICADO"),
-    "G2.2": ("Token invalido, vencido y de otro canal", "Alta", "401 NO_AUTENTICADO en los tres"),
+    "G2.2": ("Token invalido, vencido y de otro canal", "Alta",
+             "401 NO_AUTENTICADO con token invalido o vencido; 403 CLIENTE_NO_AUTORIZADO con token de otro canal"),
     "G2.3": ("Parametros ausentes o mal formados; desde > hasta", "Alta", "400 PARAMETROS_INVALIDOS con field"),
     "G2.4": ("Credenciales en la URL (token, password, api_key)", "Alta",
              "400 CREDENCIALES_EN_URL; la credencial no queda registrada"),
@@ -236,7 +239,7 @@ def parte_api():
         reg("Emitir token del cliente M2M", "POST", "/integraciones/agrofusion/token", s_m)
         if s_m == 200 and tok_m:
             s, _, c = consulta("G2.2 token de otro canal", ruta_ok, token=tok_m)
-            variantes.append(Variante("token de otro canal (QA_M07_M2M)", 401, "NO_AUTENTICADO", s, c))
+            variantes.append(Variante("token de otro canal (QA_M07_M2M)", 403, "CLIENTE_NO_AUTORIZADO", s, c))
         else:
             faltan.append(f"token de otro canal: no se pudo emitir (HTTP {s_m} {d_m.get('error_code') or ''})")
     else:

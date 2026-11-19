@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="0.368" timestamp="2026-11-18T21:04:39.481008-05:00" hostname="MacBook-Air-de-Maria-2.local"><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_6_valores_fijos_del_anexo" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_linea_base_sin_fallas_pasa_a_revision" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cobertura]" time="0.000"><failure message="KeyError: 'Lines'">falla = 'cobertura'
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x10546d610&gt;
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="0.458" timestamp="2026-11-19T09:57:18.817802-05:00" hostname="MacBook-Air-de-Maria-2.local"><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_6_valores_fijos_del_anexo" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_linea_base_sin_fallas_pasa_a_revision" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cobertura]" time="0.001"><failure message="KeyError: 'Lines'">falla = 'cobertura'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1072a5a00&gt;
 
     @pytest.mark.parametrize("falla", sorted(FALLAS))
     def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
@@ -25,7 +25,7 @@ src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_
     if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-.0 = &lt;list_iterator object at 0x10546de10&gt;
+.0 = &lt;list_iterator object at 0x1072a5e40&gt;
 
     if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
 &gt;          for d in envelope["invoices"] for ln in d["Lines"]):
@@ -33,7 +33,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 E          KeyError: 'Lines'
 
 src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:61: KeyError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_documento]" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_summary]" time="0.000"><failure message="Failed: DID NOT RAISE &lt;class 'src.shared.errors.BusinessRuleError'&gt;">falla = 'cuadre_summary'
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x10546e6f0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1072a6630&gt;
 
     @pytest.mark.parametrize("falla", sorted(FALLAS))
     def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
