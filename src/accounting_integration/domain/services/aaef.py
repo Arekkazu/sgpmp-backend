@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
 # | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
+# | 2026-11-19 | Arekkazu | TC-M07-G016/G019 RF-96: neto negativo invierte las cuentas y LineType contra la matriz |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -136,13 +137,30 @@ def _cuenta(valor: Optional[str], documento: str) -> str:
     return str(valor)
 
 
+def _exigir_catalogo(line_type: Optional[str], catalogados: Optional[frozenset], etiquetas: dict, documento: str,
+                     mapper: str) -> None:
+    """RF-96 CA-6: el LineType debe tener par de cuentas activo en la matriz contable (RF-109).
+
+    ``catalogados`` es ``None`` cuando no hay catálogo que consultar (autoprueba del anexo); un ``None``
+    dentro del conjunto es una fila de la matriz que aplica a todos los subtipos."""
+    if catalogados is None:
+        return
+    if line_type in etiquetas and (line_type in catalogados or None in catalogados):
+        return
+    nombre = f"«{etiquetas[line_type].capitalize()}»" if line_type in etiquetas else "sin un tipo reconocido"
+    raise AaefError("LINETYPE_NO_CATALOGADO", f"El documento {documento} tiene una línea {nombre} sin cuenta activa en la "
+                    "matriz contable. Complétela en Configuración contable.", "LineType", {"mapper": mapper})
+
+
 def _totales(subtotal: Decimal, saldo: Decimal) -> dict:
     return {"Subtotal": subtotal, "TotalVAT": CERO, "TotalWithholdings": CERO, "TotalDiscounts": CERO,
             "TotalPayment": subtotal, "OutstandingBalance": saldo}
 
 
-def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
-    """Mapper de Compras (``02``): un documento por factura, una línea por registro (RF-AE02 5.3)."""
+def mapear_compras(costos: Iterable[CostoFactura], catalogo: Optional[frozenset] = None) -> list[dict]:
+    """Mapper de Compras (``02``): un documento por factura, una línea por registro (RF-AE02 5.3).
+
+    ``catalogo``: subtipos de costo con cuenta de gasto activa en la matriz contable."""
     facturas: dict[tuple, list[CostoFactura]] = {}
     for costo in costos:
         if not (costo.tercero_nit and costo.tercero_razon_social and costo.factura_numero and costo.fecha_factura):
@@ -157,6 +175,7 @@ def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
         document_id = f"COS-{primero.id_registro_costo}-{primero.fecha_factura:%Y%m%d}"
         lineas = []
         for costo in registros:
+            _exigir_catalogo(costo.subtipo_costo, catalogo, ETIQUETA_SUBTIPO, document_id, MAPPER_COMPRAS)
             valor = truncar2(costo.monto_costo)
             lineas.append({
                 "Code": costo.subtipo_costo,
@@ -183,8 +202,12 @@ def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
     return documentos
 
 
-def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titular) -> list[dict]:
-    """Mapper de Comprobante NIC 41 (``06``): una línea por par de cuentas (RF-AE02 5.4)."""
+def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titular,
+                        catalogo: Optional[frozenset] = None) -> list[dict]:
+    """Mapper de Comprobante NIC 41 (``06``): una línea por par de cuentas (RF-AE02 5.4).
+
+    ``Value`` siempre es positivo y el sentido lo dan las cuentas (CA-4): un neto negativo (una
+    pérdida) invierte débito y crédito. ``catalogo``: hechos con cuenta activa en la matriz contable."""
     documentos = []
     prefijo_codigo = f"NIC-{titular.nit}-"
     for comprobante in comprobantes:
@@ -192,19 +215,22 @@ def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titul
             raise AaefError("MAPPER_FALLIDO", f"El comprobante {comprobante.codigo} no pertenece al productor consultado.",
                             "DocumentId", {"mapper": MAPPER_COMPROBANTE_NIC41})
         fecha = comprobante.fecha_comprobante.isoformat()
+        _exigir_catalogo(comprobante.tipo_hecho, catalogo, ETIQUETA_HECHO, comprobante.codigo, MAPPER_COMPROBANTE_NIC41)
         nombre = ETIQUETA_HECHO.get(comprobante.tipo_hecho, comprobante.tipo_hecho)
         lineas = []
         for par in comprobante.lineas:
             valor = truncar2(Decimal(str(par["valor"])))
-            if valor <= 0:
+            if valor == 0:
                 raise AaefError("MAPPER_FALLIDO", f"El comprobante {comprobante.codigo} tiene una línea sin valor.",
                                 "Value", {"mapper": MAPPER_COMPROBANTE_NIC41})
+            debito, credito = par.get("cuenta_debito"), par.get("cuenta_credito")
+            if valor < 0:
+                debito, credito, valor = credito, debito, -valor
             lineas.append({
                 "Code": comprobante.tipo_hecho, "Name": nombre,
                 "Description": f"{comprobante.especie} · {comprobante.fecha_comprobante:%Y-%m}",
                 "LineType": comprobante.tipo_hecho,
-                "accounting_account": [_cuenta(par.get("cuenta_debito"), comprobante.codigo),
-                                       _cuenta(par.get("cuenta_credito"), comprobante.codigo)],
+                "accounting_account": [_cuenta(debito, comprobante.codigo), _cuenta(credito, comprobante.codigo)],
                 "Quantity": Decimal(1), "UnitPrice": valor, "Value": valor, "Taxes": [],
             })
         subtotal = sum((ln["Value"] for ln in lineas), CERO)

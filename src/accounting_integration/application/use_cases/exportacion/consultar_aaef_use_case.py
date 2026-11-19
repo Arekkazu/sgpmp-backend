@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 Fases 3-5 / RF-97: alcance por fincas, versión y envelope AAEF del titular |
+# | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96 CA-6: LineType validado contra la matriz contable |
 """Genera el envelope AAEF de un titular para un rango de períodos cerrados (RF-97 v3.0).
 
 Lo invoca el Gateway (RF-95) con el usuario ya autenticado y con permiso; aquí se resuelve lo que
@@ -79,9 +80,10 @@ class ConsultarAaefUseCase:
             if sin_traza:  # RF-97 FA-3; el cierre de M06 ya lo impide, esto es la última defensa
                 raise AaefError("TRAZABILIDAD_INCOMPLETA", f"{sin_traza} asientos del rango no tienen la trazabilidad "
                                 "completa. El Contador debe revisarlos en Finanzas antes de exportar.")
-            compras = (mapear_compras(self.fuente.costos_factura(s.nit, s.desde, s.hasta))
+            subtipos, hechos = self.fuente.linetypes_catalogados()
+            compras = (mapear_compras(self.fuente.costos_factura(s.nit, s.desde, s.hasta), subtipos)
                        if MAPPER_COMPRAS in contrato.mapeadores else [])
-            comprobantes = (mapear_comprobantes(self.fuente.comprobantes(s.nit, s.desde, s.hasta), titular)
+            comprobantes = (mapear_comprobantes(self.fuente.comprobantes(s.nit, s.desde, s.hasta), titular, hechos)
                             if MAPPER_COMPROBANTE_NIC41 in contrato.mapeadores else [])
             envelope = construir_envelope(titular, s.desde, s.hasta, self.sistema, s.correo_usuario, self.hoy(),
                                           compras, comprobantes)
