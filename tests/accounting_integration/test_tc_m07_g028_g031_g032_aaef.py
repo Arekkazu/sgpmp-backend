@@ -2,10 +2,13 @@
 # |------------|----------------|-------------|
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del Mapper que falla llega a la respuesta |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA identifica los hechos afectados |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: ERROR_DATOS_FINANCIEROS y ERROR_INTERNO_RF97 |
 """Lote QA 2026-11-19 de la exportación contable (RF-97), sin base de datos.
 
 - TC-M07-381 (#1183): un MAPPER_FALLIDO expone ``detalle.mapper`` y ``detalle.documento``.
 - TC-M07-379 (#1181): TRAZABILIDAD_INCOMPLETA trae los hechos afectados, no solo cuántos son.
+- TC-M07-380 (#1182): una falla al leer los datos financieros es ERROR_DATOS_FINANCIEROS; lo inesperado,
+  ERROR_INTERNO_RF97.
 """
 import asyncio
 import json
@@ -108,3 +111,26 @@ def test_trazabilidad_incompleta_con_muchos_hechos_resume_el_mensaje():
     with pytest.raises(AppError) as exc:
         _consultar(_Fuente(sin_traza=[_linea(i) for i in range(1, 9)]))
     assert len(exc.value.detalle["hechos"]) == 8 and "y 3 más" in exc.value.message
+
+
+def test_falla_de_los_datos_financieros_es_error_datos_financieros():
+    caida = RuntimeError("conexión perdida")
+    with pytest.raises(AppError) as exc:
+        _consultar(_Fuente(falla=caida))
+    assert (exc.value.code, exc.value.status_code) == ("ERROR_DATOS_FINANCIEROS", 500)
+    assert exc.value.__cause__ is caida  # el gateway reconoce así el tiempo máximo agotado
+    assert "None" not in exc.value.message and "RF" not in exc.value.message
+
+
+def test_error_inesperado_de_la_transformacion_es_error_interno_rf97():
+    roto = CostoFactura(11, "800555111", "Agroinsumos", "FE", "8811", date(2026, 10, 4), None, "ALIMENTO",
+                        None, "51350501", "BOV-001")  # importe ausente: falla fuera de las reglas de negocio
+    with pytest.raises(AppError) as exc:
+        _consultar(_Fuente([roto]))
+    assert (exc.value.code, exc.value.status_code) == ("ERROR_INTERNO_RF97", 500)
+
+
+def test_reglas_de_negocio_conservan_su_codigo():
+    with pytest.raises(AppError) as exc:
+        _consultar(_Fuente([_costo(11, cuenta=None)]))
+    assert exc.value.code == "MAPPER_FALLIDO" and exc.value.status_code == 422
