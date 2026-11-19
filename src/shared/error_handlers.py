@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-82: mensaje en español para exceso de decimales |
 # | 2026-10-26 | Arekkazu | INC-M03/M04 RF-57/59/73: 422 por ruta (x-codigo-validacion) y E1 de RF-57 en bitácora |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: respetar el HTTP 422 declarado por ruta y conservar el 400 predeterminado. |
+# | 2026-11-19 | Arekkazu | INC-M07-375-G002 RF-95: el cuerpo de error también trae `field` (el primer campo que falló) |
 """Handlers globales de error de la aplicación FastAPI.
 
 Se registran en main.py con register_error_handlers(app). Cubren tres capas:
@@ -55,13 +56,15 @@ def _respuesta_error(
         headers: Cabeceras adicionales de la respuesta (p. ej. ``Retry-After``).
 
     Returns:
-        JSONResponse con las claves `error_code`, `message`, `fields` y `timestamp`.
+        JSONResponse con las claves `error_code`, `message`, `field`, `fields` y `timestamp`.
+        `field` es el primer campo de `fields` (o ``null``): el contrato de RF-95.
     """
     return JSONResponse(
         status_code=status_code,
         content={
             "error_code": code,
             "message": message,
+            "field": fields[0]["field"] if fields else None,
             "fields": fields or [],
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
