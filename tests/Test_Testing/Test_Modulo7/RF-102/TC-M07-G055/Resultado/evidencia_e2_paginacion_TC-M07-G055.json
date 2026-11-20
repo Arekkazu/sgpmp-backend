@@ -1,0 +1,45 @@
+{
+  "escenario": "E2",
+  "fecha_utc": "2026-11-18T02:35:38.244345+00:00",
+  "estado": "APROBADO",
+  "total_baseline": 145,
+  "mas_de_100": true,
+  "paginas": [
+    {
+      "pagina": 1,
+      "http": 200,
+      "items": 100,
+      "tamano_eco": 100,
+      "total_eco": 145,
+      "primer_id": "21f4db37-7e12-4470-aea6-bfd20e3ea281",
+      "ultimo_id": "de5dc57e-cdd9-48b1-b552-b77c25f0802d"
+    },
+    {
+      "pagina": 2,
+      "http": 200,
+      "items": 45,
+      "tamano_eco": 100,
+      "total_eco": 145,
+      "primer_id": "73b8dc05-d494-4eca-b0b0-3241b239a3f8",
+      "ultimo_id": "211f3f7b-54e7-4add-b338-b3aefc890eb0"
+    }
+  ],
+  "ids_unicos_recorridos": 145,
+  "tamano_superior_100": {
+    "http": 400,
+    "esperado": [
+      400,
+      422
+    ],
+    "ok": true,
+    "comportamiento": "rechazo de validación (no se devuelve página >100)"
+  },
+  "pagina_fuera_rango": {
+    "pagina": 7,
+    "http": 200,
+    "items": 0,
+    "ok": true
+  },
+  "fallos": [],
+  "orden": "fecha_evento DESC, id_evento_integracion"
+}

@@ -1,0 +1,121 @@
+{
+  "fecha": "complemento_lectura",
+  "posts_adicionales": 0,
+  "cotizacion_15": {
+    "http": 405,
+    "estado": null,
+    "version": null,
+    "activos": null,
+    "vr": null
+  },
+  "/finanzas/auditoria?id_activo_biologico=1571&formato=TECNICO&tamano=50&orden=DESC": {
+    "http": 200,
+    "count": 3,
+    "matches": [
+      {
+        "id_evento": 29463,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "id_referencia": 15,
+        "id_activo_biologico": 1571,
+        "monto_afectado": "1000.0000",
+        "timestamp_evento": "2026-11-16T03:40:46.183953Z"
+      }
+    ]
+  },
+  "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=20&orden=DESC": {
+    "http": 200,
+    "count": 7,
+    "matches": [
+      {
+        "id_evento": 29463,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "id_referencia": 15,
+        "id_activo_biologico": 1571,
+        "monto_afectado": "1000.0000",
+        "timestamp_evento": "2026-11-16T03:40:46.183953Z"
+      },
+      {
+        "id_evento": 25366,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "id_referencia": 11,
+        "id_activo_biologico": null,
+        "monto_afectado": "1000.0000",
+        "timestamp_evento": "2026-11-14T05:19:04.911793Z"
+      },
+      {
+        "id_evento": 20190,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "id_referencia": 10,
+        "id_activo_biologico": null,
+        "monto_afectado": "1000.0000",
+        "timestamp_evento": "2026-11-13T02:31:20.440127Z"
+      },
+      {
+        "id_evento": 20189,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "id_referencia": 9,
+        "id_activo_biologico": null,
+        "monto_afectado": "1000.0000",
+        "timestamp_evento": "2026-11-13T02:24:46.425401Z"
+      },
+      {
+        "id_evento": 17257,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "id_referencia": 8,
+        "id_activo_biologico": null,
+        "monto_afectado": "3700000.0000",
+        "timestamp_evento": "2026-11-11T16:23:19.605168Z"
+      }
+    ]
+  },
+  "/finanzas/auditoria?id_referencia=15&formato=TECNICO&tamano=20&orden=DESC": {
+    "http": 400,
+    "count": 0,
+    "matches": []
+  },
+  "periodos_900000002": {
+    "http": 401,
+    "p219": null,
+    "p220": null,
+    "n": 0
+  },
+  "periodos_900000003": {
+    "http": 401,
+    "p219": null,
+    "p220": null,
+    "n": 0
+  },
+  "aaef": {
+    "http": 401,
+    "error_code": "TOKEN_REVOCADO",
+    "keys": [
+      "error_code",
+      "fields",
+      "message",
+      "timestamp"
+    ]
+  },
+  "revalidacion_login_fresco": {
+    "posts_adicionales": 0,
+    "periodo_219": "CERRADO",
+    "periodo_220": "ABIERTO",
+    "aaef_http": 422,
+    "aaef_error_code": "PERIODO_NO_CERRADO",
+    "cotizacion_15": {
+      "estado": "COTIZADO",
+      "version": 1,
+      "activos_cotizados": [
+        1571
+      ],
+      "valor_razonable_referencia": "3760000.0000"
+    },
+    "auditoria": {
+      "id_evento": 29463,
+      "tipo_evento": "COTIZACION_REGISTRADA",
+      "id_referencia": 15,
+      "id_activo_biologico": 1571,
+      "monto_afectado": "1000.0000"
+    },
+    "nota": "Los fallos 50.11/50.13/50.14 de la pasada inicial se debieron a TOKEN_REVOCADO mid-script; revalidacion solo lectura con login fresco."
+  }
+}

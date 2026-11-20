@@ -1,0 +1,120 @@
+{
+  "caso": "TC-M07-G061",
+  "requisito": "RF-AE01 / RF-AE02",
+  "responsable": "Maria Jose",
+  "fecha_ejecucion_utc": "2026-11-19T15:41:44.536333+00:00",
+  "entorno": "TEST y local",
+  "base_url": "https://api.inmero.co/api-sgpmp-test",
+  "estado_final": "RECHAZADO",
+  "escenarios": [
+    {
+      "id": "G3.1",
+      "nombre": "Rango de un solo dia (desde = hasta)",
+      "prioridad": "Alta",
+      "esperado": "Dia suelto no alineado: 422 RANGO_NO_ALINEADO con el rango valido sugerido; alineado a un periodo de un dia: valido",
+      "estado": "APROBADO",
+      "obtenido": "fin de periodo 2026-10-31: HTTP 422 RANGO_NO_ALINEADO field=desde rango sugerido presente (esperado 422 RANGO_NO_ALINEADO) OK; inicio de periodo 2026-10-01: HTTP 422 RANGO_NO_ALINEADO field=hasta rango sugerido presente (esperado 422 RANGO_NO_ALINEADO) OK; mitad de periodo 2026-10-15: HTTP 422 RANGO_NO_ALINEADO field=desde rango sugerido presente (esperado 422 RANGO_NO_ALINEADO) OK; pytest: 4/4 comprobaciones pasan",
+      "pasos": [
+        "GET en TEST con token de canal",
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G3.2",
+      "nombre": "Rango cerrado sin datos",
+      "prioridad": "Media",
+      "esperado": "200 con invoices: [] y envelope valido, con summary en 0",
+      "estado": "APROBADO",
+      "obtenido": "rango sin hechos 2026-11-01 a 2026-11-30: HTTP 200; invoices=[]; summary={'TotalDocuments': 0, 'TotalInvoices': 0, 'TotalTransactions': 0, 'TotalGrossAmount': 0.0, 'TotalNet': 0.0, 'Currency': 'COP'}; OK; pytest: 1/1 comprobaciones pasan",
+      "pasos": [
+        "GET en TEST con token de canal",
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G3.3",
+      "nombre": "Respuesta de 20 MB exactos y de 20 MB + 1 byte",
+      "prioridad": "Media",
+      "esperado": "Hasta 20 MB: 200; por encima: 422 TAMANO_EXCEDIDO",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 3/3 comprobaciones pasan",
+      "pasos": [
+        "",
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G3.4",
+      "nombre": "accounting_account con 0, 1, 2 y 3 elementos",
+      "prioridad": "Alta",
+      "esperado": "Valido solo con 1 elemento en tipo 02 y 2 en tipo 06",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 9/9 comprobaciones pasan",
+      "pasos": [
+        "",
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G3.5",
+      "nombre": "monto_costo con 0, 0.01 y 100.999",
+      "prioridad": "Alta",
+      "esperado": "0 no genera documento valido; 0.01 valido; 100.999 se trunca a 100.99",
+      "estado": "RECHAZADO",
+      "obtenido": "pytest: 2/3 comprobaciones pasan; FALLAN: monto_0_no_genera_un_documento_valido (Failed: un costo con monto 0 produjo un documento 02 que supera Mapper, cuadre y esquema de AgroFusion)",
+      "pasos": [
+        "",
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G3.6",
+      "nombre": "Value de linea del tipo 06 con 0, 0.01 y suma del par",
+      "prioridad": "Media",
+      "esperado": "Debe ser > 0: 0 se rechaza, 0.01 se acepta",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 3/3 comprobaciones pasan",
+      "pasos": [
+        "",
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    }
+  ],
+  "peticiones": [
+    {
+      "paso": "Emitir token de canal",
+      "metodo": "POST",
+      "ruta": "/integraciones/agrofusion/token",
+      "http": 200,
+      "utc": "2026-11-19T15:41:41.964367+00:00"
+    },
+    {
+      "paso": "G3.1 fin de periodo",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-31&hasta=2026-10-31",
+      "http": 422,
+      "utc": "2026-11-19T15:41:42.290355+00:00"
+    },
+    {
+      "paso": "G3.1 inicio de periodo",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-01&hasta=2026-10-01",
+      "http": 422,
+      "utc": "2026-11-19T15:41:42.786639+00:00"
+    },
+    {
+      "paso": "G3.1 mitad de periodo",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-15&hasta=2026-10-15",
+      "http": 422,
+      "utc": "2026-11-19T15:41:43.199066+00:00"
+    },
+    {
+      "paso": "G3.2 rango sin hechos",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901555227?desde=2026-11-01&hasta=2026-11-30",
+      "http": 200,
+      "utc": "2026-11-19T15:41:43.605383+00:00"
+    }
+  ]
+}

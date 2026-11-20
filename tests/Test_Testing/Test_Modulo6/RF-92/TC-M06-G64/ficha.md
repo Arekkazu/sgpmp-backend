@@ -45,3 +45,11 @@ Fuente: `RF-92_TC_Individuales_y_Agrupados.xlsx`, hoja TC Agrupados, TCG-06 (TC-
 - Roles: Contador.
 - Las peticiones marcadas **[escritura]** crean o cambian datos: corren **dentro del sandbox transaccional de TEST** (cabecera X-Test-Run-Id) y al final se revierten con DELETE /test-control/runs/{id}. Requieren `--env-var permitir_escritura=SI` y `--env-var sandbox_secret=...` (secreto que da el DBA); la colección comprueba que el sandbox esté activo y, si no, omite esas peticiones.
 - Las peticiones cuya precondición no existe en TEST se omiten y el log de Newman muestra `PRECONDICION NO DISPONIBLE`.
+
+## Ajuste del oráculo por el arreglo de #1153 (15/11/2026)
+- La sección de riesgos ahora trae siempre Climático, Sanitario y Mercado, cada una con su fuente; la categoría llega como texto («Climático»), no como código (CLIMATICO). La aserción de TC-92-035/036 compara sin tildes ni mayúsculas y exige la fuente de cada categoría.
+- Hay que reevaluarlo sobre un informe nuevo del período 7 generado después del despliegue.
+
+## Cambio de método (15/11/2026): riesgos medidos en el informe nuevo generado en el sandbox
+- La comprobación de las tres categorías de riesgo (TC-92-035/036) pasa del informe guardado al informe que el propio caso genera en el sandbox (TC-92-030/031), porque los informes guardados no cambian con el arreglo de #1153.
+- Requiere `-Escritura` y `-PeriodoCerrado 7`.

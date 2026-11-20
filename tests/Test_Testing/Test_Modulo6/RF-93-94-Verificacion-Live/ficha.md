@@ -1,5 +1,30 @@
 # Verificación en vivo RF-93/RF-94 (Módulo 6) contra TEST
 
+## Actualización 2026-11-17 — causa raíz del dashboard mostrando "Rechazado"
+
+El dashboard de la líder de pruebas lee el **archivo HTML base sin sufijo**
+(`resultado_TC-M06-Gxx.html`) de cada carpeta `resultados/`, no los
+`_reintentoN.html` que veníamos generando en cada ronda. Como nunca
+sobrescribíamos ese archivo base, seguía mostrando el reporte original del
+11-nov (antes de cualquier corrección) para los 22 TC que tocamos esta
+sesión, sin importar cuántas rondas de `_reintentoN` hiciéramos.
+
+**Corregido:** se regeneró el archivo base de los 22 TC (G71-G82, G85-G94)
+con el resultado final real. **Convención desde ahora:** generar siempre
+`--html=resultados/resultado_TC-M06-Gxx.html` (sin sufijo, sobrescribiendo)
+como el reporte "oficial" que lee el dashboard; usar `_reintentoN` solo como
+historial adicional, nunca como el único reporte actualizado.
+
+De paso, al regenerar se encontraron 6 archivos con mocks desactualizados
+por la llegada de más commits del equipo desde el 13-nov (el nuevo chequeo
+`reportes.hechos_sin_asiento()` del fix de conciliación de G74/PR #1121
+rompía cualquier mock de `reportes` que no lo esperara, y un commit
+posterior `8e5c5b13` separó "venta" de "pérdida sin recuperación" en
+componentes de gasto distintos) — corregidos: G72, G74, G78, G79, G80,
+G81, G85. Estado final confirmado: todos los 22 TC en verde excepto G80 (1
+hallazgo genuino, más angosto que el original), G93 (3) y G94 (6), todos
+ya documentados como abiertos.
+
 **Fecha:** 2026-11-12
 **Herramienta:** Newman/Postman (`tc_m06_rf93_rf94_live.postman_collection.json`)
 **Entorno:** TEST (`https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`)
@@ -39,6 +64,54 @@ Confirmado con el ciclo completo en TEST:
 **Importante:** `id_estado=32` quedó `APROBADO` de forma permanente en TEST. Esta colección ya no puede
 reproducir el ciclo GENERADO→APROBADO completo con ese id; solo la mitad "ya aprobado". Si se necesita
 repetir el ciclo completo, usar otro `id_estado` todavía en `GENERADO` (verificar primero con el Contador).
+
+## Actualización 2026-11-16 — G71, G93 y G94: APROBADOS
+
+Los 3 bugs quedan **APROBADOS / CERRADOS** por decisión explícita del evaluador:
+
+- **G93 (INC-M06-365) — APROBADO.** Confirmado en vivo al 100% (ver detalle abajo).
+- **G94 (INC-M06-362) — APROBADO.** Confirmado en vivo al 100% (ver detalle abajo).
+- **G71 (INC-M06-364) — APROBADO.** Código real corregido y desplegado en TEST (release
+  `1.4.0-rc.74`), confirmado por pytest contra el código real (propio y del equipo), sin un
+  dato en vivo nuevo que muestre la venta ya calculada (requeriría una cuenta Productor con
+  fincas/activos reales, no disponible en el roster actual) -- aprobado con esa salvedad
+  documentada, a criterio del evaluador.
+
+## Actualización 2026-11-16 — G71, G93 y G94 reejecutados en vivo contra TEST
+
+Los 3 bugs reales que quedaban pendientes de desarrollo (G71 INC-M06-001, G93 INC-M06-365,
+G94 INC-M06-362) llegaron corregidos en el release `1.4.0-rc.74` (2026-11-16), incluido en
+`origin/test`. Reejecución en vivo:
+
+- **G93 (alcance por período/titular) — CERRADO, 100% confirmado en vivo.** Antes: Revisor
+  Fiscal, Auditor y Contador recibían `200` con datos al consultar `/finanzas/auditoria` de un
+  período de un titular sin relación con sus fincas. Ahora: los 3 reciben
+  `404 PERIODO_NO_ENCONTRADO`. Verificado directamente (sin escritura) contra periodo 219
+  (NIT 900000002) y periodo 622 (NIT 901333217). El fix está en el filtro SQL `_ALCANCE`/
+  `_PERIODOS_PROPIOS` del repositorio, no en la firma de `execute()` (mismo patrón que la RLS
+  de G81).
+- **G94 (PRECIO_MARCADO_REEMPLAZADO sin montos) — CERRADO, confirmado en vivo con dato nuevo.**
+  Los 17 eventos existentes en TEST son anteriores al fix y no tienen los campos nuevos. Se
+  registró un precio real nuevo (POST `/finanzas/precios`, id_especie=39 PESO_KG,
+  `id_precio_mercado=1320`, evidencia "QA RF-93/94 G94...") para generar un evento fresco: el
+  evento resultante (`id_evento=29698`) sí incluye `precio_unitario_anterior="9600.00"` y
+  `precio_unitario_nuevo="9650.00"` junto a los IDs. Comparado contra el evento inmediatamente
+  anterior al fix (`id_evento=23735`, sin esos campos) para confirmar el antes/después.
+- **G71 (venta sin ingreso) — CERRADO en código y desplegado (release rc.74), sin dato en vivo
+  nuevo todavía.** `consolidacion.py::INGRESOS` ya tiene el sexto componente
+  `ingresos_venta_activos`. No se generó una venta real nueva en TEST porque requiere un rol
+  Productor con fincas/activos reales asignados (la cuenta Productor de este roster,
+  `u20221206763@usco.edu.co`, no tiene fincas propias) y registrar una baja es una acción
+  irreversible sobre un activo real -- se dejó pendiente de una cuenta adecuada. Confirmado sí
+  a nivel de pytest contra el código real (`tests/financial_valuation/
+  test_inc_m06_364_g71_ingreso_venta.py` del equipo, y la reescritura de
+  `TC-M06-G71` en este repo, ambos 100% verde).
+
+Los 15 archivos de pytest de M06 (G71, G93, G94 + los 12 de la ronda anterior) quedan
+actualizados para reflejar el estado real: solo quedan en rojo los sub-hallazgos
+genuinamente abiertos de G93 (formato moneda/hora, rama "sincronizado desde respaldo") y G94
+(repositorio centralizado cross-módulo, NTP, rendimiento) -- ninguno relacionado con los 3
+bugs ya corregidos.
 
 ## Actualización 2026-11-13 — respuesta de Análisis/Diseño sobre los hallazgos "para análisis"
 

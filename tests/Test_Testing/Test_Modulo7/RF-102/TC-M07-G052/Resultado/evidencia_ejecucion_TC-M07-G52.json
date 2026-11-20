@@ -1,0 +1,954 @@
+{
+  "caso": "TC-M07-G052",
+  "requisito": "RF-102",
+  "fecha_ejecucion_utc": "2026-11-18T00:49:57.902061+00:00",
+  "entorno": "TEST",
+  "base_url": "https://api.inmero.co/api-sgpmp-test",
+  "estado_final": "BLOQUEADO",
+  "escenarios": [
+    {
+      "id": "E1",
+      "nombre": "Registro de eventos de integración (TC-M07-102-001)",
+      "estado": "APROBADO",
+      "esperado": "Operaciones generadoras dejan eventos consultables con tipo/módulo/actor/fechas",
+      "obtenido": "Consulta autorizada OK (total=132, muestra=100, tipos=13). PUT inmutabilidad HTTP 405; token inválido HTTP 401."
+    },
+    {
+      "id": "E2",
+      "nombre": "Campos obligatorios y condicionales (TC-M07-102-002)",
+      "estado": "APROBADO",
+      "esperado": "Estructura RF-102 cumplida según tipo de evento",
+      "obtenido": "Muestra 100: generales y condicionales OK; integridad presente/INTEGRO"
+    },
+    {
+      "id": "E3",
+      "nombre": "Rechazo de eventos inválidos (TC-M07-102-003)",
+      "estado": "BLOQUEADO",
+      "esperado": "Incompletos/duplicados/no catalogados rechazados con evidencia de ejecución",
+      "obtenido": "Sin mecanismo público para insertar eventos incompletos/duplicados/no catalogados. eventos_incompletos=BLOQUEADO; eventos_duplicados=BLOQUEADO; tipos_no_catalogados=BLOQUEADO; modificacion_api_rechazada=APROBADO"
+    },
+    {
+      "id": "E4",
+      "nombre": "Normalización de fechas/horas a UTC (TC-M07-102-004)",
+      "estado": "APROBADO",
+      "esperado": "fecha_evento y fecha_registro en UTC según implementación",
+      "obtenido": "10 eventos con fecha_evento/fecha_registro parseables, aware y offset UTC 0"
+    }
+  ],
+  "peticiones": [
+    {
+      "fase": "openapi",
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http": 200,
+      "respuesta_resumen": {
+        "integracion_auditoria_get": true,
+        "integracion_auditoria_post": false,
+        "integracion_auditoria_exportar": true
+      }
+    },
+    {
+      "fase": "login_admin",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "respuesta_resumen": {
+        "ok": true,
+        "tiene_token": {
+          "omitido": true
+        }
+      }
+    },
+    {
+      "fase": "permisos_admin",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "respuesta_resumen": {
+        "total_permisos": 204,
+        "auditoria_integracion_detectado": true,
+        "recursos_m07": [
+          "auditoria_integracion"
+        ]
+      }
+    },
+    {
+      "fase": "consulta_auditoria",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?pagina=1&tamano=100",
+      "http": 200,
+      "respuesta_resumen": {
+        "total": 131,
+        "items": 100
+      }
+    },
+    {
+      "fase": "login_contador",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "respuesta_resumen": {
+        "ok": true,
+        "tiene_token": {
+          "omitido": true
+        }
+      }
+    },
+    {
+      "fase": "permisos_contador",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "respuesta_resumen": {
+        "auditoria_integracion": false,
+        "auditoria_integracion_cierres": false,
+        "nota": "No se llamó GET /integracion/auditoria con Contador (evita ACCESO_AUDITORIA_DENEGADO)"
+      }
+    },
+    {
+      "fase": "generador_seguro_inmutabilidad",
+      "metodo": "PUT",
+      "ruta": "/integracion/auditoria",
+      "http": 405,
+      "respuesta_resumen": {
+        "error_code": "METODO_NO_PERMITIDO",
+        "message": "La auditoría de la integración no se puede modificar.",
+        "fields": [],
+        "timestamp": "2026-11-18T00:49:56.321791+00:00"
+      }
+    },
+    {
+      "fase": "verificar_intento_modificacion",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=INTENTO_MODIFICACION_AUDITORIA",
+      "http": 200,
+      "respuesta_resumen": {
+        "total": 2,
+        "items": 2
+      }
+    },
+    {
+      "fase": "generador_seguro_token_rechazado",
+      "metodo": "POST",
+      "ruta": "/integraciones/agrofusion/token",
+      "http": 401,
+      "respuesta_resumen": {
+        "error_code": "CREDENCIALES_INVALIDAS",
+        "message": "Las credenciales del sistema no son válidas.",
+        "fields": [],
+        "timestamp": "2026-11-18T00:49:57.811504+00:00"
+      }
+    },
+    {
+      "fase": "verificar_token_rechazado",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=TOKEN_CANAL_RECHAZADO",
+      "http": 200,
+      "respuesta_resumen": {
+        "total": 16,
+        "items": 10
+      }
+    }
+  ],
+  "uuids_verificados": [
+    "946c6dbd-ccf8-42f4-b25c-a514e37b4e3a",
+    "0ce4e832-7b09-471e-83eb-e2deac87f895",
+    "a3bacf3a-d4f3-4caa-accc-11e03a56758a",
+    "1851d6da-f2a4-488c-b846-6c4ce8f5fe9a",
+    "ac9df570-374b-48bd-b4b8-0b5b83305954",
+    "b1ab1a82-dbba-42c0-90ef-64011ed49d86"
+  ],
+  "campos_comprobados": {
+    "generales": [
+      "id_evento_integracion",
+      "tipo_evento",
+      "modulo",
+      "fecha_evento",
+      "fecha_registro",
+      "tipo_actor",
+      "severidad",
+      "hash_integridad"
+    ],
+    "eventos_evaluados": 100,
+    "fallos_generales": [],
+    "fallos_condicionales": [],
+    "muestra_condicionales": [
+      {
+        "id": "946c6dbd-ccf8-42f4-b25c-a514e37b4e3a",
+        "tipo": "INTENTO_MODIFICACION_AUDITORIA",
+        "requeridos": [],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "0ce4e832-7b09-471e-83eb-e2deac87f895",
+        "tipo": "TOKEN_CANAL_RECHAZADO",
+        "requeridos": [
+          "codigo_resultado"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "a3bacf3a-d4f3-4caa-accc-11e03a56758a",
+        "tipo": "INTENTO_MODIFICACION_AUDITORIA",
+        "requeridos": [],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "1851d6da-f2a4-488c-b846-6c4ce8f5fe9a",
+        "tipo": "ANEXO_EN_REVISION",
+        "requeridos": [],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "ac9df570-374b-48bd-b4b8-0b5b83305954",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "a053d5d3-efa6-41ab-83a9-45058bb836c5",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "debd6049-190d-4cbd-983e-31b4ee50dc9b",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "061ba1a4-4a1d-4fcf-84da-0e789f6c99d5",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "34549b71-acc9-49ff-ba24-c2b2577f5036",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "e56cbcbe-4c82-4d0d-bfeb-ca8282d475bb",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "7f03e007-333c-4baa-b55d-26d2431328b4",
+        "tipo": "VISTA_AAEF_GENERADA",
+        "requeridos": [
+          "numero_id_tributaria",
+          "hash_contenido",
+          "tamano_payload_bytes",
+          "version_contrato"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "95746a47-3ab0-4fa4-89ea-04c108d38c02",
+        "tipo": "CLIENTE_REACTIVADO",
+        "requeridos": [],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "f937d151-842e-4fb5-96da-d633709381c9",
+        "tipo": "CLIENTE_SUSPENDIDO",
+        "requeridos": [],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "c4f69f51-3673-4655-9294-1323669199f7",
+        "tipo": "SECRETO_ROTADO",
+        "requeridos": [
+          "id_cliente_externo"
+        ],
+        "faltantes": [],
+        "ok": true
+      },
+      {
+        "id": "197019a5-2cfa-4fcd-a23d-15e6690b2922",
+        "tipo": "CLIENTE_REGISTRADO",
+        "requeridos": [],
+        "faltantes": [],
+        "ok": true
+      }
+    ],
+    "integridad_ok_muestra": true,
+    "nota": "Solo se exigen condicionales definidos en _OBLIGATORIOS para el tipo",
+    "rechazo_invalido": [
+      {
+        "chequeo": "eventos_incompletos",
+        "estado": "BLOQUEADO",
+        "detalle": "registrar() rechaza con AUDITORIA_INCOMPLETA vía faltantes(); no hay endpoint público para enviar evento incompleto"
+      },
+      {
+        "chequeo": "eventos_duplicados",
+        "estado": "BLOQUEADO",
+        "detalle": "No existe operación pública ni regla de negocio expuesta para 'evento duplicado' más allá de PK UUID"
+      },
+      {
+        "chequeo": "tipos_no_catalogados",
+        "estado": "BLOQUEADO",
+        "detalle": "Catálogo en TipoEvento/OpenAPI y enum BD; sin mecanismo controlado para persistir tipo fuera de catálogo vía API"
+      },
+      {
+        "chequeo": "modificacion_api_rechazada",
+        "estado": "APROBADO",
+        "detalle": "PUT /integracion/auditoria → HTTP 405 (FA-2 inmutabilidad)"
+      }
+    ],
+    "utc": {
+      "muestra": [
+        {
+          "id": "946c6dbd-ccf8-42f4-b25c-a514e37b4e3a",
+          "fecha_evento": {
+            "valor": "2026-11-18T00:49:56.317392+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-18T00:49:56.317398+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "0ce4e832-7b09-471e-83eb-e2deac87f895",
+          "fecha_evento": {
+            "valor": "2026-11-18T00:49:22.204042+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-18T00:49:22.204049+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "a3bacf3a-d4f3-4caa-accc-11e03a56758a",
+          "fecha_evento": {
+            "valor": "2026-11-18T00:49:20.620829+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-18T00:49:20.620836+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "1851d6da-f2a4-488c-b846-6c4ce8f5fe9a",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:38:58.678949+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:38:58.678953+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "ac9df570-374b-48bd-b4b8-0b5b83305954",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:38:24.148748+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:38:24.148751+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "a053d5d3-efa6-41ab-83a9-45058bb836c5",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:38:11.094821+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:38:11.094825+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "debd6049-190d-4cbd-983e-31b4ee50dc9b",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:38:05.459050+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:38:05.459053+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "061ba1a4-4a1d-4fcf-84da-0e789f6c99d5",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:38:02.624556+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:38:02.624561+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "34549b71-acc9-49ff-ba24-c2b2577f5036",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:37:59.797923+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:37:59.797928+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        },
+        {
+          "id": "e56cbcbe-4c82-4d0d-bfeb-ca8282d475bb",
+          "fecha_evento": {
+            "valor": "2026-11-17T17:37:56.976401+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "fecha_registro": {
+            "valor": "2026-11-17T17:37:56.976407+00:00",
+            "parseable": true,
+            "aware": true,
+            "offset_cero": true,
+            "termina_z": true
+          },
+          "ok": true
+        }
+      ],
+      "comparacion": {
+        "evento_a": "946c6dbd-ccf8-42f4-b25c-a514e37b4e3a",
+        "evento_b": "0ce4e832-7b09-471e-83eb-e2deac87f895",
+        "fecha_evento_a": "2026-11-18T00:49:56.317392+00:00",
+        "fecha_evento_b": "2026-11-18T00:49:22.204042+00:00",
+        "ambas_aware_utc": true
+      }
+    }
+  },
+  "errores": [],
+  "bloqueados": [
+    "E3: requiere harness interno o endpoint de prueba controlado para inválidos"
+  ],
+  "dependencias": [
+    "Mecanismo controlado de prueba para FA-8 (incompletos) y tipos fuera de catálogo, sin escribir a mano en BD"
+  ],
+  "fuentes_mapeo": {
+    "generadores_codigo": {
+      "RF-95/RF-AE01": "GET /integracion/aaef/productores/{nit} (token canal) · gateway_aaef",
+      "RF-97/RF-AE02": "GET /integracion/aaef/vista-previa/productores/{nit} (sesión Contador)",
+      "RF-98": "POST/activar/deprecar /integracion/contratos* · anexos",
+      "RF-101": "POST/PATCH /integracion/clientes* · rotar/suspender/revocar",
+      "RF-SSO02": "POST /integraciones/agrofusion/token · usuarios M2M",
+      "RF-102": "GET /integracion/auditoria (lectura) · PUT/PATCH/DELETE → 405 + INTENTO_MODIFICACION_AUDITORIA"
+    },
+    "sin_endpoint_publico_insert": true,
+    "tabla": "modulo7.eventos_integracion",
+    "dba_confirmado": {
+      "registros": 129,
+      "tipos": 14,
+      "hash_integridad_100pct": true,
+      "uuids_muestra": "no proporcionados"
+    },
+    "cobertura_en_muestra": {
+      "RF-95": {
+        "tipos_esperados": [
+          "PAQUETE_AAEF_CONSULTADO",
+          "SOLICITUD_RECHAZADA",
+          "CREDENCIALES_EN_URL",
+          "RATE_LIMIT_EXCEDIDO"
+        ],
+        "tipos_observados": [
+          "PAQUETE_AAEF_CONSULTADO",
+          "SOLICITUD_RECHAZADA"
+        ],
+        "presente": true
+      },
+      "RF-97/RF-AE01": {
+        "tipos_esperados": [
+          "PAQUETE_AAEF_CONSULTADO",
+          "VISTA_AAEF_GENERADA",
+          "PREPARACION_AAEF_FALLIDA"
+        ],
+        "tipos_observados": [
+          "PAQUETE_AAEF_CONSULTADO",
+          "VISTA_AAEF_GENERADA"
+        ],
+        "presente": true
+      },
+      "RF-98": {
+        "tipos_esperados": [
+          "CONTRATO_REGISTRADO",
+          "CONTRATO_ACTIVADO",
+          "CONTRATO_DEPRECADO",
+          "CONTRATO_INACTIVADO",
+          "CONTRATO_ACTIVACION_BLOQUEADA",
+          "ANEXO_REGISTRADO",
+          "ANEXO_EN_REVISION",
+          "ANEXO_APROBADO",
+          "ANEXO_VALIDACION_FALLIDA"
+        ],
+        "tipos_observados": [
+          "ANEXO_REGISTRADO",
+          "ANEXO_EN_REVISION"
+        ],
+        "presente": true
+      },
+      "RF-101": {
+        "tipos_esperados": [
+          "CLIENTE_REGISTRADO",
+          "CLIENTE_EDITADO",
+          "CLIENTE_SUSPENDIDO",
+          "CLIENTE_REACTIVADO",
+          "CLIENTE_REVOCADO",
+          "SECRETO_ROTADO"
+        ],
+        "tipos_observados": [
+          "CLIENTE_REGISTRADO",
+          "CLIENTE_SUSPENDIDO",
+          "CLIENTE_REACTIVADO",
+          "SECRETO_ROTADO"
+        ],
+        "presente": true
+      },
+      "RF-SSO02": {
+        "tipos_esperados": [
+          "TOKEN_CANAL_EMITIDO",
+          "TOKEN_CANAL_RECHAZADO",
+          "USUARIO_CREADO_M2M",
+          "USUARIO_ACTUALIZADO_M2M",
+          "ESTADO_USUARIO_CAMBIADO_M2M"
+        ],
+        "tipos_observados": [
+          "TOKEN_CANAL_EMITIDO",
+          "TOKEN_CANAL_RECHAZADO"
+        ],
+        "presente": true
+      },
+      "RF-102": {
+        "tipos_esperados": [
+          "INTENTO_MODIFICACION_AUDITORIA",
+          "ACCESO_AUDITORIA_DENEGADO",
+          "REGISTRO_AUDITORIA_CORRUPTO"
+        ],
+        "tipos_observados": [
+          "INTENTO_MODIFICACION_AUDITORIA",
+          "ACCESO_AUDITORIA_DENEGADO"
+        ],
+        "presente": true
+      }
+    },
+    "tipos_en_muestra": {
+      "INTENTO_MODIFICACION_AUDITORIA": 2,
+      "TOKEN_CANAL_RECHAZADO": {
+        "omitido": true
+      },
+      "ANEXO_EN_REVISION": 1,
+      "VISTA_AAEF_GENERADA": 32,
+      "CLIENTE_REACTIVADO": 1,
+      "CLIENTE_SUSPENDIDO": 1,
+      "SECRETO_ROTADO": {
+        "omitido": true
+      },
+      "CLIENTE_REGISTRADO": 1,
+      "SOLICITUD_RECHAZADA": 2,
+      "PAQUETE_AAEF_CONSULTADO": 12,
+      "TOKEN_CANAL_EMITIDO": {
+        "omitido": true
+      },
+      "ACCESO_AUDITORIA_DENEGADO": 11,
+      "ANEXO_REGISTRADO": 1
+    },
+    "total_api": 132,
+    "muestra": 100,
+    "utc_codigo": "EventoIntegracion.ahora_utc() → datetime.now(timezone.utc)"
+  },
+  "muestra_eventos": [
+    {
+      "id_evento_integracion": "946c6dbd-ccf8-42f4-b25c-a514e37b4e3a",
+      "tipo_evento": "INTENTO_MODIFICACION_AUDITORIA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-18T00:49:56.317392+00:00",
+      "fecha_registro": "2026-11-18T00:49:56.317398+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "CRITICAL",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": "/integracion/auditoria",
+      "metodo_http": "PUT",
+      "codigo_http": 405,
+      "codigo_resultado": "METODO_NO_PERMITIDO",
+      "id_cliente_externo": null,
+      "correo_usuario": null,
+      "numero_id_tributaria": null,
+      "version_contrato": null,
+      "hash_contenido_presente": false,
+      "id_intercambio": null,
+      "fecha_desde": null,
+      "fecha_hasta": null
+    },
+    {
+      "id_evento_integracion": "0ce4e832-7b09-471e-83eb-e2deac87f895",
+      "tipo_evento": "TOKEN_CANAL_RECHAZADO",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-18T00:49:22.204042+00:00",
+      "fecha_registro": "2026-11-18T00:49:22.204049+00:00",
+      "tipo_actor": "CLIENTE_EXTERNO",
+      "severidad": "WARNING",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": "/integraciones/agrofusion/token",
+      "metodo_http": "POST",
+      "codigo_http": 401,
+      "codigo_resultado": "CREDENCIALES_INVALIDAS",
+      "id_cliente_externo": null,
+      "correo_usuario": null,
+      "numero_id_tributaria": null,
+      "version_contrato": null,
+      "hash_contenido_presente": false,
+      "id_intercambio": null,
+      "fecha_desde": null,
+      "fecha_hasta": null
+    },
+    {
+      "id_evento_integracion": "a3bacf3a-d4f3-4caa-accc-11e03a56758a",
+      "tipo_evento": "INTENTO_MODIFICACION_AUDITORIA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-18T00:49:20.620829+00:00",
+      "fecha_registro": "2026-11-18T00:49:20.620836+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "CRITICAL",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": "/integracion/auditoria",
+      "metodo_http": "PUT",
+      "codigo_http": 405,
+      "codigo_resultado": "METODO_NO_PERMITIDO",
+      "id_cliente_externo": null,
+      "correo_usuario": null,
+      "numero_id_tributaria": null,
+      "version_contrato": null,
+      "hash_contenido_presente": false,
+      "id_intercambio": null,
+      "fecha_desde": null,
+      "fecha_hasta": null
+    },
+    {
+      "id_evento_integracion": "1851d6da-f2a4-488c-b846-6c4ce8f5fe9a",
+      "tipo_evento": "ANEXO_EN_REVISION",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:38:58.678949+00:00",
+      "fecha_registro": "2026-11-17T17:38:58.678953+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": "OK",
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": null,
+      "version_contrato": null,
+      "hash_contenido_presente": false,
+      "id_intercambio": null,
+      "fecha_desde": null,
+      "fecha_hasta": null
+    },
+    {
+      "id_evento_integracion": "ac9df570-374b-48bd-b4b8-0b5b83305954",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:38:24.148748+00:00",
+      "fecha_registro": "2026-11-17T17:38:24.148751+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "901444215",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-10-8108489",
+      "fecha_desde": "2026-10-01",
+      "fecha_hasta": "2026-10-31"
+    },
+    {
+      "id_evento_integracion": "a053d5d3-efa6-41ab-83a9-45058bb836c5",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:38:11.094821+00:00",
+      "fecha_registro": "2026-11-17T17:38:11.094825+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "901458732",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-10-0882343",
+      "fecha_desde": "2026-10-01",
+      "fecha_hasta": "2026-10-31"
+    },
+    {
+      "id_evento_integracion": "debd6049-190d-4cbd-983e-31b4ee50dc9b",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:38:05.459050+00:00",
+      "fecha_registro": "2026-11-17T17:38:05.459053+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "901444215",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-09-6734775",
+      "fecha_desde": "2026-09-01",
+      "fecha_hasta": "2026-09-30"
+    },
+    {
+      "id_evento_integracion": "061ba1a4-4a1d-4fcf-84da-0e789f6c99d5",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:38:02.624556+00:00",
+      "fecha_registro": "2026-11-17T17:38:02.624561+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "901444215",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-10-8830944",
+      "fecha_desde": "2026-10-01",
+      "fecha_hasta": "2026-10-31"
+    },
+    {
+      "id_evento_integracion": "34549b71-acc9-49ff-ba24-c2b2577f5036",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:37:59.797923+00:00",
+      "fecha_registro": "2026-11-17T17:37:59.797928+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "901333217",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-11-1119685",
+      "fecha_desde": "2026-11-01",
+      "fecha_hasta": "2026-11-30"
+    },
+    {
+      "id_evento_integracion": "e56cbcbe-4c82-4d0d-bfeb-ca8282d475bb",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:37:56.976401+00:00",
+      "fecha_registro": "2026-11-17T17:37:56.976407+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "900000002",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-11-3062733",
+      "fecha_desde": "2026-11-01",
+      "fecha_hasta": "2026-11-30"
+    },
+    {
+      "id_evento_integracion": "7f03e007-333c-4baa-b55d-26d2431328b4",
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:37:54.318126+00:00",
+      "fecha_registro": "2026-11-17T17:37:54.318130+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": null,
+      "id_cliente_externo": null,
+      "correo_usuario": "contador@gmail.com",
+      "numero_id_tributaria": "900000001",
+      "version_contrato": "2.1",
+      "hash_contenido_presente": true,
+      "id_intercambio": "AF-SIGAB-2026-11-1010745",
+      "fecha_desde": "2026-11-01",
+      "fecha_hasta": "2026-11-30"
+    },
+    {
+      "id_evento_integracion": "95746a47-3ab0-4fa4-89ea-04c108d38c02",
+      "tipo_evento": "CLIENTE_REACTIVADO",
+      "modulo": "M07",
+      "fecha_evento": "2026-11-17T17:27:51.087332+00:00",
+      "fecha_registro": "2026-11-17T17:27:51.087338+00:00",
+      "tipo_actor": "USUARIO",
+      "severidad": "INFO",
+      "integridad": "INTEGRO",
+      "hash_integridad_presente": false,
+      "endpoint": null,
+      "metodo_http": null,
+      "codigo_http": null,
+      "codigo_resultado": "OK",
+      "id_cliente_externo": 12,
+      "correo_usuario": "admin.rol@gmail.com",
+      "numero_id_tributaria": null,
+      "version_contrato": null,
+      "hash_contenido_presente": false,
+      "id_intercambio": null,
+      "fecha_desde": null,
+      "fecha_hasta": null
+    }
+  ],
+  "contador_sin_auditoria_integracion": true,
+  "openapi_sin_post_auditoria": true
+}

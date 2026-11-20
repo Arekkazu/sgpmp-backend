@@ -1,0 +1,210 @@
+{
+  "version": "ORD-G041-002",
+  "fuente": "RF-98 v1.2, casos TC-M07-22/23 y c?digo local; sin TEST",
+  "error_respuesta": {
+    "cuerpo": {
+      "error_code": "string",
+      "message": "string",
+      "fields": [
+        {
+          "field": "string|null",
+          "message": "string"
+        }
+      ],
+      "timestamp": "string"
+    },
+    "cita": "src/shared/error_handlers.py:40-68,306-332"
+  },
+  "rutas": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "solicitud": {
+        "correo_electronico": "string",
+        "contrasena": "string"
+      },
+      "respuesta": {
+        "token": "string"
+      },
+      "cita": "src/identity_access/infrastructure/dto/usuario_dto.py:26-29; src/identity_access/infrastructure/routers/sesiones_routers.py:215-235",
+      "cita_solicitud": "src/identity_access/infrastructure/dto/usuario_dto.py:26-29; src/identity_access/infrastructure/routers/sesiones_routers.py:215-235"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "respuesta": {
+        "permisos": [
+          {
+            "nombre_recurso": "string",
+            "id_accion": "integer"
+          }
+        ]
+      },
+      "cita": "src/identity_access/infrastructure/routers/sesiones_routers.py:91-140"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "respuesta": [
+        {
+          "id_mapeo_anexo_aaef": "integer",
+          "estado": "string"
+        }
+      ],
+      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:181-184"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "respuesta": [
+        {
+          "id_version_contrato_aaef": "integer",
+          "contrato_version": "string",
+          "estado": "string",
+          "tipo_cambio": "string",
+          "id_mapeo_anexo_aaef": "integer|null",
+          "mapeadores": [
+            "string"
+          ],
+          "endpoint_asociado": "string",
+          "fecha_vigencia": "date",
+          "periodo_gracia_dias": "integer|null",
+          "fecha_activacion": "datetime|null",
+          "fecha_deprecacion": "datetime|null",
+          "fecha_inactivacion": "datetime|null"
+        }
+      ],
+      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "solicitud": {
+        "contrato_version": "string",
+        "tipo_cambio": "string",
+        "fecha_vigencia": "date",
+        "id_mapeo_anexo_aaef": "integer",
+        "mapeadores": [
+          "string"
+        ],
+        "periodo_gracia_dias": "integer|null",
+        "descripcion": "string|null"
+      },
+      "respuesta": {
+        "id_version_contrato_aaef": "integer",
+        "contrato_version": "string",
+        "estado": "string"
+      },
+      "cita": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+      "cita_solicitud": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/{id}/activar",
+      "solicitud": {},
+      "respuesta": {
+        "id_version_contrato_aaef": "integer",
+        "estado": "string"
+      },
+      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:226-230",
+      "cita_solicitud": "src/accounting_integration/infrastructure/routers/m07_router.py:226-230"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/{id}/deprecar",
+      "solicitud": {
+        "dias_gracia": "integer"
+      },
+      "respuesta": {
+        "id_version_contrato_aaef": "integer",
+        "estado": "string"
+      },
+      "cita": "src/accounting_integration/infrastructure/dto/m07_dto.py:105-106; src/accounting_integration/infrastructure/routers/m07_router.py:233-237",
+      "cita_solicitud": "src/accounting_integration/infrastructure/dto/m07_dto.py:105-106; src/accounting_integration/infrastructure/routers/m07_router.py:233-237"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria",
+      "respuesta": {
+        "items": [
+          {
+            "id_evento_integracion": "string",
+            "tipo_evento": "string",
+            "version_contrato": "string|null",
+            "json_detalle": {
+              "estado": "string?"
+            },
+            "id_usuario": "integer|null",
+            "tipo_actor": "string",
+            "fecha_evento": "datetime",
+            "correo_usuario": "string|null",
+            "nombre_cliente": "string|null"
+          }
+        ],
+        "pagina": "integer",
+        "tamano": "integer",
+        "total": "integer"
+      },
+      "cita": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87"
+    }
+  ],
+  "citas_campos": {
+    "POST /sesiones/.token": "src/identity_access/infrastructure/dto/usuario_dto.py:26-29; src/identity_access/infrastructure/routers/sesiones_routers.py:215-235",
+    "POST /sesiones/.solicitud.correo_electronico": "src/identity_access/infrastructure/dto/usuario_dto.py:26-29; src/identity_access/infrastructure/routers/sesiones_routers.py:215-235",
+    "POST /sesiones/.solicitud.contrasena": "src/identity_access/infrastructure/dto/usuario_dto.py:26-29; src/identity_access/infrastructure/routers/sesiones_routers.py:215-235",
+    "GET /sesiones/me/permisos.permisos[].nombre_recurso": "src/identity_access/infrastructure/routers/sesiones_routers.py:91-140",
+    "GET /sesiones/me/permisos.permisos[].id_accion": "src/identity_access/infrastructure/routers/sesiones_routers.py:91-140",
+    "GET /integracion/anexos[].id_mapeo_anexo_aaef": "src/accounting_integration/infrastructure/routers/m07_router.py:181-184",
+    "GET /integracion/anexos[].estado": "src/accounting_integration/infrastructure/routers/m07_router.py:181-184",
+    "GET /integracion/contratos[].id_version_contrato_aaef": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].contrato_version": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].estado": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].tipo_cambio": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].id_mapeo_anexo_aaef": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].mapeadores[]": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].endpoint_asociado": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].fecha_vigencia": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].periodo_gracia_dias": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].fecha_activacion": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].fecha_deprecacion": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "GET /integracion/contratos[].fecha_inactivacion": "src/accounting_integration/infrastructure/routers/m07_router.py:211-214; src/accounting_integration/domain/entities/contrato.py:55-84",
+    "POST /integracion/contratos.id_version_contrato_aaef": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.contrato_version": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.estado": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.contrato_version": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.tipo_cambio": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.fecha_vigencia": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.id_mapeo_anexo_aaef": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.mapeadores[]": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.periodo_gracia_dias": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos.solicitud.descripcion": "src/accounting_integration/infrastructure/dto/m07_dto.py:95-103; src/accounting_integration/infrastructure/routers/m07_router.py:217-223",
+    "POST /integracion/contratos/{id}/activar.id_version_contrato_aaef": "src/accounting_integration/infrastructure/routers/m07_router.py:226-230",
+    "POST /integracion/contratos/{id}/activar.estado": "src/accounting_integration/infrastructure/routers/m07_router.py:226-230",
+    "POST /integracion/contratos/{id}/deprecar.id_version_contrato_aaef": "src/accounting_integration/infrastructure/dto/m07_dto.py:105-106; src/accounting_integration/infrastructure/routers/m07_router.py:233-237",
+    "POST /integracion/contratos/{id}/deprecar.estado": "src/accounting_integration/infrastructure/dto/m07_dto.py:105-106; src/accounting_integration/infrastructure/routers/m07_router.py:233-237",
+    "POST /integracion/contratos/{id}/deprecar.solicitud.dias_gracia": "src/accounting_integration/infrastructure/dto/m07_dto.py:105-106; src/accounting_integration/infrastructure/routers/m07_router.py:233-237",
+    "GET /integracion/auditoria.items[].id_evento_integracion": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.items[].tipo_evento": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.items[].version_contrato": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.items[].json_detalle.estado": "src/accounting_integration/application/use_cases/contratos/gestionar_contratos_use_case.py:64-68",
+    "GET /integracion/auditoria.items[].id_usuario": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.items[].tipo_actor": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-47; src/accounting_integration/domain/entities/evento_integracion.py:40-44",
+    "GET /integracion/auditoria.items[].fecha_evento": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.items[].correo_usuario": "src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:43,85-87",
+    "GET /integracion/auditoria.items[].nombre_cliente": "src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:43,85-87",
+    "GET /integracion/auditoria.pagina": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.tamano": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "GET /integracion/auditoria.total": "src/accounting_integration/application/use_cases/auditoria/consultar_auditoria_integracion_use_case.py:44-60; src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:40-43,85-87",
+    "ERROR.error_code": "src/shared/error_handlers.py:40-68,306-332",
+    "ERROR.message": "src/shared/error_handlers.py:40-68,306-332",
+    "ERROR.fields": "src/shared/error_handlers.py:40-68,306-332",
+    "ERROR.timestamp": "src/shared/error_handlers.py:40-68,306-332"
+  },
+  "justificaciones_tipos": {
+    "GET /integracion/auditoria.items[].id_evento_integracion": "src/accounting_integration/domain/entities/evento_integracion.py:40-44",
+    "GET /integracion/auditoria.items[].json_detalle.estado": "src/accounting_integration/application/use_cases/contratos/gestionar_contratos_use_case.py:64-68",
+    "GET /integracion/auditoria.items[].correo_usuario": "src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:85-87",
+    "GET /integracion/auditoria.items[].nombre_cliente": "src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py:85-87",
+    "POST /sesiones/.solicitud.correo_electronico": "src/identity_access/infrastructure/dto/usuario_dto.py:26-29"
+  }
+}

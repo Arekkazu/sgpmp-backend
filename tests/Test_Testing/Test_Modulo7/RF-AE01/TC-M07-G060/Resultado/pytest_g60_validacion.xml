@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="0.458" timestamp="2026-11-19T09:57:18.817802-05:00" hostname="MacBook-Air-de-Maria-2.local"><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_6_valores_fijos_del_anexo" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_linea_base_sin_fallas_pasa_a_revision" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cobertura]" time="0.001"><failure message="KeyError: 'Lines'">falla = 'cobertura'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1072a5a00&gt;
+
+    @pytest.mark.parametrize("falla", sorted(FALLAS))
+    def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
+        original = uc.construir_envelope
+    
+        def con_falla(*args, **kwargs):
+            envelope = original(*args, **kwargs)
+            FALLAS[falla](envelope)
+            return envelope
+    
+        monkeypatch.setattr(uc, "construir_envelope", con_falla)
+        contratos, auditoria = _Contratos(), _Auditoria()
+        caso = uc.GestionarAnexosUseCase(contratos, auditoria, _Db())
+        with pytest.raises(BusinessRuleError) as exc:
+&gt;           caso.enviar_a_revision(1, 1)
+
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:103: in enviar_a_revision
+    fallas = validar_con_datos_de_prueba()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:60: in validar_con_datos_de_prueba
+    if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = &lt;list_iterator object at 0x1072a5e40&gt;
+
+    if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
+&gt;          for d in envelope["invoices"] for ln in d["Lines"]):
+                                                   ^^^^^^^^^^
+E          KeyError: 'Lines'
+
+src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py:61: KeyError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_documento]" time="0.001" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuadre_summary]" time="0.000"><failure message="Failed: DID NOT RAISE &lt;class 'src.shared.errors.BusinessRuleError'&gt;">falla = 'cuadre_summary'
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1072a6630&gt;
+
+    @pytest.mark.parametrize("falla", sorted(FALLAS))
+    def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
+        original = uc.construir_envelope
+    
+        def con_falla(*args, **kwargs):
+            envelope = original(*args, **kwargs)
+            FALLAS[falla](envelope)
+            return envelope
+    
+        monkeypatch.setattr(uc, "construir_envelope", con_falla)
+        contratos, auditoria = _Contratos(), _Auditoria()
+        caso = uc.GestionarAnexosUseCase(contratos, auditoria, _Db())
+&gt;       with pytest.raises(BusinessRuleError) as exc:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE &lt;class 'src.shared.errors.BusinessRuleError'&gt;
+
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G060/test_tc_m07_g60_validacion_anexo.py:144: Failed</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[cuentas]" time="0.000" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[estructura]" time="0.000" /><testcase classname="tests.Test_Testing.Test_Modulo7.RF-AE01.TC-M07-G060.test_tc_m07_g60_validacion_anexo" name="test_g2_7_cada_falla_bloquea_el_paso_a_en_revision[formato_fecha]" time="0.000" /></testsuite></testsuites>

@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title id="head-title">resultado_TC-M05-G37_reintento3.html</title>
+      <style type="text/css">body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  vertical-align: top;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+#environment ul {
+  margin: 0;
+  padding: 0 20px;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+.col-links__extra {
+  margin-right: 3px;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.logwrapper {
+  max-height: 230px;
+  overflow-y: scroll;
+  background-color: #e6e6e6;
+}
+.logwrapper.expanded {
+  max-height: none;
+}
+.logwrapper.expanded .logexpander:after {
+  content: "collapse [-]";
+}
+.logwrapper .logexpander {
+  z-index: 1;
+  position: sticky;
+  top: 10px;
+  width: max-content;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 5px 7px;
+  margin: 10px 0 10px calc(100% - 80px);
+  cursor: pointer;
+  background-color: #e6e6e6;
+}
+.logwrapper .logexpander:after {
+  content: "expand [+]";
+}
+.logwrapper .logexpander:hover {
+  color: #000;
+  border-color: #000;
+}
+.logwrapper .log {
+  min-height: 40px;
+  position: relative;
+  top: -50px;
+  height: calc(100% + 50px);
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  padding: 5px;
+  padding-right: 80px;
+  white-space: pre-wrap;
+}
+
+div.media {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin: 0 5px;
+  overflow: hidden;
+  width: 320px;
+}
+
+.media-container {
+  display: grid;
+  grid-template-columns: 25px auto 25px;
+  align-items: center;
+  flex: 1 1;
+  overflow: hidden;
+  height: 200px;
+}
+
+.media-container--fullscreen {
+  grid-template-columns: 0px auto 0px;
+}
+
+.media-container__nav--right,
+.media-container__nav--left {
+  text-align: center;
+  cursor: pointer;
+}
+
+.media-container__viewport {
+  cursor: pointer;
+  text-align: center;
+  height: inherit;
+}
+.media-container__viewport img,
+.media-container__viewport video {
+  object-fit: cover;
+  width: 100%;
+  max-height: 100%;
+}
+
+.media__name,
+.media__counter {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex: 0 0 25px;
+  align-items: center;
+}
+
+.collapsible td:not(.col-links) {
+  cursor: pointer;
+}
+.collapsible td:not(.col-links):hover::after {
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.col-result {
+  width: 130px;
+}
+.col-result:hover::after {
+  content: " (hide details)";
+}
+
+.col-result.collapsed:hover::after {
+  content: " (show details)";
+}
+
+#environment-header h2:hover::after {
+  content: " (hide details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#environment-header.collapsed h2:hover::after {
+  content: " (show details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+.sortable.desc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: -12.5px;
+  border: 10px solid #4caf50;
+  border-bottom: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+.sortable.asc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: 12.5px;
+  border: 10px solid #4caf50;
+  border-top: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.hidden, .summary__reload__button.hidden {
+  display: none;
+}
+
+.summary__data {
+  flex: 0 0 550px;
+}
+.summary__reload {
+  flex: 1 1;
+  display: flex;
+  justify-content: center;
+}
+.summary__reload__button {
+  flex: 0 0 300px;
+  display: flex;
+  color: white;
+  font-weight: bold;
+  background-color: #4caf50;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.summary__reload__button:hover {
+  background-color: #46a049;
+}
+.summary__spacer {
+  flex: 0 0 550px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+.filters,
+.collapse {
+  display: flex;
+  align-items: center;
+}
+.filters button,
+.collapse button {
+  color: #999;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.filters button:hover,
+.collapse button:hover {
+  color: #ccc;
+}
+
+.filter__label {
+  margin-right: 10px;
+}
+
+      </style>
+    
+  </head>
+  <body>
+    <h1 id="title">resultado_TC-M05-G37_reintento3.html</h1>
+    <p>Report generated on 15-Nov-2026 at 21:04:20 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a>
+        v4.2.0</p>
+    <div id="environment-header">
+      <h2>Environment</h2>
+    </div>
+    <table id="environment"></table>
+    <!-- TEMPLATES -->
+      <template id="template_environment_row">
+      <tr>
+        <td></td>
+        <td></td>
+      </tr>
+    </template>
+    <template id="template_results-table__body--empty">
+      <tbody class="results-table-row">
+        <tr id="not-found-message">
+          <td colspan="4">No results found. Check the filters.</td>
+        </tr>
+      </tbody>
+    </template>
+    <template id="template_results-table__tbody">
+      <tbody class="results-table-row">
+        <tr class="collapsible">
+        </tr>
+        <tr class="extras-row">
+          <td class="extra" colspan="4">
+            <div class="extraHTML"></div>
+            <div class="media">
+              <div class="media-container">
+                  <div class="media-container__nav--left">&lt;</div>
+                  <div class="media-container__viewport">
+                    <img src="" />
+                    <video controls>
+                      <source src="" type="video/mp4">
+                    </video>
+                  </div>
+                  <div class="media-container__nav--right">&gt;</div>
+                </div>
+                <div class="media__name"></div>
+                <div class="media__counter"></div>
+            </div>
+            <div class="logwrapper">
+              <div class="logexpander"></div>
+              <div class="log"></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </template>
+    <!-- END TEMPLATES -->
+    <div class="summary">
+      <div class="summary__data">
+        <h2>Summary</h2>
+        <div class="additional-summary prefix">
+        </div>
+        <p class="run-count">16 tests took 00:00:26.</p>
+        <p class="filter">(Un)check the boxes to filter the results.</p>
+        <div class="summary__reload">
+          <div class="summary__reload__button hidden" onclick="location.reload()">
+            <div>There are still tests running. <br />Reload this page to get the latest results!</div>
+          </div>
+        </div>
+        <div class="summary__spacer"></div>
+        <div class="controls">
+          <div class="filters">
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="failed" disabled>
+            <span class="failed">0 Failed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="passed" >
+            <span class="passed">16 Passed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="skipped" disabled>
+            <span class="skipped">0 Skipped,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xfailed" disabled>
+            <span class="xfailed">0 Expected failures,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xpassed" disabled>
+            <span class="xpassed">0 Unexpected passes,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="error" disabled>
+            <span class="error">0 Errors,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="rerun" disabled>
+            <span class="rerun">0 Reruns</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="retried" disabled>
+            <span class="retried">0 Retried,</span>
+          </div>
+          <div class="collapse">
+            <button id="show_all_details">Show all details</button>&nbsp;/&nbsp;<button id="hide_all_details">Hide all details</button>
+          </div>
+        </div>
+      </div>
+      <div class="additional-summary summary">
+      </div>
+      <div class="additional-summary postfix">
+      </div>
+    </div>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable" data-column-type="result">Result</th>
+          <th class="sortable" data-column-type="testId">Test</th>
+          <th class="sortable" data-column-type="duration">Duration</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+    </table>
+  <footer>
+    <div id="data-container" data-jsonblob="{&#34;environment&#34;: {&#34;Python&#34;: &#34;3.13.9&#34;, &#34;Platform&#34;: &#34;Windows-11-10.0.26300-SP0&#34;, &#34;Packages&#34;: {&#34;pytest&#34;: &#34;9.0.3&#34;, &#34;pluggy&#34;: &#34;1.6.0&#34;}, &#34;Plugins&#34;: {&#34;anyio&#34;: &#34;4.13.0&#34;, &#34;cov&#34;: &#34;7.1.0&#34;, &#34;html&#34;: &#34;4.2.0&#34;, &#34;metadata&#34;: &#34;3.1.1&#34;}}, &#34;tests&#34;: {&#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t00_linea_base&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t00_linea_base&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t00_linea_base&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;----------------------------- Captured stdout call -----------------------------\nT00_BASELINE total=83073 ultimo_id=90894\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01a_rf78_exito_y_persistencia&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01a_rf78_exito_y_persistencia&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01a_rf78_exito_y_persistencia&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01b_rf81_exito_historial&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01b_rf81_exito_historial&#34;, &#34;duration&#34;: &#34;862 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01b_rf81_exito_historial&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;862 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02a_rf78_rechazo_sin_fase_y_repeticion&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02a_rf78_rechazo_sin_fase_y_repeticion&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02a_rf78_rechazo_sin_fase_y_repeticion&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;----------------------------- Captured stdout call -----------------------------\nA02A_EVENTO={&amp;quot;id_auditoria_suministro&amp;quot;: 90899, &amp;quot;id_evento_m05&amp;quot;: &amp;quot;a11f38a2-ecad-4d2b-b058-60c05a24db9f&amp;quot;, &amp;quot;version_hash_integridad&amp;quot;: 2, &amp;quot;entidad_afectada&amp;quot;: &amp;quot;registro_suministro&amp;quot;, &amp;quot;tipo_operacion&amp;quot;: &amp;quot;REGISTRO_FALLIDO&amp;quot;, &amp;quot;id_usuario&amp;quot;: 104, &amp;quot;resultado&amp;quot;: &amp;quot;RECHAZADO&amp;quot;, &amp;quot;fecha_evento&amp;quot;: &amp;quot;2026-11-16T02:03:59.096916Z&amp;quot;, &amp;quot;datos_anteriores&amp;quot;: null, &amp;quot;datos_nuevos&amp;quot;: {&amp;quot;id_tipo_suministro&amp;quot;: &amp;quot;SERVICIO_VETERINARIO&amp;quot;}, &amp;quot;ip_origen&amp;quot;: null, &amp;quot;id_sesion&amp;quot;: null, &amp;quot;fecha_emision&amp;quot;: &amp;quot;2026-11-16T02:04:02.039740Z&amp;quot;, &amp;quot;id_activo_biologico&amp;quot;: 2748, &amp;quot;id_ciclo_productivo&amp;quot;: null, &amp;quot;id_registro_suministro&amp;quot;: null, &amp;quot;id_tipo_suministro&amp;quot;: &amp;quot;SERVICIO_VETERINARIO&amp;quot;, &amp;quot;costo_afectado&amp;quot;: null, &amp;quot;origen_precio&amp;quot;: null, &amp;quot;clasificacion_registro&amp;quot;: &amp;quot;TECNICO&amp;quot;, &amp;quot;retencion_aplicable&amp;quot;: &amp;quot;1 a\u00f1o&amp;quot;, &amp;quot;hash_integridad&amp;quot;: &amp;quot;a2abf47782ed59be5258e338c5cc6d193e57cc548419c9da8e93f9dee0ee6f1b&amp;quot;, &amp;quot;registro_incompleto&amp;quot;: true, &amp;quot;detalle_causa&amp;quot;: &amp;quot;Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2748. Solicitud: 98a3af91-07e2-4af8-b165-0ef3c958dbba. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.&amp;quot;, &amp;quot;numero_reintentos&amp;quot;: 0, &amp;quot;fecha_intentos&amp;quot;: null, &amp;quot;id_gestion_fases&amp;quot;: null, &amp;quot;nombre_activo&amp;quot;: &amp;quot;Lote 2748&amp;quot;, &amp;quot;nombre_usuario&amp;quot;: &amp;quot;Admin Camila&amp;quot;}\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02b_rf78_rechazo_con_fase_abierta&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02b_rf78_rechazo_con_fase_abierta&#34;, &#34;duration&#34;: &#34;763 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02b_rf78_rechazo_con_fase_abierta&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;763 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02c_rf79_rechazo_ciclo_activo&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02c_rf79_rechazo_ciclo_activo&#34;, &#34;duration&#34;: &#34;00:00:03&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02c_rf79_rechazo_ciclo_activo&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:03&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02d_rf81_rechazo_filtros_invalidos&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02d_rf81_rechazo_filtros_invalidos&#34;, &#34;duration&#34;: &#34;00:00:03&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a02d_rf81_rechazo_filtros_invalidos&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:03&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01c_rf79_exito_cierre&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01c_rf79_exito_cierre&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a01c_rf79_exito_cierre&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a03_consistencia_lista_detalle_y_filtros&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a03_consistencia_lista_detalle_y_filtros&#34;, &#34;duration&#34;: &#34;00:00:05&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a03_consistencia_lista_detalle_y_filtros&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:05&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04a_r8_minimos_y_flag_incompleto&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04a_r8_minimos_y_flag_incompleto&#34;, &#34;duration&#34;: &#34;449 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04a_r8_minimos_y_flag_incompleto&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;449 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04b_detalle_causa_lista_campos_faltantes&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04b_detalle_causa_lista_campos_faltantes&#34;, &#34;duration&#34;: &#34;10 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04b_detalle_causa_lista_campos_faltantes&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;10 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04c_referencias_registro_suministro_rf78&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04c_referencias_registro_suministro_rf78&#34;, &#34;duration&#34;: &#34;6 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_a04c_referencias_registro_suministro_rf78&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;6 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_b01_clasificacion_y_retencion_catalogo&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_b01_clasificacion_y_retencion_catalogo&#34;, &#34;duration&#34;: &#34;570 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_b01_clasificacion_y_retencion_catalogo&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;570 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_b02_tipo_no_catalogado_nic41&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_b02_tipo_no_catalogado_nic41&#34;, &#34;duration&#34;: &#34;517 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_b02_tipo_no_catalogado_nic41&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;517 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;----------------------------- Captured stdout call -----------------------------\nB02_OK no_catalogados_test=[90905] commit=f12145e071721001b97bc7fefd966d392dc6e166\n&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t98_cierre_sandbox_principal&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t98_cierre_sandbox_principal&#34;, &#34;duration&#34;: &#34;248 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t98_cierre_sandbox_principal&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;248 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t99_inocuidad_post_rollback&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t99_inocuidad_post_rollback&#34;, &#34;duration&#34;: &#34;00:00:04&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G37/test_tc_m05_g37.py::TestTCM05G37PersistenciaYClasificacion::test_t99_inocuidad_post_rollback&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:04&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;----------------------------- Captured stdout call -----------------------------\nT99_INOCUIDAD total=83073 ultimo_id=90894 checks_404={&amp;quot;activo_1&amp;quot;: {&amp;quot;status_code&amp;quot;: 404, &amp;quot;x_request_id&amp;quot;: &amp;quot;322ba9e7-ba7f-47b6-8306-452285a98cde&amp;quot;}, &amp;quot;acumulado_activo_1&amp;quot;: {&amp;quot;status_code&amp;quot;: 404, &amp;quot;x_request_id&amp;quot;: &amp;quot;ddb1361f-f8b1-4022-8b17-82f099e61f3d&amp;quot;}, &amp;quot;historial_activo_1&amp;quot;: {&amp;quot;status_code&amp;quot;: 404, &amp;quot;x_request_id&amp;quot;: &amp;quot;d67ad425-17bc-4df0-a51a-acae163e477b&amp;quot;}, &amp;quot;acumulado_ciclo_1&amp;quot;: {&amp;quot;status_code&amp;quot;: 404, &amp;quot;x_request_id&amp;quot;: &amp;quot;af9ae6d7-02f3-422f-accc-142c0f280d97&amp;quot;}, &amp;quot;activo_2&amp;quot;: {&amp;quot;status_code&amp;quot;: 404, &amp;quot;x_request_id&amp;quot;: &amp;quot;87d31b90-c4c0-42e4-872f-e9c22d77ff12&amp;quot;}, &amp;quot;provision_1&amp;quot;: {&amp;quot;status_code&amp;quot;: 404, &amp;quot;x_request_id&amp;quot;: &amp;quot;868db5b9-5050-42a7-a540-48b91334fda2&amp;quot;}}\n&#34;}]}, &#34;renderCollapsed&#34;: [&#34;passed&#34;], &#34;initialSort&#34;: &#34;result&#34;, &#34;title&#34;: &#34;resultado_TC-M05-G37_reintento3.html&#34;}"></div>
+    <script>
+      (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const { getCollapsedCategory, setCollapsedIds } = require('./storage.js')
+
+class DataManager {
+    setManager(data) {
+        const collapsedCategories = [...getCollapsedCategory(data.renderCollapsed)]
+        const collapsedIds = []
+        const tests = Object.values(data.tests).flat().map((test, index) => {
+            const collapsed = collapsedCategories.includes(test.result.toLowerCase())
+            const id = `test_${index}`
+            if (collapsed) {
+                collapsedIds.push(id)
+            }
+            return {
+                ...test,
+                id,
+                collapsed,
+            }
+        })
+        const dataBlob = { ...data, tests }
+        this.data = { ...dataBlob }
+        this.renderData = { ...dataBlob }
+        setCollapsedIds(collapsedIds)
+    }
+
+    get allData() {
+        return { ...this.data }
+    }
+
+    resetRender() {
+        this.renderData = { ...this.data }
+    }
+
+    setRender(data) {
+        this.renderData.tests = [...data]
+    }
+
+    toggleCollapsedItem(id) {
+        this.renderData.tests = this.renderData.tests.map((test) =>
+            test.id === id ? { ...test, collapsed: !test.collapsed } : test,
+        )
+    }
+
+    set allCollapsed(collapsed) {
+        this.renderData = { ...this.renderData, tests: [...this.renderData.tests.map((test) => (
+            { ...test, collapsed }
+        ))] }
+    }
+
+    get testSubset() {
+        return [...this.renderData.tests]
+    }
+
+    get environment() {
+        return this.renderData.environment
+    }
+
+    get initialSort() {
+        return this.data.initialSort
+    }
+}
+
+module.exports = {
+    manager: new DataManager(),
+}
+
+},{"./storage.js":8}],2:[function(require,module,exports){
+const mediaViewer = require('./mediaviewer.js')
+const templateEnvRow = document.getElementById('template_environment_row')
+const templateResult = document.getElementById('template_results-table__tbody')
+
+function htmlToElements(html) {
+    const temp = document.createElement('template')
+    temp.innerHTML = html
+    return temp.content.childNodes
+}
+
+const find = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return elem.querySelector(selector)
+}
+
+const findAll = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return [...elem.querySelectorAll(selector)]
+}
+
+const dom = {
+    getStaticRow: (key, value) => {
+        const envRow = templateEnvRow.content.cloneNode(true)
+        const isObj = typeof value === 'object' && value !== null
+        const values = isObj ? Object.keys(value).map((k) => `${k}: ${value[k]}`) : null
+
+        const valuesElement = htmlToElements(
+            values ? `<ul>${values.map((val) => `<li>${val}</li>`).join('')}<ul>` : `<div>${value}</div>`)[0]
+        const td = findAll('td', envRow)
+        td[0].textContent = key
+        td[1].appendChild(valuesElement)
+
+        return envRow
+    },
+    getResultTBody: ({ testId, id, log, extras, resultsTableRow, tableHtml, result, collapsed }) => {
+        const resultBody = templateResult.content.cloneNode(true)
+        resultBody.querySelector('tbody').classList.add(result.toLowerCase())
+        resultBody.querySelector('tbody').id = testId
+        resultBody.querySelector('.collapsible').dataset.id = id
+
+        resultsTableRow.forEach((html) => {
+            const t = document.createElement('template')
+            t.innerHTML = html
+            resultBody.querySelector('.collapsible').appendChild(t.content)
+        })
+
+        if (log) {
+            // Wrap lines starting with "E" with span.error to color those lines red
+            const wrappedLog = log.replace(/^E.*$/gm, (match) => `<span class="error">${match}</span>`)
+            resultBody.querySelector('.log').innerHTML = wrappedLog
+        } else {
+            resultBody.querySelector('.log').remove()
+        }
+
+        if (collapsed) {
+            resultBody.querySelector('.collapsible > .col-result')?.classList.add('collapsed')
+            resultBody.querySelector('.extras-row').classList.add('hidden')
+        } else {
+            resultBody.querySelector('.collapsible > .col-result')?.classList.remove('collapsed')
+        }
+
+        const media = []
+        extras?.forEach(({ name, format_type, content }) => {
+            if (['image', 'video'].includes(format_type)) {
+                media.push({ path: content, name, format_type })
+            }
+
+            if (format_type === 'html') {
+                resultBody.querySelector('.extraHTML').insertAdjacentHTML('beforeend', `<div>${content}</div>`)
+            }
+        })
+        mediaViewer.setup(resultBody, media)
+
+        // Add custom html from the pytest_html_results_table_html hook
+        tableHtml?.forEach((item) => {
+            resultBody.querySelector('td[class="extra"]').insertAdjacentHTML('beforeend', item)
+        })
+
+        return resultBody
+    },
+}
+
+module.exports = {
+    dom,
+    htmlToElements,
+    find,
+    findAll,
+}
+
+},{"./mediaviewer.js":6}],3:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const storageModule = require('./storage.js')
+
+const getFilteredSubSet = (filter) =>
+    manager.allData.tests.filter(({ result }) => filter.includes(result.toLowerCase()))
+
+const doInitFilter = () => {
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+}
+
+const doFilter = (type, show) => {
+    if (show) {
+        storageModule.showCategory(type)
+    } else {
+        storageModule.hideCategory(type)
+    }
+
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+
+    const sortColumn = storageModule.getSort()
+    doSort(sortColumn, true)
+}
+
+module.exports = {
+    doFilter,
+    doInitFilter,
+}
+
+},{"./datamanager.js":1,"./sort.js":7,"./storage.js":8}],4:[function(require,module,exports){
+const { redraw, bindEvents, renderStatic } = require('./main.js')
+const { doInitFilter } = require('./filter.js')
+const { doInitSort } = require('./sort.js')
+const { manager } = require('./datamanager.js')
+const data = JSON.parse(document.getElementById('data-container').dataset.jsonblob)
+
+function init() {
+    manager.setManager(data)
+    doInitFilter()
+    doInitSort()
+    renderStatic()
+    redraw()
+    bindEvents()
+}
+
+init()
+
+},{"./datamanager.js":1,"./filter.js":3,"./main.js":5,"./sort.js":7}],5:[function(require,module,exports){
+const { dom, find, findAll } = require('./dom.js')
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const { doFilter } = require('./filter.js')
+const {
+    getVisible,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    getSortDirection,
+    possibleFilters,
+} = require('./storage.js')
+
+const removeChildren = (node) => {
+    while (node.firstChild) {
+        node.removeChild(node.firstChild)
+    }
+}
+
+const renderStatic = () => {
+    const renderEnvironmentTable = () => {
+        const environment = manager.environment
+        const rows = Object.keys(environment).map((key) => dom.getStaticRow(key, environment[key]))
+        const table = document.getElementById('environment')
+        removeChildren(table)
+        rows.forEach((row) => table.appendChild(row))
+    }
+    renderEnvironmentTable()
+}
+
+const addItemToggleListener = (elem) => {
+    elem.addEventListener('click', ({ target }) => {
+        const id = target.parentElement.dataset.id
+        manager.toggleCollapsedItem(id)
+
+        const collapsedIds = getCollapsedIds()
+        if (collapsedIds.includes(id)) {
+            const updated = collapsedIds.filter((item) => item !== id)
+            setCollapsedIds(updated)
+        } else {
+            collapsedIds.push(id)
+            setCollapsedIds(collapsedIds)
+        }
+        redraw()
+    })
+}
+
+const renderContent = (tests) => {
+    const sortAttr = getSort(manager.initialSort)
+    const sortAsc = JSON.parse(getSortDirection())
+    const rows = tests.map(dom.getResultTBody)
+    const table = document.getElementById('results-table')
+    const tableHeader = document.getElementById('results-table-head')
+
+    const newTable = document.createElement('table')
+    newTable.id = 'results-table'
+
+    // remove all sorting classes and set the relevant
+    findAll('.sortable', tableHeader).forEach((elem) => elem.classList.remove('asc', 'desc'))
+    tableHeader.querySelector(`.sortable[data-column-type="${sortAttr}"]`)?.classList.add(sortAsc ? 'desc' : 'asc')
+    newTable.appendChild(tableHeader)
+
+    if (!rows.length) {
+        const emptyTable = document.getElementById('template_results-table__body--empty').content.cloneNode(true)
+        newTable.appendChild(emptyTable)
+    } else {
+        rows.forEach((row) => {
+            if (!!row) {
+                findAll('.collapsible td:not(.col-links', row).forEach(addItemToggleListener)
+                find('.logexpander', row).addEventListener('click',
+                    (evt) => evt.target.parentNode.classList.toggle('expanded'),
+                )
+                newTable.appendChild(row)
+            }
+        })
+    }
+
+    table.replaceWith(newTable)
+}
+
+const renderDerived = () => {
+    const currentFilter = getVisible()
+    possibleFilters.forEach((result) => {
+        const input = document.querySelector(`input[data-test-result="${result}"]`)
+        input.checked = currentFilter.includes(result)
+    })
+}
+
+const bindEvents = () => {
+    const filterColumn = (evt) => {
+        const { target: element } = evt
+        const { testResult } = element.dataset
+
+        doFilter(testResult, element.checked)
+        const collapsedIds = getCollapsedIds()
+        const updated = manager.renderData.tests.map((test) => {
+            return {
+                ...test,
+                collapsed: collapsedIds.includes(test.id),
+            }
+        })
+        manager.setRender(updated)
+        redraw()
+    }
+
+    const header = document.getElementById('environment-header')
+    header.addEventListener('click', () => {
+        const table = document.getElementById('environment')
+        table.classList.toggle('hidden')
+        header.classList.toggle('collapsed')
+    })
+
+    findAll('input[name="filter_checkbox"]').forEach((elem) => {
+        elem.addEventListener('click', filterColumn)
+    })
+
+    findAll('.sortable').forEach((elem) => {
+        elem.addEventListener('click', (evt) => {
+            const { target: element } = evt
+            const { columnType } = element.dataset
+            doSort(columnType)
+            redraw()
+        })
+    })
+
+    document.getElementById('show_all_details').addEventListener('click', () => {
+        manager.allCollapsed = false
+        setCollapsedIds([])
+        redraw()
+    })
+    document.getElementById('hide_all_details').addEventListener('click', () => {
+        manager.allCollapsed = true
+        const allIds = manager.renderData.tests.map((test) => test.id)
+        setCollapsedIds(allIds)
+        redraw()
+    })
+}
+
+const redraw = () => {
+    const { testSubset } = manager
+
+    renderContent(testSubset)
+    renderDerived()
+}
+
+module.exports = {
+    redraw,
+    bindEvents,
+    renderStatic,
+}
+
+},{"./datamanager.js":1,"./dom.js":2,"./filter.js":3,"./sort.js":7,"./storage.js":8}],6:[function(require,module,exports){
+class MediaViewer {
+    constructor(assets) {
+        this.assets = assets
+        this.index = 0
+    }
+
+    nextActive() {
+        this.index = this.index === this.assets.length - 1 ? 0 : this.index + 1
+        return [this.activeFile, this.index]
+    }
+
+    prevActive() {
+        this.index = this.index === 0 ? this.assets.length - 1 : this.index -1
+        return [this.activeFile, this.index]
+    }
+
+    get currentIndex() {
+        return this.index
+    }
+
+    get activeFile() {
+        return this.assets[this.index]
+    }
+}
+
+
+const setup = (resultBody, assets) => {
+    if (!assets.length) {
+        resultBody.querySelector('.media').classList.add('hidden')
+        return
+    }
+
+    const mediaViewer = new MediaViewer(assets)
+    const container = resultBody.querySelector('.media-container')
+    const leftArrow = resultBody.querySelector('.media-container__nav--left')
+    const rightArrow = resultBody.querySelector('.media-container__nav--right')
+    const mediaName = resultBody.querySelector('.media__name')
+    const counter = resultBody.querySelector('.media__counter')
+    const imageEl = resultBody.querySelector('img')
+    const sourceEl = resultBody.querySelector('source')
+    const videoEl = resultBody.querySelector('video')
+
+    const setImg = (media, index) => {
+        if (media?.format_type === 'image') {
+            imageEl.src = media.path
+
+            imageEl.classList.remove('hidden')
+            videoEl.classList.add('hidden')
+        } else if (media?.format_type === 'video') {
+            sourceEl.src = media.path
+
+            videoEl.classList.remove('hidden')
+            imageEl.classList.add('hidden')
+        }
+
+        mediaName.innerText = media?.name
+        counter.innerText = `${index + 1} / ${assets.length}`
+    }
+    setImg(mediaViewer.activeFile, mediaViewer.currentIndex)
+
+    const moveLeft = () => {
+        const [media, index] = mediaViewer.prevActive()
+        setImg(media, index)
+    }
+    const doRight = () => {
+        const [media, index] = mediaViewer.nextActive()
+        setImg(media, index)
+    }
+    const openImg = () => {
+        window.open(mediaViewer.activeFile.path, '_blank')
+    }
+    if (assets.length === 1) {
+        container.classList.add('media-container--fullscreen')
+    } else {
+        leftArrow.addEventListener('click', moveLeft)
+        rightArrow.addEventListener('click', doRight)
+    }
+    imageEl.addEventListener('click', openImg)
+}
+
+module.exports = {
+    setup,
+}
+
+},{}],7:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const storageModule = require('./storage.js')
+
+const genericSort = (list, key, ascending, customOrder) => {
+    let sorted
+    if (customOrder) {
+        sorted = list.sort((a, b) => {
+            const aValue = a.result.toLowerCase()
+            const bValue = b.result.toLowerCase()
+
+            const aIndex = customOrder.findIndex((item) => item.toLowerCase() === aValue)
+            const bIndex = customOrder.findIndex((item) => item.toLowerCase() === bValue)
+
+            // Compare the indices to determine the sort order
+            return aIndex - bIndex
+        })
+    } else {
+        sorted = list.sort((a, b) => a[key] === b[key] ? 0 : a[key] > b[key] ? 1 : -1)
+    }
+
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const durationSort = (list, ascending) => {
+    const parseDuration = (duration) => {
+        if (duration.includes(':')) {
+            // If it's in the format "HH:mm:ss"
+            const [hours, minutes, seconds] = duration.split(':').map(Number)
+            return (hours * 3600 + minutes * 60 + seconds) * 1000
+        } else {
+            // If it's in the format "nnn ms"
+            return parseInt(duration)
+        }
+    }
+    const sorted = list.sort((a, b) => parseDuration(a['duration']) - parseDuration(b['duration']))
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const doInitSort = () => {
+    const type = storageModule.getSort(manager.initialSort)
+    const ascending = storageModule.getSortDirection()
+    const list = manager.testSubset
+    const initialOrder = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed', 'Skipped', 'Passed']
+
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    if (type?.toLowerCase() === 'original') {
+        manager.setRender(list)
+    } else {
+        let sortedList
+        switch (type) {
+        case 'duration':
+            sortedList = durationSort(list, ascending)
+            break
+        case 'result':
+            sortedList = genericSort(list, type, ascending, initialOrder)
+            break
+        default:
+            sortedList = genericSort(list, type, ascending)
+            break
+        }
+        manager.setRender(sortedList)
+    }
+}
+
+const doSort = (type, skipDirection) => {
+    const newSortType = storageModule.getSort(manager.initialSort) !== type
+    const currentAsc = storageModule.getSortDirection()
+    let ascending
+    if (skipDirection) {
+        ascending = currentAsc
+    } else {
+        ascending = newSortType ? false : !currentAsc
+    }
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    const list = manager.testSubset
+    const sortedList = type === 'duration' ? durationSort(list, ascending) : genericSort(list, type, ascending)
+    manager.setRender(sortedList)
+}
+
+module.exports = {
+    doInitSort,
+    doSort,
+}
+
+},{"./datamanager.js":1,"./storage.js":8}],8:[function(require,module,exports){
+const possibleFilters = [
+    'passed',
+    'skipped',
+    'failed',
+    'error',
+    'xfailed',
+    'xpassed',
+    'rerun',
+]
+
+const getVisible = () => {
+    const url = new URL(window.location.href)
+    const settings = new URLSearchParams(url.search).get('visible')
+    const lower = (item) => {
+        const lowerItem = item.toLowerCase()
+        if (possibleFilters.includes(lowerItem)) {
+            return lowerItem
+        }
+        return null
+    }
+    return settings === null ?
+        possibleFilters :
+        [...new Set(settings?.split(',').map(lower).filter((item) => item))]
+}
+
+const hideCategory = (categoryToHide) => {
+    const url = new URL(window.location.href)
+    const visibleParams = new URLSearchParams(url.search).get('visible')
+    const currentVisible = visibleParams ? visibleParams.split(',') : [...possibleFilters]
+    const settings = [...new Set(currentVisible)].filter((f) => f !== categoryToHide).join(',')
+
+    url.searchParams.set('visible', settings)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const showCategory = (categoryToShow) => {
+    if (typeof window === 'undefined') {
+        return
+    }
+    const url = new URL(window.location.href)
+    const currentVisible = new URLSearchParams(url.search).get('visible')?.split(',').filter(Boolean) ||
+        [...possibleFilters]
+    const settings = [...new Set([categoryToShow, ...currentVisible])]
+    const noFilter = possibleFilters.length === settings.length || !settings.length
+
+    noFilter ? url.searchParams.delete('visible') : url.searchParams.set('visible', settings.join(','))
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getSort = (initialSort) => {
+    const url = new URL(window.location.href)
+    let sort = new URLSearchParams(url.search).get('sort')
+    if (!sort) {
+        sort = initialSort || 'result'
+    }
+    return sort
+}
+
+const setSort = (type) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('sort', type)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getCollapsedCategory = (renderCollapsed) => {
+    let categories
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        const collapsedItems = new URLSearchParams(url.search).get('collapsed')
+        switch (true) {
+        case !renderCollapsed && collapsedItems === null:
+            categories = ['passed']
+            break
+        case collapsedItems?.length === 0 || /^["']{2}$/.test(collapsedItems):
+            categories = []
+            break
+        case /^all$/.test(collapsedItems) || collapsedItems === null && /^all$/.test(renderCollapsed):
+            categories = [...possibleFilters]
+            break
+        default:
+            categories = collapsedItems?.split(',').map((item) => item.toLowerCase()) || renderCollapsed
+            break
+        }
+    } else {
+        categories = []
+    }
+    return categories
+}
+
+const getSortDirection = () => JSON.parse(sessionStorage.getItem('sortAsc')) || false
+const setSortDirection = (ascending) => sessionStorage.setItem('sortAsc', ascending)
+
+const getCollapsedIds = () => JSON.parse(sessionStorage.getItem('collapsedIds')) || []
+const setCollapsedIds = (list) => sessionStorage.setItem('collapsedIds', JSON.stringify(list))
+
+module.exports = {
+    getVisible,
+    hideCategory,
+    showCategory,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    setSort,
+    getSortDirection,
+    setSortDirection,
+    getCollapsedCategory,
+    possibleFilters,
+}
+
+},{}]},{},[4]);
+    </script>
+  </footer>
+  <script id="data-jsonblob" type="application/json">{"tc": "TC-M05-G37", "summary": {"total": 16, "ok": 16, "falla": 0, "veredicto": "Aprobado"}, "checkpoints": [{"paso": "T00 Linea base en corrida sandbox independiente de solo lectura", "esperado": "HTTP 200 en auditoria base con total y ultimo_id capturados; cierre DELETE -> 200 Rollback exitoso", "obtenido": "auditoria_base={\"total\": 83073, \"ultimo_id\": 90894, \"run_id\": \"tc-m05-g37-inobase-94b0afa0\"}; cierre_t00={\"http\": 200, \"x_request_id\": \"5e342fb5-a1bc-4da7-96d2-1b56e1392f70\"}", "estado": "OK"}, {"paso": "A01a RF-78 exito: SERVICIO_VETERINARIO con unidad 'servicio' y 3 eventos <= 2 s", "esperado": "HTTP 200 y exactamente SUMINISTRO_REGISTRADO, PRECIO_MANUAL_INGRESADO, ACUMULADO_ACTUALIZADO en <= 2.0 s con campos R8/RNF-08 y sub JWT", "obtenido": "rf78_registrar={\"id_activo\": 2747, \"id_fase\": 1191, \"http\": 200, \"x_request_id\": \"3265903b-58c5-4fbc-bc9d-aba4a93dd7b1\"}; eventos_nuevos={\"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"latencia_s\": 0.647, \"eventos\": [{\"id\": 90895, \"tipo_operacion\": \"SUMINISTRO_REGISTRADO\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\", \"costo_afectado\": \"40000.0000\", \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\", \"fecha_emision\": \"2026-11-16T02:04:00.115798Z\"}, {\"id\": 90896, \"tipo_operacion\": \"PRECIO_MANUAL_INGRESADO\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\", \"costo_afectado\": \"40000.0000\", \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\", \"fecha_emision\": \"2026-11-16T02:04:00.115798Z\"}, {\"id\": 90897, \"tipo_operacion\": \"ACUMULADO_ACTUALIZADO\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\", \"costo_afectado\": \"40000.0000\", \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\", \"fecha_emision\": \"2026-11-16T02:04:00.115798Z\"}]}", "estado": "OK"}, {"paso": "A01b RF-81 exito: GET /suministros/historial -> 1 CONSULTA_HISTORIAL_EJECUTADA <= 2 s", "esperado": "HTTP 200 y exactamente 1 CONSULTA_HISTORIAL_EJECUTADA con id_usuario, hash SHA-256 y latencia <= 2.0 s", "obtenido": "rf81_historial={\"http\": 200, \"x_request_id\": \"39e973f5-bdd5-436b-9f85-0b60be414ce7\", \"latencia_s\": 0.607, \"eventos\": [{\"id\": 90898, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": null, \"id_registro_suministro\": null, \"id_tipo_suministro\": null, \"costo_afectado\": null, \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\", \"fecha_emision\": \"2026-11-16T02:04:01.077933Z\"}]}", "estado": "OK"}, {"paso": "A02a RF-78 rechazo sin fase abierta (409 CICLO_NO_ACTIVO), sin efectos parciales y repeticion", "esperado": "HTTP 409 CICLO_NO_ACTIVO, 1 REGISTRO_FALLIDO (RECHAZADO/FALLIDO, TECNICO/1 año, registro_incompleto=true), acumulado 404, historial 0 y +1 evento al repetir", "obtenido": "rf78_rechazo_sin_fase={\"id_activo\": 2748, \"http\": 409, \"error_code\": \"CICLO_NO_ACTIVO\", \"x_request_id\": \"1f878f7e-bd34-468e-8ad3-9e37106b1239\"}; eventos_nuevos={\"latencia_s\": 0.429, \"eventos\": [{\"id\": 90899, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"id_usuario\": 104, \"id_activo_biologico\": 2748, \"id_ciclo_productivo\": null, \"id_gestion_fases\": null, \"id_registro_suministro\": null, \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\", \"costo_afectado\": null, \"numero_reintentos\": 0, \"registro_incompleto\": true, \"detalle_causa\": \"Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2748. Solicitud: 98a3af91-07e2-4af8-b165-0ef3c958dbba. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\", \"fecha_emision\": \"2026-11-16T02:04:02.039740Z\"}]}; acumulado_activo_2={\"http\": 404, \"x_request_id\": \"e73b00f9-1548-4fb7-a3da-d8a8d2128bd6\"}; historial_activo_2={\"http\": 200, \"x_request_id\": \"aa84b374-874f-446a-a12b-d398f3e3d5a1\", \"items\": 0}; repeticion={\"http\": 409, \"x_request_id\": \"ee58c423-b940-40ff-8adb-8147c79ec9e9\", \"latencia_s\": 0.415, \"eventos\": [{\"id\": 90901, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"id_usuario\": 104, \"id_activo_biologico\": 2748, \"id_ciclo_productivo\": null, \"id_gestion_fases\": null, \"id_registro_suministro\": null, \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\", \"costo_afectado\": null, \"numero_reintentos\": 0, \"registro_incompleto\": true, \"detalle_causa\": \"Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2748. Solicitud: 912d068f-702d-4046-b9d4-154aa130a9fe. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\", \"fecha_emision\": \"2026-11-16T02:04:03.014081Z\"}]}", "estado": "OK"}, {"paso": "A02b RF-78 rechazo con fase abierta (cantidad -1 -> 422 COSTO_REGISTRO_INVALIDO)", "esperado": "HTTP 422 COSTO_REGISTRO_INVALIDO y 1 REGISTRO_FALLIDO con id_ciclo_productivo e id_gestion_fases no nulos en <= 2.0 s", "obtenido": "rf78_rechazo_con_fase={\"http\": 422, \"error_code\": \"COSTO_REGISTRO_INVALIDO\", \"x_request_id\": \"9f429c50-ec21-4da4-984a-51ddff68ed71\"}; eventos_nuevos={\"latencia_s\": 0.543, \"eventos\": [{\"id\": 90902, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": null, \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\", \"costo_afectado\": null, \"numero_reintentos\": 0, \"registro_incompleto\": false, \"detalle_causa\": \"Registro de suministro rechazado: La cantidad y el precio deben producir un costo mayor que cero. Activo solicitado: 2747. Solicitud: ea564d83-4238-4619-a0c2-71ea28c8e3d6.\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\", \"fecha_emision\": \"2026-11-16T02:04:03.662918Z\"}]}", "estado": "OK"}, {"paso": "A02c RF-79 rechazo: consolidar con ciclo activo (409 CICLO_ACTIVO)", "esperado": "HTTP 409 CICLO_ACTIVO y EXACTAMENTE 1 evento nuevo en la ventana de 2 s, con resultado RECHAZADO o FALLIDO, tipo_operacion del catalogo RF-80, id_usuario = sub del JWT y latencia <= 2.0 s", "obtenido": "rf79_consolidar_ciclo_activo={\"id_fase\": 1191, \"http\": 409, \"error_code\": \"CICLO_ACTIVO\", \"x_request_id\": \"887c3966-cdec-47c1-b6d7-abb4681761cd\"}; eventos_nuevos={\"latencia_primera_deteccion_s\": 0.551, \"conteo_en_ventana_2s\": 1, \"eventos\": [{\"id\": 90903, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"RECHAZADO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": null, \"id_tipo_suministro\": null, \"costo_afectado\": null, \"numero_reintentos\": null, \"registro_incompleto\": true, \"detalle_causa\": \"Consolidación del ciclo rechazada: el ciclo productivo sigue activo; el reporte consolidado solo se genera tras su cierre. Instancia de ciclo solicitada: 1191. Campos faltantes: costo afectado.\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\", \"fecha_emision\": \"2026-11-16T02:04:04.581867Z\"}]}", "estado": "OK"}, {"paso": "A02d RF-81 rechazo: historial con fecha_fin < fecha_inicio (422 COMBINACION_FILTROS_INVALIDA)", "esperado": "HTTP 422 COMBINACION_FILTROS_INVALIDA y EXACTAMENTE 1 evento nuevo en la ventana de 2 s, con resultado RECHAZADO o FALLIDO, tipo_operacion del catalogo RF-80, id_usuario = sub del JWT y latencia <= 2.0 s", "obtenido": "rf81_historial_filtros_invalidos={\"id_activo\": 2747, \"http\": 422, \"error_code\": \"COMBINACION_FILTROS_INVALIDA\", \"x_request_id\": \"b4b6a3bd-77fb-422b-a032-f5b7fa2eaeaa\"}; eventos_nuevos={\"latencia_primera_deteccion_s\": 0.577, \"conteo_en_ventana_2s\": 1, \"eventos\": [{\"id\": 90904, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"RECHAZADO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": null, \"id_gestion_fases\": null, \"id_registro_suministro\": null, \"id_tipo_suministro\": null, \"costo_afectado\": null, \"numero_reintentos\": null, \"registro_incompleto\": true, \"detalle_causa\": \"Consulta del historial de suministros rechazada: la fecha final del filtro es anterior a la fecha inicial. Activo solicitado: 2747. Campos faltantes: ciclo productivo.\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\", \"fecha_emision\": \"2026-11-16T02:04:07.520040Z\"}], \"filtros_aplicados\": [{\"id_activo_biologico\": 2747, \"id_ciclo_productivo\": null, \"fecha_inicio_filtro\": \"2026-11-15\", \"fecha_fin_filtro\": \"2026-11-10\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null}]}", "estado": "OK"}, {"paso": "A01c RF-79 exito: cierre de ciclo -> CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO <= 2 s", "esperado": "HTTP 200 en cierre y eventos CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO EXITOSO con costo_afectado y hash <= 2.0 s", "obtenido": "rf79_cierre={\"http\": 200, \"x_request_id\": \"9a057d1f-0a86-4712-8a71-2880d42fbd54\"}; eventos_nuevos={\"latencia_s\": 1.103, \"eventos\": [{\"id\": 90905, \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": null, \"id_tipo_suministro\": null, \"costo_afectado\": null, \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\", \"fecha_emision\": \"2026-11-16T02:04:10.503366Z\"}, {\"id\": 90906, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": null, \"id_tipo_suministro\": null, \"costo_afectado\": \"40000.0000\", \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\", \"fecha_emision\": \"2026-11-16T02:04:10.559305Z\"}, {\"id\": 90907, \"tipo_operacion\": \"REPORTE_COSTOS_GENERADO\", \"resultado\": \"EXITOSO\", \"id_usuario\": 104, \"id_activo_biologico\": 2747, \"id_ciclo_productivo\": 1, \"id_gestion_fases\": 1191, \"id_registro_suministro\": null, \"id_tipo_suministro\": null, \"costo_afectado\": \"40000.0000\", \"numero_reintentos\": null, \"registro_incompleto\": false, \"detalle_causa\": null, \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\", \"fecha_emision\": \"2026-11-16T02:04:10.562560Z\"}]}; versiones_nic41={\"http\": 200, \"x_request_id\": \"74dde34c-63fd-45c1-8822-7af57c99c85f\", \"ids_provision\": [51]}", "estado": "OK"}, {"paso": "A03 Consistencia lista vs detalle /{id} y filtros para EXITOSO y REGISTRO_FALLIDO", "esperado": "Identidad campo por campo lista == detalle /{id} y aparicion en los 6 filtros para SUMINISTRO_REGISTRADO y REGISTRO_FALLIDO", "obtenido": "detalle_EXITOSO={\"id\": 90895, \"http\": 200, \"x_request_id\": \"2067705b-8b80-4b81-a5ac-ea8b081e4b42\", \"campos_distintos_lista_vs_detalle\": []}; filtro_EXITOSO_id_activo_biologico={\"http\": 200, \"items\": 10, \"contiene_evento\": true, \"x_request_id\": \"7394c4d6-be42-47aa-86e4-f51f840a90c9\"}; filtro_EXITOSO_tipo_operacion={\"http\": 200, \"items\": 100, \"contiene_evento\": true, \"x_request_id\": \"9e80e59e-4ac9-4f0c-9948-16926e83e4b1\"}; filtro_EXITOSO_resultado={\"http\": 200, \"items\": 100, \"contiene_evento\": true, \"x_request_id\": \"5fa44445-569a-4b86-ba23-182fd5afa139\"}; filtro_EXITOSO_clasificacion_registro={\"http\": 200, \"items\": 100, \"contiene_evento\": true, \"x_request_id\": \"1e7f49b6-5e03-4962-a7e3-0c189d24c183\"}; filtro_EXITOSO_fecha_desde_hasta={\"http\": 200, \"items\": 100, \"contiene_evento\": true, \"x_request_id\": \"9f6f1372-5219-449b-821d-78528f73293c\"}; filtro_EXITOSO_combinado={\"http\": 200, \"items\": 1, \"contiene_evento\": true, \"x_request_id\": \"83e8fbb1-ed27-4394-9afb-9923651dc04e\"}; detalle_REGISTRO_FALLIDO={\"id\": 90899, \"http\": 200, \"x_request_id\": \"6599a932-87b7-4f0d-a0a9-0d2df94db86e\", \"campos_distintos_lista_vs_detalle\": []}; filtro_REGISTRO_FALLIDO_id_activo_biologico={\"http\": 200, \"items\": 3, \"contiene_evento\": true, \"x_request_id\": \"188f5b3e-17e9-42be-a220-98452a65dcd9\"}; filtro_REGISTRO_FALLIDO_tipo_operacion={\"http\": 200, \"items\": 3, \"contiene_evento\": true, \"x_request_id\": \"6f41b1a1-58bd-4991-b293-8c3ed1844b47\"}; filtro_REGISTRO_FALLIDO_resultado={\"http\": 200, \"items\": 5, \"contiene_evento\": true, \"x_request_id\": \"061eb662-dfa0-4725-bc95-786b5ae8c721\"}; filtro_REGISTRO_FALLIDO_clasificacion_registro={\"http\": 200, \"items\": 100, \"contiene_evento\": true, \"x_request_id\": \"55de2779-667f-40b4-87ad-5ca98171bae1\"}; filtro_REGISTRO_FALLIDO_fecha_desde_hasta={\"http\": 200, \"items\": 100, \"contiene_evento\": true, \"x_request_id\": \"c738db52-b274-4752-8359-2cdf11725851\"}; filtro_REGISTRO_FALLIDO_combinado={\"http\": 200, \"items\": 2, \"contiene_evento\": true, \"x_request_id\": \"52d09b20-9094-4ec8-b98b-cec5b184f6eb\"}", "estado": "OK"}, {"paso": "A04a Restriccion 8: todo evento del catalogo con un minimo de su tipo ausente queda registro_incompleto=true", "esperado": ">= 1 evento del catalogo evaluado; cada evento trae los minimos de su tipo o tiene registro_incompleto=true; ninguno persistido sin tipo, resultado o fecha_emision", "obtenido": "evaluacion_r8={\"eventos_corrida\": 13, \"eventos_catalogo_evaluados\": 12, \"evaluados\": [{\"id\": 90895, \"tipo_operacion\": \"SUMINISTRO_REGISTRADO\", \"resultado\": \"EXITOSO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"id_registro_suministro\": \"primer_nivel\", \"id_tipo_suministro\": \"primer_nivel\", \"costo_afectado\": \"primer_nivel\", \"origen_precio\": \"primer_nivel\", \"id_usuario\": \"primer_nivel\"}}, {\"id\": 90896, \"tipo_operacion\": \"PRECIO_MANUAL_INGRESADO\", \"resultado\": \"EXITOSO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"id_registro_suministro\": \"primer_nivel\", \"origen_precio\": \"primer_nivel\", \"id_usuario\": \"primer_nivel\"}}, {\"id\": 90897, \"tipo_operacion\": \"ACUMULADO_ACTUALIZADO\", \"resultado\": \"EXITOSO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"id_registro_suministro\": \"primer_nivel\", \"costo_afectado\": \"primer_nivel\"}}, {\"id\": 90898, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"EXITOSO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"id_usuario\": \"primer_nivel\"}}, {\"id\": 90899, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"faltantes\": [\"id_ciclo_productivo\"], \"registro_incompleto\": true, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"AUSENTE\", \"id_tipo_suministro\": \"primer_nivel\", \"numero_reintentos\": \"primer_nivel\"}}, {\"id\": 90900, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"EXITOSO\", \"faltantes\": [\"id_ciclo_productivo\"], \"registro_incompleto\": true, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"AUSENTE\", \"id_usuario\": \"primer_nivel\"}}, {\"id\": 90901, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"faltantes\": [\"id_ciclo_productivo\"], \"registro_incompleto\": true, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"AUSENTE\", \"id_tipo_suministro\": \"primer_nivel\", \"numero_reintentos\": \"primer_nivel\"}}, {\"id\": 90902, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"id_tipo_suministro\": \"primer_nivel\", \"numero_reintentos\": \"primer_nivel\"}}, {\"id\": 90903, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"RECHAZADO\", \"faltantes\": [\"costo_afectado\"], \"registro_incompleto\": true, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"costo_afectado\": \"AUSENTE\"}}, {\"id\": 90904, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"RECHAZADO\", \"faltantes\": [\"id_ciclo_productivo\"], \"registro_incompleto\": true, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"AUSENTE\", \"id_usuario\": \"primer_nivel\"}}, {\"id\": 90906, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"EXITOSO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"costo_afectado\": \"primer_nivel\"}}, {\"id\": 90907, \"tipo_operacion\": \"REPORTE_COSTOS_GENERADO\", \"resultado\": \"EXITOSO\", \"faltantes\": [], \"registro_incompleto\": false, \"origen_por_campo\": {\"tipo_operacion\": \"primer_nivel\", \"resultado\": \"primer_nivel\", \"fecha_emision\": \"primer_nivel\", \"id_activo_biologico\": \"primer_nivel\", \"id_ciclo_productivo\": \"primer_nivel\", \"costo_afectado\": \"primer_nivel\"}}], \"incumplimientos\": []}", "estado": "OK"}, {"paso": "A04b detalle_causa lista los campos faltantes: 'Campos faltantes:' con un elemento por campo faltante", "esperado": ">= 1 evento con minimos faltantes evaluado; en cada uno detalle_causa contiene 'Campos faltantes:' seguido de una lista con tantos elementos como campos faltan (sin exigir nombre de campo ni palabras)", "obtenido": "evaluacion_lista_faltantes={\"eventos_con_faltantes\": 5, \"evaluados\": [{\"id\": 90899, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"faltantes\": [\"id_ciclo_productivo\"], \"detalle_causa\": \"Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2748. Solicitud: 98a3af91-07e2-4af8-b165-0ef3c958dbba. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.\", \"lista_campos_faltantes\": [\"ciclo productivo\"]}, {\"id\": 90900, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"faltantes\": [\"id_ciclo_productivo\"], \"detalle_causa\": \"Campos faltantes: ciclo productivo.\", \"lista_campos_faltantes\": [\"ciclo productivo\"]}, {\"id\": 90901, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"faltantes\": [\"id_ciclo_productivo\"], \"detalle_causa\": \"Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 2748. Solicitud: 912d068f-702d-4046-b9d4-154aa130a9fe. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.\", \"lista_campos_faltantes\": [\"ciclo productivo\"]}, {\"id\": 90903, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"faltantes\": [\"costo_afectado\"], \"detalle_causa\": \"Consolidación del ciclo rechazada: el ciclo productivo sigue activo; el reporte consolidado solo se genera tras su cierre. Instancia de ciclo solicitada: 1191. Campos faltantes: costo afectado.\", \"lista_campos_faltantes\": [\"costo afectado\"]}, {\"id\": 90904, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"faltantes\": [\"id_ciclo_productivo\"], \"detalle_causa\": \"Consulta del historial de suministros rechazada: la fecha final del filtro es anterior a la fecha inicial. Activo solicitado: 2747. Campos faltantes: ciclo productivo.\", \"lista_campos_faltantes\": [\"ciclo productivo\"]}], \"incumplimientos\": []}", "estado": "OK"}, {"paso": "A04c Referencia al registro: los 3 eventos de RF-78 de A01a llevan el id_registro_suministro creado", "esperado": "SUMINISTRO_REGISTRADO, PRECIO_MANUAL_INGRESADO y ACUMULADO_ACTUALIZADO de A01a con id_registro_suministro = id devuelto por POST /suministros/costeo-directo", "obtenido": "referencias_rf78={\"id_registro_suministro_creado\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"evaluados\": [{\"id\": 90895, \"tipo_operacion\": \"SUMINISTRO_REGISTRADO\", \"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\"}, {\"id\": 90896, \"tipo_operacion\": \"PRECIO_MANUAL_INGRESADO\", \"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\"}, {\"id\": 90897, \"tipo_operacion\": \"ACUMULADO_ACTUALIZADO\", \"id_registro_suministro\": \"28f15e19-887b-4737-98ce-e8277654536c\", \"id_tipo_suministro\": \"SERVICIO_VETERINARIO\"}]}", "estado": "OK"}, {"paso": "B01 Clasificacion y retencion por catalogo (NIC41 / 5 años vs TECNICO / 1 año)", "esperado": "SUMINISTRO_REGISTRADO, ACUMULADO_ACTUALIZADO, CICLO_CONSOLIDADO, REPORTE_COSTOS_GENERADO=NIC41/5 años; PRECIO_MANUAL_INGRESADO, CONSULTA_HISTORIAL_EJECUTADA, REGISTRO_FALLIDO=TECNICO/1 año", "obtenido": "clasificacion_por_evento=[{\"id\": 90895, \"tipo_operacion\": \"SUMINISTRO_REGISTRADO\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}, {\"id\": 90896, \"tipo_operacion\": \"PRECIO_MANUAL_INGRESADO\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90897, \"tipo_operacion\": \"ACUMULADO_ACTUALIZADO\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}, {\"id\": 90898, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90899, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90900, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90901, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90902, \"tipo_operacion\": \"REGISTRO_FALLIDO\", \"resultado\": \"RECHAZADO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90903, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"RECHAZADO\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}, {\"id\": 90904, \"tipo_operacion\": \"CONSULTA_HISTORIAL_EJECUTADA\", \"resultado\": \"RECHAZADO\", \"clasificacion_registro\": \"TECNICO\", \"retencion_aplicable\": \"1 año\"}, {\"id\": 90905, \"tipo_operacion\": \"INSERT\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}, {\"id\": 90906, \"tipo_operacion\": \"CICLO_CONSOLIDADO\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}, {\"id\": 90907, \"tipo_operacion\": \"REPORTE_COSTOS_GENERADO\", \"resultado\": \"EXITOSO\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}]", "estado": "OK"}, {"paso": "B02 Tipo no catalogado -> NIC41 / 5 años en TEST y en clasificar_retencion", "esperado": ">= 1 evento real no catalogado en TEST clasificado NIC41/5 años y unitario clasificar_retencion=('NIC41', '5 años')", "obtenido": "no_catalogados=[{\"id\": 90905, \"tipo_operacion\": \"INSERT\", \"clasificacion_registro\": \"NIC41\", \"retencion_aplicable\": \"5 años\"}]; clasificar_retencion_local={\"clasificacion\": \"NIC41\", \"retencion\": \"5 años\", \"commit_local\": \"f12145e071721001b97bc7fefd966d392dc6e166\"}", "estado": "OK"}, {"paso": "T98 Cierre de la corrida sandbox principal", "esperado": "DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso", "obtenido": "cierre_principal={\"run_id\": \"tc-m05-g37-adm-8e9580c6\", \"http\": 200, \"x_request_id\": \"b26ec35d-dacd-4f51-b228-453fa68af5f1\"}", "estado": "OK"}, {"paso": "T99 Inocuidad en corrida sandbox independiente de solo lectura", "esperado": "total y ultimo_id iguales a T00; GET a activos, acumulados/historial de suministro y provision creados -> HTTP 404", "obtenido": "auditoria_final={\"total_base\": 83073, \"total_final\": 83073, \"ultimo_id_base\": 90894, \"ultimo_id_final\": 90894}; check_404_activo_1={\"ruta\": \"/activos-biologicos/2747\", \"status_code\": 404, \"x_request_id\": \"322ba9e7-ba7f-47b6-8306-452285a98cde\"}; check_404_acumulado_activo_1={\"ruta\": \"/suministros/costeo-directo/acumulado/activo/2747\", \"status_code\": 404, \"x_request_id\": \"ddb1361f-f8b1-4022-8b17-82f099e61f3d\"}; check_404_historial_activo_1={\"ruta\": \"/suministros/historial\", \"status_code\": 404, \"x_request_id\": \"d67ad425-17bc-4df0-a51a-acae163e477b\"}; check_404_acumulado_ciclo_1={\"ruta\": \"/suministros/costeo-directo/acumulado/ciclo/1191\", \"status_code\": 404, \"x_request_id\": \"af9ae6d7-02f3-422f-accc-142c0f280d97\"}; check_404_activo_2={\"ruta\": \"/activos-biologicos/2748\", \"status_code\": 404, \"x_request_id\": \"87d31b90-c4c0-42e4-872f-e9c22d77ff12\"}; check_404_provision_1={\"ruta\": \"/suministros/nic41/51\", \"status_code\": 404, \"x_request_id\": \"868db5b9-5050-42a7-a540-48b91334fda2\"}; cierre_t99={\"http\": 200, \"x_request_id\": \"a0731ce2-4eef-42a2-bd8c-b3fca3b0880a\"}", "estado": "OK"}]}</script></body>
+</html>

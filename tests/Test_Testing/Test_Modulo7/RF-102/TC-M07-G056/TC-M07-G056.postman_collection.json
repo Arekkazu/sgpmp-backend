@@ -1,0 +1,271 @@
+{
+  "info": {
+    "name": "TC-M07-G056 RF-102 Permisos RBAC auditoría",
+    "description": "GET /integracion/auditoria y /exportar con Admin, Auditor (Revisor Fiscal) y usuario sin permisos (Contador). Credenciales vía environment. Informe oficial: ejecutar_tc_m07_g56.py",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.inmero.co/api-sgpmp-test"},
+    {"key": "admin_token", "value": ""},
+    {"key": "auditor_token", "value": ""},
+    {"key": "sin_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "E1 Admin",
+      "item": [
+        {
+          "name": "01 Login Admin",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('login admin 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                "const j = pm.response.json();",
+                "if (j.token) pm.collectionVariables.set('admin_token', j.token);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+            "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_ADMIN_CORREO}}\",\n  \"contrasena\": \"{{QA_ADMIN_CONTRASENA}}\"\n}"},
+            "url": "{{baseUrl}}/sesiones/"
+          }
+        },
+        {
+          "name": "02 Admin GET auditoria",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                "const j = pm.response.json();",
+                "pm.test('estructura', function () {",
+                "  pm.expect(j).to.have.property('items');",
+                "  pm.expect(j).to.have.property('pagina');",
+                "  pm.expect(j).to.have.property('tamano');",
+                "  pm.expect(j).to.have.property('total');",
+                "});",
+                "if (j.items && j.items.length) {",
+                "  pm.test('incluye ip_origen y json_detalle en claves', function () {",
+                "    pm.expect(j.items[0]).to.have.property('ip_origen');",
+                "    pm.expect(j.items[0]).to.have.property('json_detalle');",
+                "  });",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=50"
+          }
+        },
+        {
+          "name": "03 Admin exportar json",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('export admin HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "E2 Auditor",
+      "item": [
+        {
+          "name": "01 Login Auditor",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('login auditor 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                "const j = pm.response.json();",
+                "if (j.token) pm.collectionVariables.set('auditor_token', j.token);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+            "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_AUDITOR_CORREO}}\",\n  \"contrasena\": \"{{QA_AUDITOR_CONTRASENA}}\"\n}"},
+            "url": "{{baseUrl}}/sesiones/"
+          }
+        },
+        {
+          "name": "02 Auditor GET auditoria restringida",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                "const j = pm.response.json();",
+                "const allowed = ['PAQUETE_AAEF_CONSULTADO','VISTA_AAEF_GENERADA','CONTRATO_ACTIVADO'];",
+                "pm.test('solo TIPOS_AUDITOR', function () {",
+                "  (j.items || []).forEach(function (it) { pm.expect(allowed).to.include(it.tipo_evento); });",
+                "});",
+                "pm.test('sin ip_origen ni json_detalle', function () {",
+                "  (j.items || []).forEach(function (it) {",
+                "    pm.expect(it.ip_origen).to.eql(null);",
+                "    pm.expect(it.json_detalle).to.eql(null);",
+                "  });",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{auditor_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=50"
+          }
+        },
+        {
+          "name": "03 Auditor tipo no autorizado FA7",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('HTTP 403 FA7', function () { pm.expect(pm.response.code).to.eql(403); });",
+                "const j = pm.response.json();",
+                "pm.test('code denegado auditoria', function () {",
+                "  const c = j.error_code || j.code || (j.detail && j.detail.code);",
+                "  pm.expect(['ACCESO_AUDITORIA_DENEGADO','ACCESO_DENEGADO']).to.include(c);",
+                "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{auditor_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=10&tipo_evento=SOLICITUD_RECHAZADA"
+          }
+        },
+        {
+          "name": "04 Auditor export denegado",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('export auditor HTTP 403', function () { pm.expect(pm.response.code).to.eql(403); });"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{auditor_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "E3 Sin permisos",
+      "item": [
+        {
+          "name": "01 Login sin permiso",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('login sin permiso 200/201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                "const j = pm.response.json();",
+                "if (j.token) pm.collectionVariables.set('sin_token', j.token);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+            "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{QA_SIN_PERMISO_CORREO}}\",\n  \"contrasena\": \"{{QA_SIN_PERMISO_CONTRASENA}}\"\n}"},
+            "url": "{{baseUrl}}/sesiones/"
+          }
+        },
+        {
+          "name": "02 Sin permiso GET auditoria 403",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('HTTP 403', function () { pm.expect(pm.response.code).to.eql(403); });",
+                "const j = pm.response.json();",
+                "pm.test('ACCESO_DENEGADO', function () {",
+                "  const c = j.error_code || j.code || (j.detail && j.detail.code);",
+                "  pm.expect(c).to.eql('ACCESO_DENEGADO');",
+                "});",
+                "pm.test('sin items', function () { pm.expect(j.items).to.be.undefined; });"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{sin_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=10"
+          }
+        },
+        {
+          "name": "03 Sin permiso export 403",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('export sin permiso HTTP 403', function () { pm.expect(pm.response.code).to.eql(403); });"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{sin_token}}"},
+              {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+            ],
+            "url": "{{baseUrl}}/integracion/auditoria/exportar?formato=json"
+          }
+        },
+        {
+          "name": "04 Sin Authorization 401",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('sin token HTTP 401', function () { pm.expect(pm.response.code).to.eql(401); });"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Zona-Horaria", "value": "America/Bogota"}],
+            "url": "{{baseUrl}}/integracion/auditoria?pagina=1&tamano=1"
+          }
+        }
+      ]
+    }
+  ]
+}

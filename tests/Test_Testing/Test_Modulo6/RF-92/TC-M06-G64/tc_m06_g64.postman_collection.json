@@ -198,7 +198,8 @@
             "exec": [
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
               "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
-              "const cerrados = JSON.parse(pm.collectionVariables.get('cerrados') || '[]');",
+              "const qaCerrado = String(pm.environment.get('periodo_cerrado_qa') || '');",
+              "const cerrados = qaCerrado ? [qaCerrado] : JSON.parse(pm.collectionVariables.get('cerrados') || '[]');  // con -PeriodoCerrado solo se buscan informes de ese periodo",
               "const hallados = {};",
               "let pend = cerrados.length;",
               "const fin = () => { ['BORRADOR','APROBADO','ARCHIVADO','RECHAZADO'].forEach(e => pm.collectionVariables.set('inf_' + e, hallados[e] ? String(hallados[e].id_informe) : ''));",
@@ -300,7 +301,7 @@
       }
     },
     {
-      "name": "TC-92-030 El compromiso se refleja integro",
+      "name": "TC-92-030 El compromiso se refleja integro y los riesgos traen las tres categorias (informe nuevo generado en el sandbox)",
       "event": [
         {
           "listen": "prerequest",
@@ -319,7 +320,9 @@
               "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
               "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
               "const s = (j.contenido || {}).parr_49_restricciones_compromisos || {};",
+              "const r = (j.contenido || {}).parr_53_riesgos || [];",
               "pm.test(\"compromiso integro\", () => { const c = (s.compromisos || [])[0] || {}; pm.expect(c.descripcion).to.include('QA M06 G06'); pm.expect(Number(c.monto_estimado)).to.eql(1500000); pm.expect(c.contraparte).to.eql('Banco QA'); });",
+              "pm.test(\"TC-92-035/036 (informe nuevo generado) las tres categorias de riesgo siempre presentes (Climático, Sanitario, Mercado), cada una con su fuente\", () => { const sin = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase(); const cs = r.map(x => sin(x.categoria)); ['CLIMATICO','SANITARIO','MERCADO'].forEach(c => { pm.expect(cs, 'falta ' + c).to.include(c); r.filter(x => sin(x.categoria) === c).forEach(x => pm.expect(x.fuente, 'fuente de ' + c).to.be.a('string').that.is.not.empty); }); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]
@@ -455,7 +458,7 @@
       }
     },
     {
-      "name": "TC-92-032/035/036 Declaracion y riesgos en el informe existente",
+      "name": "TC-92-032 Declaracion en el informe existente",
       "event": [
         {
           "listen": "prerequest",
@@ -476,7 +479,6 @@
               "const k = j.contenido || {};",
               "const r = k.parr_53_riesgos || []; const cats = r.map(x => x.categoria);",
               "pm.test(\"TC-92-032 la seccion de compromisos existe con su declaracion\", () => pm.expect(k.parr_49_restricciones_compromisos).to.have.property('declaracion_sin_novedad'));",
-              "pm.test(\"TC-92-035/036 las tres categorias de riesgo siempre presentes (climatico, sanitario, mercado)\", () => { ['CLIMATICO','SANITARIO','MERCADO'].forEach(c => pm.expect(cats, 'falta ' + c).to.include(c)); });",
               "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
               "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
             ]

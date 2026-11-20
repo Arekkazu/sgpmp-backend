@@ -1,0 +1,226 @@
+{
+  "peticiones": [
+    {
+      "fase": "login",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "ok": true
+    },
+    {
+      "fase": "perfil",
+      "http": 200,
+      "rol": "Contador",
+      "id_usuario": 141
+    },
+    {
+      "fase": "permisos",
+      "http": 200,
+      "costos_activos": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "fase": "pre_activo",
+      "http": 200,
+      "activo": {
+        "identificador": "QA-M06-G112-GASTO",
+        "estado": "ACTIVO",
+        "id_especie": 655,
+        "id_finca": 488,
+        "costos_adquisicion": "3000000.0000",
+        "valor_contable_por_costo": "3000000.0000",
+        "es_activa": true,
+        "lineas_count": 0
+      }
+    },
+    {
+      "fase": "pre_matriz",
+      "http": 200,
+      "asignacion_8581": {
+        "id": 8581,
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "UNICO",
+        "id_especie": 655,
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "cuenta_debito": "510506",
+        "cuenta_credito": "250505"
+      }
+    },
+    {
+      "fase": "pre_periodo",
+      "http": 200,
+      "periodo_629": {
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30",
+        "nit": "901666216"
+      }
+    },
+    {
+      "fase": "pre_costos",
+      "http": 200,
+      "total": 0
+    },
+    {
+      "fase": "post_costo",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 201,
+      "request": {
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "monto_costo": "100000.0000",
+        "fecha_costo": "2026-11-15",
+        "id_activo_biologico": 2552,
+        "justificacion": "TC-M06-G112 / TC-M06-40 — inversión directa llevada a gasto QA (autorizada)",
+        "confirmar_capitalizacion": false
+      },
+      "respuesta": {
+        "registros": [
+          {
+            "id_registro_costo": 4497,
+            "id_activo_biologico": 2552,
+            "monto_costo": "100000.0000",
+            "naturaleza_costo": "INVERSION",
+            "vehiculo_contable": "ASIENTO_NIC41",
+            "estado": "REGISTRADO",
+            "id_linea_asiento": 6918
+          }
+        ],
+        "id_grupo_reparto": null,
+        "aviso": null
+      }
+    },
+    {
+      "fase": "post_costos",
+      "http": 200,
+      "total": 1,
+      "costo": {
+        "id_registro_costo": 4497,
+        "naturaleza_costo": "INVERSION",
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 2552,
+        "activo": "QA-M06-G112-GASTO",
+        "monto_costo": "100000.0000",
+        "fecha_costo": "2026-11-15",
+        "id_periodo_contable": 629,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": "TC-M06-G112 / TC-M06-40 — inversión directa llevada a gasto QA (autorizada)",
+        "id_origen_m05": null,
+        "tercero_nit": null,
+        "tercero_dv": null,
+        "tercero_razon_social": null,
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": null,
+        "metodo_reparto": null,
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-16T02:35:36.613897Z",
+        "id_especie": 655,
+        "id_infraestructura": 1461,
+        "id_finca": 488,
+        "especie": "Bufalo Depreciacion Qa Mseis",
+        "finca": "Finca Gasto Qa Mseis"
+      }
+    },
+    {
+      "fase": "post_activo",
+      "http": 200,
+      "activo": {
+        "identificador": "QA-M06-G112-GASTO",
+        "estado": "ACTIVO",
+        "id_especie": 655,
+        "id_finca": 488,
+        "costos_adquisicion": "3000000.0000",
+        "valor_contable_por_costo": "3000000.0000",
+        "es_activa": true,
+        "lineas_count": 1
+      }
+    },
+    {
+      "fase": "post_lineas",
+      "http": 200,
+      "total": 1,
+      "linea": {
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "UNICO",
+        "valor": "100000.00",
+        "fecha_hecho": "2026-11-15",
+        "id_periodo_contable": 629,
+        "id_activo_biologico": 2552,
+        "id_especie": 655,
+        "id_finca": 488,
+        "numero_id_tributaria": "901666216",
+        "tabla_origen": "registros_costos",
+        "id_origen": 4497,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": "INVERSION_DIRECTA",
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "510506",
+        "cuenta_credito": "250505",
+        "justificacion": "TC-M06-G112 / TC-M06-40 — inversión directa llevada a gasto QA (autorizada)",
+        "id_usuario": 141,
+        "id_linea_asiento_nic41": 6918,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null,
+          "identificador_activo": "QA-M06-G112-GASTO",
+          "tipo_activo": "INDIVIDUAL"
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null,
+        "identificador_activo": "QA-M06-G112-GASTO",
+        "tipo_activo": "INDIVIDUAL"
+      }
+    },
+    {
+      "fase": "post_periodo_629",
+      "http": 200,
+      "periodo": {
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01"
+      }
+    },
+    {
+      "fase": "post_periodos_protegidos",
+      "219": {
+        "http": 200,
+        "estado": "CERRADO"
+      },
+      "220": {
+        "http": 200,
+        "estado": "ABIERTO"
+      }
+    },
+    {
+      "fase": "rf94",
+      "eventos": [
+        {
+          "tipo_busqueda": "COSTO_REGISTRADO",
+          "http": 200,
+          "id_evento": 28193,
+          "tipo_evento": "COSTO_REGISTRADO",
+          "id_referencia": 4497,
+          "timestamp_evento": "2026-11-16T02:35:36.613897Z",
+          "id_usuario": 141
+        }
+      ]
+    }
+  ]
+}

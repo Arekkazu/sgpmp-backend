@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-75: anular compensa el ledger de RF-78 |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75: el aviso de consumo ya anulado da la fecha legible, sin id ni estado crudo |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: anular un registro de consumo de alimento VALIDADO (RF-75 pasos 10-13).
 
 Un registro ANULADO no puede reactivarse ni volver a anularse. La justificación
@@ -45,7 +46,7 @@ class AnularConsumoAlimentoUseCase:
         if consumo is None:
             raise NotFoundError(
                 code="CONSUMO_NO_ENCONTRADO",
-                message=f"El registro de consumo con ID {id_consumo} no existe.",
+                message="El registro de consumo no existe.",
             )
 
         if consumo.estado_registro == EstadoRegistro.ANULADO.value:

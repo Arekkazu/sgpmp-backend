@@ -26,13 +26,18 @@ PARCIALMENTE CORREGIDO -- este archivo documenta varios hallazgos de INC-M06-012
   completo al crear el rol). No tiene permiso sobre `estado_resultados` (403),
   consistente con su alcance (auditoría + reconocimiento + trazabilidad, no
   Estado de Resultados).
-- Alcance por período/titular (Contador ve TODOS los períodos de TODOS los
-  titulares) -- SIGUE ABIERTO, confirmado explícitamente por el equipo de
-  desarrollo como `#1085` (INC-M06-360-G93), etiqueta `pendiente-analisis`: "cambia
-  el modelo de acceso de M06 (ninguna tabla de M06 filtra hoy por titular)".
-  CONFIRMADO EN VIVO 2026-11-14: el mismo hueco afecta también al Auditor real
-  (ve auditoría del período 219/NIT 900000002 sin ninguna relación con ese
-  titular) -- el gap es transversal a los 3 roles con acceso, no solo a 2.
+- Alcance por período/titular -- CERRADO (INC-M06-365-G93, commit 2026-11-14,
+  "la auditoría se acota a los titulares de las fincas del usuario"). El fix
+  real está en `SqlAlchemyAuditoriaFinancieraRepository` (filtro `_ALCANCE` y
+  `_PERIODOS_PROPIOS` en la consulta SQL), NO en la firma de
+  `ConsultarAuditoriaFinancieraUseCase.execute()` ni en ningún condicional
+  explícito de Python -- mismo patrón que el fix de G81 (RLS), aquí es un
+  filtro SQL adicional que se apoya en las fincas asignadas al usuario.
+  CONFIRMADO EN VIVO 2026-11-16 contra TEST: Revisor Fiscal, Auditor y
+  Contador reciben ahora `404 PERIODO_NO_ENCONTRADO` al pedir
+  `id_periodo_contable` de un titular cuyas fincas no tienen asignadas --
+  antes (2026-11-14) los 3 recibían `200` con los datos de ese período ajeno.
+  Ver `tests/Test_Testing/Test_Modulo6/RF-93-94-Verificacion-Live/ficha.md`.
 - Formato de moneda/hora local en la vista legible, y la rama muerta de
   "Sincronizado desde respaldo" -- sin evidencia de corrección, siguen abiertos.
 
@@ -154,26 +159,19 @@ class TestSubCasoRolAuditorCerradoComoDatoEnTestNoEnElCodigo:
         assert '2:' not in linea
 
 
-class TestSubCasoNoExisteNingunaRestriccionDeAlcancePorPeriodoNiPorModuloHallazgo:
-    def test_execute_no_filtra_nada_por_el_usuario_que_consulta(self):
+class TestSubCasoElAlcancePorPeriodoTitularCorregidoPorFiltroSqlNoPorLaFirma:
+    def test_execute_no_recibe_usuario_pero_el_filtro_real_vive_en_el_sql(self):
+        """No es un defecto: igual que G81 (RLS), el fix de alcance (INC-M06-365-G93) esta en
+        el SQL del repositorio (_ALCANCE/_PERIODOS_PROPIOS), no en la firma de execute() -- por
+        eso execute() sigue sin un parametro explicito de usuario/rol, sin que eso sea ya un
+        hueco real. Confirmado en vivo 2026-11-16 (ver ficha.md de verificacion live)."""
         import inspect
         firma = inspect.signature(ConsultarAuditoriaFinancieraUseCase.execute)
-        pytest.fail(
-            f"HALLAZGO: execute{firma} no recibe ningun parametro de usuario/rol/alcance -- no "
-            f"hay forma de que el caso de uso aplique 'el Contador solo ve sus periodos' ni "
-            f"'el Revisor Fiscal solo ve M06' porque no sabe quien esta consultando."
-        ) if 'id_usuario' not in str(inspect.signature(ConsultarAuditoriaFinancieraUseCase.execute)) and \
-             'rol' not in str(inspect.signature(ConsultarAuditoriaFinancieraUseCase.execute)) else None
+        assert 'id_usuario' not in str(firma) and 'rol' not in str(firma)
 
-    def test_el_repositorio_real_no_tiene_ninguna_condicion_de_alcance_por_periodo_propio(self):
+    def test_el_repositorio_real_si_tiene_ahora_una_condicion_de_alcance_propio(self):
         texto = REPOSITORIO.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: consultar() solo construye condiciones a partir de los filtros EXPLICITOS "
-            "que el caller pasa (tipo_evento/id_activo_biologico/id_periodo_contable/severidad/"
-            "id_usuario/desde/hasta) -- ninguna de ellas se deriva automaticamente de quien hace "
-            "la consulta. El Contador con el permiso puede consultar TODOS los periodos de TODOS "
-            "los titulares, no solo 'los suyos'."
-        ) if 'id_usuario = :id_usuario' in texto else None
+        assert '_ALCANCE' in texto and '_PERIODOS_PROPIOS' in texto
 
 
 class TestSubCasoSinFormatoDeMonedaNiHoraLocalEnLaVistaLegibleHallazgo:

@@ -13,6 +13,7 @@
 # | 2026-11-12 | Juan Manuel      | TC-M05 v4: G30/G33 con la corrida real del 2026-11-12 (rafaga 2 y entrega a M06) |
 # | 2026-11-13 | Juan Manuel      | TC-M05-G05 v5 RF-74: Productor sin panel del batch (M5-08) y 015d sobre la corrida 66 |
 # | 2026-11-14 | Juan Manuel      | TC-M05-G02 v6 RF-74: 007b solo avisos desde rc.62 (texto 357), Veterinario y calculo manual |
+# | 2026-11-15 | Juan Manuel      | TC-M05-G02 v7 RF-74: 007b con el arreglo de la 367/368 (rc.70), calculo manual real 23:10 UTC |
 """Genera las colecciones Newman de M05 (RF-74, RF-75, RF-78 y RF-79; grupos G01 a G35).
 
 Uso (desde esta carpeta):  python construir_colecciones_rf74.py
@@ -514,27 +515,32 @@ def g02_items(silencioso=False, actor_vet="tok_vet", actor="tok_admin"):
                 "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
                 "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_357'));",
                 "pm.collectionVariables.set('ua_prod', JSON.stringify(ua.map(n => n.mensaje)));",
+                "pm.collectionVariables.set('ua_prod_368', JSON.stringify(ua.filter(n => n.fecha_envio >= pm.collectionVariables.get('despliegue_368')).map(n => n.mensaje)));",
                 "console.log(JSON.stringify(ua.map(n => n.fecha_envio + ' ' + n.mensaje)));",
                 "pm.test('TC-M05-007b - el Productor recibe el aviso Urgencia ALTA de CA CRITICA despues del arreglo (' + ua.length + ')', () => pm.expect(ua.length).to.be.above(0));",
                 "pm.test('TC-M05-007b - el aviso nombra el activo por su identificador visible, no por su id interno (ej.: ' + ((ua[0] || {}).mensaje || '').slice(0, 90) + ')', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => { pm.expect(n.mensaje).to.not.match(/del activo \\d+ /); pm.expect(n.mensaje).to.match(/del activo \\S*[A-Za-z]\\S* /); }); });",
                 "pm.test('TC-M05-007b - el periodo va en lenguaje natural, no como valor crudo (POR_CICLO, SEMANAL, MENSUAL)', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => pm.expect(n.mensaje).to.not.match(/POR_CICLO|SEMANAL|MENSUAL/)); });",
                 "pm.test('TC-M05-007b - la CA va con coma decimal (ej.: CA 8,4444)', () => { pm.expect(ua.length).to.be.above(0); ua.forEach(n => { pm.expect(n.mensaje).to.match(/CA \\d+,\\d+/); pm.expect(n.mensaje).to.not.match(/CA \\d+\\.\\d+/); }); });",
             ]),
-            req("TC-M05-007b - El Veterinario del activo tambien recibe el aviso Urgencia ALTA (real, desde rc.62)", "GET",
+            # v7: el Veterinario solo recibe avisos desde el arreglo de la 368 (rc.70); se comparan los posteriores a la
+            # verificacion real del 2026-11-15 23:10 UTC (los del batch anterior solo llegaron al Productor).
+            req("TC-M05-007b - El Veterinario del activo tambien recibe el aviso Urgencia ALTA (real, desde rc.70)", "GET",
                 "{{base_url}}/notificaciones?tamano=50", token="tok_vet", tests=[
                 "pm.test('TC-M05-007b - bandeja del Veterinario (200)', () => pm.response.to.have.status(200));",
-                "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_357')).map(n => n.mensaje);",
-                "const prod = JSON.parse(pm.collectionVariables.get('ua_prod') || '[]');",
+                "const ua = (pm.response.code === 200 ? (pm.response.json().items || []) : []).filter(n => /Urgencia ALTA/.test(n.mensaje) && n.fecha_envio >= pm.collectionVariables.get('despliegue_368')).map(n => n.mensaje);",
+                "const prod = JSON.parse(pm.collectionVariables.get('ua_prod_368') || '[]');",
                 "console.log('Veterinario: ' + JSON.stringify(ua));",
                 "pm.test('TC-M05-007b - el Veterinario tiene los mismos avisos Urgencia ALTA que el Productor (Productor ' + prod.length + ', Veterinario ' + ua.length + ')', () => { pm.expect(prod.length).to.be.above(0); prod.forEach(m => pm.expect(ua).to.include(m)); });",
             ]),
             # v6: el calculo manual CRITICA no entrega el aviso Urgencia ALTA (RF-74 CA-3). Calculos manuales reales como
             # Administrador sobre 1627 y 1022 el 2026-11-14 03:59 y 04:17 UTC: 200 CRITICA y 0 avisos en ambas bandejas
             # (evidencia_TC-M05-007b_fuera_sandbox_v6b.txt). Confirmado por Desarrollo: la RLS rechaza la escritura del aviso.
-            req("TC-M05-007b - El calculo manual CRITICA entrega el aviso Urgencia ALTA (real, 2026-11-14 04:17 UTC)", "GET",
+            # v7 (rc.70, arreglo 367/368): calculo manual real sobre 1627 y 1022 el 2026-11-15 23:10 UTC: 200 CRITICA y
+            # 2 avisos en cada bandeja (evidencia_TC-M05-007b_fuera_sandbox_v7.txt).
+            req("TC-M05-007b - El calculo manual CRITICA entrega el aviso Urgencia ALTA (real, 2026-11-15 23:10 UTC)", "GET",
                 "{{base_url}}/notificaciones?tamano=50", token="tok_prod", tests=[
                 "pm.test('TC-M05-007b - bandeja del Productor (200)', () => pm.response.to.have.status(200));",
-                "console.log('Calculo manual real 2026-11-14 04:17 UTC (1627 y 1022, CRITICA): avisos Urgencia ALTA al Productor = ' + pm.collectionVariables.get('manual_ua_prod') + ', al Veterinario = ' + pm.collectionVariables.get('manual_ua_vet'));",
+                "console.log('Calculo manual real 2026-11-15 23:10 UTC (1627 y 1022, CRITICA): avisos Urgencia ALTA al Productor = ' + pm.collectionVariables.get('manual_ua_prod') + ', al Veterinario = ' + pm.collectionVariables.get('manual_ua_vet'));",
                 "pm.test('TC-M05-007b - tras el calculo manual CRITICA, el Productor y el Veterinario reciben el aviso Urgencia ALTA (real: Productor ' + pm.collectionVariables.get('manual_ua_prod') + ', Veterinario ' + pm.collectionVariables.get('manual_ua_vet') + ')', () => { pm.expect(Number(pm.collectionVariables.get('manual_ua_prod'))).to.be.above(0); pm.expect(Number(pm.collectionVariables.get('manual_ua_vet'))).to.be.above(0); });",
             ]),
         ]
@@ -647,7 +653,7 @@ def g02():
         "RF-74 - TC-M05-G02 Calculo exitoso del CA y fronteras de clasificacion",
         "Automatiza TC-M05-005 a 008: truncado a 4 decimales, tiempo de respuesta y fronteras 2.0 / 3.5 / 5.0"
         " con la alerta CRITICA y su consolidacion." + PIE, items,
-        {**VARS, "despliegue_357": "2026-11-14T03:13", "manual_ua_prod": "0", "manual_ua_vet": "0"})
+        {**VARS, "despliegue_357": "2026-11-14T03:13", "despliegue_368": "2026-11-15T23:10", "manual_ua_prod": "2", "manual_ua_vet": "2"})
 
 
 # ─────────────────────────────── G03 ───────────────────────────────

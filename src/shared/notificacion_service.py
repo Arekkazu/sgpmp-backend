@@ -1,8 +1,17 @@
+# | Fecha      | Nombre   | Que se hizo                                                          |
+# |------------|----------|----------------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación por animal, datos del push y reintentos  |
+# | 2026-11-18 | Arekkazu | M08 RF-105: ventana de agrupación desde M09 y preferencias de canal del usuario |
 """Servicio transversal de notificaciones para todos los módulos del sistema.
 
 Orquesta el envío de notificaciones por dos canales: EMAIL (id=1) e INTERNO
 (push Firebase, id=2). Se invoca desde los use cases después del commit
 principal. Nunca propaga excepciones — las notificaciones son best-effort.
+
+RF-105: quien notifica puede indicar el nivel (una alerta crítica), el animal al que se refiere
+(mismo tipo y mismo animal en 5 minutos suma una ocurrencia a la existente en vez de otra
+notificación) y los datos del push (a qué pantalla lleva el clic). Si el push de una CRÍTICA o
+ADVERTENCIA falla, el entregador en segundo plano lo reintenta.
 """
 import logging
 from typing import Optional
@@ -12,6 +21,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.shared.email import send_email
 from src.shared.firebase import send_push
+from src.identity_access.domain.value_objects.nivel_notificacion import ADVERTENCIA, CRITICA, EMAIL, PUSH
 from src.shared.plantilla_correo import Tono, renderizar_correo
 
 logger = logging.getLogger(__name__)
@@ -116,6 +126,9 @@ class NotificacionService:
         cuerpo: Optional[str] = None,
         aplicar_anti_spam_interno: bool = True,
         intentos_email: int = INTENTOS_NOTIFICACION_EMAIL,
+        nivel: Optional[str] = None,
+        id_activo_biologico: Optional[int] = None,
+        datos_push: Optional[dict] = None,
     ) -> Optional[bool]:
         """Punto de entrada único para enviar notificaciones.
 
@@ -149,6 +162,9 @@ class NotificacionService:
                 RF-14 prohíbe reintentar notificaciones "para evitar
                 duplicidad". Solo los correos con token (RF-01 activación,
                 RF-08 recuperación) pasan ``INTENTOS_CORREO_CON_TOKEN``.
+            nivel: Nivel sugerido (RF-105); el definitivo nunca es más bajo que el del tipo.
+            id_activo_biologico: Animal o lote de la notificación, para agrupar repeticiones.
+            datos_push: Datos que viajan con el push (``url`` de destino, finca, área).
 
         Returns:
             ``True`` si el canal EMAIL se entregó, ``False`` si se intentó y
@@ -170,6 +186,9 @@ class NotificacionService:
                 cuerpo,
                 aplicar_anti_spam_interno,
                 intentos_email,
+                nivel,
+                id_activo_biologico,
+                datos_push,
             )
         except Exception as exc:
             logger.error(
@@ -191,6 +210,9 @@ class NotificacionService:
         cuerpo: Optional[str] = None,
         aplicar_anti_spam_interno: bool = True,
         intentos_email: int = INTENTOS_NOTIFICACION_EMAIL,
+        nivel: Optional[str] = None,
+        id_activo_biologico: Optional[int] = None,
+        datos_push: Optional[dict] = None,
     ) -> Optional[bool]:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
@@ -235,6 +257,11 @@ class NotificacionService:
         if resolver_correo_destino and correo_destino is None:
             correo_destino = self.port.buscar_correo_usuario(id_usuario)
 
+        # RF-105 Fase 2.1: mismo tipo y mismo animal en la ventana → una ocurrencia más en la
+        # notificación existente, sin otra fila, otro push ni otro correo.
+        if id_activo_biologico is not None and self._agrupar(id_usuario, tipo_evento, id_activo_biologico):
+            return None
+
         fcm_tokens = self.port.buscar_fcm_tokens(id_usuario)
 
         # INTERNO va primero: el push FCM tarda milisegundos, mientras que el
@@ -252,6 +279,9 @@ class NotificacionService:
             asunto_email=None,
             contenido_html_email=None,
             aplicar_anti_spam=aplicar_anti_spam_interno,
+            nivel=nivel,
+            id_activo_biologico=id_activo_biologico,
+            datos_push=datos_push,
         )
 
         resultado_email = self._enviar_canal(
@@ -267,9 +297,22 @@ class NotificacionService:
             contenido_html_email=contenido_html_email,
             aplicar_anti_spam=aplicar_anti_spam_email,
             intentos_email=intentos_email,
+            nivel=nivel,
         )
 
         return resultado_email
+
+    def _agrupar(self, id_usuario: int, tipo_evento: int, id_activo_biologico: int) -> bool:
+        try:
+            agrupada = self.port.sumar_ocurrencia(id_usuario, tipo_evento, id_activo_biologico,
+                                                  self.port.ventana_agrupacion_minutos())
+            if agrupada:
+                self.db.commit()
+            return agrupada
+        except Exception as exc:
+            self.db.rollback()
+            logger.error("Error agrupando la notificación: %s", exc)
+            return False
 
     def _enviar_canal(
         self,
@@ -285,6 +328,9 @@ class NotificacionService:
         contenido_html_email: Optional[str],
         aplicar_anti_spam: bool,
         intentos_email: int = INTENTOS_NOTIFICACION_EMAIL,
+        nivel: Optional[str] = None,
+        id_activo_biologico: Optional[int] = None,
+        datos_push: Optional[dict] = None,
     ) -> Optional[bool]:
         """Persiste y despacha la notificación para un canal específico.
 
@@ -319,6 +365,13 @@ class NotificacionService:
             llegó a intentar el envío (anti-spam, error registrando la fila).
             Para el canal INTERNO siempre retorna ``None`` — nadie lo consume.
         """
+        interno = canal == ID_CANAL_INTERNO
+        if nivel is not None:
+            # R6: con nivel (avisos de RF-105) rigen las preferencias del usuario para push y correo.
+            if canal == ID_CANAL_EMAIL and not self.port.canal_habilitado(id_usuario, nivel, EMAIL):
+                return None
+            if interno and fcm_tokens and not self.port.canal_habilitado(id_usuario, nivel, PUSH):
+                fcm_tokens = []
         if aplicar_anti_spam and self.port.verificar_anti_spam(
             id_usuario,
             tipo_evento,
@@ -327,6 +380,8 @@ class NotificacionService:
         ):
             return None
 
+        extra = ({"id_activo_biologico": id_activo_biologico, "contexto": datos_push, "entrega_inmediata": True}
+                 if interno else {})
         try:
             id_notificacion = self.port.registrar(
                 id_evento=id_evento,
@@ -334,6 +389,8 @@ class NotificacionService:
                 id_canal=canal,
                 mensaje=cuerpo,
                 estado=ESTADO_ENVIO_EN_COLA,
+                nivel=nivel,
+                **extra,
             )
             self.db.commit()
         except Exception as exc:
@@ -341,7 +398,7 @@ class NotificacionService:
             logger.error("Error guardando notificación (canal=%s): %s", canal, exc)
             return None
 
-        enviado = canal == ID_CANAL_INTERNO
+        enviado = interno
         try:
             if canal == ID_CANAL_EMAIL and correo:
                 send_email(
@@ -351,9 +408,14 @@ class NotificacionService:
                     intentos=intentos_email,
                 )
                 enviado = True
-            elif canal == ID_CANAL_INTERNO and fcm_tokens:
-                for token in fcm_tokens:
-                    send_push(token=token, titulo=titulo, cuerpo=cuerpo)
+            elif interno and fcm_tokens:
+                datos = {**(datos_push or {}), "id_notificacion": id_notificacion, "nivel": nivel}
+                resultados = [send_push(token=token, titulo=titulo, cuerpo=cuerpo, datos=datos)
+                              for token in fcm_tokens]
+                # La bandeja ya quedó entregada; si el push de una alerta no llegó a ningún
+                # dispositivo, queda para que el entregador lo reintente (RF-105 restricción 5).
+                if nivel in (CRITICA, ADVERTENCIA) and not any(resultados):
+                    enviado = False
         except Exception as exc:
             logger.error("Error enviando por canal=%s: %s", canal, exc)
 

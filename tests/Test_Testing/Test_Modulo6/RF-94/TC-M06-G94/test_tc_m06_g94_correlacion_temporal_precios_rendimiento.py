@@ -15,6 +15,13 @@ Código bajo prueba:
     src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py (PRECIO_MARCADO_REEMPLAZADO)
     alembic/baseline/esquema_baseline.sql (comentario de columna modulo_origen y fecha_registro)
 
+ACTUALIZACIÓN 2026-11-16: el sub-hallazgo de PRECIO_MARCADO_REEMPLAZADO
+(INC-M06-362-G94) quedó CERRADO (commit 2026-11-14) y CONFIRMADO EN VIVO
+contra TEST el 2026-11-16 (ver la clase de prueba correspondiente más abajo
+y `RF-93-94-Verificacion-Live/ficha.md`). Los demás sub-hallazgos de este TC
+(repositorio centralizado cross-módulo, NTP, rendimiento) siguen abiertos
+sin cambios -- son independientes del fix de precios.
+
 HALLAZGO GRAVE (no existe ningún repositorio centralizado de auditoría
 cross-módulo): la ficha pide confirmar que los eventos "conviven en el
 repositorio compartido diferenciados por `modulo`" y permiten reconstruir
@@ -161,16 +168,18 @@ class TestSubCasoLaSincronizacionNtpTambienEsSoloUnComentarioHallazgo:
         assert 'Sincronizado con el reloj NTP del sistema' in texto
 
 
-class TestSubCasoPrecioMarcadoReemplazadoRegistraReferenciasNoValoresHallazgo:
-    def test_el_payload_real_solo_tiene_los_dos_ids_no_los_montos(self):
+class TestSubCasoPrecioMarcadoReemplazadoCorregidoIncluyeMontos:
+    def test_el_payload_real_ya_incluye_los_montos_anterior_y_nuevo(self):
+        """CERRADO (INC-M06-362-G94, commit 2026-11-14): el payload ahora incluye
+        precio_unitario_anterior/precio_unitario_nuevo ademas de los IDs -- ya no hace falta
+        resolverlos aparte contra precios_mercado. CONFIRMADO EN VIVO 2026-11-16 contra TEST:
+        se registro un precio nuevo real (id_especie=39, PESO_KG) y el evento
+        PRECIO_MARCADO_REEMPLAZADO generado (id_evento=29698) trajo
+        precio_unitario_anterior="9600.00" y precio_unitario_nuevo="9650.00" -- eventos
+        anteriores al fix (ej. id_evento=23735) siguen sin esos campos, confirmando el
+        antes/despues. Ver ficha.md de RF-93-94-Verificacion-Live."""
         texto = PRECIO_USE_CASE.read_text(encoding='utf-8')
-        pytest.fail(
-            'HALLAZGO: el payload real de PRECIO_MARCADO_REEMPLAZADO es exactamente '
-            '{"id_precio_anterior": anterior.id_precio_mercado, "id_precio_nuevo": '
-            "precio.id_precio_mercado} -- dos IDENTIFICADORES de fila, no los montos "
-            "(precio_unitario) del precio anterior y el nuevo. Para obtener los valores hay que "
-            "resolver esos IDs contra precios_mercado por fuera del propio evento."
-        ) if 'id_precio_anterior": anterior.id_precio_mercado, "id_precio_nuevo": precio.id_precio_mercado' in texto else None
+        assert 'precio_unitario_anterior' in texto and 'precio_unitario_nuevo' in texto
 
     def test_se_emite_solo_si_la_nueva_vigencia_es_posterior_o_igual_a_la_anterior(self):
         texto = PRECIO_USE_CASE.read_text(encoding='utf-8')

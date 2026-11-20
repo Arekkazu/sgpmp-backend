@@ -1,0 +1,132 @@
+{
+  "fecha_utc": "2026-11-18T02:50:41.620374+00:00",
+  "perfil": "Administrador",
+  "correo": "admin.rol@gmail.com",
+  "permisos": {
+    "http": 200,
+    "interes": {
+      "auditoria_integracion": {
+        "id_recurso": 103,
+        "id_accion": 5,
+        "nombre_recurso": "auditoria_integracion"
+      }
+    },
+    "raw_tipo": "dict"
+  },
+  "baseline": {
+    "total": 153,
+    "pagina": 1,
+    "tamano": 100,
+    "n_items": 100,
+    "tipos_evento": [
+      "ACCESO_AUDITORIA_DENEGADO",
+      "ANEXO_EN_REVISION",
+      "CLIENTE_REACTIVADO",
+      "CLIENTE_REGISTRADO",
+      "CLIENTE_SUSPENDIDO",
+      "INTENTO_MODIFICACION_AUDITORIA",
+      "PAQUETE_AAEF_CONSULTADO",
+      "SECRETO_ROTADO",
+      "SOLICITUD_RECHAZADA",
+      "TOKEN_CANAL_EMITIDO",
+      "TOKEN_CANAL_RECHAZADO",
+      "VISTA_AAEF_GENERADA"
+    ],
+    "fuera_tipos_auditor": [
+      "ACCESO_AUDITORIA_DENEGADO",
+      "ANEXO_EN_REVISION",
+      "CLIENTE_REACTIVADO",
+      "CLIENTE_REGISTRADO",
+      "CLIENTE_SUSPENDIDO",
+      "INTENTO_MODIFICACION_AUDITORIA",
+      "SECRETO_ROTADO",
+      "SOLICITUD_RECHAZADA",
+      "TOKEN_CANAL_EMITIDO",
+      "TOKEN_CANAL_RECHAZADO"
+    ],
+    "ip_origen_no_nulas": 57,
+    "json_detalle_no_nulos": 55,
+    "claves_muestra": [
+      "codigo_http",
+      "codigo_resultado",
+      "correo_usuario",
+      "endpoint",
+      "fecha_desde",
+      "fecha_evento",
+      "fecha_hasta",
+      "fecha_registro",
+      "hash_contenido",
+      "id_cliente_externo",
+      "id_evento_integracion",
+      "id_intercambio",
+      "id_solicitud",
+      "id_usuario",
+      "integridad",
+      "ip_origen",
+      "json_detalle",
+      "latencia_ms",
+      "metodo_http",
+      "modulo",
+      "nombre_cliente",
+      "numero_id_tributaria",
+      "severidad",
+      "tamano_payload_bytes",
+      "tipo_actor",
+      "tipo_evento",
+      "version_contrato"
+    ]
+  },
+  "filtros_tipo": [
+    {
+      "tipo_evento": "PAQUETE_AAEF_CONSULTADO",
+      "http": 200,
+      "total": 16
+    },
+    {
+      "tipo_evento": "VISTA_AAEF_GENERADA",
+      "http": 200,
+      "total": 39
+    },
+    {
+      "tipo_evento": "CONTRATO_ACTIVADO",
+      "http": 200,
+      "total": 1
+    },
+    {
+      "tipo_evento": "ACCESO_AUDITORIA_DENEGADO",
+      "http": 200,
+      "total": 19
+    },
+    {
+      "tipo_evento": "ANEXO_EN_REVISION",
+      "http": 200,
+      "total": 1
+    },
+    {
+      "tipo_evento": "CLIENTE_REACTIVADO",
+      "http": 200,
+      "total": 1
+    }
+  ],
+  "rangos_fecha": {
+    "cerrado": {
+      "http": 200,
+      "total": 153,
+      "id_periodo": 7
+    },
+    "abierto": {
+      "http": 200,
+      "total": 0,
+      "id_periodo": 260
+    },
+    "inexistente_futuro": {
+      "http": 200,
+      "total": 0
+    }
+  },
+  "export_http": 200,
+  "export_preview": {
+    "tipo": "list"
+  },
+  "estado": "APROBADO"
+}

@@ -1,0 +1,147 @@
+{
+  "caso": "TC-M07-G059",
+  "requisito": "RF-AE01 / RF-AE02",
+  "responsable": "Maria Jose",
+  "fecha_ejecucion_utc": "2026-11-18T23:15:54.408914+00:00",
+  "entorno": "TEST",
+  "base_url": "https://api.inmero.co/api-sgpmp-test",
+  "estado_final": "APROBADO",
+  "escenarios": [
+    {
+      "id": "G1.1",
+      "nombre": "Consulta valida: token de canal, rango alineado, periodos cerrados",
+      "prioridad": "Alta",
+      "esperado": "200; headers X-Request-Id, X-Version-Contrato-AAEF y X-Content-SHA256; envelope con metadata, summary, invoices, transactions",
+      "estado": "APROBADO",
+      "obtenido": "HTTP 200; headers faltantes=ninguno; claves=['invoices', 'metadata', 'summary', 'transactions']; X-Request-Id enviado conservado; TotalInvoices=5, TotalNet=1420000.0 (coincide con D02: 5 facturas / $1,420,000.00)",
+      "pasos": [
+        "Emitir token de canal QA_M07_AAEF",
+        "GET /integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31"
+      ],
+      "headers_recibidos": [
+        "alt-svc",
+        "connection",
+        "content-length",
+        "content-security-policy",
+        "content-type",
+        "date",
+        "server",
+        "strict-transport-security",
+        "x-content-sha256",
+        "x-content-type-options",
+        "x-frame-options",
+        "x-request-id",
+        "x-version-contrato-aaef"
+      ]
+    },
+    {
+      "id": "G1.2",
+      "nombre": "Consulta sin Accept-Version usa la version ACTIVA",
+      "prioridad": "Media",
+      "esperado": "X-Version-Contrato-AAEF = version ACTIVA segun GET /integracion/contratos",
+      "estado": "APROBADO",
+      "obtenido": "HTTP 200; X-Version-Contrato-AAEF=3.0; version ACTIVA en el sistema antes=3.0, despues=3.0; GET /integracion/contratos (estados: [('1.0', 'INACTIVO'), ('2.0', 'INACTIVO'), ('2.1', 'DEPRECADO'), ('2.2', 'PENDIENTE'), ('3.9', 'PENDIENTE'), ('3.1', 'PENDIENTE'), ('3.0', 'ACTIVO'), ('4.0', 'PENDIENTE'), ('5.0', 'PENDIENTE')])",
+      "pasos": [
+        "Misma consulta A, sin Accept-Version",
+        "GET /integracion/contratos (sesion web del contador)"
+      ]
+    },
+    {
+      "id": "G1.3",
+      "nombre": "Dos consultas identicas dan el mismo X-Content-SHA256 y cuerpo equivalente",
+      "prioridad": "Alta",
+      "esperado": "Ambas 200; X-Content-SHA256 identico; cuerpo equivalente (ExchangeId y GeneratedAt cambian por diseno)",
+      "estado": "APROBADO",
+      "obtenido": "HTTP 200/200; hash identico=True; cuerpo equivalente=True; ExchangeId distinto=True",
+      "pasos": [
+        "Consulta A",
+        "Consulta B (identica)"
+      ]
+    },
+    {
+      "id": "G1.4",
+      "nombre": "Nunca 206 y sin metadatos de paginacion",
+      "prioridad": "Media",
+      "esperado": "HTTP 200 (no 206); sin Link/Content-Range ni campos de paginacion en el cuerpo",
+      "estado": "APROBADO",
+      "obtenido": "HTTP 200; campos de paginacion en cuerpo=ninguno; en headers=ninguno",
+      "pasos": [
+        "Inspeccionar la respuesta de la consulta A"
+      ]
+    },
+    {
+      "id": "G1.5",
+      "nombre": "Todo campo del esquema de Agrofusion esta mapeado y en el Anexo",
+      "prioridad": "Alta",
+      "esperado": "100 % de los campos requeridos de metadata, summary, invoices y transactions mapeados y descritos en el Anexo",
+      "estado": "APROBADO",
+      "obtenido": "pytest: PASSED",
+      "pasos": [
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G1.6",
+      "nombre": "Documento 02 desde COMPRA_PROVEEDOR y SERVICIO_TERCERO",
+      "prioridad": "Alta",
+      "esperado": "Type 02; DocumentId COS-{id}-{fecha}; IVA/retenciones/descuentos 0; una sola linea",
+      "estado": "APROBADO",
+      "obtenido": "pytest: PASSED",
+      "pasos": [
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G1.7",
+      "nombre": "Documento 06 desde el comprobante NIC 41",
+      "prioridad": "Alta",
+      "esperado": "Type 06; DocumentId NIC-{NIT}-{AAAAMM}-{TIPO_HECHO}-{ESPECIE}; fechas = ultimo dia del periodo",
+      "estado": "APROBADO",
+      "obtenido": "pytest: PASSED",
+      "pasos": [
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ]
+    },
+    {
+      "id": "G1.8",
+      "nombre": "Hash SHA-256 del Anexo reproducible",
+      "prioridad": "Media",
+      "esperado": "hash_documento_anexo reproducible y con el formato que acepta RF-98",
+      "estado": "APROBADO",
+      "obtenido": "pytest: PASSED",
+      "pasos": [
+        "pytest sobre el nucleo AAEF (sin BD ni red)"
+      ],
+      "nota": "La coincidencia con el hash registrado en RF-98 (GET /integracion/anexos) NO se compara aqui: en TEST solo esta el anexo 2 (ANEXO-AAEF-V2.0) y el 3 (2.2, BORRADOR); no hay registro del v3.0."
+    }
+  ],
+  "peticiones": [
+    {
+      "paso": "Emitir token de canal",
+      "metodo": "POST",
+      "ruta": "/integraciones/agrofusion/token",
+      "http": 200,
+      "utc": "2026-11-18T23:15:50.509450+00:00",
+      "x_request_id": null
+    },
+    {
+      "paso": "Consulta A (sin Accept-Version)",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
+      "http": 200,
+      "utc": "2026-11-18T23:15:52.111241+00:00",
+      "x_request_id": "f66a6af0-d532-45fb-b738-fb599f14e7d1"
+    },
+    {
+      "paso": "Consulta B (identica a A)",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
+      "http": 200,
+      "utc": "2026-11-18T23:15:52.589248+00:00",
+      "x_request_id": "3552807a-6f98-4c90-a986-3ce1ce14bdbf"
+    }
+  ],
+  "limitaciones": [
+    "Subcasos opcionales de interoperabilidad con Agrofusion/SIGCON no ejecutados."
+  ]
+}

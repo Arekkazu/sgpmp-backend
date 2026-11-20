@@ -1,0 +1,136 @@
+{
+  "matriz": [
+    {
+      "id": "40.1",
+      "criterio": "POST HTTP éxito",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 201
+      }
+    },
+    {
+      "id": "40.2",
+      "criterio": "Línea REGISTRADA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "REGISTRADA",
+        "id_linea": 6918
+      }
+    },
+    {
+      "id": "40.3",
+      "criterio": "Origen MANO_OBRA_PROPIA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "origen": "MANO_OBRA_PROPIA",
+        "tipo_hecho": "MANO_OBRA_PROPIA"
+      }
+    },
+    {
+      "id": "40.4",
+      "criterio": "Subtipo INVERSION_DIRECTA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "subtipo_costo": "INVERSION_DIRECTA"
+      }
+    },
+    {
+      "id": "40.5",
+      "criterio": "Política GASTO",
+      "resultado": "CUMPLE",
+      "evidencia": "GASTO"
+    },
+    {
+      "id": "40.6",
+      "criterio": "Débito 510506",
+      "resultado": "CUMPLE",
+      "evidencia": "510506"
+    },
+    {
+      "id": "40.7",
+      "criterio": "Crédito 250505",
+      "resultado": "CUMPLE",
+      "evidencia": "250505"
+    },
+    {
+      "id": "40.8",
+      "criterio": "Asignación ganadora 8581 (inferida por cuentas+ámbito)",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "cuentas_ok": true,
+        "a8581": {
+          "id": 8581,
+          "tipo_hecho": "MANO_OBRA_PROPIA",
+          "sentido": "UNICO",
+          "id_especie": 655,
+          "subtipo_costo": "INVERSION_DIRECTA",
+          "cuenta_debito": "510506",
+          "cuenta_credito": "250505"
+        },
+        "nota": "La línea no persiste id_asignacion; se infiere por D510506/C250505 + especie 655 + INVERSION_DIRECTA coincidentes con 8581"
+      }
+    },
+    {
+      "id": "40.9",
+      "criterio": "Activo 2552 ACTIVO",
+      "resultado": "CUMPLE",
+      "evidencia": "ACTIVO"
+    },
+    {
+      "id": "40.10",
+      "criterio": "Valor costo permanece 3.000.000",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "antes": {
+          "identificador": "QA-M06-G112-GASTO",
+          "estado": "ACTIVO",
+          "id_especie": 655,
+          "id_finca": 488,
+          "costos_adquisicion": "3000000.0000",
+          "valor_contable_por_costo": "3000000.0000",
+          "es_activa": true,
+          "lineas_count": 0
+        },
+        "despues": {
+          "identificador": "QA-M06-G112-GASTO",
+          "estado": "ACTIVO",
+          "id_especie": 655,
+          "id_finca": 488,
+          "costos_adquisicion": "3000000.0000",
+          "valor_contable_por_costo": "3000000.0000",
+          "es_activa": true,
+          "lineas_count": 1
+        }
+      }
+    },
+    {
+      "id": "40.11",
+      "criterio": "Capitalización no confirmada / sin asiento CAPITALIZACION indebido",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "politica": "GASTO",
+        "sentido": "UNICO",
+        "confirmar_capitalizacion": false
+      }
+    },
+    {
+      "id": "40.12",
+      "criterio": "Período 629 ABIERTO",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-11-01"
+      }
+    },
+    {
+      "id": "40.13",
+      "criterio": "Períodos 219/220 intactos",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "219": "CERRADO",
+        "220": "ABIERTO"
+      }
+    }
+  ],
+  "aprobado": true
+}

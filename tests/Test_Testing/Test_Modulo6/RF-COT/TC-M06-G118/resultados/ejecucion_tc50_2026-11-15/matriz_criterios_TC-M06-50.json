@@ -1,0 +1,135 @@
+{
+  "matriz": [
+    {
+      "id": "50.1",
+      "criterio": "POST HTTP 201",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 201
+      }
+    },
+    {
+      "id": "50.2",
+      "criterio": "id_cotizacion presente",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "id_cotizacion": 15
+      }
+    },
+    {
+      "id": "50.3",
+      "criterio": "Estado COTIZADO",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "COTIZADO",
+        "version": 1
+      }
+    },
+    {
+      "id": "50.4",
+      "criterio": "Asociación activo 1571",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "activos_cotizados": [
+          1571
+        ]
+      }
+    },
+    {
+      "id": "50.5",
+      "criterio": "VR referencia 3760000",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "valor_razonable_referencia": "3760000.0000"
+      }
+    },
+    {
+      "id": "50.6",
+      "criterio": "Activo 1571 permanece ACTIVO",
+      "resultado": "CUMPLE",
+      "evidencia": "ACTIVO"
+    },
+    {
+      "id": "50.7",
+      "criterio": "VR neto sin cambio",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "antes": "3760000.0000",
+        "despues": "3760000.0000"
+      }
+    },
+    {
+      "id": "50.8",
+      "criterio": "Fecha cálculo sin cambio",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "antes": "2026-11-08T21:25:06.574099Z",
+        "despues": "2026-11-08T21:25:06.574099Z"
+      }
+    },
+    {
+      "id": "50.9",
+      "criterio": "Sin nuevas líneas contables en 220",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "nuevas": [],
+        "total_antes": 1,
+        "total_despues": 1
+      }
+    },
+    {
+      "id": "50.10",
+      "criterio": "Líneas del activo 1571 sin incremento",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "antes": 2,
+        "despues": 2
+      }
+    },
+    {
+      "id": "50.11",
+      "criterio": "Auditoría COTIZACION_REGISTRADA",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "id_evento": 29463,
+        "id_referencia": 15,
+        "tipo_evento": "COTIZACION_REGISTRADA",
+        "nota": "Revalidado con login fresco; pasada inicial vacia por TOKEN_REVOCADO mid-script"
+      }
+    },
+    {
+      "id": "50.12",
+      "criterio": "Período 220 ABIERTO",
+      "resultado": "CUMPLE",
+      "evidencia": "ABIERTO"
+    },
+    {
+      "id": "50.13",
+      "criterio": "Período 219 CERRADO",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "CERRADO",
+        "nit": "900000002",
+        "nota": "Revalidado con login fresco"
+      }
+    },
+    {
+      "id": "50.14",
+      "criterio": "AAEF: sin exigir nueva exportación; vista-previa 900000003 sigue PERIODO_NO_CERRADO",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 422,
+        "error_code": "PERIODO_NO_CERRADO",
+        "nota": "Revalidado con login fresco; 401 TOKEN_REVOCADO fue mid-script"
+      }
+    }
+  ],
+  "resumen": {
+    "cumple": 14,
+    "no_cumple": 0,
+    "no_verificable": 0,
+    "total": 14
+  },
+  "dictamen": "APROBADO",
+  "revalidacion": "verificacion_complementaria_lectura.json"
+}

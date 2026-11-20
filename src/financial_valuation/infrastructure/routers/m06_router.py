@@ -23,6 +23,7 @@
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 # | 2026-11-13 | Arekkazu | INC-M06 RF-92/93 (RFC-027): 403 y no 404 al Revisor Fiscal en la descarga del informe y en el estado de resultados no aprobado |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-84/94: costos y bitácora aceptan id_finca |
+# | 2026-11-15 | Arekkazu | QA-M06 CU04 H-02 RF-85: cosechas pendientes filtradas por el titular del selector |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
@@ -277,8 +278,8 @@ def procesar_eventos(m: M06 = Depends(_m06)) -> dict:
 
 @router.get("/productos/pendientes", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Cosechas cuyo reconocimiento quedó pendiente por falta de precio o de costos de venta (RF-85)")
-def cosechas_pendientes(m: M06 = Depends(_m06)) -> list[dict]:
-    return m.eventos.cosechas_pendientes()
+def cosechas_pendientes(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.eventos.cosechas_pendientes(numero_id_tributaria)
 
 
 @router.post("/productos/pendientes/{id_evento}/reconocimiento", tags=[TAG_VALOR],

@@ -1,0 +1,73 @@
+{
+  "fecha_utc": "2026-11-18T02:50:46.263402+00:00",
+  "matriz": [
+    {
+      "funcionalidad": "Consultar historial",
+      "administrador": "Sí (HTTP 200)",
+      "auditor": "Sí restringida (HTTP 200)",
+      "sin_permisos": "No (HTTP 403 ACCESO_DENEGADO)",
+      "evidencia": "evidencia_e1_admin / e2_auditor / e3_sin_permiso"
+    },
+    {
+      "funcionalidad": "Consultar eventos AAEF (TIPOS_AUDITOR)",
+      "administrador": "Sí",
+      "auditor": "Sí (únicos permitidos)",
+      "sin_permisos": "No",
+      "evidencia": "e1 + e2 tipos"
+    },
+    {
+      "funcionalidad": "Consultar eventos de otros tipos",
+      "administrador": "Sí (fuera_TIPOS=['ACCESO_AUDITORIA_DENEGADO', 'ANEXO_EN_REVISION', 'CLIENTE_REACTIVADO', 'CLIENTE_REGISTRADO', 'CLIENTE_SUSPENDIDO', 'INTENTO_MODIFICACION_AUDITORIA', 'SECRETO_ROTADO', 'SOLICITUD_RECHAZADA', 'TOKEN_CANAL_EMITIDO', 'TOKEN_CANAL_RECHAZADO'])",
+      "auditor": "No (FA7 HTTP 403)",
+      "sin_permisos": "No",
+      "evidencia": "e2 FA7 SOLICITUD_RECHAZADA"
+    },
+    {
+      "funcionalidad": "Consultar períodos cerrados",
+      "administrador": "N/A en auditoría (filtro fecha opcional)",
+      "auditor": "N/A — sin ACL período en GET auditoría",
+      "sin_permisos": "No (403 antes de filtros)",
+      "evidencia": "evidencia_integracion_m08_TC-M07-G056.json"
+    },
+    {
+      "funcionalidad": "Consultar períodos abiertos",
+      "administrador": "N/A en auditoría (filtro fecha opcional)",
+      "auditor": "N/A — backend no deniega por ABIERTO en historial",
+      "sin_permisos": "No",
+      "evidencia": "evidencia_integracion_m08_TC-M07-G056.json"
+    },
+    {
+      "funcionalidad": "Consultar períodos inexistentes",
+      "administrador": "N/A (sin param id_periodo; rango futuro → total 0)",
+      "auditor": "N/A (igual)",
+      "sin_permisos": "No",
+      "evidencia": "rangos 2099-01-01"
+    },
+    {
+      "funcionalidad": "Consultar IP de origen",
+      "administrador": "Sí (campo presente; no_nulas=57)",
+      "auditor": "No (forzado null; no_nulas=0)",
+      "sin_permisos": "No",
+      "evidencia": "e1/e2 resumen campos"
+    },
+    {
+      "funcionalidad": "Consultar motivos de rechazo (json_detalle)",
+      "administrador": "Sí (no_nulos=55)",
+      "auditor": "No (forzado null; no_nulos=0)",
+      "sin_permisos": "No",
+      "evidencia": "e1/e2 resumen campos"
+    },
+    {
+      "funcionalidad": "Exportar auditoría",
+      "administrador": "Sí (HTTP 200)",
+      "auditor": "No (HTTP 403)",
+      "sin_permisos": "No (HTTP 403)",
+      "evidencia": "evidencia_e2_export + e1/e3"
+    }
+  ],
+  "tipos_auditor": [
+    "PAQUETE_AAEF_CONSULTADO",
+    "VISTA_AAEF_GENERADA",
+    "CONTRATO_ACTIVADO"
+  ]
+}

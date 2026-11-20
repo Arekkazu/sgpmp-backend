@@ -1,0 +1,189 @@
+{
+  "caso": "TC-M07-G062",
+  "requisito": "RF-AE01 / RF-AE02",
+  "responsable": "Maria Jose",
+  "fecha_ejecucion_utc": "2026-11-19T16:53:56.909887+00:00",
+  "entorno": "TEST y local",
+  "base_url": "https://api.inmero.co/api-sgpmp-test",
+  "estado_final": "APROBADO",
+  "alertas": [],
+  "escenarios": [
+    {
+      "id": "G4.1",
+      "nombre": "Cliente de canal suspendido y revocado",
+      "prioridad": "Alta",
+      "esperado": "403 CLIENTE_NO_AUTORIZADO en ambos casos (token emitido antes)",
+      "estado": "APROBADO",
+      "obtenido": "cliente suspendido, token emitido antes: HTTP 403 CLIENTE_NO_AUTORIZADO (esperado 403 CLIENTE_NO_AUTORIZADO) OK; cliente revocado, token emitido antes: HTTP 403 CLIENTE_NO_AUTORIZADO (esperado 403 CLIENTE_NO_AUTORIZADO) OK",
+      "pasos": []
+    },
+    {
+      "id": "G4.2",
+      "nombre": "Usuario que no tiene todas las fincas del titular",
+      "prioridad": "Alta",
+      "esperado": "Alcance parcial: 403 ALCANCE_INSUFICIENTE; con todas las fincas: 200",
+      "estado": "APROBADO",
+      "obtenido": "usuario con todas las fincas: HTTP 200 (esperado 200 con el envelope): OK; usuario con solo una parte de las fincas: HTTP 403 ALCANCE_INSUFICIENTE (esperado 403 ALCANCE_INSUFICIENTE) OK",
+      "pasos": []
+    },
+    {
+      "id": "G4.3",
+      "nombre": "Rango no alineado a periodos",
+      "prioridad": "Alta",
+      "esperado": "422 RANGO_NO_ALINEADO con el rango valido sugerido",
+      "estado": "APROBADO",
+      "obtenido": "inicio a mitad de periodo (2026-10-05 a 2026-10-31): HTTP 422 RANGO_NO_ALINEADO field=desde texto «2026-10-01 a 2026-10-31» presente (esperado 422 RANGO_NO_ALINEADO) OK; fin a mitad de periodo (2026-10-01 a 2026-10-20): HTTP 422 RANGO_NO_ALINEADO field=hasta texto «2026-10-01 a 2026-10-31» presente (esperado 422 RANGO_NO_ALINEADO) OK",
+      "pasos": []
+    },
+    {
+      "id": "G4.4",
+      "nombre": "Rango que incluye un periodo abierto",
+      "prioridad": "Alta",
+      "esperado": "422 PERIODO_NO_CERRADO",
+      "estado": "APROBADO",
+      "obtenido": "un periodo cerrado seguido de uno abierto (2026-10-01 a 2026-11-30): HTTP 422 PERIODO_NO_CERRADO (esperado 422 PERIODO_NO_CERRADO) OK",
+      "pasos": []
+    },
+    {
+      "id": "G4.5",
+      "nombre": "Pasar a EN_REVISION sin la aprobacion interna del Contador",
+      "prioridad": "Alta",
+      "esperado": "Sin aprobacion interna se rechaza y el Anexo sigue en BORRADOR; con ella avanza a EN_REVISION",
+      "estado": "APROBADO",
+      "obtenido": "usuario sin el perfil del Contador intenta pasar el Anexo a revision: HTTP 403 ACCESO_DENEGADO (esperado 403 ACCESO_DENEGADO) OK; el Anexo 8 sigue en BORRADOR: OK; pytest: 2/2 comprobaciones pasan",
+      "pasos": []
+    },
+    {
+      "id": "G4.6",
+      "nombre": "Pasar a APROBADO sin evidencia de interoperabilidad",
+      "prioridad": "Alta",
+      "esperado": "Sin ExchangeId o con ACK distinto de aceptado al 100 % se rechaza; con la evidencia avanza",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 5/5 comprobaciones pasan",
+      "pasos": []
+    },
+    {
+      "id": "G4.7",
+      "nombre": "Transiciones de estado invalidas del Anexo",
+      "prioridad": "Media",
+      "esperado": "Solo BORRADOR -> EN_REVISION -> APROBADO; las demas se rechazan sin cambiar el estado",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 5/5 comprobaciones pasan",
+      "pasos": []
+    },
+    {
+      "id": "G4.8",
+      "nombre": "Modificar un Anexo APROBADO",
+      "prioridad": "Alta",
+      "esperado": "Se rechaza y el Anexo no cambia; un cambio crea un Anexo nuevo en BORRADOR",
+      "estado": "APROBADO",
+      "obtenido": "PATCH sobre el Anexo APROBADO 7: HTTP 404 rechazado [observacion: respuesta generica {'detail': 'Not Found'} sin error_code estandar; RF-AE02 no exige un codigo]: OK; PUT sobre el Anexo APROBADO 7: HTTP 404 rechazado [observacion: respuesta generica {'detail': 'Not Found'} sin error_code estandar; RF-AE02 no exige un codigo]: OK; el Anexo APROBADO 7 no cambio: OK; pytest: 2/2 comprobaciones pasan",
+      "pasos": []
+    }
+  ],
+  "peticiones": [
+    {
+      "paso": "Emitir token de canal (contador)",
+      "http": 200,
+      "utc": "2026-11-19T16:52:45.645030+00:00"
+    },
+    {
+      "paso": "G4.3 inicio a mitad de periodo",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-05&hasta=2026-10-31",
+      "http": 422,
+      "utc": "2026-11-19T16:52:46.028265+00:00"
+    },
+    {
+      "paso": "G4.3 fin a mitad de periodo",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-01&hasta=2026-10-20",
+      "http": 422,
+      "utc": "2026-11-19T16:52:46.343052+00:00"
+    },
+    {
+      "paso": "G4.4 cerrado + abierto",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-01&hasta=2026-11-30",
+      "http": 422,
+      "utc": "2026-11-19T16:52:46.682249+00:00"
+    },
+    {
+      "paso": "G4.2 todas las fincas",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
+      "http": 200,
+      "utc": "2026-11-19T16:52:47.077232+00:00"
+    },
+    {
+      "paso": "Emitir token de canal (usuario parcial)",
+      "http": 200,
+      "utc": "2026-11-19T16:52:47.620840+00:00"
+    },
+    {
+      "paso": "G4.2 alcance parcial",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
+      "http": 403,
+      "utc": "2026-11-19T16:53:48.020506+00:00"
+    },
+    {
+      "paso": "Emitir tokens de los clientes desechables",
+      "http": "200/200",
+      "utc": "2026-11-19T16:53:51.216679+00:00"
+    },
+    {
+      "paso": "Comprobar el eco del run",
+      "http": 200,
+      "eco": true,
+      "utc": "2026-11-19T16:53:51.880874+00:00"
+    },
+    {
+      "paso": "G4.1 suspender",
+      "http": 200,
+      "eco": true,
+      "utc": "2026-11-19T16:53:52.206336+00:00"
+    },
+    {
+      "paso": "G4.1 consulta con el token del cliente suspendido",
+      "http": 403,
+      "eco": true,
+      "utc": "2026-11-19T16:53:52.518994+00:00"
+    },
+    {
+      "paso": "G4.1 revocar",
+      "http": 200,
+      "eco": true,
+      "utc": "2026-11-19T16:53:52.922884+00:00"
+    },
+    {
+      "paso": "G4.1 consulta con el token del cliente revocado",
+      "http": 403,
+      "eco": true,
+      "utc": "2026-11-19T16:53:53.351682+00:00"
+    },
+    {
+      "paso": "G4.5 revision sin el perfil",
+      "http": 403,
+      "eco": true,
+      "utc": "2026-11-19T16:53:53.661301+00:00"
+    },
+    {
+      "paso": "G4.8 PATCH sobre un Anexo APROBADO",
+      "http": 404,
+      "eco": true,
+      "utc": "2026-11-19T16:53:54.291016+00:00"
+    },
+    {
+      "paso": "G4.8 PUT sobre un Anexo APROBADO",
+      "http": 404,
+      "eco": true,
+      "utc": "2026-11-19T16:53:54.594398+00:00"
+    },
+    {
+      "paso": "Cerrar el run (rollback)",
+      "http": 200,
+      "utc": "2026-11-19T16:53:55.234639+00:00"
+    }
+  ]
+}

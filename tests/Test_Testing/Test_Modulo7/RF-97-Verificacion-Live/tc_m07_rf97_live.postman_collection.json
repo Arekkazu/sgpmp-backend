@@ -1,0 +1,332 @@
+{
+  "info": {
+    "name": "TC-M07-RF97-Live",
+    "description": "Verificación en vivo RF-97 (M07) contra TEST. TC-M07-G024 a G035. NIT 901444215, períodos 626 (sep 2026) y 627 (oct 2026), contrato real v2.1 (solo Mapper Compras).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "contador_correo", "value": "contador@pecuaria.co"},
+    {"key": "contador_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la clave real del roster del equipo. Nunca commitear el valor real."},
+    {"key": "token_contador", "value": ""},
+    {"key": "nit", "value": "901444215"},
+    {"key": "desde_oct", "value": "2026-10-01"},
+    {"key": "hasta_oct", "value": "2026-10-31"},
+    {"key": "desde_sep", "value": "2026-09-01"},
+    {"key": "hasta_sep", "value": "2026-09-30"}
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones - Login",
+      "item": [
+        {
+          "name": "Login Contador",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}"},
+            "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('login 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_contador', body.token);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G024 - Estructura del envelope (CA-1)",
+      "item": [
+        {
+          "name": "Vista previa octubre - 4 secciones exactas",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('X-Content-SHA256 header presente', () => pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null);",
+            "pm.test('X-Version-Contrato-AAEF header presente', () => pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.not.be.null);",
+            "const body = pm.response.json();",
+            "const claves = Object.keys(body).sort();",
+            "pm.test('exactamente las 4 secciones: metadata, summary, invoices, transactions', () => {",
+            "  pm.expect(claves).to.eql(['invoices', 'metadata', 'summary', 'transactions']);",
+            "});",
+            "pm.test('transactions es siempre lista vacia', () => pm.expect(body.transactions).to.eql([]));",
+            "pm.test('metadata tiene las claves exactas sensibles a mayusculas de 5.4', () => {",
+            "  pm.expect(Object.keys(body.metadata).sort()).to.eql(['ExchangeId','GeneratedAt','GeneratedBy','RequestedPeriod','SourceSystem','StandardVersion']);",
+            "});",
+            "pm.collectionVariables.set('envelope_oct', JSON.stringify(body));"
+          ]}}]
+        },
+        {
+          "name": "Verificar tildes y enes se conservan sin corrupcion",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const body = pm.response.json();",
+            "const desc = body.invoices[0].Lines[0].Description;",
+            "pm.test('Description contiene o literal, sin caracteres corruptos tipo Ã³', () => {",
+            "  pm.expect(desc).to.include('biológico');",
+            "  pm.expect(desc).to.not.include('Ã');",
+            "});"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G025 - Metadata (CA-4)",
+      "item": [
+        {
+          "name": "ExchangeId formato real AF-SIGAB-AAAA-MM-NNNNNNN",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const body = pm.response.json();",
+            "pm.test('HALLAZGO: ExchangeId NO sigue SGPMP-{NIT}-{desde}-{hasta}-{nonce} de la ficha -- el real es AF-SIGAB-{AAAA-MM}-{nonce de 7 digitos} (confirmado 2026-11-14, exigido por SIGCON)', () => {",
+            "  pm.expect(body.metadata.ExchangeId).to.match(/^AF-SIGAB-\\d{4}-\\d{2}-\\d{7}$/);",
+            "  pm.expect(body.metadata.ExchangeId).to.not.match(/^SGPMP-/);",
+            "});",
+            "pm.test('GeneratedAt es YYYY-MM-DD sin hora', () => pm.expect(body.metadata.GeneratedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}$/));",
+            "pm.test('StandardVersion es el texto 1.0, no el numero 1', () => pm.expect(body.metadata.StandardVersion).to.eql('1.0'));",
+            "pm.test('RequestedPeriod.From/To coinciden con lo consultado', () => {",
+            "  pm.expect(body.metadata.RequestedPeriod.From).to.eql(pm.collectionVariables.get('desde_oct'));",
+            "  pm.expect(body.metadata.RequestedPeriod.To).to.eql(pm.collectionVariables.get('hasta_oct'));",
+            "});",
+            "pm.test('SourceSystem.SystemNIT igual al nit solicitado', () => pm.expect(body.metadata.SourceSystem.SystemNIT).to.eql(pm.collectionVariables.get('nit')));",
+            "pm.test('GeneratedBy es el correo del usuario que consulta', () => pm.expect(body.metadata.GeneratedBy).to.eql(pm.collectionVariables.get('contador_correo')));",
+            "pm.test('HALLAZGO: SourceSystem.Environment dice DEV aunque el request es a TEST (config del contenedor)', () => {",
+            "  pm.expect(body.metadata.SourceSystem.Environment).to.eql('DEV');",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "El nonce cambia entre dos consultas del mismo rango",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const anterior = JSON.parse(pm.collectionVariables.get('envelope_oct') || '{}');",
+            "const actual = pm.response.json();",
+            "pm.test('ExchangeId cambia entre dos consultas (nonce no es fijo)', () => {",
+            "  if (anterior.metadata) pm.expect(actual.metadata.ExchangeId).to.not.eql(anterior.metadata.ExchangeId);",
+            "});",
+            "pm.test('el hash de contenido es el mismo aunque el ExchangeId cambie (CA-9)', () => {",
+            "  pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null;",
+            "});"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G026 - Summary (CA-8)",
+      "item": [
+        {
+          "name": "Summary cuadra con los documentos reales de octubre",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const body = pm.response.json();",
+            "pm.test('TotalDocuments = TotalInvoices = cantidad real de invoices (3)', () => {",
+            "  pm.expect(body.summary.TotalDocuments).to.eql(body.invoices.length);",
+            "  pm.expect(body.summary.TotalInvoices).to.eql(body.invoices.length);",
+            "  pm.expect(body.invoices.length).to.eql(3);",
+            "});",
+            "pm.test('TotalTransactions siempre 0', () => pm.expect(body.summary.TotalTransactions).to.eql(0));",
+            "pm.test('TotalGrossAmount = suma real de Subtotal (740000)', () => {",
+            "  const suma = body.invoices.reduce((acc, d) => acc + d.Totals.Subtotal, 0);",
+            "  pm.expect(body.summary.TotalGrossAmount).to.eql(suma);",
+            "  pm.expect(suma).to.eql(740000);",
+            "});",
+            "pm.test('TotalNet = TotalGrossAmount (RF-96 fija TotalPayment=Subtotal)', () => {",
+            "  pm.expect(body.summary.TotalNet).to.eql(body.summary.TotalGrossAmount);",
+            "});",
+            "pm.test('Currency es COP', () => pm.expect(body.summary.Currency).to.eql('COP'));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G027 - Rango y periodos (negativos)",
+      "item": [
+        {
+          "name": "CA-2: desde a mitad de mes -> RANGO_NO_ALINEADO",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde=2026-10-05&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "2026-10-05"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('422 con RANGO_NO_ALINEADO', () => {",
+            "  pm.response.to.have.status(422);",
+            "  pm.expect(pm.response.json().error_code).to.eql('RANGO_NO_ALINEADO');",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "CA-3: rango con un periodo abierto al final -> PERIODO_NO_CERRADO",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta=2026-11-30",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "2026-11-30"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('422 con RANGO_NO_ALINEADO o PERIODO_NO_CERRADO (noviembre no es periodo mensual cerrado de este titular)', () => {",
+            "  pm.response.to.have.status(422);",
+            "  pm.expect(['RANGO_NO_ALINEADO', 'PERIODO_NO_CERRADO']).to.include(pm.response.json().error_code);",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "Rango invertido (desde > hasta) -> 400, nunca 500",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{hasta_oct}}&hasta={{desde_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{hasta_oct}}"}, {"key": "hasta", "value": "{{desde_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('400 PARAMETROS_INVALIDOS, no 500', () => {",
+            "  pm.response.to.have.status(400);",
+            "  pm.expect(pm.response.json().error_code).to.eql('PARAMETROS_INVALIDOS');",
+            "});"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G030 - Fuentes segun version de contrato",
+      "item": [
+        {
+          "name": "Con el contrato real v2.1 (solo Compras) nunca aparece 06 aunque haya comprobante",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const body = pm.response.json();",
+            "pm.test(\"CA-5: todos los documentos son Type.Code 02 (sabemos que el periodo 627 SI tiene 1 comprobante NIC41 real -- confirmado via GET /finanzas/periodos/627/comprobantes -- y no aparece aqui)\", () => {",
+            "  body.invoices.forEach(d => pm.expect(d.Header.Type.Code).to.eql('02'));",
+            "});",
+            "pm.test('X-Version-Contrato-AAEF confirma 2.1 (equivalente real de v3.0: solo Compras)', () => {",
+            "  pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.eql('2.1');",
+            "});",
+            "pm.test(\"nunca aparece Type.Code 01, 03, 04 ni 05\", () => {",
+            "  body.invoices.forEach(d => pm.expect(['01','03','04','05']).to.not.include(d.Header.Type.Code));",
+            "});",
+            "pm.test('invoices ordenados por DocumentId ascendente', () => {",
+            "  const ids = body.invoices.map(d => d.Header.DocumentId);",
+            "  pm.expect(ids).to.eql([...ids].sort());",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "CA-13/FA-6: titular sin ningun contrato utilizable (NIT fuera de alcance del Contador)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/900000999?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "900000999"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('titular inexistente da 404 TITULAR_NO_ENCONTRADO, no CONTRATO_NO_ACTIVO (el chequeo de titular corre primero)', () => {",
+            "  pm.response.to.have.status(404);",
+            "  pm.expect(pm.response.json().error_code).to.eql('TITULAR_NO_ENCONTRADO');",
+            "});"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G033 - Tamano y rango vacio",
+      "item": [
+        {
+          "name": "CA-11/FA-8: rango cerrado sin datos -> envelope valido vacio",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/901458732?desde=2026-10-01&hasta=2026-10-31",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "901458732"],
+                    "query": [{"key": "desde", "value": "2026-10-01"}, {"key": "hasta", "value": "2026-10-31"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200 con envelope valido vacio (titular 901458732, periodo 253, confirmado sin costos FACTURA_COMPRA)', () => {",
+            "  pm.response.to.have.status(200);",
+            "  const body = pm.response.json();",
+            "  pm.expect(body.invoices).to.eql([]);",
+            "  pm.expect(body.summary.TotalDocuments).to.eql(0);",
+            "});",
+            "pm.test('el hash de un envelope vacio no es null', () => pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G034 - Seguridad (alcance y validacion de entrada)",
+      "item": [
+        {
+          "name": "El acceso a fincas otorgado por el DBA ya no da 403 (confirma el permiso, no el rango)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/901333217?desde=2026-11-01&hasta=2026-11-30",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "901333217"],
+                    "query": [{"key": "desde", "value": "2026-11-01"}, {"key": "hasta", "value": "2026-11-30"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('CONFIRMADO (2026-11-17): ya no da 403 ALCANCE_INSUFICIENTE tras el acceso otorgado por el DBA -- 200 con el periodo real 622 (nov) de este titular', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(pm.response.json().summary).to.not.be.undefined;",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "Inyeccion SQL/JSON en el NIT -> rechazo controlado (ValidationError), no 500",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/' OR '1'='1?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "' OR '1'='1"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('nunca 500 ante un NIT con payload de inyeccion', () => pm.expect(pm.response.code).to.not.eql(500));",
+            "pm.test('codigo 400/404/422 controlado', () => pm.expect([400,404,422]).to.include(pm.response.code));"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,7 @@
 # | 2026-11-14 | Arekkazu | INC-M06-363/364/365 RF-84/85: producto de consumo a su precio con la diferencia en resultados; costos por región; fecha en la cosecha sin precio |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
+# | 2026-11-15 | Arekkazu | QA-M06 CU04 H-01 RF-85: la cosecha conserva el día del evento productivo |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -46,7 +47,7 @@ período cerrado lleva solo su propio aviso."""
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Optional
 
@@ -83,11 +84,19 @@ from src.financial_valuation.domain.value_objects.nic41 import (
     estado_legible,
 )
 from src.shared.errors import AppError
-from src.shared.fechas import fecha_usuario
+from src.shared.fechas import a_utc, fecha_usuario
 
 logger = logging.getLogger(__name__)
 
 _BAJAS_DE_VENTA = ("venta", "sacrificio")
+
+
+def dia_del_evento(fecha: datetime | date) -> date:
+    """Día de un evento de M02. Producción, baja e ingreso se registran con un día, que la BD guarda como medianoche
+    UTC: pasarlo a la zona del usuario lo corría al día anterior (QA-M06 CU04 H-01). Pesajes y demás son instantes."""
+    if isinstance(fecha, datetime) and a_utc(fecha).time() == time(0):
+        return a_utc(fecha).date()
+    return fecha_usuario(fecha)
 # Causa del aviso al Contador (va en el detalle del evento, no en el texto que lee el usuario).
 CAUSA_MEDICION = "RF_83_NO_COMPLETADO"
 CAUSA_PRODUCTO = "RF_85_NO_COMPLETADO"
@@ -174,7 +183,7 @@ class ProcesarEventosM02UseCase:
         if activo is None:
             return "SIN_EFECTO", "Activo no encontrado"
         self._activo = activo
-        dia = fecha_usuario(evento.fecha)
+        dia = dia_del_evento(evento.fecha)
         exclusion = _motivo_exclusion(evento, activo)
         if exclusion is not None:
             return self._excluir(evento, activo, dia, *exclusion)
@@ -473,7 +482,7 @@ class ProcesarEventosM02UseCase:
             return
         que = "el reconocimiento del producto agrícola" if self._causa == CAUSA_PRODUCTO else "la medición"
         mensaje = (f"No se pudo completar {que} del activo {activo.identificador} por el evento biológico del "
-                   f"{fecha_usuario(evento.fecha):%d/%m/%Y}; el registro financiero quedó suspendido.")
+                   f"{dia_del_evento(evento.fecha):%d/%m/%Y}; el registro financiero quedó suspendido.")
         if detalle:
             mensaje += f" Motivo: {detalle}"
         try:

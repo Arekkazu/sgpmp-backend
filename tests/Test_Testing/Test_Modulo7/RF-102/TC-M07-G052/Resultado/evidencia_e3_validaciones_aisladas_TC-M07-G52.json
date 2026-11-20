@@ -1,0 +1,74 @@
+{
+  "caso": "TC-M07-G052",
+  "escenario": "E3",
+  "fecha_ejecucion_utc": "2026-11-18T00:56:58.020321+00:00",
+  "herramienta": "pytest + unittest.mock",
+  "pytest_returncode": 0,
+  "pytest_passed": true,
+  "archivo_prueba": "tests/Test_Testing/Test_Modulo7/RF-102/TC-M07-G052/test_tc_m07_g52_e3_validaciones_aisladas.py",
+  "log": "tests/Test_Testing/Test_Modulo7/RF-102/TC-M07-G052/Resultado/pytest_e3_aisladas.txt",
+  "subescenarios": {
+    "E3.1": {
+      "nombre": "Evento incompleto (FA-8)",
+      "funcion": "SqlAlchemyAuditoriaIntegracionRepository.registrar + EventoIntegracion.faltantes",
+      "entrada": {
+        "tipo_evento": "CONTRATO_ACTIVADO",
+        "version_contrato": null,
+        "id_evento_integracion": "00000000-0000-4000-8000-000000000052"
+      },
+      "esperado": "InfrastructureError AUDITORIA_INCOMPLETA; escribir() no invocado",
+      "obtenido": "pytest E3.1 PASSED: code=AUDITORIA_INCOMPLETA y mock escribir.assert_not_called",
+      "excepcion": "InfrastructureError(code='AUDITORIA_INCOMPLETA')",
+      "persistencia_invocada": false,
+      "nivel": "unidad (repositorio real + mock de escribir)",
+      "estado": "APROBADO"
+    },
+    "E3.2": {
+      "nombre": "Evento duplicado (mismo UUID)",
+      "funcion": "registrar() — inspección + doble llamada con mismo UUID",
+      "entrada": {
+        "id_evento_integracion": "11111111-1111-4111-8111-111111111152",
+        "tipo_evento": "CONTRATO_ACTIVADO",
+        "version_contrato": "3.0",
+        "intentos": 2
+      },
+      "esperado_ficha": "Segundo registro rechazado",
+      "comportamiento_implementado": "No hay validación de duplicados en Python. Rechazo solo vía PK eventos_integracion_pkey (migración 94b14a6931d6).",
+      "obtenido": "pytest demuestra: escribir() se invoca 2 veces con el mismo UUID en capa Python; PK documentada en migración; sin ejecución contra PostgreSQL aislado",
+      "excepcion": null,
+      "persistencia_invocada": true,
+      "nivel": "unidad (ausencia de lógica) — NO prueba el PK real",
+      "estado": "BLOQUEADO",
+      "justificacion": "La detección de duplicados no está en el servicio/repositorio Python; está en la restricción PRIMARY KEY de BD. Probar el rechazo real exige PostgreSQL aislado (no la BD TEST compartida)."
+    },
+    "E3.3": {
+      "nombre": "Tipo de evento no catalogado",
+      "funcion": "registrar() + CAST enum en _INSERT",
+      "entrada": {
+        "tipo_evento": "TIPO_NO_CATALOGADO_QA_G52"
+      },
+      "esperado_ficha": "Rechazo antes de persistir",
+      "comportamiento_implementado": "faltantes() retorna [] si el tipo no está en _OBLIGATORIOS; registrar() invoca escribir(); el rechazo real sería CAST enum en PostgreSQL.",
+      "obtenido": "pytest demuestra: escribir() SÍ se invoca para tipo no catalogado en capa Python; _INSERT contiene CAST a enum_evento_integracion_tipo_evento; sin ejecución del CAST contra PostgreSQL aislado",
+      "excepcion": null,
+      "persistencia_invocada": true,
+      "nivel": "unidad (ausencia de validación de catálogo en Python) — NO prueba el enum real",
+      "estado": "BLOQUEADO",
+      "justificacion": "No existe validación de catálogo en registrar(). El rechazo depende del ENUM PostgreSQL. Sin BD aislada no se puede evidenciar el CAST fallido de forma segura."
+    }
+  },
+  "estado_e3": "BLOQUEADO",
+  "obtenido_e3": "E3.1=APROBADO; E3.2=BLOQUEADO; E3.3=BLOQUEADO. Persistencia PK/enum requiere PostgreSQL aislado (no TEST).",
+  "puede_aprobar_e3_completo": false,
+  "motivo_no_aprobacion_completa": "E3.1 sí; E3.2 y E3.3 dependen de restricciones PostgreSQL (PK y ENUM) no ejercitadas aquí para no tocar TEST.",
+  "bd_aislada_requerida_para": [
+    "E3.2 PRIMARY KEY",
+    "E3.3 CAST enum_evento_integracion_tipo_evento"
+  ],
+  "evidencia_api_conservada": "evidencia_ejecucion_TC-M07-G52.json",
+  "e1_e2_e4_desde_api": {
+    "E1": "APROBADO",
+    "E2": "APROBADO",
+    "E4": "APROBADO"
+  }
+}

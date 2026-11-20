@@ -3,6 +3,7 @@
 # | 2026-11-06 | Juan Manuel      | TC-M05-G07 RF-74: fallos, reintentos, ventana y límite del batch |
 # | 2026-11-06 | Juan Manuel      | TC-M05-G07: fallo técnico traducido (InfrastructureError) en el batch |
 # | 2026-11-12 | Juan Manuel      | TC-M05 v4: intento inicial + 3 reintentos (arreglo de la 259/264) |
+# | 2026-11-15 | Juan Manuel      | TC-M05-G07 v7: dobles al dia con el batch (para_actualizar de 3492f027, usuario de servicio de 6b3984af) |
 """TC-M05-G07 / TC-M05-018 (RF-74, CU02 E5, FA-04…FA-07): fallo técnico del cálculo, reintentos del batch,
 ventana de ejecución y límite de activos.
 
@@ -120,7 +121,7 @@ class EjecucionRepoMemoria:
         self.ejecucion = ejecucion
         return ejecucion
 
-    def obtener(self, id_ejecucion):
+    def obtener(self, id_ejecucion, *, para_actualizar=False):
         return self.ejecucion
 
     def guardar(self, ejecucion):
@@ -183,6 +184,8 @@ def _batch(config, activos, *, calculo_falla=False, error=None, criticos=(), atr
     )
     esperas = []
     monkeypatch.setattr(modulo_batch.time, "sleep", lambda s: esperas.append(s))
+    # Desde 6b3984af (usabilidad N-07) el batch firma con el usuario de servicio, que se lee de la BD: id fijo de prueba.
+    monkeypatch.setattr(modulo_batch, "id_usuario_servicio", lambda db: 1)
     # Estos tres métodos abren repositorios SQLAlchemy concretos: se reemplazan para no necesitar BD.
     monkeypatch.setattr(uc, "_esta_interrumpido", lambda id_: False)
     monkeypatch.setattr(uc, "_encolar_pendiente", lambda t, motivo: encolados_ventana.append((t.id_activo, motivo)))

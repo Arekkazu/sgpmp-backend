@@ -1,0 +1,41 @@
+{
+  "caso": "TC-M06-G118",
+  "subcaso": "TC-M06-50",
+  "fase": "revalidacion_lectura_aaef",
+  "generado_en": "2026-11-13T05:35:00+00:00",
+  "registro_cotizacion_ejecutado": false,
+  "activo_1571": {
+    "http": 200,
+    "identificador": "QA-M06O-VR-03",
+    "estado": "ACTIVO",
+    "valor_razonable_neto": "3760000.0000",
+    "fecha_calculo": "2026-11-08T21:25:06.574099Z",
+    "sin_cambio_vs_preparacion": true
+  },
+  "lineas_periodo_220": {
+    "http": 200,
+    "total": 7,
+    "sin_cambio_vs_preparacion": true
+  },
+  "periodos": {
+    "220": {"estado": "ABIERTO"},
+    "219": {"estado": "CERRADO"}
+  },
+  "contratos_aaef": [
+    {"contrato_version": "1.0", "estado": "INACTIVO", "id_version_contrato_aaef": 1},
+    {"contrato_version": "2.0", "estado": "DEPRECADO", "id_version_contrato_aaef": 2}
+  ],
+  "contrato_activo_presente": false,
+  "aaef_vista_previa": {
+    "http": 422,
+    "error_code": "CONTRATO_NO_ACTIVO"
+  },
+  "aaef_canal": {
+    "consultado": false,
+    "motivo": "Credencial temporal no disponible en el entorno del agente; no se inventa. Emisión de token de canal requiere POST auxiliar no autorizado en esta fase."
+  },
+  "credencial_en_entorno": false,
+  "secreto_persistido": false,
+  "dictamen": "PREPARADO_PARCIAL_AAEF_BLOQUEADO",
+  "siguiente_paso": "Entregar credencial por env seguro, confirmar activación de contrato AAEF, y autorizar (si aplica) POST /integraciones/agrofusion/token solo para consulta. Luego autorizar POST cotización 1571."
+}

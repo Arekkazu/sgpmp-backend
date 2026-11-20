@@ -1,0 +1,15 @@
+{"escenarios":[
+  {"id":"a_conforme","esperado":["APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
+  {"id":"b_inyectado","opciones":{"inyectado":true},"esperado":["APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
+  {"id":"c_barajado","opciones":{"barajado":true},"esperado":["APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
+  {"id":"d_con_aviso","opciones":{"conAviso":true,"avisosInicial":1000,"auditoriaInicial":300},"esperado":["APROBADO","APROBADO","APROBADO","APROBADO"],"oficial":true},
+  {"id":"e_sin_fixture","opciones":{"sinFixture":true},"esperado":["APROBADO","APROBADO","NO_CONCLUYENTE","APROBADO"],"oficial":false},
+  {"id":"f_dos_vigentes","opciones":{"dosVigentes":true},"esperado":["NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE"],"oficial":false},
+  {"id":"g_major_no_depreca","opciones":{"majorNoDepreca":true},"esperado":["RECHAZADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
+  {"id":"h_minor_depreca","opciones":{"minorDepreca":true},"esperado":["APROBADO","RECHAZADO","RECHAZADO","APROBADO"],"oficial":true},
+  {"id":"i_limite_no_aplicado","opciones":{"limiteNoAplicado":true},"esperado":["APROBADO","APROBADO","RECHAZADO","RECHAZADO"],"oficial":true},
+  {"id":"j_fixture_activada","opciones":{"fixtureActivada":true},"esperado":["APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
+  {"id":"k_rollback_A_fallido","opciones":{"rollbackAFallido":true},"esperado":["APROBADO","NO_CONCLUYENTE","RECHAZADO","APROBADO"],"oficial":false,"rollbackFallido":true},
+  {"id":"l_rollback_B_fallido","opciones":{"rollbackBFallido":true},"esperado":["APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":false,"rollbackFallido":true},
+  {"id":"m_sin_permisos","opciones":{"sinPermisos":true},"esperado":["NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE"],"oficial":false}
+]}

@@ -1,0 +1,19 @@
+{
+  "grupo": "G036",
+  "version": 1,
+  "intento": 2,
+  "run_id": "RUN-G036-V1-20261118-040435",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G036-V1-R2-20261117",
+  "casos": [
+    "TC-M07-01",
+    "TC-M07-02",
+    "TC-M07-03",
+    "TC-M07-04",
+    "TC-M07-05"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico V1 (intento 2) de TC-M07-G036. Intento 1 (RUN-G036-V1-20261118-034446, AUT-G036-V1-20261117 consumida): TECNICO, DELETE 200 y rollback CONFIRMADO; API correcta (01, 02 y 03 APROBADO; 04 VAL_ENTRADA), pero Cypress falló en cy.visit del frontal con www (404) y el ejecutor clasificó ese fallo técnico como RECHAZADO del 05. ORD-G036-011: FRONT https://api.inmero.co/sigab-test (como G43) y fallo técnico de UI → NO_CONCLUYENTE. Oráculos, datos y efectos sin cambios. SHA-256 g036.mjs cc647190d407b8ef3043c75228ee4fe83860dbf06e261a06722585aba1e9fc70; g036.cy.js f46db1ae99a535900221105e7d7f31a7bcf32a12a12179920b00c2ab51078eff; g036_core 86a8bdd0fe6bf4b295cd031ea9621702374e860ce08598f75121829f100467c5; contrato_g036.json 49b02cdaa7478389b74b6a18c94eac8b6ef8f075e56bb9cce56c034f4a3c3ce4; colección 086ec117b6285e68d10baa4a3cb439d2e768934752a122062617e1a560ff7fcd."
+  },
+  "version_anterior": null
+}

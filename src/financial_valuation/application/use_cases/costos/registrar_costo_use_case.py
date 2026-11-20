@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06: mensajes sin códigos de módulo ni valores de enum |
 # | 2026-11-08 | Arekkazu | INC-M06-329-G85 RF-90: reparto sin participación positiva responde 422 antes de tocar el período |
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
+# | 2026-11-15 | Arekkazu | QA-M06 CU09 H-02 RF-90: la fecha de la factura debe caer en el período abierto |
 """Caso de uso RF-90: registro manual de un costo (Contador o Administrador).
 
 Eje 1 (naturaleza, NIC 41) decide el tratamiento; eje 2 (origen) decide el vehículo:
@@ -103,6 +104,10 @@ class RegistrarCostoUseCase:
         activos = self._activos(s)
         montos = self._repartir(s, activos)  # antes del período: un reparto inválido no deja efectos
         periodo = self.contabilizador.periodo_para(activos[0].numero_id_tributaria, s.fecha_costo, id_usuario)
+        if con_proveedor and not periodo.contiene(s.fecha_factura):  # CU09 H-02: dentro del período abierto
+            raise BusinessRuleError(code="FECHA_FACTURA_FUERA_PERIODO", field="fecha_factura", message=(
+                f"La fecha de la factura debe estar dentro del período abierto ({periodo.fecha_inicio:%d/%m/%Y} al "
+                f"{periodo.fecha_fin:%d/%m/%Y})."))
         if not periodo.contiene(s.fecha_costo):  # FA-4
             raise BusinessRuleError(code="PERIODO_CONTABLE_CERRADO", field="fecha_costo", message=(
                 "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto."))

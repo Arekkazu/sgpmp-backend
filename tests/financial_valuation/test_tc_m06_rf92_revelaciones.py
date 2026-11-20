@@ -6,6 +6,7 @@
 # | 2026-11-13 | Arekkazu | Lote M05/M06 13-11: el activo de prueba trae su finca (supuestos por activo de #1119) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: asientos trasladados por el cierre, valor al costo al inicio y riesgos |
+# | 2026-11-16 | Arekkazu | QA-M06 CU12 H-01 RF-92: la descarga consulta el período del informe |
 """Informe de revelaciones NIC 41 (RF-92), sin base de datos.
 
 - TC-M06-G62 (#1107): el ingreso de individuos a un lote por compra, donación o traslado sube el valor del
@@ -21,6 +22,7 @@ import io
 import re
 from datetime import date
 from decimal import Decimal as D
+from types import SimpleNamespace
 
 import pytest
 
@@ -199,7 +201,8 @@ def test_el_pdf_del_informe_aprobado_es_pdf_a_1b():
                           "estado_secciones": [{"seccion": "parr_53_riesgos", "estado": "COMPLETA"}]})
     reportes.informe.update(estado="APROBADO", hash_informe="abc123", fecha_aprobacion=None)
 
-    pdf, tipo, _, _ = ExportarReporteUseCase(periodos=None, reportes=reportes).informe(41, "pdf")
+    pdf, tipo, _, _ = ExportarReporteUseCase(periodos=SimpleNamespace(obtener=lambda _i: None),
+                                             reportes=reportes).informe(41, "pdf")
 
     assert tipo == "application/pdf" and pdf.startswith(b"%PDF-1.4\n%")
     assert b"<pdfaid:part>1</pdfaid:part>" in pdf and b"<pdfaid:conformance>B</pdfaid:conformance>" in pdf

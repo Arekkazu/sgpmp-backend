@@ -1,0 +1,38 @@
+VERIFICACION SOLO LECTURA - FORMATO DE detalle_causa (RF-80 v2.0 CA-12) - TC-M05-G37 / A04b
+Fecha/Hora: 2026-11-15 15:02:06 (America/Bogota)
+Esperado (RF-80 v2.0 CA-12): detalle_causa = 'Campos faltantes: numero_reintentos, timestamps_intentos' (nombres de campo)
+
+== PARTE A: API autenticada (corrida sandbox, solo GET)
+POST /sesiones/ -> HTTP 200 [X-Request-Id=749eaab4-9716-4898-a8ed-d92621d0ed99]
+GET /suministros/auditoria pagina=1 -> HTTP 200 [X-Request-Id=dca3d376-7d1a-4bd8-b1b4-eb274010b244]
+  total en la bitacora: 79643
+GET /suministros/auditoria pagina=2 -> HTTP 200 [X-Request-Id=bcba9b83-7224-4920-a54f-a1e42aa6ab55]
+GET /suministros/auditoria pagina=3 -> HTTP 200 [X-Request-Id=5c2466bf-feda-4018-9ae8-04fb5ec26310]
+GET /suministros/auditoria pagina=4 -> HTTP 200 [X-Request-Id=783ba53c-dfd0-4d3e-9d62-0277202cf609]
+GET /suministros/auditoria pagina=5 -> HTTP 200 [X-Request-Id=3116086d-bc4e-4f82-be4f-6dff36fff515]
+GET /suministros/auditoria pagina=6 -> HTTP 200 [X-Request-Id=8ada0b6e-46ef-4ae9-8b9b-b3b4c9665e51]
+GET /suministros/auditoria pagina=7 -> HTTP 200 [X-Request-Id=87ba4b54-dec1-429f-b842-ffd1a8fb4f1b]
+GET /suministros/auditoria pagina=8 -> HTTP 200 [X-Request-Id=78de538b-4da3-4c84-b1fb-9ec5351f30e9]
+GET /suministros/auditoria pagina=9 -> HTTP 200 [X-Request-Id=be9e3693-72a6-4952-a4ed-55b00f20151c]
+GET /suministros/auditoria pagina=10 -> HTTP 200 [X-Request-Id=e9bc680b-e06e-483c-bf96-76868cf51c17]
+Eventos leidos: 1000 (ids 86346..87416); con registro_incompleto=true: 604
+Formato de la lista tras 'Campos faltantes:' en los incompletos: {"PALABRAS": 604}
+Muestras (hasta 10 incompletos mas recientes con lista de campos):
+  {"id": 87336, "tipo_operacion": "INSERT", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.669708Z", "version_hash_integridad": 2, "hash_integridad_12": "c68f6c007fb1", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87335, "tipo_operacion": "UPDATE", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.667511Z", "version_hash_integridad": 2, "hash_integridad_12": "ec3a3407a438", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87334, "tipo_operacion": "INSERT", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.650957Z", "version_hash_integridad": 2, "hash_integridad_12": "95a40e2590a5", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87333, "tipo_operacion": "UPDATE", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.648981Z", "version_hash_integridad": 2, "hash_integridad_12": "91bd1d3b7253", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87332, "tipo_operacion": "INSERT", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.630574Z", "version_hash_integridad": 2, "hash_integridad_12": "66aa762a5074", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87331, "tipo_operacion": "UPDATE", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.627852Z", "version_hash_integridad": 2, "hash_integridad_12": "393bfcf08117", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87330, "tipo_operacion": "INSERT", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.614594Z", "version_hash_integridad": 2, "hash_integridad_12": "16938f785e5b", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87329, "tipo_operacion": "UPDATE", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.611680Z", "version_hash_integridad": 2, "hash_integridad_12": "5f0e84a344dd", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87328, "tipo_operacion": "INSERT", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.604200Z", "version_hash_integridad": 2, "hash_integridad_12": "7bb810e5acba", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+  {"id": 87326, "tipo_operacion": "UPDATE", "resultado": "EXITOSO", "fecha_emision": "2026-11-15T02:00:18.599852Z", "version_hash_integridad": 2, "hash_integridad_12": "43d8ebf19f0c", "formato": "PALABRAS", "detalle_causa": "Campos faltantes: ciclo productivo."}
+GET /suministros/auditoria/87336 -> HTTP 200 [X-Request-Id=501cd0c1-e2cf-41f8-94cb-9d336ff5c127] detalle_causa igual a la lista: True
+GET /suministros/auditoria/87335 -> HTTP 200 [X-Request-Id=52bff670-0abb-4597-afd9-5bec91851f3b] detalle_causa igual a la lista: True
+GET /suministros/auditoria/87334 -> HTTP 200 [X-Request-Id=8f0d0c02-5269-402d-8a83-4c0b919cc632] detalle_causa igual a la lista: True
+DELETE /test-control/runs/{run_id} -> HTTP 200 [X-Request-Id=0228f869-ac7a-4367-9394-2f0358147ed7]
+
+== PARTE B: base de datos de TEST (conexion directa, default_transaction_read_only=on)
+transaction_read_only = on
+PARTE B NO_VERIFICABLE: InsufficientPrivilege

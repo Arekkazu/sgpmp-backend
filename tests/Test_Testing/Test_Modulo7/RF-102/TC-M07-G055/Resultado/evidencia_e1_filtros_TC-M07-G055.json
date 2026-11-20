@@ -1,0 +1,113 @@
+{
+  "escenario": "E1",
+  "fecha_utc": "2026-11-18T02:35:34.664666+00:00",
+  "estado": "APROBADO",
+  "estructura_respuesta_ok": true,
+  "filtros_individuales": [
+    {
+      "filtro": "tipo_evento",
+      "valor": "INTENTO_MODIFICACION_AUDITORIA",
+      "http": 200,
+      "total": 14,
+      "items": 14,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    },
+    {
+      "filtro": "id_cliente_externo",
+      "valor": 12,
+      "http": 200,
+      "total": 4,
+      "items": 4,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    },
+    {
+      "filtro": "desde",
+      "valor": "2026-11-18",
+      "http": 200,
+      "total": 16,
+      "items": 16,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    },
+    {
+      "filtro": "hasta",
+      "valor": "2026-11-18",
+      "http": 200,
+      "total": 145,
+      "items": 100,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    },
+    {
+      "filtro": "endpoint",
+      "valor": "/integracion/auditoria",
+      "http": 200,
+      "total": 14,
+      "items": 14,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    },
+    {
+      "filtro": "codigo_http",
+      "valor": 405,
+      "http": 200,
+      "total": 14,
+      "items": 14,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    },
+    {
+      "filtro": "numero_id_tributaria",
+      "valor": "901444215",
+      "http": 200,
+      "total": 31,
+      "items": 31,
+      "todos_cumplen": true,
+      "incumplen_muestra": [],
+      "estado": "APROBADO"
+    }
+  ],
+  "filtros_and": {
+    "combo": {
+      "tipo_evento": "INTENTO_MODIFICACION_AUDITORIA",
+      "codigo_http": 405
+    },
+    "http": 200,
+    "total": 14,
+    "items": 14,
+    "todos_cumplen_and": true,
+    "incumplen": [],
+    "estado": "APROBADO"
+  },
+  "sin_coincidencias": {
+    "http": 200,
+    "ok": true,
+    "total": 0
+  },
+  "parametro_invalido_codigo_http_50": {
+    "http": 400,
+    "esperado": [
+      400,
+      422
+    ],
+    "ok": true
+  },
+  "fallos": [],
+  "valores_usados": {
+    "tipo_evento": "INTENTO_MODIFICACION_AUDITORIA",
+    "id_cliente_externo": 12,
+    "endpoint": "/integracion/auditoria",
+    "codigo_http": 405,
+    "numero_id_tributaria": "901444215",
+    "desde": "2026-11-18",
+    "hasta": "2026-11-18"
+  }
+}

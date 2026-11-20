@@ -2,6 +2,8 @@
 # |------------|--------------------------|-----------------------------------------------------------------------|
 # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G37: Persistencia y clasificacion de eventos RF-80 (CU06)      |
 # | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G37 reevaluacion v2.0: unidad servicio, rechazos RF-78/79/81, R8, clasificacion, sandbox en T99 |
+# | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 2 (INC-M05-353-G37): A02c/A02d exactamente 1 evento con confirmacion a 2 s; A04 dividido en A04a/A04b/A04c (R8, E2, CA-11, CA-12, CA-4); obtenido real por checkpoint |
+# | 2026-11-15 | Juan Sebastian Gutierrez | Reintento 3: A04b corregido a R8/Fase 4/E2 (lista con un elemento por campo faltante); el formato literal de CA-12 solo aplica a PROVISION_INCREMENTAL_FALLIDA |
 """Suite de pruebas para TC-M05-G37 (RF-80 v2.0, RFC-025 / TC-M05-090 y TC-M05-091).
 
 Cubre:
@@ -9,7 +11,9 @@ Cubre:
 - A01a/A01b/A01c: Persistencia inmediata (<= 2.0 s) de operaciones exitosas RF-78, RF-81 y RF-79.
 - A02a/A02b/A02c/A02d: Auditoria de rechazos de negocio RF-78 (sin/con fase + repeticion), RF-79 y RF-81.
 - A03: Consistencia lista vs detalle GET /{id} y filtros para EXITOSO y REGISTRO_FALLIDO.
-- A04: Validacion de Restriccion 8 (campos minimos por tipo y regla de registro_incompleto).
+- A04a: Restriccion 8 / E2 / CA-11: todo evento del catalogo con un minimo ausente queda registro_incompleto=true.
+- A04b: R8 / Fase 4 / E2: detalle_causa trae 'Campos faltantes:' con un elemento por campo faltante.
+- A04c: CA-4 / R8: los eventos de RF-78 apuntan al id_registro_suministro creado.
 - B01/B02: Clasificacion y retencion NIC41 / 5 años vs TECNICO / 1 año y tipo no catalogado.
 - T98/T99: Cierre de corrida principal e inocuidad en corrida sandbox independiente.
 """
@@ -35,6 +39,8 @@ NOMBRE_ZONA = "America/Bogota"
 ZONA_USUARIO = timezone(timedelta(hours=-5))
 TIMEOUT_S = 30
 ARCHIVO_TRAZA = "trazas_http.jsonl"
+ARCHIVO_OBTENIDOS = "obtenidos_checkpoints.jsonl"
+VENTANA_CA1_S = 2.0
 _LOCK_TRAZA = threading.Lock()
 _HEX64_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 _COMMIT_FALLBACK = "5b8bcf49ab073ba3b43ef554d4c3799a8b672f0f"
@@ -97,6 +103,10 @@ _CONTEXTO: dict[str, Any] = {
     "evento_rf79_consolidado": None,
     "evento_rf79_reporte": None,
     "evento_rf81": None,
+    "ids_eventos_a01a": None,
+    "evento_a02c": None,
+    "evento_a02d": None,
+    "eventos_a04": None,
     "sandbox_cerrado_t98": False,
 }
 
@@ -241,6 +251,56 @@ def _trazar(
                 f.write(json.dumps(registro, ensure_ascii=False) + "\n")
         except Exception:
             pass
+
+
+def _obt(clave: str, valor: Any) -> None:
+    """Registra un valor REAL observado del checkpoint en curso (obtenidos_checkpoints.jsonl).
+
+    Se llama ANTES de cada asercion para que el obtenido quede aunque la asercion falle.
+    El generador arma el 'obtenido' del checkpoint con estas lineas, en orden.
+    """
+    directorio = os.environ.get("TEST_EVIDENCE_DIR")
+    if not directorio:
+        return
+    registro = {"test": _TEST_ACTUAL, "clave": clave, "valor": _sanitizar_objeto(valor)}
+    with _LOCK_TRAZA:
+        try:
+            with open(Path(directorio) / ARCHIVO_OBTENIDOS, "a", encoding="utf-8") as f:
+                f.write(json.dumps(registro, ensure_ascii=False, default=str) + "\n")
+        except Exception:
+            pass
+
+
+def _error_code(resp: requests.Response) -> Any:
+    """error_code real de la respuesta, o None si el cuerpo no es un JSON con ese campo."""
+    try:
+        cuerpo = resp.json()
+    except Exception:
+        return None
+    return cuerpo.get("error_code") if isinstance(cuerpo, dict) else None
+
+
+def _ev_resumen(ev: dict[str, Any]) -> dict[str, Any]:
+    """Campos reales de un evento de la bitacora para el obtenido (sin datos personales)."""
+    datos_nuevos = ev.get("datos_nuevos") if isinstance(ev.get("datos_nuevos"), dict) else {}
+    return {
+        "id": ev.get("id_auditoria_suministro"),
+        "tipo_operacion": ev.get("tipo_operacion"),
+        "resultado": ev.get("resultado"),
+        "id_usuario": ev.get("id_usuario"),
+        "id_activo_biologico": ev.get("id_activo_biologico"),
+        "id_ciclo_productivo": ev.get("id_ciclo_productivo"),
+        "id_gestion_fases": ev.get("id_gestion_fases"),
+        "id_registro_suministro": ev.get("id_registro_suministro", datos_nuevos.get("id_registro_suministro")),
+        "id_tipo_suministro": ev.get("id_tipo_suministro", datos_nuevos.get("id_tipo_suministro")),
+        "costo_afectado": ev.get("costo_afectado"),
+        "numero_reintentos": ev.get("numero_reintentos"),
+        "registro_incompleto": ev.get("registro_incompleto"),
+        "detalle_causa": ev.get("detalle_causa"),
+        "clasificacion_registro": ev.get("clasificacion_registro"),
+        "retencion_aplicable": ev.get("retencion_aplicable"),
+        "fecha_emision": ev.get("fecha_emision"),
+    }
 
 
 def _extraer_sub_jwt(token: str) -> int:
@@ -395,6 +455,29 @@ def _esperar_eventos_nuevos(
     return nuevos, latencia
 
 
+def _confirmar_ventana(c: CorridaSandbox, ultimo_id_previo: int, t0_operacion: float, paso: str) -> list[dict[str, Any]]:
+    """Relee la bitacora cuando ya paso la ventana de CA-1 (2 s) para confirmar el conteo EXACTO.
+
+    Evita dar por buena una cuenta de 1 evento si llega un segundo evento dentro de la ventana.
+    """
+    espera = (VENTANA_CA1_S + 0.2) - (time.perf_counter() - t0_operacion)
+    if espera > 0:
+        time.sleep(espera)
+    r_aud = c.get(
+        "/suministros/auditoria",
+        paso=f"{paso}_confirmacion_2s",
+        params={"pagina": 1, "registros_por_pagina": 50, "ordenar_por": "fecha_evento"},
+    )
+    assert r_aud.status_code == 200, (
+        f"Error consultando auditoria ({paso} confirmacion): HTTP {r_aud.status_code} "
+        f"(X-Request-Id={r_aud.headers.get('X-Request-Id')}): {c.seguro(r_aud.text)}"
+    )
+    items = r_aud.json().get("items") or []
+    nuevos = [it for it in items if int(it["id_auditoria_suministro"]) > ultimo_id_previo]
+    nuevos.sort(key=lambda x: int(x["id_auditoria_suministro"]))
+    return nuevos
+
+
 def _crear_activo_poblacional(c: CorridaSandbox, paso: str) -> int:
     tag = uuid.uuid4().hex[:8]
     hoy = _hoy()
@@ -461,6 +544,33 @@ def _recolectar_eventos_corrida(c: CorridaSandbox, ultimo_id_previo: int, paso: 
     return [por_id[k] for k in sorted(por_id.keys())]
 
 
+_CAMPOS_BASE_R8 = ("tipo_operacion", "resultado", "fecha_emision")  # tipo_evento_m05, resultado, timestamp_emision
+
+
+def _valor_r8(ev: dict[str, Any], campo: str) -> Any:
+    """Valor de un campo minimo: primer nivel de la respuesta o, si no esta, dentro de datos_nuevos (ronda 1)."""
+    if ev.get(campo) is not None:
+        return ev.get(campo)
+    datos_nuevos = ev.get("datos_nuevos") if isinstance(ev.get("datos_nuevos"), dict) else {}
+    return datos_nuevos.get(campo)
+
+
+def _faltantes_r8(ev: dict[str, Any]) -> list[str]:
+    """Campos minimos de la Restriccion 8 (segun el tipo) que el evento no trae, en el orden de la ficha."""
+    return [campo for campo in _MINIMOS_POR_TIPO[ev.get("tipo_operacion")] if _valor_r8(ev, campo) is None]
+
+
+def _eventos_corrida_a04(c: CorridaSandbox) -> list[dict[str, Any]]:
+    """Eventos de la corrida (id > ultimo_id de la linea base) recolectados una sola vez para A04a/A04b/A04c."""
+    if _CONTEXTO.get("eventos_a04") is None:
+        ultimo_id_base = _CONTEXTO["ultimo_id_corrida"]
+        assert ultimo_id_base is not None, "Precondicion: falta ultimo_id_corrida"
+        eventos = _recolectar_eventos_corrida(c, ultimo_id_base, "a04")
+        assert len(eventos) > 0, "No se recolectaron eventos en la corrida para verificar Restriccion 8"
+        _CONTEXTO["eventos_a04"] = eventos
+    return _CONTEXTO["eventos_a04"]
+
+
 @pytest.fixture(autouse=True)
 def _marcar_test(request: pytest.FixtureRequest):
     global _TEST_ACTUAL
@@ -488,6 +598,7 @@ class TestTCM05G37PersistenciaYClasificacion:
         try:
             corrida.login()
             total_ini, ultimo_id_ini = _snapshot_auditoria(corrida, "t00_conteo_base")
+            _obt("auditoria_base", {"total": total_ini, "ultimo_id": ultimo_id_ini, "run_id": corrida.run_id})
             assert isinstance(total_ini, int) and total_ini >= 0, "Conteo base invalido [Sandbox / Inocuidad]"
             _CONTEXTO["total_base"] = total_ini
             _CONTEXTO["ultimo_id_base"] = ultimo_id_ini
@@ -495,6 +606,10 @@ class TestTCM05G37PersistenciaYClasificacion:
             print(f"T00_BASELINE total={total_ini} ultimo_id={ultimo_id_ini}")
         finally:
             r_close = corrida.cerrar()
+        _obt("cierre_t00", {
+            "http": r_close.status_code if r_close is not None else None,
+            "x_request_id": r_close.headers.get("X-Request-Id") if r_close is not None else None,
+        })
         assert r_close is not None and r_close.status_code == 200, (
             f"Fallo cierre corrida T00: {r_close.status_code if r_close else None}"
         )
@@ -526,6 +641,10 @@ class TestTCM05G37PersistenciaYClasificacion:
         payload_sum = _payload_suministro(id_activo, cantidad=1.0, precio=40000.0)
         t0 = time.perf_counter()
         r_sum = c.post("/suministros/costeo-directo", payload_sum, paso="a01a_rf78_registrar")
+        _obt("rf78_registrar", {
+            "id_activo": id_activo, "id_fase": _CONTEXTO["id_fase_1"],
+            "http": r_sum.status_code, "x_request_id": r_sum.headers.get("X-Request-Id"),
+        })
         assert r_sum.status_code == 200, (
             f"Error registrando suministro RF-78 (unidad 'servicio'): HTTP {r_sum.status_code} "
             f"(X-Request-Id={r_sum.headers.get('X-Request-Id')}): {c.seguro(r_sum.text)} [RF-78]"
@@ -536,6 +655,11 @@ class TestTCM05G37PersistenciaYClasificacion:
         _CONTEXTO["id_registro_suministro_1"] = id_reg
 
         nuevos, latencia_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a01a", min_eventos=3)
+        _CONTEXTO["ids_eventos_a01a"] = [int(e["id_auditoria_suministro"]) for e in nuevos]
+        _obt("eventos_nuevos", {
+            "id_registro_suministro": id_reg, "latencia_s": round(latencia_s, 3),
+            "eventos": [_ev_resumen(e) for e in nuevos],
+        })
         assert latencia_s <= 2.0, (
             f"Persistencia RF-78 excedio 2.0 s: {latencia_s:.3f} s [RF-80 v2.0 CA-1]"
         )
@@ -591,6 +715,10 @@ class TestTCM05G37PersistenciaYClasificacion:
             f"(X-Request-Id={r_hist.headers.get('X-Request-Id')}): {c.seguro(r_hist.text)}"
         )
         nuevos, latencia_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a01b", min_eventos=1)
+        _obt("rf81_historial", {
+            "http": r_hist.status_code, "x_request_id": r_hist.headers.get("X-Request-Id"),
+            "latencia_s": round(latencia_s, 3), "eventos": [_ev_resumen(e) for e in nuevos],
+        })
         assert latencia_s <= 2.0, f"Persistencia RF-81 excedio 2.0 s: {latencia_s:.3f} s [RF-80 v2.0 CA-1]"
         assert len(nuevos) == 1 and nuevos[0].get("tipo_operacion") == "CONSULTA_HISTORIAL_EJECUTADA", (
             f"Se esperaba exactamente 1 CONSULTA_HISTORIAL_EJECUTADA; obtenidos: "
@@ -614,6 +742,11 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         t0 = time.perf_counter()
         r_fail = c.post("/suministros/costeo-directo", payload, paso="a02a_rechazo_sin_fase")
+        _obt("rf78_rechazo_sin_fase", {
+            "id_activo": id_activo_2, "http": r_fail.status_code,
+            "error_code": _error_code(r_fail),
+            "x_request_id": r_fail.headers.get("X-Request-Id"),
+        })
         assert r_fail.status_code == 409, (
             f"Esperado HTTP 409 sin fase abierta; obtenido {r_fail.status_code} "
             f"(X-Request-Id={r_fail.headers.get('X-Request-Id')}): {c.seguro(r_fail.text)}"
@@ -623,6 +756,7 @@ class TestTCM05G37PersistenciaYClasificacion:
         )
 
         nuevos, latencia_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02a", min_eventos=1)
+        _obt("eventos_nuevos", {"latencia_s": round(latencia_s, 3), "eventos": [_ev_resumen(e) for e in nuevos]})
         assert latencia_s <= 2.0, f"Persistencia rechazo A02a excedio 2.0 s: {latencia_s:.3f} s [RF-80 v2.0 CA-1]"
         assert len(nuevos) == 1, (
             f"Esperado exactamente 1 evento tras rechazo A02a; obtenidos {len(nuevos)}: "
@@ -649,8 +783,13 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         # Sin efectos parciales: acumulado 404 e historial 0 registros
         r_acum = c.get(f"/suministros/costeo-directo/acumulado/activo/{id_activo_2}", paso="a02a_sin_acumulado")
+        _obt("acumulado_activo_2", {"http": r_acum.status_code, "x_request_id": r_acum.headers.get("X-Request-Id")})
         assert r_acum.status_code == 404, f"Acumulado debio no existir (404), obtenido {r_acum.status_code} [INC-M05-275-G37]"
         r_hist = c.get("/suministros/historial", paso="a02a_sin_historial", params={"id_activo_biologico": id_activo_2})
+        _obt("historial_activo_2", {
+            "http": r_hist.status_code, "x_request_id": r_hist.headers.get("X-Request-Id"),
+            "items": len((r_hist.json() or {}).get("items") or []) if r_hist.status_code == 200 else None,
+        })
         assert r_hist.status_code == 200, f"Historial HTTP inesperado: {r_hist.status_code}"
         items_h = r_hist.json().get("items") or []
         assert len(items_h) == 0, f"Historial debio tener 0 registros tras rechazo; tiene {len(items_h)} [INC-M05-275-G37]"
@@ -664,6 +803,10 @@ class TestTCM05G37PersistenciaYClasificacion:
             f"Repeticion inesperada: HTTP {r_rep.status_code} ({c.seguro(r_rep.text)})"
         )
         evs_rep, lat_rep = _esperar_eventos_nuevos(c, ultimo_antes_rep, t_rep, "a02a_rep", min_eventos=1)
+        _obt("repeticion", {
+            "http": r_rep.status_code, "x_request_id": r_rep.headers.get("X-Request-Id"),
+            "latencia_s": round(lat_rep, 3), "eventos": [_ev_resumen(e) for e in evs_rep],
+        })
         assert lat_rep <= 2.0, f"Persistencia repeticion excedio 2.0 s: {lat_rep:.3f} s [CA-1]"
         assert len(evs_rep) == 1 and evs_rep[0].get("tipo_operacion") == "REGISTRO_FALLIDO", (
             f"Repeticion debio generar exactamente +1 REGISTRO_FALLIDO; obtenidos: {evs_rep} [INC-M05-275-G37]"
@@ -678,10 +821,14 @@ class TestTCM05G37PersistenciaYClasificacion:
         payload_neg = _payload_suministro(id_activo_1, cantidad=-1.0, precio=40000.0)
         t0 = time.perf_counter()
         r_fail = c.post("/suministros/costeo-directo", payload_neg, paso="a02b_rechazo_cantidad_neg")
+        _obt("rf78_rechazo_con_fase", {
+            "http": r_fail.status_code, "error_code": _error_code(r_fail), "x_request_id": r_fail.headers.get("X-Request-Id"),
+        })
         assert r_fail.status_code == 422 and r_fail.json().get("error_code") == "COSTO_REGISTRO_INVALIDO", (
             f"Esperado 422 COSTO_REGISTRO_INVALIDO; obtenido {r_fail.status_code} ({c.seguro(r_fail.text)})"
         )
         nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02b", min_eventos=1)
+        _obt("eventos_nuevos", {"latencia_s": round(lat_s, 3), "eventos": [_ev_resumen(e) for e in nuevos]})
         assert lat_s <= 2.0, f"Persistencia A02b excedio 2.0 s: {lat_s:.3f} s [CA-1]"
         assert len(nuevos) == 1 and nuevos[0].get("tipo_operacion") == "REGISTRO_FALLIDO", (
             f"Esperado exactamente 1 REGISTRO_FALLIDO en A02b; obtenidos: {nuevos} [CA-1]"
@@ -700,19 +847,40 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         t0 = time.perf_counter()
         r_fail = c.post(f"/suministros/nic41/ciclo/{id_fase_1}/consolidar", paso="a02c_rf79_consolidar_activo")
+        _obt("rf79_consolidar_ciclo_activo", {
+            "id_fase": id_fase_1, "http": r_fail.status_code, "error_code": _error_code(r_fail),
+            "x_request_id": r_fail.headers.get("X-Request-Id"),
+        })
         assert r_fail.status_code == 409 and r_fail.json().get("error_code") == "CICLO_ACTIVO", (
             f"Esperado 409 CICLO_ACTIVO; obtenido {r_fail.status_code} ({c.seguro(r_fail.text)})"
         )
         nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02c", min_eventos=1)
-        fallidos = [e for e in nuevos if e.get("resultado") in ("FALLIDO", "RECHAZADO")]
-        assert len(fallidos) >= 1, (
-            f"RF-80 v2.0 CA-1 / TC-M05-090: Se esperaba >= 1 evento con resultado FALLIDO/RECHAZADO tras "
-            f"HTTP {r_fail.status_code} ({r_fail.json().get('error_code')}, X-Request-Id={r_fail.headers.get('X-Request-Id')}); "
-            f"eventos nuevos observados: {len(nuevos)} ({nuevos})"
+        confirmados = _confirmar_ventana(c, ultimo_previo, t0, "a02c")
+        _obt("eventos_nuevos", {
+            "latencia_primera_deteccion_s": round(lat_s, 3) if nuevos else None,
+            "conteo_en_ventana_2s": len(confirmados),
+            "eventos": [_ev_resumen(e) for e in confirmados],
+        })
+        assert len(confirmados) == 1, (
+            "RF-80 v2.0 CA-1 / criterio de re-prueba INC-M05-353-G37: se esperaba EXACTAMENTE 1 evento nuevo tras "
+            f"HTTP {r_fail.status_code} ({_error_code(r_fail)}, X-Request-Id={r_fail.headers.get('X-Request-Id')}); "
+            f"eventos nuevos en la ventana de 2 s: {len(confirmados)} "
+            f"({[(e.get('id_auditoria_suministro'), e.get('tipo_operacion'), e.get('resultado')) for e in confirmados]})"
         )
+        ev = confirmados[0]
+        _CONTEXTO["evento_a02c"] = ev
         assert lat_s <= 2.0, f"Persistencia rechazo RF-79 excedio 2.0 s: {lat_s:.3f} s [RF-80 v2.0 CA-1]"
-        assert any(e.get("id_usuario") == c.id_usuario for e in fallidos), (
-            f"Ningun evento fallido de RF-79 tiene id_usuario={c.id_usuario} [RF-80 Entradas]"
+        assert ev.get("resultado") in ("RECHAZADO", "FALLIDO"), (
+            f"Evento {ev.get('id_auditoria_suministro')}: resultado {ev.get('resultado')!r}, esperado RECHAZADO o FALLIDO "
+            "[RF-80 v2.0 Variables (resultado) / CA-1 / criterio INC-M05-353-G37]"
+        )
+        assert ev.get("tipo_operacion") in _CATALOGO_RF80, (
+            f"Evento {ev.get('id_auditoria_suministro')}: tipo_operacion {ev.get('tipo_operacion')!r} fuera del catalogo "
+            "de eventos de RF-80 v2.0 [RF-80 v2.0 Descripcion / Fase 3]"
+        )
+        assert ev.get("id_usuario") == c.id_usuario, (
+            f"Evento {ev.get('id_auditoria_suministro')}: id_usuario {ev.get('id_usuario')} != sub del JWT {c.id_usuario} "
+            "[RF-80 v2.0 Entradas / criterio INC-M05-353-G37]"
         )
 
     def test_a02d_rf81_rechazo_filtros_invalidos(self, sandbox_admin: CorridaSandbox):
@@ -732,19 +900,44 @@ class TestTCM05G37PersistenciaYClasificacion:
                 "fecha_fin_filtro": (hoy - timedelta(days=5)).isoformat(),
             },
         )
+        _obt("rf81_historial_filtros_invalidos", {
+            "id_activo": id_activo_1, "http": r_fail.status_code, "error_code": _error_code(r_fail),
+            "x_request_id": r_fail.headers.get("X-Request-Id"),
+        })
         assert r_fail.status_code == 422 and r_fail.json().get("error_code") == "COMBINACION_FILTROS_INVALIDA", (
             f"Esperado 422 COMBINACION_FILTROS_INVALIDA; obtenido {r_fail.status_code} ({c.seguro(r_fail.text)})"
         )
         nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a02d", min_eventos=1)
-        fallidos = [e for e in nuevos if e.get("resultado") in ("FALLIDO", "RECHAZADO")]
-        assert len(fallidos) >= 1, (
-            f"RF-80 v2.0 CA-1 / TC-M05-090: Se esperaba >= 1 evento con resultado FALLIDO/RECHAZADO tras "
-            f"HTTP {r_fail.status_code} ({r_fail.json().get('error_code')}, X-Request-Id={r_fail.headers.get('X-Request-Id')}); "
-            f"eventos nuevos observados: {len(nuevos)} ({nuevos})"
+        confirmados = _confirmar_ventana(c, ultimo_previo, t0, "a02d")
+        _obt("eventos_nuevos", {
+            "latencia_primera_deteccion_s": round(lat_s, 3) if nuevos else None,
+            "conteo_en_ventana_2s": len(confirmados),
+            "eventos": [_ev_resumen(e) for e in confirmados],
+            "filtros_aplicados": [
+                (e.get("datos_nuevos") or {}).get("filtros_aplicados") if isinstance(e.get("datos_nuevos"), dict) else None
+                for e in confirmados
+            ],
+        })
+        assert len(confirmados) == 1, (
+            "RF-80 v2.0 CA-1 / criterio de re-prueba INC-M05-353-G37: se esperaba EXACTAMENTE 1 evento nuevo tras "
+            f"HTTP {r_fail.status_code} ({_error_code(r_fail)}, X-Request-Id={r_fail.headers.get('X-Request-Id')}); "
+            f"eventos nuevos en la ventana de 2 s: {len(confirmados)} "
+            f"({[(e.get('id_auditoria_suministro'), e.get('tipo_operacion'), e.get('resultado')) for e in confirmados]})"
         )
+        ev = confirmados[0]
+        _CONTEXTO["evento_a02d"] = ev
         assert lat_s <= 2.0, f"Persistencia rechazo RF-81 excedio 2.0 s: {lat_s:.3f} s [RF-80 v2.0 CA-1]"
-        assert any(e.get("id_usuario") == c.id_usuario for e in fallidos), (
-            f"Ningun evento fallido de RF-81 tiene id_usuario={c.id_usuario} [RF-80 Entradas]"
+        assert ev.get("resultado") in ("RECHAZADO", "FALLIDO"), (
+            f"Evento {ev.get('id_auditoria_suministro')}: resultado {ev.get('resultado')!r}, esperado RECHAZADO o FALLIDO "
+            "[RF-80 v2.0 Variables (resultado) / CA-1 / criterio INC-M05-353-G37]"
+        )
+        assert ev.get("tipo_operacion") in _CATALOGO_RF80, (
+            f"Evento {ev.get('id_auditoria_suministro')}: tipo_operacion {ev.get('tipo_operacion')!r} fuera del catalogo "
+            "de eventos de RF-80 v2.0 [RF-80 v2.0 Descripcion / Fase 3]"
+        )
+        assert ev.get("id_usuario") == c.id_usuario, (
+            f"Evento {ev.get('id_auditoria_suministro')}: id_usuario {ev.get('id_usuario')} != sub del JWT {c.id_usuario} "
+            "[RF-80 v2.0 Entradas / criterio INC-M05-353-G37]"
         )
 
     def test_a01c_rf79_exito_cierre(self, sandbox_admin: CorridaSandbox):
@@ -761,11 +954,13 @@ class TestTCM05G37PersistenciaYClasificacion:
         }
         t0 = time.perf_counter()
         r_cierre = c.post(f"/activos-biologicos/{id_activo_1}/cierre", payload_cierre, paso="a01c_rf79_cierre")
+        _obt("rf79_cierre", {"http": r_cierre.status_code, "x_request_id": r_cierre.headers.get("X-Request-Id")})
         assert r_cierre.status_code == 200, (
             f"Error cerrando ciclo RF-79: HTTP {r_cierre.status_code} "
             f"(X-Request-Id={r_cierre.headers.get('X-Request-Id')}): {c.seguro(r_cierre.text)}"
         )
         nuevos, lat_s = _esperar_eventos_nuevos(c, ultimo_previo, t0, "a01c", min_eventos=2)
+        _obt("eventos_nuevos", {"latencia_s": round(lat_s, 3), "eventos": [_ev_resumen(e) for e in nuevos]})
         assert lat_s <= 2.0, f"Persistencia RF-79 excedio 2.0 s: {lat_s:.3f} s [RF-80 v2.0 CA-1]"
 
         por_tipo = {ev.get("tipo_operacion"): ev for ev in nuevos}
@@ -784,6 +979,10 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         # Capturar id_provision para T99
         r_ver = c.get(f"/suministros/nic41/ciclo/{id_fase_1}/versiones", paso="a01c_listar_versiones")
+        _obt("versiones_nic41", {
+            "http": r_ver.status_code, "x_request_id": r_ver.headers.get("X-Request-Id"),
+            "ids_provision": [v.get("id_provision") for v in ((r_ver.json() or {}).get("versiones") or [])] if r_ver.status_code == 200 else None,
+        })
         assert r_ver.status_code == 200, f"Error listando versiones NIC41: HTTP {r_ver.status_code}"
         versiones = r_ver.json().get("versiones") or []
         assert versiones, "Sin versiones NIC41 tras cierre de ciclo"
@@ -811,6 +1010,10 @@ class TestTCM05G37PersistenciaYClasificacion:
                 f"Error detalle /{id_ev} ({etiqueta}): HTTP {r_det.status_code} ({c.seguro(r_det.text)})"
             )
             det = r_det.json()
+            _obt(f"detalle_{etiqueta}", {
+                "id": id_ev, "http": r_det.status_code, "x_request_id": r_det.headers.get("X-Request-Id"),
+                "campos_distintos_lista_vs_detalle": sorted(k for k in set(ev) | set(det) if ev.get(k) != det.get(k)),
+            })
             assert ev == det, (
                 f"Discrepancia campo por campo entre lista y GET /{id_ev} ({etiqueta}): "
                 f"{ {k: (ev.get(k), det.get(k)) for k in set(ev)|set(det) if ev.get(k) != det.get(k)} } "
@@ -843,6 +1046,10 @@ class TestTCM05G37PersistenciaYClasificacion:
                 )
                 items_f = rf.json().get("items") or []
                 ids_f = {int(x["id_auditoria_suministro"]) for x in items_f}
+                _obt(f"filtro_{etiqueta}_{fname}", {
+                    "http": rf.status_code, "items": len(items_f), "contiene_evento": id_ev in ids_f,
+                    "x_request_id": rf.headers.get("X-Request-Id"),
+                })
                 assert id_ev in ids_f, (
                     f"Evento {id_ev} ({etiqueta}) no aparecio con filtro {fname}={fparams} [RF-80 v2.0 CA-4]"
                 )
@@ -851,64 +1058,119 @@ class TestTCM05G37PersistenciaYClasificacion:
                     f"Discrepancia filtro {fname} vs detalle /{id_ev} ({etiqueta}) [TC-M05-090]"
                 )
 
-    def test_a04_restriccion_8_campos_minimos(self, sandbox_admin: CorridaSandbox):
-        """A04 (RF-80 v2.0 Restriccion 8, E2, CA-12): Campos minimos por tipo y regla de registro_incompleto."""
+    def test_a04a_r8_minimos_y_flag_incompleto(self, sandbox_admin: CorridaSandbox):
+        """A04a (RF-80 v2.0 Restriccion 8, Fase 4, E2, CA-11): todo evento del catalogo con un minimo ausente queda registro_incompleto=true."""
         c = sandbox_admin
-        ultimo_id_base = _CONTEXTO["ultimo_id_corrida"]
-        assert ultimo_id_base is not None, "Precondicion: falta ultimo_id_corrida"
-
-        eventos = _recolectar_eventos_corrida(c, ultimo_id_base, "a04")
-        assert len(eventos) > 0, "No se recolectaron eventos en la corrida para verificar Restriccion 8"
-
-        fuentes_usadas: list[dict[str, Any]] = []
+        eventos = _eventos_corrida_a04(c)
+        evaluados: list[dict[str, Any]] = []
         incumplimientos: list[dict[str, Any]] = []
-
         for ev in eventos:
-            id_ev = ev.get("id_auditoria_suministro")
             tipo = ev.get("tipo_operacion")
             if tipo not in _CATALOGO_RF80:
                 continue
-
-            requeridos = _MINIMOS_POR_TIPO[tipo]
-            datos_nuevos = ev.get("datos_nuevos") if isinstance(ev.get("datos_nuevos"), dict) else {}
-            faltantes: list[str] = []
-            origen_por_campo: dict[str, str] = {}
-
-            for campo in requeridos:
-                if ev.get(campo) is not None:
-                    origen_por_campo[campo] = "primer_nivel"
-                elif datos_nuevos.get(campo) is not None:
-                    origen_por_campo[campo] = "datos_nuevos"
-                else:
-                    origen_por_campo[campo] = "AUSENTE"
-                    faltantes.append(campo)
-
-            fuentes_usadas.append({
-                "id_auditoria_suministro": id_ev,
-                "tipo_operacion": tipo,
-                "origen_por_campo": origen_por_campo,
+            faltantes = _faltantes_r8(ev)
+            base_ausentes = [f for f in faltantes if f in _CAMPOS_BASE_R8]
+            evaluados.append({
+                "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "resultado": ev.get("resultado"),
+                "faltantes": faltantes, "registro_incompleto": ev.get("registro_incompleto"),
+                "origen_por_campo": {
+                    campo: ("primer_nivel" if ev.get(campo) is not None
+                            else "datos_nuevos" if _valor_r8(ev, campo) is not None else "AUSENTE")
+                    for campo in _MINIMOS_POR_TIPO[tipo]
+                },
             })
-
-            if faltantes:
-                incompleto = ev.get("registro_incompleto")
-                causa = ev.get("detalle_causa") or ""
-                for campo_f in faltantes:
-                    if incompleto is not True or campo_f not in causa:
-                        incumplimientos.append({
-                            "id_auditoria_suministro": id_ev,
-                            "tipo_operacion": tipo,
-                            "campo_faltante": campo_f,
-                            "registro_incompleto": incompleto,
-                            "detalle_causa": causa,
-                        })
-
-        print(f"A04_FUENTES={json.dumps(fuentes_usadas, ensure_ascii=False)}")
-        print(f"A04_INCUMPLIMIENTOS={json.dumps(incumplimientos, ensure_ascii=False)}")
-
+            if base_ausentes:
+                incumplimientos.append({
+                    "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "faltantes": base_ausentes,
+                    "regla": "CA-11: evento sin campo base (tipo, resultado, timestamp_emision) persistido",
+                })
+            elif faltantes and ev.get("registro_incompleto") is not True:
+                incumplimientos.append({
+                    "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "faltantes": faltantes,
+                    "registro_incompleto": ev.get("registro_incompleto"),
+                    "regla": "R8 / Fase 4 / E2: faltan minimos del tipo y registro_incompleto no es true",
+                })
+        _obt("evaluacion_r8", {
+            "eventos_corrida": len(eventos), "eventos_catalogo_evaluados": len(evaluados),
+            "evaluados": evaluados, "incumplimientos": incumplimientos,
+        })
+        assert len(evaluados) >= 1, "A04a: 0 eventos del catalogo evaluados en la corrida (verificacion en vacio) [R8]"
         assert not incumplimientos, (
-            "RF-80 v2.0 Restriccion 8 / E2 / CA-12: Hay eventos del catalogo con campos minimos ausentes "
-            "sin registro_incompleto=true o sin nombrar el campo faltante en detalle_causa. "
-            f"Incumplimientos (evento, tipo, campo_faltante, registro_incompleto): {incumplimientos}"
+            "RF-80 v2.0 Restriccion 8 / Fase 4 / E2 / CA-11: eventos del catalogo con minimos ausentes sin "
+            f"registro_incompleto=true (o sin campo base y persistidos): {incumplimientos}"
+        )
+
+    def test_a04b_detalle_causa_lista_campos_faltantes(self, sandbox_admin: CorridaSandbox):
+        """A04b (RF-80 v2.0 Restriccion 8, Fase 4, E2): detalle_causa trae 'Campos faltantes:' con un elemento por campo faltante.
+
+        Lectura adoptada (reintento 3): la R8, la Fase 4 y E2 piden "detalle_causa listando los campos
+        faltantes" sin fijar si se nombran por su nombre de campo o en palabras. El formato literal de CA-12
+        ('Campos faltantes: numero_reintentos, timestamps_intentos') es el escenario de
+        PROVISION_INCREMENTAL_FALLIDA, que no se produce en G37 ni se puede provocar por la API; no se
+        generaliza a los demas tipos.
+        """
+        c = sandbox_admin
+        eventos = _eventos_corrida_a04(c)
+        evaluados: list[dict[str, Any]] = []
+        incumplimientos: list[dict[str, Any]] = []
+        for ev in eventos:
+            tipo = ev.get("tipo_operacion")
+            if tipo not in _CATALOGO_RF80:
+                continue
+            faltantes = [f for f in _faltantes_r8(ev) if f not in _CAMPOS_BASE_R8]
+            if not faltantes:
+                continue
+            causa = ev.get("detalle_causa") or ""
+            if "Campos faltantes:" in causa:
+                lista_txt = causa.rsplit("Campos faltantes:", 1)[1].strip().rstrip(".").strip()
+                lista = [x.strip() for x in lista_txt.split(",") if x.strip()]
+            else:
+                lista = None
+            evaluados.append({
+                "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "faltantes": faltantes,
+                "detalle_causa": causa, "lista_campos_faltantes": lista,
+            })
+            if lista is None or len(lista) != len(faltantes):
+                incumplimientos.append({
+                    "id": ev.get("id_auditoria_suministro"), "tipo_operacion": tipo, "faltantes": faltantes,
+                    "lista_campos_faltantes": lista, "detalle_causa": causa,
+                })
+        _obt("evaluacion_lista_faltantes", {"eventos_con_faltantes": len(evaluados), "evaluados": evaluados, "incumplimientos": incumplimientos})
+        assert len(evaluados) >= 1, (
+            "A04b: 0 eventos con minimos faltantes en la corrida (verificacion en vacio); A02a sin fase debe "
+            "producir al menos un REGISTRO_FALLIDO sin id_ciclo_productivo [R8 / E2]"
+        )
+        assert not incumplimientos, (
+            "RF-80 v2.0 Restriccion 8 / Fase 4 / E2 (detalle_causa listando los campos faltantes): eventos sin "
+            f"'Campos faltantes:' o con una lista que no tiene un elemento por campo faltante: {incumplimientos}"
+        )
+
+    def test_a04c_referencias_registro_suministro_rf78(self, sandbox_admin: CorridaSandbox):
+        """A04c (RF-80 v2.0 Restriccion 8, CA-4): los 3 eventos de RF-78 de A01a llevan el id_registro_suministro creado."""
+        c = sandbox_admin
+        ids_a01a = _CONTEXTO.get("ids_eventos_a01a") or []
+        id_reg = _CONTEXTO.get("id_registro_suministro_1")
+        assert ids_a01a and id_reg is not None, "Precondicion A04c: faltan los eventos o el registro de A01a"
+        por_id = {int(e["id_auditoria_suministro"]): e for e in _eventos_corrida_a04(c)}
+        tipos_rf78 = ("SUMINISTRO_REGISTRADO", "PRECIO_MANUAL_INGRESADO", "ACUMULADO_ACTUALIZADO")
+        evaluados: list[dict[str, Any]] = []
+        for eid in ids_a01a:
+            ev = por_id.get(eid)
+            if ev is None or ev.get("tipo_operacion") not in tipos_rf78:
+                continue
+            evaluados.append({
+                "id": eid, "tipo_operacion": ev.get("tipo_operacion"),
+                "id_registro_suministro": _valor_r8(ev, "id_registro_suministro"),
+                "id_tipo_suministro": _valor_r8(ev, "id_tipo_suministro"),
+            })
+        _obt("referencias_rf78", {"id_registro_suministro_creado": id_reg, "evaluados": evaluados})
+        assert len(evaluados) == 3, (
+            f"A04c: se esperaban los 3 eventos de RF-78 de A01a; evaluados {len(evaluados)}: {evaluados} [R8]"
+        )
+        distintos = [e for e in evaluados if str(e["id_registro_suministro"]) != str(id_reg)]
+        assert not distintos, (
+            f"RF-80 v2.0 Restriccion 8 / CA-4: eventos de RF-78 cuyo id_registro_suministro no es el registro "
+            f"creado ({id_reg}): {distintos}"
         )
 
     def test_b01_clasificacion_y_retencion_catalogo(self, sandbox_admin: CorridaSandbox):
@@ -922,6 +1184,11 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         vistos_nic41: set[str] = set()
         vistos_tecnico: set[str] = set()
+        _obt("clasificacion_por_evento", [
+            {"id": e.get("id_auditoria_suministro"), "tipo_operacion": e.get("tipo_operacion"), "resultado": e.get("resultado"),
+             "clasificacion_registro": e.get("clasificacion_registro"), "retencion_aplicable": e.get("retencion_aplicable")}
+            for e in eventos
+        ])
 
         for ev in eventos:
             tipo = ev.get("tipo_operacion")
@@ -951,6 +1218,11 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         # (i) Eventos reales en TEST cuyo tipo_operacion no pertenece al catalogo RF-80 (ej. INSERT del cierre)
         no_catalogados = [ev for ev in eventos if ev.get("tipo_operacion") not in _CATALOGO_RF80]
+        _obt("no_catalogados", [
+            {"id": e.get("id_auditoria_suministro"), "tipo_operacion": e.get("tipo_operacion"),
+             "clasificacion_registro": e.get("clasificacion_registro"), "retencion_aplicable": e.get("retencion_aplicable")}
+            for e in no_catalogados
+        ])
         assert len(no_catalogados) >= 1, (
             "RF-80 v2.0 Fase 3 / TC-M05-091: Se esperaba al menos 1 evento real no catalogado en la corrida "
             "(ej. tipo 'INSERT' generado durante el cierre) para verificar la regla de ambiguedad en TEST, "
@@ -971,6 +1243,7 @@ class TestTCM05G37PersistenciaYClasificacion:
 
         commit_sha = _commit_local()
         clasif, ret = clasificar_retencion("EVENTO_NO_CATALOGADO_EXPERIMENTO_QA")
+        _obt("clasificar_retencion_local", {"clasificacion": clasif, "retencion": ret, "commit_local": commit_sha})
         assert clasif == "NIC41", (
             f"clasificar_retencion debio retornar NIC41, obtenido {clasif} (commit local {commit_sha}) [RF-80 Fase 3]"
         )
@@ -983,6 +1256,11 @@ class TestTCM05G37PersistenciaYClasificacion:
         """T98: Cierre de la corrida sandbox principal con DELETE -> HTTP 200 'Rollback exitoso'."""
         c = sandbox_admin
         r = c.cerrar()
+        _obt("cierre_principal", {
+            "run_id": c.run_id,
+            "http": r.status_code if r is not None else None,
+            "x_request_id": r.headers.get("X-Request-Id") if r is not None else None,
+        })
         assert r is not None, "Cierre de sandbox principal ya habia sido ejecutado"
         assert r.status_code == 200, (
             f"Error en DELETE /test-control/runs: HTTP {r.status_code} "
@@ -1012,6 +1290,10 @@ class TestTCM05G37PersistenciaYClasificacion:
         try:
             corrida.login()
             total_fin, ultimo_id_fin = _snapshot_auditoria(corrida, "t99_conteo_final")
+            _obt("auditoria_final", {
+                "total_base": total_base, "total_final": total_fin,
+                "ultimo_id_base": ultimo_id_base, "ultimo_id_final": ultimo_id_fin,
+            })
             assert total_fin == total_base, (
                 f"Inocuidad: total cambio de {total_base} a {total_fin} tras rollback [Sandbox / Inocuidad]"
             )
@@ -1031,6 +1313,7 @@ class TestTCM05G37PersistenciaYClasificacion:
             if id_provision_1 is not None:
                 rutas_404.append(("provision_1", f"/suministros/nic41/{id_provision_1}", None))
 
+            assert len(rutas_404) >= 1, "T99: 0 recursos creados por verificar (verificacion en vacio) [Inocuidad]"
             resultados_404 = {}
             for etiqueta, ruta, params in rutas_404:
                 r = corrida.get(ruta, paso=f"t99_check_{etiqueta}", params=params)
@@ -1038,10 +1321,15 @@ class TestTCM05G37PersistenciaYClasificacion:
                     "status_code": r.status_code,
                     "x_request_id": r.headers.get("X-Request-Id"),
                 }
+                _obt(f"check_404_{etiqueta}", {"ruta": ruta, **resultados_404[etiqueta]})
                 assert r.status_code == 404, (
                     f"Inocuidad fallo en {etiqueta} ({ruta}): esperado 404, obtenido {r.status_code}"
                 )
             print(f"T99_INOCUIDAD total={total_fin} ultimo_id={ultimo_id_fin} checks_404={json.dumps(resultados_404)}")
         finally:
             r_close = corrida.cerrar()
+        _obt("cierre_t99", {
+            "http": r_close.status_code if r_close is not None else None,
+            "x_request_id": r_close.headers.get("X-Request-Id") if r_close is not None else None,
+        })
         assert r_close is not None and r_close.status_code == 200, "Fallo cierre corrida T99"

@@ -1,3 +1,59 @@
+## [1.4.0-rc.79](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.78...v1.4.0-rc.79) (2026-11-19)
+
+### Features
+
+* **rf104-mod8:** opciones de los filtros de reportes dentro del alcance del usuario ([d224ac5](https://github.com/Arekkazu/sgpmp-backend/commit/d224ac58c0baadbeecb4f65c1f17b7f70ffd8458))
+* **rf104-mod8:** reportes PDF y Excel con vista previa, generacion en segundo plano y descarga de 48 h ([3042e75](https://github.com/Arekkazu/sgpmp-backend/commit/3042e751c4b7add02bee82fbb0ecb35106f04cd4))
+* **rf105-mod8:** preferencias de canal, escalamiento, respaldo al Administrador y auditoria de notificaciones ([c8b8502](https://github.com/Arekkazu/sgpmp-backend/commit/c8b850256800ae07ce81db013e6a933d62e08ee7))
+* **rf106-mod8:** historial clinico predictivo con TVCO, conflictos y pendientes de evaluar ([68fc18d](https://github.com/Arekkazu/sgpmp-backend/commit/68fc18dc561124c580e4a94c029d7eaff6482a2f))
+* **rf107-mod8:** catalogo de mensajes de error configurable y registro de los routers de M08 ([34e3346](https://github.com/Arekkazu/sgpmp-backend/commit/34e334605f08ad21ed930b1b311aaf1e6f6f8927))
+
+### Bug Fixes
+
+* **rf104-mod8:** campos de la solicitud asignados uno a uno y escape del texto del PDF con la libreria estandar ([905d6ba](https://github.com/Arekkazu/sgpmp-backend/commit/905d6bac75a122cf276f573bc810991f523dd1a8))
+
+## [1.4.0-rc.78](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.77...v1.4.0-rc.78) (2026-11-18)
+
+### Features
+
+* **rf103-mod8:** dashboard por widgets con datos de cada módulo y opciones configurables ([b5c8a35](https://github.com/Arekkazu/sgpmp-backend/commit/b5c8a3594226fc3286073de16069aa25f6358f99))
+* **rf105-mod8:** ciclo de vida de notificaciones con niveles, entrega por push con reintentos y filtros ([1d1982a](https://github.com/Arekkazu/sgpmp-backend/commit/1d1982adcaa2886cb8bfa8e656f930bd47b89424))
+
+### Bug Fixes
+
+* **rf103-mod8:** huella del widget con SHA-256 y consultas del dashboard armadas junto a su SQL ([2e8e9f7](https://github.com/Arekkazu/sgpmp-backend/commit/2e8e9f794ca84b2e0315265f3896273160d83053))
+
+## [1.4.0-rc.77](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.76...v1.4.0-rc.77) (2026-11-17)
+
+### Bug Fixes
+
+* **rf74-mod5:** los avisos de suministros nombran el activo y su estado, sin ids ni «CA» ([a61f02e](https://github.com/Arekkazu/sgpmp-backend/commit/a61f02e07cf7cf4e7d41701894f170b1482525d5))
+
+## [1.4.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.75...v1.4.0-rc.76) (2026-11-16)
+
+### Bug Fixes
+
+* **rf02-mod1:** el ingreso por AgroFusion de un correo nuevo ya no responde 500 ([008657d](https://github.com/Arekkazu/sgpmp-backend/commit/008657dbf7c74bcf796118c7f4172ec01cc3a6d0))
+
+## [1.4.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.74...v1.4.0-rc.75) (2026-11-16)
+
+### Bug Fixes
+
+* **rf84-mod6:** el calculo validado por el contador se lista como validado manualmente (QA-M06 CU03 H-01) ([09cdab5](https://github.com/Arekkazu/sgpmp-backend/commit/09cdab5305221429f87822957ba29b4631f8c5a9))
+* **rf88-mod6:** el deterioro y el paso a valor razonable no entran a un periodo cerrado (QA-M06 CU07 H-02) ([d886a11](https://github.com/Arekkazu/sgpmp-backend/commit/d886a11180795f6608ce19543dd9034fc7ac923c))
+* **rf93-mod6:** las descargas nombran titular, nit y periodo (QA-M06 CU12 H-01) ([b3dd2ca](https://github.com/Arekkazu/sgpmp-backend/commit/b3dd2cae817cad59e064db501537615795c15711))
+
+## [1.4.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.73...v1.4.0-rc.74) (2026-11-16)
+
+### Bug Fixes
+
+* **rf85-mod6:** la cosecha conserva el dia del evento productivo sin correrlo por la zona horaria (QA-M06 CU04 H-01) ([296f956](https://github.com/Arekkazu/sgpmp-backend/commit/296f9561995381e8a4484c77ac58489de193ef61))
+* **rf85-mod6:** las cosechas pendientes se filtran por el titular del selector y muestran su dia (QA-M06 CU04 H-02) ([503d114](https://github.com/Arekkazu/sgpmp-backend/commit/503d114c487724013f3a2749ce5ce281e46450cb))
+* **rf87-mod6:** el aviso de cierre llega a la bandeja de cada contador con su propio evento (QA-M06 CU06 H-02) ([a527980](https://github.com/Arekkazu/sgpmp-backend/commit/a5279800abbadf8c6a179cd18f8db1ed29665166))
+* **rf88-mod6:** el deterioro mayor que el valor en libros registra lo aplicado y no lo solicitado (QA-M06 CU07 H-01) ([d496d72](https://github.com/Arekkazu/sgpmp-backend/commit/d496d72974fec70670fc113420c9c76227f6bcaf))
+* **rf90-mod6:** la factura con fecha fuera del periodo abierto se rechaza (QA-M06 CU09 H-02) ([447993e](https://github.com/Arekkazu/sgpmp-backend/commit/447993e870771f83e2573fbe036f5fdc6f3ce6ec))
+* **rfcot-mod6:** los eventos de cotizacion quedan asociados al activo y a su monto (QA-M06 CU-COT H-02) ([7774198](https://github.com/Arekkazu/sgpmp-backend/commit/7774198041b94e4fdc60292d3d66d322ad3ad937))
+
 ## [1.4.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.72...v1.4.0-rc.73) (2026-11-15)
 
 ### Bug Fixes

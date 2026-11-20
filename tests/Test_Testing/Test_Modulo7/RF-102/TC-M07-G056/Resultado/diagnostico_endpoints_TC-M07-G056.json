@@ -1,0 +1,57 @@
+{
+  "fecha_utc": "2026-11-18T02:50:46.263916+00:00",
+  "base": "https://api.inmero.co/api-sgpmp-test",
+  "endpoints": {
+    "consulta": "GET /integracion/auditoria",
+    "exportacion": "GET /integracion/auditoria/exportar",
+    "periodos_m06": "GET /finanzas/periodos",
+    "permisos": "GET /sesiones/me/permisos",
+    "login": "POST /sesiones/"
+  },
+  "permisos_recurso": {
+    "admin": {
+      "http": 200,
+      "interes": {
+        "auditoria_integracion": {
+          "id_recurso": 103,
+          "id_accion": 5,
+          "nombre_recurso": "auditoria_integracion"
+        }
+      },
+      "raw_tipo": "dict"
+    },
+    "auditor": {
+      "http": 200,
+      "interes": {
+        "auditoria_integracion_cierres": {
+          "id_recurso": 104,
+          "id_accion": 2,
+          "nombre_recurso": "auditoria_integracion_cierres"
+        }
+      },
+      "raw_tipo": "dict"
+    },
+    "sin_permisos": {
+      "http": 200,
+      "interes": {},
+      "raw_tipo": "dict"
+    }
+  },
+  "perfiles_test": {
+    "administrador": "admin.rol@gmail.com",
+    "auditor_revisor_fiscal": "revisor.fiscal@gmail.com",
+    "sin_permisos_contador": "contador@gmail.com"
+  },
+  "disponibilidad": {
+    "consulta_admin": 200,
+    "consulta_auditor": 200,
+    "consulta_sin": 403,
+    "export_admin": 200,
+    "export_auditor": 403,
+    "export_sin": 403,
+    "periodos": 200,
+    "sin_token": {
+      "omitido": true
+    }
+  }
+}
