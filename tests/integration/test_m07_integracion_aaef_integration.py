@@ -5,6 +5,7 @@
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01/RF-AE02: probar credenciales, autorización y revisión del anexo. |
 # | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: probar el rechazo auditable de un costo real inferior a un centavo. |
 # | 2026-11-19 | Arekkazu | M7-02 RF-98: la aprobación interna del anexo lleva justificación |
+# | 2026-11-20 | Arekkazu | Lote M07/M08 RF-AE02: la revisión del anexo envía la justificación (M7-02) |
 """M07 de punta a punta contra Postgres real (migración 94b14a6931d6).
 
 M06 real (reconocimiento, factura de proveedor repartida entre dos activos, cierre del período) →
@@ -169,7 +170,8 @@ def test_rf98_rechaza_mapeadores_invalidos_sin_registrar_contrato(
     })
     assert anexo.status_code == 201, anexo.text
     id_anexo = anexo.json()["id_mapeo_anexo_aaef"]
-    revision = cliente_http.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador)
+    revision = cliente_http.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador,
+                                   json={"justificacion": "Mapeo revisado contra el plan de cuentas del productor."})
     assert revision.status_code == 200, revision.text
 
     url = "/integracion/contratos"
@@ -306,7 +308,7 @@ def test_g60_falla_del_anexo_bloquea_revision_y_queda_auditada(
     url = f"/integracion/anexos/{id_anexo}/revision"
     with monkeypatch.context() as parche:
         parche.setattr(anexos, "construir_envelope", construir_con_falla)
-        rechazo = cliente_http.post(url, headers=contador)
+        rechazo = cliente_http.post(url, headers=contador, json={"justificacion": "Mapeo revisado contra el plan de cuentas del productor."})
     assert rechazo.status_code == 422, rechazo.text
     assert rechazo.json()["error_code"] == "ANEXO_VALIDACION_FALLIDA"
     assert db_session.execute(text("""
@@ -324,9 +326,11 @@ def test_g60_falla_del_anexo_bloquea_revision_y_queda_auditada(
     }[control]
     assert esperado in detalle["fallas"]
 
-    revision = cliente_http.post(url, headers=contador)
+    revision = cliente_http.post(url, headers=contador, json={"justificacion": "Mapeo revisado contra el plan de cuentas del productor."})
     assert revision.status_code == 200, revision.text
     assert revision.json()["estado"] == "EN_REVISION"
+
+
 def test_g61_rechaza_consulta_y_vista_previa_con_un_costo_inferior_a_un_centavo(
     db_session, m06, cliente_http, crear_usuario_db, crear_auth_headers,
 ):

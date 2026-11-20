@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA identifica los hechos afectados |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: ERROR_DATOS_FINANCIEROS y ERROR_INTERNO_RF97 |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-382 RF-97: el hash de contenido no depende de NFC/NFD |
+# | 2026-11-20 | Arekkazu       | Lote M07/M08 RF-96: la fuente de prueba expone el catálogo de LineType |
 """Lote QA 2026-11-19 de la exportación contable (RF-97), sin base de datos.
 
 - TC-M07-381 (#1183): un MAPPER_FALLIDO expone ``detalle.mapper`` y ``detalle.documento``.
@@ -55,6 +56,9 @@ class _Fuente:
 
     def lineas_sin_trazabilidad(self, nit, desde, hasta):
         return self.sin_traza
+
+    def linetypes_catalogados(self):
+        return None, None  # sin catálogo: el LineType no se valida en estas pruebas
 
     def costos_factura(self, nit, desde, hasta):
         if self.falla:
