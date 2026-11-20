@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: reportes permitidos por RBAC y alcance del solicitante |
+# | 2026-11-19 | Arekkazu | M08 RF-104: rol de quien genera, para el encabezado del reporte |
 """Quién pide un reporte: los tipos que su rol puede generar (permiso Ejecutar sobre ``reporte_<tipo>`` en
 ``modulo1.permisos``), sus fincas y su nombre (para la firma del Contador). Una sola consulta de permisos."""
 from __future__ import annotations
@@ -21,6 +22,7 @@ _SQL_PERMITIDOS = text("""
     WHERE p.id_rol = :rol AND p.es_activo AND a.codigo = 'E' AND rc.nombre_recurso = ANY(:recursos)
 """)
 _SQL_ROL = text("SELECT id_rol FROM modulo1.usuarios WHERE id_usuario = :id")
+_SQL_NOMBRE_ROL = text("SELECT nombre_rol FROM modulo1.roles WHERE id_rol = :rol")
 _RECURSOS = {d.recurso: d.tipo for d in CATALOGO.values()}
 
 
@@ -30,7 +32,7 @@ def construir_solicitante(db: Session, id_usuario: int, id_rol: int, zona_horari
     return Solicitante(
         id_usuario=id_usuario, nombre=nombres_usuarios(db, [id_usuario]).get(id_usuario) or "",
         permitidos=permitidos, fincas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(id_usuario, id_rol),
-        zona_horaria=zona_horaria)
+        zona_horaria=zona_horaria, rol=db.execute(_SQL_NOMBRE_ROL, {"rol": id_rol}).scalar() or "")
 
 
 def solicitante_en_segundo_plano(id_usuario: int, zona_horaria: str) -> Solicitante:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: puerto de contratos y anexos |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: guardar los datos de una versión pendiente modificada |
 """Puerto de las versiones del contrato AAEF y de los anexos de mapeo."""
 from __future__ import annotations
 
@@ -17,6 +18,10 @@ class ContratoRepository(ABC):
 
     @abstractmethod
     def guardar_contrato(self, contrato: VersionContrato) -> VersionContrato: ...
+
+    @abstractmethod
+    def guardar_datos_contrato(self, contrato: VersionContrato) -> VersionContrato:
+        """Datos editables de una versión PENDIENTE (RF-98 5.12); el estado y sus fechas no se tocan aquí."""
 
     @abstractmethod
     def obtener_anexo(self, id_mapeo_anexo_aaef: int) -> Optional[AnexoMapeo]: ...

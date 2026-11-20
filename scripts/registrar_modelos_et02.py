@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RFC-010 RF-69/RF-66: registra ET-02 en RF-69 y arma el catálogo del motor |
+# | 2026-11-19 | Arekkazu | SEG-M04-01 RF-69: firma el artefacto con M04_FIRMA_MODELOS_KEY |
 """Registra los modelos individuales de ET-02 en RF-69, los pone en SOMBRA y arma el
 catálogo del motor M04 (``catalogo.json`` + artefactos) con los IDs de ese ambiente.
 
@@ -16,7 +17,7 @@ Es idempotente: una versión con el mismo hash y el mismo animal no se registra 
 Por defecto solo valida; ``--aplicar`` escribe en el ambiente. Los IDs de activo son los de
 la BD de ese ambiente (cada uno tiene los suyos)::
 
-    RF71_INTERNAL_KEY=... SGPMP_ACCESS_TOKEN=... python scripts/registrar_modelos_et02.py \\
+    RF71_INTERNAL_KEY=... M04_FIRMA_MODELOS_KEY=... SGPMP_ACCESS_TOKEN=... python scripts/registrar_modelos_et02.py \\
         --backend https://api.inmero.co/api-sgpmp-test --modelos <salidas_ET02_v5> \\
         --animal BOV-001=885 --animal TER-001=890 --salida modelos/ --aplicar
 
@@ -28,6 +29,7 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import hmac
 import json
 import os
 import shutil
@@ -115,6 +117,9 @@ def registrar(cliente: httpx.Client, clave_rf71: str, animal: dict, id_activo: i
         "id_proceso_rf71": m["id_proceso_rf71"],
         "id_activo_biologico": str(id_activo),
         "fuente_datos": m.get("fuente_datos", "REAL"),
+        # SEG-M04-01: el backend rechaza el artefacto sin la firma del proceso de entrenamiento.
+        "firma_artefacto": hmac.new(os.environ.get("M04_FIRMA_MODELOS_KEY", "").encode(), animal["sha"].encode(),
+                                    hashlib.sha256).hexdigest(),
     }
     r = cliente.post(
         "/prediccion/modelos", data=datos, headers={"X-RF71-Internal-Key": clave_rf71},

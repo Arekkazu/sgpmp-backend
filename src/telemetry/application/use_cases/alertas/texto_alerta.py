@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
+# | 2026-11-19 | Arekkazu | M8-16 RF-105: sin la hora UTC en el texto y con el nombre real de la pantalla |
 """Textos de las notificaciones de alertas (bandeja, push y correo).
 
 Antes salían ids y códigos: «Alerta CRITICO: fiebre en TEMP_CORPORAL. Valor 40.5700 °C.
@@ -9,13 +10,15 @@ frontend, para que el correo y la pantalla digan lo mismo.
 """
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from src.shared.plantilla_correo import formatear_fecha
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.notificacion_alerta_port import ContextoAlerta
+
+# La hora no va en el texto: la bandeja y el push la muestran en la zona de cada usuario y el proceso en segundo
+# plano solo conoce UTC, así que el mensaje decía una hora y la tarjeta otra (M8-16).
+DONDE_REVISAR = "Revísela en Telemetría IoT, pestaña Alertas."
 
 _SEVERIDAD = {"CRITICO": "crítica", "MODERADO": "moderada", "LEVE": "leve"}
 
@@ -83,10 +86,6 @@ def lugar(ctx: ContextoAlerta) -> str:
     return f"{texto} (finca {ctx.finca})" if ctx.finca else texto
 
 
-def cuando(momento: Optional[datetime]) -> str:
-    return f" Detectada el {formatear_fecha(momento)}." if momento else ""
-
-
 def titulo(alerta: Alerta, ctx: ContextoAlerta) -> str:
     donde = ctx.activo or ctx.area
     base = f"Alerta {severidad(alerta.severidad)}: {_minuscula(etiqueta(alerta.tipo_alerta))}"
@@ -100,10 +99,9 @@ def cuerpo(alerta: Alerta, ctx: ContextoAlerta) -> str:
         texto += f" {variable}: {valor(alerta.valor)} {alerta.unidad or ''}".rstrip() + "."
     elif variable:
         texto += f" Variable: {_minuscula(variable)}."
-    texto += cuando(alerta.fecha_evento)
     if ctx.sensor:
         texto += f" Sensor: {ctx.sensor}."
-    return texto + " Revísela en el panel de alertas."
+    return f"{texto} {DONDE_REVISAR}"
 
 
 def resumen(alertas: list[tuple[Alerta, ContextoAlerta]]) -> str:
@@ -116,7 +114,7 @@ def resumen(alertas: list[tuple[Alerta, ContextoAlerta]]) -> str:
     extra = f" y {n - 20} más" if n > 20 else ""
     return (f"Llegaron muchas alertas en poco tiempo, así que {'esta' if n == 1 else f'estas {n}'} "
             f"de severidad leve o moderada se agrupan en un solo aviso: {lineas}{extra}. "
-            "Revíselas en el panel de alertas.")
+            "Revíselas en Telemetría IoT, pestaña Alertas.")
 
 
 def titulo_resumen(n: int) -> str:

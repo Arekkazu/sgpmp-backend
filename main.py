@@ -32,6 +32,9 @@
 # | 2026-11-14 | Arekkazu | M08 RF-103: router del dashboard por widgets |
 # | 2026-11-14 | Arekkazu | M08 RF-105: entrega de notificaciones, purga diaria y alertas cada 2 s |
 # | 2026-11-18 | Arekkazu | M08 RF-104..107: router de reportes, generación en fondo y vencimiento a las 48 h |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: router del período de gracia del contrato contable en M09 |
+# | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: iniciar la tarea periódica de archivado de M07. |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01: instalar el filtro de query para los accesos a AAEF. |
 import asyncio
 import logging
 import os
@@ -63,6 +66,7 @@ from src.configuration.infrastructure.routers.configuracion_global_router import
 from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
 from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
 from src.configuration.infrastructure.routers.parametros_retroalimentacion_router import router as parametros_retroalimentacion_router
+from src.configuration.infrastructure.routers.parametros_integracion_contable_router import router as parametros_integracion_contable_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -120,6 +124,7 @@ from src.supplies.infrastructure.routers.batch_historial_suministros_router impo
 from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo_suministros_router
 from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
 from src.financial_valuation.infrastructure.routers.m06_router import router as m06_router
+from src.accounting_integration.infrastructure.gateway_aaef import ocultar_query_aaef_en_log
 from src.accounting_integration.infrastructure.routers.m07_router import router as m07_router
 from src.reporting.infrastructure.routers.dashboard_router import router as dashboard_router
 from src.reporting.infrastructure.routers.reportes_router import router as reportes_router
@@ -988,6 +993,9 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.accounting_integration.infrastructure.archivo_auditoria_worker import (
+        archivar_auditoria_integracion_periodicamente,
+    )
     from src.telemetry.infrastructure.workers.respaldo_auditoria_iot_worker import sincronizar_respaldo_auditoria_iot_periodicamente
     from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
     from src.telemetry.infrastructure.workers.reenvio_inferencia_worker import reenviar_paquetes_inferencia_periodicamente
@@ -1004,6 +1012,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_asegurar_particiones_telemetrias_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),
+        asyncio.create_task(archivar_auditoria_integracion_periodicamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
         asyncio.create_task(_despachar_provisiones_m06_periodicamente()),
@@ -1091,6 +1100,8 @@ TAGS_OPENAPI = [
     {"name": "Configuración - Dashboard Layout (RF-28)", "description": "M09 · Dashboard personalizable por usuario: grilla, catálogo de widgets y datos."},
     {"name": "Configuración - Preferencia de Idioma (RF-29)", "description": "M09 · Idioma de la interfaz (`es-CO` / `en-US`), personal y global."},
 ]
+
+logging.getLogger("uvicorn.access").addFilter(ocultar_query_aaef_en_log)
 
 app = FastAPI(
     lifespan=lifespan,
@@ -1181,6 +1192,7 @@ app.include_router(configuracion_global_router)
 app.include_router(parametros_alertas_router)
 app.include_router(politica_vision_router)
 app.include_router(parametros_retroalimentacion_router)
+app.include_router(parametros_integracion_contable_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)

@@ -7,6 +7,7 @@
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: permitir reevaluacion dentro de una transaccion y registrar causa y version reproducible. |
 # | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 # | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
+# | 2026-11-19 | Arekkazu | SEG-M03-01 RF-63: la auditoría de calidad que falla queda en el log, no se descarta en silencio |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -25,6 +26,7 @@ from __future__ import annotations
 import statistics
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
@@ -50,6 +52,8 @@ from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import 
 from src.telemetry.domain.repositories.parametros_calidad_port import ParametrosCalidadPort
 from src.telemetry.domain.repositories.telemetria_calidad_repository import TelemetriaCalidadRepository
 from src.telemetry.domain.repositories.telemetria_repository import TelemetriaRepository
+
+logger = logging.getLogger(__name__)
 
 class EvaluarCalidadTelemetriaUseCase:
 
@@ -465,7 +469,7 @@ class EvaluarCalidadTelemetriaUseCase:
                 accion_detallada={'flags': flags},
             )
         except Exception:
-            pass
+            logger.exception('RF-62: no se pudo auditar la evaluación de calidad de la telemetría %s.', id_telemetria)
 
     def _registrar_evidencia(self, id_telemetria, flags, tipo, detalle):
         """Evidencia obligatoria y atómica; el repositorio best-effort no basta."""

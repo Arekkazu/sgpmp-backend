@@ -4,6 +4,7 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar los procesos reales en incidentes previos al registro. |
 # | 2026-10-29 | Arekkazu | INC-M04-213/214 RF-69: SavedModel por estructura protobuf, fecha futura y tipo vacío 422 |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: exige y guarda la firma del artefacto |
 from __future__ import annotations
 
 import hashlib
@@ -21,8 +22,9 @@ from src.prediction.domain.repositories.aviso_version_modelo_port import AvisoVe
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
+from src.prediction.domain.services.firma_artefacto import VARIABLE_CLAVE, clave_firma, firma_valida
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
-from src.shared.errors import AuthorizationError, BusinessRuleError
+from src.shared.errors import AuthorizationError, BusinessRuleError, ServiceUnavailableError
 from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, INDIVIDUAL, TIPOS_MODELO, es_poblacional, paradigma_de
 
 _FORMATOS_VALIDOS = {"ONNX", "TENSORFLOW_SAVED_MODEL"}
@@ -132,6 +134,7 @@ class RegistrarVersionModeloUseCase:
         self._validar_hash_sha256_campo(dto.hash_artefacto_sha256, "hash_artefacto_sha256")
         self._validar_hash_sha256_campo(dto.dataset_entrenamiento_hash, "dataset_entrenamiento_hash")
         self._verificar_hash_artefacto(archivo_bytes, dto.hash_artefacto_sha256, dto.id_proceso_rf71)
+        firma = self._verificar_firma(dto.hash_artefacto_sha256, getattr(dto, "firma_artefacto", None), dto.id_proceso_rf71)
 
         # FA-04: tipo_modelo (antes que las métricas: el paradigma decide cuáles se exigen)
         if not dto.tipo_modelo or dto.tipo_modelo not in TIPOS_MODELO:
@@ -193,6 +196,7 @@ class RegistrarVersionModeloUseCase:
             id_activo_biologico=id_activo,
             fuente_datos=dto.fuente_datos,
         )
+        entidad.firma_artefacto = firma
 
         # Evaluación automática de métricas (Fase 3)
         entidad.validar_y_asignar_estado()
@@ -391,6 +395,39 @@ class RegistrarVersionModeloUseCase:
                 message="El hash del artefacto no coincide con el contenido del archivo.",
                 field="hash_artefacto_sha256",
             )
+
+    def _verificar_firma(self, sha256_hex: str, firma: Optional[str], id_proceso: uuid.UUID) -> str:
+        """SEG-M04-01: la firma del proceso de entrenamiento, no solo el hash que declara quien registra."""
+        clave = clave_firma()
+        if not clave:
+            logger.error("SEG-M04-01: %s no está configurada; no se registran versiones de modelo.", VARIABLE_CLAVE)
+            raise ServiceUnavailableError(
+                code="FIRMA_MODELOS_NO_CONFIGURADA",
+                message="El registro de modelos no está disponible: falta configurar la verificación de firmas.",
+            )
+        if firma_valida(firma, sha256_hex, clave):
+            return firma.strip().lower()
+        self._auditoria_repo.registrar(
+            tipo_evento="HASH_INVALIDO_DETECTADO",  # mismo tipo del enum de M04; el motivo distingue la firma
+            tipo_actor="SISTEMA",
+            id_sistema=str(id_proceso),
+            id_referencia=str(id_proceso),
+            entidad_referencia="proceso_rf71",
+            resultado_operacion="FALLIDO",
+            severidad_evento="CRITICAL",
+            payload_evento={"motivo": "FIRMA_ARTEFACTO_INVALIDA", "firma_recibida": bool(firma),
+                            "hash_artefacto_sha256": sha256_hex,
+                            "id_proceso_rf71": str(id_proceso)},
+        )
+        try:
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+        raise BusinessRuleError(
+            code="FIRMA_ARTEFACTO_INVALIDA",
+            message="El artefacto no trae una firma válida del proceso de entrenamiento.",
+            field="firma_artefacto",
+        )
 
     def _validar_metricas(self, metricas: dict) -> dict[str, object]:
         faltantes = _METRICAS_REQUERIDAS - set(metricas.keys())

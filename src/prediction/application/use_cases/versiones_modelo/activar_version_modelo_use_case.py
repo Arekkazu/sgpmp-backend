@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-03 RF-73: VERSION_ACTIVADA con id_version_deprecada |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: verifica archivo y firma antes de activar o poner en sombra |
 from __future__ import annotations
 
 import uuid
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from src.prediction.domain.entities.version_modelo import VersionModelo
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
+from src.prediction.domain.services.firma_artefacto import clave_firma, sha256_archivo
 from src.shared.errors import NotFoundError
 
 
@@ -42,6 +44,7 @@ class ActivarVersionModeloUseCase:
             )
 
         estado_anterior = entidad.estado_version
+        entidad.exigir_artefacto_integro(sha256_archivo(entidad.ruta_artefacto), clave_firma())
         # ConflictError (409, RF-69 E4) si no viene de APROBADO/SOMBRA; BusinessRuleError si faltan notas
         if en_sombra:
             entidad.poner_en_sombra()

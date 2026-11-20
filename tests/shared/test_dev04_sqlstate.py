@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-19 | Arekkazu | INC-M07-375-G002 RF-95: el cuerpo de error trae `field` |
 """DEV-04: contexto verificable, contratos HTTP y aislamiento de colisiones."""
 from types import SimpleNamespace
 
@@ -100,7 +103,7 @@ def test_handler_http_respeta_contrato(sqlstate, funcion, mensaje, codigo, http,
         response = client.post("/prueba")
     assert response.status_code == http
     assert response.json()["error_code"] == codigo
-    assert set(response.json()) == {"error_code", "message", "fields", "timestamp"}
+    assert set(response.json()) == {"error_code", "message", "field", "fields", "timestamp"}
     assert "secreto" not in response.text
 
 

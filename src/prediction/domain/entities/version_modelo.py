@@ -4,6 +4,7 @@
 # | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: las notas clínicas no se sobrescriben (409) |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU05 H-06/H-03 RF-69: terminales sin notas; POBLACIONAL sin componente no se activa |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: artefacto íntegro y firmado antes de correr en el motor |
 from __future__ import annotations
 
 import uuid
@@ -12,6 +13,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
+from src.prediction.domain.services.firma_artefacto import firma_valida
 from src.shared.errors import BusinessRuleError, ConflictError
 from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, es_poblacional, paradigma_de
 
@@ -195,6 +197,16 @@ class VersionModelo:
         self.estado_version = "ACTIVO"
         self.esta_produccion = True
         self.fecha_despliegue = datetime.now(tz=timezone.utc)
+
+    def exigir_artefacto_integro(self, sha256_en_disco: Optional[str], clave: str) -> None:
+        """SEG-M04-01: el archivo es el registrado y su firma es válida; si no, no corre en el motor."""
+        if not sha256_en_disco or sha256_en_disco.lower() != (self.hash_artefacto_sha256 or "").lower():
+            raise BusinessRuleError(code="ARTEFACTO_ALTERADO", message=(
+                "El archivo del modelo no está o no coincide con el que se registró. Registre de nuevo la versión."))
+        if not firma_valida(self.firma_artefacto, sha256_en_disco, clave):
+            raise BusinessRuleError(code="FIRMA_ARTEFACTO_INVALIDA", message=(
+                "La versión no tiene una firma válida del proceso de entrenamiento. Registre de nuevo la versión "
+                "con su firma."))
 
     def poner_en_sombra(self) -> None:
         """RFC-010: APROBADO → SOMBRA. Corre en el motor y registra resultados, sin alertar.

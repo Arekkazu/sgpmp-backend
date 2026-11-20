@@ -1,6 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: integración AAEF de punta a punta contra PostgreSQL |
+# | 2026-11-19 | Leandro | INC-M07-372-G36 RF-98: verificar el rechazo de mapeadores y sus efectos en PostgreSQL. |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01/RF-AE02: probar credenciales, autorización y revisión del anexo. |
+# | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: probar el rechazo auditable de un costo real inferior a un centavo. |
+# | 2026-11-19 | Arekkazu | M7-02 RF-98: la aprobación interna del anexo lleva justificación |
+# | 2026-11-20 | Arekkazu | Lote M07/M08 RF-AE02: la revisión del anexo envía la justificación (M7-02) |
 """M07 de punta a punta contra Postgres real (migración 94b14a6931d6).
 
 M06 real (reconocimiento, factura de proveedor repartida entre dos activos, cierre del período) →
@@ -14,6 +19,7 @@ import os
 from collections.abc import Generator
 from datetime import timedelta
 from decimal import Decimal as D
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -24,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from src.accounting_integration.domain.services.esquema_agrofusion import AccountingConsultResponse
 from src.financial_valuation.application.use_cases.costos.registrar_costo_use_case import SolicitudCosto
+from src.financial_valuation.infrastructure.dto.m06_dto import CostoDTO
 from tests.integration.conftest import JWT_SECRET_INTEGRACION, _importar_modelos_identity_access
 from tests.integration.test_m06_flujo_nic41_integration import (  # noqa: F401  (m06 es fixture)
     HOY,
@@ -84,7 +91,7 @@ def cliente_http(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Genera
         yield cliente
 
 
-def _sembrar_m06_cerrado(db: Session, m06, uid: int) -> tuple[dict, int]:
+def _sembrar_m06_cerrado(db: Session, m06, uid: int, *, monto_adicional: D | None = None) -> tuple[dict, int]:
     """Titular con un período cerrado que tiene una factura de proveedor repartida en dos activos."""
     especie = 2
     finca = _finca(db, uid)
@@ -102,6 +109,14 @@ def _sembrar_m06_cerrado(db: Session, m06, uid: int) -> tuple[dict, int]:
         subtipo_costo="VETERINARIO", origen_costo="SERVICIO_TERCERO", monto_costo=D("100.01"), fecha_costo=HOY,
         activos_reparto=activos, tercero_nit="800555111", tercero_dv="1", tercero_razon_social="Veterinaria SAS",
         factura_prefijo="FE", factura_numero="88231", fecha_factura=HOY, fecha_vencimiento_factura=HOY + timedelta(days=30)), uid)
+    if monto_adicional is not None:
+        dto = CostoDTO(
+            id_activo_biologico=activos[0], subtipo_costo="VETERINARIO", origen_costo="SERVICIO_TERCERO",
+            monto_costo=monto_adicional, fecha_costo=HOY, tercero_nit="800555111", tercero_dv="1",
+            tercero_razon_social="Veterinaria SAS", factura_prefijo="FE", factura_numero="88232",
+            fecha_factura=HOY, fecha_vencimiento_factura=HOY + timedelta(days=30),
+        )
+        m06.registrar_costo().execute(SolicitudCosto(**dto.model_dump()), uid)
     periodo = m06.periodos.que_contiene(NIT, HOY)
     assert m06.cierre().execute(periodo.id_periodo_contable, uid)["estado"] == "CERRADO"
     return {"desde": periodo.fecha_inicio.isoformat(), "hasta": periodo.fecha_fin.isoformat()}, finca
@@ -121,8 +136,10 @@ def _preparar_m07(cli: TestClient, admin: dict, contador: dict) -> int:
         "sha256_documento": hashlib.sha256(b"anexo").hexdigest()})
     assert r.status_code == 201, r.text
     id_anexo = r.json()["id_mapeo_anexo_aaef"]
-    assert cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=admin).status_code == 403  # solo el Contador
-    r = cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador)
+    justificacion = {"justificacion": "Mapeo revisado contra el plan de cuentas del productor."}
+    assert cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=admin,
+                    json=justificacion).status_code == 403  # solo el Contador
+    r = cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador, json=justificacion)
     assert r.status_code == 200 and r.json()["estado"] == "EN_REVISION", r.text
     r = cli.post("/integracion/contratos", headers=admin, json={
         "contrato_version": "3.0", "tipo_cambio": "MAJOR", "fecha_vigencia": HOY.isoformat(),
@@ -138,9 +155,212 @@ def _preparar_m07(cli: TestClient, admin: dict, contador: dict) -> int:
     return id_cliente
 
 
+@pytest.mark.parametrize(
+    "mapeadores", [[], ["MAPPER_X"], [" COMPRAS "]], ids=["vacios", "desconocido", "espacios"],
+)
+def test_rf98_rechaza_mapeadores_invalidos_sin_registrar_contrato(
+    db_session, cliente_http, crear_usuario_db, crear_auth_headers, mapeadores,
+):
+    admin = crear_auth_headers(crear_usuario_db(id_rol=1, estado=2))
+    contador = crear_auth_headers(crear_usuario_db(id_rol=5, estado=2))
+    anexo = cliente_http.post("/integracion/anexos", headers=admin, json={
+        "codigo_anexo": "AAEF-ANEXO-G36", "version_anexo": "8.0",
+        "ruta_documento": "docs/integracion/anexo_aaef_v3.0.md",
+        "sha256_documento": hashlib.sha256(b"anexo-g36").hexdigest(),
+    })
+    assert anexo.status_code == 201, anexo.text
+    id_anexo = anexo.json()["id_mapeo_anexo_aaef"]
+    revision = cliente_http.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador,
+                                   json={"justificacion": "Mapeo revisado contra el plan de cuentas del productor."})
+    assert revision.status_code == 200, revision.text
+
+    url = "/integracion/contratos"
+    solicitud = {
+        "contrato_version": "8.0", "tipo_cambio": "MAJOR", "fecha_vigencia": HOY.isoformat(),
+        "id_mapeo_anexo_aaef": id_anexo, "mapeadores": mapeadores,
+    }
+    sin_permiso = cliente_http.post(url, headers=contador, json=solicitud)
+    assert sin_permiso.status_code == 403, sin_permiso.text
+
+    invalido = cliente_http.post(url, headers=admin, json=solicitud)
+    assert invalido.status_code == 400, invalido.text
+    error = invalido.json()
+    assert error["error_code"] == "MAPPERS_INVALIDOS", error
+    mensaje = "Indique transformadores válidos: compras y, si aplica, comprobante NIC 41."
+    assert error["message"] == mensaje
+    assert error["fields"] == [{"field": "mapeadores", "message": mensaje}]
+
+    malformado = cliente_http.post(url, headers=admin, json={**solicitud, "mapeadores": [None]})
+    assert (malformado.status_code, malformado.json()["error_code"]) == (400, "VAL_ENTRADA")
+    assert db_session.execute(text("""
+        SELECT count(*) FROM modulo7.versiones_contrato_aaef WHERE contrato_version = '8.0'
+    """)).scalar_one() == 0
+    eventos = text("""
+        SELECT count(*) FROM modulo7.eventos_integracion
+        WHERE version_contrato = '8.0' AND tipo_evento = 'CONTRATO_REGISTRADO'
+    """)
+    assert db_session.execute(eventos).scalar_one() == 0
+
+    valido = cliente_http.post(url, headers=admin, json={**solicitud, "mapeadores": ["COMPRAS"]})
+    assert valido.status_code == 201, valido.text
+    assert valido.json()["estado"] == "PENDIENTE"
+    assert valido.json()["mapeadores"] == ["COMPRAS"]
+    assert db_session.execute(eventos).scalar_one() == 1
+
+
 def _token(cli: TestClient, correo: str, secreto: str = SECRETO):
     return cli.post("/integraciones/agrofusion/token",
                     json={"client_id": "agrofusion", "client_secret": secreto, "email": correo})
+
+
+def test_g60_rechaza_credenciales_de_url_sin_guardar_su_valor(
+    db_session, m06, cliente_http, crear_usuario_db, crear_auth_headers,
+):
+    contador = crear_usuario_db(id_rol=5, estado=2)
+    admin = crear_auth_headers(crear_usuario_db(id_rol=1, estado=2))
+    web_contador = crear_auth_headers(contador)
+    rango, _ = _sembrar_m06_cerrado(db_session, m06, contador["id_usuario"])
+    _preparar_m07(cliente_http, admin, web_contador)
+    token = _token(cliente_http, contador["correo"])
+    assert token.status_code == 200, token.text
+    canal = {"Authorization": f"Bearer {token.json()['access_token']}"}
+
+    consulta = cliente_http.get(URL, params=rango, headers=canal)
+    assert consulta.status_code == 200, consulta.text
+    assert consulta.json()["summary"]["TotalInvoices"] == len(consulta.json()["invoices"]) == 1
+
+    for parametro in ("password", "Password", "token", "api_key", "CLIENT_ID", "client_secret", "apikey", "access_token"):
+        id_solicitud = str(uuid4())
+        valor_prueba = "valor-confidencial-sintetico-G60"
+        rechazo = cliente_http.get(URL, params={**rango, parametro: valor_prueba},
+                                   headers={**canal, "X-Request-Id": id_solicitud})
+        assert rechazo.status_code == 400, rechazo.text
+        assert rechazo.json()["error_code"] == "CREDENCIALES_EN_URL"
+        assert valor_prueba not in rechazo.text
+        tipo, codigo, evento = db_session.execute(text("""
+            SELECT e.tipo_evento, e.codigo_http, to_jsonb(e)::text
+            FROM modulo7.eventos_integracion e WHERE e.id_solicitud = :id
+        """), {"id": id_solicitud}).one()
+        assert (tipo, codigo) == ("CREDENCIALES_EN_URL", 400)
+        assert valor_prueba not in evento
+
+    assert cliente_http.get(URL, params=rango, headers=web_contador).status_code == 401
+    otro_cliente = cliente_http.post("/integracion/clientes", headers=admin, json={
+        "codigo": "QA_M2M", "nombre": "Cliente M2M QA", "identificador_publico": "qa-m2m",
+        "fecha_vencimiento": (HOY + timedelta(days=365)).isoformat(), "client_secret": SECRETO,
+        "canales": [{"canal": "IDENTIDAD_M2M"}],
+    })
+    assert otro_cliente.status_code == 201, otro_cliente.text
+    token_m2m = cliente_http.post("/integraciones/agrofusion/token", json={
+        "client_id": "qa-m2m", "client_secret": SECRETO, "email": contador["correo"],
+    })
+    assert token_m2m.status_code == 200, token_m2m.text
+    sin_canal = cliente_http.get(URL, params=rango, headers={
+        "Authorization": f"Bearer {token_m2m.json()['access_token']}",
+    })
+    assert (sin_canal.status_code, sin_canal.json()["error_code"]) == (403, "CLIENTE_NO_AUTORIZADO")
+
+
+@pytest.mark.parametrize("control", [
+    "estructura", "cobertura", "sin_tipo_06", "cuadre_documento", "cuentas", "fechas",
+    "TotalInvoices", "TotalDocuments", "TotalGrossAmount", "TotalNet",
+])
+def test_g60_falla_del_anexo_bloquea_revision_y_queda_auditada(
+    db_session, cliente_http, crear_usuario_db, crear_auth_headers, monkeypatch, control,
+):
+    from src.accounting_integration.application.use_cases.contratos import gestionar_anexos_use_case as anexos
+
+    admin = crear_auth_headers(crear_usuario_db(id_rol=1, estado=2))
+    contador = crear_auth_headers(crear_usuario_db(id_rol=5, estado=2))
+    codigo_anexo = "AAEF-ANEXO-G60"
+    registro = cliente_http.post("/integracion/anexos", headers=admin, json={
+        "codigo_anexo": codigo_anexo, "version_anexo": "8.0",
+        "ruta_documento": "docs/integracion/anexo_aaef_v3.0.md",
+        "sha256_documento": hashlib.sha256(b"anexo-g60").hexdigest(),
+    })
+    assert registro.status_code == 201, registro.text
+    id_anexo = registro.json()["id_mapeo_anexo_aaef"]
+    original = anexos.construir_envelope
+
+    def construir_con_falla(*args, **kwargs):
+        envelope = original(*args, **kwargs)
+        factura = envelope["invoices"][0]
+        if control == "estructura":
+            envelope["metadata"]["RequestedPeriod"] = []
+        elif control == "cobertura":
+            del factura["Lines"]
+        elif control == "sin_tipo_06":
+            envelope["invoices"] = [factura]
+            envelope["summary"].update(
+                TotalInvoices=1, TotalDocuments=1, TotalGrossAmount=factura["Totals"]["Subtotal"],
+                TotalNet=factura["Totals"]["TotalPayment"],
+            )
+        elif control == "cuadre_documento":
+            factura["Totals"]["TotalPayment"] += D("1")
+        elif control == "cuentas":
+            factura["Lines"][0]["accounting_account"] = []
+        elif control == "fechas":
+            factura["Header"]["IssueDate"] = "15/01/2026"
+        else:
+            envelope["summary"][control] += 1
+        return envelope
+
+    url = f"/integracion/anexos/{id_anexo}/revision"
+    with monkeypatch.context() as parche:
+        parche.setattr(anexos, "construir_envelope", construir_con_falla)
+        rechazo = cliente_http.post(url, headers=contador, json={"justificacion": "Mapeo revisado contra el plan de cuentas del productor."})
+    assert rechazo.status_code == 422, rechazo.text
+    assert rechazo.json()["error_code"] == "ANEXO_VALIDACION_FALLIDA"
+    assert db_session.execute(text("""
+        SELECT estado, fecha_aprobacion_interna FROM modulo7.mapeos_anexos_aaef
+        WHERE id_mapeo_anexo_aaef = :id
+    """), {"id": id_anexo}).one() == ("BORRADOR", None)
+    tipo, codigo, detalle = db_session.execute(text("""
+        SELECT tipo_evento, codigo_resultado, json_detalle FROM modulo7.eventos_integracion
+        WHERE json_detalle->>'codigo_anexo' = :anexo AND tipo_evento <> 'ANEXO_REGISTRADO'
+    """), {"anexo": codigo_anexo}).one()
+    assert tipo == codigo == "ANEXO_VALIDACION_FALLIDA"
+    esperado = "cuadre del resumen" if control.startswith("Total") else {
+        "estructura": "estructura", "cobertura": "cobertura", "sin_tipo_06": "cobertura", "cuadre_documento": "cuadre",
+        "cuentas": "cuentas", "fechas": "fechas",
+    }[control]
+    assert esperado in detalle["fallas"]
+
+    revision = cliente_http.post(url, headers=contador, json={"justificacion": "Mapeo revisado contra el plan de cuentas del productor."})
+    assert revision.status_code == 200, revision.text
+    assert revision.json()["estado"] == "EN_REVISION"
+
+
+def test_g61_rechaza_consulta_y_vista_previa_con_un_costo_inferior_a_un_centavo(
+    db_session, m06, cliente_http, crear_usuario_db, crear_auth_headers,
+):
+    contador = crear_usuario_db(id_rol=5, estado=2)
+    admin_web = crear_auth_headers(crear_usuario_db(id_rol=1, estado=2))
+    contador_web = crear_auth_headers(contador)
+    monto = D("0.0049")
+    rango, _ = _sembrar_m06_cerrado(db_session, m06, contador["id_usuario"], monto_adicional=monto)
+    _preparar_m07(cliente_http, admin_web, contador_web)
+    credencial = _token(cliente_http, contador["correo"])
+    assert credencial.status_code == 200, credencial.text
+    id_solicitud = str(uuid4())
+    cabeceras = {"Authorization": f"Bearer {credencial.json()['access_token']}", "X-Request-Id": id_solicitud}
+    consulta = cliente_http.get(URL, params=rango, headers=cabeceras)
+    previa = cliente_http.get(f"/integracion/aaef/vista-previa/productores/{NIT}",
+                              params=rango, headers=contador_web)
+    for respuesta in (consulta, previa):
+        assert respuesta.status_code == 422, respuesta.text
+        cuerpo = respuesta.json()
+        assert cuerpo["error_code"] == "MAPPER_FALLIDO"
+        assert cuerpo["fields"][0]["field"] == "Value"
+        assert "invoices" not in cuerpo and "X-Content-SHA256" not in respuesta.headers
+
+    assert db_session.execute(text("""
+        SELECT tipo_evento, codigo_resultado, codigo_http, hash_contenido
+        FROM modulo7.eventos_integracion WHERE id_solicitud = :id
+    """), {"id": id_solicitud}).one() == ("SOLICITUD_RECHAZADA", "MAPPER_FALLIDO", 422, None)
+    assert db_session.execute(text("""
+        SELECT monto_costo FROM modulo6.registros_costos WHERE factura_numero = '88232'
+    """)).scalar_one() == monto
 
 
 def test_agrofusion_consulta_el_documento_aaef_de_punta_a_punta(

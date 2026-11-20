@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-AE02: registro, revisión (validación automática) y aprobación del anexo |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: bloquear y auditar fallas de cobertura y cuadre del resumen. |
+# | 2026-11-19 | Arekkazu | M7-02 RF-98: la aprobación interna guarda la justificación del Contador |
 """Anexo de mapeo AAEF (RF-AE02 v3.0): BORRADOR → EN_REVISION → APROBADO, sin vuelta atrás.
 
 - Pasar a revisión es la aprobación interna del Contador (5.9) y exige la validación automática con
@@ -9,11 +11,11 @@
 Un anexo aprobado no se edita: un cambio es un anexo nuevo."""
 from __future__ import annotations
 
-import json
 import re
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+from pydantic import ValidationError as ErrorEsquema
 from sqlalchemy.orm import Session
 
 from src.accounting_integration.domain.entities.contrato import AnexoMapeo
@@ -21,6 +23,7 @@ from src.accounting_integration.domain.entities.evento_integracion import Evento
 from src.accounting_integration.domain.repositories.auditoria_integracion_repository import AuditoriaIntegracionRepository
 from src.accounting_integration.domain.repositories.contrato_repository import ContratoRepository
 from src.accounting_integration.domain.services.aaef import (
+    AaefError,
     ComprobanteNic41,
     CostoFactura,
     SistemaOrigen,
@@ -30,6 +33,7 @@ from src.accounting_integration.domain.services.aaef import (
     mapear_compras,
     serializar,
     verificar_cuadre,
+    verificar_cuadre_resumen,
 )
 from src.accounting_integration.domain.services.esquema_agrofusion import AccountingConsultResponse
 from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
@@ -45,22 +49,45 @@ def validar_con_datos_de_prueba() -> list[str]:
                           "ALIMENTO", Decimal("1000.505"), "51350501", "PRUEBA-1")
     comprobante = ComprobanteNic41("NIC-900000001-202601-VARIACION_VR_TB-1", "VARIACION_VR_TB", "Especie de prueba",
                                    date(2026, 1, 31), [{"cuenta_debito": "15120501", "cuenta_credito": "42950501", "valor": "2500"}])
-    envelope = construir_envelope(titular, date(2026, 1, 1), date(2026, 1, 31), SistemaOrigen("SGPMP", "SIGAB", "PRUEBA"),
-                                  "validacion@sgpmp.local", date(2026, 2, 1), mapear_compras([compra]),
-                                  mapear_comprobantes([comprobante], titular))
-    fallas = []
     try:
-        AccountingConsultResponse.model_validate(json.loads(serializar(envelope)))
-    except Exception:
-        fallas.append("estructura")
+        envelope = construir_envelope(
+            titular, date(2026, 1, 1), date(2026, 1, 31), SistemaOrigen("SGPMP", "SIGAB", "PRUEBA"),
+            "validacion@sgpmp.local", date(2026, 2, 1), mapear_compras([compra]),
+            mapear_comprobantes([comprobante], titular),
+        )
+    except (AaefError, KeyError, TypeError, ValueError):
+        return ["generación de documentos de prueba"]
+
+    try:
+        documento = AccountingConsultResponse.model_validate_json(serializar(envelope))
+    except ErrorEsquema as exc:
+        errores = exc.errors(include_input=False, include_context=False, include_url=False)
+        if any(error["type"] == "missing" for error in errores):
+            return ["estructura", "cobertura"]
+        return ["estructura"]
+    except (TypeError, ValueError):
+        return ["estructura"]
+
+    fallas = []
+    facturas = documento.invoices
+    if sorted(d.Header.Type.Code for d in facturas) != ["02", "06"] or any(not d.Lines for d in facturas):
+        fallas.append("cobertura")
+
+    # El cuadre utiliza los importes originales (Decimal) antes de su conversión a JSON.
     try:
         verificar_cuadre(envelope)
-    except Exception:
+    except (AaefError, ArithmeticError, TypeError):
         fallas.append("cuadre")
-    if any(len(ln["accounting_account"]) != (1 if d["Header"]["Type"]["Code"] == "02" else 2)
-           for d in envelope["invoices"] for ln in d["Lines"]):
+    try:
+        verificar_cuadre_resumen(envelope)
+    except (AaefError, ArithmeticError, TypeError):
+        fallas.append("cuadre del resumen")
+
+    if any(len(linea.accounting_account) != (1 if d.Header.Type.Code == "02" else 2)
+           for d in facturas for linea in d.Lines):
         fallas.append("cuentas")
-    if not all(_FECHA.match(d["Header"][c]) for d in envelope["invoices"] for c in ("IssueDate", "DueDate", "UpdatedAt")):
+    if not all(_FECHA.fullmatch(fecha) for d in facturas
+               for fecha in (d.Header.IssueDate, d.Header.DueDate, d.Header.UpdatedAt)):
         fallas.append("fechas")
     return fallas
 
@@ -98,18 +125,24 @@ class GestionarAnexosUseCase:
         return self._confirmar(AnexoMapeo(None, codigo_anexo, version_anexo, ruta_documento, sha),
                                "ANEXO_REGISTRADO", id_usuario, {"sha256_documento": sha})
 
-    def enviar_a_revision(self, id_mapeo_anexo_aaef: int, id_usuario: int) -> AnexoMapeo:
+    def enviar_a_revision(self, id_mapeo_anexo_aaef: int, id_usuario: int, justificacion: str) -> AnexoMapeo:
         anexo = self._anexo(id_mapeo_anexo_aaef)
         fallas = validar_con_datos_de_prueba()
         if fallas:  # FA-2: no avanza
-            self.auditoria.registrar(EventoIntegracion(
-                tipo_evento="ANEXO_VALIDACION_FALLIDA", severidad="ERROR", tipo_actor="USUARIO", id_usuario=id_usuario,
-                codigo_resultado="ANEXO_VALIDACION_FALLIDA", json_detalle={"codigo_anexo": anexo.codigo_anexo, "fallas": fallas}))
-            self.db.commit()
+            try:
+                self.auditoria.registrar(EventoIntegracion(
+                    tipo_evento="ANEXO_VALIDACION_FALLIDA", severidad="ERROR", tipo_actor="USUARIO", id_usuario=id_usuario,
+                    codigo_resultado="ANEXO_VALIDACION_FALLIDA",
+                    json_detalle={"codigo_anexo": anexo.codigo_anexo, "fallas": fallas}))
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
             raise BusinessRuleError(code="ANEXO_VALIDACION_FALLIDA", message=(
                 f"La validación automática del anexo falló ({', '.join(fallas)}). Corrija el mapeo antes de enviarlo a revisión."))
         anexo.enviar_a_revision(datetime.now(timezone.utc))
-        return self._confirmar(anexo, "ANEXO_EN_REVISION", id_usuario, {"validacion_automatica": "OK"})
+        return self._confirmar(anexo, "ANEXO_EN_REVISION", id_usuario,
+                               {"validacion_automatica": "OK", "justificacion": justificacion})
 
     def aprobar(self, id_mapeo_anexo_aaef: int, evidencia: dict, id_usuario: int) -> AnexoMapeo:
         anexo = self._anexo(id_mapeo_anexo_aaef)

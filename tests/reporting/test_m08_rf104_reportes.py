@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                                     |
 # |------------|----------|---------------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: filtros, permisos, períodos, armado, Excel/PDF, partes y ciclo de vida |
+# | 2026-11-19 | Arekkazu | M08 RF-104: plantillas V1.1, indicadores, parámetros y encabezado del animal |
 """RF-104 — reportes: validación, ciclo de la solicitud, contenido de los reportes, archivos y casos de uso.
 
 Sin BD: la fuente, el repositorio y los avisos son dobles en memoria. Las consultas SQL tienen su prueba de
@@ -25,6 +26,7 @@ from src.reporting.application.use_cases.reportes.armadores import (
     SIN_CAUSA,
     SIN_SINIGAN,
     Contexto,
+    _fincas_filtro,
 )
 from src.reporting.application.use_cases.reportes.descargar_reporte_use_case import DescargarReporteUseCase
 from src.reporting.application.use_cases.reportes.generacion import Solicitante, partir_en_archivos, preparar
@@ -242,7 +244,8 @@ def test_bajas_sin_causa_de_muerte_dicen_causa_no_registrada():
     c = ARMADORES["REPORTE_BAJAS_Y_SALIDAS"](_ctx("REPORTE_BAJAS_Y_SALIDAS", FuenteFalsa(salidas=salida)))
     fila = c.detalle.filas[0]
     assert fila["motivo"] == SIN_CAUSA and fila["origen_valor"] == "Valor razonable del último cierre"
-    assert "trazabilidad" in c.advertencias[0]
+    assert any("trazabilidad" in a for a in c.advertencias)
+    assert any("SINIGAN" in a for a in c.advertencias)
 
 
 def test_nic41_sin_exportacion_dice_exportacion_pendiente_y_lleva_firma():
@@ -318,6 +321,35 @@ def test_pdf_es_valido_y_formatea_como_en_colombia():
     assert pdf.startswith(b"%PDF") and len(pdf) > 1000
     assert texto_celda(Decimal("1639000"), MONEDA) == "$ 1.639.000,00"
     assert texto_celda(date(2026, 11, 18), FECHA) == "18/11/2026"
+
+
+def test_plantilla_v11_parametros_indicadores_y_finca_del_animal():
+    """M8-08/M8-12/M8-13: el encabezado lleva la finca del animal, los filtros se leen con nombres, el Excel guarda
+    la fecha de generación como fecha y las cifras del PDF no se parten."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    from src.reporting.infrastructure.adapters import renderizador_reportes as rr
+
+    fuente = FuenteFalsa(ubicaciones={("activo", 2): {"id": 2, "id_finca": 3}},
+                         nombre_referencia=lambda tipo, id_ref: "BOV-002")
+    s = _solicitante(fincas=(1, 3))
+    s.rol = "Veterinario"
+    p = preparar(fuente, "REPORTE_HISTORICO_SANITARIO", {"fecha_inicio": "2026-11-01", "fecha_fin": "2026-11-10",
+                                                          "activo_biologico_id": 2}, s, AHORA)
+    assert ("Animal o lote", "BOV-002") in p.contenido.parametros and ("Especie", "Todas") in p.contenido.parametros
+    assert p.contenido.generado_por == "Ana Pérez (Veterinario)"
+    assert [i.etiqueta for i in p.contenido.indicadores] == ["Total de eventos", "Tasa de resolución clínica",
+                                                             "Activos atendidos"]
+    assert _fincas_filtro(_ctx("REPORTE_HISTORICO_SANITARIO", fuente, {"activo_biologico_id": 2})) == [3]
+
+    libro = load_workbook(io.BytesIO(RenderizadorReportes().renderizar(p.contenido, EXCEL, None)))
+    filas = {f[0].value: f[1] for f in libro["Resumen Ejecutivo"].iter_rows(min_row=2) if f[0].value}
+    assert filas["Fecha de generación"].is_date and filas["Animal o lote"].value == "BOV-002"
+
+    tabla = Tabla("x", [Columna(f"c{i}", f"Columna {i}", MONEDA) for i in range(7)] + [Columna("t", "Identificación")],
+                  [{**{f"c{i}": Decimal("2809848.5") for i in range(7)}, "t": "QA-M06-G52-SANITARIO"}])
+    anchos = rr._anchos_pdf(tabla, 720)
+    cifra = stringWidth(rr._texto_pdf(Decimal("2809848.5"), MONEDA), "Helvetica", 10)
+    assert all(a - 2 * rr._PADDING >= cifra for a in anchos[:7]) and abs(sum(anchos) - 720) < 0.01
 
 
 class RenderizadorFalso(RenderizadorReportes):
