@@ -1,0 +1,626 @@
+{
+  "info": {
+    "name": "TC-M08-G005 Trazabilidad y solo lectura de los widgets (RF-103)",
+    "description": "TC-M08-012. Los botones de la pantalla se revisan en el navegador. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Veterinario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_vet', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_vet', t); pm.collectionVariables.set('id_veterinario', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Contador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Contador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_cont', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_cont', t); pm.collectionVariables.set('id_contador', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_contador}}\",\n  \"contrasena\": \"{{contrasena_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Ingeniero de Campo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Ingeniero de Campo (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_ing', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_ing', t); pm.collectionVariables.set('id_ingeniero', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Catálogo de widgets (Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - catálogo de widgets (200)', () => pm.response.to.have.status(200));",
+                  "const m = {}; (pm.response.json() || []).forEach(w => m[w.id_widget] = w.clave);",
+                  "pm.collectionVariables.set('catalogo', JSON.stringify(m));",
+                  "console.log('Catálogo: ' + JSON.stringify(m));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-012 Widgets de solo lectura con identificador, hora y estado",
+      "item": [
+        {
+          "name": "TC-M08-012 - Productor: identificador, hora y estado de cada widget del layout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-012 - layout del Productor (200)', () => pm.response.to.have.status(200));",
+                  "const claves = (pm.response.json().grid || []).map(g => cat[g.id_widget]).filter(Boolean);",
+                  "enSerie(claves, k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=494', 'tok_prod')).then(rs => {",
+                  "  rs.forEach((x, i) => console.log(claves[i] + ' ' + JSON.stringify(x.json && { clave: x.json.clave, estado: x.json.estado, actualizado_en: x.json.actualizado_en, huella: x.json.huella })));",
+                  "  pm.test('TC-M08-012 - Productor: cada widget trae su identificador (clave = la pedida)', () => rs.forEach((x, i) => pm.expect(x.json && x.json.clave, claves[i]).to.equal(claves[i])));",
+                  "  pm.test('TC-M08-012 - Productor: cada widget trae la hora de su última actualización (reciente)', () => rs.forEach((x, i) => pm.expect(Math.abs(Date.now() - Date.parse(x.json && x.json.actualizado_en)), claves[i]).to.be.below(300000)));",
+                  "  pm.test('TC-M08-012 - Productor: cada widget trae su estado OK / ERROR / SIN_DATOS', () => rs.forEach((x, i) => pm.expect(x.json && x.json.estado, claves[i]).to.be.oneOf(['OK', 'ERROR', 'SIN_DATOS'])));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-012 - Veterinario: identificador, hora y estado de cada widget del layout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-012 - layout del Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "const claves = (pm.response.json().grid || []).map(g => cat[g.id_widget]).filter(Boolean);",
+                  "enSerie(claves, k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=494', 'tok_vet')).then(rs => {",
+                  "  rs.forEach((x, i) => console.log(claves[i] + ' ' + JSON.stringify(x.json && { clave: x.json.clave, estado: x.json.estado, actualizado_en: x.json.actualizado_en, huella: x.json.huella })));",
+                  "  pm.test('TC-M08-012 - Veterinario: cada widget trae su identificador (clave = la pedida)', () => rs.forEach((x, i) => pm.expect(x.json && x.json.clave, claves[i]).to.equal(claves[i])));",
+                  "  pm.test('TC-M08-012 - Veterinario: cada widget trae la hora de su última actualización (reciente)', () => rs.forEach((x, i) => pm.expect(Math.abs(Date.now() - Date.parse(x.json && x.json.actualizado_en)), claves[i]).to.be.below(300000)));",
+                  "  pm.test('TC-M08-012 - Veterinario: cada widget trae su estado OK / ERROR / SIN_DATOS', () => rs.forEach((x, i) => pm.expect(x.json && x.json.estado, claves[i]).to.be.oneOf(['OK', 'ERROR', 'SIN_DATOS'])));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-012 - Contador: identificador, hora y estado de cada widget del layout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-012 - layout del Contador (200)', () => pm.response.to.have.status(200));",
+                  "const claves = (pm.response.json().grid || []).map(g => cat[g.id_widget]).filter(Boolean);",
+                  "enSerie(claves, k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=494', 'tok_cont')).then(rs => {",
+                  "  rs.forEach((x, i) => console.log(claves[i] + ' ' + JSON.stringify(x.json && { clave: x.json.clave, estado: x.json.estado, actualizado_en: x.json.actualizado_en, huella: x.json.huella })));",
+                  "  pm.test('TC-M08-012 - Contador: cada widget trae su identificador (clave = la pedida)', () => rs.forEach((x, i) => pm.expect(x.json && x.json.clave, claves[i]).to.equal(claves[i])));",
+                  "  pm.test('TC-M08-012 - Contador: cada widget trae la hora de su última actualización (reciente)', () => rs.forEach((x, i) => pm.expect(Math.abs(Date.now() - Date.parse(x.json && x.json.actualizado_en)), claves[i]).to.be.below(300000)));",
+                  "  pm.test('TC-M08-012 - Contador: cada widget trae su estado OK / ERROR / SIN_DATOS', () => rs.forEach((x, i) => pm.expect(x.json && x.json.estado, claves[i]).to.be.oneOf(['OK', 'ERROR', 'SIN_DATOS'])));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-012 - Ingeniero: identificador, hora y estado de cada widget del layout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-012 - layout del Ingeniero (200)', () => pm.response.to.have.status(200));",
+                  "const claves = (pm.response.json().grid || []).map(g => cat[g.id_widget]).filter(Boolean);",
+                  "enSerie(claves, k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=494', 'tok_ing')).then(rs => {",
+                  "  rs.forEach((x, i) => console.log(claves[i] + ' ' + JSON.stringify(x.json && { clave: x.json.clave, estado: x.json.estado, actualizado_en: x.json.actualizado_en, huella: x.json.huella })));",
+                  "  pm.test('TC-M08-012 - Ingeniero: cada widget trae su identificador (clave = la pedida)', () => rs.forEach((x, i) => pm.expect(x.json && x.json.clave, claves[i]).to.equal(claves[i])));",
+                  "  pm.test('TC-M08-012 - Ingeniero: cada widget trae la hora de su última actualización (reciente)', () => rs.forEach((x, i) => pm.expect(Math.abs(Date.now() - Date.parse(x.json && x.json.actualizado_en)), claves[i]).to.be.below(300000)));",
+                  "  pm.test('TC-M08-012 - Ingeniero: cada widget trae su estado OK / ERROR / SIN_DATOS', () => rs.forEach((x, i) => pm.expect(x.json && x.json.estado, claves[i]).to.be.oneOf(['OK', 'ERROR', 'SIN_DATOS'])));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-012 - POST /dashboard/widgets/semaforo_areas no modifica datos (405)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-012 - POST sobre un widget no está permitido (405): el widget es de solo lectura', () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-012 - PUT /dashboard/widgets/semaforo_areas no modifica datos (405)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-012 - PUT sobre un widget no está permitido (405): el widget es de solo lectura', () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-012 - PATCH /dashboard/widgets/semaforo_areas no modifica datos (405)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-012 - PATCH sobre un widget no está permitido (405): el widget es de solo lectura', () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-012 - DELETE /dashboard/widgets/semaforo_areas no modifica datos (405)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-012 - DELETE sobre un widget no está permitido (405): el widget es de solo lectura', () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,881 @@
+{
+  "info": {
+    "name": "TC-M08-G003 Semáforo y alcance de fincas (RF-103)",
+    "description": "TC-M08-005, 006 y 011. Áreas 1468/1494/1495 de la finca 494; finca ajena 495. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Ingeniero de Campo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Ingeniero de Campo (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_ing', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_ing', t); pm.collectionVariables.set('id_ingeniero', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Catálogo de widgets (Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - catálogo de widgets (200)', () => pm.response.to.have.status(200));",
+                  "const m = {}; (pm.response.json() || []).forEach(w => m[w.id_widget] = w.clave);",
+                  "pm.collectionVariables.set('catalogo', JSON.stringify(m));",
+                  "console.log('Catálogo: ' + JSON.stringify(m));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-005 Semáforo de alertas por infraestructura",
+      "item": [
+        {
+          "name": "TC-M08-005 - Productor GET /iot/alertas activas del área 1468 (con alerta crítica)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-005 - alertas activas del área 1468 (200)', () => pm.response.to.have.status(200));",
+                  "const it = ((pm.response.json() || {}).items || []).filter(a => a.tipo_alerta !== 'TECNICA');",
+                  "pm.collectionVariables.set('alertas_1468', JSON.stringify(it.map(a => a.severidad)));",
+                  "console.log(JSON.stringify(it.map(a => [a.id_alerta, a.tipo_alerta, a.severidad])));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_infraestructura=1468&estado_alerta=ACTIVA&por_pagina=50"
+          }
+        },
+        {
+          "name": "TC-M08-005 - Productor GET /iot/alertas activas del área 1494 (solo moderadas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-005 - alertas activas del área 1494 (200)', () => pm.response.to.have.status(200));",
+                  "const it = ((pm.response.json() || {}).items || []).filter(a => a.tipo_alerta !== 'TECNICA');",
+                  "pm.collectionVariables.set('alertas_1494', JSON.stringify(it.map(a => a.severidad)));",
+                  "console.log(JSON.stringify(it.map(a => [a.id_alerta, a.tipo_alerta, a.severidad])));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_infraestructura=1494&estado_alerta=ACTIVA&por_pagina=50"
+          }
+        },
+        {
+          "name": "TC-M08-005 - Productor GET /iot/alertas activas del área 1495 (sin alertas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-005 - alertas activas del área 1495 (200)', () => pm.response.to.have.status(200));",
+                  "const it = ((pm.response.json() || {}).items || []).filter(a => a.tipo_alerta !== 'TECNICA');",
+                  "pm.collectionVariables.set('alertas_1495', JSON.stringify(it.map(a => a.severidad)));",
+                  "console.log(JSON.stringify(it.map(a => [a.id_alerta, a.tipo_alerta, a.severidad])));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_infraestructura=1495&estado_alerta=ACTIVA&por_pagina=50"
+          }
+        },
+        {
+          "name": "TC-M08-005 - Ingeniero GET estado de los dispositivos (para el área sin alertas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-005 - estado de dispositivos (200)', () => pm.response.to.have.status(200));",
+                  "const it = ((pm.response.json() || {}).datos || {}).items || [];",
+                  "pm.collectionVariables.set('disp_1495', JSON.stringify(it.filter(x => x.area === 'Corral Sin Alertas Qa').map(x => x.estado)));",
+                  "console.log('Dispositivos del área 1495: ' + pm.collectionVariables.get('disp_1495'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/estado_iot?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-005 - Productor widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-005 - semaforo_areas responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-005 - semaforo_areas trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "const sev = a => JSON.parse(pm.collectionVariables.get('alertas_' + a) || '[]');",
+                  "const a1 = (datos.areas || []).find(a => a.id_infraestructura === 1468) || {}, a2 = (datos.areas || []).find(a => a.id_infraestructura === 1494) || {}, a3 = (datos.areas || []).find(a => a.id_infraestructura === 1495) || {};",
+                  "console.log(JSON.stringify([a1, a2, a3]));",
+                  "pm.test('TC-M08-005 - área 1468 con alerta CRÍTICA activa → ROJO', () => { pm.expect(sev(1468)).to.include('CRITICO'); pm.expect(a1.estado).to.equal('ROJO'); });",
+                  "pm.test('TC-M08-005 - área 1494 solo con alertas moderadas → AMARILLO', () => { pm.expect(sev(1494)).to.not.include('CRITICO'); pm.expect(sev(1494).length).to.be.above(0); pm.expect(a2.estado).to.equal('AMARILLO'); });",
+                  "pm.test('TC-M08-005 - los conteos del semáforo coinciden con /iot/alertas (críticas y advertencias)', () => { pm.expect(a1.criticas).to.equal(sev(1468).filter(s => s === 'CRITICO').length); pm.expect(a2.advertencias).to.equal(sev(1494).filter(s => s !== 'CRITICO').length); });",
+                  "pm.test('TC-M08-005 - área 1495 sin alertas: no pinta ROJO ni AMARILLO', () => { pm.expect(sev(1495)).to.eql([]); pm.expect(a3.estado).to.be.oneOf(['VERDE', 'SIN_DATOS']); });",
+                  "const caidos = JSON.parse(pm.collectionVariables.get('disp_1495') || '[]');",
+                  "pm.test('TC-M08-005 - área 1495: VERDE, o «datos no disponibles» (SIN_DATOS) solo si todos sus dispositivos están caídos (R5)', () => { if (a3.estado === 'SIN_DATOS') caidos.forEach(e => pm.expect(e).to.be.oneOf(['SIN_SEÑAL', 'EN_MANTENIMIENTO', 'INACTIVO'])); else pm.expect(a3.estado).to.equal('VERDE'); });",
+                  "if (a3.estado === 'SIN_DATOS') console.warn('DATO: los dispositivos del área 1495 están caídos (' + caidos.join(', ') + '); para ver VERDE hay que refrescar un heartbeat.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-006 Solo datos de las fincas asignadas",
+      "item": [
+        {
+          "name": "TC-M08-006 - Ingeniero GET sus fincas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-006 - el Ingeniero tiene una sola finca (494)', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().items.map(f => f.id_finca)).to.eql([494]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/me/fincas"
+          }
+        },
+        {
+          "name": "TC-M08-006 - Administrador GET dispositivos IoT (existe el 863 de la finca ajena 495)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-006 - existe en TEST el dispositivo 863 de la finca ajena', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().items.map(x => x.id_dispositivo_iot)).to.include(863); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot?por_pagina=1000"
+          }
+        },
+        {
+          "name": "TC-M08-006 - Ingeniero GET sus dispositivos IoT (módulo de origen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-006 - dispositivos del Ingeniero (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('disp_propios', JSON.stringify(pm.response.json().items.map(x => x.id_dispositivo_iot)));",
+                  "console.log('Propios: ' + pm.collectionVariables.get('disp_propios'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot"
+          }
+        },
+        {
+          "name": "TC-M08-006 - Ingeniero widget estado_iot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-006 - estado_iot responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-006 - estado_iot trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "const propios = JSON.parse(pm.collectionVariables.get('disp_propios') || '[]');",
+                  "const ids = (datos.items || []).map(x => x.id_dispositivo_iot);",
+                  "pm.test('TC-M08-006 - Estado Dispositivos IoT: no aparece el dispositivo 863 de la finca ajena', () => pm.expect(ids).to.not.include(863));",
+                  "pm.test('TC-M08-006 - Estado Dispositivos IoT: todos los dispositivos son de la finca del Ingeniero', () => pm.expect(ids.filter(i => !propios.includes(i))).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/estado_iot?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-006 - Ingeniero widget fincas_estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-006 - fincas_estado responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-006 - fincas_estado trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-006 - Estado de Fincas: solo la finca 494', () => pm.expect((datos.items || datos.fincas || []).map(f => f.id_finca)).to.eql([494]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/fincas_estado"
+          }
+        },
+        {
+          "name": "TC-M08-006 - Ingeniero widget estado_iot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-006 - pedir la finca ajena 495 se bloquea (403 FINCA_NO_AUTORIZADA)', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('FINCA_NO_AUTORIZADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/estado_iot?id_finca={{id_finca_ajena}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M08-011 Finca no asignada, usuario con 2 fincas y usuario sin finca",
+      "item": [
+        {
+          "name": "TC-M08-011 - Productor widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-011 - finca no asignada (495) bloqueada con «No tienes permisos para esta finca» (403)', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().message).to.equal('No tienes permisos para esta finca.'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca_ajena}}"
+          }
+        },
+        {
+          "name": "TC-M08-011 - PREP Administrador asigna al Productor las fincas 494 y 495 (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-011 - PREP fincas asignadas (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_productor}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids_fincas\": [494, 495]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor GET sus fincas (2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-011 - el Productor tiene 2 fincas', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().items.map(f => f.id_finca).sort()).to.eql([494, 495]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/me/fincas"
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor GET contexto con 2 fincas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-011 - con 2 fincas la finca activa sigue siendo una sola (494)', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().id_finca).to.equal(494); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/interfaz/contexto"
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-011 - semáforo de la finca 494 (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('areas_494', JSON.stringify((datos.areas || []).map(a => a.id_infraestructura)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-011 - al cambiar a la finca 495 el widget responde (200)', () => pm.response.to.have.status(200));",
+                  "const a494 = JSON.parse(pm.collectionVariables.get('areas_494') || '[]');",
+                  "pm.test('TC-M08-011 - la finca 495 no mezcla áreas de la 494', () => pm.expect((datos.areas || []).filter(a => a494.includes(a.id_infraestructura))).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca_ajena}}"
+          }
+        },
+        {
+          "name": "TC-M08-011 - PREP Administrador deja al Productor sin fincas (solo dentro del sandbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-011 - PREP fincas retiradas (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_productor}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids_fincas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor GET sus fincas (ninguna)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-011 - el Productor no tiene fincas', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().items).to.eql([]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/me/fincas"
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor GET contexto sin finca",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-011 - sin finca el contexto no trae finca activa (configuración pendiente)', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().id_finca).to.be.null; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/interfaz/contexto"
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor widget fincas_estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-011 - Estado de Fincas sin finca: SIN_DATOS «No tienes fincas asignadas.»', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.equal('SIN_DATOS'); pm.expect(d.mensaje).to.equal('No tienes fincas asignadas.'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/fincas_estado"
+          }
+        },
+        {
+          "name": "TC-M08-011 - Productor widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-011 - sin finca, pedir la 494 se bloquea (403 FINCA_NO_AUTORIZADA)', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
