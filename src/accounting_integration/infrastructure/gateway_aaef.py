@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 / RF-AE01: Gateway de la consulta contable de AgroFusion |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01: rechazar password y omitir la query del log de acceso AAEF. |
 """Gateway de la consulta AAEF (RF-95 v2.0): las cinco responsabilidades y nada más.
 
 1. Forma de la solicitud (400) y credenciales en la URL (400 + evento de seguridad).
@@ -11,6 +12,7 @@
 """
 from __future__ import annotations
 
+import logging
 import re
 import time
 import uuid
@@ -37,11 +39,23 @@ from src.shared.rbac import tiene_permiso_sobre
 CANAL = "CONSULTA_AAEF"
 RECURSO = "exportacion_contable"
 _LEER = 2
-_CREDENCIALES = {"client_id", "client_secret", "api_key", "apikey", "token", "access_token"}
+_CREDENCIALES = {"client_id", "client_secret", "api_key", "apikey", "token", "access_token", "password"}
+_RUTA_CONSULTA = "/integracion/aaef/productores/"
 _NIT = re.compile(r"^[0-9]{6,15}$")
 _FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _PG_CONSULTA_CANCELADA = "57014"
 _TIEMPO_MAXIMO = text("SELECT set_config('statement_timeout', :ms, true)")  # solo para esta transacción
+
+
+def ocultar_query_aaef_en_log(registro: logging.LogRecord) -> bool:
+    """Conserva el registro de acceso de Uvicorn sin parámetros de la consulta AAEF."""
+    args = registro.args
+    if isinstance(args, tuple) and len(args) == 5 and isinstance(args[2], str):
+        # Uvicorn pasa (cliente, método, ruta con query, versión HTTP, estado).
+        ruta, separador, _ = args[2].partition("?")
+        if separador and _RUTA_CONSULTA in ruta:
+            registro.args = (*args[:2], ruta, *args[3:])
+    return True
 
 
 def _fecha(valor: Optional[str], campo: str) -> date:

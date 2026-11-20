@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
 # | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: verificar los cuatro totales del resumen contra los documentos. |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -259,6 +260,20 @@ def verificar_cuadre(envelope: dict) -> None:
         totales = documento["Totals"]
         if not (suma == totales["Subtotal"] == totales["TotalPayment"]):
             raise AaefError("MAPPER_FALLIDO", f"El documento {documento['Header']['DocumentId']} no cuadra.", "Totals")
+
+
+def verificar_cuadre_resumen(envelope: dict) -> None:
+    """RF-AE02 5.10: contrasta los conteos e importes del resumen con sus documentos."""
+    documentos = envelope["invoices"]
+    resumen = envelope["summary"]
+    esperados = {
+        "TotalInvoices": len(documentos),
+        "TotalDocuments": len(documentos),
+        "TotalGrossAmount": sum((d["Totals"]["Subtotal"] for d in documentos), CERO),
+        "TotalNet": sum((d["Totals"]["TotalPayment"] for d in documentos), CERO),
+    }
+    if any(resumen[campo] != valor for campo, valor in esperados.items()):
+        raise AaefError("MAPPER_FALLIDO", "El resumen del documento contable no cuadra.", "summary")
 
 
 def serializar(envelope: dict) -> bytes:
