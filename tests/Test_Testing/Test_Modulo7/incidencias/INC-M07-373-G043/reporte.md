@@ -114,3 +114,12 @@ INC-M07-373-G043 queda abierta y debe ser derivada a Desarrollo Backend, con con
 ## Adjuntos (ambas plataformas)
 
 Carpeta `evidencias/` de esta incidencia: `resultado.json`, `preflight.json`, `contexto_operacion.json`, `reproduccion_nombre_duplicado.json` y `newman/newman-G043.html`.
+
+## Retest (2026-11-20)
+
+**Resultado: corregida, retest aprobado.**
+
+- **Corrección:** Nombre de cliente único sin distinguir mayúsculas ni espacios: `409 CLIENTE_DUPLICADO` en `nombre` (#1170, dentro de #1190, rc.80; índice `uq_cliente_externo_nombre`, migración `b4d2f8e61c07`).
+- **Verificación:** El nombre repetido (idéntico, en mayúsculas y con espacios sobrantes) responde 409; un nombre nuevo sigue respondiendo 201 (verificacion_nombre_duplicado.json, con rollback). El caso TC-M07-G043 pasa 31 de 31 y el conteo de clientes no cambia.
+- **RUN del retest:** `RUN-G043-V2-20261120-105748`
+- **Evidencia:** `retest/resultado.json`, `retest/preflight.json`, `retest/verificacion_nombre_duplicado.json`, `retest/comentario_retest.md` y `retest/newman/newman-G043-retest.html`.

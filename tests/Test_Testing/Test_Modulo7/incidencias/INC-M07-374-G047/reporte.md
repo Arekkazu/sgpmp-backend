@@ -108,3 +108,12 @@ INC-M07-374-G047 queda abierta y debe ser derivada a DBA / Implementación, con 
 ## Adjuntos (ambas plataformas)
 
 Carpeta `evidencias/` de esta incidencia: `resultado.json`, `preflight.json`, `contexto_operacion.json`, `credenciales_formato_hash.json` y `newman/newman-G047.html`.
+
+## Retest (2026-11-20)
+
+**Resultado: corregida, retest aprobado.**
+
+- **Corrección:** Corrección de datos del DBA: credenciales de los clientes 1 y 2 re-emitidas con bcrypt (cost 12), incluida la credencial REVOCADA del cliente 1 (ahora `$2a$`, 60 caracteres).
+- **Verificación:** Las 20 credenciales de `modulo7.identificadores_apis` están en bcrypt (60 caracteres, prefijo `$2`); ninguna fila no bcrypt (verificacion_hashes.json, solo prefijo y largo). El caso TC-M07-G047 pasa 63 de 63. En un primer retest (10:59) quedaba 1 credencial revocada del cliente 1 con hash de 64 caracteres; el DBA la corrigió y el retest final aprobó.
+- **RUN del retest:** `RUN-G047-V3-20261120-121219`
+- **Evidencia:** `retest/resultado.json`, `retest/preflight.json`, `retest/verificacion_hashes.json`, `retest/comentario_retest.md` y `retest/newman/newman-G047-retest.html`.
