@@ -110,3 +110,12 @@ INC-M07-375-G002 queda abierta y debe ser derivada a Desarrollo Backend. La caus
 ## Adjuntos (ambas plataformas)
 
 Carpeta `evidencias/` de esta incidencia: `resultado.json`, `preflight.json`, `contexto_operacion.json`, `respuestas_error_400.json` y `newman/newman-G002.html` y `.json`.
+
+## Retest (2026-11-20)
+
+**Resultado: corregida, retest aprobado.**
+
+- **Corrección:** Todo error trae `field` (el primer campo de `fields`, o `null`), además de `error_code`, `message`, `fields` y `timestamp` (#1169, dentro de #1190/#1189, rc.80).
+- **Verificación:** Las 3 solicitudes inválidas devuelven `error_code`, `field`, `fields`, `message` y `timestamp` (verificacion_cuerpo_error.json). El caso TC-M07-G002 pasa 62 de 62; la comprobación «el cuerpo trae field» ya aprueba.
+- **RUN del retest:** `RUN-G002-V2-20261120-105634`
+- **Evidencia:** `retest/resultado.json`, `retest/preflight.json`, `retest/verificacion_cuerpo_error.json`, `retest/comentario_retest.md` y `retest/newman/newman-G002-retest.html`.
