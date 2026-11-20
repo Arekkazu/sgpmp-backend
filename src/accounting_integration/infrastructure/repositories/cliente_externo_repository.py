@@ -2,8 +2,12 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: persistencia de clientes externos, credenciales y canales |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G043 RF-101 FA-8: nombre de cliente externo único |
+# | 2026-11-20 | Arekkazu | RLS M07 RF-AE01: el token de AgroFusion lee cliente y credencial como sistema |
 """Clientes externos (``modulo7.clientes_externos``), su credencial (``identificadores_apis``, una sola
-ACTIVA por trigger) y sus canales (``canales_clientes_externos``)."""
+ACTIVA por trigger) y sus canales (``canales_clientes_externos``).
+
+El token de AgroFusion (RF-AE01) se emite antes de saber quién llama: buscar el cliente y validar su
+credencial corre como sistema, porque la RLS de modulo7 no le muestra esas filas a una sesión anónima."""
 from __future__ import annotations
 
 from typing import Optional
@@ -13,6 +17,7 @@ from sqlalchemy.orm import Session
 from src.accounting_integration.domain.entities.cliente_externo import ClienteExterno, Credencial
 from src.accounting_integration.domain.repositories.cliente_externo_repository import ClienteExternoRepository
 from src.financial_valuation.infrastructure.repositories.sql import escribir, fila, filas
+from src.shared.database import como_sistema
 
 _SELECT = """
     SELECT ce.id_cliente_externo, ce.codigo, ce.nombre, ce.identificador_publico, ce.estado::text AS estado,
@@ -35,11 +40,13 @@ class SqlAlchemyClienteExternoRepository(ClienteExternoRepository):
         self.db = db
 
     def obtener(self, id_cliente_externo: int) -> Optional[ClienteExterno]:
-        f = fila(self.db, f"{_SELECT} WHERE ce.id_cliente_externo = :id", {"id": id_cliente_externo})
+        with como_sistema(self.db):
+            f = fila(self.db, f"{_SELECT} WHERE ce.id_cliente_externo = :id", {"id": id_cliente_externo})
         return ClienteExterno(**f) if f else None
 
     def obtener_por_identificador(self, identificador_publico: str) -> Optional[ClienteExterno]:
-        f = fila(self.db, f"{_SELECT} WHERE ce.identificador_publico = :id", {"id": identificador_publico})
+        with como_sistema(self.db):
+            f = fila(self.db, f"{_SELECT} WHERE ce.identificador_publico = :id", {"id": identificador_publico})
         return ClienteExterno(**f) if f else None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[ClienteExterno]:
@@ -77,7 +84,8 @@ class SqlAlchemyClienteExternoRepository(ClienteExternoRepository):
         return self.obtener(cliente.id_cliente_externo)
 
     def credencial_activa(self, id_cliente_externo: int) -> Optional[Credencial]:
-        f = fila(self.db, """
+        with como_sistema(self.db):
+            f = fila(self.db, """
             SELECT id_identificador_api, hash_secreto, fecha_emision, fecha_expiracion, estado::text AS estado
             FROM modulo7.identificadores_apis WHERE id_cliente_externo = :id AND estado = 'ACTIVA'
         """, {"id": id_cliente_externo})

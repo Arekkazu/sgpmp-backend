@@ -4,6 +4,7 @@
 # | 2026-11-20 | SamuelPR21   | Fix: exportacion_contable en reportes_financieros,       |
 # |            |              | semaforo solo servicio, DELETE en dashboards,            |
 # |            |              | downgrade restaura RLS en consultas_auditoria_externas   |
+# | 2026-11-20 | Arekkazu     | Downgrade solo de sus tablas: conserva la RLS de los reportes (a7c3e91f5b20) |
 
 """rls_modulo8
 
@@ -11,7 +12,8 @@ Revision ID: e84904d795fd
 Revises: 3076315fb9c7
 Create Date: 2026-11-18 18:56:37.633113
 
-Clasifica la totalidad de las 13 tablas de modulo8 en patrones de acceso:
+Clasifica 13 tablas de modulo8 en patrones de acceso (solicitudes_reportes y archivos_reportes
+ya traen su RLS desde a7c3e91f5b20 y no se tocan):
 
   1. CATALOGO (sin RLS):              indicadores_kpi
   2. PROPIA DEL USUARIO:              dashboards, widgets_dashboard,
@@ -313,33 +315,20 @@ def upgrade() -> None:
     op.execute("ANALYZE modulo8.reportes_financieros;")
 
 
+_TABLAS_RLS = ('dashboards', 'preferencias_visualizacion', 'widgets_dashboard', 'historiales_clinicos',
+               'retroalimentacion_feedback', 'snapshots_kpi', 'configuraciones_semaforo', 'reportes_regulatorios',
+               'reportes_financieros', 'acciones_critica_log', 'auditorias_reportes', 'consultas_auditoria_externas')
+
+
 def downgrade() -> None:
-
-    # 1. Borrar politicas PRIMERO
-    op.execute("""
-        DO $$ DECLARE r record; BEGIN
-          FOR r IN
-            SELECT policyname, tablename FROM pg_policies
-            WHERE schemaname = 'modulo8'
-          LOOP
-            EXECUTE format('DROP POLICY %I ON modulo8.%I', r.policyname, r.tablename);
-          END LOOP; END $$;
-    """)
-
-    # 2. Quitar FORCE + DISABLE RLS en todas las tablas
-    op.execute("""
-        DO $$ DECLARE t text; BEGIN
-          FOR t IN
-            SELECT tablename FROM pg_tables WHERE schemaname = 'modulo8'
-          LOOP
-            EXECUTE format('ALTER TABLE modulo8.%I NO FORCE ROW LEVEL SECURITY', t);
-            EXECUTE format('ALTER TABLE modulo8.%I DISABLE ROW LEVEL SECURITY', t);
-          END LOOP; END $$;
-    """)
-
-    # 3. FIX: restaurar RLS en consultas_auditoria_externas
-    #    (ya lo tenia antes de esta migracion, viene en el DDL original)
-    op.execute("""
-        ALTER TABLE modulo8.consultas_auditoria_externas
-          ENABLE ROW LEVEL SECURITY;
-    """)
+    # Solo las tablas de esta migración: solicitudes_reportes y archivos_reportes conservan su RLS.
+    for t in _TABLAS_RLS:
+        op.execute(f"""
+            DO $$ DECLARE r record; BEGIN
+              FOR r IN SELECT policyname FROM pg_policies WHERE schemaname = 'modulo8' AND tablename = '{t}'
+              LOOP EXECUTE format('DROP POLICY %I ON modulo8.{t}', r.policyname); END LOOP; END $$;
+        """)
+        op.execute(f"ALTER TABLE modulo8.{t} NO FORCE ROW LEVEL SECURITY;")
+        op.execute(f"ALTER TABLE modulo8.{t} DISABLE ROW LEVEL SECURITY;")
+    # consultas_auditoria_externas ya tenía RLS (sin FORCE) antes de esta migración.
+    op.execute("ALTER TABLE modulo8.consultas_auditoria_externas ENABLE ROW LEVEL SECURITY;")

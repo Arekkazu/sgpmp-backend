@@ -3,14 +3,16 @@
 # | 2026-11-19 | SamuelPR21   | Creación inicial políticas RLS modulo7                   |
 # | 2026-11-20 | SamuelPR21   | Fix: recursos reales M07, INSERT logs con usuario,       |
 # |            |              | SELECT/UPDATE contratos con exportacion_contable y E     |
+# | 2026-11-20 | Arekkazu     | Sobre ad58476e2239 (lote M07/M08); downgrade solo de sus tablas |
 
 """F5 para el modulo7: RLS para el Gateway de Integracion AAEF (RF-95 a RF-102)
 
 
 Revision ID: 3076315fb9c7
-Revises: c8e1a7f30b52
+Revises: ad58476e2239
 Create Date: 2026-11-18 18:54:06.920190
-Clasifica la totalidad de las 17 tablas de modulo7 en patrones de acceso:
+Clasifica 17 tablas de modulo7 en patrones de acceso (las del archivo de RF-102,
+eventos_integracion_archivados e identidades_eventos_integracion, se protegen por GRANT en f11651020001):
 
   1. CATALOGO (sin RLS):          catalogo_errores_de_integracion,
                                   tipos_documentos_aaef, permisos_api
@@ -43,7 +45,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '3076315fb9c7'
-down_revision: Union[str, Sequence[str], None] = 'a7c3e91f5b20'
+down_revision: Union[str, Sequence[str], None] = 'ad58476e2239'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -97,12 +99,20 @@ def _config(tabla: str, leer: str, escribir: str) -> None:
     _enable_force(tabla)
 
 
+_CATALOGOS = ('catalogo_errores_de_integracion', 'tipos_documentos_aaef', 'permisos_api')
+_CONFIG = ('clientes_externos', 'canales_clientes_externos', 'identificadores_apis', 'permisos_clientes',
+           'versiones_contrato_aaef', 'mapeos_anexos_aaef', 'reglas_mapeo_aaef')
+_TABLAS_LOG = ('integraciones_solicitudes', 'eventos_integracion', 'auditoria_peticiones',
+               'registros_ejecucion_mapeador', 'notificaciones_weebhook', 'documentos_generados_aaef',
+               'metadatos_respuesta_aaef')
+
+
 def upgrade() -> None:
 
     # ================================================================
     # 1. CATALOGOS (sin RLS): lectura interna amplia
     # ================================================================
-    for t in ('catalogo_errores_de_integracion', 'tipos_documentos_aaef', 'permisos_api'):
+    for t in _CATALOGOS:
         op.execute(f"ALTER TABLE modulo7.{t} DISABLE ROW LEVEL SECURITY;")
         op.execute(f"ALTER TABLE modulo7.{t} NO FORCE ROW LEVEL SECURITY;")
 
@@ -130,15 +140,6 @@ def upgrade() -> None:
     #    INSERT: servicio OR cualquier usuario identificado.
     #    UPDATE: solo el servicio (marca estados de procesamiento).
     # ================================================================
-    _TABLAS_LOG = (
-        'integraciones_solicitudes',
-        'eventos_integracion',
-        'auditoria_peticiones',
-        'registros_ejecucion_mapeador',
-        'notificaciones_weebhook',
-        'documentos_generados_aaef',
-        'metadatos_respuesta_aaef',
-    )
 
     for t in _TABLAS_LOG:
         # integraciones_solicitudes tambien la lee el Contador (widget M08)
@@ -150,25 +151,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-
-    # 1. Borrar politicas PRIMERO
-    op.execute("""
-        DO $$ DECLARE r record; BEGIN
-          FOR r IN
-            SELECT policyname, tablename FROM pg_policies
-            WHERE schemaname = 'modulo7'
-          LOOP
-            EXECUTE format('DROP POLICY %I ON modulo7.%I', r.policyname, r.tablename);
-          END LOOP; END $$;
-    """)
-
-    # 2. Quitar FORCE + DISABLE RLS
-    op.execute("""
-        DO $$ DECLARE t text; BEGIN
-          FOR t IN
-            SELECT tablename FROM pg_tables WHERE schemaname = 'modulo7'
-          LOOP
-            EXECUTE format('ALTER TABLE modulo7.%I NO FORCE ROW LEVEL SECURITY', t);
-            EXECUTE format('ALTER TABLE modulo7.%I DISABLE ROW LEVEL SECURITY', t);
-          END LOOP; END $$;
-    """)
+    # Solo las tablas de esta migración: el resto de modulo7 conserva lo que tenga.
+    for t in _CONFIG + _TABLAS_LOG:
+        op.execute(f"""
+            DO $$ DECLARE r record; BEGIN
+              FOR r IN SELECT policyname FROM pg_policies WHERE schemaname = 'modulo7' AND tablename = '{t}'
+              LOOP EXECUTE format('DROP POLICY %I ON modulo7.{t}', r.policyname); END LOOP; END $$;
+        """)
+        op.execute(f"ALTER TABLE modulo7.{t} NO FORCE ROW LEVEL SECURITY;")
+        op.execute(f"ALTER TABLE modulo7.{t} DISABLE ROW LEVEL SECURITY;")
