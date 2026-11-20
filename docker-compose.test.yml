@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | HOTFIX AIOT-DEV-03: pasar BROKER_SERVICE_TOKEN |
 # | 2026-11-14 | Arekkazu         | SSO AgroFusion: montar la clave pública RS256 en /app/secrets |
+# | 2026-11-20 | Arekkazu         | #1180 RF-97: SGPMP_ENTORNO y variables de M04/M03/OTA/logos que solo tenía dev |
 name: sgpmp-backend-test
 
 services:
@@ -65,7 +66,24 @@ services:
       AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
       AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID:-}
       AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET:-}
+      # #1180 RF-97: va en SourceSystem.Environment del documento AAEF. Sin esta línea el
+      # contenedor no la recibe y el código cae a DEV aunque Dokploy tenga TEST.
+      SGPMP_ENTORNO: ${SGPMP_ENTORNO:-TEST}
+      # SEG-M04-01 RF-69: clave HMAC con que se firman y verifican los artefactos de modelos.
+      M04_FIRMA_MODELOS_KEY: ${M04_FIRMA_MODELOS_KEY:-}
+      # RF-26: los valores por defecto son los del código (TEST no monta los volúmenes de dev).
+      LOGOS_STORAGE_PATH: ${LOGOS_STORAGE_PATH:-/tmp/sgpmp_logos}
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
+      # RF-56/RF-66: cliente hacia el motor de inferencia M04. URL vacía => los paquetes quedan pendientes.
+      IOT_INFERENCIA_M04_URL: ${IOT_INFERENCIA_M04_URL:-}
+      IOT_INFERENCIA_M04_TOKEN: ${IOT_INFERENCIA_M04_TOKEN:-}
+      IOT_INFERENCIA_TLS_MIN: ${IOT_INFERENCIA_TLS_MIN:-1.3}
+      IOT_INFERENCIA_CA_FILE: ${IOT_INFERENCIA_CA_FILE:-}
+      IOT_AUDITORIA_RESPALDO_PATH: ${IOT_AUDITORIA_RESPALDO_PATH:-var/auditoria_iot/fallas.sqlite3}
+      # DEV-15: URL firmada del artefacto OTA. Sin las dos, POST /prediccion/ota/distribuciones responde 503.
+      OTA_URL_SECRET: ${OTA_URL_SECRET:-}
+      OTA_URL_BASE: ${OTA_URL_BASE:-}
+      OTA_URL_TTL_SEGUNDOS: ${OTA_URL_TTL_SEGUNDOS:-86400}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL:?MQTT_BROKER_URL requerido para TEST}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:?MQTT_BROKER_TOKEN requerido para TEST}
       # Token broker -> backend (AIOT-DEV-03): el broker lo envia en Authorization:
