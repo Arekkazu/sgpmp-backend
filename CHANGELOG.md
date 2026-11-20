@@ -1,3 +1,9 @@
+## [1.4.0-rc.81](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.80...v1.4.0-rc.81) (2026-11-20)
+
+### Bug Fixes
+
+* **rls:** RLS de M07/M08 sobre el lote del 20-11, downgrade acotado y token de AgroFusion como sistema ([31b024d](https://github.com/Arekkazu/sgpmp-backend/commit/31b024d4b3e1905f6ea9951e976389a22c70b277))
+
 ## [1.4.0-rc.80](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.79...v1.4.0-rc.80) (2026-11-20)
 
 ### Features
