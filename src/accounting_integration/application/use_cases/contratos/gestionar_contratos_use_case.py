@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98: registro y transiciones de las versiones del contrato AAEF |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: transición rechazada auditada (WARNING) y avisada, estado antes que anexo y modificación de pendientes |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37/374-G38 RF-98: gracia desde M09 y aviso de la activación manual bloqueada |
 """Versiones del contrato AAEF (RF-98 v1.1).
 
 Registro siempre en PENDIENTE. La activación ocurre al llegar la fecha de vigencia (proceso de fondo)
@@ -54,8 +55,11 @@ class GestionarContratosUseCase:
     def __init__(self, contratos: ContratoRepository, auditoria: AuditoriaIntegracionRepository, db: Session,
                  es_produccion: Callable[[], bool], alertar: Callable[[str, dict], None],
                  comprobante_habilitado: bool = False,
-                 registrar_aparte: Optional[Callable[[EventoIntegracion], None]] = None):
+                 registrar_aparte: Optional[Callable[[EventoIntegracion], None]] = None,
+                 gracia: Callable[[], tuple[int, int]] = lambda: (GRACIA_MINIMA_DIAS, GRACIA_DEFECTO_DIAS)):
+        """``gracia``: (mínimo, por defecto) en días, configurados en M09 (RNF-98.10)."""
         self.contratos = contratos
+        self.gracia = gracia
         self.auditoria = auditoria
         self.db = db
         self.es_produccion = es_produccion
@@ -100,10 +104,11 @@ class GestionarContratosUseCase:
     def registrar(self, s: SolicitudContrato, id_usuario: int) -> VersionContrato:
         version = validar_formato_version(s.contrato_version)
         if s.tipo_cambio == "MAJOR":
-            gracia = s.periodo_gracia_dias if s.periodo_gracia_dias is not None else GRACIA_DEFECTO_DIAS
-            if gracia < GRACIA_MINIMA_DIAS:  # FA-10
+            minima, defecto = self.gracia()
+            gracia = s.periodo_gracia_dias if s.periodo_gracia_dias is not None else defecto
+            if gracia < minima:  # FA-10
                 raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="periodo_gracia_dias",
-                                      message=f"El período de gracia debe ser de al menos {GRACIA_MINIMA_DIAS} días.")
+                                      message=f"El período de gracia debe ser de al menos {minima} días.")
         else:
             gracia = None
         if not s.mapeadores or any(m not in MAPPERS_DISPONIBLES for m in s.mapeadores):  # FA-3
@@ -129,7 +134,9 @@ class GestionarContratosUseCase:
         return contrato
 
     def activar(self, id_version_contrato_aaef: int, id_usuario: Optional[int]) -> VersionContrato:
-        """Activación manual (Administrador) o automática (fecha de vigencia). Atómica con las deprecaciones."""
+        """Activación manual (Administrador) o automática (fecha de vigencia). Atómica con las deprecaciones.
+
+        Si la manual se bloquea, se avisa al Administrador como en la automática (CA-5 / FA-5)."""
         contrato = None
         try:
             contrato, contratos = self._bloquear(id_version_contrato_aaef)
@@ -143,8 +150,8 @@ class GestionarContratosUseCase:
             ahora = datetime.now(timezone.utc)
             anteriores = versiones_a_deprecar(contrato, contratos)
             exigir_cupo(contrato, contratos)  # las que pasan a DEPRECADO siguen contando (RF-98 5.3)
-            for anterior in anteriores:  # RF-98 5.4
-                anterior.deprecar(ahora, contrato.periodo_gracia_dias or GRACIA_DEFECTO_DIAS)
+            for anterior in anteriores:  # RF-98 5.4; la gracia del MAJOR ya se validó al registrarlo
+                anterior.deprecar(ahora, contrato.periodo_gracia_dias or self.gracia()[1], minimo_dias=1)
                 self.contratos.guardar_contrato(anterior)
                 self._evento("CONTRATO_DEPRECADO", anterior, id_usuario, por_version=contrato.contrato_version,
                              fecha_inactivacion=anterior.fecha_inactivacion.date().isoformat())
@@ -157,16 +164,20 @@ class GestionarContratosUseCase:
             if contrato is not None:
                 self._rechazo(exc, contrato, "activar", id_usuario)
             raise
-        except Exception:
+        except Exception as exc:
             self.db.rollback()
+            if id_usuario is not None and contrato is not None and isinstance(exc, BusinessRuleError):
+                self._avisar_bloqueo(contrato, exc.message, id_usuario)
             raise
         return contrato
 
-    def deprecar(self, id_version_contrato_aaef: int, dias_gracia: int, id_usuario: int) -> VersionContrato:
+    def deprecar(self, id_version_contrato_aaef: int, dias_gracia: Optional[int], id_usuario: int) -> VersionContrato:
+        """Sin ``dias_gracia`` se usa el período por defecto configurado en M09."""
+        minima, defecto = self.gracia()
         contrato = None
         try:
             contrato, _ = self._bloquear(id_version_contrato_aaef)
-            contrato.deprecar(datetime.now(timezone.utc), dias_gracia)
+            contrato.deprecar(datetime.now(timezone.utc), dias_gracia if dias_gracia is not None else defecto, minima)
             self.contratos.guardar_contrato(contrato)
             self._evento("CONTRATO_DEPRECADO", contrato, id_usuario,
                          fecha_inactivacion=contrato.fecha_inactivacion.date().isoformat())
@@ -191,7 +202,7 @@ class GestionarContratosUseCase:
             anterior = {"fecha_vigencia": contrato.fecha_vigencia.isoformat(), "mapeadores": list(contrato.mapeadores),
                         "id_mapeo_anexo_aaef": contrato.id_mapeo_anexo_aaef,
                         "periodo_gracia_dias": contrato.periodo_gracia_dias}
-            contrato.modificar(**cambios)
+            contrato.modificar(**cambios, minimo_dias=self.gracia()[0])
             self._exigir_comprobante_disponible(contrato.mapeadores)
             if cambios.get("id_mapeo_anexo_aaef") is not None:
                 anexo = self.contratos.obtener_anexo(contrato.id_mapeo_anexo_aaef)
@@ -239,12 +250,13 @@ class GestionarContratosUseCase:
                     raise
         return cambios
 
-    def _avisar_bloqueo(self, contrato: VersionContrato, motivo: str) -> None:
+    def _avisar_bloqueo(self, contrato: VersionContrato, motivo: str, id_usuario: Optional[int] = None) -> None:
         # ponytail: el control de "una vez al día" vive en memoria del proceso; con varias réplicas
         # cada una avisaría una vez. Pasar a la auditoría si se escala.
         try:
             self.auditoria.registrar(EventoIntegracion(
                 tipo_evento="CONTRATO_ACTIVACION_BLOQUEADA", severidad="WARNING", version_contrato=contrato.contrato_version,
+                tipo_actor="USUARIO" if id_usuario else "SISTEMA", id_usuario=id_usuario,
                 codigo_resultado="CONTRATO_NO_VALIDO", json_detalle={"motivo": motivo}))
             self.db.commit()
         except Exception:

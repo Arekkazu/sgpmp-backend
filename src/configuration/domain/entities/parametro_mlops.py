@@ -7,6 +7,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 # | 2026-10-31 | Arekkazu | RF-71/RF-72: mínimos de registros para solicitar y para reentrenar |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: período de gracia del contrato contable |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -55,6 +56,12 @@ RF71_MIN_SOLICITUD_BASE = 200
 # PROGRAMADO). 0 = apagado: así viene hasta que el equipo decida la frecuencia (P-9 del plan).
 RF71_DIAS_PROGRAMADO = 'dias_reentrenamiento_programado'
 RF71_DIAS_PROGRAMADO_BASE = 0
+# RF-98 / RNF-98.10: período de gracia (días) de las versiones del contrato contable de M07.
+RF98_GRACIA_MINIMA = 'aaef_gracia_minima_dias'
+RF98_GRACIA_MINIMA_BASE = 30
+RF98_GRACIA_DEFECTO = 'aaef_gracia_defecto_dias'
+RF98_GRACIA_DEFECTO_BASE = 90
+RF98_GRACIA_MAXIMA = 3650
 PARAMETROS_CALIDAD = (RF62_K, RF62_M, RF62_N, RF62_DRIFT, RF62_P)
 
 

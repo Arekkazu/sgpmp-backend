@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-97: lectura de M06/M09 para el envelope AAEF |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: las líneas sin trazabilidad se devuelven con su hecho, activo y fecha |
+# | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96: catálogo de LineType de la matriz contable |
 """Lectura de M06 y M09 para RF-97, como el usuario de servicio.
 
 El acceso ya se autorizó antes (permiso y todas las fincas del titular, RF-95 5.3). Leer como
@@ -89,3 +90,14 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
                 WHERE {_RANGO} AND l.estado_trazabilidad = 'PENDIENTE_TRAZABILIDAD'
                 ORDER BY l.fecha_hecho, l.id_linea_asiento_nic41
             """, {"nit": nit, "desde": desde, "hasta": hasta})
+
+    def linetypes_catalogados(self) -> tuple[frozenset, frozenset]:
+        # Misma regla con la que RF-90 resuelve la cuenta de una factura: CONSUMO_INSUMO / UNICO por subtipo.
+        with como_sistema(self.db):
+            activas = filas(self.db, """
+                SELECT tipo_hecho::text AS tipo_hecho, sentido::text AS sentido, subtipo_costo::text AS subtipo_costo
+                FROM modulo6.asignaciones_cuentas_contables WHERE es_activo
+            """)
+        subtipos = frozenset(f["subtipo_costo"] for f in activas
+                             if f["tipo_hecho"] == "CONSUMO_INSUMO" and f["sentido"] == "UNICO")
+        return subtipos, frozenset(f["tipo_hecho"] for f in activas)

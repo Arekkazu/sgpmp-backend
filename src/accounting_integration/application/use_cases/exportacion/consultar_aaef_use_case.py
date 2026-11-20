@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error AAEF (Mapper, documento) llega a la respuesta y a la auditoría |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA nombra los hechos afectados y los trae en el detalle |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: ERROR_DATOS_FINANCIEROS para fallas al leer los datos financieros y ERROR_INTERNO_RF97 para lo inesperado |
+# | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96 CA-6: LineType validado contra la matriz contable |
 """Genera el envelope AAEF de un titular para un rango de períodos cerrados (RF-97 v3.0).
 
 Lo invoca el Gateway (RF-95) con el usuario ya autenticado y con permiso; aquí se resuelve lo que
@@ -117,9 +118,11 @@ class ConsultarAaefUseCase:
             sin_traza = _financieros(self.fuente.lineas_sin_trazabilidad, s.nit, s.desde, s.hasta)
             if sin_traza:  # RF-97 FA-3; el cierre de M06 ya lo impide, esto es la última defensa
                 raise _trazabilidad_incompleta(sin_traza)
-            compras = (mapear_compras(_financieros(self.fuente.costos_factura, s.nit, s.desde, s.hasta))
+            subtipos, hechos = _financieros(self.fuente.linetypes_catalogados)
+            compras = (mapear_compras(_financieros(self.fuente.costos_factura, s.nit, s.desde, s.hasta), subtipos)
                        if MAPPER_COMPRAS in contrato.mapeadores else [])
-            comprobantes = (mapear_comprobantes(_financieros(self.fuente.comprobantes, s.nit, s.desde, s.hasta), titular)
+            comprobantes = (mapear_comprobantes(_financieros(self.fuente.comprobantes, s.nit, s.desde, s.hasta), titular,
+                                                hechos)
                             if MAPPER_COMPROBANTE_NIC41 in contrato.mapeadores else [])
             envelope = construir_envelope(titular, s.desde, s.hasta, self.sistema, s.correo_usuario, self.hoy(),
                                           compras, comprobantes)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre         | Que se hizo |
 # |------------|----------------|-------------|
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: detalle opcional en ErrorResponse |
+# | 2026-11-19 | Arekkazu       | INC-M07-375-G002 RF-95: `field` en el cuerpo de error |
 """Schemas de respuesta HTTP compartidos por todos los módulos.
 
 Define los modelos Pydantic que estandarizan las respuestas de éxito y error
@@ -53,6 +54,7 @@ class ErrorResponse(BaseModel):
     Attributes:
         error_code: Código de negocio en mayúsculas (ej: ``USUARIO_NO_ENCONTRADO``).
         message: Mensaje legible para el usuario final.
+        field: Primer campo que falló (``fields[0].field``), o ``null`` si el error no aplica a uno.
         fields: Lista de errores por campo. Vacía si el error no es de validación.
         timestamp: Marca temporal ISO 8601 del momento en que ocurrió el error.
         detalle: Datos estructurados del error; solo aparece cuando el error los trae.
@@ -60,6 +62,7 @@ class ErrorResponse(BaseModel):
 
     error_code: str
     message: str
+    field: Optional[str] = None
     fields: list[FieldError]
     timestamp: str
     detalle: Optional[dict] = None

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101 Fase 1: registro de un cliente externo con su credencial |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G043 RF-101 FA-8: nombre de cliente externo único |
 """Registra un cliente externo (RF-101 Fase 1). El secreto se muestra una sola vez.
 
 Se puede generar (256 bits) o recibir uno ya existente: AgroFusion usa una credencial fija para
@@ -52,6 +53,9 @@ class RegistrarClienteExternoUseCase:
         if self.clientes.obtener_por_identificador(s.identificador_publico):
             raise ConflictError(code="CLIENTE_DUPLICADO", field="identificador_publico",
                                 message="Ya existe un cliente externo con ese identificador.")
+        if self.clientes.obtener_por_nombre(s.nombre):  # FA-8; el índice único cubre la carrera
+            raise ConflictError(code="CLIENTE_DUPLICADO", field="nombre",
+                                message=f"Ya existe un cliente externo llamado «{s.nombre.strip()}». Use otro nombre.")
         secreto = s.secreto or secreto_cliente.generar()
         credencial = Credencial(None, secreto_cliente.hashear(secreto), datetime.now(timezone.utc),
                                 expiracion(s.fecha_vencimiento))

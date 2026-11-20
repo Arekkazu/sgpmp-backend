@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: puerto de clientes externos y credenciales |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G043 RF-101 FA-8: nombre de cliente externo único |
 """Puerto de clientes externos (RF-101 v2.0)."""
 from __future__ import annotations
 
@@ -16,6 +17,10 @@ class ClienteExternoRepository(ABC):
 
     @abstractmethod
     def obtener_por_identificador(self, identificador_publico: str) -> Optional[ClienteExterno]: ...
+
+    @abstractmethod
+    def obtener_por_nombre(self, nombre: str) -> Optional[ClienteExterno]:
+        """Sin distinguir mayúsculas ni espacios de los extremos (RF-101 FA-8)."""
 
     @abstractmethod
     def listar(self) -> list[ClienteExterno]: ...

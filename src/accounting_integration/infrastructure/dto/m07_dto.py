@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-101/RF-AE02: DTOs de administración de la integración |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: DTO para modificar una versión pendiente del contrato |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo valida el caso de uso con el valor de M09 |
 """DTOs de entrada de la administración de M07 (clientes, anexos y contratos)."""
 from __future__ import annotations
 
@@ -99,7 +100,8 @@ class RegistrarContratoDTO(BaseDTO):
     fecha_vigencia: date
     id_mapeo_anexo_aaef: int = Field(ge=1)
     mapeadores: list[Mapper] = Field(min_length=1)
-    periodo_gracia_dias: Optional[int] = Field(None, ge=30, le=3650)
+    periodo_gracia_dias: Optional[int] = Field(None, ge=1, le=3650, description=(
+        "Solo MAJOR. Vacío = el período por defecto configurado; el mínimo también se configura."))
     descripcion: Optional[str] = Field(None, max_length=1000)
 
 
@@ -108,9 +110,10 @@ class ModificarContratoDTO(BaseDTO):
     fecha_vigencia: Optional[date] = None
     id_mapeo_anexo_aaef: Optional[int] = Field(None, ge=1)
     mapeadores: Optional[list[Mapper]] = Field(None, min_length=1)
-    periodo_gracia_dias: Optional[int] = Field(None, ge=30, le=3650)
+    periodo_gracia_dias: Optional[int] = Field(None, ge=1, le=3650)
     descripcion: Optional[str] = Field(None, max_length=1000)
 
 
 class DeprecarContratoDTO(BaseDTO):
-    dias_gracia: int = Field(90, ge=30, le=3650)
+    dias_gracia: Optional[int] = Field(None, ge=1, le=3650, description=(
+        "Vacío = el período por defecto configurado; el mínimo también se configura."))

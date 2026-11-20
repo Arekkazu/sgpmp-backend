@@ -1,11 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-147-G191 RF-63 CA-13: registra eventos incompletos sin rechazarlos |
+# | 2026-11-19 | Arekkazu | SEG-M03-01 RF-63: el evento que no se pudo guardar se reintenta y su pérdida queda en ERROR |
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
+from collections import deque
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
@@ -27,6 +29,12 @@ logger = logging.getLogger(__name__)
 
 # tipo_evento es NOT NULL: un evento recibido sin tipo se guarda con este valor.
 TIPO_EVENTO_NO_INFORMADO = 'TIPO_EVENTO_NO_INFORMADO'
+
+# SEG-M03-01: eventos que no se pudieron guardar; se reintentan tras el siguiente registro exitoso.
+# ponytail: vive en la memoria del proceso (se pierde al reiniciar y cada worker tiene la suya); el
+# evento completo queda además en el log ERROR. Pasar a un respaldo durable como M02 si hace falta.
+_PENDIENTES: deque[tuple[EventoAuditoriaIot, int]] = deque(maxlen=1000)
+_MAX_INTENTOS = 3
 
 
 def _calcular_hash(evento: EventoAuditoriaIot) -> str:
@@ -112,14 +120,40 @@ class RegistrarEventoAuditoriaIotUseCase:
             )
             evento.hash_integridad = _calcular_hash(evento)
 
-            registrado = self.auditoria_repo.registrar(evento)
-            if registrado.id_evento is None:
-                # El adaptador best-effort devuelve el evento sin ID si falla.
-                # No confirmar una transacción fallida ni aparentar éxito.
-                self.db.rollback()
-                logger.warning('RF-63: no se pudo registrar el evento de auditoría (tipo=%s).', tipo_evento)
-                return
+        except Exception:
+            logger.exception('RF-63: no se pudo armar el evento de auditoría (tipo=%s).', tipo_evento)
+            return
+        if self._guardar(evento):
+            self._reintentar_pendientes()
+        else:
+            self._encolar(evento, 1)
+
+    def _guardar(self, evento: EventoAuditoriaIot) -> bool:
+        """Guarda y confirma; ``False`` si falla (la transacción queda revertida)."""
+        try:
+            # El adaptador best-effort devuelve el evento sin ID si falla: no confirmar ni aparentar éxito.
+            if self.auditoria_repo.registrar(evento).id_evento is None:
+                raise RuntimeError('el repositorio no devolvió id_evento')
             self.db.commit()
+            return True
         except Exception:
             self.db.rollback()
-            logger.warning('RF-63: no se pudo registrar el evento de auditoría (tipo=%s).', tipo_evento)
+            return False
+
+    def _reintentar_pendientes(self) -> None:
+        for _ in range(len(_PENDIENTES)):
+            evento, intentos = _PENDIENTES.popleft()
+            if not self._guardar(evento):
+                self._encolar(evento, intentos + 1)
+                return  # la bitácora volvió a fallar: los demás esperan al siguiente registro
+
+    @staticmethod
+    def _encolar(evento: EventoAuditoriaIot, intentos: int) -> None:
+        if intentos > _MAX_INTENTOS:
+            logger.error('RF-63: evento de auditoría descartado tras %s intentos: %s', _MAX_INTENTOS, evento)
+            return
+        if len(_PENDIENTES) == _PENDIENTES.maxlen:
+            logger.error('RF-63: cola de reintentos llena, se descarta el evento más antiguo: %s', _PENDIENTES[0][0])
+        _PENDIENTES.append((evento, intentos))
+        logger.error('RF-63: no se pudo registrar el evento de auditoría (tipo=%s, intento %s); queda para reintento: %s',
+                     evento.tipo_evento, intentos, evento)

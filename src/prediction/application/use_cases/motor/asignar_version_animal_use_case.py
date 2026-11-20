@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-69/RFC-010: copia automática en sombra para un animal nuevo   |
+# | 2026-11-19 | Arekkazu | SEG-M04-01 RF-69: la copia lleva la firma y se verifica antes de la sombra |
 """Un animal individual sin versión recibe una propia, en SOMBRA, para que el motor IA lo atienda.
 
 RFC-010 exige que un modelo INDIVIDUAL sea de un animal y que no produzca resultados de otro.
@@ -15,6 +16,7 @@ from src.prediction.domain.entities.version_modelo import VersionModelo
 from src.prediction.domain.repositories.catalogo_motor_port import CatalogoMotorPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
+from src.prediction.domain.services.firma_artefacto import clave_firma, sha256_archivo
 from src.shared.errors import BusinessRuleError, NotFoundError
 
 SISTEMA = "motor-ia"
@@ -77,6 +79,8 @@ class AsignarVersionAnimalUseCase:
             id_activo_biologico=id_activo,
             fuente_datos=ref.fuente_datos,
         )
+        copia.firma_artefacto = ref.firma_artefacto
+        copia.exigir_artefacto_integro(sha256_archivo(copia.ruta_artefacto), clave_firma())
         copia.validar_y_asignar_estado()
         if copia.estado_version != "APROBADO":
             raise BusinessRuleError(
