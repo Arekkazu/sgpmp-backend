@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                            |
 # |------------|----------|------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: línea de tiempo de predicciones, eventos y retroalimentación |
+# | 2026-11-19 | Arekkazu | M8-01 RF-106: marca las predicciones en modo sombra |
 """Caso de uso: historial clínico predictivo de un animal para el Veterinario (RF-106).
 
 Une sobre un mismo eje de tiempo las predicciones guardadas de M04 (RF-67, nunca el motor en vivo), los eventos
@@ -97,7 +98,7 @@ class ConsultarHistorialPredictivoUseCase:
         m_pred = [Marcador("PREDICCION", i["fecha_inferencia"], {
             "id_resultado_inferencia": str(i["id_resultado_inferencia"]), "nivel_riesgo": i["nivel_riesgo"],
             "confianza": float(i["confianza_global"]) if i["confianza_global"] is not None else None,
-            "condicion": i["condicion"] or "Condición no identificada",
+            "condicion": i["condicion"] or "Condición no identificada", "modo_sombra": bool(i.get("modo_sombra")),
             "tiene_retroalimentacion": i["id_resultado_inferencia"] in valoraciones,
             "en_conflicto": len(valoraciones.get(i["id_resultado_inferencia"], ())) > 1}) for i in visibles]
         m_eventos = [Marcador("EVENTO_SANITARIO", e["fecha"], {

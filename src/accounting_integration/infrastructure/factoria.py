@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: ensamblado de repositorios y casos de uso de la integración |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: los rechazos del ciclo de vida del contrato se auditan aparte |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: período de gracia leído de los parámetros de M09 |
 """Fábrica de M07: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -32,6 +34,10 @@ from src.accounting_integration.infrastructure.repositories.cliente_externo_repo
 from src.accounting_integration.infrastructure.repositories.contrato_repository import SqlAlchemyContratoRepository
 from src.accounting_integration.infrastructure.repositories.fuente_contable_repository import SqlAlchemyFuenteContableRepository
 from src.accounting_integration.infrastructure.repositories.usuario_canal_repository import SqlAlchemyUsuarioCanalRepository
+from src.configuration.application.use_cases.configuracion_global.parametros_integracion_contable_use_case import (
+    ParametrosIntegracionContableUseCase,
+)
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.shared.database import sesion_sistema
 from src.shared.fechas import hoy_usuario
 from src.shared.jwt import create_token_canal, verify_token_canal
@@ -87,9 +93,13 @@ class M07:
     def gestionar_anexos(self) -> GestionarAnexosUseCase:
         return GestionarAnexosUseCase(self.contratos, self.auditoria, self.db)
 
+    def gracia(self) -> tuple[int, int]:
+        """(mínimo, por defecto) del período de gracia, tal como los configuró M09 (RNF-98.10)."""
+        return ParametrosIntegracionContableUseCase(self.db, SqlAlchemyParametrosMLOpsRepository(self.db)).gracia()
+
     def gestionar_contratos(self) -> GestionarContratosUseCase:
         return GestionarContratosUseCase(self.contratos, self.auditoria, self.db, configuracion.es_produccion, self.alertar,
-                                         configuracion.COMPROBANTE_NIC41_HABILITADO)
+                                         configuracion.COMPROBANTE_NIC41_HABILITADO, self.auditar_aparte, self.gracia)
 
     def consultar_auditoria(self) -> ConsultarAuditoriaIntegracionUseCase:
         return ConsultarAuditoriaIntegracionUseCase(self.auditoria, self.alertar)

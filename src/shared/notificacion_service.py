@@ -2,6 +2,7 @@
 # |------------|----------|----------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación por animal, datos del push y reintentos  |
 # | 2026-11-18 | Arekkazu | M08 RF-105: ventana de agrupación desde M09 y preferencias de canal del usuario |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: los inicios de sesión van solo por correo, no a la bandeja |
 """Servicio transversal de notificaciones para todos los módulos del sistema.
 
 Orquesta el envío de notificaciones por dos canales: EMAIL (id=1) e INTERNO
@@ -21,7 +22,9 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.shared.email import send_email
 from src.shared.firebase import send_push
-from src.identity_access.domain.value_objects.nivel_notificacion import ADVERTENCIA, CRITICA, EMAIL, PUSH
+from src.identity_access.domain.value_objects.nivel_notificacion import (
+    ADVERTENCIA, CRITICA, EMAIL, PUSH, TIPOS_FUERA_DE_BANDEJA,
+)
 from src.shared.plantilla_correo import Tono, renderizar_correo
 
 logger = logging.getLogger(__name__)
@@ -266,23 +269,24 @@ class NotificacionService:
 
         # INTERNO va primero: el push FCM tarda milisegundos, mientras que el
         # SMTP puede tardar hasta el timeout de conexión (send_email) y en
-        # serie retrasaba la entrega del push.
-        self._enviar_canal(
-            canal=ID_CANAL_INTERNO,
-            tipo_evento=tipo_evento,
-            id_evento=id_evento,
-            id_usuario=id_usuario,
-            titulo=titulo,
-            cuerpo=cuerpo,
-            correo=None,
-            fcm_tokens=fcm_tokens,
-            asunto_email=None,
-            contenido_html_email=None,
-            aplicar_anti_spam=aplicar_anti_spam_interno,
-            nivel=nivel,
-            id_activo_biologico=id_activo_biologico,
-            datos_push=datos_push,
-        )
+        # serie retrasaba la entrega del push. Los inicios de sesión solo van por correo.
+        if tipo_evento not in TIPOS_FUERA_DE_BANDEJA:
+            self._enviar_canal(
+                canal=ID_CANAL_INTERNO,
+                tipo_evento=tipo_evento,
+                id_evento=id_evento,
+                id_usuario=id_usuario,
+                titulo=titulo,
+                cuerpo=cuerpo,
+                correo=None,
+                fcm_tokens=fcm_tokens,
+                asunto_email=None,
+                contenido_html_email=None,
+                aplicar_anti_spam=aplicar_anti_spam_interno,
+                nivel=nivel,
+                id_activo_biologico=id_activo_biologico,
+                datos_push=datos_push,
+            )
 
         resultado_email = self._enviar_canal(
             canal=ID_CANAL_EMAIL,

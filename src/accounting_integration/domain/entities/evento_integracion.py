@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102: evento de auditoría de integración con hash de integridad |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: campos obligatorios de la transición rechazada y la versión modificada |
 """Evento de auditoría de M07 (RF-102 v1.1). Se crea una vez y no cambia nunca."""
 from __future__ import annotations
 
@@ -29,6 +30,8 @@ _OBLIGATORIOS = {
     "CONTRATO_DEPRECADO": ("version_contrato",),
     "CONTRATO_INACTIVADO": ("version_contrato",),
     "CONTRATO_REGISTRADO": ("version_contrato",),
+    "CONTRATO_MODIFICADO": ("version_contrato",),
+    "CONTRATO_TRANSICION_RECHAZADA": ("version_contrato", "endpoint", "metodo_http", "codigo_http", "codigo_resultado"),
 }
 
 

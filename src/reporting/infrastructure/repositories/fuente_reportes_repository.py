@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                          |
 # |------------|----------|----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104/RF-106: consultas de solo lectura de reportes e historial |
+# | 2026-11-19 | Arekkazu | M8-01/M8-07 RF-104/RF-106: predicciones en modo sombra y portafolio igual al NIC 41 |
 """Implementación SQLAlchemy de :class:`FuenteReportesRepository` (RF-104, RF-106).
 
 Corre en la sesión de la instantánea (``REPEATABLE READ READ ONLY``) con la identidad de quien pidió el reporte:
@@ -41,8 +42,6 @@ _ESTADO = "LEFT JOIN modulo2.estados_activos_biologicos est ON est.id_estado_act
 _FUERA = "('BAJA', 'CERRADO')"  # estados que ya no cuentan en el inventario
 _POBLACION = ("LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales dp "
               "ON dp.id_activo_biologico = ab.id_activo_biologico")
-_SIN_SOMBRA = "NOT COALESCE(r.modo_sombra, false)"
-
 # Valor del activo al cierre de un día: último cálculo de valor razonable y, si va por costo, su valor contable.
 _VALOR_AL = """
     LEFT JOIN LATERAL (
@@ -74,6 +73,17 @@ _SQL_UBICAR = {
     "especie": text("SELECT id_especie AS id, NULL::integer AS id_finca FROM modulo9.especies WHERE id_especie = :id"),
 }
 
+_SQL_NOMBRE_REFERENCIA = {
+    "finca": text("SELECT nombre FROM modulo9.fincas WHERE id_finca = :id"),
+    "especie": text("SELECT nombre FROM modulo9.especies WHERE id_especie = :id"),
+    "activo": text(f"SELECT {_NOMBRE} FROM modulo2.activos_biologicos ab WHERE ab.id_activo_biologico = :id"),
+    "infraestructura": text("SELECT i.nombre || ' · ' || f.nombre FROM modulo9.infraestructuras i "
+                            "JOIN modulo9.fincas f ON f.id_finca = i.id_finca WHERE i.id_infraestructura = :id"),
+    "sensor": text("SELECT COALESCE(s.nombre, 'Sensor') || ' · ' || d.serial FROM modulo9.sensores s "
+                   "JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot "
+                   "WHERE s.id_sensores = :id"),
+}
+
 _SQL_OPCIONES = {
     "finca": text("SELECT f.id_finca AS valor, f.nombre AS etiqueta FROM modulo9.fincas f "
                   "WHERE CAST(:fincas AS integer[]) IS NULL OR f.id_finca = ANY(:fincas) ORDER BY f.nombre"),
@@ -94,7 +104,12 @@ _SQL_OPCIONES = {
     "periodo": text(f"""SELECT pc.id_periodo_contable AS valor,
                               to_char(pc.fecha_inicio, 'DD/MM/YYYY') || ' a ' || to_char(pc.fecha_fin, 'DD/MM/YYYY')
                               || CASE pc.estado::text WHEN 'CERRADO' THEN ' · cerrado' WHEN 'ABIERTO' THEN ' · abierto'
-                                 ELSE ' · en cierre' END AS etiqueta,
+                                 ELSE ' · en cierre' END
+                              -- M8-09: de quién es cada período (varios titulares tienen el mismo mes)
+                              || ' · ' || COALESCE((SELECT min(f.razon_social) FROM modulo9.fincas f
+                                                    WHERE f.numero_id_tributaria = pc.numero_id_tributaria),
+                                                   'NIT ' || pc.numero_id_tributaria, 'Sin titular registrado')
+                              AS etiqueta,
                               pc.estado::text AS estado
                        FROM modulo6.periodos_contables pc
                        WHERE {alcance_titular('pc.numero_id_tributaria')}
@@ -333,7 +348,7 @@ _SQL_SANITARIOS = text(f"""
                NULLIF(btrim(es.frecuencia::text), '') AS frecuencia, NULLIF(btrim(es.duracion::text), '') AS duracion,
                NULLIF(btrim(es.observaciones), '') AS resultado, ea.id_usuario AS id_veterinario,
                (SELECT r.nivel_riesgo FROM modulo4.resultados_inferencia r
-                WHERE r.id_activo_biologico = ea.id_activo_biologico AND {_SIN_SOMBRA}
+                WHERE r.id_activo_biologico = ea.id_activo_biologico
                   AND r.fecha_inferencia BETWEEN ea.fecha - interval '7 days' AND ea.fecha
                 ORDER BY r.fecha_inferencia DESC LIMIT 1) AS nivel_riesgo, NULL::numeric AS confianza,
                ea.id_eventos AS id_evento
@@ -347,7 +362,7 @@ _SQL_SANITARIOS = text(f"""
             SELECT rcl.estado_retroalimentacion::text AS estado, rcl.id_usuario_veterinario
             FROM modulo4.retroalimentaciones_clinicas rcl WHERE rcl.id_resultado_inferencia = r.id_resultado_inferencia
             ORDER BY rcl.fecha_retroalimentacion DESC LIMIT 1) rc ON true
-        WHERE r.nivel_riesgo >= 1 AND {_SIN_SOMBRA}
+        WHERE r.nivel_riesgo >= 1
     ) s
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = s.id_activo_biologico {_ACTIVO}
     WHERE (CAST(:desde AS timestamptz) IS NULL OR s.fecha >= :desde) AND s.fecha <= :hasta
@@ -384,7 +399,7 @@ _SQL_PREDICCIONES = text(f"""
         JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico {_ACTIVO}
         LEFT JOIN modulo9.patologias pt ON pt.id_patologia = r.id_patologia
         LEFT JOIN modulo3.alertas al ON al.id_alerta = r.id_alerta_generada
-        WHERE r.fecha_inferencia >= now() - interval '7 days' AND {_SIN_SOMBRA}
+        WHERE r.fecha_inferencia >= now() - interval '7 days'
           AND (CAST(:desde AS timestamptz) IS NULL OR r.fecha_inferencia >= :desde)
           AND {_EN_FINCAS} AND {_ESPECIE} AND {_ACTIVO_ID}
         ORDER BY r.id_activo_biologico, r.fecha_inferencia DESC
@@ -555,12 +570,15 @@ _SQL_ANIMALES_POR_ESPECIE = text(f"""
     GROUP BY f.nombre, e.nombre ORDER BY f.nombre, e.nombre
 """)
 
+# Mismo universo que la valoración NIC 41 del período: los activos con valor al corte, salvo los dados de baja
+# hasta ese día. Un activo cerrado sin evento de baja sigue contando, como en el cálculo de M06 (M8-07).
 _SQL_VALOR_PORTAFOLIO = text(f"""
     SELECT f.nombre AS finca, sum(COALESCE(vr.valor_neto, vc.valor)) AS valor,
            sum(vr.valor_neto) AS valor_razonable, sum(CASE WHEN vr.valor_neto IS NULL THEN vc.valor END) AS valor_costo
     FROM modulo2.activos_biologicos ab {_ACTIVO} {_ESTADO} {_BAJA}
     {_VALOR_AL.format(dia=':fin')}
-    WHERE {_EN_FINCAS} AND (COALESCE(est.nombre, '') NOT IN {_FUERA} OR (bj.fecha AT TIME ZONE :tz)::date > :fin)
+    WHERE {_EN_FINCAS} AND (bj.fecha IS NULL OR (bj.fecha AT TIME ZONE :tz)::date > :fin)
+      AND (vr.valor_neto IS NOT NULL OR vc.valor IS NOT NULL)
     GROUP BY f.nombre ORDER BY f.nombre
 """)
 
@@ -577,14 +595,14 @@ _SQL_RIESGO_POR_NIVEL = text(f"""
     FROM (
         SELECT ea.id_activo_biologico, 'M02' AS fuente,
                (SELECT r.nivel_riesgo FROM modulo4.resultados_inferencia r
-                WHERE r.id_activo_biologico = ea.id_activo_biologico AND {_SIN_SOMBRA}
+                WHERE r.id_activo_biologico = ea.id_activo_biologico
                   AND r.fecha_inferencia BETWEEN ea.fecha - interval '7 days' AND ea.fecha
                 ORDER BY r.fecha_inferencia DESC LIMIT 1) AS nivel_riesgo
         FROM modulo2.eventos_sanitarios es JOIN modulo2.eventos_activos ea ON ea.id_eventos = es.id_evento
         WHERE ea.fecha BETWEEN :desde AND :hasta
         UNION ALL
         SELECT r.id_activo_biologico, 'M04', r.nivel_riesgo FROM modulo4.resultados_inferencia r
-        WHERE r.fecha_inferencia BETWEEN :desde AND :hasta AND r.nivel_riesgo >= 1 AND {_SIN_SOMBRA}
+        WHERE r.fecha_inferencia BETWEEN :desde AND :hasta AND r.nivel_riesgo >= 1
     ) x
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = x.id_activo_biologico {_ACTIVO}
     WHERE {_EN_FINCAS}
@@ -596,7 +614,7 @@ _SQL_RIESGO_ACTIVO = text(f"""
         SELECT DISTINCT ON (r.id_activo_biologico) f.nombre AS finca, r.nivel_riesgo
         FROM modulo4.resultados_inferencia r
         JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico {_ACTIVO}
-        WHERE r.fecha_inferencia >= now() - interval '7 days' AND {_SIN_SOMBRA} AND {_EN_FINCAS}
+        WHERE r.fecha_inferencia >= now() - interval '7 days' AND {_EN_FINCAS}
         ORDER BY r.id_activo_biologico, r.fecha_inferencia DESC
     ) p WHERE p.nivel_riesgo >= 1 GROUP BY p.finca, p.nivel_riesgo
 """)
@@ -627,9 +645,9 @@ _SQL_ULTIMO_CERRADO = text("""
 
 _SQL_INFERENCIAS = text(f"""
     SELECT r.id_resultado_inferencia, r.fecha_inferencia, r.nivel_riesgo, r.confianza_global, pt.nombre AS condicion,
-           r.tiene_alerta_generada
+           r.tiene_alerta_generada, COALESCE(r.modo_sombra, false) AS modo_sombra
     FROM modulo4.resultados_inferencia r LEFT JOIN modulo9.patologias pt ON pt.id_patologia = r.id_patologia
-    WHERE r.id_activo_biologico = :activo AND r.fecha_inferencia BETWEEN :desde AND :hasta AND {_SIN_SOMBRA}
+    WHERE r.id_activo_biologico = :activo AND r.fecha_inferencia BETWEEN :desde AND :hasta
     ORDER BY r.fecha_inferencia
 """)
 
@@ -657,6 +675,10 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
         return [dict(f._mapping) for f in self.db.execute(consulta, {"tz": nombre_zona_usuario(), **params})]
 
     # --- Referencias ---
+
+    def nombre_referencia(self, tipo: str, id_referencia: int) -> Optional[str]:
+        consulta = _SQL_NOMBRE_REFERENCIA.get("activo" if tipo == "lote" else tipo)
+        return self.db.execute(consulta, {"id": id_referencia}).scalar() if consulta is not None else None
 
     def ubicar(self, tipo: str, id_referencia: int) -> Optional[Fila]:
         consulta = _SQL_UBICAR["activo" if tipo == "lote" else tipo]

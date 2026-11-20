@@ -8,12 +8,14 @@
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: valida la ventana de deduplicación y los plazos SLA |
 # | 2026-10-31 | Arekkazu | RF-71: valida los mínimos de registros para solicitar y reentrenar |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: valida el período de gracia del contrato contable |
 """Carga administrativa explícita; ninguna inicialización ocurre en un request."""
 from decimal import Decimal
 
 from src.configuration.domain.entities.parametro_mlops import (
     PARAMETROS_CALIDAD, RF57_CONFIANZA, RF57_CONFIANZA_MINIMA, RF57_SLA_BASE, RF57_TORMENTA_SISTEMA, RF57_VENTANA_DEDUPLICACION, RF57_VENTANA_REEVALUACION, RF57_TORMENTA_UNIDAD, RF62_DRIFT, RF62_K, RF62_M, RF62_N, RF62_P,
     RF71_MIN_REENTRENAMIENTO, RF71_MIN_SOLICITUD, RF71_DIAS_PROGRAMADO, RF72_VENTANA, ParametroMLOps, calidad_configurada, numero_configurado,
+    RF98_GRACIA_DEFECTO, RF98_GRACIA_DEFECTO_BASE, RF98_GRACIA_MAXIMA, RF98_GRACIA_MINIMA, RF98_GRACIA_MINIMA_BASE,
 )
 from src.shared.errors import ServiceUnavailableError, ValidationError
 from src.configuration.domain.entities.parametros_heartbeat import (
@@ -33,9 +35,13 @@ _LIMITES = {
     RF72_VENTANA: (7, 365),
     RF71_MIN_SOLICITUD: (1, None), RF71_MIN_REENTRENAMIENTO: (1, None),
     RF71_DIAS_PROGRAMADO: (0, 365),
+    RF98_GRACIA_MINIMA: (1, RF98_GRACIA_MAXIMA), RF98_GRACIA_DEFECTO: (1, RF98_GRACIA_MAXIMA),
     **LIMITES_HEARTBEAT,
     **LIMITES_VISION,
 }
+
+
+_GRACIA = {RF98_GRACIA_MINIMA: RF98_GRACIA_MINIMA_BASE, RF98_GRACIA_DEFECTO: RF98_GRACIA_DEFECTO_BASE}
 
 
 class ConfigurarParametrosMLOpsUseCase:
@@ -54,6 +60,8 @@ class ConfigurarParametrosMLOpsUseCase:
             nombres.update(LIMITES_HEARTBEAT)
         if nombres.intersection(LIMITES_VISION):
             nombres.update(LIMITES_VISION)
+        if nombres.intersection(_GRACIA):
+            nombres.update(_GRACIA)
         actuales = self.parametros_repo.obtener(sorted(nombres))
         nuevos = {}
         for nombre, valor in cambios.items():
@@ -84,6 +92,14 @@ class ConfigurarParametrosMLOpsUseCase:
                     numero_configurado(nuevos, nombre, minimo=1, entero=True)
             if RF71_DIAS_PROGRAMADO in nuevos:
                 numero_configurado(nuevos, RF71_DIAS_PROGRAMADO, minimo=0, maximo=365, entero=True)
+            if set(nuevos).intersection(_GRACIA):
+                for nombre in set(nuevos).intersection(_GRACIA):
+                    numero_configurado(nuevos, nombre, minimo=1, maximo=RF98_GRACIA_MAXIMA, entero=True)
+                efectivos = {n: p.valor for n, p in (actuales | nuevos).items() if n in _GRACIA}
+                if efectivos.get(RF98_GRACIA_DEFECTO, _GRACIA[RF98_GRACIA_DEFECTO]) < efectivos.get(
+                        RF98_GRACIA_MINIMA, _GRACIA[RF98_GRACIA_MINIMA]):
+                    raise ServiceUnavailableError('PARAMETRO_CONFIGURACION_INVALIDO',
+                        'El período de gracia por defecto no puede ser menor que el mínimo.')
             if set(nuevos).intersection(LIMITES_HEARTBEAT):
                 configuracion = self.configuracion_repo.obtener_activo() if self.configuracion_repo is not None else None
                 if set(nuevos).intersection(TEMPORALES) and configuracion is None:

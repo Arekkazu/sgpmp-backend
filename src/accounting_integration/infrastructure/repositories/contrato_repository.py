@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: persistencia de contratos AAEF y anexos |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: guardar los datos de una versión pendiente modificada |
 """Versiones del contrato (``modulo7.versiones_contrato_aaef``) y anexos (``mapeos_anexos_aaef``).
 Los triggers 03/04/05 de ``modulo7`` son la última defensa de las transiciones; el caso de uso las
 valida antes con mensajes legibles."""
@@ -54,6 +55,17 @@ class SqlAlchemyContratoRepository(ContratoRepository):
                     fecha_deprecacion = :fecha_deprecacion, fecha_inactivacion = :fecha_inactivacion
                 WHERE id_version_contrato_aaef = :id_version_contrato_aaef
             """, params)
+        return contrato
+
+    def guardar_datos_contrato(self, contrato: VersionContrato) -> VersionContrato:
+        # ``estado = 'PENDIENTE'`` en el WHERE: el trigger 05 ya lo impide, esto evita llegar a él.
+        escribir(self.db, """
+            UPDATE modulo7.versiones_contrato_aaef
+            SET fecha_vigencia = :fecha_vigencia, id_mapeo_anexo_aaef = :id_mapeo_anexo_aaef,
+                json_mapeadores = CAST(:mapeadores AS jsonb), periodo_gracia_dias = :periodo_gracia_dias,
+                descripcion = :descripcion
+            WHERE id_version_contrato_aaef = :id_version_contrato_aaef AND estado = 'PENDIENTE'
+        """, {**contrato.__dict__, "mapeadores": a_json(contrato.mapeadores)})
         return contrato
 
     def obtener_anexo(self, id_mapeo_anexo_aaef: int) -> Optional[AnexoMapeo]:

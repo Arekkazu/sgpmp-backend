@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: tipo_modelo vacío llega al caso de uso (422 con los tipos admitidos) |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: firma_artefacto del proceso de entrenamiento |
 from __future__ import annotations
 
 import json
@@ -56,7 +57,10 @@ class RegistrarVersionModeloDTO:
         id_activo_biologico: Optional[int] = Form(None),
         # RFC-010: REAL, SINTETICA, EXTERNA o MIXTA. SINTETICA solo puede correr en SOMBRA.
         fuente_datos: str = Form("REAL"),
+        # SEG-M04-01: HMAC-SHA256 del SHA-256 del artefacto con M04_FIRMA_MODELOS_KEY (hex, 64).
+        firma_artefacto: Optional[str] = Form(None),
     ) -> None:
+        self.firma_artefacto = firma_artefacto
         self.tipo_modelo = tipo_modelo
         self.hash_artefacto_sha256 = hash_artefacto_sha256
         self.dataset_entrenamiento_hash = dataset_entrenamiento_hash

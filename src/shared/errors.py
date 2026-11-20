@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77 E6c: error 413                      |
 # | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: es_fallo_tecnico para los reintentos |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: errores con detalle estructurado opcional |
 """Jerarquía de errores de dominio compartida.
 
 Todos los errores de negocio e infraestructura heredan de ``AppError``.
@@ -51,8 +52,9 @@ class AppError(Exception):
     """
 
     status_code: int = 400
+    detalle: Optional[dict] = None  # datos estructurados opcionales (p. ej. el Mapper y el documento que fallaron)
 
-    def __init__(self, code: str, message: str, field: Optional[str] = None):
+    def __init__(self, code: str, message: str, field: Optional[str] = None, *, detalle: Optional[dict] = None):
         """Inicializa el error con código, mensaje y campo opcional.
 
         Args:
@@ -64,6 +66,7 @@ class AppError(Exception):
         self.code = code
         self.message = message
         self.field = field
+        self.detalle = detalle or None
         super().__init__(message)
 
 

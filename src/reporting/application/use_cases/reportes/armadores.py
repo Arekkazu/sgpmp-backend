@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: contenido de los 18 reportes según la matriz de campos |
+# | 2026-11-19 | Arekkazu | M08 RF-104 M8-08: indicadores de las plantillas y encabezado con la finca del animal |
 """Arma el contenido de cada reporte de RF-104 con los datos de la fuente (matriz de campos del Drive).
 
 Cada armador recibe el :class:`Contexto` (fuente en la instantánea, filtros ya validados, fincas del alcance) y
@@ -29,6 +30,7 @@ from src.reporting.domain.reportes.contenido import (
     PORCENTAJE,
     Columna,
     ContenidoReporte,
+    Indicador,
     Seccion,
     Tabla,
 )
@@ -146,7 +148,12 @@ def _encabezado_rango(ctx: Contexto, fincas: Optional[list[int]], *extra: tuple[
 
 
 def _fincas_filtro(ctx: Contexto) -> Optional[list[int]]:
-    """Las fincas del alcance, o la elegida en el filtro (ya validada)."""
+    """Las fincas del alcance, la elegida en el filtro (ya validada) o, si se eligió un animal, la suya: así el
+    encabezado lleva el titular y la finca del animal y no todas las del usuario (M8-08)."""
+    activo = ctx.filtros.get("activo_biologico_id")
+    ubicacion = ctx.fuente.ubicar("activo", activo) if activo else None
+    if ubicacion and ubicacion.get("id_finca"):
+        return [ubicacion["id_finca"]]
     finca = ctx.filtros.get("finca_id")
     return [finca] if finca else ctx.fincas
 
@@ -200,13 +207,16 @@ def inventario(ctx: Contexto) -> ContenidoReporte:
                   [{"concepto": "Valor total del inventario", "valor": _sumar(filas, "valor")}]),
         ],
         detalle=Tabla("Inventario", [
-            Columna("id_activo", "Identificador"), Columna("especie", "Especie"), Columna("raza", "Raza"),
-            Columna("sinigan", "Identificación SINIGAN"), Columna("estado", "Estado"),
+            Columna("id_activo", "ID activo"), Columna("especie", "Especie"), Columna("raza", "Raza"),
+            Columna("sinigan", "SINIGAN"), Columna("estado", "Estado"),
             Columna("fecha_ingreso", "Fecha de ingreso", FECHA), Columna("animales", "Animales", ENTERO),
             Columna("peso_kg", "Peso (kg)", NUMERO), Columna("etapa", "Etapa productiva"),
             Columna("metodo", "Método de valoración"), Columna("valor", "Valor razonable (COP)", MONEDA),
             Columna("finca", "Finca"), Columna("lote", "Lote"),
         ], detalle),
+        indicadores=[Indicador("Total de activos", len(filas), ENTERO),
+                     Indicador("Valor total del inventario", _sumar(filas, "valor"), MONEDA),
+                     Indicador("Activos sin SINIGAN", sin_sinigan, ENTERO)],
         advertencias=advertencias,
     )
 
@@ -226,6 +236,11 @@ def costos_suministros(ctx: Contexto) -> ContenidoReporte:
         por_tipo[_SUMINISTROS[f["tipo"]]] += _num(f["costo_total"])
     totales = [{"tipo": t, "total": v} for t, v in sorted(por_tipo.items())]
     totales.append({"tipo": "Gran total", "total": sum(por_tipo.values(), Decimal(0))})
+    gran_total = sum(por_tipo.values(), Decimal(0))
+    por_nombre: dict[str, Decimal] = defaultdict(Decimal)
+    for d in detalle:
+        por_nombre[d["nombre"]] += _num(d["costo_total"])
+    dias = (ctx.filtros["fecha_fin"] - ctx.filtros["fecha_inicio"]).days + 1
     tabla_totales = Tabla("Totales por tipo de suministro",
                           [Columna("tipo", "Tipo de suministro"), Columna("total", "Costo total (COP)", MONEDA)], totales)
     return ContenidoReporte(
@@ -238,6 +253,10 @@ def costos_suministros(ctx: Contexto) -> ContenidoReporte:
             Columna("especie", "Especie"), Columna("finca", "Finca"),
         ], detalle),
         resumen=[tabla_totales], finales=[tabla_totales],
+        indicadores=[Indicador("Costo total del período", gran_total, MONEDA),
+                     Indicador("Suministro con mayor costo",
+                               max(por_nombre, key=por_nombre.get) if por_nombre else "Sin consumos"),
+                     Indicador("Costo promedio diario", gran_total / dias, MONEDA)],
     )
 
 
@@ -267,6 +286,8 @@ def productividad(ctx: Contexto) -> ContenidoReporte:
         })
     conversion = ctx.fuente.conversion(fincas=fincas, inicio=ctx.filtros["fecha_inicio"], fin=ctx.filtros["fecha_fin"],
                                        especie=ctx.filtros.get("especie_id"), activo=activo)
+    calculadas = [c for c in conversion if c["ca_calculado"] is not None]
+    mejor = min(calculadas, key=lambda c: c["ca_calculado"]) if calculadas else None
     return ContenidoReporte(
         titulo=ctx.titulo, encabezado=_encabezado_rango(ctx, fincas),
         detalle=Tabla("Producción por lote", [
@@ -285,6 +306,12 @@ def productividad(ctx: Contexto) -> ContenidoReporte:
              "ganancia": c["ganancia_peso_kg"],
              "conversion": c["ca_calculado"] if c["ca_calculado"] is not None else "Sin calcular",
              "finca": c["finca"]} for c in conversion])],
+        indicadores=[
+            Indicador("Lotes con medición", len({d["lote"] for d in detalle}), ENTERO),
+            Indicador("Mejor lote (menor conversión)", mejor["identificador"] if mejor else "Sin calcular"),
+            Indicador("Conversión alimenticia promedio",
+                      _sumar(calculadas, "ca_calculado") / len(calculadas) if calculadas else "Sin calcular", NUMERO),
+        ],
     )
 
 
@@ -314,7 +341,11 @@ def bajas_y_salidas(ctx: Contexto) -> ContenidoReporte:
     por_tipo: dict[str, int] = defaultdict(int)
     for d in detalle:
         por_tipo[d["tipo"]] += d["animales"]
+    sin_sinigan = sum(1 for f in filas if not f["sinigan"])
     advertencias = []
+    if sin_sinigan:
+        advertencias.append(f"{sin_sinigan} {'registro no tiene' if sin_sinigan == 1 else 'registros no tienen'} "
+                            "identificación SINIGAN: revísalos antes de reportar ante la autoridad sanitaria.")
     if sin_causa:
         advertencias.append(f"{sin_causa} {'muerte no tiene' if sin_causa == 1 else 'muertes no tienen'} causa "
                             "registrada: la trazabilidad de la baja ante el ICA está incompleta.")
@@ -323,12 +354,20 @@ def bajas_y_salidas(ctx: Contexto) -> ContenidoReporte:
         resumen=[Tabla("Salidas por tipo", [Columna("tipo", "Tipo de salida"), Columna("animales", "Animales", ENTERO)],
                        [{"tipo": k, "animales": v} for k, v in sorted(por_tipo.items())])],
         detalle=Tabla("Bajas y salidas", [
-            Columna("id_activo", "Identificador"), Columna("sinigan", "Identificación SINIGAN"),
+            Columna("id_activo", "ID activo"), Columna("sinigan", "Identificación SINIGAN"),
             Columna("especie", "Especie"), Columna("tipo", "Tipo de salida"), Columna("fecha", "Fecha de salida", FECHA),
             Columna("animales", "Animales", ENTERO), Columna("motivo", "Causa o motivo"),
             Columna("valor", "Valor al salir (COP)", MONEDA), Columna("origen_valor", "Origen del valor"),
             Columna("destino", "Comprador o destino"), Columna("finca", "Finca de origen"),
         ], detalle),
+        indicadores=[
+            Indicador("Total de salidas", sum(por_tipo.values()), ENTERO),
+            Indicador("Total en ventas", sum((_num(d["valor"]) for d in detalle
+                                              if d["tipo"] == "Venta" and not isinstance(d["valor"], str)), Decimal(0)),
+                      MONEDA),
+            Indicador("Total de muertes", por_tipo.get("Muerte", 0), ENTERO),
+            Indicador("Sin registro SINIGAN", sin_sinigan, ENTERO),
+        ],
         advertencias=advertencias,
     )
 
@@ -376,7 +415,7 @@ def valoracion_nic41(ctx: Contexto) -> ContenidoReporte:
                        + [{"metodo": "Total", "valor": sum(por_metodo.values(), Decimal(0))},
                           {"metodo": "Variación total del período", "valor": _sumar(filas, "variacion")}])],
         detalle=Tabla("Valoración por activo", [
-            Columna("id_activo", "Identificador"), Columna("sinigan", "Identificación SINIGAN"),
+            Columna("id_activo", "ID activo"), Columna("sinigan", "Identificación SINIGAN"),
             Columna("especie", "Especie"), Columna("metodo", "Método de valoración"),
             Columna("valor_razonable", "Valor razonable (COP)", MONEDA), Columna("costo", "Costo atribuido (COP)", MONEDA),
             Columna("variacion", "Variación frente al período anterior (COP)", MONEDA),
@@ -384,6 +423,11 @@ def valoracion_nic41(ctx: Contexto) -> ContenidoReporte:
             Columna("fecha_exportacion", "Fecha de la exportación", FECHA_HORA),
             Columna("estado_exportacion", "Estado de la exportación"),
         ], detalle),
+        indicadores=[
+            Indicador("Valor razonable total", _sumar(filas, "valor_razonable"), MONEDA),
+            Indicador("Costo atribuido total", _sumar(filas, "costo_atribuido"), MONEDA),
+            Indicador("Variación total frente al período anterior", _sumar(filas, "variacion"), MONEDA),
+        ],
         firma=ctx.nombre_usuario or "Contador",
     )
 
@@ -425,6 +469,10 @@ def estado_exportaciones(ctx: Contexto) -> ContenidoReporte:
             Columna("activos", "Activos incluidos", ENTERO), Columna("monto", "Monto total (COP)", MONEDA),
             Columna("errores", "Errores"), Columna("hash", "Huella del paquete"),
         ], detalle),
+        indicadores=[Indicador("Total de exportaciones", len(filas), ENTERO)]
+        + [Indicador(texto, conteo.get(clave, 0) if filas else 0, ENTERO)
+           for texto, clave in (("Exitosas", "Exitosa"), ("Fallidas", "Fallida"))]
+        + [Indicador("Pendientes", 0 if filas else 1, ENTERO)],
     )
 
 
@@ -460,8 +508,10 @@ def variacion_periodos(ctx: Contexto) -> ContenidoReporte:
             "causa": _causa_variacion(f), "finca": f["finca"],
         })
     pivote: dict[tuple[str, str], Decimal] = defaultdict(Decimal)
+    por_finca: dict[str, Decimal] = defaultdict(Decimal)
     for d in detalle:
         pivote[(d["especie"], d["finca"])] += d["variacion"]
+        por_finca[d["finca"]] += d["variacion"]
     resumen = [{"especie": e, "finca": fi, "variacion": v} for (e, fi), v in sorted(pivote.items())]
     resumen.append({"especie": "Gran total", "finca": "Todas", "variacion": _sumar(detalle, "variacion")})
     return ContenidoReporte(
@@ -472,12 +522,19 @@ def variacion_periodos(ctx: Contexto) -> ContenidoReporte:
             Columna("especie", "Especie"), Columna("finca", "Finca"), Columna("variacion", "Variación (COP)", MONEDA)],
             resumen)],
         detalle=Tabla("Variación por activo", [
-            Columna("id_activo", "Identificador"), Columna("especie", "Especie"),
+            Columna("id_activo", "ID activo"), Columna("especie", "Especie"),
             Columna("base", "Valor razonable período base (COP)", MONEDA),
             Columna("comparacion", "Valor razonable período de comparación (COP)", MONEDA),
             Columna("variacion", "Variación absoluta (COP)", MONEDA), Columna("porcentaje", "Variación (%)", PORCENTAJE),
             Columna("causa", "Causa de la variación"), Columna("finca", "Finca"),
         ], detalle),
+        indicadores=[
+            Indicador("Variación total (COP)", _sumar(detalle, "variacion"), MONEDA),
+            Indicador("Variación total (%)", _sumar(detalle, "variacion") / _sumar(detalle, "comparacion") * 100
+                      if _sumar(detalle, "comparacion") else NO_APLICA, PORCENTAJE),
+            Indicador("Finca con mayor variación", max(por_finca, key=lambda k: abs(por_finca[k]))
+                      if por_finca else "Sin variaciones"),
+        ],
     )
 
 
@@ -512,8 +569,9 @@ def _filas_sanitarias(ctx: Contexto, filas: list[dict]) -> list[dict]:
     return salida
 
 
+# Tablas de 12 o más columnas: «SINIGAN» a secas, para que quepan en carta sin partir palabras (M8-12).
 _COLUMNAS_SANITARIAS = [
-    Columna("id_activo", "Identificador"), Columna("sinigan", "Identificación SINIGAN"), Columna("especie", "Especie"),
+    Columna("id_activo", "ID activo"), Columna("sinigan", "SINIGAN"), Columna("especie", "Especie"),
     Columna("tipo", "Tipo de evento"), Columna("fecha", "Fecha", FECHA_HORA), Columna("descripcion", "Descripción"),
     Columna("nivel", "Nivel de riesgo"), Columna("veterinario", "Veterinario responsable"),
     Columna("tratamiento", "Tratamiento aplicado"), Columna("medicamento", "Medicamento"), Columna("dosis", "Dosis"),
@@ -534,8 +592,20 @@ def historico_sanitario(ctx: Contexto) -> ContenidoReporte:
     conteo: dict[str, int] = defaultdict(int)
     for f in filas:
         conteo[f["tipo"]] += 1
+    clinicos = [f for f in filas if f["_tipo"] != "PREDICCION"]
+    resueltos = [f for f in clinicos if f["resultado"] != "Sin resultado registrado"]
+    sin_sinigan = len({f["id_activo"] for f in filas if f["sinigan"] == SIN_SINIGAN})
     return ContenidoReporte(
         titulo=ctx.titulo, encabezado=_encabezado_rango(ctx, fincas),
+        indicadores=[
+            Indicador("Total de eventos", len(filas), ENTERO),
+            Indicador("Tasa de resolución clínica",
+                      Decimal(len(resueltos) * 100) / len(clinicos) if clinicos else "Sin eventos clínicos", PORCENTAJE),
+            Indicador("Activos atendidos", len({f["id_activo"] for f in filas}), ENTERO),
+        ],
+        advertencias=[f"{sin_sinigan} {'activo no tiene' if sin_sinigan == 1 else 'activos no tienen'} identificación "
+                      "oficial SINIGAN. Para la compatibilidad con el ICA, regístrala en Activos biológicos."]
+        if sin_sinigan else [],
         resumen=[Tabla("Eventos por tipo", [Columna("tipo", "Tipo de evento"), Columna("total", "Eventos", ENTERO)],
                        [{"tipo": k, "total": v} for k, v in sorted(conteo.items())])],
         detalle=Tabla("Historial sanitario", _COLUMNAS_SANITARIAS, filas),
@@ -559,7 +629,7 @@ def _prediccion(f: dict) -> dict[str, Any]:
 
 
 _COLUMNAS_PREDICCION = [
-    Columna("id_activo", "Identificador"), Columna("sinigan", "Identificación SINIGAN"), Columna("especie", "Especie"),
+    Columna("id_activo", "ID activo"), Columna("sinigan", "Identificación SINIGAN"), Columna("especie", "Especie"),
     Columna("nivel", "Nivel de riesgo"), Columna("condicion", "Condición predicha"),
     Columna("probabilidad", "Probabilidad (%)", PORCENTAJE), Columna("fecha", "Fecha de la predicción", FECHA_HORA),
     Columna("vence", "Vence", FECHA_HORA), Columna("factores", "Factores de riesgo detectados"),
@@ -674,6 +744,8 @@ def vacunacion_medicamentos(ctx: Contexto) -> ContenidoReporte:
              "aplicado": r["fecha_aplicacion"], "fin": r["fecha_fin_retiro"], "finca": r["finca"]} for r in retiros],
             nota="No sacrificar estos animales ni comercializar su leche hasta que termine el retiro."
             if retiros else "Ningún animal está en período de retiro a la fecha del reporte.")],
+        indicadores=[Indicador("Total de aplicaciones", len(detalle), ENTERO),
+                     Indicador("Animales en período de retiro", len({r["identificador"] for r in retiros}), ENTERO)],
     )
 
 
@@ -688,6 +760,7 @@ def riesgo_sanitario(ctx: Contexto) -> ContenidoReporte:
         filas = [f for f in filas if f["_nivel"] == nivel]
     conteo = {texto: sum(1 for f in filas if f["_nivel"] == n) for n, texto in ((3, "Alto"), (2, "Medio"), (1, "Bajo"))}
     top = sorted(filas, key=lambda f: f["probabilidad"], reverse=True)[:10]
+    indicadores = [Indicador(f"Riesgo {k.lower()}", v, ENTERO) for k, v in conteo.items()]
     extra = [("Predicciones desde", f"{desde:%d/%m/%Y}")] if desde else []
     return ContenidoReporte(
         titulo=ctx.titulo, encabezado=encabezado(ctx, fincas, extra),
@@ -695,10 +768,11 @@ def riesgo_sanitario(ctx: Contexto) -> ContenidoReporte:
             Tabla("Animales por nivel de riesgo", [Columna("nivel", "Nivel"), Columna("animales", "Animales", ENTERO)],
                   [{"nivel": k, "animales": v} for k, v in conteo.items()]),
             Tabla("Los 10 animales con mayor probabilidad de riesgo", [
-                Columna("id_activo", "Identificador"), Columna("especie", "Especie"), Columna("nivel", "Nivel"),
+                Columna("id_activo", "ID activo"), Columna("especie", "Especie"), Columna("nivel", "Nivel"),
                 Columna("condicion", "Condición"), Columna("probabilidad", "Probabilidad (%)", PORCENTAJE)], top),
         ],
         detalle=Tabla("Predicciones activas", _COLUMNAS_PREDICCION, filas),
+        indicadores=indicadores,
     )
 
 
@@ -722,6 +796,11 @@ def telemetria(ctx: Contexto) -> ContenidoReporte:
     estadisticas = [{"sensor": s, "variable": v, "lecturas": len(vals), "promedio": sum(vals) / len(vals),
                      "minimo": min(vals), "maximo": max(vals)} for (s, v), vals in sorted(grupos.items())]
     ubicacion = ctx.fuente.ubicar("infraestructura", infra) or {}
+    valores = [v for vals in grupos.values() for v in vals]
+    una_variable = len({v for _, v in grupos}) == 1
+    indicadores = ([Indicador("Promedio del período", sum(valores) / len(valores), NUMERO),
+                    Indicador("Valor mínimo", min(valores), NUMERO), Indicador("Valor máximo", max(valores), NUMERO)]
+                   if valores and una_variable else [])
     return ContenidoReporte(
         titulo=ctx.titulo,
         encabezado=_encabezado_rango(ctx, [ubicacion["id_finca"]] if ubicacion.get("id_finca") else ctx.fincas,
@@ -735,6 +814,7 @@ def telemetria(ctx: Contexto) -> ContenidoReporte:
             Columna("unidad", "Unidad"), Columna("fecha", "Fecha y hora de la medición", FECHA_HORA),
             Columna("estado", "Estado del dispositivo"), Columna("area", "Área"), Columna("finca", "Finca"),
         ], detalle),
+        indicadores=indicadores,
     )
 
 
@@ -765,8 +845,13 @@ def estado_dispositivos(ctx: Contexto) -> ContenidoReporte:
     for d in detalle:
         conteo[(d["finca"], d["estado"])] += 1
     prioritarios = [d for d in detalle if d["_horas"] is None or d["_horas"] > HORAS_PRIORITARIO]
+    activos = sum(1 for d in detalle if d["estado"] in (_DISPOSITIVO["ACTIVO"], _DISPOSITIVO["BUFFER_ACTIVO"]))
+    mantenimiento = sum(1 for d in detalle if d["estado"] == _DISPOSITIVO["EN_MANTENIMIENTO"])
     return ContenidoReporte(
         titulo=ctx.titulo, encabezado=encabezado(ctx, fincas, [("Fecha de corte", f"{corte_dia:%d/%m/%Y}")]),
+        indicadores=[Indicador("Activos", activos, ENTERO),
+                     Indicador("Inactivos, sin señal o en falla", len(detalle) - activos - mantenimiento, ENTERO),
+                     Indicador("En mantenimiento", mantenimiento, ENTERO)],
         resumen=[
             Tabla("Dispositivos por estado y finca", [Columna("finca", "Finca"), Columna("estado", "Estado"),
                                                       Columna("total", "Dispositivos", ENTERO)],
@@ -857,8 +942,14 @@ def alertas_sensores(ctx: Contexto) -> ContenidoReporte:
         por_dispositivo[d["serial"]] += 1
         por_clase[(d["tipo"], d["severidad"])] += 1
     ranking = sorted(por_dispositivo.items(), key=lambda x: x[1], reverse=True)[:5]
+    por_severidad: dict[str, int] = defaultdict(int)
+    for d in detalle:
+        por_severidad[d["severidad"]] += 1
     return ContenidoReporte(
         titulo=ctx.titulo, encabezado=_encabezado_rango(ctx, fincas),
+        indicadores=[Indicador(f"Alertas {texto.lower()}s" if texto != "Advertencia" else "Alertas de advertencia",
+                               por_severidad.get(texto, 0), ENTERO)
+                     for texto in ("Crítica", "Advertencia", "Informativa")],
         resumen=[
             Tabla("Los 5 dispositivos con más alertas", [Columna("serial", "Serial"),
                                                           Columna("alertas", "Alertas", ENTERO)],
@@ -993,6 +1084,7 @@ def rentabilidad_finca(ctx: Contexto) -> ContenidoReporte:
     for d in f.dispositivos_por_estado(fincas=fincas):
         fila(d["finca"])["activos" if d["estado"] in ("ACTIVO", "BUFFER_ACTIVO") else "falla"] += d["total"]
     detalle = [{**x, "margen": x["valor"] - x["costo"]} for x in sorted(filas.values(), key=lambda x: x["finca"])]
+    margen_total = _sumar(detalle, "margen")
     return ContenidoReporte(
         titulo=ctx.titulo, encabezado=encabezado(ctx, fincas, [("Período contable", _periodo_texto(periodo))]),
         detalle=Tabla("Rentabilidad por finca", [
@@ -1003,6 +1095,11 @@ def rentabilidad_finca(ctx: Contexto) -> ContenidoReporte:
             Columna("alto_riesgo", "Eventos sanitarios de riesgo alto", ENTERO),
             Columna("activos", "Dispositivos IoT activos", ENTERO), Columna("falla", "Dispositivos IoT en falla", ENTERO),
         ], detalle),
+        indicadores=[
+            Indicador("Margen bruto total", margen_total, MONEDA),
+            Indicador("Finca más rentable", max(detalle, key=lambda x: x["margen"])["finca"] if detalle else "Sin fincas"),
+            Indicador("Margen promedio por finca", margen_total / len(detalle) if detalle else Decimal(0), MONEDA),
+        ],
         aclaraciones=["El margen bruto estimado es un indicador de gestión interna calculado por el sistema "
                       "(valor del inventario menos costo de suministros) y no constituye un estado financiero "
                       "certificado. Para efectos contables y legales, el Contador debe generar el reporte de "
@@ -1039,6 +1136,9 @@ def comparativo_periodos(ctx: Contexto) -> ContenidoReporte:
         b, c = v_base.get(indicador, Decimal(0)), v_comp.get(indicador, Decimal(0))
         detalle.append({"indicador": indicador, "base": b, "comparacion": c, "variacion": b - c,
                         "porcentaje": (b - c) / c * 100 if c else NO_APLICA})
+    con_cambio = [d for d in detalle if d["variacion"]]
+    crece = max(con_cambio, key=lambda d: d["variacion"], default=None)
+    cae = min(con_cambio, key=lambda d: d["variacion"], default=None)
     return ContenidoReporte(
         titulo=ctx.titulo,
         encabezado=encabezado(ctx, fincas, [("Período base", _periodo_texto(base)),
@@ -1048,6 +1148,12 @@ def comparativo_periodos(ctx: Contexto) -> ContenidoReporte:
             Columna("comparacion", "Período de comparación", NUMERO), Columna("variacion", "Variación absoluta", NUMERO),
             Columna("porcentaje", "Variación (%)", PORCENTAJE),
         ], detalle),
+        indicadores=[
+            Indicador("Indicador con mayor crecimiento",
+                      crece["indicador"] if crece and crece["variacion"] > 0 else "Ningún indicador creció"),
+            Indicador("Indicador con mayor caída",
+                      cae["indicador"] if cae and cae["variacion"] < 0 else "Ningún indicador cayó"),
+        ],
     )
 
 
