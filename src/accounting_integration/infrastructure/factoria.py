@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: ensamblado de repositorios y casos de uso de la integración |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: los rechazos del ciclo de vida del contrato se auditan aparte |
 """Fábrica de M07: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -89,7 +90,7 @@ class M07:
 
     def gestionar_contratos(self) -> GestionarContratosUseCase:
         return GestionarContratosUseCase(self.contratos, self.auditoria, self.db, configuracion.es_produccion, self.alertar,
-                                         configuracion.COMPROBANTE_NIC41_HABILITADO)
+                                         configuracion.COMPROBANTE_NIC41_HABILITADO, self.auditar_aparte)
 
     def consultar_auditoria(self) -> ConsultarAuditoriaIntegracionUseCase:
         return ConsultarAuditoriaIntegracionUseCase(self.auditoria, self.alertar)

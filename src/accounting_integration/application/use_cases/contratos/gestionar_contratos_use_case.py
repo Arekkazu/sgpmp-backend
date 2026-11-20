@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98: registro y transiciones de las versiones del contrato AAEF |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: transición rechazada auditada (WARNING) y avisada, estado antes que anexo y modificación de pendientes |
 """Versiones del contrato AAEF (RF-98 v1.1).
 
 Registro siempre en PENDIENTE. La activación ocurre al llegar la fecha de vigencia (proceso de fondo)
@@ -29,7 +30,11 @@ from src.accounting_integration.domain.entities.evento_integracion import Evento
 from src.accounting_integration.domain.repositories.auditoria_integracion_repository import AuditoriaIntegracionRepository
 from src.accounting_integration.domain.repositories.contrato_repository import ContratoRepository
 from src.accounting_integration.domain.services.aaef import MAPPER_COMPROBANTE_NIC41, MAPPERS_DISPONIBLES
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import BusinessRuleError, ConflictError, FlowError, NotFoundError, ValidationError
+
+# RF-98 CA-26/CA-27: rechazos del ciclo de vida que se auditan con WARNING y se avisan al Administrador.
+_RECHAZOS_AUDITADOS = ("TRANSICION_NO_PERMITIDA", "REACTIVACION_NO_PERMITIDA", "MODIFICACION_NO_PERMITIDA")
+_ACCIONES = {"activar": ("POST", "/activar"), "deprecar": ("POST", "/deprecar"), "modificar": ("PATCH", "")}
 
 
 @dataclass(frozen=True)
@@ -48,13 +53,38 @@ class GestionarContratosUseCase:
 
     def __init__(self, contratos: ContratoRepository, auditoria: AuditoriaIntegracionRepository, db: Session,
                  es_produccion: Callable[[], bool], alertar: Callable[[str, dict], None],
-                 comprobante_habilitado: bool = False):
+                 comprobante_habilitado: bool = False,
+                 registrar_aparte: Optional[Callable[[EventoIntegracion], None]] = None):
         self.contratos = contratos
         self.auditoria = auditoria
         self.db = db
         self.es_produccion = es_produccion
         self.alertar = alertar
         self.comprobante_habilitado = comprobante_habilitado
+        self.registrar_aparte = registrar_aparte
+
+    def _rechazo(self, exc: FlowError, contrato: VersionContrato, accion: str, id_usuario: Optional[int],
+                 metodo: Optional[str] = None) -> None:
+        """RF-98 CA-26/CA-27 + RF-102: el intento rechazado se audita con WARNING en una sesión propia
+        (la operación ya hizo rollback y el registro debe quedar) y se avisa al Administrador."""
+        if exc.code not in _RECHAZOS_AUDITADOS or self.registrar_aparte is None:
+            return
+        metodo_defecto, sufijo = _ACCIONES[accion]
+        self.registrar_aparte(EventoIntegracion(
+            tipo_evento="CONTRATO_TRANSICION_RECHAZADA", severidad="WARNING",
+            tipo_actor="USUARIO" if id_usuario else "SISTEMA", id_usuario=id_usuario,
+            version_contrato=contrato.contrato_version, metodo_http=metodo or metodo_defecto, codigo_http=422,
+            endpoint=f"/integracion/contratos/{contrato.id_version_contrato_aaef}{sufijo}",
+            codigo_resultado=exc.code, json_detalle={"estado": contrato.estado, "accion": accion}))
+        self.alertar(f"Se rechazó un intento de {accion} la versión {contrato.contrato_version} del contrato "
+                     f"contable: {exc.message}", {"version_contrato": contrato.contrato_version, "accion": accion})
+
+    def _bloquear(self, id_version_contrato_aaef: int) -> tuple[VersionContrato, list[VersionContrato]]:
+        contratos = self.contratos.listar_contratos(bloquear=True)
+        contrato = next((c for c in contratos if c.id_version_contrato_aaef == id_version_contrato_aaef), None)
+        if contrato is None:
+            raise NotFoundError(code="CONTRATO_NO_ENCONTRADO", message="La versión del contrato no existe.")
+        return contrato, contratos
 
     def _exigir_comprobante_disponible(self, mapeadores: list[str]) -> None:
         if MAPPER_COMPROBANTE_NIC41 in mapeadores and not self.comprobante_habilitado:
@@ -100,11 +130,10 @@ class GestionarContratosUseCase:
 
     def activar(self, id_version_contrato_aaef: int, id_usuario: Optional[int]) -> VersionContrato:
         """Activación manual (Administrador) o automática (fecha de vigencia). Atómica con las deprecaciones."""
+        contrato = None
         try:
-            contratos = self.contratos.listar_contratos(bloquear=True)
-            contrato = next((c for c in contratos if c.id_version_contrato_aaef == id_version_contrato_aaef), None)
-            if contrato is None:
-                raise NotFoundError(code="CONTRATO_NO_ENCONTRADO", message="La versión del contrato no existe.")
+            contrato, contratos = self._bloquear(id_version_contrato_aaef)
+            contrato.exigir_activable()  # FA-13: el estado manda sobre el anexo
             motivo = motivo_bloqueo_activacion(
                 contrato, self.contratos.obtener_anexo(contrato.id_mapeo_anexo_aaef) if contrato.id_mapeo_anexo_aaef else None,
                 self.es_produccion())
@@ -123,22 +152,61 @@ class GestionarContratosUseCase:
             self.contratos.guardar_contrato(contrato)
             self._evento("CONTRATO_ACTIVADO", contrato, id_usuario)
             self.db.commit()
+        except FlowError as exc:
+            self.db.rollback()
+            if contrato is not None:
+                self._rechazo(exc, contrato, "activar", id_usuario)
+            raise
         except Exception:
             self.db.rollback()
             raise
         return contrato
 
     def deprecar(self, id_version_contrato_aaef: int, dias_gracia: int, id_usuario: int) -> VersionContrato:
+        contrato = None
         try:
-            contrato = next((c for c in self.contratos.listar_contratos(bloquear=True)
-                             if c.id_version_contrato_aaef == id_version_contrato_aaef), None)
-            if contrato is None:
-                raise NotFoundError(code="CONTRATO_NO_ENCONTRADO", message="La versión del contrato no existe.")
+            contrato, _ = self._bloquear(id_version_contrato_aaef)
             contrato.deprecar(datetime.now(timezone.utc), dias_gracia)
             self.contratos.guardar_contrato(contrato)
             self._evento("CONTRATO_DEPRECADO", contrato, id_usuario,
                          fecha_inactivacion=contrato.fecha_inactivacion.date().isoformat())
             self.db.commit()
+        except FlowError as exc:
+            self.db.rollback()
+            if contrato is not None:
+                self._rechazo(exc, contrato, "deprecar", id_usuario)
+            raise
+        except Exception:
+            self.db.rollback()
+            raise
+        return contrato
+
+    def modificar(self, id_version_contrato_aaef: int, cambios: dict, id_usuario: int,
+                  metodo: str = "PATCH") -> VersionContrato:
+        """RF-98 5.12 / CA-20 / FA-12: solo una versión PENDIENTE se modifica; ACTIVO, DEPRECADO e
+        INACTIVO responden MODIFICACION_NO_PERMITIDA y el intento queda auditado."""
+        contrato = None
+        try:
+            contrato, _ = self._bloquear(id_version_contrato_aaef)
+            anterior = {"fecha_vigencia": contrato.fecha_vigencia.isoformat(), "mapeadores": list(contrato.mapeadores),
+                        "id_mapeo_anexo_aaef": contrato.id_mapeo_anexo_aaef,
+                        "periodo_gracia_dias": contrato.periodo_gracia_dias}
+            contrato.modificar(**cambios)
+            self._exigir_comprobante_disponible(contrato.mapeadores)
+            if cambios.get("id_mapeo_anexo_aaef") is not None:
+                anexo = self.contratos.obtener_anexo(contrato.id_mapeo_anexo_aaef)
+                if anexo is None or not anexo.usable(self.es_produccion()):  # FA-2
+                    raise BusinessRuleError(code="ANEXO_MAPEO_INVALIDO", field="id_mapeo_anexo_aaef",
+                                            message="El contrato necesita un anexo de mapeo aprobado.")
+            self.contratos.guardar_datos_contrato(contrato)
+            self._evento("CONTRATO_MODIFICADO", contrato, id_usuario, anterior=anterior,
+                         campos=sorted(k for k, v in cambios.items() if v is not None))
+            self.db.commit()
+        except FlowError as exc:
+            self.db.rollback()
+            if contrato is not None:
+                self._rechazo(exc, contrato, "modificar", id_usuario, metodo)
+            raise
         except Exception:
             self.db.rollback()
             raise
