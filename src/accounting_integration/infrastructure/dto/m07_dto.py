@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-101/RF-AE02: DTOs de administración de la integración |
+# | 2026-11-19 | Arekkazu | M7-02 RF-98: justificación de la aprobación interna del anexo |
 """DTOs de entrada de la administración de M07 (clientes, anexos y contratos)."""
 from __future__ import annotations
 
@@ -77,6 +78,11 @@ class RegistrarAnexoDTO(BaseDTO):
     version_anexo: str = Field(pattern=r"^\d{1,3}\.\d{1,3}$", examples=["3.0"])
     ruta_documento: str = Field(min_length=3, max_length=500, description="Dónde está el documento formal del anexo.")
     sha256_documento: str = Field(min_length=64, max_length=64, description="SHA-256 del documento formal.")
+
+
+class EnviarAnexoRevisionDTO(BaseDTO):
+    justificacion: str = Field(min_length=20, max_length=1000,
+                               description="Por qué el Contador aprueba el mapeo; queda en la auditoría.")
 
 
 class AprobarAnexoDTO(BaseDTO):

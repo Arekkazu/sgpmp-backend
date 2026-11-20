@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102: persistencia append-only de la auditoría de integración |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
+# | 2026-11-19 | Arekkazu | M7-11 RF-102: nombre de quien actuó, además del correo |
 """Auditoría de M07 en ``modulo7.eventos_integracion`` (RF-102). Los triggers bloquean UPDATE,
 DELETE y TRUNCATE; aquí solo se inserta y se consulta."""
 from __future__ import annotations
@@ -17,7 +18,7 @@ from src.accounting_integration.domain.repositories.auditoria_integracion_reposi
     AuditoriaIntegracionRepository,
     FiltrosAuditoria,
 )
-from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, filas
+from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, filas, nombres_usuarios
 from src.shared.errors import InfrastructureError
 
 logger = logging.getLogger(__name__)
@@ -83,8 +84,11 @@ class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
             {donde} ORDER BY e.fecha_evento DESC, e.id_evento_integracion LIMIT :limite OFFSET :desplazamiento
         """, params)
         total = resultado[0]["total"] if resultado else 0
+        # M7-11: «Quién» muestra el nombre; el correo sigue para la exportación y como respaldo.
+        nombres = nombres_usuarios(self.db, (f["id_usuario"] for f in resultado))
         return [(EventoIntegracion(**{c: f[c] for c in _CAMPOS}), f["hash_integridad"],
-                 {"correo_usuario": f["correo_usuario"], "nombre_cliente": f["nombre_cliente"]}) for f in resultado], total
+                 {"nombre_usuario": nombres.get(f["id_usuario"]), "correo_usuario": f["correo_usuario"],
+                  "nombre_cliente": f["nombre_cliente"]}) for f in resultado], total
 
 
 def registrador_aparte(session_factory: Callable[[], Session], alertar: Callable[[str, dict], None]) -> Callable[[EventoIntegracion], None]:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: integración AAEF de punta a punta contra PostgreSQL |
+# | 2026-11-19 | Arekkazu | M7-02 RF-98: la aprobación interna del anexo lleva justificación |
 """M07 de punta a punta contra Postgres real (migración 94b14a6931d6).
 
 M06 real (reconocimiento, factura de proveedor repartida entre dos activos, cierre del período) →
@@ -121,8 +122,10 @@ def _preparar_m07(cli: TestClient, admin: dict, contador: dict) -> int:
         "sha256_documento": hashlib.sha256(b"anexo").hexdigest()})
     assert r.status_code == 201, r.text
     id_anexo = r.json()["id_mapeo_anexo_aaef"]
-    assert cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=admin).status_code == 403  # solo el Contador
-    r = cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador)
+    justificacion = {"justificacion": "Mapeo revisado contra el plan de cuentas del productor."}
+    assert cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=admin,
+                    json=justificacion).status_code == 403  # solo el Contador
+    r = cli.post(f"/integracion/anexos/{id_anexo}/revision", headers=contador, json=justificacion)
     assert r.status_code == 200 and r.json()["estado"] == "EN_REVISION", r.text
     r = cli.post("/integracion/contratos", headers=admin, json={
         "contrato_version": "3.0", "tipo_cambio": "MAJOR", "fecha_vigencia": HOY.isoformat(),
