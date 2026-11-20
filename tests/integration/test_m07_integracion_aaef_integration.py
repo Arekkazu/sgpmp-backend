@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: integración AAEF de punta a punta contra PostgreSQL |
 # | 2026-11-19 | Leandro | INC-M07-372-G36 RF-98: verificar el rechazo de mapeadores y sus efectos en PostgreSQL. |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01/RF-AE02: probar credenciales, autorización y revisión del anexo. |
+# | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: probar el rechazo auditable de un costo real inferior a un centavo. |
 """M07 de punta a punta contra Postgres real (migración 94b14a6931d6).
 
 M06 real (reconocimiento, factura de proveedor repartida entre dos activos, cierre del período) →
@@ -27,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from src.accounting_integration.domain.services.esquema_agrofusion import AccountingConsultResponse
 from src.financial_valuation.application.use_cases.costos.registrar_costo_use_case import SolicitudCosto
+from src.financial_valuation.infrastructure.dto.m06_dto import CostoDTO
 from tests.integration.conftest import JWT_SECRET_INTEGRACION, _importar_modelos_identity_access
 from tests.integration.test_m06_flujo_nic41_integration import (  # noqa: F401  (m06 es fixture)
     HOY,
@@ -87,7 +89,7 @@ def cliente_http(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Genera
         yield cliente
 
 
-def _sembrar_m06_cerrado(db: Session, m06, uid: int) -> tuple[dict, int]:
+def _sembrar_m06_cerrado(db: Session, m06, uid: int, *, monto_adicional: D | None = None) -> tuple[dict, int]:
     """Titular con un período cerrado que tiene una factura de proveedor repartida en dos activos."""
     especie = 2
     finca = _finca(db, uid)
@@ -105,6 +107,14 @@ def _sembrar_m06_cerrado(db: Session, m06, uid: int) -> tuple[dict, int]:
         subtipo_costo="VETERINARIO", origen_costo="SERVICIO_TERCERO", monto_costo=D("100.01"), fecha_costo=HOY,
         activos_reparto=activos, tercero_nit="800555111", tercero_dv="1", tercero_razon_social="Veterinaria SAS",
         factura_prefijo="FE", factura_numero="88231", fecha_factura=HOY, fecha_vencimiento_factura=HOY + timedelta(days=30)), uid)
+    if monto_adicional is not None:
+        dto = CostoDTO(
+            id_activo_biologico=activos[0], subtipo_costo="VETERINARIO", origen_costo="SERVICIO_TERCERO",
+            monto_costo=monto_adicional, fecha_costo=HOY, tercero_nit="800555111", tercero_dv="1",
+            tercero_razon_social="Veterinaria SAS", factura_prefijo="FE", factura_numero="88232",
+            fecha_factura=HOY, fecha_vencimiento_factura=HOY + timedelta(days=30),
+        )
+        m06.registrar_costo().execute(SolicitudCosto(**dto.model_dump()), uid)
     periodo = m06.periodos.que_contiene(NIT, HOY)
     assert m06.cierre().execute(periodo.id_periodo_contable, uid)["estado"] == "CERRADO"
     return {"desde": periodo.fecha_inicio.isoformat(), "hasta": periodo.fecha_fin.isoformat()}, finca
@@ -314,6 +324,36 @@ def test_g60_falla_del_anexo_bloquea_revision_y_queda_auditada(
     revision = cliente_http.post(url, headers=contador)
     assert revision.status_code == 200, revision.text
     assert revision.json()["estado"] == "EN_REVISION"
+def test_g61_rechaza_consulta_y_vista_previa_con_un_costo_inferior_a_un_centavo(
+    db_session, m06, cliente_http, crear_usuario_db, crear_auth_headers,
+):
+    contador = crear_usuario_db(id_rol=5, estado=2)
+    admin_web = crear_auth_headers(crear_usuario_db(id_rol=1, estado=2))
+    contador_web = crear_auth_headers(contador)
+    monto = D("0.0049")
+    rango, _ = _sembrar_m06_cerrado(db_session, m06, contador["id_usuario"], monto_adicional=monto)
+    _preparar_m07(cliente_http, admin_web, contador_web)
+    credencial = _token(cliente_http, contador["correo"])
+    assert credencial.status_code == 200, credencial.text
+    id_solicitud = str(uuid4())
+    cabeceras = {"Authorization": f"Bearer {credencial.json()['access_token']}", "X-Request-Id": id_solicitud}
+    consulta = cliente_http.get(URL, params=rango, headers=cabeceras)
+    previa = cliente_http.get(f"/integracion/aaef/vista-previa/productores/{NIT}",
+                              params=rango, headers=contador_web)
+    for respuesta in (consulta, previa):
+        assert respuesta.status_code == 422, respuesta.text
+        cuerpo = respuesta.json()
+        assert cuerpo["error_code"] == "MAPPER_FALLIDO"
+        assert cuerpo["fields"][0]["field"] == "Value"
+        assert "invoices" not in cuerpo and "X-Content-SHA256" not in respuesta.headers
+
+    assert db_session.execute(text("""
+        SELECT tipo_evento, codigo_resultado, codigo_http, hash_contenido
+        FROM modulo7.eventos_integracion WHERE id_solicitud = :id
+    """), {"id": id_solicitud}).one() == ("SOLICITUD_RECHAZADA", "MAPPER_FALLIDO", 422, None)
+    assert db_session.execute(text("""
+        SELECT monto_costo FROM modulo6.registros_costos WHERE factura_numero = '88232'
+    """)).scalar_one() == monto
 
 
 def test_agrofusion_consulta_el_documento_aaef_de_punta_a_punta(

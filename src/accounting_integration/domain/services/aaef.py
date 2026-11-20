@@ -6,6 +6,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-382 RF-97: el envelope y su hash de contenido usan texto Unicode NFC |
 # | 2026-11-19 | Arekkazu | TC-M07-G016/G019 RF-96: neto negativo invierte las cuentas y LineType contra la matriz |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: verificar los cuatro totales del resumen contra los documentos. |
+# | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: rechazar importes no positivos tras truncar las líneas de compra. |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -183,6 +184,14 @@ def mapear_compras(costos: Iterable[CostoFactura], catalogo: Optional[frozenset]
         for costo in registros:
             _exigir_catalogo(costo.subtipo_costo, catalogo, ETIQUETA_SUBTIPO, document_id, MAPPER_COMPRAS)
             valor = truncar2(costo.monto_costo)
+            if valor <= 0:
+                raise AaefError(
+                    "MAPPER_FALLIDO",
+                    f"La factura de compra {prefijo}{numero} tiene una línea por debajo de 0,01 COP. "
+                    "Revise el costo asociado a esa línea en Finanzas.",
+                    "Value",
+                    {"mapper": MAPPER_COMPRAS, "documento": document_id},
+                )
             lineas.append({
                 "Code": costo.subtipo_costo,
                 "Name": ETIQUETA_SUBTIPO.get(costo.subtipo_costo, costo.subtipo_costo).capitalize(),
